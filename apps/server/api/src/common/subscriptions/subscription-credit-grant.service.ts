@@ -17,7 +17,11 @@
  */
 
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
-import { SubscriptionPlan, SubscriptionTier } from '@genfeedai/enums';
+import {
+  parseSubscriptionPlan,
+  SubscriptionPlan,
+  SubscriptionTier,
+} from '@genfeedai/enums';
 import {
   INCLUDED_MONTHLY_CREDITS_METADATA_KEY,
   parseIncludedMonthlyCredits,
@@ -97,10 +101,11 @@ export class SubscriptionCreditGrantService {
    * key is always expressed per month regardless of the price's interval.
    */
   async resolvePlanCredits(
-    plan: SubscriptionPlan | null | undefined,
+    plan: string | null | undefined,
     stripePriceId?: string | null,
   ): Promise<number | null> {
-    const months = plan ? PLAN_MONTHS[plan] : undefined;
+    const parsedPlan = parseSubscriptionPlan(plan);
+    const months = parsedPlan ? PLAN_MONTHS[parsedPlan] : undefined;
     if (!months) {
       return null;
     }
@@ -122,7 +127,10 @@ export class SubscriptionCreditGrantService {
     }
 
     const priceToTier: Record<string, SubscriptionTier> = {};
-    const configuredTiers: [string, SubscriptionTier][] = [
+    // `as const` keeps each env key a literal, so `ConfigService.get` resolves
+    // to that key's `string | undefined` rather than the union of every env
+    // value type (which includes the `'true' | 'false'` boolean-ish literals).
+    const configuredTiers = [
       ['STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY', SubscriptionTier.PRO],
       ['STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY', SubscriptionTier.PRO],
       ['STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY', SubscriptionTier.SCALE],
@@ -130,7 +138,7 @@ export class SubscriptionCreditGrantService {
         'STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY',
         SubscriptionTier.ENTERPRISE,
       ],
-    ];
+    ] as const;
 
     for (const [envKey, tier] of configuredTiers) {
       const priceId = this.configService.get(envKey);

@@ -2,6 +2,8 @@ import type { ModelsService } from '@api/collections/models/services/models.serv
 import type { ByokService } from '@api/services/byok/byok.service';
 import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import type { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/media-vendor-cost-ledger.service';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ByokProvider } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 describe('MediaGenerationCostService', () => {
@@ -68,6 +70,37 @@ describe('MediaGenerationCostService', () => {
 
     expect(ledgerService.record).toHaveBeenCalledWith(
       expect.objectContaining({ isByok: true, vendorCostMicros: 0 }),
+    );
+  });
+
+  it('does not record Higgsfield usage as Replicate BYOK', async () => {
+    modelsService.findOne.mockResolvedValue({
+      ...videoModel,
+      key: MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
+    });
+    byokService.isByokActiveForProvider.mockImplementation(
+      (_organizationId: string, provider: ByokProvider) =>
+        Promise.resolve(provider === ByokProvider.REPLICATE),
+    );
+
+    await service.recordGenerationCost({
+      category: 'video',
+      durationSeconds: 5,
+      ingredientId: 'ing-higgsfield',
+      modelKey: MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
+      organizationId: 'org-1',
+    });
+
+    expect(byokService.isByokActiveForProvider).toHaveBeenCalledWith(
+      'org-1',
+      ByokProvider.HIGGSFIELD,
+    );
+    expect(ledgerService.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isByok: false,
+        provider: ByokProvider.HIGGSFIELD,
+        vendorCostMicros: 1_200_000,
+      }),
     );
   });
 

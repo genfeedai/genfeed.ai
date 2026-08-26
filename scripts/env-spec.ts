@@ -27,6 +27,17 @@ export const DEPRECATED_ENV_KEYS = [
   'SENTRY_DSN_TELEGRAM',
   'SENTRY_DSN_CLIPS',
   'MONGODB_URL',
+  // Subscription credit grants come from the Stripe price
+  // (`included_monthly_credits` metadata), never from a deployment-wide
+  // constant that is unrelated to what the customer paid.
+  'STRIPE_MONTHLY_CREDITS',
+  'STRIPE_YEARLY_CREDITS',
+  // The Creator tier was renamed to Pro; the price it pointed at is now
+  // STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY.
+  'STRIPE_PRICE_SUBSCRIPTION_CREATOR_MONTHLY',
+  // Never read by any service.
+  'STRIPE_COUPON_CREDITS_PACKS_V2_PRO',
+  'STRIPE_COUPON_CREDITS_PACKS_V2_ENTERPRISE',
 ] as const;
 
 const frontendSharedKeys = [
@@ -84,7 +95,18 @@ export const ENV_TARGETS: EnvTarget[] = [
     },
     localLegacyFile: 'apps/app/.env',
     sharedKeys: [...frontendSharedKeys],
-    directKeys: ['NEXT_PUBLIC_TTS_ENABLED'],
+    // Checkout runs in the browser: `@genfeedai/pricing` reads these at module
+    // load to fill `plan.stripePriceId`, and the app posts that ID to the API.
+    // Without them every paid plan renders as unavailable. Only `apps/app`
+    // needs them — the website consumes `@genfeedai/pricing` for display only.
+    directKeys: [
+      'NEXT_PUBLIC_STRIPE_PRICE_PAYG',
+      'NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY',
+      'NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY',
+      'NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY',
+      'NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY',
+      'NEXT_PUBLIC_TTS_ENABLED',
+    ],
     mappedKeys: {
       APP_BETTER_AUTH_SIGN_UP_FORCE_REDIRECT_URL:
         'BETTER_AUTH_SIGN_UP_FORCE_REDIRECT_URL',
@@ -533,6 +555,15 @@ export const ROOT_ENV_SECTIONS: EnvSection[] = [
       'APP_BETTER_AUTH_SIGN_UP_FORCE_REDIRECT_URL',
       'APP_MEDIUM_REDIRECT_URI',
       'NEXT_PUBLIC_TTS_ENABLED',
+      // Browser-side checkout price IDs. They mirror the server-side
+      // STRIPE_PRICE_SUBSCRIPTION_* values in the API section: the server pair
+      // classifies an incoming price, this pair is what the customer is
+      // actually charged, so the two must never drift apart.
+      'NEXT_PUBLIC_STRIPE_PRICE_PAYG',
+      'NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY',
+      'NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY',
+      'NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY',
+      'NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY',
     ],
   },
   {

@@ -1,12 +1,8 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { ByokService } from '@api/services/byok/byok.service';
-import {
-  modelKeyToByokProvider,
-  modelProviderToByokProvider,
-} from '@api/services/byok/byok-provider-map.util';
+import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
 import { MediaVendorCostLedgerService } from '@api/services/media-vendor-cost/media-vendor-cost-ledger.service';
-import type { ModelProvider } from '@genfeedai/enums';
 import type { IMediaGenerationCostContext } from '@genfeedai/interfaces';
 import {
   computeMediaVendorCostMicros,
@@ -66,10 +62,10 @@ export class MediaGenerationCostService {
         return;
       }
 
-      const byokProvider =
-        (model.provider
-          ? modelProviderToByokProvider(model.provider as ModelProvider)
-          : undefined) ?? modelKeyToByokProvider(context.modelKey);
+      const byokProvider = resolveModelByokProvider(
+        context.modelKey,
+        model.provider,
+      );
       const isByok = byokProvider
         ? await this.byokService.isByokActiveForProvider(
             context.organizationId,
@@ -98,7 +94,7 @@ export class MediaGenerationCostService {
         model: model.key ?? context.modelKey,
         organizationId: context.organizationId,
         pricingType: model.pricingType ?? null,
-        provider: model.provider ?? 'unknown',
+        provider: byokProvider ?? model.provider ?? 'unknown',
         units,
         vendorCostMicros,
       });

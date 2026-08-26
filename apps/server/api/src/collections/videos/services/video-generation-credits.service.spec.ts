@@ -1,5 +1,6 @@
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
-import { ModelProvider } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ByokProvider, ModelProvider } from '@genfeedai/enums';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -116,6 +117,61 @@ describe('VideoGenerationCreditsService', () => {
       isByokBypass: true,
       modelKey: 'kling/model',
       provider: 'replicate',
+    });
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('charges credits when only Replicate BYOK is active for Higgsfield Kling', async () => {
+    modelsService.findOne.mockResolvedValue({
+      cost: 10,
+      provider: ModelProvider.REPLICATE,
+    });
+    byokService.isByokActiveForProvider.mockImplementation(
+      (_organizationId: string, provider: ByokProvider) =>
+        Promise.resolve(provider === ByokProvider.REPLICATE),
+    );
+    const request = { creditsConfig: { deferred: true } };
+
+    await service.ensureDeferredCredits(
+      { duration: 5 } as never,
+      MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
+      'org-1',
+      request as never,
+    );
+
+    expect(byokService.isByokActiveForProvider).toHaveBeenCalledWith(
+      'org-1',
+      ByokProvider.HIGGSFIELD,
+    );
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith('org-1', 10);
+    expect(request.creditsConfig).not.toHaveProperty('isByokBypass');
+  });
+
+  it('uses Higgsfield BYOK for Kling without charging platform credits', async () => {
+    modelsService.findOne.mockResolvedValue({
+      cost: 10,
+      provider: ModelProvider.REPLICATE,
+    });
+    byokService.isByokActiveForProvider.mockImplementation(
+      (_organizationId: string, provider: ByokProvider) =>
+        Promise.resolve(provider === ByokProvider.HIGGSFIELD),
+    );
+    const request = { creditsConfig: { deferred: true } };
+
+    await service.ensureDeferredCredits(
+      { duration: 5 } as never,
+      MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
+      'org-1',
+      request as never,
+    );
+
+    expect(request.creditsConfig).toMatchObject({
+      isByokBypass: true,
+      provider: ByokProvider.HIGGSFIELD,
     });
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,

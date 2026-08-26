@@ -6,7 +6,7 @@ import type {
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { calculateAspectRatio } from '@genfeedai/helpers';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 
 /**
  * Higgsfield video is image-to-video only. `HiggsFieldService.generateImageToVideo`
@@ -16,7 +16,6 @@ import { Injectable } from '@nestjs/common';
  * {@link FalVideoGenerationProviderAdapter} for Fal, since `VideoGenerationExecutionService.dispatch`
  * only ever consumes `externalId` and never branches on `completion`.
  */
-@Injectable()
 export class HiggsFieldVideoGenerationProviderAdapter
   implements VideoGenerationProviderAdapter
 {
@@ -32,7 +31,9 @@ export class HiggsFieldVideoGenerationProviderAdapter
     params: DispatchVideoGenerationParams,
   ): Promise<VideoGenerationProviderResult> {
     if (!params.imageUrl) {
-      throw new Error('Higgsfield video generation requires a source imageUrl');
+      throw new BadRequestException(
+        'Higgsfield video generation requires a source imageUrl',
+      );
     }
 
     const { requestId } = await this.higgsFieldService.generateImageToVideo({

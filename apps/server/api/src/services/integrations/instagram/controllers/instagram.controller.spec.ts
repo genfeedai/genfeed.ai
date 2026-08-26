@@ -28,13 +28,30 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { ServiceUnavailableException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { of, throwError } from 'rxjs';
 
 const instagramBrandId = testId('brand');
 const instagramOrganizationId = testId('org');
 const instagramUserId = testId('user');
+
+async function captureHttpException(
+  action: Promise<unknown>,
+): Promise<HttpException> {
+  try {
+    await action;
+  } catch (error: unknown) {
+    expect(error).toBeInstanceOf(HttpException);
+    return error as HttpException;
+  }
+
+  throw new Error('Expected an HttpException');
+}
 
 describe('InstagramController', () => {
   let controller: InstagramController;
@@ -65,10 +82,13 @@ describe('InstagramController', () => {
     get: vi.fn((key: string) => instagramConfig[key]),
   } as unknown as ConfigService;
 
+  const loggerErrorMock = vi.fn();
+  const loggerLogMock = vi.fn();
+  const loggerWarnMock = vi.fn();
   const loggerMock = {
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
+    error: loggerErrorMock,
+    log: loggerLogMock,
+    warn: loggerWarnMock,
   } as unknown as LoggerService;
 
   beforeEach(() => {
@@ -292,7 +312,7 @@ describe('InstagramController', () => {
       expect(result).toHaveProperty('errors');
     });
 
-    it('should return bad request when app credentials are missing', async () => {
+    it('returns an explicit server error when app credentials are missing', async () => {
       const emptyConfigMock = {
         get: vi.fn(() => undefined),
       } as unknown as ConfigService;
@@ -315,20 +335,76 @@ describe('InstagramController', () => {
         loggerMock,
       );
 
-      const result = await ctrl.verify(mockRequest, {
-        code: 'code',
-        state,
-      });
+      const failure = await captureHttpException(
+        ctrl.verify(mockRequest, {
+          code: 'code',
+          state,
+        }),
+      );
 
-      expect(result).toHaveProperty('errors');
+      expect(failure).toBeInstanceOf(ServiceUnavailableException);
+      expect(failure.getStatus()).toBe(HttpStatus.SERVICE_UNAVAILABLE);
     });
 
-    it('should handle Facebook error code 190 (expired code)', async () => {
+    it.each([190, 102])(
+      'returns an actionable client response for Facebook authorization code %s',
+      async (providerCode) => {
+        const callbackCode = 'sensitive-callback-code';
+        const providerMessage = 'sensitive-provider-message';
+        httpPostMock.mockReturnValue(
+          throwError(() => ({
+            response: {
+              data: {
+                error: { code: providerCode, message: providerMessage },
+              },
+              status: 400,
+            },
+          })),
+        );
+
+        const result = await controller.verify(mockRequest, {
+          code: callbackCode,
+          state,
+        });
+
+        expect(result).toEqual({
+          errors: [
+            {
+              detail:
+                'Instagram rejected the authorization code. It may have expired, already been used, or be invalid. Please reconnect your Instagram account.',
+              title: 'Authentication failed',
+            },
+          ],
+        });
+        expect(loggerErrorMock).toHaveBeenCalledWith(
+          expect.stringContaining('failed'),
+          expect.objectContaining({
+            category: 'authorization',
+            httpStatus: 400,
+            providerCode,
+            stage: 'short_lived_token',
+          }),
+        );
+        const logs = JSON.stringify([
+          ...loggerLogMock.mock.calls,
+          ...loggerErrorMock.mock.calls,
+        ]);
+        expect(logs).not.toContain(callbackCode);
+        expect(logs).not.toContain(state);
+        expect(logs).not.toContain(providerMessage);
+      },
+    );
+
+    it('returns a safe client response for a nested redirect mismatch', async () => {
+      const providerMessage =
+        'redirect_uri mismatch at https://private.example/callback';
       httpPostMock.mockReturnValue(
         throwError(() => ({
           response: {
             data: {
-              error: { code: 190, message: 'Code has expired' },
+              error: {
+                error: { code: 100, message: providerMessage },
+              },
             },
             status: 400,
           },
@@ -336,11 +412,171 @@ describe('InstagramController', () => {
       );
 
       const result = await controller.verify(mockRequest, {
-        code: 'expired-code',
+        code: 'redirect-mismatch-code',
         state,
       });
 
-      expect(result).toHaveProperty('errors');
+      expect(result).toEqual({
+        errors: [
+          {
+            detail:
+              'Instagram rejected the authorization because the redirect URI did not match. Please reconnect your Instagram account. If the problem continues, contact support.',
+            title: 'Configuration error',
+          },
+        ],
+      });
+      expect(JSON.stringify(result)).not.toContain(providerMessage);
+      expect(loggerErrorMock).toHaveBeenCalledWith(
+        expect.stringContaining('failed'),
+        expect.objectContaining({
+          category: 'redirect_mismatch',
+          providerCode: 100,
+          stage: 'short_lived_token',
+        }),
+      );
+      expect(JSON.stringify(loggerErrorMock.mock.calls)).not.toContain(
+        providerMessage,
+      );
+    });
+
+    it('returns a safe provider error for a malformed Facebook response', async () => {
+      const rawPayloadMarker = 'raw-provider-payload';
+      httpPostMock.mockReturnValue(
+        throwError(() => ({
+          response: {
+            data: { error: { error: null }, raw: rawPayloadMarker },
+            status: 400,
+          },
+        })),
+      );
+
+      const failure = await captureHttpException(
+        controller.verify(mockRequest, {
+          code: 'malformed-response-code',
+          state,
+        }),
+      );
+
+      expect(failure.getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+      expect(failure.getResponse()).toEqual({
+        detail:
+          'Instagram could not complete the token exchange. Please try again later.',
+        title: 'Instagram provider error',
+      });
+      expect(JSON.stringify(loggerErrorMock.mock.calls)).not.toContain(
+        rawPayloadMarker,
+      );
+      expect(loggerErrorMock).toHaveBeenCalledWith(
+        expect.stringContaining('failed'),
+        expect.objectContaining({
+          category: 'provider_failure',
+          httpStatus: 400,
+          stage: 'short_lived_token',
+        }),
+      );
+    });
+
+    it('classifies an unrecognized Facebook failure without exposing it', async () => {
+      const providerMessage = 'unclassified private provider detail';
+      httpPostMock.mockReturnValue(
+        throwError(() => ({
+          response: {
+            data: {
+              error: { code: 999, message: providerMessage },
+            },
+            status: 400,
+          },
+        })),
+      );
+
+      const failure = await captureHttpException(
+        controller.verify(mockRequest, {
+          code: 'unclassified-code',
+          state,
+        }),
+      );
+
+      expect(failure.getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+      expect(loggerErrorMock).toHaveBeenCalledWith(
+        expect.stringContaining('failed'),
+        expect.objectContaining({
+          category: 'provider_failure',
+          providerCode: 999,
+          stage: 'short_lived_token',
+        }),
+      );
+      expect(JSON.stringify(failure.getResponse())).not.toContain(
+        providerMessage,
+      );
+      expect(JSON.stringify(loggerErrorMock.mock.calls)).not.toContain(
+        providerMessage,
+      );
+    });
+
+    it('returns a service error for invalid Facebook app configuration', async () => {
+      httpPostMock.mockReturnValue(
+        throwError(() => ({
+          response: {
+            data: {
+              error: { code: 101, message: 'Invalid application secret' },
+            },
+            status: 401,
+          },
+        })),
+      );
+
+      const failure = await captureHttpException(
+        controller.verify(mockRequest, {
+          code: 'config-error-code',
+          state,
+        }),
+      );
+
+      expect(failure.getStatus()).toBe(HttpStatus.SERVICE_UNAVAILABLE);
+      expect(failure.getResponse()).toEqual({
+        detail: 'Instagram OAuth is not configured correctly on this server.',
+        title: 'Integration not configured',
+      });
+    });
+
+    it('classifies long-lived token authorization failures consistently', async () => {
+      const shortLivedToken = 'sensitive-short-lived-token';
+      httpPostMock.mockReturnValue(
+        of({ data: { access_token: shortLivedToken } }),
+      );
+      httpGetMock.mockReturnValue(
+        throwError(() => ({
+          response: {
+            data: {
+              error: { code: 190, message: 'Token already expired' },
+            },
+            status: 400,
+          },
+        })),
+      );
+
+      const result = await controller.verify(mockRequest, {
+        code: 'long-token-code',
+        state,
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          errors: expect.arrayContaining([
+            expect.objectContaining({ title: 'Authentication failed' }),
+          ]),
+        }),
+      );
+      expect(loggerErrorMock).toHaveBeenCalledWith(
+        expect.stringContaining('failed'),
+        expect.objectContaining({
+          category: 'authorization',
+          stage: 'long_lived_token',
+        }),
+      );
+      expect(JSON.stringify(loggerErrorMock.mock.calls)).not.toContain(
+        shortLivedToken,
+      );
     });
 
     it('should return not found when credential does not exist', async () => {
@@ -352,6 +588,7 @@ describe('InstagramController', () => {
       });
 
       expect(result).toHaveProperty('errors');
+      expect(JSON.stringify(result)).not.toContain(state);
     });
 
     it('should return bad request when short-lived token is missing', async () => {

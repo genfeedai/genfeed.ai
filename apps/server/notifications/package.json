@@ -4,7 +4,7 @@
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
     "@slack/web-api": "8.0.0",
-    "jose": "^6.2.9",
+    "jose": "^6.2.10",
     "node-pty": "1.1.0",
     "tsconfig-paths": "4.2.0"
   },

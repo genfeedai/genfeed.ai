@@ -44,6 +44,7 @@ export interface MediaDocumentsInput {
   result?: string;
   scope?: AssetScope;
   size?: number;
+  sourceActionId?: string;
   sourceIds?: string[];
   status?: IngredientStatus;
   style?: string | null;

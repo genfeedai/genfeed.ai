@@ -546,6 +546,63 @@ test('self-hosted publisher can PATCH the draft GitHub release', () => {
   assert.ok(workflow.includes('target_commitish: ${{ inputs.checkout_ref }}'));
 });
 
+test('weekly dependency updates preserve one tracked pull request', () => {
+  const workflow = readWorkflow('deps-update.yml');
+  const update = jobBlock(workflow, 'update', 'deps-update.yml');
+
+  assert.match(workflow, /^ {2}schedule:\n {4}# Weekly Tuesday 6am UTC/m);
+  assert.match(
+    update,
+    /^ {4}permissions:\n {6}contents: write\n {6}pull-requests: write$/m,
+    'the weekly updater needs only branch and pull-request write access',
+  );
+  assert.match(update, /if git diff --quiet && git diff --cached --quiet;/);
+  assert.match(
+    update,
+    /list_weekly_pull_requests\(\)[\s\S]*?--method GET[\s\S]*?--raw-field state=open[\s\S]*?--raw-field base=master[\s\S]*?--raw-field head="\$\{head_owner\}:\$\{branch\}"[\s\S]*?--raw-field per_page=2/,
+  );
+  assert.match(
+    update,
+    /if \(\( \$\{#pull_requests\[@\]\} > 1 \)\); then[\s\S]*?Close duplicates before retrying/,
+  );
+  assert.match(
+    update,
+    /git push \\\n {12}--force-with-lease="refs\/heads\/\$\{branch\}:\$\{previous_sha\}"/,
+  );
+  assert.match(
+    update,
+    /if \[\[ -n "\$previous_sha" \]\]; then\n {12}git fetch --no-tags origin "\$previous_sha"/,
+    'the previous orphan/PR branch tip must be available for rollback',
+  );
+  assert.doesNotMatch(update, /git push --force\b/);
+  assert.match(
+    update,
+    /if \(\( \$\{#pull_requests\[@\]\} == 1 \)\); then[\s\S]*?Refreshed weekly dependency PR/,
+  );
+  assert.match(
+    update,
+    /if gh pr create[\s\S]*?--base master[\s\S]*?--head "\$branch"/,
+  );
+  assert.match(
+    update,
+    /Allow GitHub Actions to create and approve pull requests[\s\S]*?--force-with-lease="refs\/heads\/\$\{branch\}:\$\{update_sha\}"/,
+    'a rejected PR creation must name the repository setting and roll back the published update',
+  );
+
+  const noChanges = update.indexOf('if git diff --quiet');
+  const listPullRequests = update.indexOf(
+    'pull_request_numbers="$(list_weekly_pull_requests)"',
+  );
+  const pushBranch = update.indexOf('git push \\');
+  const createPullRequest = update.indexOf('if gh pr create');
+  assert.ok(
+    noChanges < listPullRequests &&
+      listPullRequests < pushBranch &&
+      pushBranch < createPullRequest,
+    'no-change exit, deduplication, branch refresh, and PR creation must stay ordered',
+  );
+});
+
 test('ordinary labels do not restart CI and full-suite has an isolated dispatcher', () => {
   const ci = readWorkflow('ci.yml');
   const dispatcher = readWorkflow('pr-full-suite.yml');

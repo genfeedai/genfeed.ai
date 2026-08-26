@@ -1,7 +1,9 @@
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { IMAGE_GENERATION_RESULT_ERROR } from '@api/services/agent-orchestrator/agent-image-generation-result.constant';
 import {
   readMediaAssetUrl,
   readMediaResponseString,
+  readUsableCdnAssetUrl,
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -210,18 +212,33 @@ export class AgentMediaAssetGenerationService {
     }
 
     const id = readMediaResponseString(response, 'id');
-    const cdnUrl = readMediaAssetUrl(
+    const cdnUrl = readUsableCdnAssetUrl(
       response,
       this.configService.ingredientsEndpoint,
     );
+    const responseStatus = readMediaResponseString(response, 'status')
+      ?.trim()
+      .toLowerCase();
     if (!id) {
       this.loggerService.warn(
         `generateImage returned no renderable asset for org=${ctx.organizationId} id=${id ?? 'none'}`,
       );
       return this.buildImageGenerationIncompleteResult({
-        error: 'Image generation did not return an asset id.',
+        error: IMAGE_GENERATION_RESULT_ERROR.MISSING_ASSET_ID,
         promptPreview,
         status: Status.PROCESSING,
+      });
+    }
+
+    if (!cdnUrl && responseStatus !== Status.PROCESSING) {
+      this.loggerService.warn(
+        `generateImage returned no usable CDN asset for org=${ctx.organizationId} id=${id}`,
+      );
+      return this.buildImageGenerationIncompleteResult({
+        assetId: id,
+        error: IMAGE_GENERATION_RESULT_ERROR.UNUSABLE_CDN_URL,
+        promptPreview,
+        status: Status.FAILED,
       });
     }
 
@@ -670,19 +687,31 @@ export class AgentMediaAssetGenerationService {
 
   /** Never mint an empty content preview for incomplete image generation. */
   private buildImageGenerationIncompleteResult(params: {
+    assetId?: string;
     error: string;
     promptPreview: string;
     status: string;
   }): AgentToolResult {
     return {
       creditsUsed: 0,
-      data: { status: params.status },
+      data: {
+        ...(params.assetId ? { id: params.assetId } : {}),
+        status: params.status,
+      },
       error: params.error,
       isBillingDelegated: true,
       nextActions: [
         {
+          ...(params.assetId
+            ? { assetId: params.assetId, assetKind: 'image' as const }
+            : {}),
           id: `image-gen-incomplete-${Date.now()}`,
-          primaryCta: { href: '/library/images', label: 'Check gallery' },
+          primaryCta: params.assetId
+            ? {
+                href: `/g/image/${params.assetId}`,
+                label: 'View in gallery',
+              }
+            : { href: '/library/images', label: 'Check gallery' },
           status: 'failed',
           summaryText: `Image was not ready: "${params.promptPreview}". ${params.error}`,
           title: 'Image not ready',

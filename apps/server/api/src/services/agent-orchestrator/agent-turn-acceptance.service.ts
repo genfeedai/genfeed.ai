@@ -128,7 +128,12 @@ export class AgentTurnAcceptanceService {
         request.clientRequestId,
       );
 
-    const thread = preparedScope.existingScope
+    // Hoisted so the closure below keeps the non-null narrowing: a property
+    // access is re-widened inside a callback, which is what left `thread`
+    // possibly undefined at every downstream read.
+    const existingScope = preparedScope.existingScope;
+
+    const thread = existingScope
       ? await measure('load_thread', async () => {
           const existing = await this.prisma.agentThread.findFirst({
             select: {
@@ -151,7 +156,7 @@ export class AgentTurnAcceptanceService {
           ) {
             throw new BadRequestException(ARCHIVED_THREAD_WRITE_ERROR);
           }
-          return existing ?? preparedScope.existingScope;
+          return existing ?? existingScope;
         })
       : await measure('persist_thread', () => {
           const title = request.content.trim().slice(0, 120) || 'New thread';

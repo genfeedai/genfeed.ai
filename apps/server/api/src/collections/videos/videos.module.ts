@@ -46,6 +46,7 @@ import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenla
 import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
+import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { KlingAIModule } from '@api/services/integrations/klingai/klingai.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
@@ -109,7 +110,12 @@ import { Module } from '@nestjs/common';
     CreditsGuard,
     CreditsInterceptor,
     FalVideoGenerationProviderAdapter,
-    HiggsFieldVideoGenerationProviderAdapter,
+    {
+      inject: [HiggsFieldService],
+      provide: HiggsFieldVideoGenerationProviderAdapter,
+      useFactory: (higgsFieldService: HiggsFieldService) =>
+        new HiggsFieldVideoGenerationProviderAdapter(higgsFieldService),
+    },
     KlingAiVideoGenerationProviderAdapter,
     ModelRegistrationService,
     ModelsGuard,

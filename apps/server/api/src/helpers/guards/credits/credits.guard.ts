@@ -17,10 +17,7 @@ import {
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ByokService } from '@api/services/byok/byok.service';
-import {
-  modelKeyToByokProvider,
-  modelProviderToByokProvider,
-} from '@api/services/byok/byok-provider-map.util';
+import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
 import { type ByokProvider, PricingType } from '@genfeedai/enums';
 import { getDeserializer } from '@genfeedai/helpers';
 import type { CreditsConfig } from '@genfeedai/interfaces';
@@ -488,16 +485,12 @@ export class CreditsGuard implements CanActivate {
       // --- Per-provider BYOK bypass ---
       let byokProvider: ByokProvider | undefined = creditsConfig.provider;
 
-      if (!byokProvider && resolvedModel?.provider) {
-        byokProvider = modelProviderToByokProvider(resolvedModel.provider);
-      }
-
-      // Fallback: resolve from modelKey prefix (covers HeyGen, KlingAI, LeonardoAI, etc.)
       if (!byokProvider) {
         const effectiveModelKey = modelKey || creditsConfig.modelKey;
-        if (effectiveModelKey) {
-          byokProvider = modelKeyToByokProvider(effectiveModelKey);
-        }
+        byokProvider = resolveModelByokProvider(
+          effectiveModelKey,
+          resolvedModel?.provider,
+        );
       }
 
       if (byokProvider && user.organizationId) {
@@ -544,6 +537,7 @@ export class CreditsGuard implements CanActivate {
             ...(creditsDeferred ? { deferred: true } : {}),
             isByokBypass: true,
             modelKey: modelKey || creditsConfig.modelKey,
+            provider: byokProvider,
           };
           return true;
         }
