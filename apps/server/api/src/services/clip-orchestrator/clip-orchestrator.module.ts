@@ -1,3 +1,4 @@
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ClipOrchestratorService } from '@api/services/clip-orchestrator/clip-orchestrator.service';
 import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
 import { ClipRunObserverService } from '@api/services/clip-orchestrator/clip-run-observer.service';
@@ -23,6 +24,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     WorkflowTriggerBridgeService,
   ],
   imports: [
+    BrandsCoreModule,
     EventEmitterModule.forRoot(),
     FilesClientModule,
     FileQueueModule,

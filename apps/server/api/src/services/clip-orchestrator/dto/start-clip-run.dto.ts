@@ -2,6 +2,9 @@
  * Input DTO to start a clip orchestration run.
  */
 export interface StartClipRunDto {
+  /** Brand kit to resolve once into immutable references for this run. */
+  brandId?: string;
+
   /** Clip project ID to orchestrate. */
   projectId: string;
 

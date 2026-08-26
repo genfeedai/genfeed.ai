@@ -1,3 +1,4 @@
+import { ReferenceImageCategory } from '@genfeedai/enums';
 import type {
   BrandKitAssetRole,
   BrandKitSourceType,
@@ -11,6 +12,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsBoolean,
+  IsEnum,
   IsIn,
   IsOptional,
   IsString,
@@ -44,6 +46,15 @@ export class ImportBrandKitAssetCandidateDto
   @ApiProperty({ enum: BRAND_KIT_ASSET_ROLES })
   @IsIn(BRAND_KIT_ASSET_ROLES)
   readonly role!: BrandKitAssetRole;
+
+  @ApiProperty({
+    enum: ReferenceImageCategory,
+    enumName: 'ReferenceImageCategory',
+    required: false,
+  })
+  @IsEnum(ReferenceImageCategory)
+  @IsOptional()
+  readonly referenceCategory?: ReferenceImageCategory;
 
   @ApiProperty({ required: false })
   @IsOptional()

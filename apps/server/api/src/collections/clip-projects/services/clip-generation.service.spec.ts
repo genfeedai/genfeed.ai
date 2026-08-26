@@ -206,6 +206,59 @@ describe('ClipGenerationService', () => {
     );
   });
 
+  it('persists the same categorized run references on every clip brief', async () => {
+    const runReferences = Object.freeze([
+      Object.freeze({
+        assetId: 'face-1',
+        description: 'Hero character sheet',
+        role: 'character' as const,
+        url: 'https://cdn.example.com/face.png',
+      }),
+      Object.freeze({
+        assetId: 'product-1',
+        description: 'Ceramic mug in glacier blue',
+        role: 'product' as const,
+        url: 'https://cdn.example.com/product.png',
+      }),
+    ]);
+
+    await service.generateClips(
+      makeInput({
+        highlights: [makeHighlight(), makeHighlight({ title: 'Second' })],
+        runReferences,
+      }),
+    );
+
+    expect(provider.generateVideo).toHaveBeenCalledTimes(2);
+    for (const call of provider.generateVideo.mock.calls) {
+      expect(call[0]).toEqual(
+        expect.objectContaining({
+          referenceImageUrl: 'https://cdn.example.com/face.png',
+        }),
+      );
+    }
+    expect(clipResultsService.create).toHaveBeenCalledTimes(2);
+    const briefs = clipResultsService.create.mock.calls.map(
+      ([dto]) =>
+        (dto as unknown as { generationBrief: unknown }).generationBrief,
+    );
+    expect(briefs[0]).toMatchObject({
+      references: [
+        {
+          assetId: 'face-1',
+          description: 'Hero character sheet',
+          role: 'character',
+        },
+        {
+          assetId: 'product-1',
+          description: 'Ceramic mug in glacier blue',
+          role: 'product',
+        },
+      ],
+    });
+    expect(briefs[1]).toEqual(briefs[0]);
+  });
+
   it('persists stable redacted reference provenance on every result', async () => {
     const referenceProvenance = {
       application: {

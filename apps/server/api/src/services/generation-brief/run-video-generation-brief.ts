@@ -4,7 +4,10 @@ import { compilePrunaaiPVideoGenerationBrief } from '@api/services/generation-br
 import { assertRedactedVideoGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
 import { resolveVideoGenerationBriefSupport } from '@api/services/generation-brief/resolve-video-generation-brief-support';
 import { resolveVideoGenerationFidelityMode } from '@api/services/generation-brief/resolve-video-generation-fidelity-mode';
-import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
+import type {
+  GenerationBriefReference,
+  VideoGenerationBrief,
+} from '@api-types/contracts/generation-brief.contract';
 import type { GenerationBriefSurface } from '@api-types/contracts/generation-brief-compiler.contract';
 import type {
   MinimaxH3Dispatch,
@@ -33,6 +36,7 @@ export interface RunVideoGenerationBriefInput {
   motion?: string;
   objective: string;
   referenceIds?: string[];
+  references?: readonly GenerationBriefReference[];
   scene?: string;
   seed?: number;
   surface: GenerationBriefSurface;
@@ -90,6 +94,7 @@ export function runVideoGenerationBrief(
     motion: input.motion ?? input.cameraMovement,
     objective: input.objective,
     referenceIds: input.referenceIds,
+    references: input.references,
     scene: input.scene,
     visualDirection: input.visualDirection,
     visualDirectionSource: 'user',

@@ -802,6 +802,44 @@ describe('BrandsService', () => {
       });
     });
 
+    it('persists an explicit category when a reference was already imported', async () => {
+      assetDelegate.findFirst.mockResolvedValueOnce({
+        id: 'asset_existing',
+        referenceCategory: null,
+      });
+
+      const result = await service.importBrandKitAssets(
+        brandId,
+        organizationId,
+        userId,
+        {
+          assets: [
+            {
+              mimeType: 'image/png',
+              referenceCategory: 'FACE',
+              role: 'reference',
+              url: 'https://acme.example/character.png',
+            },
+          ],
+        },
+      );
+
+      expect(assetDelegate.updateMany).toHaveBeenCalledWith({
+        data: { referenceCategory: 'FACE' },
+        where: {
+          id: 'asset_existing',
+          isDeleted: false,
+          parentBrandId: brandId,
+          parentOrgId: organizationId,
+        },
+      });
+      expect(result.results[0]).toMatchObject({
+        assetId: 'asset_existing',
+        referenceCategory: 'FACE',
+        status: 'skipped',
+      });
+    });
+
     it('imports reference candidates without deleting existing references by default', async () => {
       assetDelegate.findFirst.mockResolvedValueOnce(null);
 
@@ -814,6 +852,7 @@ describe('BrandsService', () => {
             {
               candidateId: 'reference-candidate',
               mimeType: 'image/webp',
+              referenceCategory: 'PRODUCT',
               role: 'reference',
               url: 'https://acme.example/reference.webp',
             },
@@ -830,7 +869,65 @@ describe('BrandsService', () => {
         },
       );
       expect(assetDelegate.updateMany).not.toHaveBeenCalled();
+      expect(assetDelegate.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ referenceCategory: 'PRODUCT' }),
+      });
+      expect(result.results[0]).toMatchObject({
+        referenceCategory: 'PRODUCT',
+      });
       expect(result.status).toBe('accepted');
+    });
+
+    it('defaults uncategorized legacy reference imports to STYLE', async () => {
+      assetDelegate.findFirst.mockResolvedValueOnce(null);
+
+      const result = await service.importBrandKitAssets(
+        brandId,
+        organizationId,
+        userId,
+        {
+          assets: [
+            {
+              mimeType: 'image/webp',
+              role: 'reference',
+              url: 'https://acme.example/reference.webp',
+            },
+          ],
+        },
+      );
+
+      expect(assetDelegate.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ referenceCategory: 'STYLE' }),
+      });
+      expect(result.results[0]).toMatchObject({ referenceCategory: 'STYLE' });
+    });
+
+    it('rejects reference categories on logo and banner assets', async () => {
+      const result = await service.importBrandKitAssets(
+        brandId,
+        organizationId,
+        userId,
+        {
+          assets: [
+            {
+              mimeType: 'image/png',
+              referenceCategory: 'PRODUCT',
+              role: 'logo',
+              url: 'https://acme.example/logo.png',
+            },
+          ],
+        },
+      );
+
+      expect(assetDelegate.create).not.toHaveBeenCalled();
+      expect(result.results[0]).toMatchObject({
+        diagnostics: [
+          expect.objectContaining({
+            code: 'brand_kit_asset_reference_category_requires_reference_role',
+          }),
+        ],
+        status: 'failed',
+      });
     });
 
     it('rejects private asset URLs before creating an asset', async () => {

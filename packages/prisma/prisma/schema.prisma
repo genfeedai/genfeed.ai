@@ -240,6 +240,13 @@ enum AssetCategory {
   REFERENCE
 }
 
+enum ReferenceImageCategory {
+  FACE
+  PRODUCT
+  STYLE
+  LOGO
+}
+
 enum AssetParent {
   ORGANIZATION
   INGREDIENT
@@ -1946,6 +1953,7 @@ model Asset {
   parentIngredientId String?
   parentArticleId    String?
   category           AssetCategory
+  referenceCategory  ReferenceImageCategory?
   externalId         String?
   localAssetId       String?
   cloudObjectKey     String?
@@ -1962,8 +1970,10 @@ model Asset {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
-  // Live BRAND ranking is supported by the raw-SQL partial index
-  // assets_brand_kit_ranking_idx; Prisma cannot represent its WHERE predicate.
+  // Live BRAND ranking/category lookup is supported by the raw-SQL partial
+  // indexes assets_brand_kit_ranking_idx and
+  // assets_brand_reference_category_idx; Prisma cannot represent their WHERE
+  // predicates.
   @@index([parentOrgId, parentBrandId, updatedAt(sort: Desc)])
   @@index([parentOrgId, updatedAt, id], map: "assets_parent_org_updated_at_id_idx")
   @@index([sha256, sizeBytes])

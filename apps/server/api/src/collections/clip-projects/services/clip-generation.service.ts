@@ -2,6 +2,10 @@ import { ClipResultsService } from '@api/collections/clip-results/clip-results.s
 import type { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
 import { type ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
+import {
+  type GenerationBriefReference,
+  videoGenerationBriefSchema,
+} from '@api-types/contracts/generation-brief.contract';
 import type {
   ClipReferenceProvenance,
   ClipResultMode,
@@ -60,7 +64,12 @@ export interface ClipGenerationInput {
   sourceVideoUrl?: string;
   transcriptSegments?: TranscriptSegment[];
   room?: string;
+  runReferences?: readonly ClipRunGenerationReference[];
 }
+
+export type ClipRunGenerationReference = GenerationBriefReference & {
+  url: string;
+};
 
 export interface ClipGenerationResult {
   clipResultIds: string[];
@@ -90,6 +99,7 @@ interface GenerationLoopConfig {
   projectId: string;
   referenceProvenance?: ClipReferenceProvenance;
   userId: string;
+  runReferences: readonly ClipRunGenerationReference[];
   /** Provider name persisted on a clip-result when its dispatch throws. */
   failureProviderName: string;
   dispatch: (context: {
@@ -142,6 +152,7 @@ export class ClipGenerationService {
       userId,
       provider = 'heygen',
       referenceImageUrl,
+      runReferences = [],
     } = input;
 
     this.logger.log(
@@ -156,6 +167,11 @@ export class ClipGenerationService {
     );
 
     const avatarProvider = this.avatarVideoService.getProvider(provider);
+    const characterReferenceUrl = runReferences.find(
+      (reference) => reference.role === 'character',
+    )?.url;
+    const effectiveReferenceImageUrl =
+      referenceImageUrl ?? characterReferenceUrl;
 
     return this.runGenerationLoop({
       dispatch: async ({ clipResultId, highlight }) => {
@@ -173,7 +189,9 @@ export class ClipGenerationService {
             providerMetadataPersisted = true;
           },
           organizationId: orgId,
-          ...(referenceImageUrl ? { referenceImageUrl } : {}),
+          ...(effectiveReferenceImageUrl
+            ? { referenceImageUrl: effectiveReferenceImageUrl }
+            : {}),
           script: scriptText,
           userId,
           voiceId: voiceId as string,
@@ -199,6 +217,7 @@ export class ClipGenerationService {
       orgId,
       projectId,
       referenceProvenance: input.referenceProvenance,
+      runReferences,
       userId,
     });
   }
@@ -270,6 +289,7 @@ export class ClipGenerationService {
       orgId,
       projectId,
       referenceProvenance: input.referenceProvenance,
+      runReferences: input.runReferences ?? [],
       userId,
     });
   }
@@ -292,6 +312,7 @@ export class ClipGenerationService {
       orgId,
       projectId,
       referenceProvenance,
+      runReferences,
       userId,
     } = config;
 
@@ -311,6 +332,7 @@ export class ClipGenerationService {
         userId,
         referenceProvenance,
         mode,
+        runReferences,
       );
       clipResultIds.push(clipResultId);
 
@@ -377,12 +399,37 @@ export class ClipGenerationService {
     userId: string,
     referenceProvenance: ClipReferenceProvenance | undefined,
     mode: ClipGenerationMode,
+    runReferences: readonly ClipRunGenerationReference[],
   ): Promise<string> {
-    const createDto: CreateClipResultDto = {
+    const generationBrief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: {
+        objective: this.buildAvatarScript(highlight),
+        requestedText: [],
+        subjects: [],
+      },
+      mediaKind: 'video',
+      output: { durationSeconds: highlight.end_time - highlight.start_time },
+      provenance: runReferences.map((reference) => ({
+        field: `references.${reference.assetId}`,
+        source: 'reference' as const,
+      })),
+      references: runReferences.map(({ assetId, description, role }) => ({
+        assetId,
+        ...(description ? { description } : {}),
+        role,
+      })),
+      version: 1,
+    });
+    const createDto: CreateClipResultDto & {
+      generationBrief: typeof generationBrief;
+    } = {
       clipType: highlight.clip_type,
       duration: highlight.end_time - highlight.start_time,
       endTime: highlight.end_time,
       index,
+      generationBrief,
       mode,
       organizationId: orgId,
       projectId,

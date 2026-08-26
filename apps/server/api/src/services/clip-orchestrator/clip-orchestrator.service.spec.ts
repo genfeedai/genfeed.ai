@@ -1,3 +1,4 @@
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CLIP_ORCHESTRATOR_EVENTS } from '@api/services/clip-orchestrator/clip-orchestrator.events';
 import { ClipOrchestratorService } from '@api/services/clip-orchestrator/clip-orchestrator.service';
 import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
@@ -36,11 +37,15 @@ describe('ClipOrchestratorService', () => {
   let service: ClipOrchestratorService;
   let emitter: EventEmitter2;
   let stateStore: ClipOrchestratorStateStore;
+  let brandsService: BrandsService;
 
   beforeEach(() => {
     emitter = new EventEmitter2();
     stateStore = createStateStore();
-    service = new ClipOrchestratorService(emitter, stateStore);
+    brandsService = {
+      resolveBrandKitAssets: vi.fn().mockResolvedValue({ references: [] }),
+    } as unknown as BrandsService;
+    service = new ClipOrchestratorService(emitter, stateStore, brandsService);
   });
 
   // -------------------------------------------------------------------------
@@ -53,6 +58,51 @@ describe('ClipOrchestratorService', () => {
     expect(run.id).toBeDefined();
   });
 
+  it('resolves categorized brand references once into immutable run state', async () => {
+    vi.mocked(brandsService.resolveBrandKitAssets).mockResolvedValue({
+      references: [
+        {
+          id: 'face-1',
+          label: 'Hero character sheet',
+          mimeType: 'image/png',
+          referenceCategory: 'FACE',
+          role: 'reference',
+          url: 'https://cdn.example.com/face.png',
+        },
+        {
+          id: 'product-1',
+          label: 'Ceramic mug in glacier blue',
+          mimeType: 'image/png',
+          referenceCategory: 'PRODUCT',
+          role: 'reference',
+          url: 'https://cdn.example.com/product.png',
+        },
+      ],
+    });
+
+    const run = await service.startRun(makeDto({ brandId: 'brand-1' }));
+
+    expect(brandsService.resolveBrandKitAssets).toHaveBeenCalledOnce();
+    expect(brandsService.resolveBrandKitAssets).toHaveBeenCalledWith(
+      'brand-1',
+      'org-1',
+    );
+    expect(run.runReferences).toEqual([
+      {
+        assetId: 'face-1',
+        description: 'Hero character sheet',
+        role: 'character',
+      },
+      {
+        assetId: 'product-1',
+        description: 'Ceramic mug in glacier blue',
+        role: 'product',
+      },
+    ]);
+    expect(Object.isFrozen(run.runReferences)).toBe(true);
+    expect(run.runReferences.every(Object.isFrozen)).toBe(true);
+  });
+
   // -------------------------------------------------------------------------
   // 2. Valid transitions
   // -------------------------------------------------------------------------
@@ -60,22 +110,22 @@ describe('ClipOrchestratorService', () => {
     const run = await service.startRun(makeDto({ skipMerging: true }));
 
     await service.transition(run.id, ClipRunState.Generating);
-    expect((await service.getRun(run.id))!.currentState).toBe(
+    expect((await service.getRun(run.id))?.currentState).toBe(
       ClipRunState.Generating,
     );
 
     await service.transition(run.id, ClipRunState.Reframing);
-    expect((await service.getRun(run.id))!.currentState).toBe(
+    expect((await service.getRun(run.id))?.currentState).toBe(
       ClipRunState.Reframing,
     );
 
     await service.transition(run.id, ClipRunState.Publishing);
-    expect((await service.getRun(run.id))!.currentState).toBe(
+    expect((await service.getRun(run.id))?.currentState).toBe(
       ClipRunState.Publishing,
     );
 
     await service.transition(run.id, ClipRunState.Done);
-    expect((await service.getRun(run.id))!.currentState).toBe(
+    expect((await service.getRun(run.id))?.currentState).toBe(
       ClipRunState.Done,
     );
   });
@@ -101,7 +151,7 @@ describe('ClipOrchestratorService', () => {
 
     // Publishing is a checkpoint — should go to awaiting_confirmation
     await service.transition(run.id, ClipRunState.Publishing);
-    expect((await service.getRun(run.id))!.currentState).toBe(
+    expect((await service.getRun(run.id))?.currentState).toBe(
       ClipRunState.AwaitingConfirmation,
     );
   });
@@ -115,12 +165,12 @@ describe('ClipOrchestratorService', () => {
     await service.transition(run.id, ClipRunState.Generating);
     await service.transition(run.id, ClipRunState.Reframing);
     await service.transition(run.id, ClipRunState.Publishing);
-    expect((await service.getRun(run.id))!.currentState).toBe(
+    expect((await service.getRun(run.id))?.currentState).toBe(
       ClipRunState.AwaitingConfirmation,
     );
 
     await service.confirm(run.id);
-    expect((await service.getRun(run.id))!.currentState).toBe(
+    expect((await service.getRun(run.id))?.currentState).toBe(
       ClipRunState.Publishing,
     );
   });
@@ -134,23 +184,23 @@ describe('ClipOrchestratorService', () => {
 
     // First two retries should keep the state
     await service.failStep(run.id, 'network error');
-    expect((await service.getRun(run.id))!.currentState).toBe(
+    expect((await service.getRun(run.id))?.currentState).toBe(
       ClipRunState.Generating,
     );
     expect(await service.canRetry(run.id)).toBe(true);
 
     await service.failStep(run.id, 'network error');
-    expect((await service.getRun(run.id))!.currentState).toBe(
+    expect((await service.getRun(run.id))?.currentState).toBe(
       ClipRunState.Generating,
     );
     expect(await service.canRetry(run.id)).toBe(true);
 
     // Third retry exhausts → fails
     await service.failStep(run.id, 'network error');
-    expect((await service.getRun(run.id))!.currentState).toBe(
+    expect((await service.getRun(run.id))?.currentState).toBe(
       ClipRunState.Failed,
     );
-    expect((await service.getRun(run.id))!.error).toContain('3 retries');
+    expect((await service.getRun(run.id))?.error).toContain('3 retries');
   });
 
   // -------------------------------------------------------------------------
@@ -185,13 +235,13 @@ describe('ClipOrchestratorService', () => {
     await service.failStep(run.id, 'crash');
     await service.failStep(run.id, 'crash');
     await service.failStep(run.id, 'crash');
-    expect((await service.getRun(run.id))!.currentState).toBe(
+    expect((await service.getRun(run.id))?.currentState).toBe(
       ClipRunState.Failed,
     );
 
     // Retry — should go back to generating (last completed step)
     await service.retryFromLastGood(run.id);
-    expect((await service.getRun(run.id))!.currentState).toBe(
+    expect((await service.getRun(run.id))?.currentState).toBe(
       ClipRunState.Generating,
     );
   });
@@ -239,6 +289,7 @@ describe('ClipOrchestratorService', () => {
     const nextService = new ClipOrchestratorService(
       new EventEmitter2(),
       stateStore,
+      brandsService,
     );
 
     expect(await nextService.getRun(run.id)).toMatchObject({
@@ -259,9 +310,9 @@ describe('ClipOrchestratorService', () => {
     await service.transition(run.id, ClipRunState.Publishing);
     await service.transition(run.id, ClipRunState.Done);
 
-    expect((await service.getRun(run.id))!.currentState).toBe(
+    expect((await service.getRun(run.id))?.currentState).toBe(
       ClipRunState.Done,
     );
-    expect((await service.getRun(run.id))!.steps).toHaveLength(5); // 5 transitions
+    expect((await service.getRun(run.id))?.steps).toHaveLength(5); // 5 transitions
   });
 });

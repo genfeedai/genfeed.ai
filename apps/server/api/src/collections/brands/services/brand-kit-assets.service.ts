@@ -14,7 +14,7 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { FileInputType } from '@genfeedai/enums';
+import { FileInputType, ReferenceImageCategory } from '@genfeedai/enums';
 import type {
   BrandKitAssetRole,
   IBrandKitAssetImportCandidate,
@@ -57,6 +57,7 @@ const BRAND_KIT_ASSET_SELECT = {
   id: true,
   mimeType: true,
   parentBrandId: true,
+  referenceCategory: true,
 } satisfies Prisma.AssetSelect;
 type BrandKitAssetRecord = Prisma.AssetGetPayload<{
   select: typeof BRAND_KIT_ASSET_SELECT;
@@ -68,7 +69,12 @@ type BrandKitAssetRecord = Prisma.AssetGetPayload<{
  * plain string rather than the generated `AssetCategory` union. Everything the
  * mapper touches is shared, so it takes the narrower shape and both callers fit.
  */
-type BrandKitAssetFields = Omit<BrandKitAssetRecord, 'category'>;
+type BrandKitAssetFields = Omit<
+  BrandKitAssetRecord,
+  'category' | 'referenceCategory'
+> & {
+  referenceCategory: ReferenceImageCategory | null;
+};
 type BrandKitAssetRankedRow = BrandKitAssetFields & {
   category: string;
 };
@@ -150,25 +156,60 @@ export class BrandKitAssetsService {
         ranked."cloudObjectKey",
         ranked."displayName",
         ranked."mimeType",
-        ranked."parentBrandId"
+        ranked."parentBrandId",
+        ranked."referenceCategory"::text AS "referenceCategory"
       FROM (
         SELECT
-          asset."id",
-          asset."category"::text AS "category",
-          asset."cloudObjectKey",
-          asset."displayName",
-          asset."mimeType",
-          asset."parentBrandId",
+          categorized."id",
+          categorized."category",
+          categorized."cloudObjectKey",
+          categorized."displayName",
+          categorized."mimeType",
+          categorized."parentBrandId",
+          categorized."referenceCategory",
           ROW_NUMBER() OVER (
-            PARTITION BY asset."parentBrandId", asset."category"
-            ORDER BY asset."updatedAt" DESC, asset."id" ASC
+            PARTITION BY categorized."parentBrandId", categorized."category"
+            ORDER BY
+              CASE
+                WHEN categorized."category" = 'REFERENCE'
+                  AND categorized."categoryRank" = 1
+                THEN CASE categorized."referenceCategoryKey"
+                  WHEN 'FACE' THEN 0
+                  WHEN 'PRODUCT' THEN 1
+                  WHEN 'STYLE' THEN 2
+                  WHEN 'LOGO' THEN 3
+                  ELSE 4
+                END
+                ELSE 5
+              END ASC,
+              categorized."updatedAt" DESC,
+              categorized."id" ASC
           ) AS "roleRank"
-        FROM "assets" AS asset
-        WHERE asset."isDeleted" = false
-          AND asset."parentType" = 'BRAND'::"AssetParent"
-          AND asset."parentOrgId" = ${organizationId}
-          AND asset."parentBrandId" = ANY(${uniqueBrandIds}::text[])
-          AND asset."category" = ANY(${rankedCategories}::"AssetCategory"[])
+        FROM (
+          SELECT
+            asset."id",
+            asset."category"::text AS "category",
+            asset."cloudObjectKey",
+            asset."displayName",
+            asset."mimeType",
+            asset."parentBrandId",
+            asset."referenceCategory",
+            COALESCE(asset."referenceCategory"::text, 'STYLE') AS "referenceCategoryKey",
+            asset."updatedAt",
+            ROW_NUMBER() OVER (
+              PARTITION BY
+                asset."parentBrandId",
+                asset."category",
+                COALESCE(asset."referenceCategory"::text, 'STYLE')
+              ORDER BY asset."updatedAt" DESC, asset."id" ASC
+            ) AS "categoryRank"
+          FROM "assets" AS asset
+          WHERE asset."isDeleted" = false
+            AND asset."parentType" = 'BRAND'::"AssetParent"
+            AND asset."parentOrgId" = ${organizationId}
+            AND asset."parentBrandId" = ANY(${uniqueBrandIds}::text[])
+            AND asset."category" = ANY(${rankedCategories}::"AssetCategory"[])
+        ) AS categorized
       ) AS ranked
       WHERE ranked."roleRank" <= CASE
         WHEN ranked."category" = ${referenceCategory}
@@ -344,6 +385,10 @@ export class BrandKitAssetsService {
 
     const sourceUrl = validation.url.href;
     const category = PRISMA_ASSET_CATEGORY_BY_ROLE[candidate.role];
+    const referenceCategory =
+      candidate.role === 'reference'
+        ? (candidate.referenceCategory ?? ReferenceImageCategory.STYLE)
+        : undefined;
     const existing = await this.prisma.asset.findFirst({
       where: {
         category,
@@ -356,6 +401,26 @@ export class BrandKitAssetsService {
     });
 
     if (existing) {
+      const persistedReferenceCategory =
+        candidate.role === 'reference'
+          ? (candidate.referenceCategory ??
+            existing.referenceCategory ??
+            referenceCategory)
+          : undefined;
+      if (
+        candidate.role === 'reference' &&
+        existing.referenceCategory !== persistedReferenceCategory
+      ) {
+        await this.prisma.asset.updateMany({
+          data: { referenceCategory: persistedReferenceCategory },
+          where: {
+            id: existing.id,
+            isDeleted: false,
+            parentBrandId: brandId,
+            parentOrgId: organizationId,
+          },
+        });
+      }
       return {
         assetId: existing.id,
         candidateId,
@@ -366,6 +431,7 @@ export class BrandKitAssetsService {
             'info',
           ),
         ],
+        referenceCategory: persistedReferenceCategory,
         role: candidate.role,
         status: 'skipped',
         url: this.buildImportedAssetUrl(existing.id, candidate.role),
@@ -406,6 +472,7 @@ export class BrandKitAssetsService {
         parentBrandId: brandId,
         parentOrgId: organizationId,
         parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
+        referenceCategory,
         residency: 'cloud',
         uploadPolicy: 'brand_kit_import',
         userId,
@@ -469,6 +536,7 @@ export class BrandKitAssetsService {
         assetId: asset.id,
         candidateId,
         diagnostics: [],
+        referenceCategory,
         role: candidate.role,
         status: 'imported',
         url: publicUrl,
@@ -502,6 +570,16 @@ export class BrandKitAssetsService {
     const diagnostics: IBrandKitDiagnostic[] = [];
     const rawUrl = candidate.url ?? candidate.sourceUrl;
     let parsedUrl: URL | undefined;
+
+    if (candidate.role !== 'reference' && candidate.referenceCategory) {
+      diagnostics.push(
+        this.createBrandKitImportDiagnostic(
+          'brand_kit_asset_reference_category_requires_reference_role',
+          'referenceCategory is only valid for reference assets.',
+          'error',
+        ),
+      );
+    }
 
     if (!rawUrl) {
       diagnostics.push(
@@ -686,6 +764,7 @@ export class BrandKitAssetsService {
       id: asset.id,
       label: asset.displayName ?? undefined,
       mimeType: asset.mimeType ?? undefined,
+      referenceCategory: asset.referenceCategory ?? undefined,
       role,
       url: this.buildBrandAssetCdnUrl(asset.id, role, asset.cloudObjectKey),
     };

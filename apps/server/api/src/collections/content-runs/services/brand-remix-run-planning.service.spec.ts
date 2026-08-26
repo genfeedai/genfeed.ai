@@ -89,6 +89,62 @@ describe('BrandRemixRunPlanningService', () => {
     );
   });
 
+  it('maps persisted reference categories into immutable semantic defaults', () => {
+    const draft = planning.defaultDraft(
+      {
+        ...brandContext,
+        brandKit: {
+          references: [
+            {
+              id: 'face-1',
+              label: 'Approved identity sheet',
+              referenceCategory: 'FACE',
+              role: 'reference',
+              url: 'https://cdn.example.com/references/face-1',
+            },
+            {
+              id: 'product-1',
+              label: 'Matte black bottle with gold cap',
+              referenceCategory: 'PRODUCT',
+              role: 'reference',
+              url: 'https://cdn.example.com/references/product-1',
+            },
+            {
+              id: 'style-1',
+              label: 'Warm studio wardrobe',
+              referenceCategory: 'STYLE',
+              role: 'reference',
+              url: 'https://cdn.example.com/references/style-1',
+            },
+          ],
+        },
+      } as ResolvedBrandContext,
+      {
+        recommendedOutputKind: 'image',
+        snapshot: {
+          capturedAt: '2026-08-26T12:00:00.000Z',
+          evidence: [],
+          metrics: {},
+          pattern: {},
+          platform: 'instagram',
+          selector: { kind: 'source_post', sourcePostId: 'source-1' },
+          sourceId: 'source-1',
+          title: 'Source',
+        },
+      },
+    );
+
+    expect(draft.references).toEqual([
+      expect.objectContaining({ assetId: 'face-1', role: 'character' }),
+      expect.objectContaining({
+        assetId: 'product-1',
+        description: 'Matte black bottle with gold cap',
+        role: 'product',
+      }),
+      expect.objectContaining({ assetId: 'style-1', role: 'style' }),
+    ]);
+  });
+
   it('authorizes draft assets with tenant and brand scope', async () => {
     (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
       { id: 'ref-1', status: IngredientStatus.GENERATED },

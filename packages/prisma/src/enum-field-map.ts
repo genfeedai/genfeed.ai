@@ -815,6 +815,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'parentIngredientId',
       'parentOrgId',
       'parentType',
+      'referenceCategory',
       'residency',
       'sha256',
       'sizeBytes',
@@ -827,6 +828,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       category: { enumType: 'AssetCategory', isRequired: true },
       parentType: { enumType: 'AssetParent', isRequired: true },
+      referenceCategory: {
+        enumType: 'ReferenceImageCategory',
+        isRequired: false,
+      },
     },
     relationIdFields: {
       user: 'userId',

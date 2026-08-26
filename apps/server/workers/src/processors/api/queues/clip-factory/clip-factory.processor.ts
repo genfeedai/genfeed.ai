@@ -57,6 +57,11 @@ export class ClipFactoryProcessor extends WorkerHost {
     const { data } = job;
     const { projectId } = data;
     const mode = data.mode ?? DEFAULT_CLIP_RESULT_MODE;
+    const runReferences = Object.freeze(
+      (data.runReferences ?? []).map((reference) =>
+        Object.freeze({ ...reference }),
+      ),
+    );
 
     this.logger.log(`${this.logContext} starting pipeline`, {
       jobId: job.id,
@@ -152,6 +157,7 @@ export class ClipFactoryProcessor extends WorkerHost {
         orgId: data.orgId,
         projectId,
         provider: data.avatarProvider,
+        runReferences,
         sourceVideoUrl: data.youtubeUrl,
         transcriptSegments: transcription.segments,
         transcriptText: transcription.text,

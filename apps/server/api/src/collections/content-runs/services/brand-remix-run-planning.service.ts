@@ -1,8 +1,8 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
+import { toBrandGenerationReferences } from '@api/collections/brands/utils/brand-kit-generation-references.util';
 import {
-  remixBrandAssetRole,
   remixOrganicPlatform,
   remixRecord,
   remixText,
@@ -508,11 +508,9 @@ export class BrandRemixRunPlanningService {
     const explicitAssetIds = new Set(
       explicitReferences.map((reference) => reference.assetId),
     );
-    const defaults = brandKit.references
-      .map((asset) => ({
-        assetId: asset.id,
-        description: asset.label,
-        role: remixBrandAssetRole(asset.label),
+    const defaults = toBrandGenerationReferences(brandKit)
+      .map((reference) => ({
+        ...reference,
         source: 'brand_default' as const,
       }))
       .filter(

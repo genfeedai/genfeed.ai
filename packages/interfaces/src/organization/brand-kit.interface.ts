@@ -1,3 +1,4 @@
+import type { ReferenceImageCategory } from '@genfeedai/enums';
 import type { IBrandAgentStrategy, IBrandAgentVoice } from './brand.interface';
 
 export type BrandKitDraftStatus =
@@ -117,6 +118,7 @@ export interface IBrandKitSocialLink {
 
 export interface IBrandKitAssetValue {
   role: BrandKitAssetRole;
+  referenceCategory?: ReferenceImageCategory;
   id?: string;
   url?: string;
   label?: string;
@@ -134,6 +136,7 @@ export interface IBrandKitAssetCandidate extends IBrandKitAssetValue {
 
 export interface IBrandKitManualAssetInput {
   role: BrandKitAssetRole;
+  referenceCategory?: ReferenceImageCategory;
   id?: string;
   url?: string;
   label?: string;
@@ -249,6 +252,7 @@ export type BrandKitAssetImportStatus = 'imported' | 'skipped' | 'failed';
 export interface IBrandKitAssetImportCandidate {
   candidateId?: string;
   role: BrandKitAssetRole;
+  referenceCategory?: ReferenceImageCategory;
   url?: string;
   sourceUrl?: string;
   label?: string;
@@ -266,6 +270,7 @@ export interface IBrandKitAssetImportRequest {
 export interface IBrandKitAssetImportResult {
   candidateId?: string;
   role: BrandKitAssetRole;
+  referenceCategory?: ReferenceImageCategory;
   status: BrandKitAssetImportStatus;
   assetId?: string;
   url?: string;
@@ -291,6 +296,7 @@ export interface IBrandKitAssetImportResponse extends IBrandKitResource {
 export interface IBrandKitResolvedAsset {
   id: string;
   role: BrandKitAssetRole;
+  referenceCategory?: ReferenceImageCategory;
   url: string;
   label?: string;
   mimeType?: string;
@@ -316,6 +322,7 @@ export interface IBrandKitAssetRelation {
   cdnUrl: string;
   displayName?: string;
   mimeType?: string;
+  referenceCategory?: ReferenceImageCategory;
 }
 
 export interface IBrandKitAssetRelations {

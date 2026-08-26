@@ -13,6 +13,7 @@ type RankedAssetRow = {
   id: string;
   mimeType: string | null;
   parentBrandId: string | null;
+  referenceCategory: string | null;
 };
 
 /** The interpolated SQL, flattened so a test can assert on its shape. */
@@ -32,6 +33,7 @@ function rankedRow(overrides: Partial<RankedAssetRow>): RankedAssetRow {
     id: 'asset-1',
     mimeType: null,
     parentBrandId: 'brand-1',
+    referenceCategory: null,
     ...overrides,
   };
 }
@@ -187,8 +189,14 @@ describe('BrandKitAssetsService.resolveBrandKitAssetsForBrands', () => {
 
     const sql = readSql(queryRaw.mock.calls[0]);
     expect(sql).toContain(
-      'PARTITION BY asset."parentBrandId", asset."category"',
+      'PARTITION BY categorized."parentBrandId", categorized."category"',
     );
+    expect(sql).toContain(
+      'COALESCE(asset."referenceCategory"::text, \'STYLE\')',
+    );
+    expect(sql).toContain('AND categorized."categoryRank" = 1');
+    expect(sql).toContain("WHEN 'FACE' THEN 0");
+    expect(sql).toContain("WHEN 'PRODUCT' THEN 1");
     expect(sql).toContain('ROW_NUMBER()');
     expect(sql).toContain('ranked."roleRank" <= CASE');
     // The reference cap is per brand, not a global `take` one brand can starve.
@@ -210,6 +218,7 @@ describe('BrandKitAssetsService.resolveBrandKitAssetsForBrands', () => {
         cloudObjectKey: 'references/ref-1',
         id: 'ref-1',
         parentBrandId: 'brand-2',
+        referenceCategory: 'PRODUCT',
       }),
     ]);
 
@@ -221,8 +230,11 @@ describe('BrandKitAssetsService.resolveBrandKitAssetsForBrands', () => {
     expect(resolved.get('brand-1')?.logo?.id).toBe('logo-1');
     expect(resolved.get('brand-1')?.references).toEqual([]);
     expect(resolved.get('brand-2')?.logo?.id).toBe('logo-2');
-    expect(resolved.get('brand-2')?.references.map((r) => r.id)).toEqual([
-      'ref-1',
+    expect(resolved.get('brand-2')?.references).toEqual([
+      expect.objectContaining({
+        id: 'ref-1',
+        referenceCategory: 'PRODUCT',
+      }),
     ]);
   });
 

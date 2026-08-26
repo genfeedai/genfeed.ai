@@ -46,7 +46,10 @@ import {
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
+import type {
+  GenerationBriefReference,
+  VideoGenerationBrief,
+} from '@api-types/contracts/generation-brief.contract';
 import type {
   MinimaxH3Dispatch,
   PrunaaiPVideoDispatch,
@@ -170,6 +173,7 @@ export class VideoGenerationPreparationService {
   async prepare(
     resolved: ResolvedVideoGenerationRequest,
     placeholderScope?: GenerationPlaceholderScope,
+    runReferences?: readonly GenerationBriefReference[],
   ): Promise<VideoGenerationContext> {
     const { brand, createVideoDto, model, referenceIds, request, user } =
       resolved;
@@ -192,6 +196,7 @@ export class VideoGenerationPreparationService {
       model,
       promptOriginalText: promptText,
       referenceIds,
+      runReferences,
       width,
     });
     const compiledDispatch = rawCompiledDispatch
@@ -335,6 +340,7 @@ export class VideoGenerationPreparationService {
     model: string;
     promptOriginalText: string;
     referenceIds: string[];
+    runReferences?: readonly GenerationBriefReference[];
     width: number;
   }): {
     brief?: VideoGenerationBrief;
@@ -370,6 +376,7 @@ export class VideoGenerationPreparationService {
         motion: params.createVideoDto.cameraMovement,
         objective: params.promptOriginalText,
         referenceIds: params.referenceIds,
+        references: params.runReferences,
         scene: params.createVideoDto.scene,
         seed: params.createVideoDto.seed,
         surface: 'studio',

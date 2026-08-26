@@ -1,3 +1,4 @@
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ClipProjectHandoffsController } from '@api/collections/clip-projects/clip-project-handoffs.controller';
 import { ClipProjectReferenceFramesController } from '@api/collections/clip-projects/clip-project-reference-frames.controller';
 import { ClipProjectsController } from '@api/collections/clip-projects/clip-projects.controller';
@@ -178,6 +179,7 @@ describe('ClipProjectsController', () => {
   let referenceFramesController: ClipProjectReferenceFramesController;
   let clipProjectsService: ReturnType<typeof createMockClipProjectsService>;
   let clipGenerationService: ReturnType<typeof createMockClipGenerationService>;
+  let brandsService: { resolveBrandKitAssets: ReturnType<typeof vi.fn> };
   let clipIdentityResolutionService: ReturnType<
     typeof createMockClipIdentityResolutionService
   >;
@@ -201,6 +203,9 @@ describe('ClipProjectsController', () => {
     clipProjectsService = createMockClipProjectsService();
     clipGenerationService = createMockClipGenerationService();
     clipIdentityResolutionService = createMockClipIdentityResolutionService();
+    brandsService = {
+      resolveBrandKitAssets: vi.fn().mockResolvedValue({ references: [] }),
+    };
     clipFactoryQueueService = {
       enqueue: vi.fn(),
     };
@@ -236,6 +241,7 @@ describe('ClipProjectsController', () => {
       new ClipGenerationRequestService(
         clipProjectsService as ClipProjectsService,
         clipIdentityResolutionService as ClipIdentityResolutionService,
+        brandsService as unknown as BrandsService,
       ),
       clipIdentityResolutionService as ClipIdentityResolutionService,
       { rewrite: vi.fn() } as unknown as HighlightRewriteService,
@@ -333,6 +339,17 @@ describe('ClipProjectsController', () => {
       vi.mocked(clipProjectsService.create).mockResolvedValue({
         id: projectId,
       } as ClipProjectDocument);
+      brandsService.resolveBrandKitAssets.mockResolvedValue({
+        references: [
+          {
+            id: 'product-1',
+            label: 'Ceramic mug in glacier blue',
+            referenceCategory: 'PRODUCT',
+            role: 'reference',
+            url: 'https://cdn.example.com/product.png',
+          },
+        ],
+      });
       clipFactoryQueueService.enqueue.mockResolvedValue('clip-factory-job-1');
 
       await controller.createFromYoutube(currentUser as never, dto);
@@ -350,8 +367,26 @@ describe('ClipProjectsController', () => {
       expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith(
         expect.objectContaining({
           avatarId: 'saved-avatar-1',
+          runReferences: [
+            {
+              assetId: 'product-1',
+              description: 'Ceramic mug in glacier blue',
+              role: 'product',
+              url: 'https://cdn.example.com/product.png',
+            },
+          ],
           voiceId: 'saved-voice-1',
         }),
+      );
+      const referencePreflightOrder =
+        brandsService.resolveBrandKitAssets.mock.invocationCallOrder[0];
+      const creditCheckOrder =
+        creditsUtilsService.checkOrganizationCreditsAvailable.mock
+          .invocationCallOrder[0];
+      expect(referencePreflightOrder).toBeDefined();
+      expect(creditCheckOrder).toBeDefined();
+      expect(referencePreflightOrder ?? Number.MAX_SAFE_INTEGER).toBeLessThan(
+        creditCheckOrder ?? 0,
       );
     });
 
@@ -983,6 +1018,7 @@ describe('ClipProjectsController', () => {
 
     expect(clipProjectsService.findOne).toHaveBeenCalledWith({
       id: projectId,
+      isDeleted: false,
       organizationId,
     });
     expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
@@ -1149,6 +1185,7 @@ describe('ClipProjectsController', () => {
 
     expect(clipProjectsService.findOne).toHaveBeenCalledWith({
       id: projectId,
+      isDeleted: false,
       organizationId,
     });
     expect(

@@ -1,3 +1,4 @@
+import type { GenerationBriefReference } from '@api-types/contracts/generation-brief.contract';
 import {
   ImageTaskModel,
   MusicTaskModel,
@@ -65,6 +66,8 @@ export interface PipelineConfigV2 {
   platforms?: string[];
   scheduledDate?: Date;
   prompt?: string; // global prompt (used as fallback for steps without one)
+  /** Immutable semantic references resolved once for the whole run. */
+  runReferences?: readonly GenerationBriefReference[];
 }
 
 // ── Step result ──────────────────────────────────────────────────────
