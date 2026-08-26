@@ -4,6 +4,7 @@ import { ANALYTICS_EVENTS } from './analytics-events';
 
 const mocks = vi.hoisted(() => ({
   isSaaS: vi.fn(),
+  loggerError: vi.fn(),
   posthogCapture: vi.fn(),
   posthogFeatureFlagUnsubscribe: vi.fn(),
   posthogGetFeatureFlagResult: vi.fn(),
@@ -20,6 +21,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@genfeedai/config/deployment', () => ({
   isSaaS: mocks.isSaaS,
+}));
+
+vi.mock('@services/core/logger.service', () => ({
+  logger: { error: mocks.loggerError },
 }));
 
 vi.mock('posthog-js', () => {
@@ -42,13 +47,16 @@ vi.mock('posthog-js', () => {
 
 type PosthogClientModule = typeof import('./posthog-client');
 
+let loadedClient: PosthogClientModule | null = null;
+
 /**
  * The module captures NEXT_PUBLIC_POSTHOG_KEY at import time, so every case
  * re-imports after stubbing env to exercise the intended enabled/disabled state.
  */
 async function loadClient(): Promise<PosthogClientModule> {
   vi.resetModules();
-  return import('./posthog-client');
+  loadedClient = await import('./posthog-client');
+  return loadedClient;
 }
 
 /** Flush the dynamic import()/microtask queue used by initAnalytics. */
@@ -66,6 +74,8 @@ function stubImmediateIdleCallback(): void {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
+  sessionStorage.clear();
   stubImmediateIdleCallback();
   mocks.posthogCapture.mockReset();
   mocks.isSaaS.mockReturnValue(true);
@@ -78,6 +88,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  loadedClient?.__resetAnalyticsForTests();
+  loadedClient = null;
   vi.unstubAllGlobals();
 });
 
@@ -178,8 +190,14 @@ describe('initAnalytics', () => {
       },
       title: 'Secret Post — Genfeed',
       utm_term: 'a secret search phrase',
+      email: 'acceptance@example.com',
+      paymentMethod: 'pm_private',
       prompt: 'Draft a confidential launch plan',
+      completion: 'Confidential generated copy',
+      platform: 'acceptance@example.com',
+      providerId: 'sk_live_private',
       nested: {
+        cardNumber: '4242424242424242',
         credentialId: 'credential-secret',
         messageText: 'private conversation',
       },
@@ -209,7 +227,12 @@ describe('initAnalytics', () => {
     // Free-text keys are dropped entirely.
     expect(props.title).toBeUndefined();
     expect(props.utm_term).toBeUndefined();
+    expect(props.email).toBeUndefined();
+    expect(props.paymentMethod).toBeUndefined();
     expect(props.prompt).toBeUndefined();
+    expect(props.completion).toBeUndefined();
+    expect(props.platform).toBeUndefined();
+    expect(props.providerId).toBeUndefined();
     expect(props.nested).toEqual({});
     expect(props.deeplyNested).toEqual({
       one: { two: { three: { four: { capturedAt, five: {} } } } },
@@ -271,14 +294,75 @@ describe('initAnalytics', () => {
 });
 
 describe('captureAnalyticsEvent', () => {
-  it('no-ops (without throwing) before the client is initialised', async () => {
+  it('buffers the ordered canonical funnel before the deferred client is initialised', async () => {
     const client = await loadClient();
-    expect(() =>
-      client.captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_STARTED, {
-        workflowType: 'editor',
-      }),
-    ).not.toThrow();
+
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.SIGNUP_STARTED, {
+      hasCloudHandoff: true,
+      hasCreditsIntent: true,
+      hasPlanIntent: false,
+      method: 'magic_link',
+    });
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
+      handoffSource: 'post_signup',
+      hasCloudHandoff: true,
+      hasCreditsIntent: true,
+      hasPlanIntent: false,
+    });
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.CHECKOUT_STARTED, {
+      checkoutKind: 'credits',
+      handoffSource: 'post_signup',
+    });
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.CHECKOUT_COMPLETED, {
+      checkoutKind: 'credits',
+      handoffSource: 'stripe_return',
+    });
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.FIRST_CREDIT_PURCHASED, {
+      checkoutKind: 'credits',
+      handoffSource: 'stripe_return',
+    });
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.ONBOARDING_COMPLETED, {});
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.FIRST_SUCCESSFUL_PUBLISH, {
+      platform: 'newsletter',
+      surface: 'newsletter',
+    });
+
     expect(mocks.posthogCapture).not.toHaveBeenCalled();
+
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogCapture.mock.calls.map(([event]) => event)).toEqual([
+      'signup_started',
+      'signup_completed',
+      'checkout_started',
+      'checkout_completed',
+      'first_credit_purchase',
+      'onboarding_completed',
+      'first_successful_publish',
+    ]);
+  });
+
+  it('restores a signup event after a full-page authentication redirect', async () => {
+    const firstPage = await loadClient();
+    firstPage.captureAnalyticsEvent(ANALYTICS_EVENTS.SIGNUP_STARTED, {
+      hasCloudHandoff: true,
+      hasCreditsIntent: false,
+      hasPlanIntent: true,
+      method: 'google',
+    });
+
+    const callbackPage = await loadClient();
+    callbackPage.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogCapture).toHaveBeenCalledOnce();
+    expect(mocks.posthogCapture).toHaveBeenCalledWith('signup_started', {
+      hasCloudHandoff: true,
+      hasCreditsIntent: false,
+      hasPlanIntent: true,
+      method: 'google',
+    });
   });
 
   it('forwards the event and its bounded properties once initialised', async () => {
@@ -327,6 +411,99 @@ describe('captureAnalyticsEvent', () => {
     expect(() =>
       client.captureAnalyticsEvent(ANALYTICS_EVENTS.AGENT_THREAD_CREATED, {}),
     ).not.toThrow();
+  });
+
+  it('retries a synchronous capture failure and reports only sanitized operational context', async () => {
+    const client = await loadClient();
+    client.initAnalytics();
+    await flushInit();
+    mocks.posthogCapture.mockImplementationOnce(() => {
+      throw new Error('request body contained private data');
+    });
+    vi.useFakeTimers();
+
+    try {
+      expect(() =>
+        client.captureAnalyticsEvent(ANALYTICS_EVENTS.CHECKOUT_STARTED, {
+          checkoutKind: 'plan',
+          handoffSource: 'post_signup',
+        }),
+      ).not.toThrow();
+
+      expect(mocks.loggerError).toHaveBeenCalledWith(
+        'PostHog analytics delivery failed',
+        {
+          code: 'posthog_capture_failed',
+          event: 'checkout_started',
+          reportToSentry: false,
+        },
+      );
+
+      await vi.advanceTimersByTimeAsync(1000);
+
+      expect(mocks.posthogCapture).toHaveBeenCalledTimes(2);
+      expect(mocks.posthogCapture).toHaveBeenLastCalledWith(
+        'checkout_started',
+        { checkoutKind: 'plan', handoffSource: 'post_signup' },
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('captures each first-only event once per identified user', async () => {
+    const client = await loadClient();
+    client.identifyAnalyticsUser({ id: 'user-123', isInternal: false });
+    client.initAnalytics();
+    await flushInit();
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      client.captureAnalyticsEvent(ANALYTICS_EVENTS.FIRST_CREDIT_PURCHASED, {
+        checkoutKind: 'credits',
+        handoffSource: 'stripe_return',
+      });
+      client.captureAnalyticsEvent(ANALYTICS_EVENTS.ONBOARDING_COMPLETED, {});
+      client.captureAnalyticsEvent(ANALYTICS_EVENTS.FIRST_SUCCESSFUL_PUBLISH, {
+        platform: 'newsletter',
+        surface: 'newsletter',
+      });
+    }
+
+    expect(mocks.posthogCapture.mock.calls.map(([event]) => event)).toEqual([
+      'first_credit_purchase',
+      'onboarding_completed',
+      'first_successful_publish',
+    ]);
+  });
+});
+
+describe('delivery observability', () => {
+  it('reports PostHog request failures without response bodies or raw errors', async () => {
+    const client = await loadClient();
+    client.initAnalytics();
+    await flushInit();
+    const config = mocks.posthogInit.mock.calls[0]?.[1] as {
+      on_request_error: (response: {
+        error: Error;
+        statusCode: number;
+        text: string;
+      }) => void;
+    };
+
+    config.on_request_error({
+      error: new Error('private transport detail'),
+      statusCode: 503,
+      text: 'private response body',
+    });
+
+    expect(mocks.loggerError).toHaveBeenCalledWith(
+      'PostHog analytics delivery failed',
+      {
+        code: 'posthog_request_failed',
+        reportToSentry: false,
+        statusCode: 503,
+      },
+    );
   });
 });
 
