@@ -42,4 +42,13 @@ describe('button variants', () => {
 
     expect(className).toContain('justify-start');
   });
+
+  it('uses the themed hairline on the default action', () => {
+    const className = buttonVariants({
+      variant: ButtonVariant.DEFAULT,
+    });
+
+    expect(className).toContain('shadow-border');
+    expect(className).not.toContain('rgba(');
+  });
 });
