@@ -343,10 +343,10 @@ describe('DynamicBlockGrid', () => {
         } as AgentUIBlock),
       ]);
 
-      expect(screen.getByText('Info')).toHaveClass('text-blue-300');
-      expect(screen.getByText('Warn')).toHaveClass('text-yellow-300');
-      expect(screen.getByText('Err')).toHaveClass('text-red-300');
-      expect(screen.getByText('Yay')).toHaveClass('text-green-300');
+      expect(screen.getByText('Info')).toHaveClass('text-info');
+      expect(screen.getByText('Warn')).toHaveClass('text-warning');
+      expect(screen.getByText('Err')).toHaveClass('text-destructive');
+      expect(screen.getByText('Yay')).toHaveClass('text-success');
     });
 
     it('renders markdown content', () => {
