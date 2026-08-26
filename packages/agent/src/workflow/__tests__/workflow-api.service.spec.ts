@@ -95,7 +95,7 @@ describe('createWorkflowApiService', () => {
     );
   });
 
-  it('transition, approve, rollback, and forceAdvance hit their endpoints', async () => {
+  it('routes all transition methods through the workflow PATCH event endpoint', async () => {
     const service = createWorkflowApiService(baseUrl, () => null);
     const payload = {
       approaches: [],
@@ -115,15 +115,47 @@ describe('createWorkflowApiService', () => {
     mockFetchOnce({ workflow: makeApiState() });
     await service.forceAdvance('wf-1');
 
-    const urls = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.map(
-      (call) => call[0],
+    const url = 'https://api.test/api/agent-workflows/wf-1';
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      1,
+      url,
+      expect.objectContaining({
+        body: JSON.stringify({ event: 'advance', ...payload }),
+        method: 'PATCH',
+      }),
     );
-    expect(urls).toEqual([
-      'https://api.test/api/agent-workflows/wf-1/transition',
-      'https://api.test/api/agent-workflows/wf-1/approve',
-      'https://api.test/api/agent-workflows/wf-1/rollback',
-      'https://api.test/api/agent-workflows/wf-1/force-advance',
-    ]);
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      2,
+      url,
+      expect.objectContaining({
+        body: JSON.stringify({ event: 'approve', ...payload }),
+        method: 'PATCH',
+      }),
+    );
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      3,
+      url,
+      expect.objectContaining({
+        body: JSON.stringify({
+          event: 'rollback',
+          targetPhase: 'exploring',
+        }),
+        method: 'PATCH',
+      }),
+    );
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      4,
+      url,
+      expect.objectContaining({
+        body: JSON.stringify({ event: 'advance', force: true }),
+        method: 'PATCH',
+      }),
+    );
+    expect(
+      (global.fetch as ReturnType<typeof vi.fn>).mock.calls.map(
+        (call) => call[0],
+      ),
+    ).toEqual([url, url, url, url]);
   });
 
   it('rejects with a descriptive error on non-ok responses', async () => {

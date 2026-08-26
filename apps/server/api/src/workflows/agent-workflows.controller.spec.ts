@@ -2,6 +2,8 @@ import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard'
 import { AgentWorkflowsController } from '@api/workflows/agent-workflows.controller';
 import { AgentWorkflowsService } from '@api/workflows/agent-workflows.service';
 import { testId } from '@helpers/testing/test-id.helper';
+import { RequestMethod } from '@nestjs/common';
+import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 const organizationId = testId('org');
@@ -10,12 +12,9 @@ const userId = testId('user');
 describe('AgentWorkflowsController', () => {
   let controller: AgentWorkflowsController;
   const service = {
-    approve: vi.fn(),
+    applyEvent: vi.fn(),
     createWorkflow: vi.fn(),
-    forceAdvance: vi.fn(),
     getWorkflow: vi.fn(),
-    rollback: vi.fn(),
-    transition: vi.fn(),
   };
 
   const user = {
@@ -59,17 +58,50 @@ describe('AgentWorkflowsController', () => {
     );
   });
 
-  it('wraps transition responses in workflow payloads', async () => {
-    service.transition.mockResolvedValue({ currentPhase: 'clarifying' });
+  it('wraps event responses in workflow payloads', async () => {
+    service.applyEvent.mockResolvedValue({ currentPhase: 'clarifying' });
+    const dto = { event: 'advance', questions: [] } as const;
 
-    const result = await controller.transition('wf-1', {}, user as never);
+    const result = await controller.applyEvent(
+      'wf-1',
+      dto as never,
+      user as never,
+    );
 
-    expect(service.transition).toHaveBeenCalledWith(
+    expect(service.applyEvent).toHaveBeenCalledWith(
       'wf-1',
       organizationId,
-      'agent',
-      {},
+      dto,
     );
     expect(result).toEqual({ workflow: { currentPhase: 'clarifying' } });
+  });
+
+  it('exposes exactly one PATCH route and no legacy transition routes', () => {
+    const prototype = AgentWorkflowsController.prototype as unknown as Record<
+      string,
+      object
+    >;
+    const routes = Object.getOwnPropertyNames(prototype)
+      .filter((name) => name !== 'constructor')
+      .map((name) => prototype[name])
+      .filter((handler) => Reflect.hasMetadata(PATH_METADATA, handler))
+      .map((handler) => ({
+        method: Reflect.getMetadata(METHOD_METADATA, handler),
+        path: Reflect.getMetadata(PATH_METADATA, handler),
+      }));
+
+    expect(
+      routes.filter((route) => route.method === RequestMethod.PATCH),
+    ).toEqual([{ method: RequestMethod.PATCH, path: ':workflowId' }]);
+    expect(
+      routes.filter((route) =>
+        [
+          ':workflowId/approve',
+          ':workflowId/force-advance',
+          ':workflowId/rollback',
+          ':workflowId/transition',
+        ].includes(route.path),
+      ),
+    ).toEqual([]);
   });
 });

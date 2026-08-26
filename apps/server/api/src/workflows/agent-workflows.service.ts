@@ -13,6 +13,10 @@ import type {
   AgentWorkflowTrigger,
 } from '@api/workflows/agent-workflows.types';
 import { CreateAgentWorkflowDto } from '@api/workflows/dto/create-agent-workflow.dto';
+import {
+  getAgentWorkflowPatchValidationError,
+  type PatchAgentWorkflowDto,
+} from '@api/workflows/dto/patch-agent-workflow.dto';
 import { UpdateAgentWorkflowStateDto } from '@api/workflows/dto/update-agent-workflow-state.dto';
 import { type AgentWorkflow, toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
@@ -52,6 +56,25 @@ type WorkflowApiState = {
   messages: AgentWorkflowDocumentShape['messages'];
   isLocked: boolean;
 };
+
+function toStateUpdate(
+  dto: PatchAgentWorkflowDto,
+): UpdateAgentWorkflowStateDto {
+  const state: UpdateAgentWorkflowStateDto = {};
+
+  if (dto.questions !== undefined) state.questions = dto.questions;
+  if (dto.approaches !== undefined) state.approaches = dto.approaches;
+  if (dto.selectedApproachId !== undefined) {
+    state.selectedApproachId = dto.selectedApproachId;
+  }
+  if (dto.verificationEvidence !== undefined) {
+    state.verificationEvidence = dto.verificationEvidence;
+  }
+  if (dto.messages !== undefined) state.messages = dto.messages;
+  if (dto.isLocked !== undefined) state.isLocked = dto.isLocked;
+
+  return state;
+}
 
 @Injectable()
 export class AgentWorkflowsService {
@@ -100,6 +123,40 @@ export class AgentWorkflowsService {
   ): Promise<WorkflowApiState> {
     const workflow = await this.findWorkflow(workflowId, organizationId);
     return this.toApiState(workflow);
+  }
+
+  async applyEvent(
+    workflowId: string,
+    organizationId: string,
+    dto: PatchAgentWorkflowDto,
+  ): Promise<WorkflowApiState> {
+    const validationError = getAgentWorkflowPatchValidationError(dto);
+    if (validationError) {
+      throw new BadRequestException(validationError);
+    }
+
+    switch (dto.event) {
+      case 'advance':
+        return dto.force
+          ? this.forceAdvance(workflowId, organizationId)
+          : this.transition(
+              workflowId,
+              organizationId,
+              'agent',
+              toStateUpdate(dto),
+            );
+      case 'approve':
+        return this.approve(workflowId, organizationId, toStateUpdate(dto));
+      case 'rollback':
+        if (!dto.targetPhase) {
+          throw new BadRequestException(
+            'targetPhase is required for rollback events',
+          );
+        }
+        return this.rollback(workflowId, organizationId, dto.targetPhase);
+      default:
+        throw new BadRequestException('Unsupported agent workflow event');
+    }
   }
 
   async transition(
