@@ -168,10 +168,14 @@ export function checkPortlessContract(
   }
 
   const portlessVersion = rootManifest.devDependencies?.portless;
-  if (portlessVersion !== '0.15.5' && portlessVersion !== '0.15.4') {
+  if (
+    portlessVersion !== '0.15.6' &&
+    portlessVersion !== '0.15.5' &&
+    portlessVersion !== '0.15.4'
+  ) {
     violations.push({
       message:
-        'Portless must remain an exact, repository-owned development dependency at version 0.15.x (0.15.4 or 0.15.5)',
+        'Portless must remain an exact, repository-owned development dependency at version 0.15.x (0.15.4, 0.15.5, or 0.15.6)',
       path: 'package.json',
     });
   }
