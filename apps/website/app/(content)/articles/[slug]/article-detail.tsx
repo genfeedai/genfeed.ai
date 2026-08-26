@@ -30,6 +30,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
+import { resolvePublicArticleAuthor } from './article-author';
 import ArticleContent from './article-content';
 
 const articleDateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -218,6 +219,7 @@ export default function ArticleDetail({
   }
 
   const brand = article.brand;
+  const authorLabel = resolvePublicArticleAuthor(article);
 
   return (
     <div
@@ -278,10 +280,10 @@ export default function ArticleDetail({
               )}
 
               <div className="flex flex-wrap items-center gap-3 border-b border-edge/20 pb-4 text-xs text-surface/60 md:gap-4 md:pb-6 md:text-sm">
-                {article.author && (
+                {authorLabel && (
                   <div className="flex items-center gap-2.5">
                     <User className="size-3.5 flex-shrink-0 md:h-4 md:w-4" />
-                    <span className="truncate">{article.author}</span>
+                    <span className="truncate">{authorLabel}</span>
                   </div>
                 )}
 
