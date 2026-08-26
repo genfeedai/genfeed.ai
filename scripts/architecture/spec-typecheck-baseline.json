@@ -2833,30 +2833,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/fleet/fleet.service.spec.ts",
-      "fingerprint": "4db91969a0036dc9372b",
-      "message": "Type 'Mock<(<T = any, R = unique symbol, D = any, P = any>(url: string, config?: AxiosRequestConfig<D, P> | undefined) => Promise<AxiosResponseResult<T, R, D, P>>)>' is not assignable to type '(<T = any, R = unique symbol, D = any, P = any>(url: string, config?: AxiosRequestConfig<D, P> | undefined) => Promise<AxiosResponseResult<T, R, D, P>>) & ... 4 more ... & {}'.   Type 'Mock<(<T = any, R = unique symbol, D = any, P = any>(url: string, config?: AxiosRequestConfig<D, P> | undefined) => Promise<AxiosResponseResult<T, R, D, P>>)>' is not assignable to type '<T = any, R = unique symbol, D = any, P = any>(url: string, config?: AxiosRequestConfig<D, P> | undefined) => Promise<AxiosResponseResult<T, R, D, P>>'.     Types of parameters 'config' and 'config' are incompatible.       Type 'AxiosRequestConfig<D, P> | undefined' is not assignable to type 'AxiosRequestConfig<unknown, unknown> | undefined'.         Type 'AxiosRequestConfig<D, P>' is not assignable to type 'AxiosRequestConfig<unknown, unknown>'.           Types of property 'paramsSerializer' are incompatible.             Type 'ParamsSerializerOptions<unknown extends P ? Record<string, any> : P> | CustomParamsSerializer<unknown extends P ? Record<string, any> : P> | undefined' is not assignable to type 'ParamsSerializerOptions<Record<string, any>> | CustomParamsSerializer<Record<string, any>> | undefined'.               Type 'ParamsSerializerOptions<unknown extends P ? Record<string, any> : P>' is not assignable to type 'ParamsSerializerOptions<Record<string, any>> | CustomParamsSerializer<Record<string, any>> | undefined'.                 Type 'ParamsSerializerOptions<unknown extends P ? Record<string, any> : P>' is not assignable to type 'ParamsSerializerOptions<Record<string, any>>'.                   Types of property 'serialize' are incompatible.                     Type 'CustomParamsSerializer<unknown extends P ? Record<string, any> : P> | undefined' is not assignable to type 'CustomParamsSerializer<Record<string, any>> | undefined'.                       Type 'CustomParamsSerializer<unknown extends P ? Record<string, any> : P>' is not assignable to type 'CustomParamsSerializer<Record<string, any>>'.                         Types of parameters 'params' and 'params' are incompatible.                           Type 'Record<string, any>' is not assignable to type 'unknown extends P ? Record<string, any> : P'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "apps/server/api/src/services/integrations/fleet/fleet.service.spec.ts",
-      "fingerprint": "c0d6925b5c88906379fb",
-      "message": "Type 'Mock<(<T = any, R = unique symbol, D = any, P = any>(url: string, data?: D | undefined, config?: AxiosRequestConfig<D, P> | undefined) => Promise<AxiosResponseResult<T, R, D, P>>)>' is not assignable to type '(<T = any, R = unique symbol, D = any, P = any>(url: string, data?: D | undefined, config?: AxiosRequestConfig<D, P> | undefined) => Promise<AxiosResponseResult<T, R, D, P>>) & ... 4 more ... & {}'.   Type 'Mock<(<T = any, R = unique symbol, D = any, P = any>(url: string, data?: D | undefined, config?: AxiosRequestConfig<D, P> | undefined) => Promise<AxiosResponseResult<T, R, D, P>>)>' is not assignable to type '<T = any, R = unique symbol, D = any, P = any>(url: string, data?: D | undefined, config?: AxiosRequestConfig<D, P> | undefined) => Promise<AxiosResponseResult<T, R, D, P>>'.     Types of parameters 'config' and 'config' are incompatible.       Type 'AxiosRequestConfig<D, P> | undefined' is not assignable to type 'AxiosRequestConfig<unknown, unknown> | undefined'.         Type 'AxiosRequestConfig<D, P>' is not assignable to type 'AxiosRequestConfig<unknown, unknown>'.           Types of property 'paramsSerializer' are incompatible.             Type 'ParamsSerializerOptions<unknown extends P ? Record<string, any> : P> | CustomParamsSerializer<unknown extends P ? Record<string, any> : P> | undefined' is not assignable to type 'ParamsSerializerOptions<Record<string, any>> | CustomParamsSerializer<Record<string, any>> | undefined'.               Type 'ParamsSerializerOptions<unknown extends P ? Record<string, any> : P>' is not assignable to type 'ParamsSerializerOptions<Record<string, any>> | CustomParamsSerializer<Record<string, any>> | undefined'.                 Type 'ParamsSerializerOptions<unknown extends P ? Record<string, any> : P>' is not assignable to type 'ParamsSerializerOptions<Record<string, any>>'.                   Types of property 'serialize' are incompatible.                     Type 'CustomParamsSerializer<unknown extends P ? Record<string, any> : P> | undefined' is not assignable to type 'CustomParamsSerializer<Record<string, any>> | undefined'.                       Type 'CustomParamsSerializer<unknown extends P ? Record<string, any> : P>' is not assignable to type 'CustomParamsSerializer<Record<string, any>>'.                         Types of parameters 'params' and 'params' are incompatible.                           Type 'Record<string, any>' is not assignable to type 'unknown extends P ? Record<string, any> : P'.",
-      "workspace": "api"
-    },
-    {
-      "code": 7053,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/fleet/fleet.service.spec.ts",
-      "fingerprint": "5af78d79119c008292f5",
-      "message": "Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ GPU_IMAGES_URL: string; GPU_VIDEOS_URL: string; GPU_VOICES_URL: string; }'.   No index signature with a parameter of type 'string' was found on type '{ GPU_IMAGES_URL: string; GPU_VIDEOS_URL: string; GPU_VOICES_URL: string; }'.",
-      "workspace": "api"
-    },
-    {
       "code": 2339,
       "count": 1,
       "file": "apps/server/api/src/services/integrations/llm/llm-instance.service.spec.ts",

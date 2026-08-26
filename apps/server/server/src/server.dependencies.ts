@@ -8,6 +8,7 @@ export const SERVER_TOKENS = {
   byok: 'SERVER_BYOK',
   config: 'SERVER_CONFIG',
   credentials: 'SERVER_CREDENTIALS',
+  customerInstances: 'SERVER_CUSTOMER_INSTANCES',
   instagram: 'SERVER_INSTAGRAM',
   linkedIn: 'SERVER_LINKEDIN',
   logger: 'SERVER_LOGGER',
@@ -32,6 +33,13 @@ export interface ServerByokResolver {
     organizationId: string,
     provider: ByokProvider,
   ): Promise<{ apiKey: string; apiSecret?: string } | undefined>;
+}
+
+export interface ServerCustomerInstanceResolver {
+  findRunningForOrg(
+    orgId: string,
+    role: 'images' | 'voices' | 'videos',
+  ): Promise<{ apiUrl?: string | null } | null>;
 }
 
 export interface ServerLogger {
