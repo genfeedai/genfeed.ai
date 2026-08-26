@@ -136,6 +136,16 @@ export interface OrphanSocialOAuthCleanupReport {
   wouldUpdate: number;
 }
 
+export function assertOrphanSocialOAuthCleanupCompleted(
+  report: OrphanSocialOAuthCleanupReport,
+): void {
+  if (!report.dryRun && report.concurrentChangesSkipped > 0) {
+    throw new Error(
+      `Cleanup skipped ${report.concurrentChangesSkipped} concurrently changed credential(s). Rerun the dry-run and review them.`,
+    );
+  }
+}
+
 export function parseOrphanSocialOAuthCleanupArgs(
   args: readonly string[],
 ): OrphanSocialOAuthCleanupArgs {
@@ -380,11 +390,7 @@ async function main(): Promise<void> {
     if (args.dryRun && report.wouldUpdate > 0) {
       logger.log('Review the report, then rerun with --live to apply.');
     }
-    if (!args.dryRun && report.concurrentChangesSkipped > 0) {
-      throw new Error(
-        `Cleanup skipped ${report.concurrentChangesSkipped} concurrently changed credential(s). Rerun the dry-run and review them.`,
-      );
-    }
+    assertOrphanSocialOAuthCleanupCompleted(report);
   } finally {
     await prisma.$disconnect();
   }

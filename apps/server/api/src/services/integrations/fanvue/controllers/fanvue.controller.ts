@@ -23,13 +23,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import {
-  Body,
-  Controller,
-  Post,
-  Req,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { Body, Controller, HttpException, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -199,7 +193,7 @@ export class FanvueController {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
 
-      if (error instanceof ServiceUnavailableException) {
+      if (error instanceof HttpException) {
         throw error;
       }
 

@@ -1,10 +1,15 @@
-vi.mock('@api/helpers/utils/response/response.util', () => ({
-  returnBadRequest: vi.fn((data) => data),
-  returnInternalServerError: vi.fn((msg) => msg),
-  returnNotFound: vi.fn((name, id) => ({ id, name })),
-  serializeCollection: vi.fn((_, __, r) => r),
-  serializeSingle: vi.fn((_, __, data) => data),
-}));
+vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@api/helpers/utils/response/response.util')
+    >();
+
+  return {
+    ...actual,
+    serializeCollection: vi.fn((_, __, result) => result),
+    serializeSingle: vi.fn((_, __, data) => data),
+  };
+});
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -110,17 +115,14 @@ describe('ThreadsController', () => {
   });
 
   describe('connect', () => {
-    it('should return bad request when brand not found', async () => {
+    it('should preserve bad request when brand not found', async () => {
       mockBrandsService.findOne.mockResolvedValue(null);
 
-      const result = await controller.connect(mockRequest, mockUser, {
-        brandId: mockBrandId,
-      });
-
-      expect(result).toEqual({
-        detail: 'You do not have access to this brand',
-        title: 'Invalid payload',
-      });
+      await expect(
+        controller.connect(mockRequest, mockUser, {
+          brandId: mockBrandId,
+        }),
+      ).rejects.toMatchObject({ status: 400 });
     });
 
     it('should save credentials and return OAuth URL when brand found', async () => {
@@ -237,6 +239,23 @@ describe('ThreadsController', () => {
   });
 
   describe('verify', () => {
+    it('preserves bad request when callback identifiers are missing', async () => {
+      await expect(controller.verify(mockRequest, {})).rejects.toMatchObject({
+        status: 400,
+      });
+    });
+
+    it('preserves not found when pending OAuth state does not exist', async () => {
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue(null);
+
+      await expect(
+        controller.verify(mockRequest, {
+          code: 'auth-code',
+          state: 'missing-state',
+        }),
+      ).rejects.toMatchObject({ status: 404 });
+    });
+
     it('fails closed when the redirect URI is unavailable before token exchange', async () => {
       configValues.THREADS_REDIRECT_URI = 'PLACEHOLDER_NOT_CONFIGURED';
       mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({

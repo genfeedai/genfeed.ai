@@ -970,6 +970,7 @@ describe('Config Schemas', () => {
       ).toBeDefined();
       expect(
         schema.validate({
+          THREADS_GRAPH_URL: 'PLACEHOLDER_NOT_CONFIGURED',
           THREADS_REDIRECT_URI: 'PLACEHOLDER_NOT_CONFIGURED',
         }).error,
       ).toBeUndefined();

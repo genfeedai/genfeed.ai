@@ -1,6 +1,7 @@
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { describe, expect, it } from 'vitest';
 import {
+  assertOrphanSocialOAuthCleanupCompleted,
   type OrphanSocialOAuthCleanupClient,
   type OrphanSocialOAuthCredentialRow,
   type OrphanSocialOAuthFindManyArgs,
@@ -233,5 +234,24 @@ describe('cleanup-orphan-social-oauth', () => {
     expect(client.updateCalls).toHaveLength(2);
     expect(client.updateCalls[0]?.where.id.in).toHaveLength(100);
     expect(client.updateCalls[1]?.where.id.in).toHaveLength(5);
+  });
+
+  it('fails live cleanup when a concurrent change prevents a guarded update', () => {
+    expect(() =>
+      assertOrphanSocialOAuthCleanupCompleted({
+        byDisposition: {
+          eligible: 1,
+          preserve_ambiguous: 0,
+          preserve_connected: 0,
+          preserve_identity: 0,
+          preserve_token: 0,
+        },
+        concurrentChangesSkipped: 1,
+        dryRun: false,
+        scanned: 1,
+        updated: 0,
+        wouldUpdate: 1,
+      }),
+    ).toThrow('Cleanup skipped 1 concurrently changed credential');
   });
 });

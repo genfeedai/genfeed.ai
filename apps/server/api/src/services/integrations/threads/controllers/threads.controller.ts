@@ -28,6 +28,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpException,
   Post,
   Req,
   ServiceUnavailableException,
@@ -113,9 +114,7 @@ export class ThreadsController {
       },
     );
 
-    this.loggerService.log(`${url} - Generating OAuth URL`, {
-      redirectUri,
-    });
+    this.loggerService.log(`${url} - Generating OAuth URL`);
 
     // Threads OAuth endpoint
     const authUrl =
@@ -284,7 +283,7 @@ export class ThreadsController {
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      if (error instanceof ServiceUnavailableException) {
+      if (error instanceof HttpException) {
         throw error;
       }
       return returnInternalServerError('Failed to verify Threads OAuth');

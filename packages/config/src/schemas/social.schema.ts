@@ -183,7 +183,10 @@ export const threadsSchema = {
   THREADS_API_VERSION: Joi.string().optional().allow(''),
   THREADS_CLIENT_ID: Joi.string().optional().allow(''),
   THREADS_CLIENT_SECRET: Joi.string().optional().allow(''),
-  THREADS_GRAPH_URL: Joi.string().uri().optional().allow(''),
+  THREADS_GRAPH_URL: Joi.string()
+    .uri()
+    .optional()
+    .allow('', UNCONFIGURED_SECRET_SENTINEL),
   THREADS_REDIRECT_URI: Joi.string()
     .uri()
     .optional()
