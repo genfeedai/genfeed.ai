@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   applyBrandKitDraft: vi.fn(),
   crawlBrandKitWebsite: vi.fn(),
   getBrandsService: vi.fn(),
+  getClaimedBrandOsDraft: vi.fn(),
   importBrandKitAssets: vi.fn(),
   loggerError: vi.fn(),
   onRefreshBrand: vi.fn(),
@@ -291,9 +292,48 @@ describe('BrandKitReviewCard', () => {
     mocks.getBrandsService.mockResolvedValue({
       applyBrandKitDraft: mocks.applyBrandKitDraft,
       crawlBrandKitWebsite: mocks.crawlBrandKitWebsite,
+      getClaimedBrandOsDraft: mocks.getClaimedBrandOsDraft,
       importBrandKitAssets: mocks.importBrandKitAssets,
     });
     mocks.onRefreshBrand.mockResolvedValue(undefined);
+  });
+
+  it('loads a claimed Brand OS draft into the canonical review flow', async () => {
+    const onLoaded = vi.fn();
+    const onAccepted = vi.fn();
+    mocks.getClaimedBrandOsDraft.mockResolvedValue({
+      draft: createDraft(),
+      expiresAt: new Date().toISOString(),
+      id: 'brand-1',
+      status: 'claimed',
+    });
+
+    render(
+      <BrandKitReviewCard
+        brand={brandFixture}
+        brandId="brand-1"
+        loadClaimedBrandOsDraft
+        onBrandOsDraftAccepted={onAccepted}
+        onBrandOsDraftLoaded={onLoaded}
+        onRefreshBrand={mocks.onRefreshBrand}
+      />,
+    );
+
+    expect(await screen.findByText('67% readiness')).toBeInTheDocument();
+    expect(screen.getByTestId('brand-kit-review-card')).toHaveAttribute(
+      'data-brand-os-state',
+      'saved',
+    );
+    expect(mocks.getClaimedBrandOsDraft).toHaveBeenCalledWith('brand-1');
+    expect(onLoaded).toHaveBeenCalledTimes(1);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Apply Selected Fields' }),
+    );
+    await waitFor(() => expect(onAccepted).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId('brand-kit-review-card')).toHaveAttribute(
+      'data-brand-os-state',
+      'accepted',
+    );
   });
 
   it('scans, reviews editable fields, and applies selected fields', async () => {

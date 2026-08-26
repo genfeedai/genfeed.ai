@@ -5,6 +5,7 @@ import {
   isFreePlanHandoff,
   parseSelectedCredits,
 } from '@app/(onboarding)/onboarding/post-signup/post-signup-routing.util';
+import { parseBrandOsPreviewToken } from '@app/(public)/auth-callback-url';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
   hasAgentFirstOnboarding,
@@ -13,6 +14,7 @@ import {
 } from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import {
+  createBrandAppRoute,
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
 } from '@genfeedai/constants';
@@ -24,9 +26,14 @@ import { StripeService } from '@services/billing/stripe.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
+import { BrandsService } from '@services/social/brands.service';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
+import {
+  ANALYTICS_EVENTS,
+  captureAnalyticsEvent,
+  captureBrandOsFunnelStage,
+} from '@/lib/analytics';
 import {
   extractBrandDomain,
   ONBOARDING_STORAGE_KEYS,
@@ -37,6 +44,7 @@ export type PostSignupRoutingState = {
   showFallback: boolean;
   statusMessage: string;
   resolveOnboardingHref: () => Promise<string>;
+  retryBrandOsHandoff?: (() => void) | undefined;
 };
 
 export function usePostSignupRouting(): PostSignupRoutingState {
@@ -48,7 +56,9 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const requestedCreditsParam = searchParams.get('credits');
   const requestedBrandDomainParam = searchParams.get('brandDomain');
   const requestedBrandNameParam = searchParams.get('brandName');
+  const requestedBrandOsTokenParam = searchParams.get('brandOsToken');
   const calledRef = useRef(false);
+  const [routingAttempt, setRoutingAttempt] = useState(0);
   const [showFallback, setShowFallback] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
     'Setting up your workspace...',
@@ -56,6 +66,14 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const hasAuthUser = Boolean(authUser);
   const authPrimaryEmail = authUser?.primaryEmailAddress?.emailAddress ?? '';
   const checkoutEmail = currentUser?.email || authPrimaryEmail || '';
+  const hasBrandOsHandoff = Boolean(
+    parseBrandOsPreviewToken(requestedBrandOsTokenParam),
+  );
+  const retryBrandOsHandoff = useCallback(() => {
+    calledRef.current = false;
+    setShowFallback(false);
+    setRoutingAttempt((attempt) => attempt + 1);
+  }, []);
 
   // Resolve the active organization slug so we can build the org-scoped agent
   // onboarding route. Missing SaaS scope returns to the protected bootstrap,
@@ -137,6 +155,9 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     }
 
     calledRef.current = true;
+    if (routingAttempt > 0) {
+      setStatusMessage('Retrying your Brand OS handoff...');
+    }
     const abortController = new AbortController();
     const { signal } = abortController;
     const fallbackTimeout = window.setTimeout(() => {
@@ -216,6 +237,55 @@ export function usePostSignupRouting(): PostSignupRoutingState {
         ),
         hasPlanIntent: Boolean(selectedPlan?.trim()),
       });
+
+      const brandOsToken = parseBrandOsPreviewToken(requestedBrandOsTokenParam);
+      if (brandOsToken) {
+        if (!signal.aborted) {
+          setStatusMessage('Saving your Brand OS draft...');
+        }
+        const token = await resolveAuthToken(getToken);
+        if (!token) {
+          setShowFallback(true);
+          return;
+        }
+
+        try {
+          const organizationsService = OrganizationsService.getInstance(token);
+          const organizations = await organizationsService.getMyOrganizations();
+          const organization =
+            organizations.find((candidate) => candidate.isActive) ??
+            organizations[0];
+          if (!organization) {
+            setShowFallback(true);
+            return;
+          }
+
+          const brands = await organizationsService.findOrganizationBrands(
+            organization.id,
+          );
+          const brand = brands[0];
+          if (!brand?.id || !brand.slug) {
+            setShowFallback(true);
+            return;
+          }
+
+          await BrandsService.getInstance(token).claimBrandOsPreview(brand.id, {
+            previewToken: brandOsToken,
+          });
+          captureBrandOsFunnelStage('draft_saved');
+          redirectTo(
+            createBrandAppRoute(organization.slug, brand.slug, '/settings/kit'),
+          );
+          return;
+        } catch (error) {
+          logger.error('Failed to claim Brand OS preview after auth', error);
+          setStatusMessage(
+            'Your preview is still available. Retry to save it to your workspace.',
+          );
+          setShowFallback(true);
+          return;
+        }
+      }
 
       if (selectedPlan?.trim()) {
         localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedPlan);
@@ -417,11 +487,18 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     isLoading,
     requestedBrandDomainParam,
     requestedBrandNameParam,
+    requestedBrandOsTokenParam,
     requestedCreditsParam,
     requestedPlanParam,
+    routingAttempt,
     resolveCheckoutReturnHref,
     resolveOnboardingHref,
   ]);
 
-  return { showFallback, statusMessage, resolveOnboardingHref };
+  return {
+    resolveOnboardingHref,
+    retryBrandOsHandoff: hasBrandOsHandoff ? retryBrandOsHandoff : undefined,
+    showFallback,
+    statusMessage,
+  };
 }

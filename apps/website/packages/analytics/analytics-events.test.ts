@@ -5,6 +5,19 @@ import {
 } from './analytics-events';
 
 describe('deriveWebsiteEventsFromCta', () => {
+  it('declares a distinct sanitized Brand OS funnel taxonomy', () => {
+    expect([
+      WEBSITE_ANALYTICS_EVENTS.BRAND_OS_CTA_VIEWED,
+      WEBSITE_ANALYTICS_EVENTS.BRAND_OS_INTAKE_STARTED,
+      WEBSITE_ANALYTICS_EVENTS.BRAND_OS_PREVIEW_COMPLETED,
+      WEBSITE_ANALYTICS_EVENTS.BRAND_OS_AUTH_HANDOFF,
+    ]).toEqual([
+      'brand_os_cta_viewed',
+      'brand_os_intake_started',
+      'brand_os_preview_completed',
+      'brand_os_auth_handoff',
+    ]);
+  });
   it('maps book-a-call actions to cta_click + book_call', () => {
     expect(
       deriveWebsiteEventsFromCta({ action: 'book_demo_bottom_cta' }),

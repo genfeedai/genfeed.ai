@@ -2,10 +2,77 @@ import {
   BrandKitApplySerializer,
   BrandKitAssetImportSerializer,
   BrandKitSerializer,
+  BrandOsDraftHandoffSerializer,
+  BrandOsPreviewSerializer,
 } from '@serializers/server/organizations/brand-kit.serializer';
 import { describe, expect, it } from 'vitest';
 
 describe('Brand Kit JSON:API contract', () => {
+  const previewDraft = {
+    assetCandidates: [],
+    brandId: 'preview_synthetic',
+    diagnostics: [],
+    evidence: [],
+    fields: {},
+    id: 'preview_synthetic',
+    readiness: {
+      diagnostics: [],
+      missingFields: ['description'],
+      requiredFields: ['description'],
+      score: 0,
+      status: 'missing',
+    },
+    sourceType: 'manual',
+    status: 'missing',
+  } as const;
+
+  it('serializes the anonymous handoff without leaking storage or tenant metadata', () => {
+    const output = BrandOsPreviewSerializer.serialize({
+      draft: previewDraft,
+      expiresAt: '2026-08-26T12:30:00.000Z',
+      id: 'preview_synthetic',
+      organizationId: 'must-not-leak',
+      previewToken: 'opaque-token',
+      redisKey: 'must-not-leak',
+      tokenHash: 'must-not-leak',
+    });
+
+    expect(output).toEqual({
+      data: {
+        attributes: {
+          draft: previewDraft,
+          expiresAt: '2026-08-26T12:30:00.000Z',
+          previewToken: 'opaque-token',
+        },
+        id: 'preview_synthetic',
+        type: 'brand-os-preview',
+      },
+    });
+  });
+
+  it('serializes the tenant-bound handoff without exposing its bearer token', () => {
+    const output = BrandOsDraftHandoffSerializer.serialize({
+      draft: { ...previewDraft, brandId: 'brand-1', id: 'brand-1' },
+      expiresAt: '2026-08-26T12:30:00.000Z',
+      id: 'brand-1',
+      previewToken: 'must-not-leak',
+      status: 'claimed',
+      tokenHash: 'must-not-leak',
+    });
+
+    expect(output).toEqual({
+      data: {
+        attributes: {
+          draft: { ...previewDraft, brandId: 'brand-1', id: 'brand-1' },
+          expiresAt: '2026-08-26T12:30:00.000Z',
+          status: 'claimed',
+        },
+        id: 'brand-1',
+        type: 'brand-os-draft-handoff',
+      },
+    });
+  });
+
   it('serializes the canonical review projection without promoting owner references to relationships', () => {
     const output = BrandKitSerializer.serialize({
       assetCandidates: [

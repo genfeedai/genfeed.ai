@@ -9,9 +9,9 @@ import { Text } from '@ui/typography/text';
 import HomeFooter from '@web-components/home/_footer';
 import { Layers } from 'lucide-react';
 import Link from 'next/link';
+import { BrandOsFunnel } from './brand-os-funnel';
 import {
   BrandOSPreviewAction,
-  BrandOSPreviewState,
   BrandOSPreviewStateCatalog,
 } from './brand-os-preview-state';
 
@@ -260,16 +260,12 @@ export default function BrandOSContent(): React.ReactElement {
                 </Text>
               </div>
 
-              <BrandOSPreviewState
-                scaleRole="monument"
-                showEvidence
-                state="ready"
-              />
+              <BrandOsFunnel />
             </div>
           </div>
         </section>
 
-        {/* Presentational state contract; no anonymous API or persistence. */}
+        {/* The catalog documents every explicit state used by the live funnel. */}
         <section
           className="border-b border-edge/5 py-16 sm:py-20"
           id="brand-os-states"
@@ -288,9 +284,8 @@ export default function BrandOSContent(): React.ReactElement {
                 </div>
                 <Text className="max-w-2xl text-sm leading-6 text-surface/60 lg:justify-self-end">
                   The public preview names progress, partial evidence, recovery,
-                  conversion, and review outcomes. This catalog is
-                  presentational; generation and saving remain in the product
-                  flow.
+                  conversion, and review outcomes. The live preview above uses
+                  the same state contract before authenticated review.
                 </Text>
               </div>
 

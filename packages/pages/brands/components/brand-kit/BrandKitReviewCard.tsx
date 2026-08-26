@@ -26,7 +26,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BrandKitAssetGrid from './BrandKitAssetGrid';
 import BrandKitAssetTile from './BrandKitAssetTile';
 
@@ -316,6 +316,9 @@ function getDiagnostics(
 export default function BrandKitReviewCard({
   brand,
   brandId,
+  loadClaimedBrandOsDraft = false,
+  onBrandOsDraftAccepted,
+  onBrandOsDraftLoaded,
   onRefreshBrand,
 }: BrandKitReviewCardProps) {
   const getBrandsService = useAuthedService((token: string) =>
@@ -341,6 +344,8 @@ export default function BrandKitReviewCard({
   const [isScanning, setIsScanning] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [isImportingAssets, setIsImportingAssets] = useState(false);
+  const claimedDraftLoadRef = useRef<string | null>(null);
+  const isBrandOsDraftRef = useRef(false);
 
   const groupedFields = useMemo(() => {
     const groups = new Map<BrandKitFieldGroup, BrandKitGroupedField[]>();
@@ -430,6 +435,30 @@ export default function BrandKitReviewCard({
     setAssetImportResult(null);
   }, []);
 
+  useEffect(() => {
+    if (!loadClaimedBrandOsDraft || claimedDraftLoadRef.current === brandId) {
+      return;
+    }
+    claimedDraftLoadRef.current = brandId;
+    void getBrandsService()
+      .then((service) => service.getClaimedBrandOsDraft(brandId))
+      .then((handoff) => {
+        isBrandOsDraftRef.current = true;
+        setDraft(handoff.draft);
+        initializeDraftReview(handoff.draft);
+        onBrandOsDraftLoaded?.();
+      })
+      .catch(() => {
+        // A missing claimed draft is the normal settings-page state.
+      });
+  }, [
+    brandId,
+    getBrandsService,
+    initializeDraftReview,
+    loadClaimedBrandOsDraft,
+    onBrandOsDraftLoaded,
+  ]);
+
   const handleScan = useCallback(async () => {
     const url = websiteUrl.trim();
 
@@ -441,6 +470,7 @@ export default function BrandKitReviewCard({
     setIsScanning(true);
     setError(null);
     setApplyResult(null);
+    isBrandOsDraftRef.current = false;
 
     try {
       const service = await getBrandsService();
@@ -590,6 +620,9 @@ export default function BrandKitReviewCard({
         });
 
         setApplyResult(result);
+        if (isBrandOsDraftRef.current && result.appliedFields.length > 0) {
+          onBrandOsDraftAccepted?.();
+        }
         setDraft((current) => {
           if (!current) {
             return current;
@@ -630,11 +663,25 @@ export default function BrandKitReviewCard({
         setIsApplying(false);
       }
     },
-    [brandId, draft, fieldValues, getBrandsService, onRefreshBrand],
+    [
+      brandId,
+      draft,
+      fieldValues,
+      getBrandsService,
+      onBrandOsDraftAccepted,
+      onRefreshBrand,
+    ],
   );
 
   return (
     <Card
+      data-brand-os-state={
+        isBrandOsDraftRef.current
+          ? applyResult?.appliedFields.length
+            ? 'accepted'
+            : 'saved'
+          : undefined
+      }
       data-testid="brand-kit-review-card"
       label="Brand Kit Review"
       description="Scan the brand site and apply proposed profile fields."

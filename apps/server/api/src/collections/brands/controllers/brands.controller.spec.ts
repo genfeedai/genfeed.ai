@@ -33,6 +33,7 @@ import {
   BrandKitApplySerializer,
   BrandKitAssetImportSerializer,
   BrandKitSerializer,
+  BrandOsDraftHandoffSerializer,
   BrandSerializer,
 } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -122,6 +123,7 @@ describe('BrandsController', () => {
               Promise.resolve(brands),
             ),
             buildManualBrandKitDraft: vi.fn(),
+            claimBrandOsPreview: vi.fn(),
             crawlWebsiteBrandKitDraft: vi.fn(),
             create: vi.fn(),
             findAll: vi.fn(),
@@ -130,6 +132,7 @@ describe('BrandsController', () => {
             generateBrandVoice: vi.fn(),
             importBrandKitAssets: vi.fn(),
             patch: vi.fn(),
+            readClaimedBrandOsPreview: vi.fn(),
             relocateToOrganization: vi.fn(),
             remove: vi.fn(),
           },
@@ -685,6 +688,107 @@ describe('BrandsController', () => {
         }),
       });
       expect(brandsService.crawlWebsiteBrandKitDraft).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Brand OS preview handoff', () => {
+    const brandId = 'cmbrand000000000000000001';
+    const handoff = {
+      draft: {
+        assetCandidates: [],
+        brandId,
+        diagnostics: [],
+        evidence: [],
+        fields: {},
+        id: brandId,
+        organizationId: mockUser.organizationId,
+        readiness: {
+          diagnostics: [],
+          missingFields: [],
+          requiredFields: [],
+          score: 100,
+          status: 'complete',
+        },
+        sourceType: 'manual',
+        status: 'ready',
+      },
+      expiresAt: '2026-08-26T12:30:00.000Z',
+      id: brandId,
+      status: 'claimed',
+    } as const;
+
+    it('verifies access, tenant-binds, and serializes a one-time claim', async () => {
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+      brandsService.claimBrandOsPreview.mockResolvedValue(handoff);
+
+      const result = await agentConfigController.claimBrandOsPreview(
+        mockRequest,
+        mockUser,
+        brandId,
+        { previewToken: 'a'.repeat(43) },
+      );
+
+      expect(brandsService.findOne).toHaveBeenCalledWith({
+        OR: [
+          { userId: mockUser.userId },
+          { organizationId: mockUser.organizationId },
+        ],
+        id: brandId,
+      });
+      expect(brandsService.claimBrandOsPreview).toHaveBeenCalledWith(
+        brandId,
+        mockUser.organizationId,
+        'a'.repeat(43),
+      );
+      expect(serializeSingle).toHaveBeenCalledWith(
+        mockRequest,
+        BrandOsDraftHandoffSerializer,
+        handoff,
+      );
+      expect(result).toEqual({ data: handoff });
+    });
+
+    it('verifies access and tenant scope before reading a claimed draft', async () => {
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+      brandsService.readClaimedBrandOsPreview.mockResolvedValue(handoff);
+
+      const result = await agentConfigController.readClaimedBrandOsPreview(
+        mockRequest,
+        mockUser,
+        brandId,
+      );
+
+      expect(brandsService.readClaimedBrandOsPreview).toHaveBeenCalledWith(
+        brandId,
+        mockUser.organizationId,
+      );
+      expect(serializeSingle).toHaveBeenCalledWith(
+        mockRequest,
+        BrandOsDraftHandoffSerializer,
+        handoff,
+      );
+      expect(result).toEqual({ data: handoff });
+    });
+
+    it('does not consume the token without organization context', async () => {
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+
+      await expect(
+        agentConfigController.claimBrandOsPreview(
+          mockRequest,
+          { ...mockUser, organizationId: undefined } as unknown as User,
+          brandId,
+          { previewToken: 'a'.repeat(43) },
+        ),
+      ).rejects.toMatchObject({ status: 403 });
+
+      expect(brandsService.claimBrandOsPreview).not.toHaveBeenCalled();
     });
   });
 

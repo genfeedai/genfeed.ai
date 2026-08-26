@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   getAuthCallbackURL,
   getAuthFlowHref,
+  parseBrandOsPreviewToken,
   toAbsoluteAuthCallbackURL,
   toAbsolutePasswordResetURL,
 } from './auth-callback-url';
@@ -151,5 +152,22 @@ describe('auth callback URL helpers', () => {
         includeOnboardingHandoffParams: true,
       }),
     ).toBe('/onboarding/post-signup');
+  });
+
+  it('preserves only a bounded opaque Brand OS token through post-signup', () => {
+    const token = 'a'.repeat(43);
+    expect(
+      getAuthCallbackURL(new URLSearchParams({ brandOsToken: token })),
+    ).toBe(`/onboarding/post-signup?brandOsToken=${token}`);
+    expect(parseBrandOsPreviewToken(token)).toBe(token);
+    expect(parseBrandOsPreviewToken('raw guidance')).toBeNull();
+    expect(parseBrandOsPreviewToken('a'.repeat(44))).toBeNull();
+    expect(
+      getAuthCallbackURL(
+        new URLSearchParams({
+          callbackUrl: `/onboarding/post-signup?brandOsToken=${token}`,
+        }),
+      ),
+    ).toBe(`/onboarding/post-signup?brandOsToken=${token}`);
   });
 });

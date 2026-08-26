@@ -13,6 +13,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
+import { BrandOsPreviewClaimDto } from '@api/endpoints/public/controllers/brand-os/brand-os-preview-claim.dto';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -27,12 +28,15 @@ import {
   BrandKitApplySerializer,
   BrandKitAssetImportSerializer,
   BrandKitSerializer,
+  BrandOsDraftHandoffSerializer,
   BrandSerializer,
 } from '@genfeedai/serializers';
 import {
   BadRequestException,
   Body,
   Controller,
+  Get,
+  Header,
   HttpCode,
   HttpException,
   HttpStatus,
@@ -167,6 +171,47 @@ export class BrandsAgentConfigController {
     );
 
     return serializeSingle(request, BrandKitSerializer, draft);
+  }
+
+  @Post(':id/brand-kit/brand-os/claim')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  @Header('Pragma', 'no-cache')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async claimBrandOsPreview(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() dto: BrandOsPreviewClaimDto,
+  ): Promise<JsonApiSingleResponse> {
+    await verifyBrandAccess(this.brandsService, id, user);
+    const organizationId = this.requireOrganizationId(user);
+    const handoff = await this.brandsService.claimBrandOsPreview(
+      id,
+      organizationId,
+      dto.previewToken,
+    );
+
+    return serializeSingle(request, BrandOsDraftHandoffSerializer, handoff);
+  }
+
+  @Get(':id/brand-kit/brand-os')
+  @Header('Cache-Control', 'no-store')
+  @Header('Pragma', 'no-cache')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async readClaimedBrandOsPreview(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<JsonApiSingleResponse> {
+    await verifyBrandAccess(this.brandsService, id, user);
+    const organizationId = this.requireOrganizationId(user);
+    const handoff = await this.brandsService.readClaimedBrandOsPreview(
+      id,
+      organizationId,
+    );
+
+    return serializeSingle(request, BrandOsDraftHandoffSerializer, handoff);
   }
 
   @Post(':id/brand-kit/assets/import')

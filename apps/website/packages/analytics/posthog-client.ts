@@ -4,6 +4,7 @@ import type { PostHog } from 'posthog-js';
 import {
   deriveWebsiteEventsFromCta,
   type WebsiteAnalyticsEvent,
+  type WebsiteAnalyticsEventProperties,
   type WebsiteCtaPayload,
 } from './analytics-events';
 
@@ -38,10 +39,12 @@ const POSTHOG_HOST =
  */
 const MAX_PENDING_EVENTS = 20;
 
-interface PendingEvent {
-  event: WebsiteAnalyticsEvent;
-  properties: WebsiteCtaPayload;
-}
+type PendingEvent = {
+  [E in WebsiteAnalyticsEvent]: {
+    event: E;
+    properties: WebsiteAnalyticsEventProperties[E];
+  };
+}[WebsiteAnalyticsEvent];
 
 interface TrackedCtaEventDetail {
   trackingData?: WebsiteCtaPayload;
@@ -61,9 +64,9 @@ export function isWebsiteAnalyticsEnabled(): boolean {
  * Capture a derived CTA analytics event. Buffers until the SDK has loaded;
  * no-ops entirely when analytics is disabled for this build.
  */
-export function captureWebsiteAnalyticsEvent(
-  event: WebsiteAnalyticsEvent,
-  properties: WebsiteCtaPayload,
+export function captureWebsiteAnalyticsEvent<E extends WebsiteAnalyticsEvent>(
+  event: E,
+  properties: WebsiteAnalyticsEventProperties[E],
 ): void {
   if (!isWebsiteAnalyticsEnabled() || typeof window === 'undefined') {
     return;
@@ -71,7 +74,7 @@ export function captureWebsiteAnalyticsEvent(
 
   if (!client) {
     if (pendingEvents.length < MAX_PENDING_EVENTS) {
-      pendingEvents.push({ event, properties });
+      pendingEvents.push({ event, properties } as PendingEvent);
     }
     return;
   }

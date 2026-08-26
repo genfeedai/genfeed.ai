@@ -205,6 +205,26 @@ describe('BrandsService HTTP methods', () => {
     expect(result).toMatchObject({ isApplied: true });
   });
 
+  it('claims and reads the authenticated Brand OS handoff', async () => {
+    http.post.mockResolvedValue(
+      axiosResponse(resourceDocument({ status: 'claimed' }, { id: brandId })),
+    );
+
+    await service.claimBrandOsPreview(brandId, {
+      previewToken: 'a'.repeat(43),
+    });
+    expect(http.post).toHaveBeenCalledWith(
+      `/${brandId}/brand-kit/brand-os/claim`,
+      { previewToken: 'a'.repeat(43) },
+    );
+
+    http.get.mockResolvedValue(
+      axiosResponse(resourceDocument({ status: 'claimed' }, { id: brandId })),
+    );
+    await service.getClaimedBrandOsDraft(brandId);
+    expect(http.get).toHaveBeenCalledWith(`/${brandId}/brand-kit/brand-os`);
+  });
+
   it('importBrandKitAssets POSTs the import request', async () => {
     http.post.mockResolvedValue(
       axiosResponse(resourceDocument({ imported: 2 }, { id: 'import_1' })),

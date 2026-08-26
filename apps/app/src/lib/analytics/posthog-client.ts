@@ -13,6 +13,12 @@ import {
   type AnalyticsEventProperties,
 } from './analytics-events';
 import { sanitizeAnalyticsUrl } from './analytics-url';
+import {
+  type BrandOsFunnelStage,
+  claimBrandOsFunnelStage,
+  hasAcceptedBrandOsDraft,
+  markBrandOsDraftAccepted,
+} from './brand-os-funnel-dedupe';
 
 /**
  * Gated PostHog client for Genfeed Cloud product analytics (issue #1178).
@@ -791,6 +797,7 @@ export function captureAnalyticsEvent<E extends AnalyticsEvent>(
 
   if (!client) {
     enqueuePendingAnalyticsEvent(pending);
+    maybeCaptureBrandOsFirstGeneration(event);
     return;
   }
 
@@ -799,6 +806,36 @@ export function captureAnalyticsEvent<E extends AnalyticsEvent>(
     enqueuePendingAnalyticsEvent(pending);
     schedulePendingEventRetry();
   }
+  maybeCaptureBrandOsFirstGeneration(event);
+}
+
+function maybeCaptureBrandOsFirstGeneration(event: AnalyticsEvent): void {
+  if (
+    event !== ANALYTICS_EVENTS.GENERATION_STARTED ||
+    !hasAcceptedBrandOsDraft() ||
+    !claimBrandOsFunnelStage('first_generation')
+  ) {
+    return;
+  }
+  captureAnalyticsEvent(ANALYTICS_EVENTS.BRAND_OS_FIRST_GENERATION, {
+    source: 'public_preview',
+  });
+}
+
+export function captureBrandOsFunnelStage(stage: BrandOsFunnelStage): void {
+  if (!claimBrandOsFunnelStage(stage)) {
+    return;
+  }
+  if (stage === 'draft_accepted') {
+    markBrandOsDraftAccepted();
+  }
+  const event =
+    stage === 'draft_saved'
+      ? ANALYTICS_EVENTS.BRAND_OS_DRAFT_SAVED
+      : stage === 'draft_accepted'
+        ? ANALYTICS_EVENTS.BRAND_OS_DRAFT_ACCEPTED
+        : ANALYTICS_EVENTS.BRAND_OS_FIRST_GENERATION;
+  captureAnalyticsEvent(event, { source: 'public_preview' });
 }
 
 /** Capture the current route after identity and tenant scope are synchronized. */

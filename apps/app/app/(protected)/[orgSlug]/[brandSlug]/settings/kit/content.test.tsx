@@ -4,9 +4,14 @@ import { describe, expect, it, vi } from 'vitest';
 import BrandSettingsKitPage from './content';
 
 const mocks = vi.hoisted(() => ({
+  captureBrandOsFunnelStage: vi.fn(),
   handleOpenUploadModal: vi.fn(),
   handleRefreshBrand: vi.fn(),
   handleRequestDeleteReference: vi.fn(),
+}));
+
+vi.mock('@/lib/analytics', () => ({
+  captureBrandOsFunnelStage: mocks.captureBrandOsFunnelStage,
 }));
 
 vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
@@ -23,7 +28,24 @@ vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
 }));
 
 vi.mock('@pages/brands/components/brand-kit/BrandKitReviewCard', () => ({
-  default: () => <section data-testid="review-card">Brand Kit Review</section>,
+  default: (props: {
+    loadClaimedBrandOsDraft?: boolean;
+    onBrandOsDraftAccepted?: () => void;
+    onBrandOsDraftLoaded?: () => void;
+  }) => (
+    <section
+      data-load-claimed={String(props.loadClaimedBrandOsDraft)}
+      data-testid="review-card"
+    >
+      Brand Kit Review
+      <button type="button" onClick={props.onBrandOsDraftLoaded}>
+        loaded
+      </button>
+      <button type="button" onClick={props.onBrandOsDraftAccepted}>
+        accepted
+      </button>
+    </section>
+  ),
 }));
 
 vi.mock('@pages/brands/components/sidebar/BrandDetailManualKitCard', () => ({
@@ -80,5 +102,24 @@ describe('BrandSettingsKitPage', () => {
       manual.compareDocumentPosition(references) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('loads the tenant-bound handoff and emits sanitized deduped milestones', () => {
+    render(<BrandSettingsKitPage />);
+
+    expect(screen.getByTestId('review-card')).toHaveAttribute(
+      'data-load-claimed',
+      'true',
+    );
+    screen.getByRole('button', { name: 'loaded' }).click();
+    screen.getByRole('button', { name: 'accepted' }).click();
+    expect(mocks.captureBrandOsFunnelStage).toHaveBeenNthCalledWith(
+      1,
+      'draft_saved',
+    );
+    expect(mocks.captureBrandOsFunnelStage).toHaveBeenNthCalledWith(
+      2,
+      'draft_accepted',
+    );
   });
 });

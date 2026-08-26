@@ -22,4 +22,10 @@ describe('BrandsCoreModule DI leaf', () => {
     expect(fatSource).toContain('LinksModule');
     expect(fatSource).toContain('OrganizationsModule');
   });
+
+  it('owns and exports the Redis-only Brand OS preview boundary', () => {
+    expect(coreSource).toContain('BrandOsPreviewService');
+    expect(coreSource).toMatch(/exports:\s*\[[\s\S]*BrandOsPreviewService/);
+    expect(coreSource).toMatch(/providers:\s*\[[\s\S]*BrandOsPreviewService/);
+  });
 });

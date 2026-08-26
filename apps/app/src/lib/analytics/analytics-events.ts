@@ -16,6 +16,9 @@ import type { GenerationType } from '@genfeedai/enums';
  */
 export const ANALYTICS_EVENTS = {
   AGENT_THREAD_CREATED: 'agent_thread_created',
+  BRAND_OS_DRAFT_ACCEPTED: 'brand_os_draft_accepted',
+  BRAND_OS_DRAFT_SAVED: 'brand_os_draft_saved',
+  BRAND_OS_FIRST_GENERATION: 'brand_os_first_generation',
   CHECKOUT_COMPLETED: 'checkout_completed',
   CHECKOUT_STARTED: 'checkout_started',
   CONNECT_GENFEED_STEP: 'connect_genfeed_step',
@@ -121,6 +124,15 @@ export interface AnalyticsEventProperties {
   [ANALYTICS_EVENTS.AGENT_THREAD_CREATED]: {
     /** Optional agent-type slug (e.g. the configured agent kind), never a title. */
     readonly agentType?: string;
+  };
+  [ANALYTICS_EVENTS.BRAND_OS_DRAFT_ACCEPTED]: {
+    readonly source: 'public_preview';
+  };
+  [ANALYTICS_EVENTS.BRAND_OS_DRAFT_SAVED]: {
+    readonly source: 'public_preview';
+  };
+  [ANALYTICS_EVENTS.BRAND_OS_FIRST_GENERATION]: {
+    readonly source: 'public_preview';
   };
   [ANALYTICS_EVENTS.CONVERSATION_SHELL_TRANSITION]: {
     readonly fromState: ConversationShellState;

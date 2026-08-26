@@ -13,6 +13,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
+import type { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
 import type { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
@@ -45,6 +46,10 @@ describe('BrandsService', () => {
     scrapeWebsite: ReturnType<typeof vi.fn>;
     validateUrl: ReturnType<typeof vi.fn>;
   };
+  let brandOsPreviewService: {
+    claimPreview: ReturnType<typeof vi.fn>;
+    readClaimedPreview: ReturnType<typeof vi.fn>;
+  };
   let cacheInvalidationService: {
     invalidate: ReturnType<typeof vi.fn>;
     invalidateByTags: ReturnType<typeof vi.fn>;
@@ -66,6 +71,10 @@ describe('BrandsService', () => {
     brandScraperService = {
       scrapeWebsite: vi.fn(),
       validateUrl: vi.fn(),
+    };
+    brandOsPreviewService = {
+      claimPreview: vi.fn(),
+      readClaimedPreview: vi.fn(),
     };
     llmDispatcher = { chatCompletion: vi.fn() };
     delegate = {
@@ -137,6 +146,7 @@ describe('BrandsService', () => {
       new BrandKitDraftService(
         brandScraperService as unknown as BrandScraperService,
       ),
+      brandOsPreviewService as unknown as BrandOsPreviewService,
       defaultRecurringContentService as unknown as DefaultRecurringContentService,
       skillsService as unknown as SkillsService,
     );
@@ -990,6 +1000,90 @@ describe('BrandsService', () => {
           expect.objectContaining({ code: 'brand_kit_asset_import_failed' }),
         ],
       });
+    });
+  });
+
+  describe('Brand OS preview handoff', () => {
+    const organizationId = 'org_1';
+    const brandId = 'brand_1';
+    const brand = {
+      id: brandId,
+      isDeleted: false,
+      organizationId,
+    };
+    const handoff = {
+      draft: {
+        assetCandidates: [],
+        brandId,
+        diagnostics: [],
+        evidence: [],
+        fields: {},
+        id: brandId,
+        organizationId,
+        readiness: {
+          diagnostics: [],
+          missingFields: [],
+          requiredFields: [],
+          score: 100,
+          status: 'complete',
+        },
+        sourceType: 'manual',
+        status: 'ready',
+      },
+      expiresAt: '2026-08-26T12:30:00.000Z',
+      id: brandId,
+      status: 'claimed',
+    } as const;
+
+    it('claims only after a strict active tenant-brand lookup', async () => {
+      delegate.findFirst.mockResolvedValue(brand);
+      brandOsPreviewService.claimPreview.mockResolvedValue(handoff);
+
+      await expect(
+        service.claimBrandOsPreview(brandId, organizationId, 'a'.repeat(43)),
+      ).resolves.toBe(handoff);
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: brandId, isDeleted: false, organizationId },
+      });
+      expect(brandOsPreviewService.claimPreview).toHaveBeenCalledWith(
+        'a'.repeat(43),
+        organizationId,
+        brand,
+      );
+      expect(delegate.create).not.toHaveBeenCalled();
+      expect(delegate.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('reads only the current tenant-bound claimed draft', async () => {
+      delegate.findFirst.mockResolvedValue(brand);
+      brandOsPreviewService.readClaimedPreview.mockResolvedValue(handoff);
+
+      await expect(
+        service.readClaimedBrandOsPreview(brandId, organizationId),
+      ).resolves.toBe(handoff);
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: brandId, isDeleted: false, organizationId },
+      });
+      expect(brandOsPreviewService.readClaimedPreview).toHaveBeenCalledWith(
+        organizationId,
+        brand,
+      );
+    });
+
+    it('does not consume or read a preview when the tenant brand is absent', async () => {
+      delegate.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.claimBrandOsPreview(brandId, organizationId, 'a'.repeat(43)),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      await expect(
+        service.readClaimedBrandOsPreview(brandId, organizationId),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(brandOsPreviewService.claimPreview).not.toHaveBeenCalled();
+      expect(brandOsPreviewService.readClaimedPreview).not.toHaveBeenCalled();
     });
   });
 

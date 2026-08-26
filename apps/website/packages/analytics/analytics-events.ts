@@ -9,6 +9,10 @@
  * slugs (`trackingName`, `action`) — never visitor input or free text.
  */
 export const WEBSITE_ANALYTICS_EVENTS = {
+  BRAND_OS_AUTH_HANDOFF: 'brand_os_auth_handoff',
+  BRAND_OS_CTA_VIEWED: 'brand_os_cta_viewed',
+  BRAND_OS_INTAKE_STARTED: 'brand_os_intake_started',
+  BRAND_OS_PREVIEW_COMPLETED: 'brand_os_preview_completed',
   BOOK_CALL: 'book_call',
   CTA_CLICK: 'cta_click',
   START_SIGNUP: 'start_signup',
@@ -18,11 +22,36 @@ export const WEBSITE_ANALYTICS_EVENTS = {
 export type WebsiteAnalyticsEvent =
   (typeof WEBSITE_ANALYTICS_EVENTS)[keyof typeof WEBSITE_ANALYTICS_EVENTS];
 
+export type WebsiteCtaAnalyticsEvent =
+  | typeof WEBSITE_ANALYTICS_EVENTS.BOOK_CALL
+  | typeof WEBSITE_ANALYTICS_EVENTS.CTA_CLICK
+  | typeof WEBSITE_ANALYTICS_EVENTS.START_SIGNUP
+  | typeof WEBSITE_ANALYTICS_EVENTS.VIEW_PRICING;
+
 /** Bounded, code-authored properties attached to a tracked CTA click. */
 export type WebsiteCtaPayload = Record<
   string,
   boolean | number | string | undefined
 >;
+
+export interface WebsiteAnalyticsEventProperties {
+  [WEBSITE_ANALYTICS_EVENTS.BRAND_OS_AUTH_HANDOFF]: {
+    readonly authMode: 'sign_in' | 'sign_up';
+  };
+  [WEBSITE_ANALYTICS_EVENTS.BRAND_OS_CTA_VIEWED]: {
+    readonly surface: 'brand_os';
+  };
+  [WEBSITE_ANALYTICS_EVENTS.BRAND_OS_INTAKE_STARTED]: {
+    readonly intakeKind: 'manual' | 'url';
+  };
+  [WEBSITE_ANALYTICS_EVENTS.BRAND_OS_PREVIEW_COMPLETED]: {
+    readonly outcome: 'blocked' | 'error' | 'partial' | 'ready';
+  };
+  [WEBSITE_ANALYTICS_EVENTS.BOOK_CALL]: WebsiteCtaPayload;
+  [WEBSITE_ANALYTICS_EVENTS.CTA_CLICK]: WebsiteCtaPayload;
+  [WEBSITE_ANALYTICS_EVENTS.START_SIGNUP]: WebsiteCtaPayload;
+  [WEBSITE_ANALYTICS_EVENTS.VIEW_PRICING]: WebsiteCtaPayload;
+}
 
 const BOOK_CALL_ACTIONS = new Set([
   'book_call',
@@ -69,7 +98,7 @@ function matchesActionPrefix(action: string, candidates: Set<string>): boolean {
  */
 export function deriveWebsiteEventsFromCta(
   payload: WebsiteCtaPayload | undefined,
-): WebsiteAnalyticsEvent[] {
+): WebsiteCtaAnalyticsEvent[] {
   const action =
     typeof payload?.action === 'string' ? payload.action.toLowerCase() : '';
 

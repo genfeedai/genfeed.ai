@@ -214,6 +214,37 @@ export interface IBrandKitDraft extends IBrandKitResource {
   updatedAt?: string;
 }
 
+/**
+ * Anonymous Brand OS transport envelope.
+ *
+ * The draft remains the canonical Brand Kit projection. The opaque bearer
+ * token is transport-only and is never copied onto the draft or persisted as
+ * a Brand identifier.
+ */
+export interface IBrandOsPreview {
+  id: string;
+  draft: IBrandKitDraft;
+  expiresAt: string;
+  previewToken: string;
+}
+
+/** Tenant-bound read model created by claiming an anonymous preview. */
+export interface IBrandOsDraftHandoff {
+  id: string;
+  draft: IBrandKitDraft;
+  expiresAt: string;
+  status: 'claimed';
+}
+
+export interface IBrandOsPreviewRequest {
+  guidance?: string;
+  url?: string;
+}
+
+export interface IBrandOsPreviewClaimRequest {
+  previewToken: string;
+}
+
 export interface IBrandKitApplyFieldDecisionAccept<TValue = unknown> {
   action: 'accept';
   value?: TValue;

@@ -389,6 +389,34 @@ describe('BrandsService', () => {
       expect(result).toEqual(applyResult);
     });
 
+    it('claims and reads the tenant-bound Brand OS draft', async () => {
+      const handoff = {
+        draft: { brandId: mockBrandId, id: mockBrandId, status: 'partial' },
+        expiresAt: '2026-08-26T12:30:00.000Z',
+        id: mockBrandId,
+        status: 'claimed',
+      };
+      mockPost.mockResolvedValue({ data: { data: handoff } });
+
+      await expect(
+        service.claimBrandOsPreview(mockBrandId, {
+          previewToken: 'a'.repeat(43),
+        }),
+      ).resolves.toEqual(handoff);
+      expect(mockPost).toHaveBeenCalledWith(
+        `/${mockBrandId}/brand-kit/brand-os/claim`,
+        { previewToken: 'a'.repeat(43) },
+      );
+
+      mockGet.mockResolvedValue({ data: { data: handoff } });
+      await expect(
+        service.getClaimedBrandOsDraft(mockBrandId),
+      ).resolves.toEqual(handoff);
+      expect(mockGet).toHaveBeenCalledWith(
+        `/${mockBrandId}/brand-kit/brand-os`,
+      );
+    });
+
     it('posts selected asset candidates and unwraps the import result', async () => {
       const importResult = {
         brandId: mockBrandId,

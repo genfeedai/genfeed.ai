@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
@@ -9,10 +9,13 @@ import PostSignupPage from './page';
 
 const {
   captureAnalyticsEventMock,
+  captureBrandOsFunnelStageMock,
+  claimBrandOsPreviewMock,
   createCheckoutSessionMock,
   currentUserState,
   getTokenMock,
   getMyOrganizationsMock,
+  findOrganizationBrandsMock,
   hasAgentFirstOnboardingMock,
   hasOrganizationBillingMock,
   isSaaSMock,
@@ -22,6 +25,8 @@ const {
   searchParamsState,
 } = vi.hoisted(() => ({
   captureAnalyticsEventMock: vi.fn(),
+  captureBrandOsFunnelStageMock: vi.fn(),
+  claimBrandOsPreviewMock: vi.fn(),
   createCheckoutSessionMock: vi.fn(),
   currentUserState: {
     currentUser: {
@@ -35,6 +40,7 @@ const {
   },
   getTokenMock: vi.fn(),
   getMyOrganizationsMock: vi.fn(),
+  findOrganizationBrandsMock: vi.fn(),
   hasAgentFirstOnboardingMock: vi.fn(),
   hasOrganizationBillingMock: vi.fn(),
   isSaaSMock: vi.fn(),
@@ -52,6 +58,7 @@ vi.mock('@/lib/analytics', () => ({
     SIGNUP_COMPLETED: 'signup_completed',
   },
   captureAnalyticsEvent: captureAnalyticsEventMock,
+  captureBrandOsFunnelStage: captureBrandOsFunnelStageMock,
 }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
@@ -128,7 +135,16 @@ vi.mock('@services/core/logger.service', () => ({
 vi.mock('@services/organization/organizations.service', () => ({
   OrganizationsService: {
     getInstance: vi.fn(() => ({
+      findOrganizationBrands: findOrganizationBrandsMock,
       getMyOrganizations: getMyOrganizationsMock,
+    })),
+  },
+}));
+
+vi.mock('@services/social/brands.service', () => ({
+  BrandsService: {
+    getInstance: vi.fn(() => ({
+      claimBrandOsPreview: claimBrandOsPreviewMock,
     })),
   },
 }));
@@ -189,9 +205,12 @@ describe('PostSignupPage behavior', () => {
   beforeEach(() => {
     createCheckoutSessionMock.mockReset();
     captureAnalyticsEventMock.mockReset();
+    captureBrandOsFunnelStageMock.mockReset();
+    claimBrandOsPreviewMock.mockReset();
     managedCreateCheckoutSessionMock.mockReset();
     getTokenMock.mockReset();
     getMyOrganizationsMock.mockReset();
+    findOrganizationBrandsMock.mockReset();
     hasAgentFirstOnboardingMock.mockReset();
     hasOrganizationBillingMock.mockReset();
     isSaaSMock.mockReset();
@@ -224,6 +243,13 @@ describe('PostSignupPage behavior', () => {
         slug: 'acme',
       },
     ]);
+    findOrganizationBrandsMock.mockResolvedValue([
+      { id: 'brand-1', slug: 'acme-brand' },
+    ]);
+    claimBrandOsPreviewMock.mockResolvedValue({
+      id: 'brand-1',
+      status: 'claimed',
+    });
     createCheckoutSessionMock.mockResolvedValue({
       url: 'https://checkout.stripe.test/session',
     });
@@ -264,6 +290,43 @@ describe('PostSignupPage behavior', () => {
       localStorage.getItem(ONBOARDING_STORAGE_KEYS.selectedPlan),
     ).toBeNull();
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
+  });
+
+  it('claims an opaque Brand OS token into the active tenant and routes to review', async () => {
+    const token = 'a'.repeat(43);
+    searchParamsState.value = new URLSearchParams({ brandOsToken: token });
+
+    render(<PostSignupPage />);
+
+    await waitFor(() => {
+      expect(claimBrandOsPreviewMock).toHaveBeenCalledWith('brand-1', {
+        previewToken: token,
+      });
+    });
+    expect(findOrganizationBrandsMock).toHaveBeenCalledWith('org-1');
+    expect(captureBrandOsFunnelStageMock).toHaveBeenCalledWith('draft_saved');
+    expect(locationState.href).toBe('/acme/acme-brand/settings/kit');
+  });
+
+  it('retries a recoverable Brand OS storage outage without losing the token', async () => {
+    const token = 'a'.repeat(43);
+    searchParamsState.value = new URLSearchParams({ brandOsToken: token });
+    claimBrandOsPreviewMock
+      .mockRejectedValueOnce(new Error('Redis unavailable'))
+      .mockResolvedValueOnce({ id: 'brand-1', status: 'claimed' });
+
+    render(<PostSignupPage />);
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Retry saving Brand OS' }),
+    );
+
+    await waitFor(() =>
+      expect(claimBrandOsPreviewMock).toHaveBeenCalledTimes(2),
+    );
+    expect(claimBrandOsPreviewMock).toHaveBeenLastCalledWith('brand-1', {
+      previewToken: token,
+    });
+    expect(locationState.href).toBe('/acme/acme-brand/settings/kit');
   });
 
   it('uses URL payg handoff to bypass stale stored paid plan checkout', async () => {

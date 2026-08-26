@@ -2,6 +2,8 @@ import {
   brandKitApplyAttributes,
   brandKitAssetImportAttributes,
   brandKitAttributes,
+  brandOsDraftHandoffAttributes,
+  brandOsPreviewAttributes,
 } from '@serializers/attributes/organizations/brand-kit.attributes';
 import { simpleConfig } from '@serializers/builders';
 
@@ -18,4 +20,14 @@ export const brandKitApplySerializerConfig = simpleConfig(
 export const brandKitAssetImportSerializerConfig = simpleConfig(
   'brand-kit-asset-import',
   brandKitAssetImportAttributes,
+);
+
+export const brandOsPreviewSerializerConfig = simpleConfig(
+  'brand-os-preview',
+  brandOsPreviewAttributes,
+);
+
+export const brandOsDraftHandoffSerializerConfig = simpleConfig(
+  'brand-os-draft-handoff',
+  brandOsDraftHandoffAttributes,
 );
