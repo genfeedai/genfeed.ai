@@ -2009,14 +2009,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 17,
-      "file": "apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler.spec.ts",
-      "fingerprint": "604d6a08952d38c7de07",
-      "message": "Argument of type 'Invoice' is not assignable to parameter of type 'Invoice & { lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.   Property 'lastResponse' is missing in type 'Invoice' but required in type '{ lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.",
-      "workspace": "api"
-    },
-    {
       "code": 7053,
       "count": 1,
       "file": "apps/server/api/src/endpoints/webhooks/stripe/webhooks.stripe.service.spec.ts",
@@ -3197,14 +3189,6 @@
       "count": 20,
       "file": "apps/server/api/src/services/integrations/stripe/services/stripe.coverage.spec.ts",
       "fingerprint": "6d716bf8165456e72ec1",
-      "message": "Argument of type 'Session' is not assignable to parameter of type 'Session & { lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.   Property 'lastResponse' is missing in type 'Session' but required in type '{ lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 16,
-      "file": "apps/server/api/src/services/integrations/stripe/services/stripe.service.spec.ts",
-      "fingerprint": "3af97db97a34ef3e687d",
       "message": "Argument of type 'Session' is not assignable to parameter of type 'Session & { lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.   Property 'lastResponse' is missing in type 'Session' but required in type '{ lastResponse: { headers: { [key: string]: string; }; requestId: string; statusCode: number; apiVersion?: string | undefined; idempotencyKey?: string | undefined; stripeAccount?: string | undefined; }; }'.",
       "workspace": "api"
     },

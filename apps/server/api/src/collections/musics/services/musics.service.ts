@@ -28,10 +28,12 @@ export class MusicsService extends BaseService<
     createDto: CreateMusicDto,
     populate?: PopulateInput,
   ): Promise<MusicDocument> {
+    // The DTO cast stays — music and ingredient create DTOs differ. The return
+    // value does not: both services resolve the same `IngredientDocument`.
     return this.ingredientsService.create(
       createDto as unknown as Parameters<IngredientsService['create']>[0],
       populate,
-    ) as unknown as Promise<MusicDocument>;
+    );
   }
 
   override async patch(
@@ -43,7 +45,7 @@ export class MusicsService extends BaseService<
       id,
       updateDto as Parameters<IngredientsService['patch']>[1],
       populate,
-    ) as unknown as Promise<MusicDocument>;
+    );
   }
 
   override async patchAll(
