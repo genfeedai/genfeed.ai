@@ -9,13 +9,14 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import { Radio } from 'lucide-react';
+import { Radio, Star } from 'lucide-react';
 import type { ComponentType } from 'react';
 
 export type OAuthConnectPlatformCategoryId =
   | 'social'
   | 'video'
   | 'communities'
+  | 'creator'
   | 'ads';
 
 export interface OAuthConnectPlatformCategory {
@@ -73,6 +74,7 @@ export const OAUTH_CONNECT_PLATFORM_CATEGORIES: OAuthConnectPlatformCategory[] =
     { id: 'social', label: 'Social networks' },
     { id: 'video', label: 'Video' },
     { id: 'communities', label: 'Communities' },
+    { id: 'creator', label: 'Creator' },
     { id: 'ads', label: 'Advertising' },
   ];
 
@@ -82,9 +84,10 @@ export const OAUTH_CONNECT_PLATFORM_CATEGORIES: OAuthConnectPlatformCategory[] =
  *
  * Not listed:
  * - Mastodon, Snapchat, Pinterest, Shopify, WordPress, TikTok Ads (API-only),
- *   and Fanvue do not have a UI-compatible OAuth connect route.
+ *   do not have a UI-compatible OAuth connect route.
  * - Reddit has a route, but Genfeed does not have approved Reddit Data API
  *   access, so exposing it would send customers into a non-functional flow.
+ * - X Ads remains hidden until its OAuth 1.0a migration is complete (#3590).
  *
  * Ads notes:
  * - Meta Ads reuses Facebook OAuth (ads_management scopes on FACEBOOK).
@@ -152,6 +155,14 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     servicePath: 'restream',
   },
   {
+    category: 'creator',
+    Icon: Star,
+    iconClassName: 'text-violet-500',
+    label: 'Fanvue',
+    platform: CredentialPlatform.FANVUE,
+    servicePath: 'fanvue',
+  },
+  {
     category: 'ads',
     connectId: 'meta-ads',
     Icon: FacebookIcon,
@@ -180,15 +191,6 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
     // YouTube campaigns are bought through Google Ads OAuth.
     platform: CredentialPlatform.GOOGLE_ADS,
     servicePath: 'google-ads',
-  },
-  {
-    category: 'ads',
-    Icon: XTwitterIcon,
-    iconClassName: 'text-foreground',
-    label: 'X Ads',
-    // X Ads has its own PKCE credential, distinct from organic TWITTER.
-    platform: CredentialPlatform.X_ADS,
-    servicePath: 'x-ads',
   },
 ];
 

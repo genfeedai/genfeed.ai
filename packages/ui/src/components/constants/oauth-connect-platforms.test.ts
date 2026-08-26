@@ -3,6 +3,7 @@ import {
   GoogleColorIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
+import { Star } from 'lucide-react';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -65,26 +66,6 @@ describe('OAUTH_CONNECT_PLATFORMS ads tiles', () => {
   });
 });
 
-describe('OAUTH_CONNECT_PLATFORMS X Ads tile', () => {
-  it('exposes X Ads via its own PKCE credential, distinct from organic Twitter', () => {
-    const xAds = OAUTH_CONNECT_PLATFORMS.find(
-      (p) => p.platform === CredentialPlatform.X_ADS,
-    );
-    const twitter = OAUTH_CONNECT_PLATFORMS.find(
-      (p) => p.platform === CredentialPlatform.TWITTER,
-    );
-
-    expect(xAds).toBeDefined();
-    expect(xAds?.label).toBe('X Ads');
-    expect(xAds?.category).toBe('ads');
-    expect(xAds?.servicePath).toBe('x-ads');
-    expect(resolveOAuthServicePath(xAds!.platform, xAds?.servicePath)).toBe(
-      'x-ads',
-    );
-    expect(xAds?.platform).not.toBe(twitter?.platform);
-  });
-});
-
 describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
   it('omits Reddit while Genfeed lacks approved Reddit Data API access', () => {
     expect(
@@ -97,14 +78,30 @@ describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
     ).toBe(false);
   });
 
-  it('omits Fanvue, which has no OAuth connect route', () => {
-    expect(
-      OAUTH_CONNECT_PLATFORMS.some(
-        (p) => p.platform === CredentialPlatform.FANVUE,
-      ),
-    ).toBe(false);
+  it('includes Fanvue under Creator through its existing service route', () => {
+    const fanvue = OAUTH_CONNECT_PLATFORMS.find(
+      (p) => p.platform === CredentialPlatform.FANVUE,
+    );
+
+    expect(fanvue).toBeDefined();
+    expect(fanvue?.label).toBe('Fanvue');
+    expect(fanvue?.category).toBe('creator');
+    expect(fanvue?.servicePath).toBe('fanvue');
+    expect(fanvue?.Icon).toBe(Star);
+    expect(fanvue?.iconClassName).toBe('text-violet-500');
     expect(
       groupOAuthConnectPlatforms().some((group) => group.label === 'Creator'),
+    ).toBe(true);
+    expect(
+      resolveOAuthServicePath(fanvue?.platform ?? '', fanvue?.servicePath),
+    ).toBe('fanvue');
+  });
+
+  it('omits X Ads while its OAuth 1.0a migration is incomplete', () => {
+    expect(
+      OAUTH_CONNECT_PLATFORMS.some(
+        (p) => p.platform === CredentialPlatform.X_ADS,
+      ),
     ).toBe(false);
   });
 
@@ -117,7 +114,7 @@ describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
     expect(restream?.category).toBe('video');
     expect(restream?.servicePath).toBe('restream');
     expect(
-      resolveOAuthServicePath(restream!.platform, restream?.servicePath),
+      resolveOAuthServicePath(restream?.platform ?? '', restream?.servicePath),
     ).toBe('restream');
   });
 
