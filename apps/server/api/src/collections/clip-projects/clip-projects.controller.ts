@@ -1,8 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import { AnalyzeYoutubeDto } from '@api/collections/clip-projects/dto/analyze-youtube.dto';
 import { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
-import { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
 import {
   GenerateClipsDto,
   SubmitHookClipDecisionDto,
@@ -29,18 +27,14 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
-import { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type {
-  AgentClipRunIdentity,
   ClipReferenceApplication,
   HookClipApprovalStatus,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
   SortObject,
 } from '@genfeedai/interfaces';
-import { DEFAULT_CLIP_RESULT_MODE } from '@genfeedai/interfaces';
 import {
   ClipProjectSerializer,
   serializeClipGenerationResult,
@@ -73,173 +67,12 @@ export class ClipProjectsController {
   constructor(
     readonly _loggerService: LoggerService,
     private readonly clipProjectsService: ClipProjectsService,
-    private readonly clipFactoryQueueService: ClipFactoryQueueService,
-    private readonly clipAnalyzeQueueService: ClipAnalyzeQueueService,
     private readonly clipGenerationService: ClipGenerationService,
     private readonly clipGenerationRequestService: ClipGenerationRequestService,
     private readonly clipIdentityResolutionService: ClipIdentityResolutionService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly hookClipApprovalService: HookClipApprovalService,
   ) {}
-
-  @Post('from-youtube')
-  @HttpCode(HttpStatus.ACCEPTED)
-  @ApiOperation({
-    description:
-      'Create a clip project from a YouTube URL. Downloads audio, transcribes, detects highlights, and generates avatar or raw-cut clips asynchronously.',
-    summary: 'YouTube → Clip Factory',
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async createFromYoutube(
-    @CurrentUser() user: User,
-    @Body() dto: CreateClipProjectFromYoutubeDto,
-  ): Promise<{
-    batchJobId: string;
-    estimatedClips: number;
-    identity?: AgentClipRunIdentity;
-    projectId: string;
-    status: string;
-  }> {
-    const orgId = user.organizationId;
-    const userId = user.userId ?? user.id;
-    const estimatedClips = dto.maxClips ?? 10;
-    const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
-    const resolvedIdentity =
-      mode === 'avatar' || dto.brandId
-        ? await this.clipIdentityResolutionService.resolve({
-            avatarId: dto.avatarId,
-            avatarProvider: dto.avatarProvider,
-            brandId: dto.brandId,
-            organizationId: orgId,
-            voiceId: dto.voiceId,
-          })
-        : undefined;
-    const identity = mode === 'avatar' ? resolvedIdentity : undefined;
-
-    this.clipGenerationRequestService.assertCompleteAvatarIdentity(identity);
-    const runReferences = dto.brandId
-      ? await this.clipGenerationRequestService.resolveRunReferences(
-          dto.brandId,
-          orgId,
-        )
-      : [];
-
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        orgId,
-        estimatedClips,
-      );
-
-    if (!hasCredits) {
-      const currentBalance =
-        await this.creditsUtilsService.getOrganizationCreditsBalance(orgId);
-      throw new InsufficientCreditsException(estimatedClips, currentBalance);
-    }
-
-    // Create the ClipProject record
-    const project: ClipProjectDocument = await this.clipProjectsService.create({
-      brandId: dto.brandId,
-      language: dto.language ?? 'en',
-      name:
-        dto.name ??
-        `YouTube Clip Factory — ${new Date().toISOString().slice(0, 10)}`,
-      organizationId: orgId,
-      settings: {
-        addCaptions: true,
-        aspectRatio: '9:16',
-        captionStyle: 'default',
-        maxClips: estimatedClips,
-        maxDuration: 90,
-        minDuration: 15,
-        mode,
-      },
-      sourceVideoUrl: dto.youtubeUrl,
-      userId,
-    });
-
-    const projectId = String(project.id);
-
-    // Enqueue the async pipeline
-    const batchJobId = await this.clipFactoryQueueService.enqueue({
-      avatarId: identity?.avatarId,
-      avatarProvider: dto.avatarProvider ?? 'heygen',
-      language: dto.language ?? 'en',
-      maxClips: estimatedClips,
-      minViralityScore: dto.minViralityScore ?? 50,
-      mode,
-      orgId,
-      projectId,
-      runReferences,
-      userId,
-      voiceId: identity?.voiceId,
-      youtubeUrl: dto.youtubeUrl,
-    });
-
-    return {
-      batchJobId,
-      estimatedClips,
-      identity,
-      projectId,
-      status: 'processing',
-    };
-  }
-
-  @Post('analyze')
-  @HttpCode(HttpStatus.ACCEPTED)
-  @ApiOperation({
-    description:
-      'Analyze a YouTube URL: download audio, transcribe, detect highlights. Cheap step (1 credit). Returns projectId to poll for results.',
-    summary: 'Analyze YouTube video for highlights',
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async analyzeYoutube(
-    @CurrentUser() user: User,
-    @Body() dto: AnalyzeYoutubeDto,
-  ): Promise<{
-    identity: AgentClipRunIdentity;
-    projectId: string;
-    status: string;
-  }> {
-    const orgId = user.organizationId;
-    const userId = user.userId ?? user.id;
-    const identity = await this.clipIdentityResolutionService.resolve({
-      brandId: dto.brandId,
-      organizationId: orgId,
-    });
-
-    const project: ClipProjectDocument = await this.clipProjectsService.create({
-      brandId: dto.brandId,
-      language: dto.language ?? 'en',
-      name:
-        dto.name ?? `Clip Analysis — ${new Date().toISOString().slice(0, 10)}`,
-      organizationId: orgId,
-      settings: {
-        addCaptions: true,
-        aspectRatio: '9:16',
-        captionStyle: 'default',
-        maxClips: dto.maxClips ?? 10,
-        maxDuration: 90,
-        minDuration: 15,
-      },
-      sourceVideoUrl: dto.youtubeUrl,
-      status: 'pending',
-      userId,
-    });
-
-    const projectId = String(project.id);
-
-    await this.clipAnalyzeQueueService.enqueue({
-      language: dto.language ?? 'en',
-      maxClips: dto.maxClips ?? 10,
-      minViralityScore: dto.minViralityScore ?? 50,
-      orgId,
-      projectId,
-      userId,
-      youtubeUrl: dto.youtubeUrl,
-    });
-
-    return { identity, projectId, status: 'analyzing' };
-  }
 
   @Post(':projectId/generate')
   @HttpCode(HttpStatus.ACCEPTED)
