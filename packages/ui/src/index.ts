@@ -133,17 +133,15 @@ export {
 } from './sidebar/ConversationSidebar';
 export { SidebarNavItem } from './sidebar/SidebarNavItem';
 export { SidebarSection } from './sidebar/SidebarSection';
-
+export type { StatusKey } from './tokens/status-colors';
 // Status & priority color tokens
 export {
-  agentStatusDot,
-  agentStatusDotDefault,
-  issueStatusIcon,
-  issueStatusIconDefault,
   issueStatusText,
   issueStatusTextDefault,
   priorityColor,
   priorityColorDefault,
   statusBadge,
   statusBadgeDefault,
+  statusIcon,
+  statusIconDefault,
 } from './tokens/status-colors';

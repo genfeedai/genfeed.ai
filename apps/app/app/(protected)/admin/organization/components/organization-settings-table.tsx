@@ -224,7 +224,7 @@ export function OrganizationSettingsTable({
         <div className="overflow-x-auto">
           <Table className="table table-zebra w-full">
             <TableHeader>
-              <TableRow className="border-b border-white/[0.08]">
+              <TableRow className="border-b border-border">
                 <TableHead className="px-4 py-3 text-left text-2xs font-semibold uppercase tracking-[0.18em] text-foreground/40">
                   Setting
                 </TableHead>

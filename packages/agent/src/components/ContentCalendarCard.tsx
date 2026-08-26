@@ -67,13 +67,13 @@ export function ContentCalendarCard({
                     variant={ButtonVariant.UNSTYLED}
                     withWrapper={false}
                     onClick={() => onFillGap?.(day.date)}
-                    className="mt-1 flex size-5 items-center justify-center rounded-full bg-teal-50 text-teal-600 transition-colors hover:bg-teal-100 dark:bg-teal-900/30 dark:text-teal-400"
+                    className="mt-1 flex size-5 items-center justify-center rounded-full bg-info/10 text-info transition-colors hover:bg-info/10  "
                     tooltip="Fill Gap"
                   >
                     <Plus className="size-3" />
                   </Button>
                 ) : (
-                  <span className="mt-1 flex size-5 items-center justify-center rounded-full bg-teal-500/10 text-2xs font-medium text-teal-600 dark:text-teal-400">
+                  <span className="mt-1 flex size-5 items-center justify-center rounded-full bg-info/10 text-2xs font-medium text-info ">
                     {day.postCount}
                   </span>
                 )}

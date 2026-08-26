@@ -310,7 +310,7 @@ function WorkflowTemplatesPageContent() {
   if (isLoading || isBootstrapping) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="border-b border-white/[0.08] bg-card/50 px-6 py-3">
+        <div className="border-b border-border bg-card/50 px-6 py-3">
           <div className="mx-auto flex max-w-7xl gap-2">
             {Array.from({ length: 5 }).map((_, i) => (
               <div
@@ -325,7 +325,7 @@ function WorkflowTemplatesPageContent() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="overflow-hidden border border-white/[0.08] bg-card"
+                className="overflow-hidden border border-border bg-card"
               >
                 <div className="aspect-video animate-pulse bg-muted" />
                 <div className="space-y-2 p-4">
@@ -356,7 +356,7 @@ function WorkflowTemplatesPageContent() {
     <div className="min-h-screen bg-background">
       <h1 className="sr-only">Templates</h1>
 
-      <div className="border-b border-white/[0.08] bg-card/50 px-6 py-3">
+      <div className="border-b border-border bg-card/50 px-6 py-3">
         <div className="mx-auto flex max-w-7xl gap-2">
           {TEMPLATE_CATEGORIES.map((category) => (
             <Button

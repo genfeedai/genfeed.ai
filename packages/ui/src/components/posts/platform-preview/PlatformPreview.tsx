@@ -296,7 +296,7 @@ function LinkPreviewCard({
     })();
 
   return (
-    <div className="mt-3 overflow-hidden rounded-lg border border-white/10 bg-black/10">
+    <div className="mt-3 overflow-hidden rounded-lg border border-border bg-background/10">
       {target.linkPreview?.imageUrl ? (
         <Image
           src={target.linkPreview.imageUrl}
@@ -361,18 +361,30 @@ function MediaTile({
         <span className="capitalize">{label}</span>
       )}
       {item.kind === 'video' || item.kind === 'short_video' ? (
-        <span className="absolute inset-0 flex items-center justify-center bg-black/20 text-white">
+        <span
+          className={
+            'absolute inset-0 flex items-center justify-center bg-black/20 text-white' /* design-system-allow-content-color -- media overlay */
+          }
+        >
           <Play className="size-6" />
         </span>
       ) : null}
       <div className="absolute bottom-2 left-2 flex flex-wrap gap-1">
         {item.isAnimated ? (
-          <span className="rounded bg-black/70 px-1.5 py-0.5 text-2xs font-medium text-white">
+          <span
+            className={
+              'rounded bg-black/70 px-1.5 py-0.5 text-2xs font-medium text-white' /* design-system-allow-content-color -- media overlay */
+            }
+          >
             Animated
           </span>
         ) : null}
         {item.durationLabel ? (
-          <span className="rounded bg-black/70 px-1.5 py-0.5 text-2xs font-medium text-white">
+          <span
+            className={
+              'rounded bg-black/70 px-1.5 py-0.5 text-2xs font-medium text-white' /* design-system-allow-content-color -- media overlay */
+            }
+          >
             {item.durationLabel}
           </span>
         ) : null}
@@ -582,10 +594,10 @@ function ThreadSegments({ target }: { target: ResolvedPlatformPreviewTarget }) {
                 {index + 1}
               </span>
               {index < target.threadSegments.length - 1 ? (
-                <span className="mt-2 h-full min-h-8 w-px bg-white/10" />
+                <span className="mt-2 h-full min-h-8 w-px bg-border" />
               ) : null}
             </div>
-            <div className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/10 p-3">
+            <div className="min-w-0 flex-1 rounded-lg border border-border bg-background/10 p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="text-xs font-medium text-foreground/65">
                   {segment.label ?? `Post ${index + 1}`}
@@ -704,9 +716,17 @@ function InstagramPreviewRenderer({ target }: PlatformPreviewRendererProps) {
 function TikTokPreviewRenderer({ target }: PlatformPreviewRendererProps) {
   return (
     <PreviewShell eyebrow="TikTok vertical preview" target={target}>
-      <div className="relative mx-auto max-w-72 overflow-hidden rounded-lg border border-white/10 bg-black">
+      <div
+        className={
+          'relative mx-auto max-w-72 overflow-hidden rounded-lg border border-white/10 bg-black' /* design-system-allow-content-color -- platform preview */
+        }
+      >
         <MediaGrid target={target} variant="vertical" />
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-4 text-white">
+        <div
+          className={
+            'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-4 text-white' /* design-system-allow-content-color -- platform preview */
+          }
+        >
           <p className="text-sm font-semibold">
             {formatHandle(target.author?.handle)}
           </p>
@@ -714,7 +734,11 @@ function TikTokPreviewRenderer({ target }: PlatformPreviewRendererProps) {
             {target.captionState.previewText.trim() ||
               'Draft preview appears here.'}
           </p>
-          <div className="mt-3 flex items-center justify-between text-xs text-white/70">
+          <div
+            className={
+              'mt-3 flex items-center justify-between text-xs text-white/70' /* design-system-allow-content-color -- platform preview */
+            }
+          >
             <span>{target.platformLabel}</span>
             <span>
               {target.captionState.maxLength
@@ -882,7 +906,7 @@ export default function PlatformPreview({
                   'inline-flex h-8 items-center gap-2 rounded-lg border px-2.5 text-xs font-medium transition',
                   isSelected
                     ? 'border-primary/35 bg-primary/10 text-primary'
-                    : 'border-white/10 text-foreground/55 hover:bg-white/[0.04] hover:text-foreground',
+                    : 'border-border text-muted-foreground hover:bg-hover hover:text-foreground',
                 )}
               >
                 <Icon className="size-3.5" />

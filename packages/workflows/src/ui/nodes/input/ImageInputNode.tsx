@@ -133,7 +133,11 @@ function ImageInputNodeComponent(props: NodeProps) {
 
       {/* Image Preview or Empty State */}
       {nodeData.image ? (
-        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-black/20">
+        <div
+          className={
+            'relative aspect-[4/3] w-full overflow-hidden rounded-md bg-black/20' /* design-system-allow-content-color */
+          }
+        >
           <Image
             src={nodeData.image}
             alt={nodeData.filename || 'Image'}
@@ -151,7 +155,11 @@ function ImageInputNodeComponent(props: NodeProps) {
             <X className="size-3" />
           </Button>
           {nodeData.dimensions && (
-            <div className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-2xs">
+            <div
+              className={
+                'absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-2xs' /* design-system-allow-content-color */
+              }
+            >
               {nodeData.dimensions.width}x{nodeData.dimensions.height}
             </div>
           )}

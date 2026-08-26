@@ -9,7 +9,9 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
+import Badge from '@ui/display/badge/Badge';
 import { CreditCard } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 import {
@@ -20,6 +22,7 @@ import {
 } from '@/features/workflows/utils/workflow-graph';
 
 export function CloudCreditsIndicator() {
+  const translate = useTranslations('pages.workflows.status');
   const nodes = useWorkflowStore(selectNodes);
   const actualCostUsd = useExecutionStore((state) => state.actualCost);
   const isRunning = useExecutionStore((state) => state.isRunning);
@@ -61,16 +64,18 @@ export function CloudCreditsIndicator() {
 
   return (
     <div
-      title="Estimated workflow cost in credits"
+      title={translate('estimatedCost')}
       className="flex items-center gap-1.5 rounded border border-border px-2 py-1 text-sm text-muted-foreground"
     >
       <CreditCard className="size-3.5" />
       <span className="font-mono text-xs">
-        {formatNumberWithCommas(displayCredits)} credits
+        {translate('creditEstimate', {
+          credits: formatNumberWithCommas(displayCredits),
+        })}
       </span>
-      {isRunning && actualCostUsd > 0 && (
-        <span className="size-1.5 rounded-full bg-green-500" />
-      )}
+      {isRunning && actualCostUsd > 0 ? (
+        <Badge status="running">{translate('running')}</Badge>
+      ) : null}
     </div>
   );
 }

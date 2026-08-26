@@ -1,5 +1,6 @@
 'use client';
 
+import Card from '@ui/card/Card';
 import { Sparkles } from 'lucide-react';
 
 type Props = {
@@ -8,16 +9,18 @@ type Props = {
 
 export default function ProvidersStatusCard({ accessStatusLabel }: Props) {
   return (
-    <div className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-5 md:p-6">
+    <Card className="provider-card opacity-0" bodyClassName="gap-0 p-5 md:p-6">
       <div className="mb-5">
-        <h2 className="text-lg font-semibold text-white">Default access</h2>
-        <p className="mt-2 text-sm text-white/45">
+        <h2 className="text-lg font-semibold text-foreground">
+          Default access
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
           Server defaults come first. If you save your own provider key later,
           Genfeed will use your organization&apos;s key instead.
         </p>
       </div>
 
-      <div className="rounded-2xl bg-hover p-4 text-sm text-white/55">
+      <div className="rounded-md bg-hover p-4 text-sm text-muted-foreground">
         <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-secondary shadow-border px-3 py-1 text-2xs font-semibold uppercase tracking-[0.18em] text-foreground">
           <Sparkles className="size-3.5" />
           Server Defaults First
@@ -31,6 +34,6 @@ export default function ProvidersStatusCard({ accessStatusLabel }: Props) {
           {accessStatusLabel}
         </p>
       </div>
-    </div>
+    </Card>
   );
 }

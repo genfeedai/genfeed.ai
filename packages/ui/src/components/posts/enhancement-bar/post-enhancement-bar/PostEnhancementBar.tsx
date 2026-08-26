@@ -278,7 +278,11 @@ export default function PostEnhancementBar({
                         priority
                       />
                       {mediaCount > 1 && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-2xs font-bold">
+                        <div
+                          className={
+                            'absolute inset-0 flex items-center justify-center bg-black/50 text-2xs font-bold text-white' /* design-system-allow-content-color -- media overlay */
+                          }
+                        >
                           {mediaCount}
                         </div>
                       )}

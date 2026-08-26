@@ -20,7 +20,7 @@ export function AgentThreadListErrorBanner({
   if (authError) {
     return (
       <AgentErrorMessage
-        className="mx-3 mt-2 rounded-md border-red-500/20 bg-red-500/10 text-xs text-red-200"
+        className="mx-3 mt-2 rounded-md border-destructive/20 bg-destructive/10 text-xs text-destructive"
         message={authError}
       />
     );

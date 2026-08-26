@@ -42,7 +42,7 @@ export function ImageTransformCard({
             <a
               key={cta.label}
               href={cta.href}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:bg-purple-100 transition-colors"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-primary/10  text-primary  hover:bg-primary/10 transition-colors"
             >
               {cta.label.toLowerCase().includes('upscale') ? (
                 <Maximize2 className="size-3" />

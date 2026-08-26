@@ -30,12 +30,12 @@ export function AgentGeneratedTextCard({
   return (
     <div
       className={cn(
-        'group mt-2 overflow-hidden border border-white/[0.12] bg-gradient-to-b from-white/[0.04] to-white/[0.02]',
+        'group mt-2 overflow-hidden border border-foreground/[0.12] bg-gradient-to-b from-white/[0.04] to-white/[0.02]',
         className,
       )}
     >
       {(title || hasActions) && (
-        <div className="flex items-center justify-between gap-2 border-b border-white/[0.08] px-3 py-2">
+        <div className="flex items-center justify-between gap-2 border-b border-foreground/[0.08] px-3 py-2">
           <p className="truncate text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             {title || 'Generated Content'}
           </p>

@@ -51,7 +51,7 @@ function EditorTextProperties({
   if (!overlay) return null;
 
   return (
-    <div className="border-t border-white/[0.08] p-3 space-y-3">
+    <div className="border-t border-border p-3 space-y-3">
       <h4 className="text-xs font-semibold text-muted-foreground uppercase">
         Properties
       </h4>
@@ -62,7 +62,7 @@ function EditorTextProperties({
         <Textarea
           value={overlay.text}
           onChange={(e) => onUpdateTextOverlay({ text: e.target.value })}
-          className="w-full bg-background border border-white/[0.08] rounded px-2 py-1 text-sm resize-none"
+          className="w-full bg-background border border-border rounded px-2 py-1 text-sm resize-none"
           rows={2}
         />
       </div>
@@ -136,7 +136,7 @@ function EditorTextProperties({
               className={`size-6 rounded border ${
                 overlay.color === color
                   ? 'border-primary ring-1 ring-primary'
-                  : 'border-white/20'
+                  : 'border-border-strong'
               }`}
               style={{ backgroundColor: color }}
               onClick={() => onUpdateTextOverlay({ color })}
@@ -147,7 +147,7 @@ function EditorTextProperties({
           <ColorInput
             value={overlay.color}
             onChange={(e) => onUpdateTextOverlay({ color: e.target.value })}
-            className="size-6 rounded border-white/20 p-0"
+            className="size-6 rounded border-border-strong p-0"
             title="Custom color"
           />
         </div>
@@ -168,7 +168,7 @@ function EditorTextProperties({
             onChange={(e) =>
               onUpdateTextOverlay({ backgroundColor: e.target.value })
             }
-            className="h-6 w-8 rounded border-white/20 p-0"
+            className="h-6 w-8 rounded border-border-strong p-0"
           />
           <Button
             withWrapper={false}

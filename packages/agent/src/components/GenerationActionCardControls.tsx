@@ -168,7 +168,11 @@ export function GenerationActionCardControls({
 
       <Dialog open={isPromptPreviewOpen} onOpenChange={setIsPromptPreviewOpen}>
         <DialogPortal>
-          <DialogOverlay className="bg-black/60 backdrop-blur-[1px]" />
+          <DialogOverlay
+            className={
+              'bg-black/60 backdrop-blur-[1px]' /* design-system-allow-content-color */
+            }
+          />
           <DialogContent className="max-h-[90dvh] max-w-2xl overflow-hidden border-border-strong bg-popover p-0">
             <DialogHeader className="border-b border-border px-5 py-4">
               <DialogTitle>{translate('previewTitle')}</DialogTitle>

@@ -69,7 +69,7 @@ export function WorkspaceTaskToolbar({
           {preset.label}
         </Button>
       ))}
-      <span className="h-4 w-px bg-white/10" />
+      <span className="h-4 w-px bg-border" />
       {modeOptions.map((mode) => (
         <Button
           key={mode.id}

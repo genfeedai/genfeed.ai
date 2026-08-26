@@ -24,6 +24,7 @@ import {
 } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';
@@ -115,10 +116,9 @@ function AgentCard({
             </p>
           </div>
         </div>
-        <span
-          className={`mt-1 size-2 rounded-full shrink-0 ${strategy.isActive ? 'bg-success' : 'bg-foreground/20'}`}
-          title={strategy.isActive ? 'Active' : 'Inactive'}
-        />
+        <Badge status={strategy.isActive ? 'active' : 'planned'}>
+          {strategy.isActive ? 'Active' : 'Inactive'}
+        </Badge>
       </div>
 
       {strategy.brand && (

@@ -32,7 +32,7 @@ export default function ExecutionDetailHeader({
       </Link>
       <Link
         href={workflowHref}
-        className="border border-white/[0.08] px-4 py-2 hover:bg-accent"
+        className="border border-border px-4 py-2 hover:bg-accent"
       >
         View Workflow
       </Link>

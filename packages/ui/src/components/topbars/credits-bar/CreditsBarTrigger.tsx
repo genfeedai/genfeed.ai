@@ -118,7 +118,7 @@ export default function CreditsBarTrigger({
             isCritical &&
               'animate-pulse border-destructive/45 bg-destructive/15 text-destructive hover:bg-destructive/20 data-[state=open]:animate-none data-[state=open]:bg-destructive/20 motion-reduce:animate-none',
             isWarning &&
-              'border-amber-500/35 bg-amber-500/10 text-amber-600 hover:bg-amber-500/15 data-[state=open]:bg-amber-500/15 dark:text-amber-400',
+              'border-warning/35 bg-warning/10 text-warning hover:bg-warning/15 data-[state=open]:bg-warning/15',
             (isLoadingState || !isLow) &&
               'border-0 bg-transparent text-foreground hover:bg-hover data-[state=open]:bg-hover',
           )}
@@ -127,7 +127,7 @@ export default function CreditsBarTrigger({
             className={cn(
               'text-sm font-semibold tabular-nums tracking-[-0.02em]',
               isCritical && 'text-destructive',
-              isWarning && 'text-amber-600 dark:text-amber-400',
+              isWarning && 'text-warning',
               (isLoadingState || isUnavailable) &&
                 'min-w-[2.25ch] text-muted-foreground',
               !isLow && !isLoadingState && !isUnavailable && 'text-foreground',
@@ -139,7 +139,7 @@ export default function CreditsBarTrigger({
             className={cn(
               'text-2xs font-medium uppercase tracking-[0.06em]',
               isCritical && 'text-destructive/80',
-              isWarning && 'text-amber-600/80 dark:text-amber-400/80',
+              isWarning && 'text-warning/80',
               (isLoadingState || !isLow) && 'text-muted-foreground',
             )}
           >
@@ -268,7 +268,7 @@ export default function CreditsBarTrigger({
               className={cn(
                 'px-0.5 text-2xs leading-snug',
                 isCritical && 'font-medium text-destructive',
-                isWarning && 'text-amber-700 dark:text-amber-400',
+                isWarning && 'text-warning',
               )}
             >
               {isCritical

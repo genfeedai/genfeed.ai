@@ -264,7 +264,7 @@ function ClipsProjectDetail({
               ))}
             </div>
 
-            <div className="mt-6 rounded-xl bg-secondary p-4 shadow-border">
+            <div className="mt-6 rounded-md bg-secondary p-4 shadow-border">
               <ClipModeSelector
                 mode={generationMode}
                 onModeChange={setGenerationMode}
@@ -272,7 +272,7 @@ function ClipsProjectDetail({
             </div>
 
             {generationMode === 'avatar' ? (
-              <div className="mt-4 space-y-4 rounded-xl bg-secondary p-4 shadow-border">
+              <div className="mt-4 space-y-4 rounded-md bg-secondary p-4 shadow-border">
                 <h3 className="text-sm font-medium text-foreground">
                   Avatar Configuration
                 </h3>

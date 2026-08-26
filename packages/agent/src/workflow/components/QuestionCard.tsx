@@ -1,5 +1,6 @@
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
@@ -33,22 +34,20 @@ function QuestionCardInner({
   }, [question, selectedOption, freeText, onAnswer]);
 
   return (
-    <div
-      className={cn(
-        'rounded-xl border p-4 transition-all',
-        isAnswered
-          ? 'border-emerald-500/20 bg-emerald-500/5'
-          : 'border-white/10 bg-white/5',
-      )}
+    <Card
+      bodyClassName="gap-0 p-4"
+      className={cn(isAnswered && 'bg-success/10')}
     >
       <div className="flex items-start gap-3 mb-3">
         <CircleQuestionMark
           className={cn(
             'size-5 shrink-0 mt-0.5',
-            isAnswered ? 'text-emerald-400' : 'text-blue-400',
+            isAnswered ? 'text-success' : 'text-info',
           )}
         />
-        <p className="text-sm text-white/90 font-medium">{question.text}</p>
+        <p className="text-sm text-foreground/90 font-medium">
+          {question.text}
+        </p>
       </div>
 
       {question.type === 'multiple_choice' && question.options ? (
@@ -59,8 +58,8 @@ function QuestionCardInner({
               className={cn(
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm cursor-pointer transition-all',
                 selectedOption === option
-                  ? 'bg-blue-500/15 text-white ring-1 ring-blue-500/30'
-                  : 'bg-white/5 text-white/70 hover:bg-white/10',
+                  ? 'bg-info/15 text-info ring-1 ring-info/30'
+                  : 'bg-foreground/5 text-foreground/70 hover:bg-foreground/10',
                 (disabled || isAnswered) && 'pointer-events-none opacity-60',
               )}
             >
@@ -77,12 +76,12 @@ function QuestionCardInner({
                 className={cn(
                   'size-4 rounded-full border-2 flex items-center justify-center shrink-0',
                   selectedOption === option
-                    ? 'border-blue-400'
-                    : 'border-white/30',
+                    ? 'border-info/20'
+                    : 'border-foreground/30',
                 )}
               >
                 {selectedOption === option && (
-                  <span className="size-2 rounded-full bg-blue-400" />
+                  <span className="size-2 rounded-full bg-info" />
                 )}
               </span>
               {option}
@@ -98,7 +97,7 @@ function QuestionCardInner({
             placeholder="Type your answer..."
             rows={3}
             className={cn(
-              'bg-white/5 border-white/10 text-white/90 placeholder:text-white/30 resize-none',
+              'bg-foreground/5 border-foreground/10 text-foreground/90 placeholder:text-foreground/30 resize-none',
               (disabled || isAnswered) && 'opacity-60',
             )}
           />
@@ -108,7 +107,8 @@ function QuestionCardInner({
       {!isAnswered && (
         <div className="mt-3 ml-8">
           <Button
-            variant={ButtonVariant.UNSTYLED}
+            variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.SM}
             withWrapper={false}
             onClick={handleSubmit}
             isDisabled={
@@ -117,7 +117,7 @@ function QuestionCardInner({
                 ? !selectedOption
                 : !freeText.trim())
             }
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2"
           >
             <Send className="size-3.5" />
             Submit answer
@@ -127,12 +127,10 @@ function QuestionCardInner({
 
       {isAnswered && (
         <div className="mt-2 ml-8">
-          <p className="text-xs text-emerald-400/70">
-            Answered: {question.answer}
-          </p>
+          <p className="text-xs text-success/70">Answered: {question.answer}</p>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 

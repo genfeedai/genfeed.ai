@@ -125,7 +125,7 @@ export default function ModalUpgradePrompt({
               className={`p-4 ${
                 highlight
                   ? 'shadow-border-strong bg-primary/5'
-                  : 'shadow-border bg-white/[0.02]'
+                  : 'bg-card shadow-border'
               }`}
             >
               <div className="flex items-center justify-between mb-2">

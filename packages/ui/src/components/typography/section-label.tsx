@@ -10,7 +10,7 @@ function SectionLabel({ ref, className, ...props }: SectionLabelProps) {
   return (
     <span
       className={cn(
-        'text-white/20 text-xs font-black uppercase tracking-widest mb-6 block',
+        'mb-6 block text-xs font-black uppercase tracking-widest text-muted-foreground',
         className,
       )}
       ref={ref}

@@ -22,7 +22,7 @@ import {
   SWITCHER_TRIGGER_OPEN_CLASSNAME,
 } from '@ui/menus/switchers/switcher-trigger.classes';
 import { Button } from '@ui/primitives/button';
-import { ChevronDown, Settings, X } from 'lucide-react';
+import { ChevronsUpDown, Settings, X } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { type MouseEvent, useCallback, useState } from 'react';
@@ -160,9 +160,7 @@ export default function MenuBrandSwitcher({
       <span className={SWITCHER_LABEL_CLASSNAME}>
         {isUpdating ? 'Switching…' : selectedBrandLabel}
       </span>
-      <ChevronDown
-        className={cn(SWITCHER_CHEVRON_CLASSNAME, isOpen && 'rotate-180')}
-      />
+      <ChevronsUpDown className={SWITCHER_CHEVRON_CLASSNAME} />
     </Button>
   );
 

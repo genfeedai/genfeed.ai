@@ -2,6 +2,7 @@
 
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import type { ProjectState } from '@props/studio/clips.props';
+import Card from '@ui/card/Card';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { Film } from 'lucide-react';
@@ -80,14 +81,14 @@ export default function ClipsProgressView({
         </div>
       ) : (
         project.status !== 'completed' && (
-          <div className="flex flex-col items-center justify-center rounded-xl bg-secondary py-20 shadow-border">
+          <Card bodyClassName="items-center justify-center py-20">
             <Spinner size={ComponentSize.LG} className="mb-4 text-primary" />
             <p className="text-sm text-muted-foreground">
               {project.mode === 'raw-cut'
                 ? 'Processing YouTube video and creating captioned raw cuts…'
                 : 'Processing YouTube video and generating avatar clips…'}
             </p>
-          </div>
+          </Card>
         )
       )}
 

@@ -48,8 +48,8 @@ export function AiTextActionCard({
 
   if (isApplied) {
     return (
-      <div className="my-2 border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
-        <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+      <div className="my-2 border border-success/20 bg-success/10 p-4  ">
+        <div className="flex items-center gap-2 text-success ">
           <Check className="size-5" />
           <span className="text-sm font-medium">
             &quot;{selectedAction}&quot; applied

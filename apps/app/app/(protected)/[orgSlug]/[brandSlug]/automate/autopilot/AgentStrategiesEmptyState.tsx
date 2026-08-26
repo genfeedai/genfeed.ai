@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Cpu, Plus } from 'lucide-react';
 import Link from 'next/link';
@@ -16,8 +17,8 @@ export default function AgentStrategiesEmptyState({
   const translate = useTranslations('common.automation.autopilot');
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-lg bg-secondary p-10 text-center shadow-border">
-      <span className="flex size-14 items-center justify-center rounded-full bg-white/5 text-white/40">
+    <Card bodyClassName="items-center gap-4 p-10 text-center">
+      <span className="flex size-14 items-center justify-center rounded-full bg-background-tertiary text-gray-800">
         <Cpu className="size-7" />
       </span>
       <div className="space-y-1">
@@ -31,6 +32,6 @@ export default function AgentStrategiesEmptyState({
           <Plus /> {translate('emptyAction')}
         </Link>
       </Button>
-    </div>
+    </Card>
   );
 }

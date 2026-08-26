@@ -292,7 +292,7 @@ export function SkeletonAnalyticsDashboard() {
           const statKey = `analytics-stat-${index}`;
 
           return (
-            <div key={statKey} className="bg-white/[0.03] shadow-border">
+            <div key={statKey} className="bg-tertiary shadow-border">
               <div className="p-4">
                 <Skeleton variant="text" height={14} className="w-1/2" />
                 <Skeleton variant="text" height={24} className="w-3/4" />
@@ -304,7 +304,7 @@ export function SkeletonAnalyticsDashboard() {
       </div>
 
       {/* Chart Area */}
-      <div className="bg-white/[0.03] shadow-border">
+      <div className="bg-tertiary shadow-border">
         <div className="p-4">
           <Skeleton variant="text" height={20} className="w-1/4 mb-4" />
           <Skeleton variant="rounded" className="w-full h-64" />

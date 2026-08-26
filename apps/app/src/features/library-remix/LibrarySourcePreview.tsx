@@ -53,7 +53,7 @@ export default function LibrarySourcePreview({
     >
       {sourceUrl && isVideo ? (
         <VideoPlayer
-          className="bg-black"
+          className={'bg-black' /* design-system-allow-content-color */}
           src={sourceUrl}
           thumbnail={ingredient?.thumbnailUrl}
           config={{

@@ -21,10 +21,10 @@ export function CreditsBalanceCard({
 
   const barColor =
     usagePercent >= 90
-      ? 'bg-red-500'
+      ? 'bg-destructive'
       : usagePercent >= 70
-        ? 'bg-amber-500'
-        : 'bg-green-500';
+        ? 'bg-warning'
+        : 'bg-success';
 
   return (
     <div className="my-2 border border-border bg-background p-4">

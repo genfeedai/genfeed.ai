@@ -33,7 +33,7 @@ export default function StreakCelebrationBurst({
         <span
           key={position}
           className={cn(
-            'absolute size-2.5 rounded-full bg-white/70 opacity-0',
+            'absolute size-2.5 rounded-full bg-white/70 opacity-0', // design-system-allow-content-color -- celebration particle
             position,
             isVisible && 'animate-ping',
           )}

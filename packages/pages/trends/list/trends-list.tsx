@@ -114,7 +114,7 @@ function ViralVideoPreview({
     return (
       <VideoPlayer
         ariaLabel={`${title} video`}
-        className="bg-black"
+        className={'bg-black' /* design-system-allow-content-color */}
         src={video.videoUrl}
         thumbnail={video.thumbnailUrl}
         config={{
@@ -152,7 +152,11 @@ function ViralVideoCard({
 
   return (
     <Card bodyClassName="gap-0 p-0">
-      <div className="aspect-video overflow-hidden bg-black">
+      <div
+        className={
+          'aspect-video overflow-hidden bg-black' /* design-system-allow-content-color */
+        }
+      >
         <ViralVideoPreview title={title} video={video} />
       </div>
       <div className="space-y-3 p-4">

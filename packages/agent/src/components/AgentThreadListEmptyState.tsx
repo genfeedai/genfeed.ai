@@ -27,8 +27,8 @@ export function AgentThreadListEmptyState({
   if (shouldShowLoadFailureState) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-        <div className="flex size-10 items-center justify-center rounded-xl bg-orange-500/10 ring-1 ring-inset ring-orange-500/20">
-          <TriangleAlert className="size-5 text-orange-200/80" />
+        <div className="flex size-10 items-center justify-center rounded-xl bg-warning/10 ring-1 ring-inset ring-orange-500/20">
+          <TriangleAlert className="size-5 text-warning/80" />
         </div>
         <div className="space-y-1">
           <p className="text-sm font-medium text-foreground/70">

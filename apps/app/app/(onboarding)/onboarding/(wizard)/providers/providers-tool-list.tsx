@@ -1,5 +1,7 @@
 'use client';
 
+import Card from '@ui/card/Card';
+
 import ProvidersRowItem from './providers-row-item';
 
 type ToolRow = {
@@ -14,10 +16,12 @@ type Props = {
 
 export default function ProvidersToolList({ localToolRows }: Props) {
   return (
-    <div className="provider-card opacity-0 bg-secondary shadow-border p-5 md:p-6">
+    <Card className="provider-card opacity-0" bodyClassName="gap-0 p-5 md:p-6">
       <div className="mb-5">
-        <h2 className="text-lg font-semibold text-white">Local agent tools</h2>
-        <p className="mt-2 text-sm text-white/45">
+        <h2 className="text-lg font-semibold text-foreground">
+          Local agent tools
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
           Optional, but recommended for localhost installs that want to use the
           agent with local CLI tools.
         </p>
@@ -35,6 +39,6 @@ export default function ProvidersToolList({ localToolRows }: Props) {
           />
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

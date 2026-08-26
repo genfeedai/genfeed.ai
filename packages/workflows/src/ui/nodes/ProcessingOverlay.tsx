@@ -16,10 +16,20 @@ function ProcessingOverlayComponent({
   onStop,
 }: ProcessingOverlayProps) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div
+      className={
+        'absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm' /* design-system-allow-content-color */
+      }
+    >
       <div className="flex flex-col items-center gap-2">
         <LoaderCircle className="size-8 animate-spin text-primary" />
-        <span className="text-xs text-white/80">{label}</span>
+        <span
+          className={
+            'text-xs text-white/80' /* design-system-allow-content-color */
+          }
+        >
+          {label}
+        </span>
         {onStop && (
           <Button variant="destructive" size="sm" onClick={onStop}>
             <Square className="size-3 fill-current" />

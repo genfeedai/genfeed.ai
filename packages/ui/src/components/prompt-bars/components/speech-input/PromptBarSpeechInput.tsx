@@ -39,7 +39,7 @@ const PromptBarSpeechInput = memo(function PromptBarSpeechInput({
         placeholder={placeholder}
         value={watchedSpeech ?? ''}
         className={cn(
-          'h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 text-sm',
+          'h-11 w-full rounded-xl border border-border bg-tertiary px-3 text-sm',
           !isAvatarRoute && 'pr-28',
         )}
         isDisabled={isDisabled}

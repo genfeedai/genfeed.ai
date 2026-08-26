@@ -161,7 +161,7 @@ export default function SuccessContent() {
       </div>
 
       {/* Headline */}
-      <h1 className="success-headline opacity-0 mb-4 text-4xl font-semibold leading-none tracking-tight text-white md:text-5xl">
+      <h1 className="success-headline opacity-0 mb-4 text-4xl font-semibold leading-none tracking-tight text-foreground md:text-5xl">
         Welcome to Genfeed!
       </h1>
 
@@ -171,7 +171,7 @@ export default function SuccessContent() {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             Starter Credits Ready
           </p>
-          <p className="text-sm text-white">
+          <p className="text-sm text-foreground">
             {ONBOARDING_SIGNUP_GIFT_CREDITS} credits are waiting in your
             workspace.
           </p>
@@ -186,14 +186,14 @@ export default function SuccessContent() {
             alt="Your brand preview"
             width={288}
             height={288}
-            className="size-72 rounded-lg object-cover border border-white/10"
+            className="size-72 rounded-lg object-cover border border-border"
           />
         </div>
       )}
 
       {/* Content type preferences */}
       <div className="success-preferences opacity-0 mb-10">
-        <p className="text-sm text-white/50 mb-4">
+        <p className="text-sm text-muted-foreground mb-4">
           What do you want to create?
         </p>
         <div className="flex flex-wrap justify-center gap-3">
@@ -208,8 +208,8 @@ export default function SuccessContent() {
                 onClick={() => toggleType(id)}
                 className={`inline-flex items-center gap-2 px-4 py-2 border text-sm transition-colors ${
                   isSelected
-                    ? 'ring-1 ring-border-strong bg-hover text-white border-transparent'
-                    : 'border-white/[0.08] bg-white/[0.02] text-white/50 hover:border-white/20'
+                    ? 'ring-1 ring-border-strong bg-hover text-foreground border-transparent'
+                    : 'border-border bg-background-tertiary text-muted-foreground hover:border-border-strong'
                 }`}
               >
                 <Icon className="size-4" />

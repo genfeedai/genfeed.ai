@@ -70,7 +70,7 @@ function StatusPill({ status }: { status: string }) {
     <span
       className={cn(
         'inline-flex items-center rounded px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider',
-        STATUS_STYLES[status] ?? 'bg-white/[0.08] text-white/50',
+        STATUS_STYLES[status] ?? 'bg-background-tertiary text-muted-foreground',
       )}
     >
       {STATUS_LABELS[status] ?? status}
@@ -80,7 +80,7 @@ function StatusPill({ status }: { status: string }) {
 
 function PlatformPill({ platform }: { platform: string }) {
   return (
-    <span className="inline-flex items-center rounded bg-white/[0.07] px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider text-white/45">
+    <span className="inline-flex items-center rounded bg-background-tertiary px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider text-muted-foreground">
       {platform}
     </span>
   );
@@ -114,10 +114,10 @@ function MessageBubble({
           'max-w-[78%] rounded border px-3 py-2',
           isOutbound
             ? 'border-primary/20 bg-primary/10 text-primary-foreground'
-            : 'border-white/[0.08] bg-white/[0.035] text-white/78',
+            : 'border-border bg-background-tertiary text-foreground',
         )}
       >
-        <div className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-wider text-white/32">
+        <div className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-wider text-gray-800">
           <span>{isOutbound ? 'Manager' : message.senderName || 'Sender'}</span>
           <span>{formatMessageTime(message.createdAt)}</span>
           <span>{message.status}</span>
@@ -128,14 +128,16 @@ function MessageBubble({
         {provenanceItems.length > 0 ? (
           <dl
             aria-label="Message provenance"
-            className="mt-3 grid gap-1 border-t border-white/[0.08] pt-2 text-2xs text-white/46"
+            className="mt-3 grid gap-1 border-t border-border pt-2 text-2xs text-muted-foreground"
           >
             {provenanceItems.map((item) => (
               <div className="flex min-w-0 gap-2" key={item.label}>
-                <dt className="shrink-0 font-medium text-white/36">
+                <dt className="shrink-0 font-medium text-gray-800">
                   {item.label}
                 </dt>
-                <dd className="min-w-0 truncate text-white/62">{item.value}</dd>
+                <dd className="min-w-0 truncate text-muted-foreground">
+                  {item.value}
+                </dd>
               </div>
             ))}
           </dl>
@@ -162,7 +164,7 @@ function MessageBubble({
             </Button>
           </div>
         ) : null}
-        <div className="mt-2 flex justify-end border-t border-white/[0.08] pt-2">
+        <div className="mt-2 flex justify-end border-t border-border pt-2">
           <Button
             ariaLabel={
               isReferenced
@@ -477,7 +479,7 @@ export default function MessagesPage() {
         data-testid="messages-surface-layout"
       >
         {!isConversationNavPortaled ? (
-          <div className="border-b border-white/[0.08] lg:border-b-0 lg:border-r">
+          <div className="border-b border-border lg:border-b-0 lg:border-r">
             {conversationNavPanel}
           </div>
         ) : null}
@@ -485,7 +487,7 @@ export default function MessagesPage() {
         <div className="flex min-h-0 min-w-0 flex-col">
           {selectedConversation ? (
             <>
-              <div className="border-b border-white/[0.08] px-5 py-4">
+              <div className="border-b border-border px-5 py-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
                     <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -497,14 +499,14 @@ export default function MessagesPage() {
                         </span>
                       ) : null}
                     </div>
-                    <h2 className="truncate text-base font-semibold text-white">
+                    <h2 className="truncate text-base font-semibold text-foreground">
                       {getParticipantLabel(selectedConversation)}
                     </h2>
                     <p className="mt-1 text-xs font-medium text-primary/70">
                       Social conversation · separate from agent thread
                     </p>
                     {isDmThread ? null : (
-                      <p className="mt-1 truncate text-xs text-white/38">
+                      <p className="mt-1 truncate text-xs text-gray-800">
                         {selectedConversation.sourceContentTitle ||
                           selectedConversation.sourceContentUrl ||
                           selectedConversation.externalConversationId}
@@ -570,7 +572,7 @@ export default function MessagesPage() {
                 {isLoadingMessages ? (
                   <LazyLoadingFallback variant="minimal" />
                 ) : messages.length === 0 ? (
-                  <div className="flex h-full min-h-64 items-center justify-center text-sm text-white/42">
+                  <div className="flex h-full min-h-64 items-center justify-center text-sm text-muted-foreground">
                     No messages in this thread yet.
                   </div>
                 ) : (
@@ -600,7 +602,7 @@ export default function MessagesPage() {
                       variant={ButtonVariant.GHOST}
                       withWrapper={false}
                     />
-                    <span className="text-xs text-white/38">
+                    <span className="text-xs text-gray-800">
                       Messages page {messagePagination.page} of{' '}
                       {messagePagination.totalPages}
                     </span>
@@ -617,12 +619,12 @@ export default function MessagesPage() {
                 ) : null}
               </div>
 
-              <div className="border-t border-white/[0.08] p-4">
+              <div className="border-t border-border p-4">
                 <div className="mb-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-white/58">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Social reply composer
                   </p>
-                  <p className="mt-1 text-xs text-white/34">
+                  <p className="mt-1 text-xs text-gray-800">
                     Uses the current social credential and never writes to agent
                     thread history.
                   </p>
@@ -636,7 +638,7 @@ export default function MessagesPage() {
                   onChange={handleDraftChange}
                 />
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs text-white/36">
+                  <p className="text-xs text-gray-800">
                     {availability.canSendDm
                       ? 'DM is available for this thread.'
                       : availability.sendDmReason}
@@ -691,17 +693,17 @@ export default function MessagesPage() {
             >
               <MessageSquare
                 aria-hidden="true"
-                className="size-10 text-white/20"
+                className="size-10 text-gray-800"
               />
               {!isLoadingConversations && conversations.length === 0 ? (
                 <>
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-white/60">
+                    <p className="text-sm font-medium text-muted-foreground">
                       {isDmSurface
                         ? 'No direct messages yet'
                         : 'No comments yet'}
                     </p>
-                    <p className="max-w-sm text-xs leading-5 text-white/38">
+                    <p className="max-w-sm text-xs leading-5 text-gray-800">
                       {isDmSurface
                         ? 'Connect an Instagram account and sync to pull DM threads. Pick a thread here once they appear in the list.'
                         : 'Connect a channel and sync to pull comments. Pick a conversation here once threads appear in the list.'}
@@ -731,7 +733,9 @@ export default function MessagesPage() {
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-white/50">Select a conversation</p>
+                <p className="text-sm text-muted-foreground">
+                  Select a conversation
+                </p>
               )}
             </div>
           )}

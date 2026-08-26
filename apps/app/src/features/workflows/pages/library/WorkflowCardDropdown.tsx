@@ -66,7 +66,7 @@ export default function WorkflowCardDropdown({
       </Button>
 
       {isOpen && (
-        <div className="absolute right-0 top-7 z-20 min-w-[140px] rounded-lg bg-card py-1 shadow-dropdown">
+        <div className="absolute right-0 top-7 z-20 min-w-[140px] rounded-md bg-secondary py-1 shadow-dropdown">
           {onOpen ? (
             <Button
               type="button"

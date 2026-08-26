@@ -163,7 +163,9 @@ export default function DropdownTagsPanel({
                         : 'border-white/[0.08]',
                     )}
                   >
-                    {selected && <Check className="size-3 text-white" />}
+                    {selected && (
+                      <Check className="size-3 text-primary-foreground" />
+                    )}
                   </div>
 
                   <span className="flex-1 text-left truncate">{tag.label}</span>

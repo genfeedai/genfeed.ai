@@ -86,10 +86,18 @@ function LibraryPreviewTile({
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-4">
-        <div className="text-2xs font-semibold uppercase tracking-[0.18em] text-white/60">
+        <div
+          className={
+            'text-2xs font-semibold uppercase tracking-[0.18em] text-white/60' /* design-system-allow-content-color */
+          }
+        >
           {formatEnumLabel(item.category)}
         </div>
-        <div className="mt-1 text-base font-semibold tracking-[-0.03em] text-white">
+        <div
+          className={
+            'mt-1 text-base font-semibold tracking-[-0.03em] text-white' /* design-system-allow-content-color */
+          }
+        >
           {item.metadataLabel}
         </div>
       </div>

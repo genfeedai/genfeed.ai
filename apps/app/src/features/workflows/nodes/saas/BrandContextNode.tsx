@@ -69,7 +69,7 @@ function BrandContextNodeComponent(props: NodeProps): React.JSX.Element {
         <div className="space-y-2">
           {/* Voice */}
           {data.resolvedVoice && (
-            <div className="p-2 border border-white/[0.08] bg-muted/30">
+            <div className="p-2 border border-border bg-muted/30">
               <p className="text-xs text-muted-foreground mb-1">Voice</p>
               <p className="text-xs line-clamp-2">{data.resolvedVoice}</p>
             </div>
@@ -77,13 +77,13 @@ function BrandContextNodeComponent(props: NodeProps): React.JSX.Element {
 
           {/* Colors */}
           {data.resolvedColors && (
-            <div className="p-2 border border-white/[0.08] bg-muted/30">
+            <div className="p-2 border border-border bg-muted/30">
               <p className="text-xs text-muted-foreground mb-1">Colors</p>
               <div className="flex gap-1">
                 {Object.entries(data.resolvedColors).map(([key, color]) => (
                   <div key={key} className="text-center">
                     <span
-                      className="inline-block size-5 rounded border border-white/[0.08]"
+                      className="inline-block size-5 rounded border border-border"
                       style={{ backgroundColor: color }}
                     />
                     <p className="text-2xs text-muted-foreground mt-0.5">
@@ -97,7 +97,7 @@ function BrandContextNodeComponent(props: NodeProps): React.JSX.Element {
 
           {/* Fonts */}
           {data.resolvedFonts && (
-            <div className="p-2 border border-white/[0.08] bg-muted/30">
+            <div className="p-2 border border-border bg-muted/30">
               <p className="text-xs text-muted-foreground mb-1">Font</p>
               <p className="text-xs">{data.resolvedFonts}</p>
             </div>
@@ -105,7 +105,7 @@ function BrandContextNodeComponent(props: NodeProps): React.JSX.Element {
 
           {/* Models */}
           {data.resolvedModels && (
-            <div className="p-2 border border-white/[0.08] bg-muted/30">
+            <div className="p-2 border border-border bg-muted/30">
               <p className="text-xs text-muted-foreground mb-1">
                 Default Models
               </p>

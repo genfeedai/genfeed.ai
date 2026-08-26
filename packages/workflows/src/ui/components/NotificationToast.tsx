@@ -66,7 +66,7 @@ function NotificationItem({
           variant="ghost"
           size="icon-sm"
           onClick={handleCopy}
-          className="p-1 hover:bg-white/10 shrink-0 size-auto"
+          className="size-auto shrink-0 p-1 hover:bg-foreground/10"
           title="Copy message"
         >
           {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
@@ -75,7 +75,7 @@ function NotificationItem({
           variant="ghost"
           size="icon-sm"
           onClick={() => removeNotification(id)}
-          className="p-1 hover:bg-white/10 shrink-0 size-auto"
+          className="size-auto shrink-0 p-1 hover:bg-foreground/10"
           title="Dismiss"
         >
           <X className="size-4" />

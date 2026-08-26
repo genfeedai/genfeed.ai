@@ -96,7 +96,7 @@ export function CampaignLaunchPrepCard({
   const data = action.data ?? {};
 
   return (
-    <div className="my-2 border border-amber-500/20 bg-background p-4">
+    <div className="my-2 border border-warning/20 bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
         <Rocket className="size-5 text-amber-500" />
         <h3 className="text-sm font-semibold text-foreground">

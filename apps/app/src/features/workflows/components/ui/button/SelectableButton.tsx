@@ -27,7 +27,7 @@ export function SelectableButton({
         'p-2 border flex items-center gap-1 text-xs transition',
         selected
           ? 'border-primary bg-primary/10 text-primary'
-          : 'border-white/[0.08] hover:bg-muted',
+          : 'border-border hover:bg-muted',
         className,
       )}
       variant={ButtonVariant.UNSTYLED}

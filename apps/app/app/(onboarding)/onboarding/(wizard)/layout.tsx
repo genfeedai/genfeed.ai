@@ -39,7 +39,7 @@ function OnboardingLayoutInner({ children }: LayoutProps) {
               priority
             />
           )}
-          <span className="text-white/80 font-semibold text-lg tracking-tight">
+          <span className="text-foreground font-semibold text-lg tracking-tight">
             Genfeed
           </span>
         </div>
@@ -58,11 +58,11 @@ function OnboardingLayoutInner({ children }: LayoutProps) {
           <div className="mt-12">{children}</div>
 
           {showCloudFooter ? (
-            <p className="mt-8 text-sm text-white/30">
+            <p className="mt-8 text-sm text-muted-foreground">
               Don&apos;t know what you&apos;re looking for?{' '}
               <Link
                 href={EnvironmentService.apps.website}
-                className="text-white/65 underline decoration-white/20 underline-offset-4 transition hover:text-white"
+                className="text-muted-foreground underline decoration-border-strong underline-offset-4 transition hover:text-foreground"
               >
                 Use our cloud solution instead.
               </Link>

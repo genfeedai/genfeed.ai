@@ -36,7 +36,7 @@ export default function BrandAccountTypeSelector({
 }: Props) {
   return (
     <div className="step-form opacity-0 max-w-md mb-8">
-      <p className="text-xs font-medium text-white/50 uppercase tracking-wider mb-3">
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
         I am a…
       </p>
       <div className="grid grid-cols-3 gap-3">
@@ -48,25 +48,27 @@ export default function BrandAccountTypeSelector({
             onClick={() => onSelect(category)}
             className={`group rounded-none p-4 border text-center transition-colors ${
               accountType === category
-                ? 'border-white/30 bg-white/[0.08]'
-                : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
+                ? 'border-border-strong bg-hover'
+                : 'border-border bg-background-tertiary hover:border-border-strong hover:bg-hover'
             }`}
           >
             <Icon
               className={`h-6 w-6 mx-auto mb-2 transition-colors ${
                 accountType === category
-                  ? 'text-white'
-                  : 'text-white/40 group-hover:text-white/70'
+                  ? 'text-foreground'
+                  : 'text-gray-800 group-hover:text-foreground'
               }`}
             />
             <span
               className={`text-sm font-medium block ${
-                accountType === category ? 'text-white' : 'text-white/60'
+                accountType === category
+                  ? 'text-foreground'
+                  : 'text-muted-foreground'
               }`}
             >
               {label}
             </span>
-            <span className="text-2xs text-white/30 leading-tight block mt-1">
+            <span className="text-2xs text-gray-800 leading-tight block mt-1">
               {description}
             </span>
           </Button>

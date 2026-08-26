@@ -27,8 +27,11 @@ describe('PlatformBadge', () => {
   });
 
   it('hides the label when showLabel is false', () => {
-    render(<PlatformBadge platform="instagram" showLabel={false} />);
-    expect(screen.queryByText('Instagram')).not.toBeInTheDocument();
+    const { container } = render(
+      <PlatformBadge platform="instagram" showLabel={false} />,
+    );
+    expect(screen.getByText('Instagram')).toHaveClass('sr-only');
+    expect(container.firstElementChild).not.toHaveAttribute('aria-label');
   });
 
   it('should apply correct styles and classes', () => {
@@ -37,10 +40,37 @@ describe('PlatformBadge', () => {
     );
     expect(screen.getByText('YouTube').parentElement).toHaveClass(
       'px-1.5',
-      'text-red-500',
+      'text-foreground',
     );
 
     rerender(<PlatformBadge platform="linkedin" className="ml-2" />);
     expect(screen.getByText('LinkedIn').parentElement).toHaveClass('ml-2');
   });
+
+  it.each([
+    ['beehiiv', 'bg-platform-beehiiv/10', 'text-platform-beehiiv'],
+    ['instagram', 'bg-platform-instagram/10', 'text-platform-instagram'],
+    ['linkedin', 'bg-platform-linkedin/10', 'text-platform-linkedin'],
+    ['youtube', 'bg-platform-youtube/10', 'text-platform-youtube'],
+  ])('uses guarded platform tokens for %s', (platform, bgClass, iconClass) => {
+    render(<PlatformBadge platform={platform} />);
+
+    const badge = screen.getByText(/.+/).parentElement;
+    expect(badge).toHaveClass(bgClass, 'text-foreground');
+    expect(badge?.querySelector('svg')).toHaveClass(iconClass);
+    expect(badge?.className).not.toMatch(
+      /(?:amber|blue|emerald|green|indigo|orange|pink|red|sky|violet|yellow)-\d{2,3}/,
+    );
+  });
+
+  it.each(['devto', 'ghost', 'threads'])(
+    'keeps the near-black %s identity legible on the dark canvas',
+    (platform) => {
+      render(<PlatformBadge platform={platform} />);
+
+      expect(screen.getByText(/.+/).parentElement).toHaveClass(
+        'bg-foreground/10',
+      );
+    },
+  );
 });

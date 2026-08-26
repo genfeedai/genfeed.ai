@@ -147,7 +147,7 @@ export default function TemplatesPage() {
                       )}
                     </div>
 
-                    <div className="mt-auto flex items-center justify-between border-t border-white/[0.08] pt-4 text-sm text-foreground/55">
+                    <div className="mt-auto flex items-center justify-between border-t border-border pt-4 text-sm text-foreground/55">
                       <span>Open template</span>
                       <span className="font-medium text-foreground transition-colors group-hover:text-primary">
                         View details

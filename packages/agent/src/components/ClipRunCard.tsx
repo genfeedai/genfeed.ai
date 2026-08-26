@@ -28,9 +28,9 @@ const STATUS_ICON: Record<ClipRunStep['status'], string> = {
 function stepStatusClass(status: ClipRunStep['status']): string {
   switch (status) {
     case 'done':
-      return 'text-green-600 dark:text-green-400';
+      return 'text-success';
     case 'failed':
-      return 'text-red-600 dark:text-red-400';
+      return 'text-destructive';
     case 'running':
       return 'text-primary';
     case 'skipped':
@@ -47,32 +47,27 @@ function cardStatusBadge(status: ClipRunCardState['status']): {
   switch (status) {
     case 'running':
       return {
-        className:
-          'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+        className: 'bg-info/10 text-info',
         label: 'Running',
       };
     case 'paused':
       return {
-        className:
-          'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+        className: 'bg-warning/10 text-warning',
         label: 'Paused',
       };
     case 'done':
       return {
-        className:
-          'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+        className: 'bg-success/10 text-success',
         label: 'Done',
       };
     case 'failed':
       return {
-        className:
-          'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+        className: 'bg-destructive/10 text-destructive',
         label: 'Failed',
       };
     default:
       return {
-        className:
-          'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+        className: 'bg-muted text-muted-foreground',
         label: 'Idle',
       };
   }
@@ -179,8 +174,8 @@ export function ClipRunCard({
           <div
             className={`border px-3 py-2 text-xs ${
               state.identity.isComplete
-                ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300'
-                : 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-900 dark:bg-yellow-950 dark:text-yellow-300'
+                ? 'border-success/20 bg-success/10 text-success   '
+                : 'border-warning/20 bg-warning/10 text-warning   '
             }`}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -205,8 +200,8 @@ export function ClipRunCard({
 
         {/* Confirmation prompt */}
         {state.confirmationPending && (
-          <div className="border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-900 dark:bg-yellow-950">
-            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-yellow-700 dark:text-yellow-300">
+          <div className="border border-warning/20 bg-warning/10 p-3  ">
+            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-warning ">
               <TriangleAlert className="size-4" />
               <span>
                 {state.confirmationMessage ?? 'Confirmation required'}
@@ -236,13 +231,13 @@ export function ClipRunCard({
 
         {/* Final output link */}
         {state.status === 'done' && state.finalOutputUrl && (
-          <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 dark:border-green-900 dark:bg-green-950">
-            <CircleCheck className="size-4 text-green-600 dark:text-green-400" />
+          <div className="flex items-center gap-2 border border-success/20 bg-success/10 px-3 py-2  ">
+            <CircleCheck className="size-4 text-success " />
             <a
               href={state.finalOutputUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs font-medium text-green-700 underline-offset-2 hover:underline dark:text-green-300"
+              className="flex items-center gap-1 text-xs font-medium text-success underline-offset-2 hover:underline "
             >
               View Final Output
               <ExternalLink className="size-3" />

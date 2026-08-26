@@ -45,6 +45,7 @@ export interface CardProps {
   id?: string;
   label?: ReactNode;
   description?: string;
+  isDisabled?: boolean;
   onClick?: () => void;
   'data-testid'?: string;
 }

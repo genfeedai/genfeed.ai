@@ -117,13 +117,13 @@ function CampaignRow({
 
   return (
     <div
-      className="space-y-3 rounded-lg border border-white/8 p-3"
+      className="space-y-3 rounded-lg border border-border p-3"
       data-testid={`reply-campaign-${campaign.id}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{campaign.name}</p>
-          <p className="mt-0.5 text-xs text-white/38">
+          <p className="mt-0.5 text-xs text-gray-800">
             {describePacing(campaign)}
           </p>
         </div>
@@ -134,7 +134,7 @@ function CampaignRow({
 
       <Progress value={campaign.progressPercent} />
 
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-white/54">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>
           {campaign.sentCount}/{campaign.totalRecipients} sent ·{' '}
           {campaign.skippedCount} skipped · {campaign.failedCount} failed
@@ -366,7 +366,7 @@ function ReplyCampaignsContent({
         </div>
 
         <p
-          className="text-xs text-white/38"
+          className="text-xs text-gray-800"
           data-testid="reply-campaign-roster"
         >
           {enrolledIds.length} open conversation
@@ -405,7 +405,7 @@ function ReplyCampaignsContent({
         }
       >
         {campaigns.length === 0 && !isLoading ? (
-          <p className="text-xs text-white/38">
+          <p className="text-xs text-gray-800">
             No reply drips yet. Sync messages so open conversations are
             available to enroll, then create one above.
           </p>

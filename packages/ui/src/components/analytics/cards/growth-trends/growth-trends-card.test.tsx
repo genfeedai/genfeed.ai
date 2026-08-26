@@ -103,15 +103,15 @@ describe('GrowthTrendsCard', () => {
       expect(screen.getByText('2.5K')).toBeInTheDocument();
     });
 
-    it('applies green color for positive growth', () => {
+    it('applies the success role for positive growth', () => {
       const { container } = render(
         <GrowthTrendsCard growthData={mockGrowthData} />,
       );
-      const greenElements = container.querySelectorAll('.text-green-600');
-      expect(greenElements.length).toBeGreaterThan(0);
+      const successElements = container.querySelectorAll('.text-success');
+      expect(successElements.length).toBeGreaterThan(0);
     });
 
-    it('applies red color for negative growth', () => {
+    it('applies the destructive role for negative growth', () => {
       const negativeGrowthData = {
         ...mockGrowthData,
         views: {
@@ -123,8 +123,9 @@ describe('GrowthTrendsCard', () => {
       const { container } = render(
         <GrowthTrendsCard growthData={negativeGrowthData} />,
       );
-      const redElements = container.querySelectorAll('.text-red-600');
-      expect(redElements.length).toBeGreaterThan(0);
+      const destructiveElements =
+        container.querySelectorAll('.text-destructive');
+      expect(destructiveElements.length).toBeGreaterThan(0);
     });
   });
 

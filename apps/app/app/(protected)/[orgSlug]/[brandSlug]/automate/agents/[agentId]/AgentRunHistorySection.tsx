@@ -49,7 +49,7 @@ export default function AgentRunHistorySection({
         <div className="overflow-x-auto">
           <Table className="w-full caption-bottom text-sm">
             <TableHeader>
-              <TableRow className="border-b border-white/5">
+              <TableRow className="border-b border-border">
                 <TableHead className="h-12 w-10 px-2 text-left" />
                 <TableHead className="h-12 px-4 text-left text-2xs font-medium uppercase tracking-widest text-muted-foreground">
                   Status

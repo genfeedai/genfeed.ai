@@ -14,9 +14,9 @@ export function BrandInterviewCompleteCard({
     typeof data.completenessScore === 'number' ? data.completenessScore : null;
 
   return (
-    <div className="my-2 border border-emerald-500/20 bg-background p-4">
+    <div className="my-2 border border-success/20 bg-background p-4">
       <div className="mb-2 flex items-center gap-2">
-        <CircleCheck className="size-5 text-emerald-600" />
+        <CircleCheck className="size-5 text-success" />
         <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Brand Context Complete'}
         </h3>
@@ -29,11 +29,11 @@ export function BrandInterviewCompleteCard({
       ) : null}
 
       {completenessScore !== null ? (
-        <div className="border border-emerald-500/20 bg-emerald-500/5 p-3">
+        <div className="border border-success/20 bg-success/10 p-3">
           <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             Brand context completeness
           </p>
-          <p className="mt-1 text-sm font-semibold text-emerald-600">
+          <p className="mt-1 text-sm font-semibold text-success">
             {completenessScore}%
           </p>
         </div>

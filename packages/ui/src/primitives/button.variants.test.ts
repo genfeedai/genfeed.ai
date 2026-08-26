@@ -51,4 +51,29 @@ describe('button variants', () => {
     expect(className).toContain('shadow-border');
     expect(className).not.toContain('rgba(');
   });
+
+  it.each([ButtonSize.SM, ButtonSize.XS])(
+    'keeps regular %s controls on the 32px ladder step',
+    (size) => {
+      const className = buttonVariants({ size });
+
+      expect(className).toContain('h-8');
+      expect(className).not.toMatch(/\bh-[67]\b/);
+    },
+  );
+
+  it('reserves the named micro scale for dense icon-only chrome', () => {
+    const className = buttonVariants({ size: ButtonSize.MICRO });
+
+    expect(className).toContain('size-7');
+    expect(className).toContain('justify-center');
+    expect(className).toContain('p-0');
+  });
+
+  it.each(Object.values(ButtonSize))(
+    'uses typography tokens rather than bracket sizes for %s',
+    (size) => {
+      expect(buttonVariants({ size })).not.toMatch(/\btext-\[/);
+    },
+  );
 });

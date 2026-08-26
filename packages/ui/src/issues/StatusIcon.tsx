@@ -1,7 +1,9 @@
 import { cn } from '../lib/utils';
 import {
-  issueStatusIcon,
-  issueStatusIconDefault,
+  issueStatusText,
+  issueStatusTextDefault,
+  statusIcon,
+  statusIconDefault,
 } from '../tokens/status-colors';
 
 function statusLabel(status: string): string {
@@ -15,31 +17,28 @@ interface StatusIconProps {
 }
 
 export function StatusIcon({ status, className, showLabel }: StatusIconProps) {
-  const colorClass = issueStatusIcon[status] ?? issueStatusIconDefault;
-  const isDone = status === 'done';
+  const colorClass = issueStatusText[status] ?? issueStatusTextDefault;
+  const Icon =
+    statusIcon[status as keyof typeof statusIcon] ?? statusIconDefault;
+  const label = statusLabel(status);
 
-  const circle = (
-    <span
-      className={cn(
-        'relative inline-flex size-4 shrink-0 rounded-full border-2',
-        colorClass,
-        className,
-      )}
-    >
-      {isDone && (
-        <span className="absolute inset-0 m-auto size-2 rounded-full bg-current" />
-      )}
-    </span>
+  const glyph = (
+    <Icon
+      aria-hidden={showLabel || undefined}
+      aria-label={showLabel ? undefined : label}
+      className={cn('size-4 shrink-0', colorClass, className)}
+      role={showLabel ? undefined : 'img'}
+    />
   );
 
   if (showLabel) {
     return (
       <span className="inline-flex items-center gap-1.5">
-        {circle}
-        <span className="text-sm">{statusLabel(status)}</span>
+        {glyph}
+        <span className="text-sm">{label}</span>
       </span>
     );
   }
 
-  return circle;
+  return glyph;
 }

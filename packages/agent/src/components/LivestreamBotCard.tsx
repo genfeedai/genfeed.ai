@@ -39,7 +39,7 @@ export function LivestreamBotCard({
   );
 
   return (
-    <div className="my-2 overflow-hidden border border-sky-500/20 bg-background">
+    <div className="my-2 overflow-hidden border border-info/20 bg-background">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
         <MessageSquare className="size-5 text-sky-500" />
         <div>
@@ -105,7 +105,7 @@ export function LivestreamBotCard({
                   onClick={() => {
                     void handleActionClick(actionName, cta.payload);
                   }}
-                  className="inline-flex items-center gap-1.5 bg-sky-500 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 bg-info px-3 py-2 text-xs font-medium text-info-foreground transition-colors hover:bg-info/90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <span>
                     {isPending

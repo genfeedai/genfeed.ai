@@ -149,7 +149,7 @@ function HookGeneratorNodeComponent(props: NodeProps): React.JSX.Element {
       )}
 
       {hasOutput ? (
-        <div className="space-y-2 border border-white/[0.08] bg-muted/30 p-2">
+        <div className="space-y-2 border border-border bg-muted/30 p-2">
           {data.outputHookText && (
             <p className="text-xs font-medium">{data.outputHookText}</p>
           )}

@@ -110,7 +110,9 @@ export default function AppLayout({
                 type="button"
                 ariaLabel="Close navigation"
                 variant={ButtonVariant.UNSTYLED}
-                className="absolute inset-0 bg-black/60"
+                className={
+                  'absolute inset-0 bg-black/60' /* design-system-allow-content-color -- navigation scrim */
+                }
                 onClick={handleCloseSidebar}
               />
 

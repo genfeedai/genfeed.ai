@@ -186,7 +186,7 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
             {data.outputs.map((output) => (
               <div
                 key={output.platform}
-                className="p-2 border border-white/[0.08] bg-muted/30 text-xs"
+                className="p-2 border border-border bg-muted/30 text-xs"
               >
                 <div className="flex items-center justify-between">
                   <span className="font-medium">

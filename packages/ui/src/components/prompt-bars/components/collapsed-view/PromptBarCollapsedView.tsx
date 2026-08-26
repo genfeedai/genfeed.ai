@@ -119,7 +119,11 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
                   />
 
                   {references.length > 1 && (
-                    <div className="absolute inset-0 flex items-center justify-center text-black text-xs font-bold">
+                    <div
+                      className={
+                        'absolute inset-0 flex items-center justify-center text-xs font-bold text-black' /* design-system-allow-content-color -- media overlay */
+                      }
+                    >
                       {references.length}
                     </div>
                   )}
@@ -140,7 +144,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
               />
             )}
 
-            <PromptBarDivider className="h-5 bg-white/10" />
+            <PromptBarDivider className="h-5 bg-border" />
           </>
         )}
 
@@ -241,7 +245,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
 
         {outputs !== undefined && onOutputsChange && (
           <>
-            <PromptBarDivider className="h-5 bg-white/10" />
+            <PromptBarDivider className="h-5 bg-border" />
             <Button
               label={`${outputs}x`}
               variant={ButtonVariant.GHOST}
@@ -290,7 +294,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
           <PromptBarGenerationMeter meter={generationMeter} />
         ) : null}
 
-        <PromptBarDivider className="h-5 bg-white/10" />
+        <PromptBarDivider className="h-5 bg-border" />
 
         <Button
           onClick={onExpand}

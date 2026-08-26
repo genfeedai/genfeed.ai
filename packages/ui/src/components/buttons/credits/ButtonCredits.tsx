@@ -172,18 +172,18 @@ export default function ButtonCredits({
           withWrapper={false}
           variant={ButtonVariant.UNSTYLED}
           className={cn(
-            'flex transition-all hover:bg-white/10',
+            'flex transition-all hover:bg-hover',
             isCompact
               ? 'min-h-[40px] min-w-[40px] items-center justify-center px-2 py-2'
               : 'w-full flex-col items-center gap-2 px-2 py-2.5',
-            isOpen && 'bg-white/10',
+            isOpen && 'bg-hover',
           )}
           title={`${fullBalance} ${EnvironmentService.CREDITS_LABEL}`}
           ariaLabel={`${fullBalance} ${EnvironmentService.CREDITS_LABEL}`}
         >
           <span
             className={cn(
-              'font-bold leading-none text-white',
+              'font-bold leading-none text-foreground',
               isCompact ? 'text-sm' : 'text-base',
             )}
           >
@@ -200,10 +200,10 @@ export default function ButtonCredits({
           {/* Balance Display */}
           <div className="mb-3">
             <div className="flex items-baseline gap-2 justify-center">
-              <span className="text-3xl font-bold text-white">
+              <span className="text-3xl font-bold text-foreground">
                 {fullBalance}
               </span>
-              <span className="text-sm text-white/60 uppercase tracking-wide">
+              <span className="text-sm uppercase tracking-wide text-muted-foreground">
                 {EnvironmentService.CREDITS_LABEL}
               </span>
             </div>
@@ -213,7 +213,7 @@ export default function ButtonCredits({
           {planLimit > 0 && (
             <div className="mb-3">
               {/* Bar */}
-              <div className="flex h-2 w-full overflow-hidden rounded-full bg-white/[0.06]">
+              <div className="flex h-2 w-full overflow-hidden rounded-full bg-tertiary">
                 {/* Plan section */}
                 <div
                   className="relative transition-all duration-300"
@@ -249,17 +249,19 @@ export default function ButtonCredits({
               <div className="flex items-center justify-between mt-1.5">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
-                    <div className="size-1.5 rounded-full bg-white/50" />
-                    <span className="text-2xs text-white/40">Plan</span>
+                    <div className="size-1.5 rounded-full bg-muted-foreground" />
+                    <span className="text-2xs text-muted-foreground">Plan</span>
                   </div>
                   {extraBalance > 0 && (
                     <div className="flex items-center gap-1.5">
                       <div className="size-1.5 rounded-full bg-primary/60" />
-                      <span className="text-2xs text-white/40">Extra</span>
+                      <span className="text-2xs text-muted-foreground">
+                        Extra
+                      </span>
                     </div>
                   )}
                 </div>
-                <span className="text-2xs text-white/30">
+                <span className="text-2xs text-muted-foreground">
                   {formatCompactNumber(planLimit - planBalance)} /{' '}
                   {formatCompactNumber(planLimit)} used
                 </span>
@@ -278,8 +280,8 @@ export default function ButtonCredits({
               }}
               isDisabled={isLoading}
               className={cn(
-                'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 transition-all text-white',
-                'hover:bg-white/10 shadow-border',
+                'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-foreground transition-all',
+                'shadow-border hover:bg-hover',
                 isLoading && 'opacity-50 cursor-not-allowed',
               )}
               title="Refresh Balance"
@@ -300,7 +302,7 @@ export default function ButtonCredits({
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 transition-all text-white',
+                'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-foreground transition-all',
                 'bg-primary/10 hover:bg-primary/20 shadow-border',
               )}
               onClick={() => setIsOpen(false)}

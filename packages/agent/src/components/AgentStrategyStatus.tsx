@@ -148,7 +148,7 @@ export function AgentStrategyStatus({
           <span
             className={`rounded-full px-2 py-0.5 text-2xs font-medium ${
               strategy.isActive && strategy.isEnabled
-                ? 'bg-green-500/10 text-green-500'
+                ? 'bg-success/10 text-green-500'
                 : 'bg-muted text-muted-foreground'
             }`}
           >

@@ -66,7 +66,7 @@ function getStatusClasses(
     case BatchStatus.FAILED:
       return 'border-red-500/30 bg-red-500/15 text-red-300';
     default:
-      return 'border-white/15 bg-muted/50 text-white/70';
+      return 'border-border-strong bg-muted/50 text-muted-foreground';
   }
 }
 
@@ -287,7 +287,7 @@ export default function BatchDetail({
             return (
               <article
                 key={item.id}
-                className="overflow-hidden rounded-2xl border border-white/10 bg-background/50"
+                className="overflow-hidden rounded-2xl border border-border bg-background/50"
               >
                 <div className="relative aspect-video bg-muted/50">
                   {ingredient?.thumbnailUrl ? (
@@ -311,7 +311,11 @@ export default function BatchDetail({
                   )}
 
                   {ingredient && (
-                    <span className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-xs text-white">
+                    <span
+                      className={
+                        'absolute left-3 top-3 inline-flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-xs text-white' // design-system-allow-content-color
+                      }
+                    >
                       <Checkbox
                         aria-label={`Select output ${item.id}`}
                         checked={isSelected}

@@ -62,31 +62,31 @@ function getAlertStyles(severity?: AlertBlock['severity']): {
   switch (severity) {
     case 'error':
       return {
-        bg: 'bg-red-500/10',
+        bg: 'bg-destructive/10',
         border: 'border-red-500/30',
         icon: '\u2716',
-        text: 'text-red-400',
+        text: 'text-destructive',
       };
     case 'warning':
       return {
-        bg: 'bg-yellow-500/10',
+        bg: 'bg-warning/10',
         border: 'border-yellow-500/30',
         icon: '\u26A0',
-        text: 'text-yellow-400',
+        text: 'text-warning',
       };
     case 'success':
       return {
-        bg: 'bg-green-500/10',
+        bg: 'bg-success/10',
         border: 'border-green-500/30',
         icon: '\u2714',
-        text: 'text-green-400',
+        text: 'text-success',
       };
     default:
       return {
-        bg: 'bg-blue-500/10',
+        bg: 'bg-info/10',
         border: 'border-blue-500/30',
         icon: '\u2139',
-        text: 'text-blue-400',
+        text: 'text-info',
       };
   }
 }
@@ -336,24 +336,24 @@ const CALLOUT_SEVERITY_STYLES: Record<
   { border: string; bg: string; text: string }
 > = {
   error: {
-    bg: 'bg-red-500/10',
+    bg: 'bg-destructive/10',
     border: 'border-red-500/30',
-    text: 'text-red-300',
+    text: 'text-destructive',
   },
   info: {
-    bg: 'bg-blue-500/10',
+    bg: 'bg-info/10',
     border: 'border-blue-500/30',
-    text: 'text-blue-300',
+    text: 'text-info',
   },
   success: {
-    bg: 'bg-green-500/10',
+    bg: 'bg-success/10',
     border: 'border-green-500/30',
-    text: 'text-green-300',
+    text: 'text-success',
   },
   warning: {
-    bg: 'bg-yellow-500/10',
+    bg: 'bg-warning/10',
     border: 'border-yellow-500/30',
-    text: 'text-yellow-300',
+    text: 'text-warning',
   },
 };
 

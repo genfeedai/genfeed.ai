@@ -21,7 +21,7 @@ export default function OnboardingProgress({
         aria-valuemin={0}
         aria-valuemax={Math.max(totalSteps - 1, 1)}
         aria-valuenow={Math.min(currentStep, Math.max(totalSteps - 1, 1))}
-        className="h-1 bg-white/[0.06] rounded-full overflow-hidden mb-6"
+        className="h-1 bg-background-tertiary rounded-full overflow-hidden mb-6"
       />
 
       {/* Step labels */}
@@ -36,10 +36,10 @@ export default function OnboardingProgress({
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center text-2xs font-bold transition-colors duration-300 ${
                   isCompleted
-                    ? 'bg-white text-black'
+                    ? 'bg-primary text-primary-foreground'
                     : isCurrent
-                      ? 'bg-white/20 text-white border border-white/40'
-                      : 'bg-white/[0.06] text-white/30 border border-white/[0.08]'
+                      ? 'bg-hover text-foreground border border-border-strong'
+                      : 'bg-background-tertiary text-gray-800 border border-border'
                 }`}
               >
                 {isCompleted ? <Check className="size-3.5" /> : index + 1}
@@ -49,10 +49,10 @@ export default function OnboardingProgress({
               <span
                 className={`text-xs font-medium transition-colors duration-300 hidden md:inline ${
                   isCurrent
-                    ? 'text-white'
+                    ? 'text-foreground'
                     : isCompleted
-                      ? 'text-white/60'
-                      : 'text-white/20'
+                      ? 'text-muted-foreground'
+                      : 'text-gray-800'
                 }`}
               >
                 {label}

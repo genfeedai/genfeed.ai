@@ -51,7 +51,7 @@ type AdPackPanelProps = {
 
 function AdPackPanel({ adPack }: AdPackPanelProps) {
   return (
-    <div className="space-y-4 rounded-xl bg-emerald-500/5 p-4">
+    <div className="space-y-4 rounded-md bg-emerald-500/5 p-4">
       <div className="flex items-center gap-2">
         <Badge variant="success">Ad Pack Ready</Badge>
         <span className="text-sm text-muted-foreground">
@@ -67,7 +67,7 @@ function AdPackPanel({ adPack }: AdPackPanelProps) {
           {adPack.headlines.map((headline) => (
             <div
               key={headline}
-              className="rounded-lg shadow-border bg-card px-3 py-2 text-sm text-foreground"
+              className="rounded-md bg-background-tertiary px-3 py-2 text-sm text-foreground"
             >
               {headline}
             </div>
@@ -151,7 +151,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
   const { href } = useOrgUrl();
 
   return (
-    <div className="space-y-4 rounded-xl bg-amber-500/5 p-4">
+    <div className="space-y-4 rounded-md bg-amber-500/5 p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Badge variant="warning">Launch Plan Ready</Badge>
@@ -195,7 +195,7 @@ function LaunchPrepPanel({ prep }: LaunchPrepPanelProps) {
           {prep.notes.map((note) => (
             <li
               key={note}
-              className="rounded-lg shadow-border bg-card px-3 py-2"
+              className="rounded-md bg-background-tertiary px-3 py-2"
             >
               {note}
             </li>
@@ -253,14 +253,16 @@ export function DetailSidebar({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/50 transition-opacity"
+        className={
+          'fixed inset-0 z-40 bg-black/50 transition-opacity' // design-system-allow-content-color
+        }
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Sidebar */}
-      <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-[480px] overflow-y-auto border-l border-white/[0.06] bg-background shadow-2xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/[0.06] bg-background px-5 py-4">
+      <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-[480px] overflow-y-auto border-l border-border bg-background shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background px-5 py-4">
           <div className="flex items-center gap-2">
             <ChartColumn className="size-5 text-primary" />
             <h2 className="text-lg font-semibold text-foreground">Ad Detail</h2>
@@ -351,7 +353,7 @@ export function DetailSidebar({
                       {detail.patternSummary.map((pattern) => (
                         <div
                           key={`${pattern.id}-${pattern.label}`}
-                          className="rounded-lg shadow-border bg-card p-3"
+                          className="rounded-md bg-background-tertiary p-3"
                         >
                           <div className="mb-1 flex items-center justify-between gap-2">
                             <span className="text-sm font-medium text-foreground">

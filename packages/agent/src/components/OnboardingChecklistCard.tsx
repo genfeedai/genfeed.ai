@@ -76,7 +76,7 @@ export function OnboardingChecklistCard({
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-muted">
           <div
-            className="h-full rounded-full bg-violet-500 transition-all duration-300"
+            className="h-full rounded-full bg-primary transition-all duration-300"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -109,7 +109,7 @@ export function OnboardingChecklistCard({
                 {item.label}
               </span>
               {isCreditRewardsVisible && (
-                <span className="text-2xs font-medium text-amber-300">
+                <span className="text-2xs font-medium text-warning">
                   +{item.rewardCredits ?? 0}
                 </span>
               )}
@@ -128,7 +128,7 @@ export function OnboardingChecklistCard({
       </div>
 
       {completedCount === totalCount && totalCount > 0 && (
-        <div className="mt-3 bg-violet-50 p-2 text-center text-xs font-medium text-violet-600 dark:bg-violet-900/20 dark:text-violet-400">
+        <div className="mt-3 bg-primary/10 p-2 text-center text-xs font-medium text-primary  ">
           All done! You are ready to go.
         </div>
       )}

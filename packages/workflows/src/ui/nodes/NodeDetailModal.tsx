@@ -522,7 +522,9 @@ export function NodeDetailModal() {
         type="button"
         variant="ghost"
         size="icon-sm"
-        className="fixed inset-0 z-50 size-full bg-black/80 p-0 hover:bg-black/80"
+        className={
+          'fixed inset-0 z-50 size-full bg-black/80 p-0 hover:bg-black/80' /* design-system-allow-content-color */
+        }
         onClick={closeNodeDetailModal}
         aria-label="Close node detail preview"
       />

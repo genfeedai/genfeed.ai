@@ -319,7 +319,7 @@ export default function DesktopLocalProviderSettings({
     return isCard ? (
       <Card bodyClassName="p-5">{inactiveContent}</Card>
     ) : (
-      <div className="border-t border-white/[0.06] p-3">{inactiveContent}</div>
+      <div className="border-t border-border p-3">{inactiveContent}</div>
     );
   }
 
@@ -345,7 +345,7 @@ export default function DesktopLocalProviderSettings({
               withWrapper={false}
               onClick={() => applyPreset(key)}
               className={cn(
-                'rounded border border-white/[0.08] px-1.5 py-1 text-2xs text-foreground/56',
+                'rounded border border-border px-1.5 py-1 text-2xs text-foreground/56',
                 provider === key && 'border-border bg-hover text-foreground',
                 isCard && 'py-2 text-xs',
               )}
@@ -421,5 +421,5 @@ export default function DesktopLocalProviderSettings({
     return <Card bodyClassName="p-5">{content}</Card>;
   }
 
-  return <div className="border-t border-white/[0.06] p-3">{content}</div>;
+  return <div className="border-t border-border p-3">{content}</div>;
 }

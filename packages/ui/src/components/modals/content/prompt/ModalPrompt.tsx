@@ -87,7 +87,7 @@ export default function ModalPrompt({
               <Button
                 label={<Copy />}
                 variant={ButtonVariant.SECONDARY}
-                size={ButtonSize.XS}
+                size={ButtonSize.MICRO}
                 tooltip="Copy prompt"
                 onClick={() => handleCopy(rows[0].copyValue || '')}
               />
@@ -108,7 +108,7 @@ export default function ModalPrompt({
                   <Button
                     label={<Copy />}
                     variant={ButtonVariant.SECONDARY}
-                    size={ButtonSize.XS}
+                    size={ButtonSize.MICRO}
                     tooltip="Copy prompt"
                     onClick={() => handleCopy(row.copyValue || '')}
                   />

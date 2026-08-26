@@ -23,10 +23,10 @@ function ExploringView() {
   return (
     <div className="flex flex-col items-center justify-center py-8 gap-3">
       <div className="relative">
-        <BookOpen className="size-8 text-violet-400" />
-        <LoaderCircle className="size-4 text-violet-400 animate-spin absolute -top-1 -right-1" />
+        <BookOpen className="size-8 text-primary" />
+        <LoaderCircle className="size-4 text-primary animate-spin absolute -top-1 -right-1" />
       </div>
-      <p className="text-sm text-white/60 text-center max-w-xs">
+      <p className="text-sm text-foreground/60 text-center max-w-xs">
         Agent is exploring context and reading relevant files…
       </p>
     </div>
@@ -45,11 +45,11 @@ function ClarifyingView() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <MessageCircle className="size-5 text-blue-400" />
-        <h2 className="text-sm font-semibold text-white/90">
+        <MessageCircle className="size-5 text-info" />
+        <h2 className="text-sm font-semibold text-foreground/90">
           Questions from agent
         </h2>
-        <span className="text-xs text-white/40 ml-auto">
+        <span className="text-xs text-foreground/40 ml-auto">
           {questions.filter((q) => q.answer).length}/{questions.length} answered
         </span>
       </div>
@@ -61,14 +61,14 @@ function ClarifyingView() {
           disabled={isLocked}
         />
       ) : questions.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-white/10 p-6 text-center">
-          <p className="text-sm text-white/40">
+        <div className="rounded-lg border border-dashed border-foreground/10 p-6 text-center">
+          <p className="text-sm text-foreground/40">
             Waiting for agent to ask questions…
           </p>
         </div>
       ) : (
-        <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-4 text-center">
-          <p className="text-sm text-emerald-400">
+        <div className="rounded-lg bg-success/10 border border-success/20 p-4 text-center">
+          <p className="text-sm text-success">
             All questions answered. Agent will propose approaches next.
           </p>
         </div>
@@ -99,8 +99,8 @@ function ClarifyingView() {
 function ProposingView() {
   return (
     <div className="flex flex-col items-center justify-center py-8 gap-3">
-      <Sparkles className="size-8 text-amber-400" />
-      <p className="text-sm text-white/60 text-center max-w-xs">
+      <Sparkles className="size-8 text-warning" />
+      <p className="text-sm text-foreground/60 text-center max-w-xs">
         Agent is crafting approaches based on your answers…
       </p>
     </div>
@@ -111,10 +111,10 @@ function ImplementingView() {
   return (
     <div className="flex flex-col items-center justify-center py-8 gap-3">
       <div className="relative">
-        <CodeXml className="size-8 text-blue-400" />
-        <LoaderCircle className="size-4 text-blue-400 animate-spin absolute -top-1 -right-1" />
+        <CodeXml className="size-8 text-info" />
+        <LoaderCircle className="size-4 text-info animate-spin absolute -top-1 -right-1" />
       </div>
-      <p className="text-sm text-white/60 text-center max-w-xs">
+      <p className="text-sm text-foreground/60 text-center max-w-xs">
         Agent is implementing the approved approach…
       </p>
     </div>
@@ -124,11 +124,11 @@ function ImplementingView() {
 function CompleteView() {
   return (
     <div className="flex flex-col items-center justify-center py-8 gap-3">
-      <div className="size-12 rounded-full bg-emerald-500/15 flex items-center justify-center">
-        <Sparkles className="size-6 text-emerald-400" />
+      <div className="size-12 rounded-full bg-success/10 flex items-center justify-center">
+        <Sparkles className="size-6 text-success" />
       </div>
-      <p className="text-sm font-medium text-emerald-400">Workflow complete</p>
-      <p className="text-xs text-white/40 text-center max-w-xs">
+      <p className="text-sm font-medium text-success">Workflow complete</p>
+      <p className="text-xs text-foreground/40 text-center max-w-xs">
         All phases finished. Review the transition log for the full audit trail.
       </p>
     </div>
@@ -159,7 +159,7 @@ function AgentWorkflowInner() {
     <div className="flex flex-col gap-4 w-full max-w-2xl mx-auto">
       <PhaseProgress />
 
-      <div className="rounded-xl border border-white/10 bg-zinc-900/50 p-4">
+      <div className="rounded-xl border border-foreground/10 bg-zinc-900/50 p-4">
         <PhaseView />
       </div>
 
@@ -173,8 +173,8 @@ function AgentWorkflowInner() {
               onClick={forceAdvance}
               className={cn(
                 'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium',
-                'text-amber-400/70 hover:text-amber-400 transition-colors',
-                'border border-amber-500/20 rounded-lg hover:bg-amber-500/10',
+                'text-warning/70 hover:text-warning transition-colors',
+                'border border-warning/20 rounded-lg hover:bg-warning/10',
               )}
             >
               <ChevronRight className="size-3" />
@@ -188,7 +188,7 @@ function AgentWorkflowInner() {
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
                 onClick={() => advance('user')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-400 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/10 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-success border border-success/20 rounded-lg hover:bg-success/10 transition-colors"
               >
                 <ChevronRight className="size-3" />
                 Advance

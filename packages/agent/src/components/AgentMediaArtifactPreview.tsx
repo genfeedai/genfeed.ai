@@ -90,7 +90,11 @@ function InlineAsset({
           className="object-cover"
           src={asset.url}
         />
-        <span className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-md bg-black/65 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+        <span
+          className={
+            'absolute right-2 top-2 flex size-7 items-center justify-center rounded-md bg-black/65 text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100' /* design-system-allow-content-color */
+          }
+        >
           <Expand className="size-3.5" aria-hidden />
         </span>
       </Button>
@@ -109,7 +113,7 @@ function InlineAsset({
         <video
           aria-label={title}
           className={cn(
-            'w-full bg-black object-contain',
+            'w-full bg-black object-contain' /* design-system-allow-content-color */,
             isFeatured ? 'aspect-[4/5]' : 'aspect-video',
           )}
           controls
@@ -179,7 +183,9 @@ function ExpandedAsset({
       // biome-ignore lint/a11y/useMediaCaption: user-generated video content
       <video
         aria-label={`${title} expanded preview`}
-        className="max-h-[72dvh] max-w-full bg-black object-contain"
+        className={
+          'max-h-[72dvh] max-w-full bg-black object-contain' /* design-system-allow-content-color */
+        }
         controls
         playsInline
         preload="metadata"
@@ -292,7 +298,11 @@ export function AgentMediaArtifactPreview({
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogPortal>
-          <DialogOverlay className="bg-black/80 backdrop-blur-[1px]" />
+          <DialogOverlay
+            className={
+              'bg-black/80 backdrop-blur-[1px]' /* design-system-allow-content-color */
+            }
+          />
           <DialogContent
             aria-describedby="agent-media-preview-description"
             className="flex max-h-[92dvh] w-[min(96vw,72rem)] max-w-6xl flex-col gap-0 overflow-hidden bg-popover p-0 shadow-dialog"
@@ -315,7 +325,9 @@ export function AgentMediaArtifactPreview({
                 <>
                   <Button
                     ariaLabel="Previous generated asset"
-                    className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 text-white hover:bg-black/75"
+                    className={
+                      'absolute left-3 top-1/2 -translate-y-1/2 bg-black/60 text-white hover:bg-black/75' /* design-system-allow-content-color */
+                    }
                     icon={<ChevronLeft className="size-5" />}
                     onClick={showPrevious}
                     size={ButtonSize.ICON}
@@ -324,7 +336,9 @@ export function AgentMediaArtifactPreview({
                   />
                   <Button
                     ariaLabel="Next generated asset"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 text-white hover:bg-black/75"
+                    className={
+                      'absolute right-3 top-1/2 -translate-y-1/2 bg-black/60 text-white hover:bg-black/75' /* design-system-allow-content-color */
+                    }
                     icon={<ChevronRight className="size-5" />}
                     onClick={showNext}
                     size={ButtonSize.ICON}

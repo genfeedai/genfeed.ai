@@ -4,6 +4,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import type { IByokProviderStatus } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
+import Badge from '@ui/display/badge/Badge';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import {
   Dialog,
@@ -151,10 +152,9 @@ export default function ByokProviderCard({
               {statusLine}
             </p>
             {isConnected ? (
-              <span className="mt-2 inline-flex items-center gap-1.5 text-xs text-success">
-                <span className="size-1.5 rounded-full bg-success" />
+              <Badge className="mt-2" status="active">
                 Connected
-              </span>
+              </Badge>
             ) : null}
           </div>
         </div>

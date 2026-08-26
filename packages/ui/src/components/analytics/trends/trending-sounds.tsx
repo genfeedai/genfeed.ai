@@ -119,8 +119,16 @@ export function TrendingSounds({
                       <Music className="size-8 text-muted-foreground" />
                     )}
                     {onPlaySound && (
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <Play className="size-8 text-white" />
+                      <div
+                        className={
+                          'absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity hover:opacity-100' /* design-system-allow-content-color -- media overlay */
+                        }
+                      >
+                        <Play
+                          className={
+                            'size-8 text-white' /* design-system-allow-content-color -- media overlay */
+                          }
+                        />
                       </div>
                     )}
                   </Button>

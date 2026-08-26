@@ -56,7 +56,7 @@ export function AdGridCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-xl border border-white/[0.06] bg-card text-white/70">
+          <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-md border border-border bg-background-tertiary text-muted-foreground">
             <Megaphone className="size-4" />
           </div>
 
@@ -83,7 +83,7 @@ export function AdGridCard({
           </div>
         </div>
 
-        <div className="rounded-lg shadow-border bg-card px-3 py-2 text-right">
+        <div className="rounded-md bg-background-tertiary px-3 py-2 text-right">
           <div className="text-2xs uppercase tracking-[0.18em] text-foreground/45">
             {getMetricLabel(metric)}
           </div>
@@ -98,7 +98,11 @@ export function AdGridCard({
       </p>
 
       {previewUrl && (
-        <div className="relative mt-3 h-36 overflow-hidden rounded-lg border border-white/[0.06] bg-black/20">
+        <div
+          className={
+            'relative mt-3 h-36 overflow-hidden rounded-lg border border-border bg-black/20' // design-system-allow-content-color
+          }
+        >
           <Image
             src={previewUrl}
             alt={item.title}
@@ -112,12 +116,12 @@ export function AdGridCard({
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {item.accountName && (
-          <span className="rounded-full border border-white/[0.06] bg-card px-2.5 py-1 text-xs text-foreground/60">
+          <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs text-foreground/60">
             {item.accountName}
           </span>
         )}
         {item.industry && (
-          <span className="rounded-full border border-white/[0.06] bg-card px-2.5 py-1 text-xs text-foreground/60">
+          <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs text-foreground/60">
             {item.industry}
           </span>
         )}
@@ -146,7 +150,7 @@ export function AdTableRow({
       aria-label={`${isSelected ? 'Selected' : 'Select'} ${item.title} for research context`}
       aria-selected={isSelected}
       className={cn(
-        'cursor-pointer border-b border-white/[0.06] transition-colors hover:bg-white/[0.03]',
+        'cursor-pointer border-b border-border transition-colors hover:bg-hover',
         isSelected && 'bg-primary/5',
       )}
       onClick={() => onSelect(item)}
@@ -261,10 +265,10 @@ export function AdsResearchAdTable({
   const translate = useTranslations('pages.adsResearch.adList');
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
+    <div className="overflow-x-auto rounded-xl border border-border">
       <Table className="w-full text-left">
         <TableHeader>
-          <TableRow className="border-b border-white/[0.06] bg-card">
+          <TableRow className="border-b border-border bg-card">
             <TableHead className="px-4 py-3 text-2xs uppercase tracking-[0.18em] text-foreground/45">
               {translate('platform')}
             </TableHead>

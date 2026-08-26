@@ -220,7 +220,7 @@ export default function ModalWorkflow({
                         <Button
                           withWrapper={false}
                           variant={ButtonVariant.GHOST}
-                          size={ButtonSize.XS}
+                          size={ButtonSize.MICRO}
                           onClick={() => handleRemoveTask(taskValue)}
                           isDisabled={isSubmitting}
                           ariaLabel={`Remove task ${task?.label || taskValue}`}

@@ -2,6 +2,7 @@
 
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import type { ClipsInputFormProps } from '@props/studio/clips.props';
+import Card from '@ui/card/Card';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -27,7 +28,7 @@ export default function ClipsInputForm({
 }: ClipsInputFormProps) {
   return (
     <div className="mx-auto w-full max-w-3xl">
-      <div className="space-y-5 rounded-xl bg-card p-6 shadow-border">
+      <Card bodyClassName="space-y-5 p-6">
         {/* YouTube URL */}
         <div>
           <label
@@ -148,7 +149,7 @@ export default function ClipsInputForm({
             </div>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

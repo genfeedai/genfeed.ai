@@ -118,7 +118,11 @@ export function VideoCompletionFunnel({
                         className={`h-full ${getBarColor(stage.percentage)} transition-all duration-500 flex items-center justify-end px-4`}
                         style={{ width: `${stage.percentage}%` }}
                       >
-                        <span className="text-sm font-bold text-white">
+                        <span
+                          className={
+                            'text-sm font-bold text-white' /* design-system-allow-content-color -- chart content */
+                          }
+                        >
                           {formatPercentageSimple(stage.percentage)}
                         </span>
                       </div>

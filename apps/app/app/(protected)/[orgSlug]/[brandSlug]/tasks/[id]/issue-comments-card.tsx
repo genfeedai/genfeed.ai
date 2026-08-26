@@ -41,8 +41,8 @@ export default function IssueCommentsCard({
 }: IssueCommentsCardProps) {
   return (
     <Card>
-      <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
-        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-white/40">
+      <div className="flex items-center justify-between border-b border-border px-4 py-2">
+        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-800">
           <MessageCircle className="size-3.5" />
           Comments ({comments.length})
         </h3>
@@ -66,7 +66,7 @@ export default function IssueCommentsCard({
               type="button"
               variant={ButtonVariant.GHOST}
               size={ButtonSize.XS}
-              className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-2xs text-white/40 hover:bg-muted/40 hover:text-white/60"
+              className="flex w-full items-center justify-center gap-1.5 border-b border-border py-2 text-2xs text-gray-800 hover:bg-muted/40 hover:text-foreground"
               onClick={onShowAllComments}
             >
               <ChevronDown className="size-3" />
@@ -88,13 +88,13 @@ export default function IssueCommentsCard({
           ))}
         </>
       ) : (
-        <div className="px-4 py-6 text-center text-xs text-white/25">
+        <div className="px-4 py-6 text-center text-xs text-gray-800">
           No comments yet
         </div>
       )}
-      <div className="border-t border-white/10 p-4">
+      <div className="border-t border-border p-4">
         <Textarea
-          className="mb-2 w-full rounded border border-white/10 bg-muted/50 px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/25 focus:border-white/20"
+          className="mb-2 w-full rounded border border-border bg-muted/50 px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-border-strong"
           onChange={(e) => onCommentBodyChange(e.target.value)}
           placeholder="Write a comment..."
           rows={3}

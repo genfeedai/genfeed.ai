@@ -101,8 +101,8 @@ export function ClipWorkflowRunCard({
           <div
             className={`border px-3 py-2 text-xs ${
               identity.isComplete
-                ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300'
-                : 'border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-900 dark:bg-yellow-950 dark:text-yellow-300'
+                ? 'border-success/20 bg-success/10 text-success   '
+                : 'border-warning/20 bg-warning/10 text-warning   '
             }`}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">

@@ -42,7 +42,7 @@ function getStatusBadge(status: AgentStrategyRun['status']): {
   switch (status) {
     case 'completed':
       return {
-        className: 'bg-green-500/10 text-green-500',
+        className: 'bg-success/10 text-green-500',
         label: 'Completed',
       };
     case 'failed':
@@ -52,7 +52,7 @@ function getStatusBadge(status: AgentStrategyRun['status']): {
       };
     case 'budget_exhausted':
       return {
-        className: 'bg-yellow-500/10 text-yellow-600',
+        className: 'bg-warning/10 text-warning',
         label: 'Budget',
       };
   }

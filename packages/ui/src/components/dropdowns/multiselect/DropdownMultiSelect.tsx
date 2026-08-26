@@ -17,7 +17,7 @@ import {
   SHELL_ICON_CLASS,
   SHELL_ICON_SVG_CLASS,
 } from '@ui-constants/shell-chrome.constant';
-import { ChevronDown } from 'lucide-react';
+import { ChevronsUpDown } from 'lucide-react';
 import {
   type ChangeEvent,
   type RefObject,
@@ -217,8 +217,7 @@ export default function MultiSelectDropdown({
             'gap-1.5 px-2.5',
             values.length > 0 ? 'text-foreground' : 'text-foreground/70',
             isDisabled && 'opacity-50 cursor-not-allowed',
-            shouldFlash &&
-              'animate-pulse !border !border-white/50 !bg-white/10',
+            shouldFlash && 'border-border-strong bg-hover',
             className,
           )}
           aria-label={displayLabel}
@@ -233,11 +232,8 @@ export default function MultiSelectDropdown({
           <span className="text-xs font-medium leading-none">
             {displayLabel}
           </span>
-          <ChevronDown
-            className={cn(
-              SHELL_ICON_CLASS,
-              'text-foreground/50 transition-transform',
-            )}
+          <ChevronsUpDown
+            className={cn(SHELL_ICON_CLASS, 'text-muted-foreground')}
           />
         </PrimitiveButton>
       </DropdownMenuTrigger>
@@ -292,7 +288,7 @@ export default function MultiSelectDropdown({
                     onChange={() => {
                       // Row click/keyboard handles selection state.
                     }}
-                    className="size-3.5 !border-white/20 data-[state=checked]:!bg-foreground data-[state=checked]:!border-foreground data-[state=checked]:!text-background"
+                    className="size-3.5 border-border data-[state=checked]:bg-foreground data-[state=checked]:border-foreground data-[state=checked]:text-background"
                   />
                 </div>
                 All

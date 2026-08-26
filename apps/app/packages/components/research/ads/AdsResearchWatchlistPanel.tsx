@@ -6,6 +6,7 @@ import type {
   AdWatchlistPlatform,
   AdWatchlistPlatformReadiness,
 } from '@genfeedai/interfaces';
+import Card from '@ui/card/Card';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -73,7 +74,7 @@ function AdvertiserRow({
   const lastRun = advertiser.lastSuccessfulAt || advertiser.lastAttemptedAt;
 
   return (
-    <li className="flex items-center justify-between gap-3 rounded-lg bg-card px-3 py-2 shadow-border">
+    <li className="flex items-center justify-between gap-3 rounded-md bg-background-tertiary px-3 py-2">
       <div className="min-w-0 space-y-0.5">
         <div className="truncate text-sm font-medium text-foreground">
           {advertiser.advertiserName || advertiser.advertiserHandle}
@@ -155,7 +156,7 @@ export function AdsResearchWatchlistPanel({
   const blockedPlatforms = readiness.filter((entry) => !entry.available);
 
   return (
-    <div className="mb-4 space-y-3 rounded-xl bg-card/40 p-4 shadow-border">
+    <Card className="mb-4 bg-card/40" bodyClassName="gap-3 p-4">
       <div className="space-y-1">
         <div className="text-sm font-semibold text-foreground">
           {translate('title')}
@@ -245,6 +246,6 @@ export function AdsResearchWatchlistPanel({
           ))}
         </ul>
       )}
-    </div>
+    </Card>
   );
 }

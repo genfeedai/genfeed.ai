@@ -64,7 +64,7 @@ export function ClipWorkflowStatusFooter({
       </div>
 
       {supervisedReviewStatus === 'completed' && (
-        <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
+        <div className="flex items-center gap-2 border border-success/20 bg-success/10 px-3 py-2 text-xs text-success   ">
           <CircleCheck className="size-4" />
           Handed off into the supervised publishing flow for human review.
         </div>

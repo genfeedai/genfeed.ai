@@ -93,7 +93,7 @@ export default function AiActionButton({
         <Button
           icon={<Undo2 className="size-3" />}
           variant={ButtonVariant.GHOST}
-          size={ButtonSize.XS}
+          size={ButtonSize.MICRO}
           tooltip="Undo"
           tooltipPosition="top"
           onClick={handleUndo}

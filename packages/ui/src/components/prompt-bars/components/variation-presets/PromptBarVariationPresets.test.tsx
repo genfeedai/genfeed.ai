@@ -78,7 +78,7 @@ describe('PromptBarVariationPresets', () => {
     const buttons = screen.getAllByRole('button');
     buttons.forEach((button) => {
       // Button component now uses variant="ghost" size="xs" props instead of btn-* classes
-      expect(button).toHaveClass('bg-white/5');
+      expect(button).toHaveClass('bg-tertiary', 'hover:bg-hover');
     });
   });
 });

@@ -45,7 +45,7 @@ export default function OnboardingStepWelcome() {
         {features.map((feature) => (
           <div
             key={feature.title}
-            className="group relative flex items-start gap-4 p-5 bg-white/[0.05] shadow-border hover:shadow-border-strong transition-all duration-300 hover:-translate-y-0.5"
+            className="group relative flex items-start gap-4 bg-tertiary p-5 shadow-border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-border-strong"
           >
             <div className="flex-shrink-0 size-12 bg-primary/10 border border-primary/10 group-hover:border-primary/20 transition-colors flex items-center justify-center">
               <feature.icon className="size-6 text-primary" />
@@ -61,7 +61,7 @@ export default function OnboardingStepWelcome() {
       </div>
 
       <div className="text-center mt-6">
-        <span className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-sm text-muted-foreground">
+        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-tertiary px-4 py-2.5 text-sm text-muted-foreground">
           <span className="size-1.5 rounded-full bg-primary animate-pulse" />
           This takes about 30 seconds. You can edit everything after.
         </span>

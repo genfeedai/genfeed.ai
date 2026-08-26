@@ -49,7 +49,7 @@ export function CampaignCreateCard({
             <a
               key={cta.label}
               href={cta.href}
-              className="text-xs px-3 py-1.5 rounded bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 hover:bg-orange-100 transition-colors"
+              className="text-xs px-3 py-1.5 rounded bg-warning/10  text-warning  hover:bg-warning/10 transition-colors"
             >
               {cta.label}
             </a>
@@ -100,8 +100,8 @@ export function CampaignControlCard({
                 href={cta.href}
                 className={`text-xs px-3 py-1.5 transition-colors ${
                   isDestructive
-                    ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100'
-                    : 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 hover:bg-orange-100'
+                    ? 'bg-destructive/10  text-destructive  hover:bg-destructive/10'
+                    : 'bg-warning/10  text-warning  hover:bg-warning/10'
                 }`}
               >
                 {cta.label}

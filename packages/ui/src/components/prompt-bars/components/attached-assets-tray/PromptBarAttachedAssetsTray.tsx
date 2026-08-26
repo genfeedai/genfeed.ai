@@ -32,11 +32,11 @@ function getAssetRoleLabel(asset: PromptBarAttachedAsset): string {
 function getFallbackIcon(asset: PromptBarAttachedAsset) {
   switch (asset.kind) {
     case 'video':
-      return <Tv className="size-4 text-white/70" />;
+      return <Tv className="size-4 text-muted-foreground" />;
     case 'audio':
-      return <Music className="size-4 text-white/70" />;
+      return <Music className="size-4 text-muted-foreground" />;
     default:
-      return <ImageIcon className="size-4 text-white/70" />;
+      return <ImageIcon className="size-4 text-muted-foreground" />;
   }
 }
 
@@ -61,14 +61,14 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
           <div
             key={asset.id}
             className={cn(
-              'inline-flex max-w-full items-center gap-2 bg-tertiary text-white/85 shadow-border',
+              'inline-flex max-w-full items-center gap-2 bg-tertiary text-foreground shadow-border',
               isCompact ? 'h-9 pl-1.5 pr-1' : 'h-10 pl-1.5 pr-1',
               isDisabled && 'opacity-70',
             )}
           >
             <div
               className={cn(
-                'flex shrink-0 items-center justify-center overflow-hidden bg-black/20 shadow-border',
+                'flex shrink-0 items-center justify-center overflow-hidden bg-background/20 shadow-border',
                 isCompact ? 'size-6.5' : 'size-7',
               )}
             >
@@ -105,7 +105,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
             <Button
               type="button"
               variant={undefined}
-              className="size-7 shrink-0 bg-transparent p-0 text-white/55 shadow-border hover:bg-white/5 hover:text-white"
+              className="size-7 shrink-0 bg-transparent p-0 text-muted-foreground shadow-border hover:bg-hover hover:text-foreground"
               icon={<X className="size-3.5" />}
               onClick={() => onRemoveAttachedAsset(asset.id)}
               isDisabled={isDisabled}
@@ -118,7 +118,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
           type="button"
           variant={undefined}
           className={cn(
-            'bg-transparent font-medium text-white/70 shadow-border hover:bg-white/5 hover:text-white',
+            'bg-transparent font-medium text-muted-foreground shadow-border hover:bg-hover hover:text-foreground',
             isCompact ? 'h-9 px-2.5 text-2xs' : 'h-10 px-3 text-xs',
           )}
           icon={<FolderOpen className="size-3.5" />}

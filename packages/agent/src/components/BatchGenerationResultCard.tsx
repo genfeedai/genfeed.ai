@@ -115,9 +115,9 @@ export function BatchGenerationResultCard({
         {isAllFailed ? (
           <CircleX className="size-4 shrink-0 text-rose-400" />
         ) : isPartialFail ? (
-          <Layers className="size-4 shrink-0 text-amber-400" />
+          <Layers className="size-4 shrink-0 text-warning" />
         ) : (
-          <CircleCheck className="size-4 shrink-0 text-emerald-400" />
+          <CircleCheck className="size-4 shrink-0 text-success" />
         )}
         <div className="min-w-0 flex-1 space-y-0.5">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">

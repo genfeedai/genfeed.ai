@@ -63,7 +63,9 @@ function ModelBrowserModalComponent({
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
         aria-label="Close model browser"
-        className="fixed inset-0 z-50 bg-black/50"
+        className={
+          'fixed inset-0 z-50 bg-black/50' // design-system-allow-content-color
+        }
         onClick={onClose}
       />
 

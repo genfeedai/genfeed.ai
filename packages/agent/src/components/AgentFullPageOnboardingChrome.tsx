@@ -43,7 +43,7 @@ export function AgentFullPageOnboardingChrome({
   return (
     <>
       {/* Desktop sidebar */}
-      <div className="w-80 shrink-0 border-l border-white/[0.06] max-md:hidden">
+      <div className="w-80 shrink-0 border-l border-foreground/[0.06] max-md:hidden">
         <AgentOnboardingChecklist
           completionPercent={completionPercent}
           currentStepId={currentStepId}
@@ -60,7 +60,7 @@ export function AgentFullPageOnboardingChrome({
       <Button
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
-        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between border-t border-white/[0.06] bg-background/95 px-4 py-3 backdrop-blur-sm md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between border-t border-foreground/[0.06] bg-background/95 px-4 py-3 backdrop-blur-sm md:hidden"
         onClick={() => onMobileChecklistOpenChange(true)}
       >
         <div className="flex items-center gap-2">

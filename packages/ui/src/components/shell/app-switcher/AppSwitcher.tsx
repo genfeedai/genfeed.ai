@@ -18,7 +18,7 @@ import type {
 import {
   Briefcase,
   ChartNoAxesColumn,
-  ChevronDown,
+  ChevronsUpDown,
   Grip,
   Layers,
   LayoutGrid,
@@ -560,21 +560,22 @@ export function AppSwitcher({
           <Button
             type="button"
             variant={ButtonVariant.GHOST}
-            className="flex h-7 items-center gap-2 rounded-md px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            size={ButtonSize.SM}
+            className="flex items-center gap-2 rounded-md px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             ariaLabel="Switch app"
           >
             <ActiveIcon className="size-4 shrink-0 text-foreground/70" />
             <span className="max-w-[12rem] truncate text-sm font-semibold text-foreground">
               {activeLabel}
             </span>
-            <ChevronDown className="size-3.5 shrink-0 text-foreground/45" />
+            <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
           </Button>
         ) : (
           <Button
             type="button"
             variant={ButtonVariant.GHOST}
-            size={ButtonSize.ICON}
-            className="size-7 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            size={ButtonSize.MICRO}
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             ariaLabel="Switch app"
           >
             <Grip className="size-4" />

@@ -233,7 +233,7 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
           </Collapsible>
 
           {/* Stats */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-white/[0.08]">
+          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border">
             <span>Triggers: {data.triggerCount}</span>
             {data.lastTriggeredAt && (
               <span>

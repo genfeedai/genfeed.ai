@@ -2,7 +2,7 @@
 
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { cva } from 'class-variance-authority';
-import { Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, ChevronDown, ChevronsUpDown, ChevronUp } from 'lucide-react';
 import {
   type ChangeEvent,
   Children,
@@ -87,7 +87,10 @@ function SelectTrigger({
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDown className="size-4 opacity-50" aria-hidden="true" />
+        <ChevronsUpDown
+          className="size-4 text-muted-foreground"
+          aria-hidden="true"
+        />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
@@ -181,7 +184,7 @@ function SelectLabel({
     <SelectPrimitive.Label
       ref={ref}
       className={cn(
-        'px-2 py-1.5 font-semibold text-[11px] text-muted-foreground uppercase tracking-wide',
+        'px-2 py-1.5 font-semibold text-2xs text-muted-foreground uppercase tracking-wide',
         className,
       )}
       {...props}

@@ -21,6 +21,7 @@ import {
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluation';
+import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import EvaluationBadge from '@ui/evaluation/badge/EvaluationBadge';
@@ -110,24 +111,49 @@ function getPostMediaUrls(post: IPost): string[] {
 }
 
 function getStatusPresentation(status: string): {
+  canonicalStatus: string;
   label: string;
   variant: 'success' | 'info' | 'warning' | 'destructive' | 'ghost';
 } {
   switch (status.toLowerCase()) {
     case PostStatus.PUBLIC:
-      return { label: 'Posted', variant: 'success' };
+      return {
+        canonicalStatus: 'published',
+        label: 'Posted',
+        variant: 'success',
+      };
     case PostStatus.SCHEDULED:
-      return { label: 'Scheduled', variant: 'info' };
+      return {
+        canonicalStatus: 'scheduled',
+        label: 'Scheduled',
+        variant: 'info',
+      };
     case PostStatus.PROCESSING:
-      return { label: 'Publishing', variant: 'info' };
+      return {
+        canonicalStatus: 'processing',
+        label: 'Publishing',
+        variant: 'info',
+      };
     case PostStatus.PENDING:
-      return { label: 'Pending', variant: 'warning' };
+      return {
+        canonicalStatus: 'pending',
+        label: 'Pending',
+        variant: 'warning',
+      };
     case PostStatus.FAILED:
-      return { label: 'Failed', variant: 'destructive' };
+      return {
+        canonicalStatus: 'failed',
+        label: 'Failed',
+        variant: 'destructive',
+      };
     case PostStatus.DRAFT:
-      return { label: 'Draft', variant: 'warning' };
+      return {
+        canonicalStatus: 'planned',
+        label: 'Draft',
+        variant: 'warning',
+      };
     default:
-      return { label: status, variant: 'ghost' };
+      return { canonicalStatus: 'planned', label: status, variant: 'ghost' };
   }
 }
 
@@ -242,9 +268,10 @@ const PostsGrid = memo(
               : visiblePrimaryAction.label);
 
           return (
-            <div
+            <Card
               key={post.id}
-              className="group rounded-xl bg-card p-4 text-left shadow-border transition-all duration-200 hover:bg-accent hover:shadow-border-strong"
+              className="group text-left hover:bg-accent hover:shadow-border-strong"
+              bodyClassName="gap-0 p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <Button
@@ -254,7 +281,7 @@ const PostsGrid = memo(
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
                 >
-                  <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-xl border border-border bg-background-secondary text-muted-foreground">
+                  <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-md border border-border bg-background-secondary text-muted-foreground">
                     <PlatformIcon className="size-4" />
                   </div>
 
@@ -366,6 +393,7 @@ const PostsGrid = memo(
 
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
                 <Badge
+                  status={statusPresentation.canonicalStatus}
                   variant={statusPresentation.variant}
                   size={ComponentSize.SM}
                 >
@@ -388,7 +416,6 @@ const PostsGrid = memo(
                   <Button
                     variant={ButtonVariant.SECONDARY}
                     size={ButtonSize.SM}
-                    className="rounded-lg"
                     onClick={(event) => {
                       event.stopPropagation();
                       visiblePrimaryAction.onClick(post);
@@ -418,7 +445,7 @@ const PostsGrid = memo(
                   </PrimitiveButton>
                 )}
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>

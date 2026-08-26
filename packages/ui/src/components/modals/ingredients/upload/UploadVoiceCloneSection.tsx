@@ -107,7 +107,7 @@ export default function UploadVoiceCloneSection({
       </div>
 
       {recordedFile ? (
-        <div className="rounded-lg shadow-border bg-white/[0.03] p-3 text-sm text-muted-foreground">
+        <div className="rounded-lg bg-tertiary p-3 text-sm text-muted-foreground shadow-border">
           Recorded sample ready: {recordedFile.name}
         </div>
       ) : null}

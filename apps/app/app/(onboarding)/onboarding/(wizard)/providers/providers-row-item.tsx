@@ -18,14 +18,16 @@ export default function ProvidersRowItem({
   label,
 }: Props) {
   return (
-    <div className="flex flex-col gap-3 border-t border-white/[0.06] pt-3 first:border-t-0 first:pt-0 md:flex-row md:items-center md:justify-between">
+    <div className="flex flex-col gap-3 border-t border-border pt-3 first:border-t-0 first:pt-0 md:flex-row md:items-center md:justify-between">
       <div className="min-w-0">
-        <h3 className="text-base font-semibold text-white">{label}</h3>
-        <p className="mt-1 text-sm text-white/45">{description}</p>
+        <h3 className="text-base font-semibold text-foreground">{label}</h3>
+        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       </div>
       <div
         className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs ${
-          enabled ? 'bg-hover text-foreground' : 'bg-white/[0.06] text-white/45'
+          enabled
+            ? 'bg-hover text-foreground'
+            : 'bg-background-tertiary text-muted-foreground'
         }`}
       >
         {enabled ? (

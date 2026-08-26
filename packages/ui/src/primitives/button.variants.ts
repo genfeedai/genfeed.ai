@@ -47,6 +47,8 @@ export function getMappedButtonSize(size?: ButtonSize | null) {
       return 'lg';
     case ButtonSize.XS:
       return 'xs';
+    case ButtonSize.MICRO:
+      return 'micro';
     case ButtonSize.ICON:
       return 'icon';
     case ButtonSize.PUBLIC:
@@ -78,7 +80,7 @@ export const TEXT_TRANSFORM_CLASSES: Record<string, string> = {
 };
 
 const nativeButtonVariants = cva(
-  'inline-flex items-center gap-2 whitespace-nowrap text-left text-[13px] font-medium transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:shrink-0',
+  'inline-flex items-center gap-2 whitespace-nowrap text-left text-xs font-medium transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:shrink-0',
   {
     defaultVariants: {
       size: 'default',
@@ -88,10 +90,11 @@ const nativeButtonVariants = cva(
       size: {
         default: 'h-8 px-3.5 py-1.5',
         icon: 'h-8 w-8 justify-center',
-        lg: 'h-9 px-4 text-[13px]',
-        sm: 'h-7 px-2.5 text-xs',
-        xl: 'h-10 px-5 text-[14px]',
-        xs: 'h-6 px-2 text-[11px] gap-1',
+        lg: 'h-9 px-4 text-sm',
+        micro: 'size-7 justify-center p-0',
+        sm: 'h-8 px-2.5',
+        xl: 'h-10 px-5 text-sm',
+        xs: 'h-8 gap-1 px-2',
       },
       variant: {
         default:

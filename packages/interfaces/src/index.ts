@@ -258,7 +258,6 @@ export * from './ui/agent-conversation-route.interface';
 export * from './ui/app-switcher.interface';
 export * from './ui/avatar.interface';
 export * from './ui/badge.interface';
-export * from './ui/badge-status-config.interface';
 export * from './ui/command-palette.interface';
 export * from './ui/elements-content.interface';
 export * from './ui/feature-badge.interface';

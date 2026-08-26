@@ -21,7 +21,7 @@ export default function ExecutionSummaryBar({
   etaDisplay,
 }: Props) {
   return (
-    <div className="border-b border-white/[0.08] bg-card/50 px-6 py-4">
+    <div className="border-b border-border bg-card/50 px-6 py-4">
       <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-2 xl:grid-cols-5">
         <div>
           <div className="text-sm text-muted-foreground">Status</div>

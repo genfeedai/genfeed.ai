@@ -145,10 +145,16 @@ function ComparisonSliderComponent({
       </div>
 
       <div
-        className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg pointer-events-none"
+        className={
+          'pointer-events-none absolute bottom-0 top-0 w-0.5 bg-white shadow-lg' /* design-system-allow-content-color */
+        }
         style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
       >
-        <div className="absolute top-1/2 left-1/2 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-lg">
+        <div
+          className={
+            'absolute left-1/2 top-1/2 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-lg' /* design-system-allow-content-color */
+          }
+        >
           <ChevronsLeftRight
             className="size-3 text-muted-foreground"
             aria-hidden
@@ -156,10 +162,18 @@ function ComparisonSliderComponent({
         </div>
       </div>
 
-      <div className="absolute top-1.5 left-1.5 rounded bg-black/60 px-1 py-0.5 text-2xs font-medium text-white pointer-events-none">
+      <div
+        className={
+          'absolute top-1.5 left-1.5 rounded bg-black/60 px-1 py-0.5 text-2xs font-medium text-white pointer-events-none' /* design-system-allow-content-color */
+        }
+      >
         {beforeLabel}
       </div>
-      <div className="absolute top-1.5 right-1.5 rounded bg-black/60 px-1 py-0.5 text-2xs font-medium text-white pointer-events-none">
+      <div
+        className={
+          'absolute top-1.5 right-1.5 rounded bg-black/60 px-1 py-0.5 text-2xs font-medium text-white pointer-events-none' /* design-system-allow-content-color */
+        }
+      >
         {afterLabel}
       </div>
     </div>

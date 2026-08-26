@@ -34,9 +34,10 @@ describe('SectionLabel', () => {
   });
 
   describe('styling', () => {
-    it('has text-white/20', () => {
+    it('uses the muted foreground role in both themes', () => {
       render(<SectionLabel>Label</SectionLabel>);
-      expect(screen.getByText('Label')).toHaveClass('text-white/20');
+      expect(screen.getByText('Label')).toHaveClass('text-muted-foreground');
+      expect(screen.getByText('Label')).not.toHaveClass('text-white/20');
     });
 
     it('has text-xs', () => {

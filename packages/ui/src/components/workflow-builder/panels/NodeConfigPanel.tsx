@@ -189,7 +189,7 @@ function ConfigField({
           <Button
             type="button"
             variant={ButtonVariant.GHOST}
-            size={ButtonSize.XS}
+            size={ButtonSize.MICRO}
             className={cn(useVariable && 'text-primary')}
             onClick={() => setUseVariable(!useVariable)}
             ariaLabel="Use variable"

@@ -68,7 +68,9 @@ export function AgentOverlay({
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           onClick={handleClose}
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+          className={
+            'fixed inset-0 z-40 bg-black/40 backdrop-blur-sm' /* design-system-allow-content-color */
+          }
           aria-label="Close agent overlay"
         />
       )}
@@ -76,7 +78,7 @@ export function AgentOverlay({
       {/* Drawer panel */}
       <aside
         className={cn(
-          'fixed right-0 top-0 z-50 h-screen w-[400px] max-w-[90vw] border-l border-white/[0.06] bg-background shadow-2xl transition-transform duration-300 ease-out',
+          'fixed right-0 top-0 z-50 h-screen w-[400px] max-w-[90vw] border-l border-foreground/[0.06] bg-background shadow-2xl transition-transform duration-300 ease-out',
           isOpen ? 'translate-x-0' : 'translate-x-full',
         )}
       >

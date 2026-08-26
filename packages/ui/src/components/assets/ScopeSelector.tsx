@@ -126,9 +126,9 @@ export function ScopeBadge({ scope, className = '' }: ScopeBadgeProps) {
 
   const bgColor = {
     [AssetScope.USER]: 'bg-muted',
-    [AssetScope.BRAND]: 'bg-blue-100 dark:bg-blue-900',
-    [AssetScope.ORGANIZATION]: 'bg-green-100 dark:bg-green-900',
-    [AssetScope.PUBLIC]: 'bg-purple-100 dark:bg-purple-900',
+    [AssetScope.BRAND]: 'bg-info/15',
+    [AssetScope.ORGANIZATION]: 'bg-success/15',
+    [AssetScope.PUBLIC]: 'bg-primary/15',
   }[scope];
 
   return (

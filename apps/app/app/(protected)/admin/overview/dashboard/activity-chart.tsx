@@ -69,7 +69,7 @@ export default function ActivityChart({ data, isLoading }: ActivityChartProps) {
           <Button
             type="button"
             variant={ButtonVariant.UNSTYLED}
-            className="px-4 py-2 text-xs font-medium rounded-full text-white/50 hover:text-white/70 transition-colors"
+            className="px-4 py-2 text-xs font-medium rounded-full text-muted-foreground hover:text-foreground transition-colors"
           >
             30 Days
           </Button>

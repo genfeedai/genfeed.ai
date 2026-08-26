@@ -144,7 +144,11 @@ function CloudVideoInputNodeComponent(props: NodeProps): React.JSX.Element {
 
         {mediaConfig.resolvedUrl ? (
           <div className="space-y-2">
-            <div className="overflow-hidden rounded bg-black/20">
+            <div
+              className={
+                'overflow-hidden rounded bg-black/20' // design-system-allow-content-color
+              }
+            >
               <video
                 aria-label="Cloud video preview"
                 src={mediaConfig.resolvedUrl}

@@ -7,4 +7,25 @@ describe('badgeVariants', () => {
     expect(badgeVariants({ variant: 'video' })).toContain('border');
     expect(badgeVariants({ variant: 'error' })).toContain('border');
   });
+
+  it.each([
+    'accent',
+    'audio',
+    'avatar',
+    'blue',
+    'ghost',
+    'gif',
+    'image',
+    'multimodal',
+    'outline',
+    'purple',
+    'secondary',
+    'slate',
+    'video',
+    'voice',
+  ] as const)('uses role tokens for the %s badge family', (variant) => {
+    expect(badgeVariants({ variant })).not.toMatch(
+      /(?:white|slate|violet|orange|indigo|blue|cyan|pink|purple|amber)-/,
+    );
+  });
 });

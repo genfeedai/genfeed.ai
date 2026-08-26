@@ -37,7 +37,11 @@ export default function BrandDetailOverview({
           height={128}
           priority
         />
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+        <div
+          className={
+            'absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100' /* design-system-allow-content-color */
+          }
+        >
           <div className="flex gap-1.5">
             <Button
               icon={<Upload className="size-3.5" />}

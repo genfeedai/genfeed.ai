@@ -146,13 +146,13 @@ export default function PostMetadataOverlay({
       onClose={handleOverlayClose}
       badges={
         <>
-          <span className="gen-label rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-foreground/55">
+          <span className="gen-label rounded-full border border-border bg-tertiary px-3 py-1 text-muted-foreground">
             Post
           </span>
-          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-foreground/70">
+          <span className="rounded-full border border-border bg-tertiary px-3 py-1 text-xs text-muted-foreground">
             {post.platform}
           </span>
-          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-foreground/70">
+          <span className="rounded-full border border-border bg-tertiary px-3 py-1 text-xs text-muted-foreground">
             {post.targetExecutionState}
           </span>
         </>

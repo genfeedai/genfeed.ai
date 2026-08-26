@@ -98,7 +98,11 @@ function DownloadNodeComponent(props: NodeProps) {
           <>
             {/* Preview */}
             {activeType === 'video' ? (
-              <div className="relative aspect-video min-h-[120px] w-full overflow-hidden rounded-md bg-black/20">
+              <div
+                className={
+                  'relative aspect-video min-h-[120px] w-full overflow-hidden rounded-md bg-black/20' /* design-system-allow-content-color */
+                }
+              >
                 <video
                   src={activeMedia}
                   aria-label="Output video preview"
@@ -109,16 +113,30 @@ function DownloadNodeComponent(props: NodeProps) {
                   playsInline
                 />
                 {nodeData.status === 'processing' && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                  <div
+                    className={
+                      'absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm' /* design-system-allow-content-color */
+                    }
+                  >
                     <div className="flex flex-col items-center gap-2">
                       <LoaderCircle className="size-8 animate-spin text-primary" />
-                      <span className="text-xs text-white/80">Processing…</span>
+                      <span
+                        className={
+                          'text-xs text-white/80' /* design-system-allow-content-color */
+                        }
+                      >
+                        Processing…
+                      </span>
                     </div>
                   </div>
                 )}
               </div>
             ) : activeType === 'image' ? (
-              <div className="relative aspect-[4/3] min-h-[120px] w-full overflow-hidden rounded-md bg-black/20">
+              <div
+                className={
+                  'relative aspect-[4/3] min-h-[120px] w-full overflow-hidden rounded-md bg-black/20' /* design-system-allow-content-color */
+                }
+              >
                 <Image
                   src={activeMedia}
                   alt="Output"
@@ -128,10 +146,20 @@ function DownloadNodeComponent(props: NodeProps) {
                   unoptimized
                 />
                 {nodeData.status === 'processing' && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                  <div
+                    className={
+                      'absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm' /* design-system-allow-content-color */
+                    }
+                  >
                     <div className="flex flex-col items-center gap-2">
                       <LoaderCircle className="size-8 animate-spin text-primary" />
-                      <span className="text-xs text-white/80">Processing…</span>
+                      <span
+                        className={
+                          'text-xs text-white/80' /* design-system-allow-content-color */
+                        }
+                      >
+                        Processing…
+                      </span>
                     </div>
                   </div>
                 )}
@@ -170,10 +198,20 @@ function DownloadNodeComponent(props: NodeProps) {
             </Button>
           </>
         ) : isConnected && isRunning ? (
-          <div className="relative flex h-20 flex-col items-center justify-center bg-black/20">
+          <div
+            className={
+              'relative flex h-20 flex-col items-center justify-center bg-black/20' /* design-system-allow-content-color */
+            }
+          >
             <div className="flex flex-col items-center gap-2">
               <LoaderCircle className="size-8 animate-spin text-primary" />
-              <span className="text-xs text-white/80">Generating…</span>
+              <span
+                className={
+                  'text-xs text-white/80' /* design-system-allow-content-color */
+                }
+              >
+                Generating…
+              </span>
             </div>
           </div>
         ) : isConnected ? (

@@ -105,7 +105,9 @@ function VideoFrameExtractNodeComponent(props: NodeProps) {
               size="icon-sm"
               onClick={handleProcess}
               disabled={nodeData.status === 'processing'}
-              className="absolute top-1 right-1 size-6 bg-black/50 hover:bg-black/70"
+              className={
+                'absolute top-1 right-1 size-6 bg-black/50 hover:bg-black/70' /* design-system-allow-content-color */
+              }
             >
               <RefreshCw className="size-3" />
             </Button>

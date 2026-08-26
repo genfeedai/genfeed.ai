@@ -418,8 +418,8 @@ export function PublishPostCard({
 
   if (isSubmitted) {
     return (
-      <div className="my-2 border border-emerald-500/20 bg-background p-4">
-        <div className="flex items-center gap-2 text-emerald-600">
+      <div className="my-2 border border-success/20 bg-background p-4">
+        <div className="flex items-center gap-2 text-success">
           <CircleCheck className="size-5" />
           <span className="text-sm font-medium">
             {scheduledAt ? translate('scheduled') : translate('confirmed')}
@@ -616,14 +616,14 @@ export function PublishPostCard({
                       ) : null}
 
                       {warnings.length > 0 ? (
-                        <div className="space-y-1 border border-amber-500/30 bg-amber-500/5 p-2">
-                          <p className="text-2xs font-medium uppercase tracking-wider text-amber-600">
+                        <div className="space-y-1 border border-amber-500/30 bg-warning/10 p-2">
+                          <p className="text-2xs font-medium uppercase tracking-wider text-warning">
                             {translate('reviewWarnings')}
                           </p>
                           {warnings.map((warning) => (
                             <p
                               key={`${warning.code}:${warning.field ?? ''}:${warning.message}`}
-                              className="text-xs text-amber-700 dark:text-amber-400"
+                              className="text-xs text-warning "
                             >
                               {warning.message}
                             </p>
@@ -712,7 +712,7 @@ export function PublishPostCard({
           void handleConfirm();
         }}
         isDisabled={isConfirmDisabled}
-        className="flex w-full items-center justify-center gap-2 rounded bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
+        className="flex w-full items-center justify-center gap-2 rounded bg-success px-4 py-2 text-sm font-medium text-success-foreground hover:bg-success/90"
       >
         <Send className="size-4" />
         {isSubmitting

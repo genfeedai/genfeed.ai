@@ -16,17 +16,14 @@ export default function ProactiveErrorState({
 }: Props) {
   return (
     <div className="max-w-3xl">
-      <Card
-        bodyClassName="gap-0 p-8"
-        className="rounded-3xl border-white/10 bg-white/[0.03]"
-      >
-        <p className="text-sm uppercase tracking-[0.24em] text-white/35">
+      <Card bodyClassName="gap-0 p-8" className="border-border bg-card">
+        <p className="text-sm uppercase tracking-[0.24em] text-gray-800">
           Proactive Onboarding
         </p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white">
+        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-foreground">
           Your workspace is almost ready.
         </h1>
-        <p className="mt-4 max-w-xl text-white/55">
+        <p className="mt-4 max-w-xl text-muted-foreground">
           {error ?? 'Please refresh in a moment or use the fallback path.'}
         </p>
         <div className="mt-8 flex flex-wrap gap-3">

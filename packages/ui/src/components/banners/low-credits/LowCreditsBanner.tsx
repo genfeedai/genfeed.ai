@@ -246,8 +246,8 @@ export default function LowCreditsBanner({
                 'inline-flex items-center justify-center text-sm font-semibold transition-colors',
                 isInline ? 'h-9 rounded-lg px-3.5' : 'h-10 rounded-xl px-4',
                 isCritical
-                  ? 'bg-red-500 text-white hover:bg-red-600'
-                  : 'bg-amber-500 text-black hover:bg-amber-400',
+                  ? 'bg-destructive text-destructive-foreground hover:bg-destructive/80'
+                  : 'bg-warning text-warning-foreground hover:bg-warning/80',
               )}
             >
               {ctaLabel}

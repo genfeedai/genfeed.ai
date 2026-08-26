@@ -300,7 +300,7 @@ export default function AdsResearchPageClient({
                 value={sortKey}
                 options={SORT_OPTIONS}
                 onChange={(_name, value) => setSortKey(value as AdSortKey)}
-                className="h-9 rounded-lg shadow-border bg-card px-3 text-sm text-white/80 hover:bg-white/[0.04] hover:text-white"
+                className="h-9 rounded-md bg-background-tertiary px-3 text-sm text-foreground shadow-border hover:bg-hover"
               />
               <div className="ml-1 flex flex-wrap items-center gap-x-4 gap-y-1">
                 <CompactStat

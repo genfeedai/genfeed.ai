@@ -19,7 +19,11 @@ export default function TerminalDemo(): React.ReactElement {
   }, [currentLine, isTyping]);
 
   return (
-    <div className="overflow-hidden border border-edge/10 bg-black/40">
+    <div
+      className={
+        'overflow-hidden border border-edge/10 bg-black/40' /* design-system-allow-content-color -- terminal content */
+      }
+    >
       <div className="flex items-center gap-2 px-4 py-3 bg-fill/5 border-b border-edge/10">
         <div className="flex gap-2">
           <div className="size-3 rounded-full bg-fill/20" />

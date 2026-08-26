@@ -81,7 +81,11 @@ export default function MasonryVideoMediaArea({
       {isUnavailable ? (
         <div {...sharedWrapperProps}>
           {isProcessing && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none bg-black/20 backdrop-blur-sm">
+            <div
+              className={
+                'pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */
+              }
+            >
               <div
                 role="presentation"
                 className="pointer-events-auto"
@@ -132,8 +136,16 @@ export default function MasonryVideoMediaArea({
       )}
 
       {isFleetNsfwLocked && (
-        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/35 backdrop-blur-sm px-4 text-center">
-          <div className="rounded-full border border-white/20 bg-black/50 px-3 py-1 text-xs font-medium text-white">
+        <div
+          className={
+            'absolute inset-0 z-40 flex items-center justify-center bg-black/35 px-4 text-center backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */
+          }
+        >
+          <div
+            className={
+              'rounded-full border border-white/20 bg-black/50 px-3 py-1 text-xs font-medium text-white' /* design-system-allow-content-color -- media overlay */
+            }
+          >
             Sensitive fleet asset
           </div>
         </div>

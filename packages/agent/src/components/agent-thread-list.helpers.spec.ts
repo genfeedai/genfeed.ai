@@ -2,7 +2,7 @@ import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import {
-  getThreadStatusDotClass,
+  getThreadStatusKey,
   getThreadStatusMeta,
   groupAgentThreads,
   groupAgentThreadsByBrand,
@@ -198,7 +198,6 @@ describe('getThreadStatusMeta', () => {
       }),
     ).toEqual({
       label: 'Running',
-      shouldPulse: true,
       tone: 'running',
     });
   });
@@ -217,17 +216,15 @@ describe('getThreadStatusMeta', () => {
   });
 });
 
-describe('getThreadStatusDotClass', () => {
-  it('uses a violet activity disc for running attention', () => {
-    expect(getThreadStatusDotClass({ attentionState: 'running' })).toBe(
-      'bg-violet-400',
-    );
+describe('getThreadStatusKey', () => {
+  it('maps running attention to the canonical running status', () => {
+    expect(getThreadStatusKey({ attentionState: 'running' })).toBe('running');
   });
 
-  it('uses amber for needs-input and red for failed', () => {
-    expect(getThreadStatusDotClass({ attentionState: 'needs-input' })).toBe(
-      'bg-amber-300',
+  it('maps needs-input and failed states to canonical icon statuses', () => {
+    expect(getThreadStatusKey({ attentionState: 'needs-input' })).toBe(
+      'pending_approval',
     );
-    expect(getThreadStatusDotClass({ tone: 'failed' })).toBe('bg-red-400');
+    expect(getThreadStatusKey({ tone: 'failed' })).toBe('failed');
   });
 });

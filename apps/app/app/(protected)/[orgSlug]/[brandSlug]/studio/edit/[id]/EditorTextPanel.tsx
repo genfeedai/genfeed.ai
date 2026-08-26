@@ -125,7 +125,7 @@ function EditorTextPanel({
   );
 
   return (
-    <div className="flex flex-col h-full border-r border-white/[0.08] bg-card">
+    <div className="flex flex-col h-full border-r border-border bg-card">
       <EditorTextPanelHeader
         isExpanded={isExpanded}
         onToggleExpanded={() => setIsExpanded(!isExpanded)}

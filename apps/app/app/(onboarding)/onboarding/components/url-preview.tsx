@@ -45,7 +45,7 @@ export default function UrlPreview({ url }: UrlPreviewProps) {
 
   return (
     <output
-      className="flex items-center gap-2 mt-2 px-3 py-2 bg-white/[0.03] border border-white/[0.06] rounded animate-in fade-in slide-in-from-top-1 duration-300"
+      className="flex items-center gap-2 mt-2 px-3 py-2 bg-background-tertiary border border-border rounded animate-in fade-in slide-in-from-top-1 duration-300"
       aria-label={`Preview for ${domain}`}
     >
       {!faviconError ? (
@@ -59,10 +59,10 @@ export default function UrlPreview({ url }: UrlPreviewProps) {
           height={600}
         />
       ) : (
-        <Globe className="size-4 text-white/40" />
+        <Globe className="size-4 text-gray-800" />
       )}
-      <span className="text-xs text-white/50 truncate">{domain}</span>
-      <span className="text-2xs text-white/20 ml-auto">
+      <span className="text-xs text-muted-foreground truncate">{domain}</span>
+      <span className="text-2xs text-gray-800 ml-auto">
         We&apos;ll extract colors, logo &amp; voice
       </span>
     </output>

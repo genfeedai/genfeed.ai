@@ -86,7 +86,7 @@ export function AgentChatMessageFooter({
           ariaLabel="Remember message"
           onClick={() => onRemember(message)}
         >
-          <Sparkles className="size-3.5 text-purple-300" />
+          <Sparkles className="size-3.5 text-primary" />
         </Button>
       ) : null}
     </div>

@@ -34,7 +34,11 @@ export default function BrandDetailReferencesCard({
                   height={300}
                 />
 
-                <div className="absolute inset-0 flex items-start justify-end bg-black/0 p-1.5 opacity-0 transition-opacity group-hover:bg-black/20 group-hover:opacity-100">
+                <div
+                  className={
+                    'absolute inset-0 flex items-start justify-end bg-black/0 p-1.5 opacity-0 transition-opacity group-hover:bg-black/20 group-hover:opacity-100' /* design-system-allow-content-color */
+                  }
+                >
                   <Button
                     icon={<Trash2 className="size-3.5" />}
                     ariaLabel="Delete reference"

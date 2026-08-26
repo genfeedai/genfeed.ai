@@ -85,9 +85,17 @@ function ClearButton({
       withWrapper={false}
       onClick={onClick}
       ariaLabel={title}
-      className="absolute top-0 right-0 size-4 bg-black/70 hover:bg-error rounded-bl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+      className={
+        'absolute right-0 top-0 flex size-4 cursor-pointer items-center justify-center rounded-bl bg-black/70 opacity-0 transition-opacity hover:bg-error group-hover:opacity-100' /* design-system-allow-content-color -- media overlay */
+      }
       tooltip={title}
-      icon={<X className="size-3 text-white" />}
+      icon={
+        <X
+          className={
+            'size-3 text-white' /* design-system-allow-content-color -- media overlay */
+          }
+        />
+      }
     />
   );
 }

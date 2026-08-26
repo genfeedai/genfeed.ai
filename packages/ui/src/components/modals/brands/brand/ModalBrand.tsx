@@ -420,18 +420,18 @@ export default function BrandOverlay({
         badges={
           activeBrand ? (
             <>
-              <span className="gen-label rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-foreground/55">
+              <span className="gen-label rounded-full border border-border bg-tertiary px-3 py-1 text-muted-foreground">
                 Brand
               </span>
-              <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-foreground/70">
+              <span className="rounded-full border border-border bg-tertiary px-3 py-1 text-xs text-muted-foreground">
                 {isPublicAssetScope(activeBrand.scope) ? 'Public' : 'Private'}
               </span>
-              <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-foreground/70">
+              <span className="rounded-full border border-border bg-tertiary px-3 py-1 text-xs text-muted-foreground">
                 {connectedPlatformsCount} connected
               </span>
             </>
           ) : (
-            <span className="gen-label rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-foreground/55">
+            <span className="gen-label rounded-full border border-border bg-tertiary px-3 py-1 text-muted-foreground">
               New Brand
             </span>
           )

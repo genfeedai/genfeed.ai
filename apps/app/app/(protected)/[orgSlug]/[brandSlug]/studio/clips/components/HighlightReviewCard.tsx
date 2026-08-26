@@ -2,6 +2,7 @@
 
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import type { IHighlight } from '@props/studio/clips.props';
+import Card from '@ui/card/Card';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -164,8 +165,9 @@ export default function HighlightReviewCard({
   }, [onScriptEdit]);
 
   return (
-    <div
-      className={`rounded-xl border p-4 shadow-border transition-[background-color,border-color,box-shadow] ${
+    <Card
+      bodyClassName="gap-0 p-4"
+      className={`border transition-[background-color,border-color,box-shadow] ${
         selected ? 'border-primary/50 bg-primary/5' : 'bg-secondary opacity-60'
       }`}
     >
@@ -306,6 +308,6 @@ export default function HighlightReviewCard({
           ))}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

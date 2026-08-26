@@ -76,7 +76,9 @@ export default function TextOverlayPanel({
       {/* Backdrop */}
       <Button
         aria-label="Close text overlay panel"
-        className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+        className={
+          'fixed inset-0 z-40 bg-black/50 transition-opacity' /* design-system-allow-content-color -- editor scrim */
+        }
         onClick={handleClose}
         type="button"
         variant={ButtonVariant.UNSTYLED}
@@ -153,7 +155,11 @@ export default function TextOverlayPanel({
                     className={`absolute ${getPositionClasses(position)} p-4`}
                     style={{ fontSize: getFontSize(fontSize) }}
                   >
-                    <span className="text-white drop-shadow-lg font-semibold">
+                    <span
+                      className={
+                        'font-semibold text-white drop-shadow-lg' /* design-system-allow-content-color -- authored media text */
+                      }
+                    >
                       {text || 'Your text will appear here'}
                     </span>
                   </div>

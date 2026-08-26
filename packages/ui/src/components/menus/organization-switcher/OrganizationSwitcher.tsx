@@ -23,7 +23,7 @@ import { Modal } from '@ui/modals/compound/modal.compound';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import { ChevronDown, Settings } from 'lucide-react';
+import { ChevronsUpDown, Settings } from 'lucide-react';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useReducer } from 'react';
 
@@ -221,9 +221,7 @@ export default function OrganizationSwitcher({
             >
               {isSwitching ? 'Switching\u2026' : displayLabel}
             </span>
-            <ChevronDown
-              className={cn(SWITCHER_CHEVRON_CLASSNAME, isOpen && 'rotate-180')}
-            />
+            <ChevronsUpDown className={SWITCHER_CHEVRON_CLASSNAME} />
           </div>
         )}
         onSelect={(id) => void handleSwitch(id)}

@@ -34,7 +34,7 @@ export function AgentInputRequestOverlay({
           ? 'w-full'
           : variant === 'inline'
             ? 'mx-auto my-4 w-full max-w-3xl'
-            : 'absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm'
+            : 'absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm' /* design-system-allow-content-color */
       }
     >
       <div
@@ -42,8 +42,8 @@ export function AgentInputRequestOverlay({
           isComposer
             ? 'max-h-[min(50dvh,24rem)] w-full overflow-y-auto rounded-lg border border-primary/25 bg-background-secondary/96 p-3 shadow-border'
             : variant === 'inline'
-              ? 'w-full border border-primary/30 bg-[#0d0f16] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.28)]'
-              : 'w-full max-w-4xl border border-primary/50 bg-[#0d0f16] p-6 shadow-2xl'
+              ? 'w-full border border-primary/30 bg-background-secondary p-6 shadow-dialog'
+              : 'w-full max-w-4xl border border-primary/50 bg-background-secondary p-6 shadow-dialog'
         }
       >
         <div className={isComposer ? 'mb-3' : 'mb-4'}>
@@ -85,7 +85,7 @@ export function AgentInputRequestOverlay({
                 className={
                   isComposer
                     ? 'flex w-full items-start gap-3 rounded-lg border border-border bg-background px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-hover disabled:opacity-50'
-                    : 'flex w-full items-start gap-4 border border-white/[0.08] bg-white/[0.02] px-5 py-4 text-left transition-colors hover:border-primary/40 hover:bg-white/[0.04] disabled:opacity-50'
+                    : 'flex w-full items-start gap-4 border border-border bg-foreground/[0.02] px-5 py-4 text-left transition-colors hover:border-primary/40 hover:bg-foreground/[0.04] disabled:opacity-50'
                 }
               >
                 <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-foreground/[0.04] text-xs text-foreground/70">
@@ -127,7 +127,7 @@ export function AgentInputRequestOverlay({
               className={
                 isComposer
                   ? 'min-h-16 resize-none border-border bg-background px-3 py-2 text-xs placeholder:text-foreground/35 focus:border-primary/50'
-                  : 'min-h-28 border-white/[0.08] bg-transparent px-4 py-3 placeholder:text-foreground/35 focus:border-primary/50'
+                  : 'min-h-28 border-border bg-transparent px-4 py-3 placeholder:text-foreground/35 focus:border-primary/50'
               }
             />
           </div>

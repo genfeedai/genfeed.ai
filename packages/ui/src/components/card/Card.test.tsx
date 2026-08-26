@@ -1,3 +1,4 @@
+import { CardVariant } from '@genfeedai/enums';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Card from '@ui/card/Card';
@@ -55,6 +56,24 @@ describe('Card', () => {
     expect(activateCard).toHaveBeenCalledTimes(2);
   });
 
+  it('supports disabled interactive cards without firing their action', async () => {
+    const user = userEvent.setup();
+    const activateCard = vi.fn();
+    render(
+      <Card isDisabled label="Unavailable" onClick={activateCard}>
+        Body
+      </Card>,
+    );
+
+    const interactiveSurface = screen.getByRole('button', {
+      name: 'Unavailable',
+    });
+    expect(interactiveSurface).toBeDisabled();
+
+    await user.click(interactiveSurface);
+    expect(activateCard).not.toHaveBeenCalled();
+  });
+
   it('exposes stable ordering metadata when index is provided', () => {
     const { container } = render(<Card index={3}>Body</Card>);
     expect(container.firstChild).toHaveAttribute('data-card-index', '3');
@@ -83,5 +102,19 @@ describe('Card', () => {
     );
 
     expect(container.firstChild).toHaveClass('overflow-hidden');
+  });
+
+  it('uses the semantic card surface for the legacy black variant', () => {
+    const { container } = render(<Card variant={CardVariant.BLACK}>Body</Card>);
+
+    expect(container.firstChild).toHaveClass('bg-card', 'text-card-foreground');
+    expect(container.firstChild).not.toHaveClass('bg-black', 'text-white');
+  });
+
+  it('uses the semantic card surface for the legacy white variant', () => {
+    const { container } = render(<Card variant={CardVariant.WHITE}>Body</Card>);
+
+    expect(container.firstChild).toHaveClass('bg-card', 'text-card-foreground');
+    expect(container.firstChild).not.toHaveClass('bg-white', 'text-black');
   });
 });

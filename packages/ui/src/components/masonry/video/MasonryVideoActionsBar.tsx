@@ -118,7 +118,9 @@ export default function MasonryVideoActionsBar({
               variant={ButtonVariant.DEFAULT}
               size={ButtonSize.SM}
               className={`${
-                video.hasVoted ? 'bg-success text-white cursor-default' : ''
+                video.hasVoted
+                  ? 'cursor-default bg-success text-success-foreground'
+                  : ''
               } ${video.isVoteAnimating ? 'animate-vote' : ''}`}
               onClick={() => onVoteIngredient?.(video)}
             />

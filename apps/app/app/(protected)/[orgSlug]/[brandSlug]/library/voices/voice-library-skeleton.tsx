@@ -6,7 +6,7 @@ export default function VoiceLibrarySkeleton() {
       {Array.from({ length: 6 }, (_, index) => index + 1).map((slot) => (
         <div
           key={`voice-row-skeleton-${slot}`}
-          className="h-20 animate-pulse rounded-2xl border border-white/[0.08] bg-white/[0.03]"
+          className="h-20 animate-pulse rounded-card bg-card shadow-border"
         />
       ))}
     </div>

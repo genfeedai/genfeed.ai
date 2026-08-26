@@ -51,20 +51,20 @@ const SKELETON_IDS = ['s1', 's2', 's3', 's4', 's5', 's6'];
 
 function PatternCardSkeleton() {
   return (
-    <div className="border border-white/[0.08] p-4 animate-pulse space-y-4">
+    <div className="border border-border p-4 animate-pulse space-y-4">
       <div className="flex items-center gap-2">
-        <div className="h-5 w-24 bg-white/10" />
-        <div className="h-5 w-16 bg-white/10" />
+        <div className="h-5 w-24 bg-background-tertiary" />
+        <div className="h-5 w-16 bg-background-tertiary" />
       </div>
       <div className="space-y-2">
-        <div className="h-4 w-3/4 bg-white/10" />
-        <div className="h-3 w-full bg-white/[0.06]" />
+        <div className="h-4 w-3/4 bg-background-tertiary" />
+        <div className="h-3 w-full bg-background-tertiary" />
       </div>
-      <div className="h-12 w-full bg-white/[0.04]" />
-      <div className="h-2 w-full bg-white/[0.06]" />
+      <div className="h-12 w-full bg-background-tertiary" />
+      <div className="h-2 w-full bg-background-tertiary" />
       <div className="space-y-1">
-        <div className="h-3 w-full bg-white/[0.06]" />
-        <div className="h-3 w-4/5 bg-white/[0.06]" />
+        <div className="h-3 w-full bg-background-tertiary" />
+        <div className="h-3 w-4/5 bg-background-tertiary" />
       </div>
     </div>
   );
@@ -220,7 +220,7 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
       {/* Empty state */}
       {!isLoading && !error && patterns.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="p-4 bg-white/[0.04] mb-4">
+          <div className="p-4 bg-background-tertiary mb-4">
             <FlaskConical className="size-8 text-foreground/30" />
           </div>
           <h3 className="font-medium text-foreground/70 mb-1">

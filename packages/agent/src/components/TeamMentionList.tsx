@@ -55,14 +55,14 @@ export function TeamMentionList({
 
   if (items.length === 0) {
     return (
-      <div className="border border-white/[0.12] bg-background px-3 py-2 text-xs text-muted-foreground shadow-lg">
+      <div className="border border-foreground/[0.12] bg-background px-3 py-2 text-xs text-muted-foreground shadow-lg">
         No team members found
       </div>
     );
   }
 
   return (
-    <div className="max-h-48 overflow-y-auto border border-white/[0.12] bg-background shadow-lg">
+    <div className="max-h-48 overflow-y-auto border border-foreground/[0.12] bg-background shadow-lg">
       {items.map((item, index) => (
         <Button
           variant={ButtonVariant.UNSTYLED}
@@ -92,8 +92,8 @@ export function TeamMentionList({
             className={cn(
               'ml-auto rounded-full px-2 py-0.5 text-2xs font-medium',
               item.isAgent
-                ? 'bg-violet-500/20 text-violet-400'
-                : 'bg-emerald-500/20 text-emerald-400',
+                ? 'bg-primary/10 text-primary'
+                : 'bg-success/10 text-success',
             )}
           >
             {item.isAgent ? 'agent' : 'human'}

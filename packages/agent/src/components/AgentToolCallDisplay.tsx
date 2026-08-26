@@ -75,7 +75,7 @@ export function AgentToolCallDisplay({
         <span
           className={
             isCompleted
-              ? 'text-green-600'
+              ? 'text-success'
               : isFailed
                 ? 'text-destructive'
                 : 'text-muted-foreground'

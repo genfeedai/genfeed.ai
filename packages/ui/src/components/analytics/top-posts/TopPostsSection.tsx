@@ -122,18 +122,33 @@ export default function TopPostsSection({
             </div>
 
             {/* Platform icon */}
-            <div className="absolute top-3 right-3 bg-black/50 p-1.5 rounded-full">
-              {getPlatformIcon(featuredPost.platform, 'size-5 text-white')}
+            <div
+              className={
+                'absolute right-3 top-3 rounded-full bg-black/50 p-1.5' /* design-system-allow-content-color -- media overlay */
+              }
+            >
+              {getPlatformIcon(
+                featuredPost.platform,
+                'size-5 text-white', // design-system-allow-content-color -- media overlay
+              )}
             </div>
 
             {/* KPIs overlay */}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4">
-              <h3 className="text-white font-semibold line-clamp-1 mb-2">
+              <h3
+                className={
+                  'mb-2 line-clamp-1 font-semibold text-white' /* design-system-allow-content-color -- media overlay */
+                }
+              >
                 {featuredPost.label ||
                   featuredPost.description?.slice(0, 50) ||
                   'Untitled'}
               </h3>
-              <div className="flex items-center gap-4 text-white/90 text-sm">
+              <div
+                className={
+                  'flex items-center gap-4 text-sm text-white/90' /* design-system-allow-content-color -- media overlay */
+                }
+              >
                 <span className="flex items-center gap-1.5">
                   <Eye className="size-4" />
                   {formatCompactNumber(featuredPost.totalViews)}
@@ -173,11 +188,19 @@ export default function TopPostsSection({
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   {/* Rank badge */}
-                  <div className="absolute top-1.5 left-1.5 bg-black/70 text-white px-2 py-0.5 rounded-full text-xs font-bold">
+                  <div
+                    className={
+                      'absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-xs font-bold text-white' /* design-system-allow-content-color -- media overlay */
+                    }
+                  >
                     #{index + 2}
                   </div>
                   {/* Views badge */}
-                  <div className="absolute bottom-1.5 right-1.5 bg-black/70 text-white px-2 py-0.5 rounded-full text-xs flex items-center gap-1">
+                  <div
+                    className={
+                      'absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-xs text-white' /* design-system-allow-content-color -- media overlay */
+                    }
+                  >
                     <Eye className="size-3" />
                     {formatCompactNumber(post.totalViews)}
                   </div>

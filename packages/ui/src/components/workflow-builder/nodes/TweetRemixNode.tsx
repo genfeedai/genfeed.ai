@@ -147,7 +147,7 @@ function TweetRemixNodeComponent({
                   }`}
                 >
                   {data.selectedIndex === index && (
-                    <Check className="size-2.5 text-white" />
+                    <Check className="size-2.5 text-primary-foreground" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">

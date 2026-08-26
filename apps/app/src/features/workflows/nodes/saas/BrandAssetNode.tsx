@@ -95,7 +95,11 @@ function BrandAssetNodeComponent(props: NodeProps): React.JSX.Element {
 
       {/* Single asset preview (logo/banner) */}
       {data.resolvedUrl && data.assetType !== 'references' && (
-        <div className="overflow-hidden bg-black/20">
+        <div
+          className={
+            'overflow-hidden bg-black/20' // design-system-allow-content-color
+          }
+        >
           <Image
             src={data.resolvedUrl}
             alt={`${data.assetType} asset`}
@@ -120,7 +124,9 @@ function BrandAssetNodeComponent(props: NodeProps): React.JSX.Element {
           {data.resolvedUrls.map((url, index) => (
             <div
               key={url}
-              className="overflow-hidden bg-black/20 aspect-square"
+              className={
+                'overflow-hidden bg-black/20 aspect-square' // design-system-allow-content-color
+              }
             >
               <Image
                 src={url}

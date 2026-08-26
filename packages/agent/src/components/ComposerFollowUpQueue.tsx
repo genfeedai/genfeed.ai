@@ -80,7 +80,7 @@ export function ComposerFollowUpQueue({
             const isActionDisabled = isInterrupting || isSending;
             return (
               <li
-                className="flex min-w-0 items-center gap-1 rounded-md px-1 py-0.5 hover:bg-white/5"
+                className="flex min-w-0 items-center gap-1 rounded-md px-1 py-0.5 hover:bg-foreground/5"
                 data-follow-up-status={status}
                 key={item.id}
               >

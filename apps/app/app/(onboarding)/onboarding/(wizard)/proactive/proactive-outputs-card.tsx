@@ -17,20 +17,19 @@ type Props = {
 
 export default function ProactiveOutputsCard({ outputs }: Props) {
   return (
-    <Card
-      bodyClassName="gap-0 p-6"
-      className="rounded-3xl border-white/10 bg-white/[0.03]"
-    >
+    <Card bodyClassName="gap-0 p-6" className="border-border bg-card">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-white/30">
+          <p className="text-sm uppercase tracking-[0.24em] text-gray-800">
             Starter Outputs
           </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
             Drafts ready on first login
           </h2>
         </div>
-        <div className="text-sm text-white/45">{outputs.length} prepared</div>
+        <div className="text-sm text-muted-foreground">
+          {outputs.length} prepared
+        </div>
       </div>
 
       <div className="mt-6 grid gap-4">
@@ -38,18 +37,18 @@ export default function ProactiveOutputsCard({ outputs }: Props) {
           outputs.map((post) => (
             <InsetSurface key={post.id} tone="contrast">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="text-base font-medium text-white">
+                <h3 className="text-base font-medium text-foreground">
                   {getOutputTitle(post)}
                 </h3>
                 <Badge
-                  className="px-2 py-1 text-2xs font-black uppercase tracking-[0.18em] text-white/40"
+                  className="px-2 py-1 text-2xs font-black uppercase tracking-[0.18em] text-gray-800"
                   variant="outline"
                 >
                   {post.platform}
                 </Badge>
               </div>
               {post.description && (
-                <p className="mt-3 line-clamp-3 text-sm text-white/55">
+                <p className="mt-3 line-clamp-3 text-sm text-muted-foreground">
                   {post.description}
                 </p>
               )}
@@ -57,7 +56,7 @@ export default function ProactiveOutputsCard({ outputs }: Props) {
           ))
         ) : (
           <InsetSurface
-            className="border-dashed p-6 text-sm text-white/45"
+            className="border-dashed p-6 text-sm text-muted-foreground"
             tone="contrast"
           >
             Draft outputs are still finalizing. You can continue straight to

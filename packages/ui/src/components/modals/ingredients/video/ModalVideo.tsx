@@ -52,7 +52,11 @@ export default function ModalVideo({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div
+      className={
+        'fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm' /* design-system-allow-content-color -- modal scrim */
+      }
+    >
       <div className="bg-card max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-6 border-b border-white/[0.08]">
           <div className="flex items-center justify-between">
@@ -126,7 +130,11 @@ export default function ModalVideo({
                       }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
-                      <span className="text-white text-xs font-medium">
+                      <span
+                        className={
+                          'text-xs font-medium text-white' /* design-system-allow-content-color -- media overlay */
+                        }
+                      >
                         Select
                       </span>
                     </div>

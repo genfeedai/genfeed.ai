@@ -133,7 +133,11 @@ function VideoGenNodeComponent(props: NodeProps) {
 
         {/* Output Preview */}
         {nodeData.outputVideo ? (
-          <div className="relative aspect-video w-full rounded-md overflow-hidden bg-black/20">
+          <div
+            className={
+              'relative aspect-video w-full rounded-md overflow-hidden bg-black/20' /* design-system-allow-content-color */
+            }
+          >
             <video
               src={nodeData.outputVideo}
               aria-label="Generated video output"

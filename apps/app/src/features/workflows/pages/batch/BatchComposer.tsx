@@ -70,7 +70,7 @@ function getStatusClasses(status: BatchStatus): string {
     case BatchStatus.FAILED:
       return 'border-red-500/30 bg-red-500/15 text-red-300';
     default:
-      return 'border-white/15 bg-muted/50 text-white/70';
+      return 'border-border-strong bg-muted/50 text-muted-foreground';
   }
 }
 
@@ -165,7 +165,7 @@ export default function BatchComposer({
               className={`rounded-2xl border-2 border-dashed p-10 text-center transition-colors ${
                 isDragActive
                   ? 'border-primary bg-primary/8'
-                  : 'border-white/15 bg-background/40 hover:border-white/25'
+                  : 'border-border bg-background/40 hover:border-border-strong'
               }`}
             >
               <Input type="file" {...getInputProps()} />
@@ -223,7 +223,7 @@ export default function BatchComposer({
                       key={file.preview}
                       className={`group relative overflow-hidden rounded-xl border ${
                         file.ingredientId
-                          ? 'border-white/10'
+                          ? 'border-border'
                           : 'border-amber-500/40'
                       } bg-background/60`}
                     >
@@ -241,11 +241,17 @@ export default function BatchComposer({
                         variant={ButtonVariant.UNSTYLED}
                         size={ButtonSize.XS}
                         onClick={() => onRemoveFile(index)}
-                        className="absolute right-2 top-2 hidden rounded-full bg-black/60 px-2 py-1 text-xs text-white group-hover:block"
+                        className={
+                          'absolute right-2 top-2 hidden rounded-full bg-black/60 px-2 py-1 text-xs text-white group-hover:block' // design-system-allow-content-color
+                        }
                       >
                         Remove
                       </Button>
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-2xs text-white">
+                      <div
+                        className={
+                          'absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-2xs text-white' // design-system-allow-content-color
+                        }
+                      >
                         {file.ingredientId ? 'Uploaded' : 'Uploading…'}
                       </div>
                     </div>

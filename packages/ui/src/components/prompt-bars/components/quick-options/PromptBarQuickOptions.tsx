@@ -266,7 +266,7 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
         isAdvancedControlsEnabled &&
         categoryType === IngredientCategory.VIDEO &&
         form.getValues('isBackgroundMusicEnabled') && (
-          <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] p-2">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-tertiary p-2">
             <FormDropdown
               name="backgroundMusicMode"
               label="Music Source"
@@ -296,7 +296,7 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
                 type="text"
                 placeholder="Describe the music (e.g., upbeat electronic, calm piano)"
                 value={form.getValues('backgroundMusicPrompt') || ''}
-                className="flex-1 min-w-48 border border-white/15 bg-white/5 text-sm h-10 px-3"
+                className="h-10 min-w-48 flex-1 border border-border bg-tertiary px-3 text-sm"
                 isDisabled={isDisabledState}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => {
                   form.setValue('backgroundMusicPrompt', e.target.value, {

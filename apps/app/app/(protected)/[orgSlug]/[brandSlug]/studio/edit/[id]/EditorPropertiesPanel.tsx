@@ -112,7 +112,7 @@ function EditorPropertiesPanel({
       </div>
 
       {/* Timing */}
-      <div className="space-y-2 border-t border-white/[0.08] pt-3">
+      <div className="space-y-2 border-t border-border pt-3">
         <h4 className="text-xs font-semibold text-muted-foreground uppercase">
           Timing
         </h4>
@@ -178,7 +178,7 @@ function EditorPropertiesPanel({
       {/* Volume (for video and audio tracks) */}
       {(selectedTrack.type === EditorTrackType.VIDEO ||
         selectedTrack.type === EditorTrackType.AUDIO) && (
-        <div className="space-y-2 border-t border-white/[0.08] pt-3">
+        <div className="space-y-2 border-t border-border pt-3">
           <h4 className="text-xs font-semibold text-muted-foreground uppercase">
             Audio
           </h4>
@@ -244,7 +244,7 @@ function EditorPropertiesPanel({
 
       {/* Effects summary */}
       {selectedClip.effects.length > 0 && (
-        <div className="space-y-2 border-t border-white/[0.08] pt-3">
+        <div className="space-y-2 border-t border-border pt-3">
           <h4 className="text-xs font-semibold text-muted-foreground uppercase">
             Effects ({selectedClip.effects.length})
           </h4>

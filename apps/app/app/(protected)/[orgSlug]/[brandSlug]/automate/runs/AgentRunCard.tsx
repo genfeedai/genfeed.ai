@@ -1,7 +1,12 @@
 'use client';
 
-import { AgentExecutionStatus, ButtonVariant } from '@genfeedai/enums';
+import {
+  AgentExecutionStatus,
+  ButtonSize,
+  ButtonVariant,
+} from '@genfeedai/enums';
 import type { IAgentRun } from '@genfeedai/interfaces';
+import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 
 interface AgentRunCardProps {
@@ -9,31 +14,12 @@ interface AgentRunCardProps {
   onCancel?: (id: string) => void;
 }
 
-const STATUS_CONFIG: Record<
-  string,
-  { color: string; label: string; pulse?: boolean }
-> = {
-  [AgentExecutionStatus.PENDING]: {
-    color: 'bg-yellow-500/20 text-yellow-400',
-    label: 'Pending',
-  },
-  [AgentExecutionStatus.RUNNING]: {
-    color: 'bg-blue-500/20 text-blue-400',
-    label: 'Running',
-    pulse: true,
-  },
-  [AgentExecutionStatus.COMPLETED]: {
-    color: 'bg-green-500/20 text-green-400',
-    label: 'Completed',
-  },
-  [AgentExecutionStatus.FAILED]: {
-    color: 'bg-red-500/20 text-red-400',
-    label: 'Failed',
-  },
-  [AgentExecutionStatus.CANCELLED]: {
-    color: 'bg-gray-500/20 text-gray-400',
-    label: 'Cancelled',
-  },
+const STATUS_LABELS: Record<string, string> = {
+  [AgentExecutionStatus.PENDING]: 'Pending',
+  [AgentExecutionStatus.RUNNING]: 'Running',
+  [AgentExecutionStatus.COMPLETED]: 'Completed',
+  [AgentExecutionStatus.FAILED]: 'Failed',
+  [AgentExecutionStatus.CANCELLED]: 'Cancelled',
 };
 
 function formatDuration(ms?: number): string {
@@ -92,8 +78,7 @@ function getModelSummary(run: IAgentRun): {
 }
 
 export default function AgentRunCard({ run, onCancel }: AgentRunCardProps) {
-  const statusConfig =
-    STATUS_CONFIG[run.status] ?? STATUS_CONFIG[AgentExecutionStatus.PENDING];
+  const statusLabel = STATUS_LABELS[run.status] ?? 'Pending';
   const isActive =
     run.status === AgentExecutionStatus.RUNNING ||
     run.status === AgentExecutionStatus.PENDING;
@@ -108,14 +93,7 @@ export default function AgentRunCard({ run, onCancel }: AgentRunCardProps) {
     <div className="gen-card flex flex-col gap-3 p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span
-            className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium ${statusConfig.color}`}
-          >
-            {statusConfig.pulse && (
-              <span className="size-1.5 animate-pulse rounded-full bg-current" />
-            )}
-            {statusConfig.label}
-          </span>
+          <Badge status={run.status}>{statusLabel}</Badge>
           <span className="text-sm font-medium">{run.label}</span>
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -129,10 +107,11 @@ export default function AgentRunCard({ run, onCancel }: AgentRunCardProps) {
           </span>
           {isActive && onCancel && (
             <Button
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.XS}
               withWrapper={false}
               onClick={() => onCancel(run.id)}
-              className="h-auto p-0 text-red-400 hover:text-red-300 transition-colors"
+              className="text-destructive hover:text-destructive"
             >
               Cancel
             </Button>
@@ -189,7 +168,7 @@ export default function AgentRunCard({ run, onCancel }: AgentRunCardProps) {
 
       {/* Error message */}
       {run.error && (
-        <div className="text-xs text-red-400 truncate">{run.error}</div>
+        <div className="truncate text-xs text-destructive">{run.error}</div>
       )}
     </div>
   );

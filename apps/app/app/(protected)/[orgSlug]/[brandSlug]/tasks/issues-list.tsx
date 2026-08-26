@@ -1,7 +1,12 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonSize, ButtonVariant, ViewType } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+  ViewType,
+} from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -13,6 +18,7 @@ import {
 } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import Badge from '@ui/display/badge/Badge';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
@@ -62,17 +68,6 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   todo: 'To Do',
 };
 
-const STATUS_COLORS: Record<TaskStatus, string> = {
-  backlog: 'bg-muted text-white/50',
-  blocked: 'bg-red-500/20 text-red-400',
-  cancelled: 'bg-muted/50 text-white/30',
-  done: 'bg-emerald-500/20 text-emerald-400',
-  failed: 'bg-red-500/20 text-red-500',
-  in_progress: 'bg-blue-500/20 text-blue-400',
-  in_review: 'bg-amber-500/20 text-amber-400',
-  todo: 'bg-accent text-white/70',
-};
-
 const PRIORITY_LABELS: Record<TaskPriority, string> = {
   critical: 'Critical',
   high: 'High',
@@ -83,20 +78,15 @@ const PRIORITY_LABELS: Record<TaskPriority, string> = {
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
   critical: 'text-red-400',
   high: 'text-orange-400',
-  low: 'text-white/40',
-  medium: 'text-white/60',
+  low: 'text-gray-800',
+  medium: 'text-muted-foreground',
 };
 
 function TaskStatusBadge({ status }: { status: TaskStatus }) {
   return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-wider',
-        STATUS_COLORS[status],
-      )}
-    >
+    <Badge status={status} size={ComponentSize.SM}>
       {STATUS_LABELS[status]}
-    </span>
+    </Badge>
   );
 }
 
@@ -123,18 +113,18 @@ function IssueRow({
   return (
     <Button
       variant={ButtonVariant.UNSTYLED}
-      className="flex w-full items-center gap-4 border-b border-white/5 px-4 py-3 text-left transition-colors hover:bg-muted/40"
+      className="flex w-full items-center gap-4 border-b border-border px-4 py-3 text-left transition-colors hover:bg-muted/40"
       onClick={() => onSelect(issue)}
     >
-      <span className="w-20 shrink-0 text-xs font-mono text-white/40">
+      <span className="w-20 shrink-0 text-xs font-mono text-gray-800">
         {issue.identifier}
       </span>
-      <span className="min-w-0 flex-1 truncate text-sm text-white/90">
+      <span className="min-w-0 flex-1 truncate text-sm text-foreground">
         {issue.title}
       </span>
       <TaskPriorityIndicator priority={issue.priority} />
       <TaskStatusBadge status={issue.status} />
-      <span className="w-28 shrink-0 text-right text-xs text-white/30">
+      <span className="w-28 shrink-0 text-right text-xs text-gray-800">
         {getRelativeTime(issue.updatedAt)}
       </span>
     </Button>
@@ -151,18 +141,18 @@ function IssueCard({
   return (
     <Button
       variant={ButtonVariant.UNSTYLED}
-      className="block w-full rounded border border-white/5 bg-card/60 p-3 text-left transition-colors hover:bg-muted/60"
+      className="block w-full rounded border border-border bg-card/60 p-3 text-left transition-colors hover:bg-muted/60"
       onClick={() => onSelect(issue)}
     >
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-2xs font-mono text-white/40">
+        <span className="text-2xs font-mono text-gray-800">
           {issue.identifier}
         </span>
         <TaskPriorityIndicator priority={issue.priority} />
       </div>
-      <p className="mb-2 text-sm leading-snug text-white/90">{issue.title}</p>
+      <p className="mb-2 text-sm leading-snug text-foreground">{issue.title}</p>
       {issue.assigneeUserId ? (
-        <span className="text-2xs text-white/30">Assigned</span>
+        <span className="text-2xs text-gray-800">Assigned</span>
       ) : null}
     </Button>
   );
@@ -181,14 +171,14 @@ function KanbanColumn({
     <div className="flex w-72 shrink-0 flex-col">
       <div className="mb-3 flex items-center gap-2 px-1">
         <TaskStatusBadge status={status} />
-        <span className="text-xs text-white/30">{issues.length}</span>
+        <span className="text-xs text-gray-800">{issues.length}</span>
       </div>
       <div className="flex flex-col gap-2">
         {issues.map((issue) => (
           <IssueCard issue={issue} key={issue.id} onSelect={onSelect} />
         ))}
         {issues.length === 0 ? (
-          <div className="rounded border border-dashed border-white/10 p-4 text-center text-xs text-white/20">
+          <div className="rounded border border-dashed border-border p-4 text-center text-xs text-gray-800">
             No tasks
           </div>
         ) : null}
@@ -490,7 +480,7 @@ export default function IssuesList() {
                 <div key={status}>
                   <div className="flex items-center gap-2 bg-card/60 px-4 py-2">
                     <TaskStatusBadge status={status} />
-                    <span className="text-xs text-white/30">
+                    <span className="text-xs text-gray-800">
                       {statusTasks.length}
                     </span>
                   </div>
@@ -533,7 +523,7 @@ export default function IssuesList() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <span className="mb-1 block text-xs font-medium text-white/50">
+              <span className="mb-1 block text-xs font-medium text-muted-foreground">
                 Title
               </span>
               <Input
@@ -549,11 +539,11 @@ export default function IssuesList() {
               />
             </div>
             <div>
-              <span className="mb-1 block text-xs font-medium text-white/50">
+              <span className="mb-1 block text-xs font-medium text-muted-foreground">
                 Description
               </span>
               <Textarea
-                className="w-full rounded border border-white/10 bg-muted/50 px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/25 focus:border-white/20"
+                className="w-full rounded border border-border bg-muted/50 px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-border-strong"
                 placeholder="Optional description"
                 rows={4}
                 value={createDescription}
@@ -566,7 +556,7 @@ export default function IssuesList() {
               />
             </div>
             <div>
-              <span className="mb-1 block text-xs font-medium text-white/50">
+              <span className="mb-1 block text-xs font-medium text-muted-foreground">
                 Priority
               </span>
               <Select

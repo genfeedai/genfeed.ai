@@ -195,7 +195,9 @@ function OutputGalleryNodeComponent(props: NodeProps) {
         typeof document !== 'undefined' &&
         createPortal(
           <div
-            className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-8"
+            className={
+              'fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-8' /* design-system-allow-content-color */
+            }
             onClick={closeLightbox}
             onContextMenu={(e) => e.stopPropagation()}
           >
@@ -218,7 +220,9 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                 variant="ghost"
                 size="icon-sm"
                 onClick={closeLightbox}
-                className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white"
+                className={
+                  'absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white' /* design-system-allow-content-color */
+                }
               >
                 <X className="size-4" />
               </Button>
@@ -228,7 +232,9 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                   variant="ghost"
                   size="sm"
                   onClick={downloadImage}
-                  className="bg-white/10 hover:bg-white/20 text-white text-xs"
+                  className={
+                    'bg-white/10 hover:bg-white/20 text-white text-xs' /* design-system-allow-content-color */
+                  }
                 >
                   <Download className="size-3.5" />
                   Download
@@ -237,7 +243,9 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                   variant="ghost"
                   size="sm"
                   onClick={copyImage}
-                  className="bg-white/10 hover:bg-white/20 text-white text-xs"
+                  className={
+                    'bg-white/10 hover:bg-white/20 text-white text-xs' /* design-system-allow-content-color */
+                  }
                 >
                   <Copy className="size-3.5" />
                   Copy
@@ -249,7 +257,9 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                   variant="ghost"
                   size="icon"
                   onClick={() => navigateLightbox('prev')}
-                  className="absolute left-4 top-1/2 size-10 -translate-y-1/2 rounded-md bg-white/10 text-white hover:bg-white/20"
+                  className={
+                    'absolute left-4 top-1/2 size-10 -translate-y-1/2 rounded-md bg-white/10 text-white hover:bg-white/20' /* design-system-allow-content-color */
+                  }
                 >
                   <ChevronLeft className="size-5" />
                 </Button>
@@ -260,13 +270,19 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                   variant="ghost"
                   size="icon"
                   onClick={() => navigateLightbox('next')}
-                  className="absolute right-4 top-1/2 size-10 -translate-y-1/2 rounded-md bg-white/10 text-white hover:bg-white/20"
+                  className={
+                    'absolute right-4 top-1/2 size-10 -translate-y-1/2 rounded-md bg-white/10 text-white hover:bg-white/20' /* design-system-allow-content-color */
+                  }
                 >
                   <ChevronRight className="size-5" />
                 </Button>
               )}
 
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/50 rounded text-white text-xs font-medium">
+              <div
+                className={
+                  'absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/50 rounded text-white text-xs font-medium' /* design-system-allow-content-color */
+                }
+              >
                 {lightboxIndex + 1} / {displayImages.length}
               </div>
             </div>

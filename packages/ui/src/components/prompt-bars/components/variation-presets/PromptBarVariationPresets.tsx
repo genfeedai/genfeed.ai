@@ -23,7 +23,7 @@ const PromptBarVariationPresets = memo(function PromptBarVariationPresets({
           key={preset.key}
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
-          className="bg-white/5 hover:bg-white/10"
+          className="bg-tertiary hover:bg-hover"
           onClick={() => {
             form.setValue('text', preset.prompt, { shouldValidate: true });
             setTextValue(preset.prompt.trim());

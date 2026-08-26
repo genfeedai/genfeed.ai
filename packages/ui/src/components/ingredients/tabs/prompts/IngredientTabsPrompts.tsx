@@ -2,6 +2,7 @@
 
 import type { IPrompt } from '@genfeedai/interfaces';
 import type { IngredientTabsPromptsProps } from '@genfeedai/props/content/ingredient.props';
+import Card from '@ui/card/Card';
 
 export default function IngredientTabsPrompts({
   ingredient,
@@ -28,40 +29,37 @@ export default function IngredientTabsPrompts({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-white/8 bg-white/[0.025] p-4">
-        <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-white/35">
+      <Card bodyClassName="gap-1">
+        <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           Prompt Context
         </p>
-        <p className="mt-1 text-sm text-white/65">
+        <p className="text-sm text-muted-foreground">
           The original generation prompt and the structured creative controls
           that shaped it.
         </p>
-      </div>
+      </Card>
 
       {/* First row: full width */}
-      <div className="flex flex-col rounded-2xl border border-white/8 bg-white/[0.025] p-4">
+      <Card bodyClassName="gap-1">
         <span className="font-semibold text-muted-foreground">
           {promptRows[0].label}
         </span>
-        <span className="text-white mt-1 whitespace-pre-wrap">
+        <span className="whitespace-pre-wrap text-foreground">
           {promptRows[0].value}
         </span>
-      </div>
+      </Card>
 
       {/* Remaining rows: 2 columns */}
       <div className="grid grid-cols-2 gap-4">
         {promptRows.slice(1).map((row) => (
-          <div
-            key={row.label}
-            className="flex flex-col rounded-2xl border border-white/8 bg-white/[0.025] p-4"
-          >
+          <Card key={row.label} bodyClassName="gap-1">
             <span className="font-semibold text-muted-foreground">
               {row.label}
             </span>
-            <span className="text-white mt-1 whitespace-pre-wrap">
+            <span className="whitespace-pre-wrap text-foreground">
               {row.value}
             </span>
-          </div>
+          </Card>
         ))}
       </div>
     </div>

@@ -12,7 +12,7 @@ import Link from 'next/link';
 function StatusIcon({ status }: { status: OnboardingChecklistStatus }) {
   if (status === 'complete') {
     return (
-      <div className="flex size-6 items-center justify-center rounded-full bg-green-500/20 text-green-400">
+      <div className="flex size-6 items-center justify-center rounded-full bg-success/10 text-success">
         <Check className="size-3.5" />
       </div>
     );
@@ -28,7 +28,7 @@ function StatusIcon({ status }: { status: OnboardingChecklistStatus }) {
 
   return (
     <div className="flex size-6 items-center justify-center">
-      <div className="size-3 rounded-full border-2 border-white/20" />
+      <div className="size-3 rounded-full border-2 border-foreground/20" />
     </div>
   );
 }
@@ -101,7 +101,7 @@ export function AgentOnboardingChecklist({
           ) : null}
           <div
             className={cn(
-              'h-2 overflow-hidden rounded-full bg-white/8',
+              'h-2 overflow-hidden rounded-full bg-foreground/8',
               isCreditRewardsVisible && 'mt-2',
             )}
           >
@@ -120,7 +120,7 @@ export function AgentOnboardingChecklist({
               key={step.id}
               className={cn(
                 'flex items-start gap-3 p-3 transition-colors',
-                step.id === currentStepId && 'bg-white/[0.04]',
+                step.id === currentStepId && 'bg-foreground/[0.04]',
                 step.status === 'complete' && 'opacity-60',
               )}
             >
@@ -131,8 +131,8 @@ export function AgentOnboardingChecklist({
                     className={cn(
                       'mt-1 w-px flex-1 min-h-[16px]',
                       step.status === 'complete'
-                        ? 'bg-green-500/30'
-                        : 'bg-white/10',
+                        ? 'bg-success/30'
+                        : 'bg-foreground/10',
                     )}
                   />
                 )}
@@ -143,14 +143,14 @@ export function AgentOnboardingChecklist({
                     className={cn(
                       'text-sm font-medium',
                       step.status === 'complete'
-                        ? 'text-white/60 line-through'
+                        ? 'text-foreground/60 line-through'
                         : 'text-foreground',
                     )}
                   >
                     {step.title}
                   </p>
                   {isCreditRewardsVisible ? (
-                    <span className="shrink-0 text-2xs font-medium text-amber-300">
+                    <span className="shrink-0 text-2xs font-medium text-warning">
                       +{step.rewardCredits ?? 0}
                     </span>
                   ) : null}
