@@ -10,6 +10,23 @@ export enum SubscriptionPlan {
   ENTERPRISE = 'enterprise',
 }
 
+const SUBSCRIPTION_PLANS = new Set<string>(Object.values(SubscriptionPlan));
+
+/**
+ * `subscriptions.plan` is a String column, so reads arrive as `string | null`.
+ * Cross that boundary here rather than casting: an unrecognised value returns
+ * `null` so callers decide what an unknown plan means instead of silently
+ * behaving like a known one.
+ */
+export function parseSubscriptionPlan(
+  value: string | null | undefined,
+): SubscriptionPlan | null {
+  if (!value || !SUBSCRIPTION_PLANS.has(value)) {
+    return null;
+  }
+  return value as SubscriptionPlan;
+}
+
 /**
  * Subscription tiers (credit-based).
  *

@@ -6,34 +6,39 @@ import { DEPRECATED_ENV_KEYS, ENV_TARGETS } from './env-spec';
 
 const rootDir = process.cwd();
 
-function listTrackedEnvFiles(): string[] {
-  let stdout: string;
-
+function listTrackedFiles(): string[] | null {
   try {
-    stdout = execFileSync('git', ['ls-files'], {
+    return execFileSync('git', ['ls-files'], {
       cwd: rootDir,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
-    });
+    })
+      .split('\n')
+      .filter(Boolean);
   } catch (error) {
     if (process.env.VERCEL === '1') {
-      console.warn('Skipping tracked env file check outside a git worktree.');
-      return [];
+      return null;
     }
 
     throw error;
   }
+}
 
-  return stdout
-    .split('\n')
-    .filter(Boolean)
+function listTrackedEnvFiles(trackedFiles: string[]): string[] {
+  return trackedFiles
     .filter((filePath) => /(^|\/)\.env(\..*)?$/.test(filePath))
     .filter((filePath) => !filePath.endsWith('.env.example'));
 }
 
-function collectEnvFiles(): string[] {
+function listTrackedEnvTemplates(trackedFiles: string[]): string[] {
+  return trackedFiles.filter((filePath) => filePath.endsWith('.env.example'));
+}
+
+function collectEnvFiles(envTemplates: string[]): string[] {
+  // Every committed template is scanned, not just the root one: a retired key
+  // left in `docker/.env.example` ships inside the self-hosted release bundle.
   const files = new Set<string>([
-    '.env.example',
+    ...envTemplates,
     '.env.local',
     '.env.staging',
     '.env.production',
@@ -71,8 +76,19 @@ function findDeprecatedKeys(files: string[]): string[] {
 }
 
 function main() {
-  const trackedEnvFiles = listTrackedEnvFiles();
-  const deprecatedKeys = findDeprecatedKeys(collectEnvFiles());
+  const trackedFiles = listTrackedFiles();
+
+  if (trackedFiles === null) {
+    console.warn('Skipping tracked env file check outside a git worktree.');
+  }
+
+  // Outside a worktree only the root template is discoverable, but the
+  // deprecated-key scan still runs against it.
+  const trackedEnvFiles = trackedFiles ? listTrackedEnvFiles(trackedFiles) : [];
+  const envTemplates = trackedFiles
+    ? listTrackedEnvTemplates(trackedFiles)
+    : ['.env.example'];
+  const deprecatedKeys = findDeprecatedKeys(collectEnvFiles(envTemplates));
   const failures: string[] = [];
 
   if (trackedEnvFiles.length > 0) {

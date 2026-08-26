@@ -347,14 +347,14 @@ describe('website plan catalogue', () => {
     const pro = getProPlan();
 
     expect(pro.interval).toBe('month');
-    expect(pro.includedCredits).toBe(8_000);
+    expect(pro.includedCredits).toBe(5_900);
     expect(pro.outputs).toBeNull();
   });
 
   it('sells Scale as multi-organization B2B with a shared credit pool', () => {
     const scale = getScalePlan();
 
-    expect(scale.includedCredits).toBe(80_000);
+    expect(scale.includedCredits).toBe(60_000);
     expect(scale.features).toContain('Multi-organization account model');
     expect(scale.features).toContain('Unlimited brands');
     expect(scale.outputs).toBeNull();
@@ -370,9 +370,7 @@ describe('launch pricing', () => {
     const pro = getProPlan();
 
     expect(pro.launchPrice).toBe(39);
-    expect(pro.launchNote).toBe(
-      'Launch pricing (code EARLYGENFEED) for the first 12 months, then $49/month',
-    );
+    expect(pro.launchNote).toBe('EARLYGENFEED · 12 months, then $49/mo');
   });
 
   it('promises no redemption cap in the launch note', () => {
