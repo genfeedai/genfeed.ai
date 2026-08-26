@@ -6,7 +6,6 @@ import {
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
-import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import {
   CredentialPlatform,
@@ -20,6 +19,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Inject, Injectable } from '@nestjs/common';
+import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 type TiktokError = {

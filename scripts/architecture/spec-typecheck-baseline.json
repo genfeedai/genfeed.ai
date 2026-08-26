@@ -3161,14 +3161,6 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/tiktok/services/tiktok.service.spec.ts",
-      "fingerprint": "edb3dfd17d20b3fe45d5",
-      "message": "'res.data' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2339,
       "count": 1,
       "file": "apps/server/api/src/services/integrations/twitter/controllers/twitter.controller.spec.ts",

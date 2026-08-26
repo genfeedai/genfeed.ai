@@ -1,4 +1,4 @@
-import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
+import { htmlToText } from '@server/shared/utils/html-to-text/html-to-text.util';
 import { describe, expect, it } from 'vitest';
 
 describe('htmlToText', () => {

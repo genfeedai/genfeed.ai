@@ -139,7 +139,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/services/integrations/publishers/publishers.module',
   '@api/services/integrations/reddit/reddit.module',
   '@api/services/integrations/threads/threads.module',
-  '@api/services/integrations/tiktok/services/tiktok.service',
   '@api/services/integrations/tiktok/tiktok.module',
   '@api/services/integrations/twitter/services/twitter.service',
   '@api/services/integrations/twitter/twitter.module',

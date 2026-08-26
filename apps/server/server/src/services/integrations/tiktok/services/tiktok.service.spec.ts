@@ -1,18 +1,17 @@
-import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import type { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
-import {
-  PostCategory,
-  PostFormat,
-  PostStatus,
-  TargetExecutionState,
-} from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { CredentialDocument } from '@server/collections/credentials/credential.types';
+import {
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+} from '@server/server.dependencies';
+import {
+  type TikTokPublishPost,
+  TiktokService,
+} from '@server/services/integrations/tiktok/services/tiktok.service';
 import { of } from 'rxjs';
 
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
@@ -22,42 +21,18 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
   },
 }));
 
-const mockPostTimestamp = new Date('2026-01-01T00:00:00.000Z');
-
-/** Builds a complete, valid PostEntity fixture — `uploadVideo` only reads
- * `label` and `description`, but the parameter type is the full entity. */
-function buildMockPost(overrides: Partial<PostEntity> = {}): PostEntity {
+function buildMockPost(
+  overrides: Partial<TikTokPublishPost> = {},
+): TikTokPublishPost {
   return {
-    brandId: 'brand-id',
-    category: PostCategory.VIDEO,
-    createdAt: mockPostTimestamp,
     description: 'Test video description',
-    externalId: '',
-    format: PostFormat.STANDARD,
-    id: 'post-id',
-    ingredients: ['ingredient-id'],
-    isAnalyticsEnabled: false,
-    isDeleted: false,
-    isRepeat: false,
-    isShareToFeedSelected: false,
     label: 'Test video',
-    maxRepeats: 0,
-    nextScheduledDate: mockPostTimestamp,
-    organizationId: 'org-id',
-    publicationDate: mockPostTimestamp,
-    repeatCount: 0,
-    repeatDaysOfWeek: [],
-    repeatEndDate: mockPostTimestamp,
-    repeatFrequency: 'never',
-    repeatInterval: 0,
-    scheduledDate: mockPostTimestamp,
-    status: PostStatus.DRAFT,
-    targetExecutionState: TargetExecutionState.DRAFT,
-    timezone: 'UTC',
-    updatedAt: mockPostTimestamp,
-    userId: 'user-id',
     ...overrides,
   };
+}
+
+function asCredential(value: Partial<CredentialDocument>): CredentialDocument {
+  return value as CredentialDocument;
 }
 
 describe('TiktokService', () => {
@@ -78,6 +53,8 @@ describe('TiktokService', () => {
   } as unknown as ConfigService;
 
   const credentialsMock = {
+    findAll: vi.fn(),
+    findBrandAccounts: vi.fn(),
     findOne: vi.fn().mockResolvedValue({
       accessToken: 'access',
       accessTokenExpiry: new Date(),
@@ -90,7 +67,7 @@ describe('TiktokService', () => {
     resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
       (credentialsMock.findOne as vi.Mock)(options),
     ),
-  } as unknown as CredentialsService;
+  } satisfies ServerCredentialStore;
 
   const loggerMock = {
     error: vi.fn(),
@@ -111,7 +88,7 @@ describe('TiktokService', () => {
       providers: [
         TiktokService,
         { provide: ConfigService, useValue: configMock },
-        { provide: CredentialsService, useValue: credentialsMock },
+        { provide: SERVER_TOKENS.credentials, useValue: credentialsMock },
         { provide: LoggerService, useValue: loggerMock },
         { provide: HttpService, useValue: httpServiceMock },
       ],
@@ -130,9 +107,9 @@ describe('TiktokService', () => {
       const mockPost = buildMockPost({ label: 'Test video' });
 
       // Mock credential selection to avoid token refresh during publish flow.
-      vi.spyOn(service, 'getValidCredential').mockResolvedValue({
-        accessToken: 'test-token',
-      } as unknown as import('@api/collections/credentials/entities/credential.entity').CredentialEntity);
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
+        asCredential({ accessToken: 'test-token' }),
+      );
 
       // Mock getCreatorInfo to avoid real API calls
       vi.spyOn(service, 'getCreatorInfo').mockResolvedValue({
@@ -167,7 +144,7 @@ describe('TiktokService', () => {
         mockPost,
       );
 
-      expect(res.data.post_id).toEqual('post-123');
+      expect(res.data?.post_id).toEqual('post-123');
       expect(httpService.post).toHaveBeenCalled();
     });
 
@@ -178,9 +155,7 @@ describe('TiktokService', () => {
 
       const getValidCredential = vi
         .spyOn(service, 'getValidCredential')
-        .mockResolvedValue({
-          accessToken: 'test-token',
-        } as unknown as import('@api/collections/credentials/entities/credential.entity').CredentialEntity);
+        .mockResolvedValue(asCredential({ accessToken: 'test-token' }));
 
       vi.spyOn(service, 'getCreatorInfo').mockResolvedValue({
         comment_disabled: false,
@@ -225,9 +200,9 @@ describe('TiktokService', () => {
       const mockPost = buildMockPost({ label: 'Test video' });
 
       // Mock credential selection to avoid token refresh during publish flow.
-      vi.spyOn(service, 'getValidCredential').mockResolvedValue({
-        accessToken: 'test-token',
-      } as unknown as import('@api/collections/credentials/entities/credential.entity').CredentialEntity);
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
+        asCredential({ accessToken: 'test-token' }),
+      );
 
       // Mock getCreatorInfo to avoid real API calls
       vi.spyOn(service, 'getCreatorInfo').mockResolvedValue({
@@ -274,9 +249,9 @@ describe('TiktokService', () => {
         stitch_disabled: boolean;
       }> = {},
     ) => {
-      vi.spyOn(service, 'getValidCredential').mockResolvedValue({
-        accessToken: 'test-token',
-      } as unknown as CredentialEntity);
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue(
+        asCredential({ accessToken: 'test-token' }),
+      );
 
       vi.spyOn(service, 'getCreatorInfo').mockResolvedValue({
         comment_disabled: false,
@@ -317,7 +292,7 @@ describe('TiktokService', () => {
         'org-id',
         'account-id',
         'http://video.url',
-        { label: 'Test video' } as never,
+        buildMockPost({ label: 'Test video' }),
         { privacyLevel: 'public' },
       );
 
@@ -333,7 +308,7 @@ describe('TiktokService', () => {
         'org-id',
         'account-id',
         'http://video.url',
-        { label: 'Test video' } as never,
+        buildMockPost({ label: 'Test video' }),
         { privacyLevel: 'public' },
       );
 
@@ -347,7 +322,7 @@ describe('TiktokService', () => {
         'org-id',
         'account-id',
         'http://video.url',
-        { label: 'Test video' } as never,
+        buildMockPost({ label: 'Test video' }),
         { allowComments: false, allowDuet: false, allowStitch: true },
       );
 
@@ -366,7 +341,7 @@ describe('TiktokService', () => {
         'org-id',
         'account-id',
         'http://video.url',
-        { label: 'Test video' } as never,
+        buildMockPost({ label: 'Test video' }),
         { allowComments: true },
       );
 
@@ -376,9 +351,12 @@ describe('TiktokService', () => {
     it('leaves interactions enabled when the composer set nothing', async () => {
       arrangeUpload();
 
-      await service.uploadVideo('org-id', 'account-id', 'http://video.url', {
-        label: 'Test video',
-      } as never);
+      await service.uploadVideo(
+        'org-id',
+        'account-id',
+        'http://video.url',
+        buildMockPost({ label: 'Test video' }),
+      );
 
       expect(postInfoOf()).toMatchObject({
         disable_comment: false,
@@ -410,20 +388,19 @@ describe('TiktokService', () => {
         id: 'credential-id',
         accessToken: 'nac',
         isConnected: true,
-        oauthTokenHash: '',
+        oauthTokenHash: null,
         refreshToken: 'nref',
-        toObject: vi.fn().mockReturnValue({
-          id: 'credential-id',
-          accessToken: 'nac',
-          isConnected: true,
-          oauthTokenHash: '',
-          refreshToken: 'nref',
-        }),
       });
 
       const result = await service.refreshToken(testId('org'), testId('brand'));
 
-      expect(result).toBeInstanceOf(CredentialEntity);
+      expect(result).toEqual(
+        expect.objectContaining({
+          accessToken: 'nac',
+          id: 'credential-id',
+          oauthTokenHash: '',
+        }),
+      );
       expect(httpService.post).toHaveBeenCalled();
       expect(credentialsMock.patch).toHaveBeenCalledWith('credential-id', {
         accessToken: 'nac',
@@ -461,7 +438,7 @@ describe('TiktokService', () => {
       );
       (credentialsMock.patch as vi.Mock).mockResolvedValue({
         id: 'credential-id',
-        oauthTokenHash: '',
+        oauthTokenHash: null,
       });
 
       await service.refreshToken('org-id', 'brand-id');
@@ -601,8 +578,8 @@ describe('TiktokService', () => {
 
       const result = await service.getValidCredential('org-id', 'brand-id');
 
-      expect(result).toBeInstanceOf(CredentialEntity);
       expect(result.accessToken).toBe('fresh-access');
+      expect(result.oauthTokenHash).toBe('');
       expect(refreshSpy).not.toHaveBeenCalled();
     });
 
@@ -613,7 +590,7 @@ describe('TiktokService', () => {
         id: 'credential-id',
         refreshToken: 'refresh-token',
       });
-      const refreshedCredential = new CredentialEntity({
+      const refreshedCredential = asCredential({
         accessToken: 'new-access',
         id: 'credential-id',
         oauthTokenHash: '',
