@@ -1,7 +1,7 @@
-import { XAdsOAuthService } from '@api/services/integrations/x-ads/services/x-ads-oauth.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadGatewayException, BadRequestException } from '@nestjs/common';
 import { XAdsService } from './x-ads.service';
+import { XAdsOAuthService } from './x-ads-oauth.service';
 
 const oauthCredentials = {
   accessToken: 'access-token',
