@@ -631,7 +631,8 @@ export class VideoQaExecutor extends BaseExecutor {
         'continuity_resolver_unavailable',
       );
     }
-    if (!params.contactSheetUrl) {
+    const contactSheetUrl = params.contactSheetUrl;
+    if (!contactSheetUrl) {
       const finding = createExtractionFailureFinding(params.videoUrl);
       return {
         ...base,
@@ -644,7 +645,7 @@ export class VideoQaExecutor extends BaseExecutor {
     try {
       const result = await this.continuityResolver({
         characterReferenceUrls: params.characterReferenceUrls,
-        contactSheetUrl: params.contactSheetUrl,
+        contactSheetUrl,
         organizationId: params.organizationId,
         productReferenceUrls: params.productReferenceUrls,
         runId: params.runId,
@@ -658,7 +659,10 @@ export class VideoQaExecutor extends BaseExecutor {
         summary: summarizeContinuityClips([result.finding]),
       };
     } catch (error: unknown) {
-      const finding = createModelFailureFinding(params, error);
+      const finding = createModelFailureFinding(
+        { contactSheetUrl, videoUrl: params.videoUrl },
+        error,
+      );
       return {
         ...base,
         clips: [finding],
