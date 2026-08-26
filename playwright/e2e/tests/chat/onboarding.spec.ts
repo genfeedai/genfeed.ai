@@ -1,3 +1,4 @@
+import { orgPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
@@ -253,74 +254,20 @@ test.describe('Agent Onboarding', () => {
       },
     ]);
 
-    await authenticatedPage.route('**/agent/threads/turns', async (route) => {
-      await route.fulfill({
-        body: JSON.stringify({
-          brandId: 'brand-voice-1',
-          contextVersion: 1,
-          creditsRemaining: 118,
-          creditsUsed: 2,
-          message: {
-            content: 'I drafted a voice profile for your approval.',
-            metadata: {
-              uiActions: [
-                {
-                  brandId: 'brand-voice-1',
-                  ctas: [
-                    {
-                      action: 'confirm_save_brand_voice_profile',
-                      label: 'Approve and save',
-                      payload: {
-                        brandId: 'brand-voice-1',
-                        sourceActionId: 'brand-voice-card-e2e',
-                        voiceProfile: {
-                          audience: ['startup operators'],
-                          doNotSoundLike: ['corporate jargon'],
-                          messagingPillars: ['clarity', 'proof'],
-                          sampleOutput:
-                            'Clear systems create compounding output.',
-                          style: 'direct',
-                          tone: 'confident',
-                          values: ['clarity'],
-                        },
-                      },
-                    },
-                  ],
-                  data: {
-                    brandId: 'brand-voice-1',
-                    voiceProfile: {
-                      audience: ['startup operators'],
-                      doNotSoundLike: ['corporate jargon'],
-                      messagingPillars: ['clarity', 'proof'],
-                      sampleOutput: 'Clear systems create compounding output.',
-                      style: 'direct',
-                      tone: 'confident',
-                      values: ['clarity'],
-                    },
-                  },
-                  description: 'Review the brand voice and save it if it fits.',
-                  id: 'brand-voice-card-e2e',
-                  title: 'Brand Voice Draft',
-                  type: 'brand_voice_profile_card',
-                },
-              ],
-            },
-            role: 'assistant',
-          },
-          threadId,
-          toolCalls: [
-            {
-              creditsUsed: 0,
-              durationMs: 220,
-              status: 'completed',
-              toolName: 'draft_brand_voice_profile',
-            },
-          ],
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-    });
+    await authenticatedPage.route(
+      '**/agent/threads/turns/stream',
+      async (route) => {
+        await route.fulfill({
+          body: JSON.stringify({
+            channel: 'socket',
+            runId: 'run-onboarding-voice-e2e',
+            threadId,
+          }),
+          contentType: 'application/json',
+          status: 202,
+        });
+      },
+    );
 
     await authenticatedPage.route(
       `**/threads/${threadId}/ui-actions`,
@@ -359,11 +306,14 @@ test.describe('Agent Onboarding', () => {
       },
     );
 
-    await authenticatedPage.goto(APP_ROUTES.AGENT.ONBOARDING);
+    const onboardingPath = orgPath(APP_ROUTES.AGENT.ONBOARDING);
+    const threadPath = `${onboardingPath}/${threadId}`;
+
+    await authenticatedPage.goto(onboardingPath);
     await authenticatedPage.waitForLoadState('domcontentloaded');
     await expect
       .poll(() => new URL(authenticatedPage.url()).pathname)
-      .toBe(APP_ROUTES.AGENT.ONBOARDING);
+      .toBe(onboardingPath);
     const composer = authenticatedPage
       .locator(
         '[data-testid="agent-chat-input-shell"] [contenteditable="true"]',
@@ -377,16 +327,14 @@ test.describe('Agent Onboarding', () => {
 
     await expect
       .poll(() => new URL(authenticatedPage.url()).pathname)
-      .toBe(`${APP_ROUTES.AGENT.ONBOARDING}/${threadId}`);
+      .toBe(threadPath);
 
     // Prove the promoted thread route is durable, then interact with the
     // server-hydrated card. The route transition and the initial local turn
     // deliberately overlap; reloading removes that transient hand-off from
     // the action assertion while covering the user-critical resume path.
     await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
-    expect(new URL(authenticatedPage.url()).pathname).toBe(
-      `${APP_ROUTES.AGENT.ONBOARDING}/${threadId}`,
-    );
+    expect(new URL(authenticatedPage.url()).pathname).toBe(threadPath);
     await expect(
       authenticatedPage.getByText(
         'I drafted a voice profile for your approval.',

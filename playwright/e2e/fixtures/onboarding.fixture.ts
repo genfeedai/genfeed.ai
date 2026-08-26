@@ -43,9 +43,11 @@ interface OnboardingFixtures {
 /** Per-page onboarding progress recorded from the app's own PATCH calls. */
 interface OnboardingProgressState {
   completedSteps: string[];
+  isOnboardingCompleted: boolean;
 }
 
 interface OnboardingProgressRequestPayload {
+  isOnboardingCompleted?: unknown;
   onboardingStepsCompleted?: unknown;
 }
 
@@ -122,7 +124,7 @@ const MOCK_BRAND_SCRAPE_RESPONSE = {
   success: true,
 };
 
-function buildOnboardingBootstrapPayload(completedSteps: readonly string[]) {
+function buildOnboardingBootstrapPayload(state: OnboardingProgressState) {
   const organization = generateMockOrganization({
     id: MOCK_SESSION.organizationId,
     name: 'Test Organization',
@@ -134,7 +136,7 @@ function buildOnboardingBootstrapPayload(completedSteps: readonly string[]) {
       brandId: 'brand-1',
       creditsBalance: 500,
       hasEverHadCredits: true,
-      isOnboardingCompleted: false,
+      isOnboardingCompleted: state.isOnboardingCompleted,
       isSuperAdmin: false,
       organizationId: organization.id,
       subscriptionStatus: 'active',
@@ -149,9 +151,11 @@ function buildOnboardingBootstrapPayload(completedSteps: readonly string[]) {
     ],
     currentUser: generateMockApiUser({
       id: MOCK_SESSION.userId,
-      isOnboardingCompleted: false,
-      onboardingCompletedAt: null,
-      onboardingStepsCompleted: [...completedSteps],
+      isOnboardingCompleted: state.isOnboardingCompleted,
+      onboardingCompletedAt: state.isOnboardingCompleted
+        ? '2026-03-10T10:00:00.000Z'
+        : null,
+      onboardingStepsCompleted: [...state.completedSteps],
       onboardingType: null,
     }),
     fleetCapabilities: generateMockFleetCapabilities(),
@@ -295,11 +299,32 @@ async function setupOnboardingApiMocks(
   // PATCH /users/me
   await page.route('**/api.genfeed.ai/*/users/me', async (route) => {
     const method = route.request().method();
-    const mockUser = generateOnboardingMockUser(state.completedSteps);
+    const mockUser = {
+      ...generateOnboardingMockUser(state.completedSteps),
+      isOnboardingCompleted: state.isOnboardingCompleted,
+    };
 
     if (method === 'PATCH' || method === 'PUT') {
+      const body = route.request().postDataJSON() as
+        | OnboardingProgressRequestPayload
+        | undefined;
+
+      if (typeof body?.isOnboardingCompleted === 'boolean') {
+        state.isOnboardingCompleted = body.isOnboardingCompleted;
+      }
+
       await route.fulfill({
-        body: JSON.stringify({ ...mockUser, firstName: 'Updated' }),
+        body: JSON.stringify({
+          data: {
+            attributes: {
+              ...mockUser,
+              firstName: 'Updated',
+              isOnboardingCompleted: state.isOnboardingCompleted,
+            },
+            id: mockUser.id,
+            type: 'users',
+          },
+        }),
         contentType: 'application/json',
         status: 200,
       });
@@ -505,7 +530,10 @@ export const test = base.extend<OnboardingFixtures>({
 
     // Per-page, so a test that walks the flow cannot leak completed steps into
     // the next one.
-    const progressState: OnboardingProgressState = { completedSteps: [] };
+    const progressState: OnboardingProgressState = {
+      completedSteps: [],
+      isOnboardingCompleted: false,
+    };
 
     // Set up authentication cookies
     await setupAuthCookies(context);
@@ -522,9 +550,7 @@ export const test = base.extend<OnboardingFixtures>({
     await setupApiMocks(page, {
       '**/auth/bootstrap**': async (route) => {
         await route.fulfill({
-          body: JSON.stringify(
-            buildOnboardingBootstrapPayload(progressState.completedSteps),
-          ),
+          body: JSON.stringify(buildOnboardingBootstrapPayload(progressState)),
           contentType: 'application/json',
           status: 200,
         });

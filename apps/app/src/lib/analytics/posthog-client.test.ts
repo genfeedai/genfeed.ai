@@ -239,6 +239,7 @@ describe('initAnalytics', () => {
     });
     expect(originalProperties.prompt).toBe('Draft a confidential launch plan');
     expect(originalProperties.nested).toEqual({
+      cardNumber: '4242424242424242',
       credentialId: 'credential-secret',
       messageText: 'private conversation',
     });

@@ -371,7 +371,11 @@ describe('BrandContent behavior', () => {
     updateAccountTypeMock.mockRejectedValueOnce(new Error('forbidden'));
     render(<BrandContent />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Creator' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /^CreatorIndividual content creator or influencer$/,
+      }),
+    );
 
     expect(
       await screen.findByText(

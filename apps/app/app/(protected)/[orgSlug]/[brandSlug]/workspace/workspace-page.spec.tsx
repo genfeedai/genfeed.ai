@@ -16,6 +16,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OPEN_TASK_COMPOSER_EVENT } from '@/lib/workspace/task-composer-events';
 import WorkspacePageContent from './workspace-page';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const getTokenMock = vi.fn();
 const listMock = vi.fn();
 const listAgentRunsMock = vi.fn();
