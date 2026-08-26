@@ -142,6 +142,15 @@ export function WorkspaceOverviewSidebar({
         <Card
           label="Recent outputs"
           description="Latest generated ingredients and posts."
+          headerAction={
+            <Button
+              asChild
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+            >
+              <Link href={href(APP_ROUTES.PUBLISH.REVIEW)}>Open Review</Link>
+            </Button>
+          }
           bodyClassName="p-4"
         >
           {initialReviewInbox.recentItems.length > 0 ? (

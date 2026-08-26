@@ -117,16 +117,8 @@ test.describe('Workflow Editor', () => {
     await workflowPage.gotoEditor();
 
     await expect(authenticatedPage).toHaveURL(/\/automate\/workflows\/new/);
-    // New workflow editor should render canvas or empty state
-    const hasCanvas = await workflowPage.canvas
-      .first()
-      .isVisible()
-      .catch(() => false);
-    const hasEmpty = await workflowPage.canvasEmpty
-      .first()
-      .isVisible()
-      .catch(() => false);
-    expect(hasCanvas || hasEmpty).toBe(true);
+    await expect(workflowPage.canvas).toBeVisible();
+    await expect(workflowPage.canvasNode).toHaveCount(0);
   });
 
   test('should display node library/sidebar', async ({ authenticatedPage }) => {

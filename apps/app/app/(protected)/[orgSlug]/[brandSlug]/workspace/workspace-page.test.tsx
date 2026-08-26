@@ -435,6 +435,10 @@ describe('WorkspacePageContent', () => {
     expect(screen.getByText('Live runs')).toBeVisible();
     expect(screen.getByText('Approved hero image')).toBeVisible();
     expect(screen.getByText('Video needs edits')).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Open Review' })).toHaveAttribute(
+      'href',
+      '/acme-org/acme-creator/publish/review',
+    );
     expect(screen.getByText('Library snapshot')).toBeVisible();
     expect(screen.getByText('Overview', { selector: 'p' })).toBeVisible();
     expect(screen.getByText('Media')).toBeVisible();
