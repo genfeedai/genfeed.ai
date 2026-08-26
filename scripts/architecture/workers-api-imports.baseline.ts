@@ -131,8 +131,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/services/integrations/linkedin/linkedin.module',
   '@api/services/integrations/mastodon/mastodon.module',
   '@api/services/integrations/pinterest/pinterest.module',
-  '@api/services/integrations/publishers/interfaces/publisher.interface',
-  '@api/services/integrations/publishers/publisher-factory.service',
   '@api/services/integrations/publishers/publishers.module',
   '@api/services/integrations/reddit/reddit.module',
   '@api/services/integrations/threads/threads.module',

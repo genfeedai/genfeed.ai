@@ -10,13 +10,6 @@ import {
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { ReplyInboundQueueService } from '@api/queues/reply-bot/reply-inbound-queue.service';
-import type {
-  IPublisher,
-  PublishContext,
-  PublishResult,
-} from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { WORKFLOW_APPROVED_SCHEDULE_SETTING } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import {
@@ -34,8 +27,13 @@ import {
 import type { PostPublishJobData } from '@genfeedai/queue-contracts';
 import {
   type CredentialDocument,
+  type IPublisher,
+  type PublishContext,
+  type PublishResult,
   SERVER_TOKENS,
   type ServerCredentialStore,
+  type ServerPublisherFactory,
+  WORKFLOW_APPROVED_SCHEDULE_SETTING,
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
@@ -90,7 +88,8 @@ export class ScheduledPostDeliveryService {
     private readonly organizationsService: OrganizationsService,
     private readonly postsService: PostsService,
     private readonly quotaService: QuotaService,
-    private readonly publisherFactory: PublisherFactoryService,
+    @Inject(SERVER_TOKENS.publisherFactory)
+    private readonly publisherFactory: ServerPublisherFactory,
     private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
     private readonly publishEventWebhookService: PublishEventWebhookService,
     private readonly schedulerPublishStateService: SchedulerPublishStateService,

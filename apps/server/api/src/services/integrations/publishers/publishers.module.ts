@@ -35,10 +35,16 @@ import { TwitterModule } from '@api/services/integrations/twitter/twitter.module
 import { WhatsappModule } from '@api/services/integrations/whatsapp/whatsapp.module';
 import { WordpressModule } from '@api/services/integrations/wordpress/wordpress.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
+import { SERVER_TOKENS } from '@genfeedai/server';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
+
+const SERVER_PUBLISHER_FACTORY_PROVIDER = {
+  provide: SERVER_TOKENS.publisherFactory,
+  useExisting: PublisherFactoryService,
+};
 
 @Module({
   exports: [
@@ -52,6 +58,7 @@ import { Module } from '@nestjs/common';
     PinterestPublisherService,
     // Export factory for use in cron service
     PublisherFactoryService,
+    SERVER_PUBLISHER_FACTORY_PROVIDER,
     RedditPublisherService,
     ShopifyPublisherService,
     SnapchatPublisherService,
@@ -102,6 +109,7 @@ import { Module } from '@nestjs/common';
     PinterestPublisherService,
     // Factory
     PublisherFactoryService,
+    SERVER_PUBLISHER_FACTORY_PROVIDER,
     RedditPublisherService,
     ShopifyPublisherService,
     SnapchatPublisherService,

@@ -122,6 +122,12 @@ export {
 } from './queues/idempotent-job';
 export { PostPublishQueueService } from './queues/post-publish/post-publish-queue.service';
 export {
+  type IPublisher,
+  type MediaInfo,
+  type PostValidationResult,
+  type PublishContext,
+  type PublisherPostInput,
+  type PublishResult,
   SERVER_TOKENS,
   type ServerActivityCreateInput,
   type ServerActivityWriter,
@@ -136,8 +142,11 @@ export {
   type ServerPostAnalytics,
   type ServerPosts,
   type ServerPrisma,
+  type ServerPublisherFactory,
   type ServerSocialAnalytics,
   type ServerYoutubeUploader,
+  type ThreadChild,
+  WORKFLOW_APPROVED_SCHEDULE_SETTING,
   type YoutubeUploadPostInput,
 } from './server.dependencies';
 export { ApiKeyHelperService } from './services/api-key/api-key-helper.service';
@@ -181,6 +190,7 @@ export type {
   UpdateCampaignParams,
 } from './services/integrations/meta-ads/interfaces/meta-ads.interface';
 export { MetaAdsService } from './services/integrations/meta-ads/services/meta-ads.service';
+export { BasePublisherService } from './services/integrations/publishers/base-publisher.service';
 export { ReplicateService } from './services/integrations/replicate/services/replicate.service';
 export { LifecycleEmailDeliveryService } from './services/lifecycle-emails/lifecycle-email-delivery.service';
 export { brandScope, scopedWhere } from './tenancy/scoped-where';
