@@ -156,10 +156,14 @@ test.describe('Automate — Core Interactions', () => {
     await authenticatedPage
       .getByRole('button', { exact: true, name: 'Add agent' })
       .click();
-    await expect
-      .poll(() => new URL(authenticatedPage.url()).searchParams.get('add'))
-      .toBe('library');
-    await expect(authenticatedPage.getByRole('dialog')).toBeVisible();
+    const dialog = authenticatedPage.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole('heading', { exact: true, name: 'Add agent' }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole('tab', { exact: true, name: 'Agent library' }),
+    ).toHaveAttribute('aria-selected', 'true');
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);

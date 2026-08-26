@@ -58,8 +58,12 @@ test.describe('Workflows', () => {
     await expect(
       authenticatedPage.locator(workflowsBackLinkSelector).first(),
     ).toBeVisible();
+    const editorToolbar = authenticatedPage.locator(
+      '.workflow-topbar-shell:visible',
+    );
+    await expect(editorToolbar).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', {
+      editorToolbar.getByRole('button', {
         exact: true,
         name: workflow.name,
       }),
