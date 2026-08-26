@@ -1,7 +1,7 @@
+import { AdminPage } from '@e2e/pages/admin.page';
+import { DiscoverPage } from '@e2e/pages/discover.page';
+import { StudioPage } from '@e2e/pages/studio.page';
 import { expect, test } from '@playwright/test';
-import { AdminPage } from '../../pages/admin.page';
-import { DiscoverPage } from '../../pages/discover.page';
-import { StudioPage } from '../../pages/studio.page';
 
 const pageObjects = [AdminPage, DiscoverPage, StudioPage] as const;
 

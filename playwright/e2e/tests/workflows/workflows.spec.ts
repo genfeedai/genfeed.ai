@@ -1,3 +1,4 @@
+import { brandPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
@@ -74,9 +75,9 @@ test.describe('Workflows', () => {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(
-      /\/automate\/workflows\/new(?:[/?#]|$)/,
-    );
+    await expect
+      .poll(() => new URL(authenticatedPage.url()).pathname)
+      .toBe(brandPath(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW));
     await expect(
       authenticatedPage.locator(workflowsBackLinkSelector).first(),
     ).toBeVisible();

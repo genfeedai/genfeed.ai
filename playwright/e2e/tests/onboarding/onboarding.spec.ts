@@ -1,9 +1,10 @@
+import { brandPath, orgPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { expect, test } from '../../fixtures/onboarding.fixture';
 import { OnboardingPage } from '../../pages/onboarding.page';
-import { brandPath } from '../../utils/app-chrome';
 
 const ONBOARDING_API_ENDPOINT = 'https://api.genfeed.ai/v1';
+const AGENT_HANDOFF_PATH = orgPath(APP_ROUTES.AGENT.ONBOARDING);
 
 /**
  * Onboarding Flow E2E Tests
@@ -73,7 +74,7 @@ test.describe('Onboarding Flow', () => {
       await page.clickContinue();
       await onboardingPage.waitForLoadState('domcontentloaded');
 
-      await page.assertAgentHandoff();
+      await page.assertAgentHandoff(AGENT_HANDOFF_PATH);
 
       // Completing brand first is what unlocks `/workspace` at the end of this
       // spec — the guard gates on that step, not on the whole wizard.
@@ -87,9 +88,9 @@ test.describe('Onboarding Flow', () => {
       await page.assertSuccess();
 
       await page.enterWorkspace();
-      await expect(onboardingPage).toHaveURL(
-        new RegExp(`${brandPath(APP_ROUTES.WORKSPACE.ROOT)}(?:[/?#]|$)`),
-      );
+      await expect
+        .poll(() => new URL(onboardingPage.url()).pathname)
+        .toBe(brandPath(APP_ROUTES.WORKSPACE.ROOT));
       await expect(
         onboardingPage
           .getByTestId('desktop-sidebar-rail')
@@ -141,7 +142,7 @@ test.describe('Onboarding Flow', () => {
       });
       await page.clickContinue();
 
-      await page.assertAgentHandoff();
+      await page.assertAgentHandoff(AGENT_HANDOFF_PATH);
     });
 
     test('should allow skipping brand setup', async ({ onboardingPage }) => {
@@ -149,11 +150,9 @@ test.describe('Onboarding Flow', () => {
       await page.waitForStep(1);
       await page.skipStep();
 
-      // Skip completes the brand gate rather than abandoning it, so web lands
-      // on the agent handoff and Desktop on the next wizard screen.
-      await expect(onboardingPage).toHaveURL(
-        /\/agent\/onboarding|\/onboarding\/(providers|success|summary)|\/workspace|^https?:\/\/[^/]+\/?$/,
-      );
+      // This web fixture enables the agent-first journey, so Skip completes
+      // the brand gate and lands on the organization-scoped handoff.
+      await page.assertAgentHandoff(AGENT_HANDOFF_PATH);
     });
   });
 
@@ -187,7 +186,9 @@ test.describe('Onboarding Flow', () => {
       await page.waitForStep(2);
       await page.clickBack();
 
-      await expect(onboardingPage).toHaveURL(/\/onboarding\/brand/);
+      await expect
+        .poll(() => new URL(onboardingPage.url()).pathname)
+        .toBe(APP_ROUTES.ONBOARDING.BRAND);
     });
   });
 
@@ -211,7 +212,9 @@ test.describe('Onboarding Flow', () => {
       await page.waitForStep(3);
       await page.clickBack();
 
-      await expect(onboardingPage).toHaveURL(/\/onboarding\/providers/);
+      await expect
+        .poll(() => new URL(onboardingPage.url()).pathname)
+        .toBe(APP_ROUTES.ONBOARDING.PROVIDERS);
     });
   });
 

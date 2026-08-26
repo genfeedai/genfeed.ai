@@ -56,9 +56,9 @@ test.describe('Agents — Content Team', () => {
       .fill('AI creator monetization');
     await authenticatedPage.getByRole('button', { name: 'Add agent' }).click();
 
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(`${brandPath(APP_ROUTES.AUTOMATE.AGENTS)}(?:[?#]|$)`),
-    );
+    await expect
+      .poll(() => new URL(authenticatedPage.url()).pathname)
+      .toBe(brandPath(APP_ROUTES.AUTOMATE.AGENTS));
     await expect(authenticatedPage.getByRole('dialog')).toBeHidden();
   });
 
@@ -90,11 +90,11 @@ test.describe('Agents — Content Team', () => {
       .getByRole('button', { name: 'Create Program' })
       .click();
 
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(
-        `${brandPath(APP_ROUTES.AUTOMATE.CAMPAIGNS)}/agent-campaign-created(?:[?#]|$)`,
-      ),
-    );
+    await expect
+      .poll(() => new URL(authenticatedPage.url()).pathname)
+      .toBe(
+        `${brandPath(APP_ROUTES.AUTOMATE.CAMPAIGNS)}/agent-campaign-created`,
+      );
     await expect(
       authenticatedPage.getByRole('heading', {
         name: 'Creator Growth Machine',

@@ -57,12 +57,13 @@ test.describe('Workspace', () => {
     await expect(primaryAction).toBeVisible();
     await primaryAction.click();
 
-    await expect(authenticatedPage.getByRole('dialog')).toBeVisible();
+    const dialog = authenticatedPage.getByRole('dialog');
+    await expect(dialog).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'New Task' }),
+      dialog.getByRole('heading', { name: 'New Task' }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: 'Create Task' }),
+      dialog.getByRole('button', { name: 'Create Task' }),
     ).toBeVisible();
   });
 
