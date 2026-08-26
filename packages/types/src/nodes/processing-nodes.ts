@@ -188,6 +188,9 @@ export interface VideoQaNodeData extends BaseNodeData {
   freezeDurationSeconds: number;
   blackDurationSeconds: number;
   isContactSheetEnabled: boolean;
+  isContinuityQaEnabled: boolean;
+  characterReferenceUrls: string[];
+  productReferenceUrls: string[];
   expectedDurationSeconds: number | null;
   expectedWidth: number | null;
   expectedHeight: number | null;

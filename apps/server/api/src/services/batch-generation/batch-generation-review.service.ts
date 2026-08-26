@@ -24,7 +24,11 @@ import {
   ReviewDecision,
   TargetExecutionState,
 } from '@genfeedai/enums';
-import type { IBatchSummary, IPublishApproval } from '@genfeedai/interfaces';
+import type {
+  IBatchSummary,
+  IPublishApproval,
+  VideoContinuityQaReport,
+} from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import {
   AgentArtifactReferenceService,
@@ -386,6 +390,9 @@ export class BatchGenerationReviewService {
         caption ??
         prompt ??
         `${format.charAt(0).toUpperCase()}${format.slice(1)} ready for review`,
+      continuityQa: isContinuityQaReport(data.continuityQa)
+        ? data.continuityQa
+        : undefined,
     };
   }
 
@@ -857,4 +864,16 @@ export class BatchGenerationReviewService {
 
     return this.summaryService.toBatchSummary(updatedBatch);
   }
+}
+
+function isContinuityQaReport(
+  value: unknown,
+): value is VideoContinuityQaReport {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    (value as Record<string, unknown>).schemaVersion === 1 &&
+    Array.isArray((value as Record<string, unknown>).clips)
+  );
 }

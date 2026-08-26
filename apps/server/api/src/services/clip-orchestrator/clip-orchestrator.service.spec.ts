@@ -233,6 +233,28 @@ describe('ClipOrchestratorService', () => {
     });
   });
 
+  it('requests advisory continuity QA once when hook approval completes', async () => {
+    const run = await service.startRun(makeDto());
+    const emit = vi.spyOn(emitter, 'emit');
+
+    await service.updateMetadata(run.id, {
+      hookApproval: { phase: 'approved' },
+    });
+    await service.updateMetadata(run.id, {
+      hookApproval: { phase: 'approved' },
+    });
+
+    expect(emit).toHaveBeenCalledTimes(1);
+    expect(emit).toHaveBeenCalledWith(
+      CLIP_ORCHESTRATOR_EVENTS.CONTINUITY_QA_REQUESTED,
+      expect.objectContaining({
+        organizationId: 'org-1',
+        projectId: 'proj-1',
+        runId: run.id,
+      }),
+    );
+  });
+
   // -------------------------------------------------------------------------
   // 6. Retry logic — retries under max
   // -------------------------------------------------------------------------

@@ -124,9 +124,21 @@ export class ClipOrchestratorService {
     metadata: Record<string, unknown>,
   ): Promise<ClipRun> {
     const run = await this.getRunOrThrow(runId);
+    const shouldRequestContinuityQa =
+      isApprovedHookPlan(metadata.hookApproval) &&
+      !isApprovedHookPlan(run.metadata?.hookApproval) &&
+      run.metadata?.continuityQa === undefined;
     run.metadata = { ...(run.metadata ?? {}), ...metadata };
     run.updatedAt = new Date();
     await this.persistRun(run);
+    if (shouldRequestContinuityQa) {
+      this.eventEmitter.emit(CLIP_ORCHESTRATOR_EVENTS.CONTINUITY_QA_REQUESTED, {
+        organizationId: run.organizationId,
+        projectId: run.projectId,
+        runId: run.id,
+        timestamp: new Date(),
+      });
+    }
     return run;
   }
 
@@ -454,6 +466,15 @@ export class ClipOrchestratorService {
       .reverse()
       .find((s) => s.state === run.currentState && !s.completedAt);
   }
+}
+
+function isApprovedHookPlan(value: unknown): boolean {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    (value as Record<string, unknown>).phase === 'approved'
+  );
 }
 
 function reviveClipRun(run: ClipRun): ClipRun {

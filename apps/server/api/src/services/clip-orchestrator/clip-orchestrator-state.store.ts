@@ -31,6 +31,26 @@ export class ClipOrchestratorStateStore {
     await this.getRedisClient().del(this.getRedisKey(namespace, id));
   }
 
+  async addMember(
+    namespace: string,
+    id: string,
+    member: string,
+  ): Promise<void> {
+    await this.getRedisClient().sadd(this.getRedisKey(namespace, id), member);
+  }
+
+  async getMembers(namespace: string, id: string): Promise<string[]> {
+    return this.getRedisClient().smembers(this.getRedisKey(namespace, id));
+  }
+
+  async removeMember(
+    namespace: string,
+    id: string,
+    member: string,
+  ): Promise<void> {
+    await this.getRedisClient().srem(this.getRedisKey(namespace, id), member);
+  }
+
   /** Atomically claim a one-shot transition across API replicas. */
   async claim(
     namespace: string,

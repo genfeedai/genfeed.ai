@@ -191,6 +191,51 @@ function makeTask(overrides: Record<string, unknown> = {}) {
 function makeInspectorTask(overrides: Record<string, unknown> = {}) {
   return makeTask({
     approvedOutputIds: ['output-1'],
+    decomposition: {
+      continuityQa: {
+        clips: [
+          {
+            character: {
+              confidence: 0.91,
+              summary: 'Face shape changed.',
+              verdict: 'drift',
+            },
+            clipId: 'task-clip-1',
+            clipIndex: 0,
+            errors: [],
+            evidenceFrames: [
+              {
+                kind: 'contact_sheet',
+                url: 'https://cdn.example.com/task-clip-sheet.png',
+              },
+            ],
+            outfit: {
+              confidence: 0.82,
+              summary: 'Wardrobe changed.',
+              verdict: 'drift',
+            },
+            product: {
+              confidence: null,
+              summary: 'Not visible.',
+              verdict: 'not_assessed',
+            },
+          },
+        ],
+        completedAt: '2026-01-01T00:59:00.000Z',
+        modelKey: 'openai/gpt-4.1-mini',
+        projectId: 'clip-project-task',
+        referenceAssetIds: { character: ['face-1'], product: [] },
+        runId: 'clip-run-task',
+        schemaVersion: 1,
+        status: 'completed',
+        summary: {
+          assessedClipCount: 1,
+          driftClipCount: 1,
+          errorClipCount: 0,
+          totalClipCount: 1,
+        },
+      },
+    },
     eventStream: [
       {
         id: 'event-1',
@@ -323,6 +368,10 @@ describe('WorkspacePageContent', () => {
 
     expect(await screen.findByTestId('workspace-task-inspector')).toBeVisible();
     expect(await screen.findByText('Generated image preview')).toBeVisible();
+    expect(await screen.findByText('Visual continuity QA')).toBeVisible();
+    expect(
+      screen.getByRole('link', { name: 'Evidence frame 1' }),
+    ).toHaveAttribute('href', 'https://cdn.example.com/task-clip-sheet.png');
     await waitFor(() => {
       expect(screen.getAllByText('Hero image').length).toBeGreaterThan(0);
     });
@@ -441,6 +490,52 @@ describe('WorkspacePageContent', () => {
             },
             {
               createdAt: '2026-01-01T05:00:00.000Z',
+              continuityQa: {
+                clips: [
+                  {
+                    character: {
+                      confidence: 0.91,
+                      summary: 'Face shape changed.',
+                      verdict: 'drift',
+                    },
+                    clipId: 'clip-2',
+                    clipIndex: 1,
+                    errors: [],
+                    evidenceFrames: [
+                      {
+                        kind: 'contact_sheet',
+                        url: 'https://cdn.example.com/clip-2-sheet.png',
+                      },
+                    ],
+                    outfit: {
+                      confidence: 0.8,
+                      summary: 'Outfit changed.',
+                      verdict: 'drift',
+                    },
+                    product: {
+                      confidence: null,
+                      summary: 'No product visible.',
+                      verdict: 'not_assessed',
+                    },
+                  },
+                ],
+                completedAt: '2026-01-01T04:59:00.000Z',
+                modelKey: 'openai/gpt-4.1-mini',
+                projectId: 'clip-project-1',
+                referenceAssetIds: {
+                  character: ['face-1'],
+                  product: [],
+                },
+                runId: 'clip-run-1',
+                schemaVersion: 1,
+                status: 'completed',
+                summary: {
+                  assessedClipCount: 1,
+                  driftClipCount: 1,
+                  errorClipCount: 0,
+                  totalClipCount: 1,
+                },
+              },
               format: 'video',
               id: 'review-2',
               platform: 'tiktok',
@@ -469,6 +564,11 @@ describe('WorkspacePageContent', () => {
     expect(screen.getByText('Live runs')).toBeVisible();
     expect(screen.getByText('Approved hero image')).toBeVisible();
     expect(screen.getByText('Video needs edits')).toBeVisible();
+    expect(screen.getByText(/Clip 2: character drift/)).toBeVisible();
+    expect(screen.getByRole('link', { name: 'Evidence 1' })).toHaveAttribute(
+      'href',
+      'https://cdn.example.com/clip-2-sheet.png',
+    );
     expect(screen.getByRole('link', { name: 'Open Review' })).toHaveAttribute(
       'href',
       '/acme-org/acme-creator/publish/review',

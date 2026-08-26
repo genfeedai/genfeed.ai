@@ -413,5 +413,102 @@ describe('VideoQaExecutor', () => {
         expect.objectContaining({ isContactSheetEnabled: false }),
       );
     });
+
+    it('records an observable continuity skip when no resolver is configured', async () => {
+      const processor = vi.fn().mockResolvedValue({
+        contactSheetUrl: 'https://cdn.example/sheet.png',
+        decodeOk: true,
+        detectLog: '',
+        loudnessLog: ON_TARGET_LOUDNESS_LOG,
+        probeJson: HEALTHY_PROBE_JSON,
+      });
+      const result = await createVideoQaExecutor(processor).execute({
+        context: ctx,
+        inputs: new Map<string, unknown>([['video', 'http://in.mp4']]),
+        node: {
+          config: {
+            characterReferenceUrls: ['https://cdn.example/face.png'],
+            isContinuityQaEnabled: true,
+          },
+          id: '1',
+          inputs: [],
+          label: 'QA',
+          type: 'videoQa',
+        },
+      });
+
+      expect(result.data).toMatchObject({
+        continuityQa: {
+          skipReason: 'continuity_resolver_unavailable',
+          status: 'skipped',
+        },
+        passed: true,
+        video: 'http://in.mp4',
+      });
+      expect(processor).toHaveBeenCalledWith(
+        expect.objectContaining({ isContactSheetEnabled: true }),
+      );
+    });
+
+    it('attaches structured continuity findings without changing deterministic pass-through', async () => {
+      const processor = vi.fn().mockResolvedValue({
+        contactSheetUrl: 'https://cdn.example/sheet.png',
+        decodeOk: true,
+        detectLog: '',
+        loudnessLog: ON_TARGET_LOUDNESS_LOG,
+        probeJson: HEALTHY_PROBE_JSON,
+      });
+      const resolver = vi.fn().mockResolvedValue({
+        finding: {
+          character: {
+            confidence: 0.94,
+            summary: 'Character changed.',
+            verdict: 'drift',
+          },
+          clipId: 'workflow-video',
+          clipIndex: 0,
+          errors: [],
+          evidenceFrames: [
+            { kind: 'contact_sheet', url: 'https://cdn.example/sheet.png' },
+          ],
+          outfit: {
+            confidence: 0.9,
+            summary: 'Outfit changed.',
+            verdict: 'drift',
+          },
+          product: {
+            confidence: null,
+            summary: 'No product.',
+            verdict: 'not_assessed',
+          },
+          videoUrl: 'http://in.mp4',
+        },
+        modelKey: 'openai/gpt-4.1-mini',
+      });
+      const result = await createVideoQaExecutor(processor, resolver).execute({
+        context: ctx,
+        inputs: new Map<string, unknown>([['video', 'http://in.mp4']]),
+        node: {
+          config: {
+            characterReferenceUrls: ['https://cdn.example/face.png'],
+            isContinuityQaEnabled: true,
+          },
+          id: '1',
+          inputs: [],
+          label: 'QA',
+          type: 'videoQa',
+        },
+      });
+
+      expect(result.data).toMatchObject({
+        continuityQa: {
+          modelKey: 'openai/gpt-4.1-mini',
+          status: 'completed',
+          summary: { driftClipCount: 1 },
+        },
+        passed: true,
+        video: 'http://in.mp4',
+      });
+    });
   });
 });

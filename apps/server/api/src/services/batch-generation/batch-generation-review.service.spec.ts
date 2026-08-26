@@ -86,6 +86,21 @@ describe('BatchGenerationReviewService.getReviewInboxSummary', () => {
         batchId: 'batch-new',
         createdAt: new Date('2026-08-12T11:00:00.000Z'),
         data: {
+          continuityQa: {
+            clips: [],
+            completedAt: '2026-08-12T10:59:00.000Z',
+            projectId: 'clip-project-1',
+            referenceAssetIds: { character: [], product: [] },
+            runId: 'clip-run-1',
+            schemaVersion: 1,
+            status: 'skipped',
+            summary: {
+              assessedClipCount: 0,
+              driftClipCount: 0,
+              errorClipCount: 0,
+              totalClipCount: 0,
+            },
+          },
           format: ContentFormat.IMAGE,
           platform: 'instagram',
           postId: 'post-new',
@@ -102,6 +117,10 @@ describe('BatchGenerationReviewService.getReviewInboxSummary', () => {
     expect(summary.approvedCount).toBe(1);
     expect(summary.recentItems).toHaveLength(1);
     expect(summary.recentItems[0]?.id).toBe('ready-new');
+    expect(summary.recentItems[0]?.continuityQa).toMatchObject({
+      runId: 'clip-run-1',
+      status: 'skipped',
+    });
   });
 });
 

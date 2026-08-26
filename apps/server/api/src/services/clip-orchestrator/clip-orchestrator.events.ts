@@ -3,6 +3,7 @@ import type { ClipRunState } from '@api/services/clip-orchestrator/clip-run-stat
 /** Event names emitted by the clip orchestrator. */
 export const CLIP_ORCHESTRATOR_EVENTS = {
   CONFIRMATION_REQUIRED: 'clip-orchestrator.confirmation-required',
+  CONTINUITY_QA_REQUESTED: 'clip-orchestrator.continuity-qa-requested',
   RUN_COMPLETED: 'clip-orchestrator.run-completed',
   RUN_FAILED: 'clip-orchestrator.run-failed',
   STATE_CHANGED: 'clip-orchestrator.state-changed',
@@ -10,6 +11,13 @@ export const CLIP_ORCHESTRATOR_EVENTS = {
   STEP_FAILED: 'clip-orchestrator.step-failed',
   STEP_RETRYING: 'clip-orchestrator.step-retrying',
 } as const;
+
+export interface ClipContinuityQaRequestedEvent {
+  organizationId: string;
+  projectId: string;
+  runId: string;
+  timestamp: Date;
+}
 
 /** Payload for state change events. */
 export interface ClipRunStateChangeEvent {

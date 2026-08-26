@@ -5,11 +5,14 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import { Clock } from 'lucide-react';
+import { AlertTriangle, Clock } from 'lucide-react';
 import Link from 'next/link';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-import { formatTaskTimestamp } from './workspace-task.helpers';
+import {
+  formatTaskTimestamp,
+  getTaskContinuityQa,
+} from './workspace-task.helpers';
 import type {
   WorkspaceTaskLinkedIssueSummary,
   WorkspaceTaskLinkedOutputSummary,
@@ -42,6 +45,7 @@ export function WorkspaceTaskInspectorBody({
   onUnkeepOutput,
   task,
 }: WorkspaceTaskInspectorBodyProps) {
+  const continuityQa = getTaskContinuityQa(task);
   return (
     <div className="flex-1 space-y-6 p-6">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -89,6 +93,66 @@ export function WorkspaceTaskInspectorBody({
           bodyClassName="border-l border-emerald-400/30 p-4 text-sm text-foreground/75"
         >
           {task.resultPreview}
+        </Card>
+      ) : null}
+
+      {continuityQa ? (
+        <Card
+          label="Visual continuity QA"
+          bodyClassName="space-y-3 border-l border-amber-400/30 p-4 text-sm text-foreground/75"
+        >
+          <p className="flex items-center gap-2 font-semibold">
+            {continuityQa.summary.driftClipCount > 0 ? (
+              <AlertTriangle className="size-4 text-amber-300" />
+            ) : null}
+            {continuityQa.status.replace('_', ' ')} ·{' '}
+            {continuityQa.summary.driftClipCount} drift finding
+            {continuityQa.summary.driftClipCount === 1 ? '' : 's'}
+          </p>
+          {continuityQa.skipReason ? (
+            <p className="text-foreground/55">
+              Assessment skipped: {continuityQa.skipReason.replaceAll('_', ' ')}
+            </p>
+          ) : null}
+          {continuityQa.clips.map((clip) => (
+            <div
+              key={clip.clipId}
+              className="space-y-1 rounded-md border border-border/70 p-3"
+            >
+              <p className="font-semibold">Clip {clip.clipIndex + 1}</p>
+              <p>
+                Character: {clip.character.verdict} (
+                {formatConfidence(clip.character.confidence)})
+              </p>
+              <p>
+                Outfit: {clip.outfit.verdict} (
+                {formatConfidence(clip.outfit.confidence)})
+              </p>
+              <p>
+                Product: {clip.product.verdict} (
+                {formatConfidence(clip.product.confidence)})
+              </p>
+              {clip.errors.map((error) => (
+                <p
+                  key={`${clip.clipId}-${error.code}`}
+                  className="text-amber-200"
+                >
+                  {error.message}
+                </p>
+              ))}
+              {clip.evidenceFrames.map((frame, index) => (
+                <Link
+                  key={frame.url}
+                  href={frame.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mr-3 inline-block underline underline-offset-2"
+                >
+                  Evidence frame {index + 1}
+                </Link>
+              ))}
+            </div>
+          ))}
         </Card>
       ) : null}
 
@@ -199,4 +263,10 @@ export function WorkspaceTaskInspectorBody({
       </div>
     </div>
   );
+}
+
+function formatConfidence(confidence: number | null): string {
+  return confidence === null
+    ? 'not assessed'
+    : `${Math.round(confidence * 100)}% confidence`;
 }
