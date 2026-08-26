@@ -486,7 +486,7 @@ describe('AgentOrchestratorUiActionService auth mapping', () => {
     const { service, threadEventRecorder } = createService({
       executeTool: vi.fn().mockResolvedValue({
         creditsUsed: 0,
-        error: safeResultError,
+        error: `Failed to respond to UI action: 500 - ${safeResultError}`,
         success: false,
       }),
     });

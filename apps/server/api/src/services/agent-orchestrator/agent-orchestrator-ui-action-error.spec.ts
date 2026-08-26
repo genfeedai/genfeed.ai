@@ -58,6 +58,7 @@ describe('throwFailedUiActionResult image result mapping', () => {
   it('maps a known unusable image result to a structured upstream failure', () => {
     try {
       throwFailedUiActionResult(safeResultError, 'Failed to generate image.');
+      throw new Error('expected image result error');
     } catch (error: unknown) {
       expect(error).toBeInstanceOf(HttpException);
       expect(error).not.toBeInstanceOf(InternalServerErrorException);
@@ -76,11 +77,20 @@ describe('throwFailedUiActionResult image result mapping', () => {
 
   it('recovers the known image result category from an existing generic 500', () => {
     try {
-      rethrowUiActionError(new InternalServerErrorException(safeResultError));
+      rethrowUiActionError(
+        new InternalServerErrorException(
+          `Failed to respond to UI action: 500 - ${safeResultError}`,
+        ),
+      );
+      throw new Error('expected image result error');
     } catch (error: unknown) {
       expect(error).toBeInstanceOf(HttpException);
       expect(error).not.toBeInstanceOf(InternalServerErrorException);
-      expect((error as HttpException).getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+      const httpError = error as HttpException;
+      expect(httpError.getStatus()).toBe(HttpStatus.BAD_GATEWAY);
+      expect(httpError.getResponse()).toEqual(
+        expect.objectContaining({ detail: safeResultError }),
+      );
     }
   });
 });

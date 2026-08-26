@@ -1,5 +1,5 @@
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
-import { IMAGE_GENERATION_RESULT_ERROR } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
+import { IMAGE_GENERATION_RESULT_ERROR } from '@api/services/agent-orchestrator/agent-image-generation-result.constant';
 import { ErrorCode } from '@genfeedai/enums';
 import {
   HttpException,
@@ -102,11 +102,11 @@ function readKnownImageGenerationResultError(
     return null;
   }
 
-  return Object.values(IMAGE_GENERATION_RESULT_ERROR).some(
-    (knownError) => knownError === detail,
-  )
-    ? detail
-    : null;
+  return (
+    Object.values(IMAGE_GENERATION_RESULT_ERROR).find(
+      (knownError) => detail === knownError || detail.endsWith(knownError),
+    ) ?? null
+  );
 }
 
 function throwGenerationResultUnavailable(detail: string): never {

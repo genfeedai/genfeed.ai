@@ -1,6 +1,6 @@
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { IMAGE_GENERATION_RESULT_ERROR } from '@api/services/agent-orchestrator/agent-image-generation-result.constant';
 import {
-  IMAGE_GENERATION_RESULT_ERROR,
   readMediaAssetUrl,
   readMediaResponseString,
   readUsableCdnAssetUrl,
@@ -235,6 +235,7 @@ export class AgentMediaAssetGenerationService {
         `generateImage returned no usable CDN asset for org=${ctx.organizationId} id=${id}`,
       );
       return this.buildImageGenerationIncompleteResult({
+        assetId: id,
         error: IMAGE_GENERATION_RESULT_ERROR.UNUSABLE_CDN_URL,
         promptPreview,
         status: Status.FAILED,
@@ -686,19 +687,31 @@ export class AgentMediaAssetGenerationService {
 
   /** Never mint an empty content preview for incomplete image generation. */
   private buildImageGenerationIncompleteResult(params: {
+    assetId?: string;
     error: string;
     promptPreview: string;
     status: string;
   }): AgentToolResult {
     return {
       creditsUsed: 0,
-      data: { status: params.status },
+      data: {
+        ...(params.assetId ? { id: params.assetId } : {}),
+        status: params.status,
+      },
       error: params.error,
       isBillingDelegated: true,
       nextActions: [
         {
+          ...(params.assetId
+            ? { assetId: params.assetId, assetKind: 'image' as const }
+            : {}),
           id: `image-gen-incomplete-${Date.now()}`,
-          primaryCta: { href: '/library/images', label: 'Check gallery' },
+          primaryCta: params.assetId
+            ? {
+                href: `/g/image/${params.assetId}`,
+                label: 'View in gallery',
+              }
+            : { href: '/library/images', label: 'Check gallery' },
           status: 'failed',
           summaryText: `Image was not ready: "${params.promptPreview}". ${params.error}`,
           title: 'Image not ready',
