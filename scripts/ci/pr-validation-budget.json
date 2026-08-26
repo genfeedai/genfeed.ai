@@ -5,10 +5,16 @@
   "measurement": {
     "sampleUnit": "distinct-latest-pr-head",
     "scope": "changed-scope",
+    "scopeDefinition": {
+      "planner": "scripts/ci/pr-test-plan.mjs",
+      "gate": "scripts/ci/tests-gate.mjs"
+    },
     "startTimestamp": "workflow-created-at",
     "endTimestamp": "tests-gate-completed-at",
+    "qualifyingDisposition": "tests-gate-success-with-all-applicable-jobs-resolved",
     "minimumSuccessfulHeads": 50,
-    "percentileMethod": "nearest-rank"
+    "percentileMethod": "nearest-rank",
+    "surfaceReporting": "report-per-surface-and-aggregate"
   },
   "operatingBudgetMinutes": {
     "median": 10,
@@ -19,6 +25,7 @@
     "p95": 15
   },
   "runnerWaste": {
+    "status": "fresh-fixed-baseline-required",
     "minimumReductionPercent": 50,
     "sampleUnit": "superseded-runner-minutes",
     "baselineRule": "Use one fixed pre-change window and compare the same workflows, events, and exact-head disposition definitions after the change.",
@@ -34,10 +41,15 @@
   },
   "exclusions": {
     "allowed": ["documented-github-wide-runner-incident"],
+    "maximumExcludedHeadsPercent": 5,
     "internalRunnerSaturation": "included",
-    "failedCancelledOrIncomplete": "never-counted-as-passing"
+    "failedCancelledSkippedOrIncomplete": "never-counted-as-passing"
   },
-  "changeRule": "Latency budgets may only tighten. Any increase requires a reviewed contract diff, linked evidence, and an appended history entry.",
+  "consumer": {
+    "type": "reviewed-contract-and-run-metadata-audit",
+    "enforcement": "No compliance verdict is valid below the minimum sample; threshold changes are enforced by scripts/ci/pr-validation-workflows.test.mjs."
+  },
+  "changeRule": "After this initial adoption, latency budgets may only tighten. Any increase requires a reviewed contract diff, linked evidence, and an appended history entry.",
   "history": [
     {
       "adoptedAt": "2026-08-26",
@@ -51,6 +63,22 @@
         "p95": 15
       },
       "runnerWasteMinimumReductionPercent": 50,
+      "evidence": {
+        "status": "preliminary-not-a-compliance-window",
+        "complianceVerdict": "insufficient-sample",
+        "auditSource": "https://github.com/genfeedai/genfeed.ai/issues/1969#issuecomment-5412802660",
+        "query": "GitHub Actions REST pull_request runs plus per-run Tests Gate job timestamps",
+        "windowStart": "2026-08-25T17:01:39Z",
+        "windowEnd": "2026-08-25T23:07:48Z",
+        "completedRuns": 27,
+        "successfulRuns": 6,
+        "successfulRunIds": [
+          32908568338, 32906926837, 32905631064, 32904547589, 32902363083,
+          32896295975
+        ],
+        "observedMedianMinutes": 9.64,
+        "observedP95Minutes": 19.02
+      },
       "note": "Adopts a fair operating envelope for the current changed-scope CI path while retaining the original 8/15 latency objective as the next ratchet target. Forced-full and merge-group paths require independent samples."
     }
   ]

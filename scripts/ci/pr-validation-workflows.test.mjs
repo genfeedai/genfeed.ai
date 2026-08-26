@@ -299,13 +299,21 @@ test('adopts a fair pull-request validation budget with a stricter ratchet targe
 
   assert.equal(budget.version, 1);
   assert.equal(budget.issue, 1850);
+  assert.equal(budget.mode, 'operating');
   assert.deepEqual(budget.measurement, {
     sampleUnit: 'distinct-latest-pr-head',
     scope: 'changed-scope',
+    scopeDefinition: {
+      planner: 'scripts/ci/pr-test-plan.mjs',
+      gate: 'scripts/ci/tests-gate.mjs',
+    },
     startTimestamp: 'workflow-created-at',
     endTimestamp: 'tests-gate-completed-at',
+    qualifyingDisposition:
+      'tests-gate-success-with-all-applicable-jobs-resolved',
     minimumSuccessfulHeads: 50,
     percentileMethod: 'nearest-rank',
+    surfaceReporting: 'report-per-surface-and-aggregate',
   });
   assert.deepEqual(budget.operatingBudgetMinutes, {
     median: 10,
@@ -315,20 +323,71 @@ test('adopts a fair pull-request validation budget with a stricter ratchet targe
     median: 8,
     p95: 15,
   });
+  assert.deepEqual(budget.runnerWaste, {
+    status: 'fresh-fixed-baseline-required',
+    minimumReductionPercent: 50,
+    sampleUnit: 'superseded-runner-minutes',
+    baselineRule:
+      'Use one fixed pre-change window and compare the same workflows, events, and exact-head disposition definitions after the change.',
+    incompleteEvidence: 'does-not-pass',
+  });
+  assert.deepEqual(budget.fullSuite, {
+    status: 'observe-separately',
+    minimumSuccessfulHeadsBeforeBudgetAdoption: 50,
+  });
+  assert.deepEqual(budget.mergeGroup, {
+    status: 'observe-separately',
+    minimumSuccessfulHeadsBeforeBudgetAdoption: 50,
+  });
+  assert.deepEqual(budget.exclusions, {
+    allowed: ['documented-github-wide-runner-incident'],
+    maximumExcludedHeadsPercent: 5,
+    internalRunnerSaturation: 'included',
+    failedCancelledSkippedOrIncomplete: 'never-counted-as-passing',
+  });
+  assert.deepEqual(budget.consumer, {
+    type: 'reviewed-contract-and-run-metadata-audit',
+    enforcement:
+      'No compliance verdict is valid below the minimum sample; threshold changes are enforced by scripts/ci/pr-validation-workflows.test.mjs.',
+  });
   assert.equal(
+    budget.changeRule,
+    'After this initial adoption, latency budgets may only tighten. Any increase requires a reviewed contract diff, linked evidence, and an appended history entry.',
+  );
+
+  assert.equal(budget.history.length, 1);
+  const latest = budget.history.at(-1);
+  assert.equal(latest.adoptedAt, '2026-08-26');
+  assert.equal(latest.issue, 1850);
+  assert.deepEqual(
+    latest.operatingBudgetMinutes,
+    budget.operatingBudgetMinutes,
+  );
+  assert.deepEqual(latest.ratchetTargetMinutes, budget.ratchetTargetMinutes);
+  assert.equal(
+    latest.runnerWasteMinimumReductionPercent,
     budget.runnerWaste.minimumReductionPercent,
-    50,
-    'superseded-run waste must retain the parent issue reduction target',
   );
-  assert.equal(budget.fullSuite.status, 'observe-separately');
-  assert.equal(budget.mergeGroup.status, 'observe-separately');
+  assert.deepEqual(latest.evidence, {
+    status: 'preliminary-not-a-compliance-window',
+    complianceVerdict: 'insufficient-sample',
+    auditSource:
+      'https://github.com/genfeedai/genfeed.ai/issues/1969#issuecomment-5412802660',
+    query:
+      'GitHub Actions REST pull_request runs plus per-run Tests Gate job timestamps',
+    windowStart: '2026-08-25T17:01:39Z',
+    windowEnd: '2026-08-25T23:07:48Z',
+    completedRuns: 27,
+    successfulRuns: 6,
+    successfulRunIds: [
+      32908568338, 32906926837, 32905631064, 32904547589, 32902363083,
+      32896295975,
+    ],
+    observedMedianMinutes: 9.64,
+    observedP95Minutes: 19.02,
+  });
   assert.ok(
-    budget.ratchetTargetMinutes.median <= budget.operatingBudgetMinutes.median,
-    'the median ratchet may only tighten the operating budget',
-  );
-  assert.ok(
-    budget.ratchetTargetMinutes.p95 <= budget.operatingBudgetMinutes.p95,
-    'the p95 ratchet may only tighten the operating budget',
+    latest.evidence.successfulRuns < budget.measurement.minimumSuccessfulHeads,
   );
 });
 
