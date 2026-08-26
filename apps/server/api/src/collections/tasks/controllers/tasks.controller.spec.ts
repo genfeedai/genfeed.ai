@@ -7,7 +7,6 @@ import type { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
 import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { TaskSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -32,9 +31,6 @@ describe('TasksController', () => {
   };
   let taskCountersService: { getNextNumber: ReturnType<typeof vi.fn> };
   let organizationsService: { findOne: ReturnType<typeof vi.fn> };
-  let agentOrchestratorService: {
-    runAgent: ReturnType<typeof vi.fn>;
-  };
   let loggerService: {
     debug: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
@@ -78,9 +74,6 @@ describe('TasksController', () => {
     organizationsService = {
       findOne: vi.fn(),
     };
-    agentOrchestratorService = {
-      runAgent: vi.fn(),
-    };
     loggerService = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -93,7 +86,6 @@ describe('TasksController', () => {
       tasksService as unknown as TasksService,
       taskCountersService as unknown as TaskCountersService,
       organizationsService as unknown as OrganizationsService,
-      agentOrchestratorService as unknown as AgentOrchestratorService,
     );
 
     vi.spyOn(TaskSerializer, 'serialize').mockImplementation(

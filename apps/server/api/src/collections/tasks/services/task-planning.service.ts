@@ -7,9 +7,16 @@ import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import { type TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import type { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
+import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import { serializeWorkspaceTaskDate } from '@genfeedai/serializers';
 import { scopedWhere } from '@genfeedai/server';
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 const PLANNING_THREAD_SOURCE_PREFIX = 'workspace-planning:';
 const PLANNING_THREAD_TITLE_PREFIX = 'Plan next steps: ';
@@ -41,6 +48,9 @@ export class TaskPlanningService {
     private readonly agentRunsService: AgentRunsService,
     private readonly taskCountersService: TaskCountersService,
     private readonly organizationsService: OrganizationsService,
+    private readonly agentOrchestratorService: AgentOrchestratorService,
+    @Optional()
+    private readonly workspaceTaskQueueService?: WorkspaceTaskQueueService,
   ) {}
 
   async openPlanningThread(
@@ -59,6 +69,7 @@ export class TaskPlanningService {
       organizationId,
     );
 
+    let planThread: PlanningThreadResult;
     if (existingThreadId) {
       await this.agentThreadsService.updateThreadMetadata(
         existingThreadId,
@@ -69,7 +80,7 @@ export class TaskPlanningService {
           title: this.buildPlanningThreadTitle(task.title),
         },
       );
-      return {
+      planThread = {
         created: false,
         seeded: await this.shouldSeedPlanningThread(
           existingThreadId,
@@ -77,24 +88,28 @@ export class TaskPlanningService {
         ),
         threadId: existingThreadId,
       };
+    } else {
+      const thread = await this.agentThreadsService.create({
+        organizationId,
+        planModeEnabled: true,
+        source: this.buildPlanningThreadSource(id),
+        systemPrompt,
+        title: this.buildPlanningThreadTitle(task.title),
+        userId,
+      } as Record<string, unknown>);
+
+      const threadId = (thread as Record<string, unknown>).id as string;
+      await this.tasksService.patch(id, {
+        planningThreadId: threadId,
+      } as Record<string, unknown>);
+      planThread = { created: true, seeded: true, threadId };
     }
 
-    const thread = await this.agentThreadsService.create({
-      organizationId,
-      planModeEnabled: true,
-      source: this.buildPlanningThreadSource(id),
-      systemPrompt,
-      title: this.buildPlanningThreadTitle(task.title),
-      userId,
-    } as Record<string, unknown>);
+    if (planThread.seeded) {
+      await this.seedPlanningThread(id, organizationId, userId, planThread);
+    }
 
-    const threadId = (thread as Record<string, unknown>).id as string;
-    await this.tasksService.patch(id, { planningThreadId: threadId } as Record<
-      string,
-      unknown
-    >);
-
-    return { created: true, seeded: true, threadId };
+    return planThread;
   }
 
   async getPlanningPrompt(id: string, organizationId: string): Promise<string> {
@@ -139,7 +154,7 @@ export class TaskPlanningService {
       id: taskOrgId,
     });
 
-    return Promise.all(
+    const tasks = await Promise.all(
       followUpSteps.map(async (step) => {
         const taskNumber =
           await this.taskCountersService.getNextNumber(taskOrgId);
@@ -162,6 +177,48 @@ export class TaskPlanningService {
           userId: string;
         });
       }),
+    );
+
+    const workspaceTaskQueueService = this.workspaceTaskQueueService;
+    if (workspaceTaskQueueService) {
+      await Promise.all(
+        tasks.map((createdTask) => {
+          const taskExt = createdTask as TaskDocument & {
+            outputType?: string;
+            platforms?: string[];
+            request?: string;
+          };
+          return workspaceTaskQueueService.enqueue({
+            brandId: createdTask.brandId ?? undefined,
+            organizationId,
+            outputType: taskExt.outputType,
+            platforms: taskExt.platforms,
+            request: taskExt.request,
+            taskId: createdTask.id.toString(),
+            userId,
+          });
+        }),
+      );
+    }
+
+    return tasks;
+  }
+
+  private async seedPlanningThread(
+    id: string,
+    organizationId: string,
+    userId: string,
+    planThread: PlanningThreadResult,
+  ): Promise<void> {
+    const prompt = await this.getPlanningPrompt(id, organizationId);
+    await this.agentOrchestratorService.chat(
+      {
+        content: prompt,
+        planModeEnabled: true,
+        source: 'agent',
+        threadId: planThread.threadId,
+      },
+      { organizationId, userId },
     );
   }
 
