@@ -2,6 +2,10 @@ import type { ByokProvider } from '@genfeedai/enums';
 import type { Prisma, PrismaClient } from '@genfeedai/prisma';
 
 export type { ServerCredentialStore } from './collections/credentials/credentials.port';
+export type {
+  ServerLinkedInTrend,
+  ServerLinkedInTrendResolver,
+} from './services/integrations/linkedin/linkedin-trends.port';
 
 export const SERVER_TOKENS = {
   analyticsCollectionState: 'SERVER_ANALYTICS_COLLECTION_STATE',
@@ -11,6 +15,7 @@ export const SERVER_TOKENS = {
   customerInstances: 'SERVER_CUSTOMER_INSTANCES',
   instagram: 'SERVER_INSTAGRAM',
   linkedIn: 'SERVER_LINKEDIN',
+  linkedInTrends: 'SERVER_LINKEDIN_TRENDS',
   logger: 'SERVER_LOGGER',
   mastodon: 'SERVER_MASTODON',
   notifications: 'SERVER_NOTIFICATIONS',

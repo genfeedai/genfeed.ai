@@ -1,4 +1,3 @@
-import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { SERVER_TOKENS } from '@genfeedai/server';
@@ -7,6 +6,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { FacebookService } from '@server/services/integrations/facebook/services/facebook.service';
 import { GoogleAdsService } from '@server/services/integrations/google-ads/services/google-ads.service';
 import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
+import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
 import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
 import { RedditService } from '@server/services/integrations/reddit/services/reddit.service';
 import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';

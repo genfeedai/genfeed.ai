@@ -2,12 +2,14 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { LinkedInController } from '@api/services/integrations/linkedin/controllers/linkedin.controller';
-import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { LinkedInAuthorizedSignalsService } from '@api/services/integrations/linkedin/services/linkedin-authorized-signals.service';
+import { LinkedInTrendResolverService } from '@api/services/integrations/linkedin/services/linkedin-trend-resolver.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
+import { SERVER_TOKENS } from '@server/server.dependencies';
+import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
 
 describe('LinkedInModule', () => {
   let _module: TestingModule;
@@ -17,6 +19,7 @@ describe('LinkedInModule', () => {
       controllers: [LinkedInController],
       providers: [
         LinkedInService,
+        LinkedInTrendResolverService,
         {
           provide: ConfigService,
           useValue: {
@@ -55,6 +58,14 @@ describe('LinkedInModule', () => {
           },
         },
         {
+          provide: SERVER_TOKENS.credentials,
+          useExisting: CredentialsService,
+        },
+        {
+          provide: SERVER_TOKENS.linkedInTrends,
+          useExisting: LinkedInTrendResolverService,
+        },
+        {
           provide: LinkedInAuthorizedSignalsService,
           useValue: { refresh: vi.fn() },
         },
@@ -70,5 +81,11 @@ describe('LinkedInModule', () => {
 
   it('should be defined', () => {
     expect(_module).toBeDefined();
+  });
+
+  it('binds the server trend resolver port to the API resolver singleton', () => {
+    expect(_module.get(SERVER_TOKENS.linkedInTrends)).toBe(
+      _module.get(LinkedInTrendResolverService),
+    );
   });
 });

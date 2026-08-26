@@ -18,28 +18,33 @@ vi.mock('linkedin-api-client', () => ({
   }),
 }));
 
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import {
-  LinkedInService,
-  resolveLinkedInVisibility,
-} from '@api/services/integrations/linkedin/services/linkedin.service';
-import {
-  LINKEDIN_DM_NOT_IMPLEMENTED_REASON,
-  LINKEDIN_DM_UNAVAILABLE_REASON,
-} from '@api/services/integrations/linkedin/services/linkedin-inbox.constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+} from '@server/server.dependencies';
+import {
+  LinkedInService,
+  resolveLinkedInVisibility,
+} from '@server/services/integrations/linkedin/services/linkedin.service';
+import {
+  LINKEDIN_DM_NOT_IMPLEMENTED_REASON,
+  LINKEDIN_DM_UNAVAILABLE_REASON,
+} from '@server/services/integrations/linkedin/services/linkedin-inbox.constants';
 import { of, throwError } from 'rxjs';
 
 describe('LinkedInService', () => {
   let service: LinkedInService;
 
   const mockCredentialsService = {
+    findAll: vi.fn(),
+    findBrandAccounts: vi.fn(),
     findOne: vi.fn(),
+    mergeWarmupSignals: vi.fn(),
     patch: vi.fn(),
     // Multi-account resolution routes through `resolveBrandAccount`; the double
     // answers with whatever `findOne` is primed to return so the existing
@@ -47,7 +52,7 @@ describe('LinkedInService', () => {
     resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
       (mockCredentialsService.findOne as vi.Mock)(options),
     ),
-  };
+  } satisfies ServerCredentialStore;
 
   const mockHttpService = {
     get: vi.fn(),
@@ -61,8 +66,8 @@ describe('LinkedInService', () => {
     warn: vi.fn(),
   };
 
-  const mockBrandScraperService = {
-    scrapeLinkedIn: vi.fn(),
+  const mockTrendResolver = {
+    resolve: vi.fn(),
   };
 
   const mockConfig: Record<string, string> = {
@@ -89,9 +94,15 @@ describe('LinkedInService', () => {
           useValue: mockConfigService,
         },
         { provide: LoggerService, useValue: mockLoggerService },
-        { provide: CredentialsService, useValue: mockCredentialsService },
+        {
+          provide: SERVER_TOKENS.credentials,
+          useValue: mockCredentialsService,
+        },
         { provide: HttpService, useValue: mockHttpService },
-        { provide: BrandScraperService, useValue: mockBrandScraperService },
+        {
+          provide: SERVER_TOKENS.linkedInTrends,
+          useValue: mockTrendResolver,
+        },
       ],
     }).compile();
 
@@ -441,68 +452,24 @@ describe('LinkedInService', () => {
   });
 
   describe('getTrends', () => {
-    it('should derive live topics from scraped public LinkedIn pages', async () => {
-      mockBrandScraperService.scrapeLinkedIn.mockResolvedValueOnce({
-        companyName: 'OpenAI',
-        recentPosts: [
-          'We are seeing strong momentum around #AI and enterprise adoption.',
-          'Builders are shipping new workflows for #AI teams.',
-        ],
-        scrapedAt: new Date('2026-03-26T10:00:00.000Z'),
-        sourceUrl: 'https://www.linkedin.com/company/openai/',
-      });
-      mockBrandScraperService.scrapeLinkedIn.mockResolvedValueOnce({
-        companyName: 'Anthropic',
-        recentPosts: [
-          'Teams are investing more in #AI safety and enterprise deployment.',
-        ],
-        scrapedAt: new Date('2026-03-26T10:00:00.000Z'),
-        sourceUrl: 'https://www.linkedin.com/company/anthropic-ai/',
-      });
-      mockBrandScraperService.scrapeLinkedIn.mockResolvedValue({
-        companyName: 'Other',
-        recentPosts: [],
-        scrapedAt: new Date('2026-03-26T10:00:00.000Z'),
-        sourceUrl: 'https://www.linkedin.com/company/other/',
-      });
-
-      const trends = await service.getTrends();
-
-      expect(trends.length).toBeGreaterThan(0);
-      expect(trends[0]?.topic).toBe('#ai');
-      expect(trends[0]?.metadata.source).toBe('public-scrape');
-      expect(trends[0]?.metadata.sourceClassification).toMatchObject({
-        confidence: 'medium',
-        intendedUse: 'organic_trend_discovery',
-        sourceKind: 'public_platform_reference',
-      });
-      expect(trends[0]?.mentions).toBeGreaterThan(1);
-    });
-
-    it('should fall back to configured public reference topics when scraping yields no signal', async () => {
-      mockBrandScraperService.scrapeLinkedIn.mockResolvedValue({
-        companyName: 'Empty',
-        recentPosts: [],
-        scrapedAt: new Date('2026-03-26T10:00:00.000Z'),
-        sourceUrl: 'https://www.linkedin.com/company/empty/',
-      });
-
-      const trends = await service.getTrends('org-123', 'brand-456');
-
-      expect(trends.length).toBeGreaterThan(0);
-      expect(trends[0]).toEqual(
-        expect.objectContaining({
-          metadata: expect.objectContaining({
-            source: 'public-reference',
-            sourceClassification: expect.objectContaining({
-              intendedUse: 'organic_trend_discovery',
-              sourceKind: 'public_platform_reference',
-            }),
-          }),
+    it('delegates public trend resolution through the server port', async () => {
+      const resolvedTrends = [
+        {
+          growthRate: 20,
+          mentions: 1,
+          metadata: { source: 'public-reference' },
           topic: '#openai',
-        }),
+        },
+      ];
+      mockTrendResolver.resolve.mockResolvedValue(resolvedTrends);
+
+      await expect(service.getTrends('org-123', 'brand-456')).resolves.toEqual(
+        resolvedTrends,
       );
-      expect(mockLoggerService.warn).toHaveBeenCalled();
+      expect(mockTrendResolver.resolve).toHaveBeenCalledWith(
+        'org-123',
+        'brand-456',
+      );
     });
   });
 
