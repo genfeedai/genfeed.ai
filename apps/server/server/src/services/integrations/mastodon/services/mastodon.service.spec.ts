@@ -372,7 +372,7 @@ describe('MastodonService', () => {
 
   describe('redirectUri allowlist', () => {
     it('rejects redirect URIs outside the configured app origin', () => {
-      configService.get.mockImplementation((key: string) =>
+      configService.get.mockImplementation((key) =>
         String(key) === 'GENFEEDAI_APP_URL'
           ? 'https://app.genfeed.ai'
           : `mock-${String(key)}`,
@@ -389,7 +389,7 @@ describe('MastodonService', () => {
     });
 
     it('accepts redirect URIs under the configured app origin', () => {
-      configService.get.mockImplementation((key: string) =>
+      configService.get.mockImplementation((key) =>
         String(key) === 'GENFEEDAI_APP_URL'
           ? 'https://app.genfeed.ai///'
           : `mock-${String(key)}`,

@@ -78,18 +78,22 @@ describe('TasksPlanningController', () => {
       (invalidUser: User) =>
         controller.createChildren(request, invalidUser, 'task-1'),
     ],
-  ])('preserves workspace-user validation for %s', async (_name, invoke) => {
-    const invalidUser = {
-      id: 'not-a-workspace-user-id',
-      organizationId: 'org-1',
-    } as User;
+  ])(
+    'preserves missing workspace-user validation for %s',
+    async (_name, invoke) => {
+      const invalidUser = {
+        id: '',
+        organizationId: 'org-1',
+        userId: '',
+      } as User;
 
-    await expect(invoke(invalidUser)).rejects.toThrow(
-      new UnauthorizedException(
-        'Missing workspace user context. Please sign in again.',
-      ),
-    );
-    expect(taskPlanningService.openPlanningThread).not.toHaveBeenCalled();
-    expect(taskPlanningService.createFollowUpTasks).not.toHaveBeenCalled();
-  });
+      await expect(invoke(invalidUser)).rejects.toThrow(
+        new UnauthorizedException(
+          'Missing workspace user context. Please sign in again.',
+        ),
+      );
+      expect(taskPlanningService.openPlanningThread).not.toHaveBeenCalled();
+      expect(taskPlanningService.createFollowUpTasks).not.toHaveBeenCalled();
+    },
+  );
 });

@@ -10,6 +10,11 @@ const mocks = vi.hoisted(() => ({
   handleRequestDeleteReference: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@/lib/analytics', () => ({
   captureBrandOsFunnelStage: mocks.captureBrandOsFunnelStage,
 }));

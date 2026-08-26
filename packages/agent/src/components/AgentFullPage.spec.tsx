@@ -644,6 +644,7 @@ describe('AgentFullPage', () => {
       ),
     });
 
+    const rapidSwitchAt = Date.now();
     const view = render(
       <AgentFullPage apiService={apiService as never} threadId="thread-a" />,
     );
@@ -655,7 +656,10 @@ describe('AgentFullPage', () => {
       );
     });
 
-    vi.useFakeTimers();
+    // Anchor the bounce to the first render. Wall-clock time spent waiting for
+    // the initial assertion must not turn this rapid-switch fixture into a
+    // slow switch on a loaded CI runner.
+    vi.useFakeTimers({ now: rapidSwitchAt });
     try {
       view.rerender(
         <AgentFullPage apiService={apiService as never} threadId="thread-b" />,
