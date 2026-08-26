@@ -10,8 +10,6 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import {
-  getInstagramRetryAfterMs,
-  isInstagramAuthorizationError,
   isInstagramProfessionalAccountError,
   isInstagramRateLimitError,
   isInstagramScopeError,
@@ -22,8 +20,6 @@ import {
   type InstagramAuthorizedSignalEvidence,
   type InstagramAuthorizedSignalReason,
   type InstagramAuthorizedSignalsSnapshot,
-  type InstagramMediaPerformanceSignal,
-  type InstagramOwnedMediaSignal,
   instagramAuthorizedSignalStatusValues,
   instagramAuthorizedSignalsSnapshotSchema,
 } from '@api-types/contracts/instagram-authorized-signals.contract';
@@ -34,22 +30,26 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
+import {
+  InstagramAuthorizedSignalsProvider,
+  type InstagramMediaFetch,
+  type InstagramUserResponse,
+  readHttpUrl,
+  readNonNegativeInteger,
+  readRecord,
+  readString,
+  type SettledResult,
+} from './instagram-authorized-signals.provider';
 
 const INSTAGRAM_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS = 5 * 60;
 const INSTAGRAM_STALE_SIGNALS_CACHE_TTL_SECONDS = 60;
 const INSTAGRAM_AUTHORIZED_SIGNALS_STORAGE_KEY = 'instagramAuthorized';
 const INSTAGRAM_AUTHORIZATION_STORAGE_KEY = 'instagramAuthorization';
-const INSTAGRAM_SIGNAL_MAX_ATTEMPTS = 2;
-const INSTAGRAM_SIGNAL_RETRY_FALLBACK_MS = 1_000;
-const INSTAGRAM_SIGNAL_RETRY_MAX_MS = 5_000;
-const INSTAGRAM_SIGNAL_REQUEST_TIMEOUT_MS = 10_000;
 const INSTAGRAM_MEDIA_LIMIT = 20;
 
 const BASIC_SCOPE = 'instagram_basic';
 const PUBLISH_SCOPE = 'instagram_content_publish';
 const INSIGHTS_SCOPE = 'instagram_manage_insights';
-const PAGES_SCOPE = 'pages_show_list';
 
 const PROFILE_FIELDS = [
   'accountType',
@@ -101,51 +101,6 @@ function toFieldAvailability(
   return Object.fromEntries(entries);
 }
 
-const PROFILE_PROVIDER_FIELDS =
-  'id,username,name,biography,website,profile_picture_url,followers_count,follows_count,media_count,account_type';
-const MEDIA_PROVIDER_FIELDS =
-  'id,caption,media_type,media_product_type,timestamp,permalink,like_count,comments_count,shortcode';
-const MEDIA_INSIGHTS_FIELDS = `${MEDIA_PROVIDER_FIELDS},insights.metric(impressions,reach,saved,shares,total_interactions)`;
-
-interface InstagramUserResponse {
-  account_type?: unknown;
-  biography?: unknown;
-  followers_count?: unknown;
-  follows_count?: unknown;
-  id?: unknown;
-  media_count?: unknown;
-  name?: unknown;
-  profile_picture_url?: unknown;
-  username?: unknown;
-  website?: unknown;
-}
-
-interface InstagramMediaNode {
-  caption?: unknown;
-  comments_count?: unknown;
-  id?: unknown;
-  insights?: {
-    data?: Array<{ name?: unknown; values?: Array<{ value?: unknown }> }>;
-  };
-  like_count?: unknown;
-  media_product_type?: unknown;
-  media_type?: unknown;
-  permalink?: unknown;
-  shortcode?: unknown;
-  timestamp?: unknown;
-}
-
-interface InstagramMediaListResponse {
-  data?: InstagramMediaNode[];
-  paging?: { next?: unknown };
-}
-
-interface InstagramPagesResponse {
-  data?: Array<{
-    instagram_business_account?: InstagramUserResponse;
-  }>;
-}
-
 export interface RefreshInstagramAuthorizedSignalsParams {
   /**
    * Raw (plaintext) OAuth access token from a just-completed token exchange.
@@ -173,50 +128,6 @@ type GenfeedPublishOutcome =
   | 'cancelled'
   | 'skipped';
 
-function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
-
-function readHttpUrl(value: unknown): string | undefined {
-  const candidate = readString(value);
-  if (!candidate) {
-    return undefined;
-  }
-
-  try {
-    const url = new URL(candidate);
-    return ['http:', 'https:'].includes(url.protocol) ? candidate : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function readNonNegativeInteger(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 0
-    ? value
-    : undefined;
-}
-
-function readIsoToUnixSeconds(value: unknown): number | undefined {
-  const candidate = readString(value);
-  if (!candidate) {
-    return undefined;
-  }
-
-  const parsed = Date.parse(candidate);
-  if (!Number.isFinite(parsed)) {
-    return undefined;
-  }
-
-  return Math.max(0, Math.floor(parsed / 1000));
-}
-
 function mapOutcome(value: unknown): GenfeedPublishOutcome | undefined {
   const outcomes = new Set<string>([
     TargetExecutionState.SCHEDULED,
@@ -233,15 +144,6 @@ function mapOutcome(value: unknown): GenfeedPublishOutcome | undefined {
     : undefined;
 }
 
-function insightValue(
-  node: InstagramMediaNode,
-  metric: string,
-): number | undefined {
-  const insights = Array.isArray(node.insights?.data) ? node.insights.data : [];
-  const match = insights.find((item) => item.name === metric);
-  return readNonNegativeInteger(match?.values?.[0]?.value);
-}
-
 function isProfessionalAccountType(accountType: string | undefined): boolean {
   return accountType === 'BUSINESS' || accountType === 'MEDIA_CREATOR';
 }
@@ -251,6 +153,7 @@ export class InstagramAuthorizedSignalsService {
   private readonly graphUrl = 'https://graph.facebook.com';
   private readonly apiVersion: string;
   private readonly constructorName = this.constructor.name;
+  private readonly provider: InstagramAuthorizedSignalsProvider;
 
   constructor(
     private readonly cacheService: CacheService,
@@ -264,6 +167,11 @@ export class InstagramAuthorizedSignalsService {
   ) {
     this.apiVersion =
       this.configService.get('INSTAGRAM_API_VERSION') || 'v24.0';
+    this.provider = new InstagramAuthorizedSignalsProvider(
+      this.httpService,
+      this.graphUrl,
+      this.apiVersion,
+    );
   }
 
   async refresh(
@@ -387,38 +295,16 @@ export class InstagramAuthorizedSignalsService {
       throw error;
     }
 
-    const igUserId = readString(credential.externalId);
-    const profilePromise = grantedScopes.includes(BASIC_SCOPE)
-      ? this.requestWithRetry(() =>
-          this.fetchProfile(accessToken, igUserId, grantedScopes),
-        )
-      : undefined;
-    const mediaPromise = grantedScopes.includes(BASIC_SCOPE)
-      ? this.requestWithRetry(() =>
-          this.fetchMedia(
-            accessToken,
-            igUserId,
-            grantedScopes.includes(INSIGHTS_SCOPE),
-          ),
-        )
-      : undefined;
-
-    const [profileResult, mediaResult] = await Promise.all([
-      this.settle(profilePromise),
-      this.settle(
-        mediaResultOrRetry(mediaPromise, () =>
-          this.requestWithRetry(() =>
-            this.fetchMedia(accessToken, igUserId, false),
-          ),
-        ),
-      ),
-    ]);
-    const providerErrors = [profileResult.error, mediaResult.error].filter(
-      (error) => error !== undefined,
+    const providerResult = await this.provider.fetch(
+      accessToken,
+      readString(credential.externalId),
+      grantedScopes,
+      BASIC_SCOPE,
+      INSIGHTS_SCOPE,
     );
-    const authorizationError = providerErrors.find((error) =>
-      this.isAuthorizationFailure(error),
-    );
+    const { mediaResult, profileResult } = providerResult;
+    const authorizationError =
+      this.provider.findAuthorizationError(providerResult);
 
     if (authorizationError) {
       await this.instagramService.handleAuthorizationError(
@@ -489,240 +375,9 @@ export class InstagramAuthorizedSignalsService {
     );
   }
 
-  private async fetchProfile(
-    accessToken: string,
-    igUserId: string | undefined,
-    grantedScopes: string[],
-  ): Promise<InstagramUserResponse> {
-    const resolvedId = igUserId
-      ? igUserId
-      : await this.resolveIgUserId(accessToken, grantedScopes);
-
-    const response = await firstValueFrom(
-      this.httpService.get<InstagramUserResponse>(
-        `${this.graphUrl}/${this.apiVersion}/${resolvedId}`,
-        {
-          params: {
-            access_token: accessToken,
-            fields: PROFILE_PROVIDER_FIELDS,
-          },
-          timeout: INSTAGRAM_SIGNAL_REQUEST_TIMEOUT_MS,
-        },
-      ),
-    );
-
-    return response.data ?? {};
-  }
-
-  private async resolveIgUserId(
-    accessToken: string,
-    grantedScopes: string[],
-  ): Promise<string> {
-    if (!grantedScopes.includes(PAGES_SCOPE)) {
-      const error = {
-        response: {
-          data: {
-            error: {
-              code: 10,
-              message: 'Missing pages_show_list permission',
-            },
-          },
-          status: 403,
-        },
-      };
-      throw error;
-    }
-
-    const response = await firstValueFrom(
-      this.httpService.get<InstagramPagesResponse>(
-        `${this.graphUrl}/${this.apiVersion}/me/accounts`,
-        {
-          params: {
-            access_token: accessToken,
-            fields:
-              'id,instagram_business_account{id,username,name,account_type}',
-          },
-          timeout: INSTAGRAM_SIGNAL_REQUEST_TIMEOUT_MS,
-        },
-      ),
-    );
-    const pages = Array.isArray(response.data?.data) ? response.data.data : [];
-    const igUserId = pages
-      .map((page) => readString(page.instagram_business_account?.id))
-      .find((id): id is string => Boolean(id));
-
-    if (!igUserId) {
-      throw {
-        response: {
-          data: {
-            error: {
-              code: 10,
-              message:
-                'The Instagram account must be a professional account linked to a Facebook Page',
-            },
-          },
-          status: 400,
-        },
-      };
-    }
-
-    return igUserId;
-  }
-
-  private async fetchMedia(
-    accessToken: string,
-    igUserId: string | undefined,
-    includeInsights: boolean,
-  ): Promise<{
-    hasMore: boolean;
-    rawMediaCount: number;
-    media: InstagramOwnedMediaSignal[];
-    performance: InstagramMediaPerformanceSignal[];
-  }> {
-    if (!igUserId) {
-      throw {
-        response: {
-          data: {
-            error: {
-              code: 10,
-              message: 'Missing Instagram professional account id',
-            },
-          },
-          status: 400,
-        },
-      };
-    }
-
-    const response = await firstValueFrom(
-      this.httpService.get<InstagramMediaListResponse>(
-        `${this.graphUrl}/${this.apiVersion}/${igUserId}/media`,
-        {
-          params: {
-            access_token: accessToken,
-            fields: includeInsights
-              ? MEDIA_INSIGHTS_FIELDS
-              : MEDIA_PROVIDER_FIELDS,
-            limit: INSTAGRAM_MEDIA_LIMIT,
-          },
-          timeout: INSTAGRAM_SIGNAL_REQUEST_TIMEOUT_MS,
-        },
-      ),
-    );
-    const rawMedia = Array.isArray(response.data?.data)
-      ? response.data.data
-      : [];
-
-    return {
-      hasMore: typeof response.data?.paging?.next === 'string',
-      rawMediaCount: rawMedia.length,
-      media: rawMedia.flatMap((node) => {
-        const mapped = this.mapOwnedMedia(node);
-        return mapped ? [mapped] : [];
-      }),
-      performance: rawMedia.flatMap((node) => {
-        const mapped = this.mapMediaPerformance(node);
-        return mapped ? [mapped] : [];
-      }),
-    };
-  }
-
-  private mapOwnedMedia(
-    node: InstagramMediaNode,
-  ): InstagramOwnedMediaSignal | undefined {
-    const id = readString(node.id);
-    if (!id) {
-      return undefined;
-    }
-
-    return {
-      caption: readString(node.caption),
-      commentCount: readNonNegativeInteger(node.comments_count),
-      createTime: readIsoToUnixSeconds(node.timestamp),
-      id,
-      likeCount: readNonNegativeInteger(node.like_count),
-      mediaProductType: readString(node.media_product_type),
-      mediaType: readString(node.media_type),
-      permalink: readHttpUrl(node.permalink),
-      shortcode: readString(node.shortcode),
-    };
-  }
-
-  private mapMediaPerformance(
-    node: InstagramMediaNode,
-  ): InstagramMediaPerformanceSignal | undefined {
-    const id = readString(node.id);
-    if (!id) {
-      return undefined;
-    }
-
-    return {
-      commentCount: readNonNegativeInteger(node.comments_count),
-      id,
-      impressions: insightValue(node, 'impressions'),
-      likeCount: readNonNegativeInteger(node.like_count),
-      reach: insightValue(node, 'reach'),
-      saved: insightValue(node, 'saved'),
-      shares: insightValue(node, 'shares'),
-      totalInteractions: insightValue(node, 'total_interactions'),
-    };
-  }
-
-  private async requestWithRetry<T>(request: () => Promise<T>): Promise<T> {
-    let lastError: unknown;
-
-    for (
-      let attempt = 0;
-      attempt < INSTAGRAM_SIGNAL_MAX_ATTEMPTS;
-      attempt += 1
-    ) {
-      try {
-        return await request();
-      } catch (error: unknown) {
-        lastError = error;
-        if (
-          !isInstagramRateLimitError(error) ||
-          attempt === INSTAGRAM_SIGNAL_MAX_ATTEMPTS - 1
-        ) {
-          throw error;
-        }
-
-        const delayMs = getInstagramRetryAfterMs(
-          error,
-          INSTAGRAM_SIGNAL_RETRY_FALLBACK_MS * 2 ** attempt,
-          INSTAGRAM_SIGNAL_RETRY_MAX_MS,
-        );
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
-    }
-
-    throw lastError;
-  }
-
-  private async settle<T>(
-    promise: Promise<T> | undefined,
-  ): Promise<{ error?: unknown; value?: T }> {
-    if (!promise) {
-      return {};
-    }
-
-    try {
-      return { value: await promise };
-    } catch (error: unknown) {
-      return { error };
-    }
-  }
-
-  private isAuthorizationFailure(error: unknown): boolean {
-    return (
-      !isInstagramScopeError(error) &&
-      !isInstagramProfessionalAccountError(error) &&
-      isInstagramAuthorizationError(error)
-    );
-  }
-
   private buildProfileEvidence(
     grantedScopes: string[],
-    result: { error?: unknown; value?: InstagramUserResponse },
+    result: SettledResult<InstagramUserResponse>,
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): InstagramAuthorizedSignalEvidence {
@@ -776,14 +431,7 @@ export class InstagramAuthorizedSignalsService {
 
   private buildOwnedMediaEvidence(
     grantedScopes: string[],
-    result: {
-      error?: unknown;
-      value?: {
-        hasMore: boolean;
-        rawMediaCount: number;
-        media: InstagramOwnedMediaSignal[];
-      };
-    },
+    result: SettledResult<InstagramMediaFetch>,
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): InstagramAuthorizedSignalEvidence {
@@ -834,7 +482,7 @@ export class InstagramAuthorizedSignalsService {
 
   private buildPublishingCapabilityEvidence(
     grantedScopes: string[],
-    result: { error?: unknown; value?: InstagramUserResponse },
+    result: SettledResult<InstagramUserResponse>,
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): InstagramAuthorizedSignalEvidence {
@@ -898,13 +546,7 @@ export class InstagramAuthorizedSignalsService {
 
   private buildDerivedMediaEvidence(
     ownedMedia: InstagramAuthorizedSignalEvidence,
-    mediaResult: {
-      error?: unknown;
-      value?: {
-        media: InstagramOwnedMediaSignal[];
-        performance: InstagramMediaPerformanceSignal[];
-      };
-    },
+    mediaResult: SettledResult<InstagramMediaFetch>,
     grantedScopes: string[],
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
@@ -943,13 +585,7 @@ export class InstagramAuthorizedSignalsService {
 
   private buildMediaPerformanceEvidence(
     grantedScopes: string[],
-    result: {
-      error?: unknown;
-      value?: {
-        media: InstagramOwnedMediaSignal[];
-        performance: InstagramMediaPerformanceSignal[];
-      };
-    },
+    result: SettledResult<InstagramMediaFetch>,
     ownedMedia: InstagramAuthorizedSignalEvidence,
     previousSnapshot: InstagramAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
@@ -1330,31 +966,5 @@ export class InstagramAuthorizedSignalsService {
       state: snapshot.state,
     });
     return snapshot;
-  }
-}
-
-async function mediaResultOrRetry<T>(
-  promise: Promise<T> | undefined,
-  retryWithoutInsights: () => Promise<T>,
-): Promise<T | undefined> {
-  if (!promise) {
-    return undefined;
-  }
-
-  try {
-    return await promise;
-  } catch (error: unknown) {
-    if (
-      isInstagramAuthorizationError(error) ||
-      isInstagramRateLimitError(error)
-    ) {
-      throw error;
-    }
-
-    try {
-      return await retryWithoutInsights();
-    } catch {
-      throw error;
-    }
   }
 }

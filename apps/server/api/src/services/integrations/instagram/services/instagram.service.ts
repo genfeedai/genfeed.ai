@@ -4,11 +4,7 @@ import {
   getInstagramErrorCode,
   isInstagramAuthorizationError,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
-import {
-  CredentialPlatform,
-  InstagramMediaType,
-  OAuthGrantType,
-} from '@genfeedai/enums';
+import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import {
   buildGrantedScopesCredentialPatch,
   readOAuthTokenScopeField,
@@ -32,6 +28,11 @@ import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
+import {
+  InstagramAnalyticsService,
+  type InstagramMediaAnalytics,
+} from './instagram-analytics.service';
+import { InstagramPublishingService } from './instagram-publishing.service';
 
 function requireString(
   value: string | null | undefined,
@@ -160,6 +161,8 @@ export class InstagramService {
 
   private readonly graphUrl: string = 'https://graph.facebook.com';
   private readonly apiVersion: string;
+  private readonly analyticsService: InstagramAnalyticsService;
+  private readonly publishingService: InstagramPublishingService;
 
   constructor(
     private readonly configService: ConfigService,
@@ -169,16 +172,22 @@ export class InstagramService {
   ) {
     this.apiVersion =
       this.configService.get('INSTAGRAM_API_VERSION') || 'v24.0';
-  }
-
-  /**
-   * Format caption with optional hashtags
-   */
-  private formatCaption(caption: string, hashtags?: string[]): string {
-    if (!hashtags?.length) {
-      return caption;
-    }
-    return `${caption}\n\n${hashtags.map((tag) => `#${tag}`).join(' ')}`;
+    this.publishingService = new InstagramPublishingService(
+      this.httpService,
+      this.loggerService,
+      this.graphUrl,
+      this.apiVersion,
+      (organizationId, brandId, credentialId) =>
+        this.getValidCredential(organizationId, brandId, credentialId),
+    );
+    this.analyticsService = new InstagramAnalyticsService(
+      this.httpService,
+      this.loggerService,
+      this.graphUrl,
+      this.apiVersion,
+      (organizationId, brandId, credentialId) =>
+        this.getValidCredential(organizationId, brandId, credentialId),
+    );
   }
 
   private shouldRefreshAccessToken(expiresAt?: Date | string | null): boolean {
@@ -616,37 +625,13 @@ export class InstagramService {
     message: string,
     credentialId?: string,
   ): Promise<string | undefined> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const credential = await this.getValidCredential(
-        organizationId,
-        brandId,
-        credentialId,
-      );
-      const accessToken = EncryptionUtil.decrypt(credential.accessToken);
-      const externalId = requireString(credential.externalId, 'externalId');
-
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${externalId}/messages`,
-          {
-            message: { text: message },
-            messaging_product: 'instagram',
-            messaging_type: 'RESPONSE',
-            recipient: { id: recipientId },
-          },
-          { params: { access_token: accessToken } },
-        ),
-      );
-
-      this.loggerService.log(`${url} succeeded`, response.data);
-
-      return response.data?.id;
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
+    return this.publishingService.sendCommentReplyDm(
+      organizationId,
+      brandId,
+      recipientId,
+      message,
+      credentialId,
+    );
   }
 
   /**
@@ -661,59 +646,14 @@ export class InstagramService {
     hashtags?: string[],
     credentialId?: string,
   ): Promise<{ mediaId: string; shortcode: string }> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    const credential = await this.getValidCredential(
+    return this.publishingService.uploadImage(
       organizationId,
       brandId,
+      imageUrl,
+      caption,
+      hashtags,
       credentialId,
     );
-    const externalId = requireString(credential.externalId, 'externalId');
-    const accessToken = EncryptionUtil.decrypt(credential.accessToken);
-    const fullCaption = this.formatCaption(caption, hashtags);
-
-    try {
-      const createRes = await firstValueFrom(
-        this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${externalId}/media`,
-          null,
-          {
-            params: {
-              access_token: accessToken,
-              caption: fullCaption,
-              image_url: imageUrl,
-            },
-          },
-        ),
-      );
-
-      const containerId = createRes.data.id;
-
-      const publishRes = await firstValueFrom(
-        this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${externalId}/media_publish`,
-          null,
-          {
-            params: {
-              access_token: accessToken,
-              creation_id: containerId,
-            },
-          },
-        ),
-      );
-
-      this.loggerService.log(`${url} succeeded`, publishRes.data);
-
-      const mediaId = publishRes.data.id;
-
-      // Fetch the shortcode for the published media
-      const shortcode = await this.getMediaShortcode(mediaId, accessToken);
-
-      return { mediaId, shortcode };
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
   }
 
   /**
@@ -734,68 +674,16 @@ export class InstagramService {
     isShareToFeedSelected: boolean = true,
     credentialId?: string,
   ): Promise<{ mediaId: string; shortcode: string }> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    const credential = await this.getValidCredential(
+    return this.publishingService.uploadReel(
       organizationId,
       brandId,
+      videoUrl,
+      caption,
+      coverImageUrl,
+      hashtags,
+      isShareToFeedSelected,
       credentialId,
     );
-    const externalId = requireString(credential.externalId, 'externalId');
-    const accessToken = EncryptionUtil.decrypt(credential.accessToken);
-    const fullCaption = this.formatCaption(caption, hashtags);
-
-    try {
-      const params: Record<string, string | boolean> = {
-        access_token: accessToken,
-        caption: fullCaption,
-        media_type: InstagramMediaType.REELS,
-        share_to_feed: isShareToFeedSelected,
-        video_url: videoUrl,
-      };
-
-      if (coverImageUrl) {
-        params.cover_url = coverImageUrl;
-      }
-
-      const createRes = await firstValueFrom(
-        this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${externalId}/media`,
-          null,
-          { params },
-        ),
-      );
-
-      const containerId = createRes.data.id;
-
-      // Wait for video processing
-      await this.waitForMediaProcessing(externalId, containerId, accessToken);
-
-      const publishRes = await firstValueFrom(
-        this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${externalId}/media_publish`,
-          null,
-          {
-            params: {
-              access_token: accessToken,
-              creation_id: containerId,
-            },
-          },
-        ),
-      );
-
-      this.loggerService.log(`${url} succeeded`, publishRes.data);
-
-      const mediaId = publishRes.data.id;
-
-      // Fetch the shortcode for the published media
-      const shortcode = await this.getMediaShortcode(mediaId, accessToken);
-
-      return { mediaId, shortcode };
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
   }
 
   /**
@@ -809,163 +697,14 @@ export class InstagramService {
     hashtags?: string[],
     credentialId?: string,
   ): Promise<{ mediaId: string; shortcode: string }> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    const credential = await this.getValidCredential(
+    return this.publishingService.uploadCarousel(
       organizationId,
       brandId,
+      mediaUrls,
+      caption,
+      hashtags,
       credentialId,
     );
-    const externalId = requireString(credential.externalId, 'externalId');
-    const accessToken = EncryptionUtil.decrypt(credential.accessToken);
-    const fullCaption = this.formatCaption(caption, hashtags);
-
-    try {
-      // Create container for each image
-      const containerIds = [];
-      for (const mediaUrl of mediaUrls) {
-        const res = await firstValueFrom(
-          this.httpService.post(
-            `${this.graphUrl}/${this.apiVersion}/${externalId}/media`,
-            null,
-            {
-              params: {
-                access_token: accessToken,
-                image_url: mediaUrl,
-                is_carousel_item: true,
-              },
-            },
-          ),
-        );
-        containerIds.push(res.data.id);
-      }
-
-      // Create carousel container
-      const carouselRes = await firstValueFrom(
-        this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${externalId}/media`,
-          null,
-          {
-            params: {
-              access_token: accessToken,
-              caption: fullCaption,
-              children: containerIds.join(','),
-              media_type: InstagramMediaType.CAROUSEL,
-            },
-          },
-        ),
-      );
-
-      const carouselId = carouselRes.data.id;
-
-      // Publish carousel
-      const publishRes = await firstValueFrom(
-        this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${externalId}/media_publish`,
-          null,
-          {
-            params: {
-              access_token: accessToken,
-              creation_id: carouselId,
-            },
-          },
-        ),
-      );
-
-      this.loggerService.log(`${url} succeeded`, publishRes.data);
-
-      const mediaId = publishRes.data.id;
-
-      // Fetch the shortcode for the published media
-      const shortcode = await this.getMediaShortcode(mediaId, accessToken);
-
-      return { mediaId, shortcode };
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
-  }
-
-  private async waitForMediaProcessing(
-    _brandId: string,
-    containerId: string,
-    accessToken: string,
-    maxAttempts: number = 30,
-    delayMs: number = 2000,
-  ): Promise<void> {
-    for (let i = 0; i < maxAttempts; i++) {
-      const statusRes = await firstValueFrom(
-        this.httpService.get(
-          `${this.graphUrl}/${this.apiVersion}/${containerId}`,
-          {
-            params: {
-              access_token: accessToken,
-              fields: 'status_code',
-            },
-          },
-        ),
-      );
-
-      if (statusRes.data.status_code === 'FINISHED') {
-        return;
-      }
-
-      if (statusRes.data.status_code === 'ERROR') {
-        throw new Error('Media processing failed');
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-    }
-
-    throw new Error('Media processing timeout');
-  }
-
-  /**
-   * Fetches the shortcode for a published Instagram media
-   * @param mediaId The numeric media ID returned from the publish API
-   * @param accessToken The decrypted access token
-   * @returns The Instagram shortcode used in URLs (e.g., "DRQxpmXiAEE")
-   */
-  private async getMediaShortcode(
-    mediaId: string,
-    accessToken: string,
-  ): Promise<string> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.graphUrl}/${this.apiVersion}/${mediaId}`, {
-          params: {
-            access_token: accessToken,
-            fields: 'shortcode',
-          },
-        }),
-      );
-
-      const shortcode = response.data?.shortcode;
-
-      if (!shortcode) {
-        this.loggerService.error(
-          `${url} - No shortcode found in response, using numeric ID`,
-          { mediaId },
-        );
-        return mediaId;
-      }
-
-      this.loggerService.log(`${url} - Retrieved shortcode for media`, {
-        mediaId,
-        shortcode,
-      });
-
-      return shortcode;
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${url} - Failed to fetch shortcode, using numeric ID`,
-        { error, mediaId },
-      );
-      // Fall back to numeric ID if shortcode fetch fails
-      return mediaId;
-    }
   }
 
   /**
@@ -1012,40 +751,13 @@ export class InstagramService {
     text: string,
     credentialId?: string,
   ): Promise<{ commentId: string }> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const credential = await this.getValidCredential(
-        organizationId,
-        brandId,
-        credentialId,
-      );
-
-      // Decrypt access token before use
-      const decryptedAccessToken = EncryptionUtil.decrypt(
-        credential.accessToken,
-      );
-
-      const response = await firstValueFrom(
-        this.httpService.post(
-          `${this.graphUrl}/${this.apiVersion}/${mediaId}/comments`,
-          null,
-          {
-            params: {
-              access_token: decryptedAccessToken,
-              message: text,
-            },
-          },
-        ),
-      );
-
-      this.loggerService.log(`${url} succeeded`, response.data);
-
-      return { commentId: response.data.id };
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
+    return this.publishingService.postComment(
+      organizationId,
+      brandId,
+      mediaId,
+      text,
+      credentialId,
+    );
   }
 
   /**
@@ -1060,99 +772,13 @@ export class InstagramService {
     brandId: string,
     mediaId: string,
     credentialId?: string,
-  ): Promise<{
-    views: number;
-    likes: number;
-    comments: number;
-    saves?: number;
-    shares?: number;
-    reach?: number;
-    impressions?: number;
-    engagementRate?: number;
-    mediaType?: InstagramMediaType;
-  }> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const credential = await this.getValidCredential(
-        organizationId,
-        brandId,
-        credentialId,
-      );
-
-      // Decrypt access token before use
-      const decryptedAccessToken = EncryptionUtil.decrypt(
-        credential.accessToken,
-      );
-
-      // Fetch comprehensive media insights
-      // Note: Only request universally available fields + insights (saved, play_count not available on all media types)
-      const response = await firstValueFrom(
-        this.httpService.get(`${this.graphUrl}/${this.apiVersion}/${mediaId}`, {
-          params: {
-            access_token: decryptedAccessToken,
-            fields:
-              'like_count,comments_count,media_type,media_product_type,insights.metric(impressions,reach,saved,shares,total_interactions)',
-          },
-        }),
-      );
-
-      const data = response.data || {};
-      const insights = data.insights?.data || [];
-
-      // Extract insights metrics
-      const getInsightValue = (metricName: string): number => {
-        const insight = (
-          insights as Array<{
-            name: string;
-            values?: Array<{ value: number }>;
-          }>
-        ).find((i) => i.name === metricName);
-        return insight?.values?.[0]?.value || 0;
-      };
-
-      const impressions = getInsightValue('impressions');
-      const reach = getInsightValue('reach');
-      const saves = getInsightValue('saved');
-      const shares = getInsightValue('shares');
-      const totalInteractions = getInsightValue('total_interactions');
-
-      // Calculate engagement rate
-      const engagementRate =
-        impressions > 0
-          ? ((totalInteractions ||
-              data.like_count + data.comments_count + saves) /
-              impressions) *
-            100
-          : 0;
-
-      // Determine media type
-      let mediaType: InstagramMediaType | undefined;
-      if (data.media_product_type === InstagramMediaType.REELS) {
-        mediaType = InstagramMediaType.REELS;
-      } else if (data.media_type) {
-        mediaType = data.media_type as InstagramMediaType;
-      }
-
-      // Use impressions as views for all media types (play_count not available for all types)
-      const views = impressions || 0;
-
-      return {
-        comments: data.comments_count || 0,
-        engagementRate:
-          engagementRate > 0 ? Number(engagementRate.toFixed(2)) : undefined,
-        impressions: impressions || undefined,
-        likes: data.like_count || 0,
-        mediaType,
-        reach: reach || undefined,
-        saves: saves || undefined,
-        shares: shares || undefined,
-        views,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
+  ): Promise<InstagramMediaAnalytics> {
+    return this.analyticsService.getMediaAnalytics(
+      organizationId,
+      brandId,
+      mediaId,
+      credentialId,
+    );
   }
 
   public async replyToComment(

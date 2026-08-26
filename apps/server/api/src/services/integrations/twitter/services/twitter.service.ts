@@ -1,4 +1,3 @@
-import { Buffer } from 'node:buffer';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
@@ -8,11 +7,7 @@ import {
   isTwitterRateLimitError,
   isTwitterScopeOrTierError,
 } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
-import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
-import {
-  type ChannelTargetSettings,
-  readChannelSettingString,
-} from '@api-types/contracts/channel-capabilities.contract';
+import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import {
   ActivityKey,
   ActivitySource,
@@ -29,193 +24,32 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
 import { TwitterApi } from 'twitter-api-v2';
+import { TwitterAnalyticsService } from './twitter-analytics.service';
 import {
-  type TwitterAnalyticsResponse,
+  type TwitterDirectMessageListing,
+  TwitterInboxService,
+  type TwitterInboxTweet,
+} from './twitter-inbox.service';
+import { TwitterPublishingService } from './twitter-publishing.service';
+import {
+  TwitterReadService,
+  type TwitterResolvedUser,
+} from './twitter-read.service';
+import {
   type TwitterAnalyticsResult,
   TwitterResponseMapper,
-  type TwitterSearchResponse,
-  type TwitterTrendResponse,
   type TwitterTrendResult,
   type TwitterUserResponse,
-  type TwitterUsersResponse,
 } from './twitter-response.mapper';
 
-interface TwitterApiErrorShape {
-  code?: number;
-  status?: number;
-  message?: string;
-  data?: unknown;
-  rateLimit?: { limit?: string; remaining?: string; reset?: string };
-  headers?: Record<string, string>;
-  rateLimitReset?: Date;
-  rateLimitWaitMs?: number;
-}
-
-export type TwitterInboxTweet = {
-  tweetId: string;
-  conversationId: string;
-  text: string;
-  createdAt: Date;
-  authorId?: string;
-  authorUsername?: string;
-  authorName?: string;
-  authorAvatarUrl?: string;
-  inReplyToId: string | null;
-};
-
-export type TwitterInboxDmMessage = {
-  messageId: string;
-  text: string;
-  createdAt: Date;
-  senderId?: string;
-  senderUsername?: string;
-  senderName?: string;
-};
-
-export type TwitterInboxDmThread = {
-  conversationId: string;
-  participantExternalId?: string;
-  participantUsername?: string;
-  participantName?: string;
-  messages: TwitterInboxDmMessage[];
-};
-
-export type TwitterDirectMessageListing = {
-  nextToken?: string;
-  threads: TwitterInboxDmThread[];
-};
-
-type TwitterUserInclude = {
-  id: string;
-  username?: string;
-  name?: string;
-  profile_image_url?: string;
-};
-
-type TwitterMentionsResponse = {
-  data?: Array<{
-    id: string;
-    text?: string;
-    created_at?: string;
-    author_id?: string;
-    conversation_id?: string;
-    referenced_tweets?: Array<{ type: string; id: string }>;
-  }>;
-  includes?: { users?: TwitterUserInclude[] };
-};
-
-type TwitterDmEventsResponse = {
-  data?: Array<{
-    id?: string;
-    text?: string;
-    created_at?: string;
-    sender_id?: string;
-    event_type?: string;
-    dm_conversation_id?: string;
-  }>;
-  includes?: { users?: TwitterUserInclude[] };
-  meta?: { next_token?: string; result_count?: number };
-};
-
-function toGraphDate(value?: string): Date {
-  const parsed = value ? new Date(value) : new Date();
-  return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
-}
-
-function toInboxTweets(
-  result: TwitterMentionsResponse,
-  accountId: string,
-): TwitterInboxTweet[] {
-  const usersById = new Map(
-    (result.includes?.users ?? []).map((user) => [user.id, user]),
-  );
-
-  return (result.data ?? []).flatMap((tweet) => {
-    if (!tweet.id || !tweet.text || tweet.author_id === accountId) {
-      return [];
-    }
-
-    const author = usersById.get(tweet.author_id ?? '');
-    const repliedTo = tweet.referenced_tweets?.find(
-      (ref) => ref.type === 'replied_to',
-    );
-
-    return [
-      {
-        authorAvatarUrl: author?.profile_image_url,
-        authorId: tweet.author_id,
-        authorName: author?.name,
-        authorUsername: author?.username,
-        conversationId: tweet.conversation_id ?? tweet.id,
-        createdAt: toGraphDate(tweet.created_at),
-        inReplyToId: repliedTo?.id ?? null,
-        text: tweet.text ?? '',
-        tweetId: tweet.id,
-      },
-    ];
-  });
-}
-
-function toInboxDmThreads(
-  result: TwitterDmEventsResponse,
-  accountId: string,
-): TwitterInboxDmThread[] {
-  const usersById = new Map(
-    (result.includes?.users ?? []).map((user) => [user.id, user]),
-  );
-  const threads = new Map<string, TwitterInboxDmThread>();
-
-  for (const event of result.data ?? []) {
-    if (
-      !event.id ||
-      !event.dm_conversation_id ||
-      !event.text ||
-      event.sender_id === accountId
-    ) {
-      continue;
-    }
-
-    const sender = usersById.get(event.sender_id ?? '');
-    const existing = threads.get(event.dm_conversation_id);
-    const message: TwitterInboxDmMessage = {
-      createdAt: toGraphDate(event.created_at),
-      messageId: event.id,
-      senderId: event.sender_id,
-      senderName: sender?.name,
-      senderUsername: sender?.username,
-      text: event.text,
-    };
-
-    if (existing) {
-      existing.messages.push(message);
-      continue;
-    }
-
-    threads.set(event.dm_conversation_id, {
-      conversationId: event.dm_conversation_id,
-      messages: [message],
-      participantExternalId: event.sender_id,
-      participantName: sender?.name,
-      participantUsername: sender?.username,
-    });
-  }
-
-  return [...threads.values()];
-}
-
-interface TweetMediaOptions {
-  media: {
-    media_ids:
-      | [string]
-      | [string, string]
-      | [string, string, string]
-      | [string, string, string, string];
-  };
-  quote_tweet_id?: string;
-  reply_settings?: string;
-}
+export type {
+  TwitterDirectMessageListing,
+  TwitterInboxDmMessage,
+  TwitterInboxDmThread,
+  TwitterInboxTweet,
+} from './twitter-inbox.service';
+export { resolveTwitterReplySettings } from './twitter-publishing.service';
 
 /**
  * Catalog reply-policy values translated to Twitter's `reply_settings`
@@ -223,20 +57,6 @@ interface TweetMediaOptions {
  * the field, and sending an unknown value rejects the whole tweet.
  */
 const TWITTER_TOKEN_REFRESH_BUFFER_MS = 15 * 60 * 1000;
-
-const TWITTER_REPLY_SETTINGS_BY_POLICY: Record<string, string> = {
-  following: 'following',
-  mentioned: 'mentionedUsers',
-};
-
-export function resolveTwitterReplySettings(
-  settings: ChannelTargetSettings,
-): string | undefined {
-  const policy = readChannelSettingString(settings, 'replyPolicy');
-  return policy === undefined
-    ? undefined
-    : TWITTER_REPLY_SETTINGS_BY_POLICY[policy];
-}
 
 function requireString(
   value: string | null | undefined,
@@ -252,6 +72,10 @@ function requireString(
 @Injectable()
 export class TwitterService {
   private readonly constructorName: string = String(this.constructor.name);
+  private readonly analyticsService: TwitterAnalyticsService;
+  private readonly inboxService: TwitterInboxService;
+  private readonly publishingService: TwitterPublishingService;
+  private readonly readService: TwitterReadService;
 
   public twitterClient: TwitterApi;
 
@@ -267,6 +91,29 @@ export class TwitterService {
     this.twitterClient = new TwitterApi(
       // @ts-expect-error TS2769
       this.configService.get('TWITTER_BEARER_TOKEN'),
+    );
+    this.analyticsService = new TwitterAnalyticsService(
+      this.configService,
+      this.loggerService,
+      this.responseMapper,
+      () => this.twitterClient,
+    );
+    this.inboxService = new TwitterInboxService(
+      this.loggerService,
+      (organizationId, brandId, credentialId) =>
+        this.refreshToken(organizationId, brandId, credentialId),
+      (tweetId, options) => this.getTweetReplies(tweetId, options),
+    );
+    this.publishingService = new TwitterPublishingService(
+      this.httpService,
+      this.loggerService,
+      (organizationId, brandId, credentialId) =>
+        this.refreshToken(organizationId, brandId, credentialId),
+    );
+    this.readService = new TwitterReadService(
+      this.loggerService,
+      this.responseMapper,
+      () => this.twitterClient,
     );
   }
 
@@ -486,55 +333,16 @@ export class TwitterService {
     query: string,
     options: { maxResults?: number; sortOrder?: 'relevancy' | 'recency' } = {},
   ): Promise<ITwitterSearchResult[]> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const { maxResults = 10, sortOrder = 'relevancy' } = options;
-
-    try {
-      const result = await this.twitterClient.v2.search(query, {
-        expansions: 'author_id',
-        max_results: maxResults,
-        sort_order: sortOrder,
-        'tweet.fields': 'author_id,created_at,public_metrics,entities',
-        'user.fields': 'username,name',
-      });
-
-      const tweets = this.responseMapper.mapSearchResults(
-        result as unknown as TwitterSearchResponse,
-      );
-
-      this.loggerService.log(
-        `${url} found ${tweets.length} tweets for query "${query}"`,
-      );
-
-      return tweets;
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
+    return this.readService.searchRecentTweets(query, options);
   }
 
   /**
    * Resolve a Twitter user by username.
    */
-  public async getUserByUsername(username: string): Promise<{
-    id: string;
-    username: string;
-    name?: string;
-    followersCount?: number;
-  } | null> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const result = (await this.twitterClient.v2.get(
-        `users/by/username/${encodeURIComponent(username.replace(/^@/, ''))}`,
-        { 'user.fields': 'public_metrics' },
-      )) as TwitterUserResponse;
-
-      return this.responseMapper.mapUser(result);
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-      throw error;
-    }
+  public async getUserByUsername(
+    username: string,
+  ): Promise<TwitterResolvedUser | null> {
+    return this.readService.getUserByUsername(username);
   }
 
   /**
@@ -848,31 +656,11 @@ export class TwitterService {
   public async getFollowers(
     userId: string,
     options: { maxResults?: number } = {},
-  ): Promise<
-    Array<{
-      id: string;
-      username: string;
-      name?: string;
-      followersCount?: number;
-    }>
-  > {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const { maxResults = 10 } = options;
-
-    try {
-      const result = (await this.twitterClient.v2.get(
-        `users/${userId}/followers`,
-        {
-          max_results: Math.min(maxResults, 100),
-          'user.fields': 'public_metrics',
-        },
-      )) as TwitterUsersResponse;
-
-      return this.responseMapper.mapUsers(result);
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-      throw error;
-    }
+  ): Promise<TwitterResolvedUser[]> {
+    return this.readService.getUsers(
+      `users/${userId}/followers`,
+      options.maxResults,
+    );
   }
 
   /**
@@ -881,31 +669,11 @@ export class TwitterService {
   public async getTweetLikingUsers(
     tweetId: string,
     options: { maxResults?: number } = {},
-  ): Promise<
-    Array<{
-      id: string;
-      username: string;
-      name?: string;
-      followersCount?: number;
-    }>
-  > {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const { maxResults = 10 } = options;
-
-    try {
-      const result = (await this.twitterClient.v2.get(
-        `tweets/${tweetId}/liking_users`,
-        {
-          max_results: Math.min(maxResults, 100),
-          'user.fields': 'public_metrics',
-        },
-      )) as TwitterUsersResponse;
-
-      return this.responseMapper.mapUsers(result);
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-      throw error;
-    }
+  ): Promise<TwitterResolvedUser[]> {
+    return this.readService.getUsers(
+      `tweets/${tweetId}/liking_users`,
+      options.maxResults,
+    );
   }
 
   /**
@@ -914,31 +682,11 @@ export class TwitterService {
   public async getTweetRetweetedBy(
     tweetId: string,
     options: { maxResults?: number } = {},
-  ): Promise<
-    Array<{
-      id: string;
-      username: string;
-      name?: string;
-      followersCount?: number;
-    }>
-  > {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const { maxResults = 10 } = options;
-
-    try {
-      const result = (await this.twitterClient.v2.get(
-        `tweets/${tweetId}/retweeted_by`,
-        {
-          max_results: Math.min(maxResults, 100),
-          'user.fields': 'public_metrics',
-        },
-      )) as TwitterUsersResponse;
-
-      return this.responseMapper.mapUsers(result);
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-      throw error;
-    }
+  ): Promise<TwitterResolvedUser[]> {
+    return this.readService.getUsers(
+      `tweets/${tweetId}/retweeted_by`,
+      options.maxResults,
+    );
   }
 
   public async getTrends(
@@ -946,48 +694,7 @@ export class TwitterService {
     brandId?: string,
     woeid = 1,
   ): Promise<TwitterTrendResult[]> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      // Use bearer token for public trends instead of user auth
-      // NOTE: This endpoint requires Twitter API Pro tier access
-      const res = await this.twitterClient.v1.trendsByPlace(woeid);
-
-      return this.responseMapper.mapTrends(
-        res as unknown as TwitterTrendResponse[],
-        organizationId,
-        brandId,
-      );
-    } catch (error: unknown) {
-      const errorObject = error as TwitterApiErrorShape;
-
-      // Check if this is an API access level error (403/453)
-      const isAccessLevelError =
-        errorObject?.code === 453 ||
-        errorObject?.status === 403 ||
-        (errorObject?.message &&
-          (errorObject.message.includes('access level') ||
-            errorObject.message.includes('453') ||
-            errorObject.message.includes('different access level')));
-
-      if (isAccessLevelError) {
-        this.loggerService.warn(
-          `${url} requires X API credits (PAYG). Returning empty results.`,
-          {
-            code: errorObject?.code,
-            error: errorObject?.message,
-            solution:
-              'Add X API credits to your Developer Console: https://docs.x.com/x-api/getting-started/pricing',
-            status: errorObject?.status,
-          },
-        );
-      } else {
-        this.loggerService.error(`${url} failed`, error);
-      }
-
-      // Return empty array - no fake data
-      return [];
-    }
+    return this.readService.getTrends(organizationId, brandId, woeid);
   }
 
   /**
@@ -1000,46 +707,12 @@ export class TwitterService {
     options: { limit?: number; sinceId?: string } = {},
     credentialId?: string,
   ): Promise<TwitterInboxTweet[]> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const credential = await this.refreshToken(
+    return this.inboxService.listMentions(
       organizationId,
       brandId,
+      options,
       credentialId,
     );
-    const accessToken = EncryptionUtil.decrypt(
-      requireString(credential.accessToken, 'accessToken'),
-    );
-    const userId = requireString(credential.externalId, 'externalId');
-    const maxResults = Math.min(Math.max(options.limit ?? 25, 5), 100);
-    const client = new TwitterApi(accessToken);
-
-    try {
-      const params: Record<string, string | number> = {
-        expansions: 'author_id',
-        max_results: maxResults,
-        'tweet.fields':
-          'author_id,created_at,conversation_id,referenced_tweets,in_reply_to_user_id',
-        'user.fields': 'username,name,profile_image_url',
-      };
-      if (options.sinceId) {
-        params.since_id = options.sinceId;
-      }
-
-      const result = (await client.v2.get(
-        `users/${userId}/mentions`,
-        params,
-      )) as TwitterMentionsResponse;
-
-      const tweets = toInboxTweets(result, userId);
-      this.loggerService.log(`${caller} found ${tweets.length} mentions`, {
-        sinceId: options.sinceId,
-        userId,
-      });
-      return tweets;
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-      throw error;
-    }
   }
 
   /**
@@ -1052,39 +725,13 @@ export class TwitterService {
     options: { limit?: number; sinceId?: string } = {},
     credentialId?: string,
   ): Promise<TwitterInboxTweet[]> {
-    const credential = await this.refreshToken(
+    return this.inboxService.listPostReplies(
       organizationId,
       brandId,
+      tweetId,
+      options,
       credentialId,
     );
-    const accessToken = EncryptionUtil.decrypt(
-      requireString(credential.accessToken, 'accessToken'),
-    );
-    const accountId = requireString(credential.externalId, 'externalId');
-    const replies = await this.getTweetReplies(tweetId, {
-      accessToken,
-      maxResults: options.limit,
-      sinceId: options.sinceId,
-    });
-
-    return replies.flatMap((reply) => {
-      if (reply.authorId === accountId) {
-        return [];
-      }
-
-      return [
-        {
-          authorId: reply.authorId,
-          authorName: reply.authorName,
-          authorUsername: reply.authorUsername,
-          conversationId: tweetId,
-          createdAt: reply.createdAt ?? new Date(),
-          inReplyToId: reply.inReplyToId,
-          text: reply.text,
-          tweetId: reply.id,
-        } satisfies TwitterInboxTweet,
-      ];
-    });
   }
 
   /**
@@ -1097,48 +744,12 @@ export class TwitterService {
     options: { limit?: number; paginationToken?: string } = {},
     credentialId?: string,
   ): Promise<TwitterDirectMessageListing> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const credential = await this.refreshToken(
+    return this.inboxService.listDirectMessages(
       organizationId,
       brandId,
+      options,
       credentialId,
     );
-    const accessToken = EncryptionUtil.decrypt(
-      requireString(credential.accessToken, 'accessToken'),
-    );
-    const accountId = requireString(credential.externalId, 'externalId');
-    const maxResults = Math.min(Math.max(options.limit ?? 25, 1), 100);
-    const client = new TwitterApi(accessToken);
-
-    try {
-      const params: Record<string, string | number> = {
-        'dm_event.fields':
-          'id,text,event_type,dm_conversation_id,sender_id,created_at',
-        event_types: 'MessageCreate',
-        expansions: 'sender_id',
-        max_results: maxResults,
-        'user.fields': 'username,name',
-      };
-      if (options.paginationToken) {
-        params.pagination_token = options.paginationToken;
-      }
-
-      const result = (await client.v2.get(
-        'dm_events',
-        params,
-      )) as TwitterDmEventsResponse;
-      const threads = toInboxDmThreads(result, accountId);
-      const nextToken = result.meta?.next_token;
-
-      this.loggerService.log(`${caller} found ${threads.length} DM threads`, {
-        accountId,
-        paginationToken: options.paginationToken,
-      });
-      return nextToken ? { nextToken, threads } : { threads };
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-      throw error;
-    }
   }
 
   /**
@@ -1155,29 +766,13 @@ export class TwitterService {
     message: string,
     credentialId?: string,
   ): Promise<void> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const credential = await this.refreshToken(
-        organizationId,
-        brandId,
-        credentialId,
-      );
-      const accessToken = requireString(credential.accessToken, 'accessToken');
-
-      // OAuth 2.0: single bearer token
-      const decryptedAccessToken = EncryptionUtil.decrypt(accessToken);
-      const userClient = new TwitterApi(decryptedAccessToken);
-
-      await userClient.v2.sendDmInConversation(recipientId, {
-        text: message,
-      });
-
-      this.loggerService.log(`${url} success`, { recipientId });
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
+    return this.inboxService.sendCommentReplyDm(
+      organizationId,
+      brandId,
+      recipientId,
+      message,
+      credentialId,
+    );
   }
 
   /**
@@ -1195,84 +790,16 @@ export class TwitterService {
     settings: ChannelTargetSettings = {},
     credentialId?: string,
   ): Promise<string> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const credential = await this.refreshToken(
-        organizationId,
-        brandId,
-        credentialId,
-      );
-      const accessToken = requireString(credential.accessToken, 'accessToken');
-
-      // OAuth 2.0: single bearer token
-      const decryptedAccessToken = EncryptionUtil.decrypt(accessToken);
-      const userClient = new TwitterApi(decryptedAccessToken);
-
-      // Twitter allows max 4 images in a tweet
-      if (mediaUrls.length > 4) {
-        throw new Error('Twitter supports maximum 4 images per tweet');
-      }
-
-      // Upload all media files
-      const mediaIds: string[] = [];
-      for (const url of mediaUrls) {
-        const mediaRes = await firstValueFrom(
-          this.httpService.get(url, {
-            responseType: 'arraybuffer',
-          }),
-        );
-
-        const mediaId = await userClient.v2.uploadMedia(
-          Buffer.from(mediaRes.data),
-          { media_type: mediaType },
-        );
-
-        mediaIds.push(mediaId);
-      }
-
-      // Convert HTML caption to plain text (preserves line breaks)
-      const plainTextCaption = htmlToText(caption);
-
-      // Post tweet with all media
-      // Type assertion: Twitter API expects tuple of 1-4 strings, not string[]
-      const tweetOptions: TweetMediaOptions = {
-        media: {
-          media_ids: mediaIds as
-            | [string]
-            | [string, string]
-            | [string, string, string]
-            | [string, string, string, string],
-        },
-      };
-
-      // Add quote tweet if provided
-      if (quoteTweetId) {
-        tweetOptions.quote_tweet_id = quoteTweetId;
-      }
-
-      const replySettings = resolveTwitterReplySettings(settings);
-      if (replySettings) {
-        tweetOptions.reply_settings = replySettings;
-      }
-
-      const tweetRes = await userClient.v2.tweet(
-        plainTextCaption,
-        tweetOptions,
-      );
-
-      const tweetId = tweetRes?.data?.id;
-
-      this.loggerService.log(`${url} success`, {
-        mediaCount: mediaIds.length,
-        tweetId,
-      });
-
-      return tweetId;
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
+    return this.publishingService.uploadMedia(
+      organizationId,
+      brandId,
+      mediaUrls,
+      caption,
+      mediaType,
+      quoteTweetId,
+      settings,
+      credentialId,
+    );
   }
 
   /**
@@ -1291,49 +818,14 @@ export class TwitterService {
     settings: ChannelTargetSettings = {},
     credentialId?: string,
   ): Promise<string> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const credential = await this.refreshToken(
-        organizationId,
-        brandId,
-        credentialId,
-      );
-      const accessToken = requireString(credential.accessToken, 'accessToken');
-
-      const decryptedAccessToken = EncryptionUtil.decrypt(accessToken);
-      const userClient = new TwitterApi(decryptedAccessToken);
-
-      const plainTextContent = htmlToText(text);
-
-      const tweetOptions: Record<string, unknown> = {};
-      if (inReplyToTweetId) {
-        tweetOptions.reply = { in_reply_to_tweet_id: inReplyToTweetId };
-      }
-
-      // A reply inherits the parent tweet's audience, so the policy only
-      // applies to the root tweet.
-      const replySettings = inReplyToTweetId
-        ? undefined
-        : resolveTwitterReplySettings(settings);
-      if (replySettings) {
-        tweetOptions.reply_settings = replySettings;
-      }
-
-      const tweetRes = await userClient.v2.tweet(
-        plainTextContent,
-        tweetOptions,
-      );
-
-      const tweetId = tweetRes?.data?.id;
-
-      this.loggerService.log(`${caller} success`, { tweetId });
-
-      return tweetId;
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-      throw error;
-    }
+    return this.publishingService.postTweet(
+      organizationId,
+      brandId,
+      text,
+      inReplyToTweetId,
+      settings,
+      credentialId,
+    );
   }
 
   /**
@@ -1416,27 +908,12 @@ export class TwitterService {
     tweetId: string,
     credentialId?: string,
   ): Promise<{ reposted: boolean; tweetId: string }> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    try {
-      const credential = await this.refreshToken(
-        organizationId,
-        brandId,
-        credentialId,
-      );
-      const accessToken = requireString(credential.accessToken, 'accessToken');
-      const userClient = new TwitterApi(EncryptionUtil.decrypt(accessToken));
-
-      // v2 retweet: POST /2/users/:id/retweets
-      const me = await userClient.v2.me();
-      const userId = me.data.id;
-      await userClient.v2.retweet(userId, tweetId);
-
-      this.loggerService.log(`${caller} success`, { tweetId, userId });
-      return { reposted: true, tweetId };
-    } catch (error: unknown) {
-      this.loggerService.error(`${caller} failed`, error);
-      throw error;
-    }
+    return this.publishingService.repostTweet(
+      organizationId,
+      brandId,
+      tweetId,
+      credentialId,
+    );
   }
 
   /**
@@ -1451,69 +928,11 @@ export class TwitterService {
     accessToken?: string,
     accessTokenSecret?: string,
   ): Promise<TwitterAnalyticsResult> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      let client = this.twitterClient;
-
-      // Use user client if credentials provided for more detailed metrics
-      if (accessToken && accessTokenSecret) {
-        client = new TwitterApi({
-          // @ts-expect-error TS2769
-          accessSecret: accessTokenSecret,
-          accessToken,
-          appKey: this.configService.get('TWITTER_CONSUMER_KEY'),
-          appSecret: this.configService.get('TWITTER_CONSUMER_SECRET'),
-        });
-      }
-
-      const fields = 'public_metrics,non_public_metrics,organic_metrics';
-
-      // Fetch tweet with all available metrics and media information
-      const res = await client.v2.get('tweets', {
-        expansions: 'attachments.media_keys',
-        ids: tweetId,
-        'media.fields': `${fields},type`,
-        'tweet.fields': `${fields},attachments`,
-      });
-
-      return this.responseMapper.mapAnalytics(
-        res as unknown as TwitterAnalyticsResponse,
-      );
-    } catch (error: unknown) {
-      // Handle rate limit (429) errors first - don't log as error
-      const errorObject = error as TwitterApiErrorShape;
-      if (errorObject?.rateLimit || errorObject?.code === 429) {
-        const rateLimit = errorObject?.rateLimit || {
-          limit: errorObject?.headers?.['x-rate-limit-limit'],
-          remaining: errorObject?.headers?.['x-rate-limit-remaining'],
-          reset: errorObject?.headers?.['x-rate-limit-reset'],
-        };
-
-        if (rateLimit.reset) {
-          const resetTime = new Date(parseInt(rateLimit.reset, 10) * 1000);
-          const waitTime = Math.max(0, resetTime.getTime() - Date.now());
-
-          // Add rate limit info to error for upstream handling
-          errorObject.rateLimitReset = resetTime;
-          errorObject.rateLimitWaitMs = waitTime;
-
-          // Only log rate limit warning, not an error
-          this.loggerService.warn(
-            `${url} rate limited - reset at ${resetTime.toISOString()} (${Math.round(waitTime / 1000)}s wait)`,
-            { rateLimit },
-          );
-        }
-
-        throw error;
-      }
-
-      // Log non-rate-limit errors
-      const errorData = errorObject?.data || error;
-      this.loggerService.error(`${url} failed`, errorData);
-
-      throw error;
-    }
+    return this.analyticsService.getMediaAnalytics(
+      tweetId,
+      accessToken,
+      accessTokenSecret,
+    );
   }
 
   /**
@@ -1528,84 +947,10 @@ export class TwitterService {
     accessToken?: string,
     accessTokenSecret?: string,
   ): Promise<Map<string, TwitterAnalyticsResult>> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    if (tweetIds.length === 0) {
-      return new Map();
-    }
-
-    if (tweetIds.length > 100) {
-      throw new Error('Twitter API supports maximum 100 tweet IDs per request');
-    }
-
-    try {
-      let client = this.twitterClient;
-
-      // Use user client if credentials provided for more detailed metrics
-      if (accessToken && accessTokenSecret) {
-        client = new TwitterApi({
-          // @ts-expect-error TS2769
-          accessSecret: accessTokenSecret,
-          accessToken,
-          appKey: this.configService.get('TWITTER_CONSUMER_KEY'),
-          appSecret: this.configService.get('TWITTER_CONSUMER_SECRET'),
-        });
-      }
-
-      const fields = 'public_metrics,non_public_metrics,organic_metrics';
-
-      // Fetch multiple tweets with all available metrics and media information
-      const res = await client.v2.get('tweets', {
-        expansions: 'attachments.media_keys',
-        ids: tweetIds.join(','),
-        'media.fields': `${fields},type`,
-        'tweet.fields': `${fields},attachments`,
-      });
-
-      this.loggerService.log('Twitter API  client.v2.get tweets', res);
-
-      const results = this.responseMapper.mapAnalyticsBatch(
-        res as unknown as TwitterAnalyticsResponse,
-      );
-
-      this.loggerService.log(
-        `${url} success - fetched analytics for ${results.size} tweets`,
-      );
-
-      return results;
-    } catch (error: unknown) {
-      const errorObject = error as TwitterApiErrorShape;
-      // Handle rate limit (429) errors first - don't log as error
-      if (errorObject?.rateLimit || errorObject?.code === 429) {
-        const rateLimit = errorObject?.rateLimit || {
-          limit: errorObject?.headers?.['x-rate-limit-limit'],
-          remaining: errorObject?.headers?.['x-rate-limit-remaining'],
-          reset: errorObject?.headers?.['x-rate-limit-reset'],
-        };
-
-        if (rateLimit.reset) {
-          const resetTime = new Date(parseInt(rateLimit.reset, 10) * 1000);
-          const waitTime = Math.max(0, resetTime.getTime() - Date.now());
-
-          // Add rate limit info to error for upstream handling
-          errorObject.rateLimitReset = resetTime;
-          errorObject.rateLimitWaitMs = waitTime;
-
-          // Only log rate limit warning, not an error
-          this.loggerService.warn(
-            `${url} rate limited - reset at ${resetTime.toISOString()} (${Math.round(waitTime / 1000)}s wait)`,
-            { rateLimit },
-          );
-        }
-
-        throw error;
-      }
-
-      // Log non-rate-limit errors
-      const errorData = errorObject?.data || errorObject;
-      this.loggerService.error(`${url} failed`, errorData);
-
-      throw error;
-    }
+    return this.analyticsService.getMediaAnalyticsBatch(
+      tweetIds,
+      accessToken,
+      accessTokenSecret,
+    );
   }
 }
