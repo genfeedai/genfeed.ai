@@ -1,4 +1,3 @@
-import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
@@ -8,6 +7,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { FacebookService } from '@server/services/integrations/facebook/services/facebook.service';
 import { GoogleAdsService } from '@server/services/integrations/google-ads/services/google-ads.service';
+import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
 import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
 import { RedditService } from '@server/services/integrations/reddit/services/reddit.service';
 import { CronCredentialsService } from '@workers/crons/credentials/cron.credentials.service';

@@ -44,7 +44,6 @@ import { ContentOrchestrationModule } from '@api/services/content-orchestration/
 import { TelegramDistributionModule } from '@api/services/distribution/telegram/telegram-distribution.module';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
-import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { MastodonModule } from '@api/services/integrations/mastodon/mastodon.module';
@@ -74,6 +73,7 @@ import { AnalyticsTwitterJobService } from '@server/analytics/services/analytics
 import { AnalyticsYouTubeJobService } from '@server/analytics/services/analytics-youtube-job.service';
 import { PostAnalyticsCollectionStateService } from '@server/analytics/services/post-analytics-collection-state.service';
 import { SERVER_TOKENS } from '@server/server.dependencies';
+import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
 import { MastodonService } from '@server/services/integrations/mastodon/services/mastodon.service';
 import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';

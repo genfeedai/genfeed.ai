@@ -1,9 +1,12 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+} from '@server/server.dependencies';
+import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
 import { of, throwError } from 'rxjs';
 
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
@@ -17,7 +20,10 @@ describe('InstagramService', () => {
   let service: InstagramService;
 
   const credentialsMock = {
+    findAll: vi.fn(),
+    findBrandAccounts: vi.fn(),
     findOne: vi.fn(),
+    mergeWarmupSignals: vi.fn(),
     patch: vi.fn(),
     // The service resolves its account through the multi-account resolver;
     // the double answers with whatever `findOne` is primed to return so the
@@ -25,7 +31,7 @@ describe('InstagramService', () => {
     resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
       (credentialsMock.findOne as vi.Mock)(options),
     ),
-  } as unknown as CredentialsService;
+  } satisfies ServerCredentialStore;
 
   const httpServiceMock = {
     get: vi.fn(),
@@ -40,7 +46,10 @@ describe('InstagramService', () => {
           provide: ConfigService,
           useValue: { get: vi.fn().mockReturnValue('') },
         },
-        { provide: CredentialsService, useValue: credentialsMock },
+        {
+          provide: SERVER_TOKENS.credentials,
+          useValue: credentialsMock,
+        },
         { provide: HttpService, useValue: httpServiceMock },
         {
           provide: LoggerService,
