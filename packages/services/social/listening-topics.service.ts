@@ -47,7 +47,7 @@ export class ListeningTopicsService extends BaseService<
     signal?: AbortSignal,
   ): Promise<IListeningEvidence[]> {
     return this.collectAllPages<IListeningEvidence>(
-      scope,
+      { ...scope },
       async (pageQuery) => {
         const response = await this.executeWithErrorHandling(
           `GET listening topic ${topicId} evidence`,
@@ -155,7 +155,7 @@ export class ListeningTopicsService extends BaseService<
     scope: ListeningInboxScope,
     signal?: AbortSignal,
   ): Promise<T[]> {
-    return this.collectAllPages<T>(scope, async (pageQuery) => {
+    return this.collectAllPages<T>({ ...scope }, async (pageQuery) => {
       const response = await this.executeWithErrorHandling(
         `GET listening topic ${topicId} ${path}`,
         this.instance.get<JsonApiResponseDocument>(`/${topicId}/${path}`, {
