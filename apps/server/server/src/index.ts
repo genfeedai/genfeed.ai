@@ -124,6 +124,7 @@ export { PostPublishQueueService } from './queues/post-publish/post-publish-queu
 export {
   SERVER_TOKENS,
   type ServerBrandMemorySync,
+  type ServerByokResolver,
   type ServerConfig,
   type ServerLogger,
   type ServerNotifications,
@@ -147,6 +148,7 @@ export {
   FalSchemaFamily,
   type FalVideoAdapterInput,
 } from './services/integrations/fal/services/fal-contract';
+export { HiggsFieldService } from './services/integrations/higgsfield/higgsfield.service';
 export { KlingAIService } from './services/integrations/klingai/services/klingai.service';
 export { LeonardoAIService } from './services/integrations/leonardoai/services/leonardoai.service';
 export type {
