@@ -345,10 +345,11 @@ test.describe('Clip Factory', () => {
     ).toBeVisible();
 
     await authenticatedPage
-      .getByDisplayValue(mockHighlights[0].title)
+      .locator(`input[value="${mockHighlights[0].title}"]`)
       .fill('Edited Hook Title');
     await authenticatedPage
-      .getByDisplayValue(mockHighlights[0].summary)
+      .getByPlaceholder('Edit the script or caption text for this clip...')
+      .first()
       .fill('Edited hook summary for generation.');
     await authenticatedPage.getByLabel(/avatar id/i).fill('heygen-avatar-1');
     await authenticatedPage.getByLabel(/voice id/i).fill('heygen-voice-1');
