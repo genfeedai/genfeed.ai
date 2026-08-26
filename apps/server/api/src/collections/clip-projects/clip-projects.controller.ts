@@ -37,6 +37,7 @@ import type {
   JsonApiSingleResponse,
   SortObject,
 } from '@genfeedai/interfaces';
+import { DEFAULT_CLIP_RESULT_MODE } from '@genfeedai/interfaces';
 import {
   ClipProjectSerializer,
   serializeClipGenerationResult,

@@ -383,6 +383,11 @@ export class ClipProjectIngestionService {
 
     const durationSeconds = ingredient.metadata?.duration;
     const sizeBytes = ingredient.metadata?.size ?? source.sizeBytes;
+    if (typeof sizeBytes !== 'number' || !Number.isFinite(sizeBytes)) {
+      throw new BadRequestException(
+        'The uploaded clip source size is unavailable.',
+      );
+    }
     if (sizeBytes > MAX_CLIP_SOURCE_SIZE_BYTES) {
       throw new BadRequestException('Clip sources may be up to 10 GB.');
     }
