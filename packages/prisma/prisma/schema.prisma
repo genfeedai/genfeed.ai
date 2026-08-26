@@ -704,6 +704,8 @@ model Organization {
   listeningTopics               ListeningTopic[]
   listeningTopicSources         ListeningTopicSource[]
   listeningEvidence             ListeningEvidence[]
+  listeningThemes               ListeningTheme[]
+  listeningSignals              ListeningSignal[]
   socialWarmupEnrollments       SocialWarmupEnrollment[]
   socialWarmupEvents            SocialWarmupEvent[]
   socialWarmupSignals           SocialWarmupSignal[]
@@ -903,6 +905,8 @@ model Brand {
   listeningTopics            ListeningTopic[]
   listeningTopicSources      ListeningTopicSource[]
   listeningEvidence          ListeningEvidence[]
+  listeningThemes            ListeningTheme[]
+  listeningSignals           ListeningSignal[]
   socialWarmupEnrollments    SocialWarmupEnrollment[]
   socialWarmupEvents         SocialWarmupEvent[]
   socialWarmupSignals        SocialWarmupSignal[]
@@ -4212,6 +4216,8 @@ model ListeningTopic {
 
   sources  ListeningTopicSource[]
   evidence ListeningEvidence[]
+  themes   ListeningTheme[]
+  signals  ListeningSignal[]
 
   // Active-topic uniqueness is enforced by the partial index in the migration.
   @@unique([id, organizationId, brandId], map: "listening_topics_id_scope_key")
@@ -4282,10 +4288,101 @@ model ListeningEvidence {
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
 
+  themeEvidence ListeningThemeEvidence[]
+
+  @@unique([id, organizationId, brandId, topicId], map: "listening_evidence_id_scope_topic_key")
   @@unique([topicId, platform, externalId], map: "listening_evidence_topic_platform_external_key")
   @@index([organizationId, brandId, topicId, isDeleted, occurredAt(sort: Desc)], map: "listening_evidence_topic_occurred_idx")
   @@index([topicSourceId, isDeleted, collectedAt(sort: Desc)], map: "listening_evidence_source_collected_idx")
   @@map("listening_evidence")
+}
+
+/// A deterministic, versioned cluster formed from fresh evidence inside two
+/// explicit comparison windows. Evidence membership is stored in the explicit
+/// ListeningThemeEvidence join rather than copied into the theme record.
+model ListeningTheme {
+  id                  String       @id @default(cuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  brandId             String
+  brand               Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  topicId             String
+  topic               ListeningTopic @relation(fields: [topicId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
+  label               String
+  clusterKey          String
+  methodologyVersion  String
+  analysisKey         String
+  currentWindowStart  DateTime
+  currentWindowEnd    DateTime
+  previousWindowStart DateTime
+  previousWindowEnd   DateTime
+  idempotencyKey      String
+  isDeleted           Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  evidence ListeningThemeEvidence[]
+  signals  ListeningSignal[]
+
+  @@unique([id, organizationId, brandId, topicId], map: "listening_themes_id_scope_topic_key")
+  @@unique([organizationId, brandId, topicId, idempotencyKey], map: "listening_themes_scope_idempotency_key")
+  @@index([organizationId, brandId, topicId, analysisKey, isDeleted], map: "listening_themes_scope_analysis_idx")
+  @@index([organizationId, brandId, topicId, isDeleted, currentWindowEnd(sort: Desc)], map: "listening_themes_scope_window_idx")
+  @@map("listening_themes")
+}
+
+/// Explicit many-to-many attribution between a generated theme and every
+/// normalized evidence record that contributed to it.
+model ListeningThemeEvidence {
+  organizationId String
+  brandId        String
+  topicId        String
+  themeId        String
+  theme          ListeningTheme    @relation(fields: [themeId, organizationId, brandId, topicId], references: [id, organizationId, brandId, topicId], onDelete: Cascade, onUpdate: Cascade)
+  evidenceId     String
+  evidence       ListeningEvidence @relation(fields: [evidenceId, organizationId, brandId, topicId], references: [id, organizationId, brandId, topicId], onDelete: Cascade, onUpdate: Cascade)
+  createdAt      DateTime          @default(now())
+
+  @@id([themeId, evidenceId], map: "listening_theme_evidence_pkey")
+  @@index([evidenceId], map: "listening_theme_evidence_evidence_idx")
+  @@map("listening_theme_evidence")
+}
+
+/// A bounded, attributable calculation. Insufficient coverage is durable and
+/// observable: status explains the outcome and value remains null.
+model ListeningSignal {
+  id                  String       @id @default(cuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  brandId             String
+  brand               Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  topicId             String
+  topic               ListeningTopic @relation(fields: [topicId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
+  themeId             String?
+  theme               ListeningTheme? @relation(fields: [themeId, organizationId, brandId, topicId], references: [id, organizationId, brandId, topicId], onDelete: Cascade, onUpdate: Cascade)
+  signalType          String
+  status              String
+  insufficiencyReason String?
+  value               Float?
+  confidence          Float
+  methodologyVersion  String
+  analysisKey         String
+  currentWindowStart  DateTime
+  currentWindowEnd    DateTime
+  previousWindowStart DateTime
+  previousWindowEnd   DateTime
+  includedSourceIds   String[]     @default([])
+  excludedSourceIds   String[]     @default([])
+  evidenceIds         String[]     @default([])
+  idempotencyKey      String
+  isDeleted           Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@unique([organizationId, brandId, topicId, idempotencyKey], map: "listening_signals_scope_idempotency_key")
+  @@index([organizationId, brandId, topicId, analysisKey, isDeleted], map: "listening_signals_scope_analysis_idx")
+  @@index([organizationId, brandId, topicId, isDeleted, currentWindowEnd(sort: Desc)], map: "listening_signals_scope_window_idx")
+  @@map("listening_signals")
 }
 
 model ProcessedTweet {

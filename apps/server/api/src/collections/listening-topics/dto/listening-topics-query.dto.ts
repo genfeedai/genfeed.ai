@@ -44,3 +44,5 @@ export class ListeningEvidenceQueryDto extends BaseQueryDto {
   @IsEntityId()
   source?: string;
 }
+
+export class ListeningAnalysisQueryDto extends BaseQueryDto {}
