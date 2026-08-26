@@ -33,6 +33,7 @@ const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
   requestChanges: vi.fn(),
   resolveAuthToken: vi.fn(),
+  searchParamsString: '',
   sentryAddBreadcrumb: vi.fn(),
   studioEnabled: true,
   subscribe: vi.fn(),
@@ -143,10 +144,14 @@ vi.mock('next/navigation', () => ({
     push: mocks.push,
     replace: mocks.replace,
   }),
-  useSearchParams: () => ({
-    get: () => null,
-    toString: () => '',
-  }),
+  useSearchParams: () => {
+    const searchParams = new URLSearchParams(mocks.searchParamsString);
+
+    return {
+      get: (key: string) => searchParams.get(key),
+      toString: () => mocks.searchParamsString,
+    };
+  },
 }));
 
 function makeTask(overrides: Record<string, unknown> = {}) {
@@ -205,6 +210,7 @@ function makeInspectorTask(overrides: Record<string, unknown> = {}) {
 describe('WorkspacePageContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.searchParamsString = '';
     mocks.studioEnabled = true;
     mocks.resolveAuthToken.mockResolvedValue('token-1');
     mocks.subscribe.mockReturnValue(vi.fn());
@@ -350,6 +356,25 @@ describe('WorkspacePageContent', () => {
       expect(mocks.ensurePlanningThread).toHaveBeenCalledWith('task-1'),
     );
     expect(mocks.push).toHaveBeenCalledWith('/agent/thread-1');
+  });
+
+  it('keeps the task inspector closed while URL cleanup is pending', async () => {
+    mocks.searchParamsString = 'taskId=task-1';
+
+    render(<WorkspacePageContent section="inbox" defaultInboxView="unread" />);
+
+    expect(await screen.findByTestId('workspace-task-inspector')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('workspace-task-inspector'),
+      ).not.toBeInTheDocument();
+    });
+    expect(mocks.replace).toHaveBeenCalledWith('/workspace/inbox/unread', {
+      scroll: false,
+    });
   });
 
   it('refreshes tasks and applies realtime workspace updates', async () => {
