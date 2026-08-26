@@ -1,13 +1,16 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import {
-  ThreadsContainerStatus,
-  ThreadsMediaType,
-  ThreadsService,
-} from '@api/services/integrations/threads/services/threads.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+} from '@server/server.dependencies';
+import {
+  ThreadsContainerStatus,
+  ThreadsMediaType,
+  ThreadsService,
+} from '@server/services/integrations/threads/services/threads.service';
 import { of } from 'rxjs';
 
 describe('ThreadsService', () => {
@@ -21,7 +24,10 @@ describe('ThreadsService', () => {
 
   beforeEach(async () => {
     const credentialsMock = {
+      findAll: vi.fn(),
+      findBrandAccounts: vi.fn(),
       findOne: vi.fn(),
+      mergeWarmupSignals: vi.fn(),
       patch: vi.fn(),
       // Multi-account resolution routes through `resolveBrandAccount`; the double
       // answers with whatever `findOne` is primed to return so the existing
@@ -29,7 +35,7 @@ describe('ThreadsService', () => {
       resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
         credentialsMock.findOne(options),
       ),
-    };
+    } satisfies ServerCredentialStore;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -39,7 +45,7 @@ describe('ThreadsService', () => {
           useValue: { get: vi.fn().mockReturnValue('') },
         },
         {
-          provide: CredentialsService,
+          provide: SERVER_TOKENS.credentials,
           useValue: credentialsMock,
         },
         {

@@ -18,7 +18,6 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: { getCallerName: vi.fn(() => 'testMethod') },
 }));
 
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import {
   ThreadsContainerStatus,
   ThreadsMediaType,
@@ -28,6 +27,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { SERVER_TOKENS } from '@server/server.dependencies';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -79,7 +79,7 @@ describe('ThreadsService (coverage)', () => {
           useValue: { get: vi.fn().mockReturnValue('') },
         },
         {
-          provide: CredentialsService,
+          provide: SERVER_TOKENS.credentials,
           useValue: credentialsMock,
         },
         {
