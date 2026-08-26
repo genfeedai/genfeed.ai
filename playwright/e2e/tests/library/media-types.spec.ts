@@ -159,6 +159,9 @@ test.describe('Library Media Types', () => {
 
       await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.VIDEOS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
+      await expect
+        .poll(() => new URL(authenticatedPage.url()).pathname)
+        .toBe(brandPath(APP_ROUTES.LIBRARY.VIDEOS));
 
       // Search input, filter buttons, or sort controls
       const hasSearch = await authenticatedPage

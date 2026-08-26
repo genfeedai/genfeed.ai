@@ -1,3 +1,4 @@
+import { brandPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/constants';
 import {
   mockActiveSubscription,
@@ -120,16 +121,26 @@ test.describe('Workspace — deep interactions', () => {
       authenticatedPage.getByTestId('workspace-new-task'),
     ).toHaveCount(0);
 
-    // Touch the overview snapshot + recent-output panels before moving to the
-    // inbox surface that owns the task-composer event listener.
-    await tryClick(
-      authenticatedPage,
-      '[data-testid="workspace-recent-outputs"] a',
-    );
-    await tryClick(
-      authenticatedPage,
-      '[data-testid="workspace-history-preview"] [data-testid="workspace-task-row"]',
-    );
+    const openReview = authenticatedPage
+      .getByTestId('workspace-recent-outputs')
+      .getByRole('link', { name: 'Open Review' });
+    await expect(openReview).toBeVisible();
+    await openReview.click();
+    await expect
+      .poll(() => new URL(authenticatedPage.url()).pathname)
+      .toBe(brandPath(APP_ROUTES.PUBLISH.REVIEW));
+
+    await assertRouteRenders(authenticatedPage, APP_ROUTES.WORKSPACE.OVERVIEW);
+
+    const historyItem = authenticatedPage
+      .getByTestId('workspace-history-preview')
+      .getByTestId('workspace-task-row')
+      .first();
+    await expect(historyItem).toBeVisible();
+    await historyItem.click();
+    await expect(
+      authenticatedPage.getByTestId('workspace-task-inspector'),
+    ).toBeVisible();
 
     await assertRouteRenders(
       authenticatedPage,
@@ -141,12 +152,13 @@ test.describe('Workspace — deep interactions', () => {
       .getByTestId('sidebar-primary-action');
     await expect(primaryAction).toBeVisible();
     await primaryAction.click();
-    await expect(authenticatedPage.getByRole('dialog')).toBeVisible();
+    const dialog = authenticatedPage.getByRole('dialog');
+    await expect(dialog).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'New Task' }),
+      dialog.getByRole('heading', { name: 'New Task' }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: 'Create Task' }),
+      dialog.getByRole('button', { name: 'Create Task' }),
     ).toBeVisible();
 
     await expect(authenticatedPage.locator('body')).toBeVisible();

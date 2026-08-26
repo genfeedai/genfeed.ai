@@ -1,5 +1,5 @@
+import { sidebarLocator } from '@e2e/utils/app-chrome';
 import type { Locator, Page } from '@playwright/test';
-import { sidebarLocator } from '../utils/app-chrome';
 
 /**
  * Page Object Model for the Discover Pages

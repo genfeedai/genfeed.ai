@@ -1,7 +1,7 @@
+import { E2E_BRAND_BASE, sidebarLocator } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
-import { E2E_BRAND_BASE, sidebarLocator } from '../utils/app-chrome';
 
 /**
  * Page Object Model for the Studio Page

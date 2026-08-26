@@ -85,21 +85,20 @@ export class OnboardingPage {
 
   async assertOnStep(stepNumber: number): Promise<void> {
     const stepPath = ONBOARDING_STEPS[stepNumber - 1];
-    await expect(this.page).toHaveURL(
-      new RegExp(`/onboarding/${stepPath}(?:[/?#]|$)`),
-    );
+    await expect
+      .poll(() => new URL(this.page.url()).pathname)
+      .toBe(`/onboarding/${stepPath}`);
     await this.waitForStep(stepNumber);
   }
 
   /**
-   * The brand step hands web operators to the agent conversation. The org
-   * slug is part of the canonical href, so match the suffix rather than a
-   * fixed path.
+   * The brand step hands web operators to the agent conversation. Callers
+   * provide the canonical organization-scoped path for an exact assertion.
    */
-  async assertAgentHandoff(): Promise<void> {
-    await expect(this.page).toHaveURL(
-      new RegExp(`${APP_ROUTES.AGENT.ONBOARDING}(?:[/?#]|$)`),
-    );
+  async assertAgentHandoff(expectedPath: string): Promise<void> {
+    await expect
+      .poll(() => new URL(this.page.url()).pathname)
+      .toBe(expectedPath);
   }
 
   async fillBrand(data: {
@@ -135,7 +134,9 @@ export class OnboardingPage {
   }
 
   async assertSuccess(): Promise<void> {
-    await expect(this.page).toHaveURL(/\/onboarding\/success(?:[/?#]|$)/);
+    await expect
+      .poll(() => new URL(this.page.url()).pathname)
+      .toBe(APP_ROUTES.ONBOARDING.SUCCESS);
     await this.successIcon.waitFor({ state: 'visible', timeout: 30000 });
     await expect(this.goToStudioButton).toBeVisible();
   }

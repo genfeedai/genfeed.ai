@@ -150,7 +150,9 @@ function buildOnboardingBootstrapPayload(completedSteps: readonly string[]) {
     currentUser: generateMockApiUser({
       id: MOCK_SESSION.userId,
       isOnboardingCompleted: false,
+      onboardingCompletedAt: null,
       onboardingStepsCompleted: [...completedSteps],
+      onboardingType: null,
     }),
     fleetCapabilities: generateMockFleetCapabilities(),
     settings: generateMockOrganizationSettings(),

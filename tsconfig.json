@@ -6,6 +6,10 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "moduleDetection": "force"
+    "moduleDetection": "force",
+    "baseUrl": ".",
+    "paths": {
+      "@e2e/*": ["playwright/e2e/*"]
+    }
   }
 }

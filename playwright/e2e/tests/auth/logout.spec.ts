@@ -1,10 +1,35 @@
 import { APP_ROUTES } from '@genfeedai/constants';
+import type { Page } from '@playwright/test';
 import {
   expect,
   simulateLogout,
   simulateSessionExpiry,
   test,
 } from '../../fixtures/auth.fixture';
+
+async function openPendingLogout(page: Page): Promise<() => void> {
+  let resolveSignOut: (() => void) | undefined;
+
+  await page.route('**/v1/auth/sign-out**', async (route) => {
+    await new Promise<void>((resolve) => {
+      resolveSignOut = resolve;
+    });
+    await route.fulfill({
+      body: JSON.stringify({ success: true }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  await page.goto(APP_ROUTES.LOGOUT);
+  await expect.poll(() => resolveSignOut).toBeDefined();
+
+  if (!resolveSignOut) {
+    throw new Error('Expected the sign-out request to remain pending');
+  }
+
+  return resolveSignOut;
+}
 
 /**
  * E2E Tests for Logout Flow
@@ -19,19 +44,29 @@ test.describe('Logout Flow', () => {
     test('should render the logout page shell', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.LOGOUT);
+      const resolveSignOut = await openPendingLogout(authenticatedPage);
 
       await expect(authenticatedPage.getByText(/Signing out/)).toBeVisible();
-      await expect(authenticatedPage).toHaveURL(/\/logout|\/login|\/sign-in/i);
+      expect(new URL(authenticatedPage.url()).pathname).toBe(APP_ROUTES.LOGOUT);
+
+      resolveSignOut();
+      await expect
+        .poll(() => new URL(authenticatedPage.url()).pathname)
+        .toBe(APP_ROUTES.LOGIN);
     });
 
     test('should keep the logout shell visible while sign-out runs', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.LOGOUT);
+      const resolveSignOut = await openPendingLogout(authenticatedPage);
 
       await expect(authenticatedPage.getByText(/Signing out/)).toBeVisible();
-      await expect(authenticatedPage).toHaveURL(/\/logout|\/login|\/sign-in/i);
+      expect(new URL(authenticatedPage.url()).pathname).toBe(APP_ROUTES.LOGOUT);
+
+      resolveSignOut();
+      await expect
+        .poll(() => new URL(authenticatedPage.url()).pathname)
+        .toBe(APP_ROUTES.LOGIN);
     });
 
     test('should clear authentication state on logout', async ({
