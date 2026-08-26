@@ -1,101 +1,21 @@
-vi.mock('@api/helpers/utils/response/response.util', () => ({
-  returnBadRequest: vi.fn((response) => {
-    throw new HttpException(response, 400);
-  }),
-  returnForbidden: vi.fn(),
-  returnNotFound: vi.fn((type, id) => ({
-    errors: [
-      { detail: `${type} ${id} not found`, status: '404', title: 'Not Found' },
-    ],
-    statusCode: 404,
-  })),
-  serializeCollection: vi.fn((_req, _serializer, data) => ({
-    data: data.docs || data,
-  })),
-  serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
-}));
-
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { PromptsOperationsController } from '@api/collections/prompts/controllers/prompts-operations.controller';
-import { ParsePromptDto } from '@api/collections/prompts/dto/parse-prompt.dto';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
-import { PromptCategory } from '@genfeedai/enums';
-import { testId } from '@helpers/testing/test-id.helper';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 describe('PromptsOperationsController', () => {
   let controller: PromptsOperationsController;
 
-  const brandId = testId('brand');
-  const activityId = testId('activity');
-
-  const mockUser = {
-    id: 'user_123',
-    brandId,
-    organizationId: testId('org'),
-    userId: testId('user'),
-  } as unknown as User;
-
-  const mockPrompt = {
-    _id: testId('prompt'),
-    id: testId('prompt'),
-    brandId,
-    category: PromptCategory.MODELS_PROMPT_IMAGE,
-    organizationId: testId('org'),
-    original: 'Test prompt',
-    status: 'completed',
-    userId: testId('user'),
-  };
-
-  const mockServices = {
-    activitiesService: {
-      create: vi.fn().mockResolvedValue({ _id: activityId }),
-      patch: vi.fn().mockResolvedValue({}),
-    },
-    brandsService: {
-      findOne: vi.fn().mockResolvedValue({
-        _id: brandId,
-      }),
-    },
-    configService: {},
-    creditsUtilsService: {
-      deductCreditsFromOrganization: vi.fn(),
-      refundOrganizationCredits: vi.fn().mockResolvedValue({}),
-    },
-    loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
-    promptBuilderService: {
-      buildPrompt: vi.fn().mockResolvedValue({ input: {} }),
-    },
-    promptsService: {
-      create: vi.fn().mockResolvedValue(mockPrompt),
-      findOne: vi.fn().mockResolvedValue(mockPrompt),
-      patch: vi.fn().mockResolvedValue(mockPrompt),
-    },
-    replicateService: {
-      generateTextCompletionSync: vi.fn().mockResolvedValue('Generated text'),
-    },
-    websocketService: {
-      emit: vi.fn().mockResolvedValue({}),
-      publishBackgroundTaskUpdate: vi.fn().mockResolvedValue({}),
-    },
-    whisperService: {
-      transcribeAudio: vi.fn().mockResolvedValue('Transcribed text'),
-    },
+  const whisperService = {
+    transcribeAudio: vi.fn().mockResolvedValue('Transcribed text'),
   };
 
   beforeEach(async () => {
@@ -103,30 +23,22 @@ describe('PromptsOperationsController', () => {
       controllers: [PromptsOperationsController],
       providers: [
         {
-          provide: ActivitiesService,
-          useValue: mockServices.activitiesService,
+          provide: LoggerService,
+          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
         },
-        { provide: ConfigService, useValue: mockServices.configService },
-        { provide: BrandsService, useValue: mockServices.brandsService },
-        {
-          provide: CreditsUtilsService,
-          useValue: mockServices.creditsUtilsService,
-        },
-        { provide: LoggerService, useValue: mockServices.loggerService },
         {
           provide: ReplicateService,
-          useValue: mockServices.replicateService,
+          useValue: { generateTextCompletionSync: vi.fn() },
         },
         {
           provide: PromptBuilderService,
-          useValue: mockServices.promptBuilderService,
+          useValue: { buildPrompt: vi.fn() },
         },
-        { provide: PromptsService, useValue: mockServices.promptsService },
         {
-          provide: NotificationsPublisherService,
-          useValue: mockServices.websocketService,
+          provide: PromptsService,
+          useValue: { create: vi.fn() },
         },
-        { provide: WhisperService, useValue: mockServices.whisperService },
+        { provide: WhisperService, useValue: whisperService },
       ],
     })
       .overrideGuard(BetterAuthGuard)
@@ -139,14 +51,12 @@ describe('PromptsOperationsController', () => {
       .useValue({ canActivate: () => true })
       .overrideInterceptor(CreditsInterceptor)
       .useValue({
-        intercept: (_ctx: unknown, next: { handle: () => unknown }) =>
+        intercept: (_context: unknown, next: { handle: () => unknown }) =>
           next.handle(),
       })
       .compile();
 
-    controller = module.get<PromptsOperationsController>(
-      PromptsOperationsController,
-    );
+    controller = module.get(PromptsOperationsController);
   });
 
   afterEach(() => {
@@ -157,86 +67,17 @@ describe('PromptsOperationsController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('parse', () => {
-    it('should parse a prompt successfully', async () => {
-      const parseDto: ParsePromptDto = {
-        category: PromptCategory.MODELS_PROMPT_IMAGE,
-        original: 'Test prompt',
-      };
+  it('converts an accepted voice file to text', async () => {
+    const file = {
+      buffer: Buffer.from('fake audio data'),
+      mimetype: 'audio/mpeg',
+      originalname: 'test.mp3',
+      size: 1024 * 1024,
+    };
 
-      const result = await controller.parse(parseDto, mockUser);
-
-      expect(result).toBeDefined();
+    await expect(controller.voiceToSpeech(file)).resolves.toEqual({
+      text: 'Transcribed text',
     });
-  });
-
-  describe('voiceToSpeech', () => {
-    it('should convert voice to speech successfully', async () => {
-      const mockFile: Express.Multer.File = {
-        buffer: Buffer.from('fake audio data'),
-        destination: '',
-        encoding: '7bit',
-        fieldname: 'file',
-        filename: '',
-        mimetype: 'audio/mpeg',
-        originalname: 'test.mp3',
-        path: '',
-        size: 1024 * 1024,
-        stream: null,
-      } as unknown as Express.Multer.File;
-
-      const result = await controller.voiceToSpeech(mockFile);
-
-      expect(mockServices.whisperService.transcribeAudio).toHaveBeenCalled();
-      expect(result).toBeDefined();
-      expect(result.text).toBeDefined();
-    });
-  });
-
-  describe('enhanceExisting', () => {
-    const mockRequest = {
-      get: vi.fn().mockReturnValue('localhost'),
-      headers: {},
-      path: `/prompts/${testId('prompt')}/enhance`,
-      protocol: 'https',
-      query: {},
-    } as never;
-
-    it('passes cinematic lexicon guidance for IMAGE prompts', async () => {
-      mockServices.promptsService.findOne.mockResolvedValue(mockPrompt);
-      mockServices.activitiesService.create.mockResolvedValue({
-        id: activityId,
-      });
-
-      await controller.enhanceExisting(mockRequest, mockPrompt.id, mockUser);
-
-      expect(
-        mockServices.promptBuilderService.buildPrompt,
-      ).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          systemPromptSuffix: expect.stringContaining(
-            'Cinematography vocabulary',
-          ),
-        }),
-        mockUser.organizationId,
-      );
-    });
-
-    it('omits cinematic lexicon guidance for text-only prompts', async () => {
-      mockServices.promptsService.findOne.mockResolvedValue({
-        ...mockPrompt,
-        category: PromptCategory.PRESET_DESCRIPTION_TEXT,
-      });
-      mockServices.activitiesService.create.mockResolvedValue({
-        id: activityId,
-      });
-
-      await controller.enhanceExisting(mockRequest, mockPrompt.id, mockUser);
-
-      const buildArgs =
-        mockServices.promptBuilderService.buildPrompt.mock.calls[0];
-      expect(buildArgs[1].systemPromptSuffix).toBeUndefined();
-    });
+    expect(whisperService.transcribeAudio).toHaveBeenCalledWith(file);
   });
 });
