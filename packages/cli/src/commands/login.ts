@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import process from 'node:process';
 import { password, select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
