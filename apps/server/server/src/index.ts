@@ -127,6 +127,8 @@ export {
   type ServerByokResolver,
   type ServerConfig,
   type ServerCustomerInstanceResolver,
+  type ServerLinkedInTrend,
+  type ServerLinkedInTrendResolver,
   type ServerLogger,
   type ServerNotifications,
   type ServerPostAnalytics,
@@ -153,6 +155,10 @@ export { FleetService } from './services/integrations/fleet/fleet.service';
 export { HiggsFieldService } from './services/integrations/higgsfield/higgsfield.service';
 export { KlingAIService } from './services/integrations/klingai/services/klingai.service';
 export { LeonardoAIService } from './services/integrations/leonardoai/services/leonardoai.service';
+export {
+  LinkedInService,
+  resolveLinkedInVisibility,
+} from './services/integrations/linkedin/services/linkedin.service';
 export type {
   CreateAdParams,
   CreateAdSetParams,

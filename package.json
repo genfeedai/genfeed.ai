@@ -294,7 +294,6 @@
     "joi": "18.2.5",
     "jsonapi-serializer": "3.6.9",
     "jsonwebtoken": "9.0.3",
-    "linkedin-api-client": "0.3.0",
     "lucide-react": "1.34.0",
     "luxon": "3.7.2",
     "nanoid": "6.0.1",

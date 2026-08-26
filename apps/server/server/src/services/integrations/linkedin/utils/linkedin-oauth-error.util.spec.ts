@@ -1,9 +1,9 @@
+import { HttpException, HttpStatus } from '@nestjs/common';
 import {
   classifyLinkedInOAuthError,
   getSafeLinkedInOAuthErrorLog,
   throwMappedLinkedInOAuthError,
-} from '@api/services/integrations/linkedin/utils/linkedin-oauth-error.util';
-import { HttpException, HttpStatus } from '@nestjs/common';
+} from '@server/services/integrations/linkedin/utils/linkedin-oauth-error.util';
 
 function expectMappedStatus(error: unknown, status: number): void {
   try {
