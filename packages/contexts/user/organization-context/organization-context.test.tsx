@@ -18,10 +18,10 @@ import {
 const getOrganizationsServiceMock = vi.fn();
 const switchOrganizationMock = vi.fn();
 const getMyOrganizationsMock = vi.fn();
-const clearBootstrapCacheMock = vi.fn();
-const cancelAndClearServicesMock = vi.fn();
-const setRequestOrganizationIdMock = vi.fn();
-const loggerWarnMock = vi.fn();
+const clearBootstrapCacheMock = vi.hoisted(() => vi.fn());
+const cancelAndClearServicesMock = vi.hoisted(() => vi.fn());
+const setRequestOrganizationIdMock = vi.hoisted(() => vi.fn());
+const loggerWarnMock = vi.hoisted(() => vi.fn());
 let pathname = '/alpha/~/workspace/overview';
 
 vi.mock('next/navigation', () => ({
