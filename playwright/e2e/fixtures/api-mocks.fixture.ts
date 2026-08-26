@@ -3630,32 +3630,32 @@ export async function mockLibraryData(page: Page): Promise<void> {
   const libraryIngredients = [
     {
       category: IngredientCategory.IMAGE,
+      cdnUrl: 'https://cdn.genfeed.ai/mock/ingredient.jpg',
       id: 'ingredient-image-1',
-      ingredientUrl: 'https://cdn.genfeed.ai/mock/ingredient.jpg',
       metadataLabel: 'Product Photo',
     },
     {
       category: IngredientCategory.VIDEO,
+      cdnUrl: 'https://cdn.genfeed.ai/mock/clip.mp4',
       id: 'ingredient-video-1',
-      ingredientUrl: 'https://cdn.genfeed.ai/mock/clip.mp4',
       metadataLabel: 'Launch Teaser',
     },
     {
       category: IngredientCategory.GIF,
+      cdnUrl: 'https://cdn.genfeed.ai/mock/loop.gif',
       id: 'ingredient-gif-1',
-      ingredientUrl: 'https://cdn.genfeed.ai/mock/loop.gif',
       metadataLabel: 'Reaction Loop',
     },
     {
       category: IngredientCategory.MUSIC,
+      cdnUrl: 'https://cdn.genfeed.ai/mock/theme.mp3',
       id: 'ingredient-music-1',
-      ingredientUrl: 'https://cdn.genfeed.ai/mock/theme.mp3',
       metadataLabel: 'Ambient Loop',
     },
     {
       category: IngredientCategory.VOICE,
+      cdnUrl: 'https://cdn.genfeed.ai/mock/narrator.wav',
       id: 'ingredient-voice-1',
-      ingredientUrl: 'https://cdn.genfeed.ai/mock/narrator.wav',
       metadataLabel: 'Narrator Take',
     },
   ];
