@@ -16,6 +16,7 @@ import { PostsAnalyticsController } from '@api/collections/posts/controllers/ana
 import { ContentMentionsController } from '@api/collections/posts/controllers/content-mentions.controller';
 import { PostsGenerationController } from '@api/collections/posts/controllers/operations/posts-generation.controller';
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
+import { PostsRetryController } from '@api/collections/posts/controllers/operations/posts-retry.controller';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
 import { PostVariationSourceGuard } from '@api/collections/posts/guards/post-variation-source.guard';
 import { PostAccountFanoutModule } from '@api/collections/posts/post-account-fanout.module';
@@ -24,6 +25,7 @@ import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
+import { PostRetryService } from '@api/collections/posts/services/post-retry.service';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostVariationService } from '@api/collections/posts/services/post-variation.service';
 import { ReviewablePostsService } from '@api/collections/posts/services/reviewable-posts.service';
@@ -56,6 +58,7 @@ import { PostAnalyticsCollectionStateService } from '@server/analytics/services/
     PostsAnalyticsController,
     PostsGenerationController,
     PostsOperationsController,
+    PostsRetryController,
     PostsController,
   ],
   exports: [
@@ -100,6 +103,7 @@ import { PostAnalyticsCollectionStateService } from '@server/analytics/services/
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
     PostAnalyticsService,
     PostGenerationService,
+    PostRetryService,
     PostRepurposeService,
     PostThreadGenerationService,
     PostVariationService,
