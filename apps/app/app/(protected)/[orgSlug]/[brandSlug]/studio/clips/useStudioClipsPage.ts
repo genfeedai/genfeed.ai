@@ -531,6 +531,7 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
   useEffect(() => {
     if (step !== 'review' || !project?.projectId) return;
     if (project.status === 'failed') return;
+    if (project.status === 'analyzed' && project.highlights.length > 0) return;
     if (!isDocumentVisible) return;
 
     let cancelled = false;
@@ -625,6 +626,7 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     step,
     project?.projectId,
     project?.status,
+    project?.highlights.length,
     clipsService,
     isDocumentVisible,
   ]);

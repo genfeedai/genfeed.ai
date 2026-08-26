@@ -344,16 +344,15 @@ test.describe('Clip Factory', () => {
       authenticatedPage.getByRole('heading', { name: /review highlights/i }),
     ).toBeVisible();
 
-    await authenticatedPage
-      .getByRole('textbox')
-      .first()
-      .fill('Edited Hook Title');
+    const editedTitleInput = authenticatedPage.getByRole('textbox').first();
+    await editedTitleInput.fill('Edited Hook Title');
     await authenticatedPage
       .locator('textarea')
       .first()
       .fill('Edited hook summary for generation.');
     await authenticatedPage.getByLabel(/avatar id/i).fill('heygen-avatar-1');
     await authenticatedPage.getByLabel(/voice id/i).fill('heygen-voice-1');
+    await expect(editedTitleInput).toHaveValue('Edited Hook Title');
 
     await authenticatedPage
       .getByRole('button', { name: /generate 3 avatar clips/i })

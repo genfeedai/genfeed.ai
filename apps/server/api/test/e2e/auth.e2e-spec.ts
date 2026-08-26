@@ -66,9 +66,10 @@ describe('Authentication E2E Tests', () => {
     await dbHelper.clearDatabase();
 
     // Create test user
+    const testUserId = generateIdString();
     testUser = createTestUser({
-      id: generateIdString(),
-      email: 'auth-test@example.com',
+      id: testUserId,
+      email: `auth-test-${testUserId}@example.com`,
     });
 
     // Create test organization
@@ -179,9 +180,10 @@ describe('Authentication E2E Tests', () => {
     });
 
     it('should verify user can be member of different organizations with different roles', async () => {
+      const anotherUserId = generateIdString();
       const anotherUser = createTestUser({
-        id: generateIdString(),
-        email: 'another@example.com',
+        id: anotherUserId,
+        email: `another-${anotherUserId}@example.com`,
       });
 
       const memberInTestOrg = createTestMember({
