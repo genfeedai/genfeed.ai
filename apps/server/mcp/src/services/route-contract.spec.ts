@@ -220,9 +220,9 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     tools: ['get_agent_run_content'],
   },
   {
-    method: 'Post',
-    sub: ':id/cancellations',
-    controller: 'agentRunOperations',
+    method: 'Patch',
+    sub: ':id',
+    controller: 'agentRuns',
     tools: ['cancel_agent_run'],
   },
 

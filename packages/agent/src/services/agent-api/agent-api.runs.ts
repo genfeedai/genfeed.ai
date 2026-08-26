@@ -84,8 +84,12 @@ export function cancelRunEffect(
   brandId?: string,
 ): Effect.Effect<AgentRunSummary, AgentApiError> {
   return api.fetchResourceEffect<AgentRunSummary>(
-    `${api.config.baseUrl}/runs/${runId}/cancellations${buildAgentRunBrandQuery(brandId)}`,
-    { method: 'POST', signal },
+    `${api.config.baseUrl}/runs/${runId}${buildAgentRunBrandQuery(brandId)}`,
+    {
+      body: JSON.stringify({ status: 'cancelled' }),
+      method: 'PATCH',
+      signal,
+    },
     'Failed to cancel active agent run',
     'Failed to deserialize agent run',
   );

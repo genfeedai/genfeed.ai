@@ -28,31 +28,6 @@ import type { Request } from 'express';
 export class AgentRunsOperationsController {
   constructor(private readonly operationsService: AgentRunsOperationsService) {}
 
-  @Post(':id/cancellations')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    operationId: 'AgentRunsController.cancelRun',
-    summary: 'Cancel a running agent',
-  })
-  @ApiResponse({ description: 'Run cancelled', status: 200 })
-  async cancelRun(
-    @Req() request: Request,
-    @Param('id') id: string,
-    @CurrentUser() user: User,
-    @Query('brand') requestedBrandId?: string,
-  ) {
-    const run = await this.operationsService.cancelRun(
-      id,
-      this.buildScope(user, requestedBrandId),
-    );
-
-    return serializeSingle(
-      request,
-      AgentRunSerializer,
-      sanitizeAgentRunForSerialization(run),
-    );
-  }
-
   @Post(':id/retries')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

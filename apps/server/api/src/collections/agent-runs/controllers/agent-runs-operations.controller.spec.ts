@@ -22,7 +22,6 @@ describe('AgentRunsOperationsController', () => {
   };
   const mockRequest = { originalUrl: '/api/runs', query: {} } as Request;
   const operationsService = {
-    cancelRun: vi.fn(),
     retryRun: vi.fn(),
   };
   const controller = new AgentRunsOperationsController(
@@ -33,46 +32,28 @@ describe('AgentRunsOperationsController', () => {
     vi.clearAllMocks();
   });
 
-  it.each([
-    [
-      'cancelRun',
-      AgentRunsOperationsController.prototype.cancelRun,
-      ':id/cancellations',
-      'AgentRunsController.cancelRun',
-    ],
-    [
-      'retryRun',
-      AgentRunsOperationsController.prototype.retryRun,
-      ':id/retries',
-      'AgentRunsController.retryRun',
-    ],
-  ])(
-    'preserves route and operation metadata for %s',
-    (_name, handler, path, operationId) => {
-      expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
-      expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
-        RequestMethod.POST,
-      );
-      expect(
-        Reflect.getMetadata('swagger/apiOperation', handler),
-      ).toMatchObject({
-        operationId,
-      });
-    },
-  );
-
-  it('delegates cancellation with authenticated scope', async () => {
-    const run = { id: 'run1', status: 'cancelled' };
-    operationsService.cancelRun.mockResolvedValue(run);
-
-    await expect(
-      controller.cancelRun(mockRequest, 'run1', mockUser),
-    ).resolves.toEqual({ data: run });
-    expect(operationsService.cancelRun).toHaveBeenCalledWith('run1', {
-      brandId,
-      organizationId,
-      userId,
+  it('retains only the retry operation route', () => {
+    const handler = AgentRunsOperationsController.prototype.retryRun;
+    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(':id/retries');
+    expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
+      RequestMethod.POST,
+    );
+    expect(Reflect.getMetadata('swagger/apiOperation', handler)).toMatchObject({
+      operationId: 'AgentRunsController.retryRun',
     });
+
+    const prototype =
+      AgentRunsOperationsController.prototype as unknown as Record<
+        string,
+        object
+      >;
+    const paths = Object.getOwnPropertyNames(prototype)
+      .filter((name) => name !== 'constructor')
+      .map((name) => prototype[name])
+      .filter((candidate) => Reflect.hasMetadata(PATH_METADATA, candidate))
+      .map((candidate) => Reflect.getMetadata(PATH_METADATA, candidate));
+
+    expect(paths).toEqual([':id/retries']);
   });
 
   it('allows organization-scoped callers to select a brand', async () => {

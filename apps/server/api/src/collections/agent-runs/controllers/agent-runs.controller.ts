@@ -7,6 +7,7 @@ import { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-
 import { UpdateAgentRunDto } from '@api/collections/agent-runs/dto/update-agent-run.dto';
 import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
+import { AgentRunsOperationsService } from '@api/collections/agent-runs/services/agent-runs-operations.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
@@ -28,11 +29,13 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Query,
   Req,
 } from '@nestjs/common';
@@ -51,6 +54,7 @@ export class AgentRunsController extends BaseCRUDController<
   constructor(
     public readonly agentRunsService: AgentRunsService,
     public readonly loggerService: LoggerService,
+    private readonly operationsService: AgentRunsOperationsService,
   ) {
     super(loggerService, agentRunsService, AgentRunSerializer, 'AgentRun', [
       'organization',
@@ -329,6 +333,32 @@ export class AgentRunsController extends BaseCRUDController<
       AgentRunSerializer,
       sanitizeAgentRunForSerialization(doc),
     );
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update an agent run (cancel via status field)' })
+  override async patch(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() updateDto: UpdateAgentRunDto,
+    @Query('brand') requestedBrandId?: string,
+  ): Promise<JsonApiSingleResponse> {
+    if (updateDto.status === AgentExecutionStatus.CANCELLED) {
+      const run = await this.operationsService.cancelRun(id, {
+        brandId: user.brandId ?? requestedBrandId,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
+      });
+
+      return serializeSingle(
+        request,
+        AgentRunSerializer,
+        sanitizeAgentRunForSerialization(run),
+      );
+    }
+
+    return super.patch(request, user, id, updateDto);
   }
 
   @Get(':id/content')

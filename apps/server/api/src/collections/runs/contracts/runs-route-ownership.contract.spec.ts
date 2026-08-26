@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentRunsController } from '@api/collections/agent-runs/controllers/agent-runs.controller';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
+import { AgentRunsOperationsService } from '@api/collections/agent-runs/services/agent-runs-operations.service';
 import { RunsController } from '@api/collections/runs/controllers/runs.controller';
 import { RunsService } from '@api/collections/runs/services/runs.service';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -123,6 +124,10 @@ describe('Runs route ownership (registered route table)', () => {
       // before RunsModule, so AgentRunsController wins any shared path.
       controllers: [AgentRunsController, RunsController],
       providers: [
+        {
+          provide: AgentRunsOperationsService,
+          useValue: { cancelRun: vi.fn() },
+        },
         { provide: AgentRunsService, useValue: agentRunsService },
         { provide: RunsService, useValue: runsService },
         {

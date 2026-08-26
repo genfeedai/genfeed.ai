@@ -132,9 +132,9 @@ class AgentRunsServiceClass {
 
   async cancel(id: string): Promise<IAgentRun> {
     const json = await this.request<JsonApiResponseDocument>(
-      `/runs/${id}/cancellations`,
-      'POST',
-      undefined,
+      `/runs/${id}`,
+      'PATCH',
+      { status: 'cancelled' },
       'Failed to cancel agent run',
     );
     return deserializeResource<IAgentRun>(json);

@@ -15,6 +15,8 @@ import type {
 import type { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
 import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
+import { AgentRunsOperationsService } from '@api/collections/agent-runs/services/agent-runs-operations.service';
+import { AgentExecutionStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -50,11 +52,19 @@ describe('AgentRunsController', () => {
     remove: vi.fn(),
   };
 
+  const mockOperationsService = {
+    cancelRun: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AgentRunsController],
       providers: [
         { provide: AgentRunsService, useValue: mockServiceMethods },
+        {
+          provide: AgentRunsOperationsService,
+          useValue: mockOperationsService,
+        },
         {
           provide: LoggerService,
           useValue: {
@@ -330,6 +340,79 @@ describe('AgentRunsController', () => {
           limit: undefined,
         },
       );
+    });
+  });
+
+  describe('patch', () => {
+    it('dispatches cancellation through the operations service with authenticated scope', async () => {
+      const runId = testId('run');
+      const run = { id: runId, status: AgentExecutionStatus.CANCELLED };
+      mockOperationsService.cancelRun.mockResolvedValue(run);
+
+      await expect(
+        controller.patch(mockRequest, mockUser, runId, {
+          status: AgentExecutionStatus.CANCELLED,
+        }),
+      ).resolves.toEqual({ data: run });
+
+      expect(mockOperationsService.cancelRun).toHaveBeenCalledWith(runId, {
+        brandId,
+        organizationId,
+        userId,
+      });
+      expect(mockServiceMethods.findOne).not.toHaveBeenCalled();
+      expect(mockServiceMethods.patch).not.toHaveBeenCalled();
+    });
+
+    it('uses a selected brand for organization-scoped cancellation', async () => {
+      const runId = testId('run', 2);
+      const organizationUser: User = {
+        ...mockUser,
+        brandId: undefined,
+      };
+      mockOperationsService.cancelRun.mockResolvedValue({ id: runId });
+
+      await controller.patch(
+        mockRequest,
+        organizationUser,
+        runId,
+        { status: AgentExecutionStatus.CANCELLED },
+        'selected-brand',
+      );
+
+      expect(mockOperationsService.cancelRun).toHaveBeenCalledWith(runId, {
+        brandId: 'selected-brand',
+        organizationId,
+        userId,
+      });
+    });
+
+    it('retains BaseCRUD behavior for non-cancellation updates', async () => {
+      const runId = testId('run', 3);
+      const updateDto = { summary: 'Updated summary' };
+      const run = {
+        brandId,
+        id: runId,
+        organizationId,
+        ...updateDto,
+      };
+      mockServiceMethods.findOne.mockResolvedValue(run);
+      mockServiceMethods.patch.mockResolvedValue(run);
+
+      await expect(
+        controller.patch(mockRequest, mockUser, runId, updateDto),
+      ).resolves.toEqual({ data: run });
+
+      expect(mockServiceMethods.findOne).toHaveBeenCalledWith(
+        { id: runId },
+        [],
+      );
+      expect(mockServiceMethods.patch).toHaveBeenCalledWith(
+        runId,
+        updateDto,
+        expect.any(Array),
+      );
+      expect(mockOperationsService.cancelRun).not.toHaveBeenCalled();
     });
   });
 

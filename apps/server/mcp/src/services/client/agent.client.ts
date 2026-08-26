@@ -122,8 +122,9 @@ export class AgentClient {
     return this.base.request(
       `cancelling agent run ${runId}`,
       async (http) => {
-        const response = await http.post(
-          `/runs/${encodeURIComponent(runId)}/cancellations`,
+        const response = await http.patch(
+          `/runs/${encodeURIComponent(runId)}`,
+          { status: 'cancelled' },
         );
         return mapAgentRunResource(
           this.base.unwrapData<JsonApiResource>(response),
