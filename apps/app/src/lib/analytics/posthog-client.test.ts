@@ -47,13 +47,16 @@ vi.mock('posthog-js', () => {
 
 type PosthogClientModule = typeof import('./posthog-client');
 
+let loadedClient: PosthogClientModule | null = null;
+
 /**
  * The module captures NEXT_PUBLIC_POSTHOG_KEY at import time, so every case
  * re-imports after stubbing env to exercise the intended enabled/disabled state.
  */
 async function loadClient(): Promise<PosthogClientModule> {
   vi.resetModules();
-  return import('./posthog-client');
+  loadedClient = await import('./posthog-client');
+  return loadedClient;
 }
 
 /** Flush the dynamic import()/microtask queue used by initAnalytics. */
@@ -85,6 +88,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  loadedClient?.__resetAnalyticsForTests();
+  loadedClient = null;
   vi.unstubAllGlobals();
 });
 
