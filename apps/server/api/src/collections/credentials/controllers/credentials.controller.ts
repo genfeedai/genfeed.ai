@@ -1,28 +1,15 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { AssessAccountHealthDto } from '@api/collections/credentials/dto/assess-account-health.dto';
-import {
-  CredentialPostingTimeDto,
-  NextPostingSlotQueryDto,
-  ReplaceCredentialPostingTimesDto,
-} from '@api/collections/credentials/dto/credential-posting-time.dto';
-import { ManualAccountHealthOverrideDto } from '@api/collections/credentials/dto/manual-account-health-override.dto';
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
-import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
-import { CredentialPostingTimesService } from '@api/collections/credentials/services/credential-posting-times.service';
-import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { toCredentialPlatform } from '@api/collections/credentials/utils/credential-platform.util';
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
-import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
@@ -43,16 +30,9 @@ import { RedditService } from '@api/services/integrations/reddit/services/reddit
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import { QuotaService } from '@api/services/quota/quota.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import {
-  CredentialPlatform,
-  fromPrismaCredentialPlatform,
-} from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/enums';
 import type {
-  AccountHealthSummary,
-  ContentSurface,
-  IPublishingProviderReadiness,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
@@ -70,7 +50,6 @@ import {
   Param,
   Patch,
   Post,
-  Put,
   Query,
   Req,
   SetMetadata,
@@ -80,47 +59,6 @@ import type { Request } from 'express';
 
 interface TokenRefreshService {
   refreshToken(orgId: string, brandId: string): Promise<unknown>;
-}
-
-interface CredentialMentionItem {
-  avatar: string | null;
-  handle: string;
-  id: string;
-  name: string;
-  platform: CredentialPlatform;
-}
-
-function toCredentialPlatform(platform: unknown): CredentialPlatform {
-  const mapped = fromPrismaCredentialPlatform(
-    typeof platform === 'string' ? platform : String(platform ?? ''),
-  );
-  if (!mapped) {
-    throw new HttpException(
-      {
-        detail: `Unknown credential platform: ${String(platform ?? 'missing')}`,
-        title: 'Unknown credential platform',
-      },
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-  return mapped;
-}
-
-function toContentSurface(surface: unknown): ContentSurface {
-  const value = typeof surface === 'string' ? surface : '';
-  const allowed: ContentSurface[] = [
-    'article',
-    'image',
-    'newsletter',
-    'post',
-    'thread',
-    'video',
-    'x-article',
-  ];
-
-  return allowed.includes(value as ContentSurface)
-    ? (value as ContentSurface)
-    : 'post';
 }
 
 @AutoSwagger()
@@ -134,20 +72,14 @@ export class CredentialsController {
   >;
 
   constructor(
-    private readonly accountHealthService: AccountHealthService,
-    private readonly accountPublishingContextService: AccountPublishingContextService,
     private readonly brandsService: BrandsService,
-    private readonly credentialPostingTimesService: CredentialPostingTimesService,
-    private readonly credentialPublishingReadinessService: CredentialPublishingReadinessService,
     private readonly credentialsService: CredentialsService,
     private readonly facebookService: FacebookService,
     private readonly googleAdsService: GoogleAdsService,
     private readonly googleSearchConsoleService: GoogleSearchConsoleService,
     private readonly instagramService: InstagramService,
     private readonly linkedInService: LinkedInService,
-    private readonly organizationsService: OrganizationsService,
     private readonly pinterestService: PinterestService,
-    private readonly quotaService: QuotaService,
     private readonly redditService: RedditService,
     private readonly tiktokService: TiktokService,
     private readonly twitterService: TwitterService,
@@ -168,155 +100,6 @@ export class CredentialsController {
       [CredentialPlatform.TWITTER, this.twitterService],
       [CredentialPlatform.YOUTUBE, this.youtubeService],
     ]);
-  }
-
-  @Get('brand/:brandId/account-health')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async listBrandAccountHealth(
-    @Param('brandId') brandId: string,
-    @CurrentUser() user: User,
-  ): Promise<AccountHealthSummary[]> {
-    return this.accountHealthService.listBrandHealth(
-      user.organizationId,
-      brandId,
-    );
-  }
-
-  /**
-   * Publishing readiness for every connected channel of a brand, so selection
-   * surfaces can block an unpublishable channel before the user authors
-   * against it instead of failing the schedule mutation afterwards.
-   */
-  @Get('brand/:brandId/publishing-readiness')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async listBrandPublishingReadiness(
-    @Param('brandId') brandId: string,
-    @CurrentUser() user: User,
-  ): Promise<IPublishingProviderReadiness[]> {
-    return this.credentialPublishingReadinessService.resolveForBrand(
-      user.organizationId,
-      brandId,
-    );
-  }
-
-  @Get(':credentialId/posting-times')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async listPostingTimes(
-    @Param('credentialId') credentialId: string,
-    @CurrentUser() user: User,
-  ) {
-    const times = await this.credentialPostingTimesService.list(
-      user.organizationId,
-      credentialId,
-    );
-    return { times };
-  }
-
-  @Put(':credentialId/posting-times')
-  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async replacePostingTimes(
-    @Param('credentialId') credentialId: string,
-    @Body() dto: ReplaceCredentialPostingTimesDto,
-    @CurrentUser() user: User,
-  ) {
-    const times = await this.credentialPostingTimesService.replace(
-      user.organizationId,
-      credentialId,
-      dto.times,
-    );
-    return { times };
-  }
-
-  @Post(':credentialId/posting-times')
-  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async addPostingTime(
-    @Param('credentialId') credentialId: string,
-    @Body() dto: CredentialPostingTimeDto,
-    @CurrentUser() user: User,
-  ) {
-    const times = await this.credentialPostingTimesService.add(
-      user.organizationId,
-      credentialId,
-      dto,
-    );
-    return { times };
-  }
-
-  @Delete(':credentialId/posting-times')
-  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async removePostingTime(
-    @Param('credentialId') credentialId: string,
-    @Body() dto: CredentialPostingTimeDto,
-    @CurrentUser() user: User,
-  ) {
-    const times = await this.credentialPostingTimesService.remove(
-      user.organizationId,
-      credentialId,
-      dto,
-    );
-    return { times };
-  }
-
-  @Get(':credentialId/next-slot')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findNextPostingSlot(
-    @Param('credentialId') credentialId: string,
-    @Query() query: NextPostingSlotQueryDto,
-    @CurrentUser() user: User,
-  ) {
-    return this.credentialPostingTimesService.findNextSlot(
-      user.organizationId,
-      credentialId,
-      query.after,
-    );
-  }
-
-  @Get(':credentialId/publishing-context')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getPublishingContext(
-    @Param('credentialId') credentialId: string,
-    @Query('surface') surface: string | undefined,
-    @CurrentUser() user: User,
-  ) {
-    return this.accountPublishingContextService.resolve({
-      brandId: user.brandId,
-      credentialId,
-      organizationId: user.organizationId,
-      surface: toContentSurface(surface),
-    });
-  }
-
-  @Post(':credentialId/account-health/assess')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async assessAccountHealth(
-    @Param('credentialId') credentialId: string,
-    @Body() dto: AssessAccountHealthDto,
-    @CurrentUser() user: User,
-  ): Promise<AccountHealthSummary> {
-    return this.accountHealthService.assessCredentialHealth({
-      brandId: user.brandId,
-      credentialId,
-      organizationId: user.organizationId,
-      request: dto,
-    });
-  }
-
-  @Post(':credentialId/account-health/override')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async overrideAccountHealth(
-    @Param('credentialId') credentialId: string,
-    @Body() dto: ManualAccountHealthOverrideDto,
-    @CurrentUser() user: User,
-  ): Promise<AccountHealthSummary> {
-    return this.accountHealthService.confirmManualOverride({
-      credentialId,
-      organizationId: user.organizationId,
-      request: dto,
-      userId: user.userId ?? user.id,
-    });
   }
 
   @Get()
@@ -360,34 +143,6 @@ export class CredentialsController {
     const data: AggregatePaginateResult<CredentialDocument> =
       await this.credentialsService.findAll(aggregate, options);
     return serializeCollection(request, CredentialSerializer, data);
-  }
-
-  @Get('mentions')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getMentions(
-    @CurrentUser() user: User,
-  ): Promise<{ mentions: CredentialMentionItem[] }> {
-    const credentials = await this.credentialsService.find({
-      isConnected: true,
-      organizationId: user.organizationId,
-    });
-
-    const seen = new Set<string>();
-    const mentions: CredentialMentionItem[] = [];
-    for (const cred of credentials) {
-      if (!cred.externalHandle) continue;
-      const key = `${cred.externalHandle}:${cred.platform}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      mentions.push({
-        avatar: cred.externalAvatar ?? null,
-        handle: cred.externalHandle,
-        id: cred.id.toString(),
-        name: cred.externalName ?? cred.externalHandle,
-        platform: toCredentialPlatform(cred.platform),
-      });
-    }
-    return { mentions };
   }
 
   @Get(':credentialId')
@@ -712,56 +467,5 @@ export class CredentialsController {
     );
 
     return serializeSingle(request, CredentialSerializer, data);
-  }
-
-  @Get(':credentialId/quota')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getQuotaStatus(
-    @Param('credentialId') credentialId: string,
-    @CurrentUser() user: User,
-  ): Promise<JsonApiSingleResponse> {
-    // Verify ownership
-    const credential = await this.credentialsService.findOne({
-      id: credentialId,
-      organizationId: user.organizationId,
-    });
-
-    if (!credential) {
-      throw new HttpException(
-        {
-          detail: 'Credential not found',
-          title: 'Credential not found',
-        },
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    const organization = await this.organizationsService.findOne({
-      id: user.organizationId,
-    });
-
-    if (!organization) {
-      throw new HttpException(
-        {
-          detail: 'Organization not found',
-          title: 'Organization not found',
-        },
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    const quotaStatus = await this.quotaService.checkQuota(
-      credential,
-      organization,
-    );
-
-    // Return in JSON:API format
-    return {
-      data: {
-        attributes: quotaStatus,
-        id: credential.id.toString(),
-        type: 'quota-status',
-      },
-    };
   }
 }

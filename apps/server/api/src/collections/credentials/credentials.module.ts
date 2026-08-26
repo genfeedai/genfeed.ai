@@ -1,11 +1,13 @@
 /**
  * Credentials Module (Full)
- * Includes CredentialsController with platform token refresh + quota endpoints.
+ * Includes legacy provider-specific routes plus provider-neutral publishing routes.
  * Most callers should import CredentialsCoreModule instead.
  */
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsController } from '@api/collections/credentials/controllers/credentials.controller';
+import { CredentialsPublishingController } from '@api/collections/credentials/controllers/credentials-publishing.controller';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
+import { CredentialPublishingOperationsService } from '@api/collections/credentials/services/credential-publishing-operations.service';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
 import { GoogleAdsModule } from '@api/services/integrations/google-ads/google-ads.module';
@@ -21,7 +23,7 @@ import { QuotaModule } from '@api/services/quota/quota.module';
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [CredentialsController],
+  controllers: [CredentialsPublishingController, CredentialsController],
   exports: [CredentialsCoreModule],
   imports: [
     BrandsModule,
@@ -39,5 +41,6 @@ import { Module } from '@nestjs/common';
     TwitterModule,
     YoutubeModule,
   ],
+  providers: [CredentialPublishingOperationsService],
 })
 export class CredentialsModule {}
