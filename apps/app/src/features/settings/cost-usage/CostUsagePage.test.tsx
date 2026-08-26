@@ -2,6 +2,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CostUsagePage from '@/features/settings/cost-usage/CostUsagePage';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const { mockExportCsv, mockUseQuery } = vi.hoisted(() => ({
   mockExportCsv: vi.fn(),
   mockUseQuery: vi.fn(),
