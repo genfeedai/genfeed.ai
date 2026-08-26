@@ -126,6 +126,7 @@ export {
   type ServerBrandMemorySync,
   type ServerByokResolver,
   type ServerConfig,
+  type ServerCustomerInstanceResolver,
   type ServerLogger,
   type ServerNotifications,
   type ServerPostAnalytics,
@@ -148,6 +149,7 @@ export {
   FalSchemaFamily,
   type FalVideoAdapterInput,
 } from './services/integrations/fal/services/fal-contract';
+export { FleetService } from './services/integrations/fleet/fleet.service';
 export { HiggsFieldService } from './services/integrations/higgsfield/higgsfield.service';
 export { KlingAIService } from './services/integrations/klingai/services/klingai.service';
 export { LeonardoAIService } from './services/integrations/leonardoai/services/leonardoai.service';

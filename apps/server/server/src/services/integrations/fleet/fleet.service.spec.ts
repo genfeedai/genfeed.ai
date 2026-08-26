@@ -1,14 +1,21 @@
-import { CustomerInstancesService } from '@api/collections/customer-instances/services/customer-instances.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import axios from 'axios';
+import { SERVER_TOKENS } from '@server/server.dependencies';
 
 import { FleetService } from './fleet.service';
 
-vi.mock('axios');
+const { mockedAxiosGet, mockedAxiosPost } = vi.hoisted(() => ({
+  mockedAxiosGet: vi.fn(),
+  mockedAxiosPost: vi.fn(),
+}));
 
-const mockedAxios = vi.mocked(axios, true);
+vi.mock('axios', () => ({
+  default: {
+    get: mockedAxiosGet,
+    post: mockedAxiosPost,
+  },
+}));
 
 describe('FleetService', () => {
   let service: FleetService;
@@ -18,7 +25,9 @@ describe('FleetService', () => {
     findRunningForOrg: ReturnType<typeof vi.fn>;
   };
 
-  const buildConfig = (overrides: Record<string, string> = {}) => ({
+  const buildConfig = (
+    overrides: Record<string, string> = {},
+  ): Record<string, string> => ({
     GPU_IMAGES_URL: 'http://images.fleet.local',
     GPU_VIDEOS_URL: 'http://videos.fleet.local',
     GPU_VOICES_URL: 'http://voices.fleet.local',
@@ -53,7 +62,7 @@ describe('FleetService', () => {
           },
         },
         {
-          provide: CustomerInstancesService,
+          provide: SERVER_TOKENS.customerInstances,
           useValue: customerInstancesService,
         },
       ],
@@ -68,7 +77,7 @@ describe('FleetService', () => {
     await createModule();
   });
 
-  afterEach(() => vi.clearAllMocks());
+  afterEach(() => vi.resetAllMocks());
 
   it('should be defined', () => {
     expect(service).toBeDefined();
@@ -123,19 +132,19 @@ describe('FleetService', () => {
   // ── isAvailable ──────────────────────────────────────────────────────────
   describe('isAvailable', () => {
     it('returns true when health check succeeds', async () => {
-      mockedAxios.get = vi.fn().mockResolvedValue({ data: { status: 'ok' } });
+      mockedAxiosGet.mockResolvedValue({ data: { status: 'ok' } });
 
       const result = await service.isAvailable('images');
 
       expect(result).toBe(true);
-      expect(mockedAxios.get).toHaveBeenCalledWith(
+      expect(mockedAxiosGet).toHaveBeenCalledWith(
         'http://images.fleet.local/v1/health',
         expect.objectContaining({ timeout: 5000 }),
       );
     });
 
     it('returns false when health check throws', async () => {
-      mockedAxios.get = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'));
+      mockedAxiosGet.mockRejectedValue(new Error('ECONNREFUSED'));
 
       const result = await service.isAvailable('images');
 
@@ -154,7 +163,7 @@ describe('FleetService', () => {
   // ── getFleetHealth ───────────────────────────────────────────────────────
   describe('getFleetHealth', () => {
     it('returns online status for all instances when healthy', async () => {
-      mockedAxios.get = vi.fn().mockResolvedValue({ data: { status: 'ok' } });
+      mockedAxiosGet.mockResolvedValue({ data: { status: 'ok' } });
 
       const result = await service.getFleetHealth();
 
@@ -166,7 +175,7 @@ describe('FleetService', () => {
     });
 
     it('returns offline status when health check fails', async () => {
-      mockedAxios.get = vi.fn().mockRejectedValue(new Error('timeout'));
+      mockedAxiosGet.mockRejectedValue(new Error('timeout'));
 
       const result = await service.getFleetHealth();
 
@@ -191,7 +200,7 @@ describe('FleetService', () => {
     });
 
     it('includes responseTimeMs for online instances', async () => {
-      mockedAxios.get = vi.fn().mockResolvedValue({ data: {} });
+      mockedAxiosGet.mockResolvedValue({ data: {} });
 
       const result = await service.getFleetHealth();
 
@@ -206,9 +215,7 @@ describe('FleetService', () => {
   // ── generateVideo ─────────────────────────────────────────────────────────
   describe('generateVideo', () => {
     it('returns jobId on success', async () => {
-      mockedAxios.post = vi
-        .fn()
-        .mockResolvedValue({ data: { job_id: 'vid_job_1' } });
+      mockedAxiosPost.mockResolvedValue({ data: { job_id: 'vid_job_1' } });
 
       const result = await service.generateVideo({
         imageUrl: 'https://example.com/img.jpg',
@@ -216,7 +223,7 @@ describe('FleetService', () => {
       });
 
       expect(result).toEqual({ jobId: 'vid_job_1' });
-      expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect(mockedAxiosPost).toHaveBeenCalledWith(
         'http://videos.fleet.local/generate/video',
         expect.objectContaining({
           image_url: 'https://example.com/img.jpg',
@@ -228,7 +235,7 @@ describe('FleetService', () => {
 
     it('returns null when videos instance not configured', async () => {
       await createModule({ GPU_VIDEOS_URL: '' });
-      mockedAxios.post = vi.fn();
+      mockedAxiosPost.mockReset();
 
       const result = await service.generateVideo({
         imageUrl: 'https://example.com/img.jpg',
@@ -236,11 +243,11 @@ describe('FleetService', () => {
       });
 
       expect(result).toBeNull();
-      expect(mockedAxios.post).not.toHaveBeenCalled();
+      expect(mockedAxiosPost).not.toHaveBeenCalled();
     });
 
     it('returns null and logs error when axios throws', async () => {
-      mockedAxios.post = vi.fn().mockRejectedValue(new Error('API error'));
+      mockedAxiosPost.mockRejectedValue(new Error('API error'));
 
       const result = await service.generateVideo({
         imageUrl: 'https://example.com/img.jpg',
@@ -255,9 +262,7 @@ describe('FleetService', () => {
       customerInstancesService.findRunningForOrg.mockResolvedValue({
         apiUrl: 'http://customer-video.local',
       });
-      mockedAxios.post = vi
-        .fn()
-        .mockResolvedValue({ data: { job_id: 'customer-job' } });
+      mockedAxiosPost.mockResolvedValue({ data: { job_id: 'customer-job' } });
 
       const result = await service.generateVideo({
         imageUrl: 'https://example.com/img.jpg',
@@ -266,7 +271,7 @@ describe('FleetService', () => {
       });
 
       expect(result).toEqual({ jobId: 'customer-job' });
-      expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect(mockedAxiosPost).toHaveBeenCalledWith(
         'http://customer-video.local/generate/video',
         expect.objectContaining({ prompt: 'customer prompt' }),
         expect.any(Object),
@@ -275,7 +280,7 @@ describe('FleetService', () => {
 
     it('requires a dedicated org instance for managed GenfeedAI video', async () => {
       customerInstancesService.findRunningForOrg.mockResolvedValue(null);
-      mockedAxios.post = vi.fn();
+      mockedAxiosPost.mockReset();
 
       const result = await service.generateManagedVideoForOrg({
         imageUrl: 'https://example.com/img.jpg',
@@ -284,16 +289,14 @@ describe('FleetService', () => {
       });
 
       expect(result).toBeNull();
-      expect(mockedAxios.post).not.toHaveBeenCalled();
+      expect(mockedAxiosPost).not.toHaveBeenCalled();
     });
 
     it('runs managed GenfeedAI video on the dedicated org instance', async () => {
       customerInstancesService.findRunningForOrg.mockResolvedValue({
         apiUrl: 'http://managed-video.local',
       });
-      mockedAxios.post = vi
-        .fn()
-        .mockResolvedValue({ data: { job_id: 'managed-job' } });
+      mockedAxiosPost.mockResolvedValue({ data: { job_id: 'managed-job' } });
 
       const result = await service.generateManagedVideoForOrg({
         imageUrl: 'https://example.com/img.jpg',
@@ -302,7 +305,7 @@ describe('FleetService', () => {
       });
 
       expect(result).toEqual({ jobId: 'managed-job' });
-      expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect(mockedAxiosPost).toHaveBeenCalledWith(
         'http://managed-video.local/generate/video',
         expect.objectContaining({ prompt: 'managed prompt' }),
         expect.any(Object),
@@ -318,15 +321,14 @@ describe('FleetService', () => {
     });
 
     it('uses default params when not provided', async () => {
-      mockedAxios.post = vi.fn().mockResolvedValue({ data: { job_id: 'j1' } });
+      mockedAxiosPost.mockResolvedValue({ data: { job_id: 'j1' } });
 
       await service.generateVideo({
         imageUrl: 'https://example.com/img.jpg',
         prompt: 'test',
       });
 
-      const body = (mockedAxios.post as ReturnType<typeof vi.fn>).mock
-        .calls[0][1] as Record<string, unknown>;
+      const body = mockedAxiosPost.mock.calls[0][1] as Record<string, unknown>;
       expect(body.fps).toBe(16);
       expect(body.num_frames).toBe(81);
       expect(body.seed).toBe(42);
@@ -336,9 +338,7 @@ describe('FleetService', () => {
   // ── generateVoice ─────────────────────────────────────────────────────────
   describe('generateVoice', () => {
     it('returns jobId on success', async () => {
-      mockedAxios.post = vi
-        .fn()
-        .mockResolvedValue({ data: { job_id: 'voice_job_1' } });
+      mockedAxiosPost.mockResolvedValue({ data: { job_id: 'voice_job_1' } });
 
       const result = await service.generateVoice({ text: 'Hello world' });
 
@@ -353,7 +353,7 @@ describe('FleetService', () => {
     });
 
     it('returns null and logs on error', async () => {
-      mockedAxios.post = vi.fn().mockRejectedValue(new Error('fail'));
+      mockedAxiosPost.mockRejectedValue(new Error('fail'));
 
       const result = await service.generateVoice({ text: 'Hello' });
       expect(result).toBeNull();
@@ -368,7 +368,7 @@ describe('FleetService', () => {
         output_url: 'https://cdn.example.com/out.mp4',
         status: 'completed',
       };
-      mockedAxios.get = vi.fn().mockResolvedValue({ data: jobData });
+      mockedAxiosGet.mockResolvedValue({ data: jobData });
 
       const result = await service.pollJob('videos', 'vid_job_1');
       expect(result).toEqual(jobData);
@@ -382,7 +382,7 @@ describe('FleetService', () => {
     });
 
     it('returns null and logs on error', async () => {
-      mockedAxios.get = vi.fn().mockRejectedValue(new Error('timeout'));
+      mockedAxiosGet.mockRejectedValue(new Error('timeout'));
 
       const result = await service.pollJob('videos', 'some_job');
       expect(result).toBeNull();
@@ -397,7 +397,7 @@ describe('FleetService', () => {
       customerInstancesService.findRunningForOrg.mockResolvedValue({
         apiUrl: 'http://managed-video.local',
       });
-      mockedAxios.get = vi.fn().mockResolvedValue({ data: jobData });
+      mockedAxiosGet.mockResolvedValue({ data: jobData });
 
       const result = await service.pollManagedJobForOrg(
         'org-1',
@@ -406,7 +406,7 @@ describe('FleetService', () => {
       );
 
       expect(result).toEqual(jobData);
-      expect(mockedAxios.get).toHaveBeenCalledWith(
+      expect(mockedAxiosGet).toHaveBeenCalledWith(
         'http://managed-video.local/generate/job-1',
         expect.objectContaining({ timeout: 10000 }),
       );
@@ -414,7 +414,7 @@ describe('FleetService', () => {
 
     it('does not fall back to the shared fleet URL', async () => {
       customerInstancesService.findRunningForOrg.mockResolvedValue(null);
-      mockedAxios.get = vi.fn();
+      mockedAxiosGet.mockReset();
 
       const result = await service.pollManagedJobForOrg(
         'org-1',
@@ -423,16 +423,14 @@ describe('FleetService', () => {
       );
 
       expect(result).toBeNull();
-      expect(mockedAxios.get).not.toHaveBeenCalled();
+      expect(mockedAxiosGet).not.toHaveBeenCalled();
     });
   });
 
   // ── cloneVoice ────────────────────────────────────────────────────────────
   describe('cloneVoice', () => {
     it('returns jobId when clone succeeds', async () => {
-      mockedAxios.post = vi
-        .fn()
-        .mockResolvedValue({ data: { job_id: 'clone_1' } });
+      mockedAxiosPost.mockResolvedValue({ data: { job_id: 'clone_1' } });
 
       const result = await service.cloneVoice({
         audioUrl: 'https://example.com/sample.wav',
@@ -441,7 +439,7 @@ describe('FleetService', () => {
       });
 
       expect(result).toEqual({ jobId: 'clone_1' });
-      expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect(mockedAxiosPost).toHaveBeenCalledWith(
         'http://voices.fleet.local/voices/clone',
         expect.objectContaining({
           audio_url: 'https://example.com/sample.wav',
@@ -457,9 +455,7 @@ describe('FleetService', () => {
         FLEET_WEBHOOK_SECRET: 'fleet-secret',
         GENFEEDAI_WEBHOOKS_URL: 'https://webhooks.test',
       });
-      mockedAxios.post = vi
-        .fn()
-        .mockResolvedValue({ data: { job_id: 'clone_1' } });
+      mockedAxiosPost.mockResolvedValue({ data: { job_id: 'clone_1' } });
 
       await service.cloneVoice({
         audioUrl: 'https://example.com/sample.wav',
@@ -467,7 +463,7 @@ describe('FleetService', () => {
         label: 'Aria Voice',
       });
 
-      expect(mockedAxios.post).toHaveBeenCalledWith(
+      expect(mockedAxiosPost).toHaveBeenCalledWith(
         'http://voices.fleet.local/voices/clone',
         expect.objectContaining({
           callback_url:
@@ -497,9 +493,7 @@ describe('FleetService', () => {
         { handle: 'aria', label: 'Aria' },
         { handle: 'nova', label: 'Nova' },
       ];
-      mockedAxios.get = vi
-        .fn()
-        .mockResolvedValue({ data: { voices: profiles } });
+      mockedAxiosGet.mockResolvedValue({ data: { voices: profiles } });
 
       const result = await service.getVoiceProfiles();
       expect(result).toEqual(profiles);
@@ -507,7 +501,7 @@ describe('FleetService', () => {
 
     it('falls back to direct array response', async () => {
       const profiles = [{ handle: 'aria', label: 'Aria' }];
-      mockedAxios.get = vi.fn().mockResolvedValue({ data: profiles });
+      mockedAxiosGet.mockResolvedValue({ data: profiles });
 
       const result = await service.getVoiceProfiles();
       expect(result).toEqual(profiles);
@@ -520,7 +514,7 @@ describe('FleetService', () => {
     });
 
     it('returns null and logs on error', async () => {
-      mockedAxios.get = vi.fn().mockRejectedValue(new Error('network error'));
+      mockedAxiosGet.mockRejectedValue(new Error('network error'));
       const result = await service.getVoiceProfiles();
       expect(result).toBeNull();
       expect(loggerService.error).toHaveBeenCalled();
