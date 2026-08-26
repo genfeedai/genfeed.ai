@@ -28,7 +28,6 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import {
   BrandKitApplySerializer,
   BrandKitAssetImportSerializer,
@@ -67,7 +66,6 @@ describe('BrandsController', () => {
   let activitiesService: vi.Mocked<ActivitiesService>;
   let controller: BrandsController;
   let brandSetupService: vi.Mocked<BrandSetupService>;
-  let brandScraperService: vi.Mocked<BrandScraperService>;
   let brandsService: vi.Mocked<BrandsService>;
   let credentialsService: vi.Mocked<CredentialsService>;
   let _loggerService: vi.Mocked<LoggerService>;
@@ -199,12 +197,6 @@ describe('BrandsController', () => {
             updateBrandNameById: vi.fn(),
           },
         },
-        {
-          provide: BrandScraperService,
-          useValue: {
-            scrapeWebsite: vi.fn(),
-          },
-        },
       ],
     })
       .overrideGuard(RolesGuard)
@@ -224,7 +216,6 @@ describe('BrandsController', () => {
     activitiesService = module.get(ActivitiesService);
     controller = module.get<BrandsController>(BrandsController);
     brandSetupService = module.get(BrandSetupService);
-    brandScraperService = module.get(BrandScraperService);
     brandsService = module.get(BrandsService);
     credentialsService = module.get(CredentialsService);
     _loggerService = module.get(LoggerService);
@@ -240,44 +231,6 @@ describe('BrandsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
-  });
-
-  describe('previewWebsite', () => {
-    it('returns the resolved company logo ahead of unrelated social imagery', async () => {
-      brandScraperService.scrapeWebsite.mockResolvedValue({
-        companyName: 'Acme',
-        logoUrl:
-          'https://img.logo.dev/acme.com?token=pk_test&size=128&format=png&fallback=monogram',
-        ogImage: 'https://acme.com/social-card.jpg',
-        scrapedAt: new Date('2026-08-11T00:00:00.000Z'),
-        sourceUrl: 'https://acme.com',
-      });
-
-      const result = await controller.previewWebsite({
-        websiteUrl: 'https://acme.com',
-      });
-
-      expect(result.data).toMatchObject({
-        label: 'Acme',
-        logoUrl:
-          'https://img.logo.dev/acme.com?token=pk_test&size=128&format=png&fallback=monogram',
-      });
-    });
-
-    it('leaves the logo empty for the deterministic placeholder when resolution fails', async () => {
-      brandScraperService.scrapeWebsite.mockResolvedValue({
-        companyName: 'Acme',
-        ogImage: 'https://acme.com/social-card.jpg',
-        scrapedAt: new Date('2026-08-11T00:00:00.000Z'),
-        sourceUrl: 'https://acme.com',
-      });
-
-      const result = await controller.previewWebsite({
-        websiteUrl: 'https://acme.com',
-      });
-
-      expect(result.data.logoUrl).toBeUndefined();
-    });
   });
 
   it('charges one credit for direct AI brand profile generation', () => {
