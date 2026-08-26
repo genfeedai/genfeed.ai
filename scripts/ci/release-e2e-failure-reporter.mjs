@@ -11,6 +11,7 @@
  * CI failure reporter.
  */
 
+import { applyTrackerLabel } from './ci-tracker-labels.mjs';
 import { triageCiFailureOnProject } from './genfeed-project-board.mjs';
 
 export const RELEASE_E2E_FAILURE_LABEL = 'release-e2e';
@@ -116,7 +117,13 @@ export async function reportReleaseE2eFailure({
     repo,
     title: `🚦 Self-hosted release E2E failed — ${date}`,
     body,
-    labels: [RELEASE_E2E_FAILURE_LABEL],
+  });
+
+  await applyTrackerLabel(github, {
+    owner,
+    repo,
+    issueNumber: created.data.number,
+    label: RELEASE_E2E_FAILURE_LABEL,
   });
 
   await triageCiFailureOnProject(github, {
