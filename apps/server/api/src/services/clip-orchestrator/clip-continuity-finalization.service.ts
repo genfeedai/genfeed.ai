@@ -11,7 +11,6 @@ import {
 } from '@api/services/clip-orchestrator/clip-orchestrator.service';
 import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
 import { ClipRunObserverService } from '@api/services/clip-orchestrator/clip-run-observer.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -28,6 +27,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Interval } from '@nestjs/schedule';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 const PENDING_NAMESPACE = 'continuity-qa-pending';
 const PENDING_SET = 'runs';
