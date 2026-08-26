@@ -226,6 +226,13 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
  */
 export const SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST: CronBoundaryEntry[] = [
   {
+    file: 'apps/server/workers/src/crons/agent-turn/cron.agent-turn-reconcile.service.ts',
+    id: 'agent-turn-reconcile-sweep',
+    methodName: 'reconcileStrandedTurns',
+    reason:
+      'System sweep invoked by SystemSweepsProcessor; re-enqueues accepted agent turns stranded before BullMQ reservation.',
+  },
+  {
     file: 'apps/server/workers/src/crons/batch-generation/cron.batch-generation-reconcile.service.ts',
     id: 'batch-generation-reconcile-sweep',
     methodName: 'reconcileSettlementShortfalls',

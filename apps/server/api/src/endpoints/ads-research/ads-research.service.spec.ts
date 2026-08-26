@@ -550,4 +550,38 @@ describe('AdsResearchService', () => {
     });
     expect(result.connectedAds[0].explanation).toContain('TikTok Ads');
   });
+
+  it('forwards both OAuth 1.0a credentials to the X Ads gateway adapter', async () => {
+    const credentialId = testId('credential');
+    credentialsService.findOne.mockResolvedValue({
+      accessToken: 'sealed-token',
+      accessTokenSecret: 'sealed-token-secret',
+    });
+    const adapter = {
+      getTopPerformers: vi.fn().mockResolvedValue([]),
+      listAds: vi.fn().mockResolvedValue([]),
+    };
+    adsGatewayService.getAdapter.mockReturnValue(adapter);
+
+    await service.listAds('org-1', {
+      adAccountId: 'x-account-1',
+      credentialId,
+      platform: 'x',
+      source: 'my_accounts',
+    });
+
+    expect(adapter.listAds).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accessToken: 'decrypted:sealed-token',
+        accessTokenSecret: 'decrypted:sealed-token-secret',
+      }),
+    );
+    expect(adapter.getTopPerformers).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accessToken: 'decrypted:sealed-token',
+        accessTokenSecret: 'decrypted:sealed-token-secret',
+      }),
+      expect.any(Object),
+    );
+  });
 });

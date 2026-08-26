@@ -148,6 +148,17 @@ describe('SharedService', () => {
       );
     });
 
+    it('persists the confirmed agent action identity on the ingredient', async () => {
+      await service.createMediaDocuments(mockUser, {
+        category: IngredientCategory.IMAGE,
+        sourceActionId: 'generation-card-1',
+      });
+
+      expect(ingredientsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ sourceActionId: 'generation-card-1' }),
+      );
+    });
+
     it('derives a compact metadata label from a multiline prompt', async () => {
       await service.createMediaDocuments(mockUser, {
         category: IngredientCategory.IMAGE,
