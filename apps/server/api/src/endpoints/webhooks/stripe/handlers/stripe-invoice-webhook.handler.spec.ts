@@ -1,14 +1,15 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
+import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
 import {
   ByokBillingStatus,
   SubscriptionPlan,
   SubscriptionStatus,
-  SubscriptionTier,
 } from '@genfeedai/enums';
 import {
   type ISubscriptionOssReadModel,
@@ -26,6 +27,7 @@ describe('StripeInvoiceWebhookHandler', () => {
   const configService = { get: vi.fn().mockReturnValue(undefined) };
   const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const subscriptionsService = {
+    findByOrganizationId: vi.fn(),
     findOne: vi.fn(),
     patch: vi.fn(),
     syncSubscriptionState: vi.fn(),
@@ -46,6 +48,11 @@ describe('StripeInvoiceWebhookHandler', () => {
     setByokBillingStatus: vi.fn(),
     setHasEverHadCredits: vi.fn(),
   };
+  const creditGrantService = {
+    logUnresolvedGrant: vi.fn(),
+    resolvePlanCredits: vi.fn().mockResolvedValue(5_900),
+  };
+  const billingAccountService = { resolveWebhookOrganization: vi.fn() };
 
   function invoiceWith(overrides: Record<string, unknown>): Stripe.Invoice {
     return {
@@ -73,7 +80,10 @@ describe('StripeInvoiceWebhookHandler', () => {
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(35_000);
     subscriptionsService.findOne.mockResolvedValue(monthlySubscription);
     subscriptionsService.patch.mockResolvedValue(monthlySubscription);
+    subscriptionsService.findByOrganizationId.mockResolvedValue(null);
+    billingAccountService.resolveWebhookOrganization.mockResolvedValue('org_1');
     supportService.resolveTierFromPriceId.mockReturnValue(null);
+    creditGrantService.resolvePlanCredits.mockResolvedValue(5_900);
     supportService.hasSubscriptionCreditGrant.mockResolvedValue(false);
     supportService.isUniqueConstraintError.mockReturnValue(false);
 
@@ -91,6 +101,14 @@ describe('StripeInvoiceWebhookHandler', () => {
           useValue: accessBootstrapCacheService,
         },
         { provide: StripeWebhookSupportService, useValue: supportService },
+        {
+          provide: SubscriptionCreditGrantService,
+          useValue: creditGrantService,
+        },
+        {
+          provide: OrganizationBillingAccountService,
+          useValue: billingAccountService,
+        },
       ],
     }).compile();
 
@@ -115,7 +133,7 @@ describe('StripeInvoiceWebhookHandler', () => {
         creditsUtilsService.addOrganizationCreditsWithExpiration,
       ).toHaveBeenCalledWith(
         'org_1',
-        35_000,
+        5_900,
         'monthly',
         expect.stringContaining('monthly'),
         expect.any(Date),
@@ -139,6 +157,7 @@ describe('StripeInvoiceWebhookHandler', () => {
         ...monthlySubscription,
         plan: SubscriptionPlan.YEARLY,
       });
+      creditGrantService.resolvePlanCredits.mockResolvedValue(70_800);
 
       await handler.handleInvoicePaid(
         invoiceWith({
@@ -151,7 +170,7 @@ describe('StripeInvoiceWebhookHandler', () => {
 
       expect(creditsUtilsService.resetOrganizationCredits).toHaveBeenCalledWith(
         'org_1',
-        500_000,
+        70_800,
         'yearly',
         expect.stringContaining('yearly'),
         expect.objectContaining({
@@ -161,14 +180,12 @@ describe('StripeInvoiceWebhookHandler', () => {
       );
     });
 
-    it('grants tier-aware Pro credits (8,000) for a monthly Pro subscription', async () => {
+    it('grants the verified Pro allocation for a monthly subscription', async () => {
       subscriptionsService.findOne.mockResolvedValue({
         ...monthlySubscription,
         stripePriceId: 'price_pro',
       });
-      supportService.resolveTierFromPriceId.mockReturnValue(
-        SubscriptionTier.PRO,
-      );
+      creditGrantService.resolvePlanCredits.mockResolvedValue(5_900);
 
       await handler.handleInvoicePaid(
         invoiceWith({
@@ -181,7 +198,7 @@ describe('StripeInvoiceWebhookHandler', () => {
         creditsUtilsService.addOrganizationCreditsWithExpiration,
       ).toHaveBeenCalledWith(
         'org_1',
-        8_000,
+        5_900,
         'monthly',
         expect.stringContaining('monthly'),
         expect.any(Date),
@@ -192,14 +209,12 @@ describe('StripeInvoiceWebhookHandler', () => {
       );
     });
 
-    it('grants tier-aware Scale credits (80,000) for a monthly Scale subscription', async () => {
+    it('grants the verified Scale allocation for a monthly subscription', async () => {
       subscriptionsService.findOne.mockResolvedValue({
         ...monthlySubscription,
         stripePriceId: 'price_scale',
       });
-      supportService.resolveTierFromPriceId.mockReturnValue(
-        SubscriptionTier.SCALE,
-      );
+      creditGrantService.resolvePlanCredits.mockResolvedValue(60_000);
 
       await handler.handleInvoicePaid(
         invoiceWith({
@@ -212,7 +227,7 @@ describe('StripeInvoiceWebhookHandler', () => {
         creditsUtilsService.addOrganizationCreditsWithExpiration,
       ).toHaveBeenCalledWith(
         'org_1',
-        80_000,
+        60_000,
         'monthly',
         expect.stringContaining('monthly'),
         expect.any(Date),
@@ -223,15 +238,13 @@ describe('StripeInvoiceWebhookHandler', () => {
       );
     });
 
-    it('grants 12x the monthly tier allotment for a yearly Pro subscription (96,000)', async () => {
+    it('grants the verified yearly allocation for a yearly Pro subscription', async () => {
       subscriptionsService.findOne.mockResolvedValue({
         ...monthlySubscription,
         plan: SubscriptionPlan.YEARLY,
         stripePriceId: 'price_pro_yearly',
       });
-      supportService.resolveTierFromPriceId.mockReturnValue(
-        SubscriptionTier.PRO,
-      );
+      creditGrantService.resolvePlanCredits.mockResolvedValue(70_800);
 
       await handler.handleInvoicePaid(
         invoiceWith({
@@ -242,7 +255,7 @@ describe('StripeInvoiceWebhookHandler', () => {
 
       expect(creditsUtilsService.resetOrganizationCredits).toHaveBeenCalledWith(
         'org_1',
-        96_000,
+        70_800,
         'yearly',
         expect.stringContaining('yearly'),
         expect.objectContaining({
@@ -259,25 +272,54 @@ describe('StripeInvoiceWebhookHandler', () => {
       expect(loggerService.warn).toHaveBeenCalled();
     });
 
-    it('warns and allocates nothing when the subscription is not found', async () => {
+    it('throws when the subscription and billing identity are unavailable', async () => {
       subscriptionsService.findOne.mockResolvedValue(null);
+
+      await expect(
+        handler.handleInvoicePaid(
+          invoiceWith({
+            parent: {
+              subscription_details: { subscription: 'sub_missing' },
+            },
+          }),
+          'test',
+        ),
+      ).rejects.toThrow('Invoice billing identity unavailable');
+      expect(
+        creditsUtilsService.addOrganizationCreditsWithExpiration,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('reconciles an out-of-order invoice through verified subscription metadata', async () => {
+      subscriptionsService.findOne.mockResolvedValue(null);
+      subscriptionsService.findByOrganizationId.mockResolvedValue({
+        ...monthlySubscription,
+        stripeSubscriptionId: null,
+      });
 
       await handler.handleInvoicePaid(
         invoiceWith({
+          customer: 'cus_123',
           parent: {
-            subscription_details: { subscription: 'sub_missing' },
+            subscription_details: {
+              metadata: {
+                billing_account_type: 'organization',
+                billing_organization_id: 'org_1',
+              },
+              subscription: 'sub_new',
+            },
           },
         }),
         'test',
       );
 
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('subscription not found for invoice'),
-        expect.objectContaining({ stripeSubscriptionId: 'sub_missing' }),
-      );
       expect(
-        creditsUtilsService.addOrganizationCreditsWithExpiration,
-      ).not.toHaveBeenCalled();
+        billingAccountService.resolveWebhookOrganization,
+      ).toHaveBeenCalled();
+      expect(subscriptionsService.patch).toHaveBeenCalledWith(
+        'sub_db_1',
+        expect.objectContaining({ stripeSubscriptionId: 'sub_new' }),
+      );
     });
 
     it('marks onboarding complete on the first subscription invoice', async () => {
@@ -310,7 +352,7 @@ describe('StripeInvoiceWebhookHandler', () => {
         creditsUtilsService.addOrganizationCreditsWithExpiration,
       ).toHaveBeenCalledWith(
         'org_1',
-        35_000,
+        5_900,
         'monthly',
         expect.stringContaining('monthly'),
         expect.any(Date),
@@ -379,6 +421,7 @@ describe('StripeInvoiceWebhookHandler', () => {
         ...monthlySubscription,
         plan: SubscriptionPlan.YEARLY,
       });
+      creditGrantService.resolvePlanCredits.mockResolvedValue(70_800);
       supportService.hasSubscriptionCreditGrant.mockResolvedValue(true);
 
       await handler.handleInvoicePaid(
@@ -428,6 +471,7 @@ describe('StripeInvoiceWebhookHandler', () => {
         ...monthlySubscription,
         plan: SubscriptionPlan.YEARLY,
       });
+      creditGrantService.resolvePlanCredits.mockResolvedValue(70_800);
       const uniqueConstraintError = { code: 'P2002' };
       creditsUtilsService.resetOrganizationCredits.mockRejectedValue(
         uniqueConstraintError,
@@ -445,7 +489,7 @@ describe('StripeInvoiceWebhookHandler', () => {
 
       expect(creditsUtilsService.resetOrganizationCredits).toHaveBeenCalledWith(
         'org_1',
-        500_000,
+        70_800,
         'yearly',
         expect.stringContaining('yearly'),
         expect.objectContaining({

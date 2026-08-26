@@ -128,6 +128,113 @@ describe('StripeService — coverage spec', () => {
     vi.clearAllMocks();
   });
 
+  describe('production subscription price validation', () => {
+    it('accepts the configured Pro price when its Stripe data matches the tier contract', async () => {
+      const retrieve = vi
+        .spyOn(service.stripe.prices, 'retrieve')
+        .mockResolvedValue({
+          active: true,
+          currency: 'usd',
+          id: 'pro_id',
+          metadata: { included_monthly_credits: '5900' },
+          recurring: { interval: 'month', interval_count: 1 },
+          unit_amount: 4_900,
+        } as unknown as Stripe.Response<Stripe.Price>);
+
+      await expect(
+        service.validateSubscriptionPriceForTier('pro_id', 'pro'),
+      ).resolves.toBeUndefined();
+      expect(retrieve).toHaveBeenCalledWith('pro_id', {
+        expand: ['product'],
+      });
+      expect(loggerMock.log).toHaveBeenCalledWith(
+        expect.stringContaining('subscription price validated'),
+        { outcome: 'valid', tier: 'pro' },
+      );
+    });
+
+    it('accepts an otherwise valid Pro price without credit metadata so the published tier fallback applies', async () => {
+      vi.spyOn(service.stripe.prices, 'retrieve').mockResolvedValue({
+        active: true,
+        currency: 'usd',
+        id: 'pro_id',
+        metadata: {},
+        recurring: { interval: 'month', interval_count: 1 },
+        unit_amount: 4_900,
+      } as unknown as Stripe.Response<Stripe.Price>);
+
+      await expect(
+        service.validateSubscriptionPriceForTier('pro_id', 'pro'),
+      ).resolves.toBeUndefined();
+    });
+
+    it.each([
+      ['inactive', { active: false }],
+      ['wrong currency', { currency: 'eur' }],
+      ['wrong cadence', { recurring: { interval: 'year', interval_count: 1 } }],
+      ['wrong amount', { unit_amount: 3_900 }],
+      [
+        'wrong credit grant',
+        { metadata: { included_monthly_credits: '8000' } },
+      ],
+    ])('fails closed for a Pro price with %s', async (_label, override) => {
+      vi.spyOn(service.stripe.prices, 'retrieve').mockResolvedValue({
+        active: true,
+        currency: 'usd',
+        id: 'pro_id',
+        metadata: { included_monthly_credits: '5900' },
+        recurring: { interval: 'month', interval_count: 1 },
+        unit_amount: 4_900,
+        ...override,
+      } as unknown as Stripe.Response<Stripe.Price>);
+
+      const error = await service
+        .validateSubscriptionPriceForTier('pro_id', 'pro')
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toBe(
+        'Production subscription price configuration is invalid',
+      );
+      expect(JSON.stringify(loggerMock.error.mock.calls)).not.toContain(
+        'pro_id',
+      );
+    });
+
+    it('fails production startup when the Pro price is missing without calling Stripe', async () => {
+      const configGet = buildConfigGet();
+      configGet.mockImplementation((key: string) => {
+        if (key === 'NODE_ENV') return 'production';
+        if (key === 'GENFEED_CLOUD') return '1';
+        if (key === 'STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY') return '';
+        return buildConfigGet()(key);
+      });
+      const production = await buildModule(configGet);
+      const retrieve = vi.spyOn(production.service.stripe.prices, 'retrieve');
+
+      await expect(production.service.onApplicationBootstrap()).rejects.toThrow(
+        'Production subscription price configuration is invalid',
+      );
+      expect(retrieve).not.toHaveBeenCalled();
+    });
+
+    it('fails production startup when the Pro price identifier is malformed', async () => {
+      const configGet = buildConfigGet();
+      configGet.mockImplementation((key: string) => {
+        if (key === 'NODE_ENV') return 'production';
+        if (key === 'GENFEED_CLOUD') return '1';
+        if (key === 'STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY')
+          return 'not-a-price';
+        return buildConfigGet()(key);
+      });
+      const production = await buildModule(configGet);
+
+      await expect(production.service.onApplicationBootstrap()).rejects.toThrow(
+        'Production subscription price configuration is invalid',
+      );
+    });
+  });
+
   // -----------------------------------------------------------------------
   // createOrganizationCustomer
   // -----------------------------------------------------------------------

@@ -2,6 +2,7 @@ import {
   buildCombinedMetadata,
   extractAttributionMetadata,
   extractInvoiceSubscriptionId,
+  extractInvoiceSubscriptionMetadata,
   getEmailDomainForLog,
   getEmailLogMetadata,
 } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
@@ -68,6 +69,28 @@ describe('extractInvoiceSubscriptionId', () => {
 
   it('returns undefined when no path carries a subscription', () => {
     expect(extractInvoiceSubscriptionId(invoiceWith({}))).toBeUndefined();
+  });
+});
+
+describe('extractInvoiceSubscriptionMetadata', () => {
+  it('reads trusted subscription metadata from the v22 parent path', () => {
+    expect(
+      extractInvoiceSubscriptionMetadata(
+        invoiceWith({
+          parent: {
+            subscription_details: {
+              metadata: {
+                billing_account_type: 'organization',
+                billing_organization_id: 'org_1',
+              },
+            },
+          },
+        }),
+      ),
+    ).toEqual({
+      billing_account_type: 'organization',
+      billing_organization_id: 'org_1',
+    });
   });
 });
 

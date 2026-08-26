@@ -9,6 +9,7 @@ import { ManagedStripeController } from '@api/services/integrations/stripe/contr
 import { StripeController } from '@api/services/integrations/stripe/controllers/stripe.controller';
 import { UserStripeController } from '@api/services/integrations/stripe/controllers/user-stripe.controller';
 import { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
+import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
 import { StripeCoreModule } from '@api/services/integrations/stripe/stripe-core.module';
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { Module } from '@nestjs/common';
@@ -19,7 +20,11 @@ import { Module } from '@nestjs/common';
     UserStripeController,
     ManagedStripeController,
   ],
-  exports: [StripeCoreModule, ManagedStripeCheckoutService],
+  exports: [
+    StripeCoreModule,
+    ManagedStripeCheckoutService,
+    OrganizationBillingAccountService,
+  ],
   imports: [
     StripeCoreModule,
     CreditsModule,
@@ -31,6 +36,6 @@ import { Module } from '@nestjs/common';
     UsersModule,
     LifecycleEmailsModule,
   ],
-  providers: [ManagedStripeCheckoutService],
+  providers: [ManagedStripeCheckoutService, OrganizationBillingAccountService],
 })
 export class StripeModule {}

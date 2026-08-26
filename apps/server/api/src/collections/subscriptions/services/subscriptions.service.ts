@@ -344,6 +344,18 @@ export class SubscriptionsService
         throw new BadRequestException('No active Stripe subscription found');
       }
 
+      const newPrice = await this.stripeService.getPrice(newPriceId);
+      const recurringInterval = newPrice.recurring?.interval;
+      if (recurringInterval !== 'month' && recurringInterval !== 'year') {
+        throw new BadRequestException(
+          'Subscription price must use a monthly or yearly billing interval',
+        );
+      }
+      const newPlan =
+        recurringInterval === 'year'
+          ? SubscriptionPlan.YEARLY
+          : SubscriptionPlan.MONTHLY;
+
       // Change the plan in Stripe with pro-rata billing
       const updatedStripeSubscription =
         await this.stripeService.changeSubscriptionPlan(
@@ -351,12 +363,6 @@ export class SubscriptionsService
           newPriceId,
           'create_prorations',
         );
-
-      // Update the canonical plan based on the new price.
-      let newPlan = SubscriptionPlan.MONTHLY;
-      if (newPriceId.includes('yearly') || newPriceId.includes('year')) {
-        newPlan = SubscriptionPlan.YEARLY;
-      }
 
       // Update our local subscription record
       const updatedSubscription = await this.patch(subscription.id.toString(), {
@@ -379,7 +385,8 @@ export class SubscriptionsService
       // price we cannot resolve leaves the existing balance alone rather than
       // resetting it to a default unrelated to what they now pay.
       const previousPlan = subscription.plan ?? undefined;
-      if (newPlan !== previousPlan) {
+      const previousPriceId = subscription.stripePriceId ?? undefined;
+      if (newPriceId !== previousPriceId) {
         const creditsForNewPlan =
           (await this.creditGrantService.resolvePlanCredits(
             newPlan,
@@ -402,7 +409,7 @@ export class SubscriptionsService
             organizationId,
             creditsForNewPlan,
             source,
-            `Credits reset due to subscription change from ${previousPlan ?? 'unknown'} to ${newPlan}`,
+            `Credits reset due to subscription price change from ${previousPriceId ?? 'unknown'} to ${newPriceId} (${previousPlan ?? 'unknown'} to ${newPlan})`,
           );
 
           this.logger.log(`${url} credits reset for plan change`, {
@@ -418,7 +425,7 @@ export class SubscriptionsService
       this.logger.log(`${url} success`, {
         newPriceId,
         newPlan,
-        oldPriceId: subscription.stripePriceId,
+        oldPriceId: previousPriceId,
         oldPlan: previousPlan,
         subscriptionId: subscription.id,
       });

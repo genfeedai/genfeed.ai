@@ -1,14 +1,21 @@
 import { createHash } from 'node:crypto';
+import { BILLING_ACCOUNT_METADATA } from '@api/services/integrations/stripe/services/billing-account-metadata.constant';
 import {
+  classifyStripeFailure,
   isStripeResourceMissingError,
   isStripeSignatureVerificationError,
+  StripeBillingConfigurationError,
 } from '@api/services/integrations/stripe/services/stripe-error.util';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   creditPackTotalCredits,
+  INCLUDED_MONTHLY_CREDITS_METADATA_KEY,
   PAYG_CREDIT_PACKS,
   PAYG_MAX_PURCHASE_USD,
   PAYG_MIN_PURCHASE_USD,
+  parseIncludedMonthlyCredits,
+  SUBSCRIPTION_PRICE_CONTRACTS,
+  type SubscriptionPriceTier,
 } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -72,6 +79,7 @@ export class StripeService {
   // Eager initialization - create client in constructor to avoid race conditions
   // NestJS creates singleton services, so this runs once at startup
   public readonly stripe: StripeClient;
+  private readonly validatedSubscriptionPrices = new Set<string>();
 
   constructor(
     private readonly configService: ConfigService,
@@ -85,13 +93,118 @@ export class StripeService {
 
     // Eager initialization - create Stripe client in constructor
     this.stripe = new StripeConstructor(
-      this.configService.get('STRIPE_SECRET_KEY')!,
+      this.configService.get('STRIPE_SECRET_KEY') ?? '',
       {
         apiVersion: resolveStripeApiVersion(
           this.configService.get('STRIPE_API_VERSION'),
         ),
       },
     );
+  }
+
+  async onApplicationBootstrap(): Promise<void> {
+    if (!this.isProductionCloud() || isSelfHostedDeployment()) {
+      return;
+    }
+
+    const proPriceId = this.configService.get(
+      'STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY',
+    );
+    if (!this.isStripePriceId(proPriceId)) {
+      this.loggerService.error(
+        `${this.constructorName} production subscription price validation failed`,
+        { category: 'configuration', tier: 'pro' },
+      );
+      throw new StripeBillingConfigurationError();
+    }
+
+    await this.validateSubscriptionPriceForTier(proPriceId, 'pro');
+  }
+
+  public async validateSubscriptionPriceForTier(
+    stripePriceId: string,
+    tier: SubscriptionPriceTier,
+  ): Promise<void> {
+    const cacheKey = `${tier}:${stripePriceId}`;
+    if (this.validatedSubscriptionPrices.has(cacheKey)) {
+      return;
+    }
+
+    let price: StripePrice;
+    try {
+      price = await this.stripe.prices.retrieve(stripePriceId, {
+        expand: ['product'],
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} production subscription price validation failed`,
+        { category: classifyStripeFailure(error), tier },
+      );
+      throw new StripeBillingConfigurationError();
+    }
+
+    const contract = SUBSCRIPTION_PRICE_CONTRACTS[tier];
+    const rawIncludedMonthlyCredits =
+      price.metadata?.[INCLUDED_MONTHLY_CREDITS_METADATA_KEY];
+    const includedMonthlyCredits = parseIncludedMonthlyCredits(
+      rawIncludedMonthlyCredits,
+    );
+    const matchesCreditGrant =
+      rawIncludedMonthlyCredits === undefined ||
+      rawIncludedMonthlyCredits === '' ||
+      includedMonthlyCredits === contract.includedMonthlyCredits;
+    const matchesContract =
+      price.active === true &&
+      price.currency === contract.currency &&
+      price.recurring?.interval === contract.interval &&
+      price.recurring.interval_count === 1 &&
+      price.unit_amount === contract.unitAmount &&
+      matchesCreditGrant;
+
+    if (!matchesContract) {
+      this.loggerService.error(
+        `${this.constructorName} production subscription price validation failed`,
+        { category: 'configuration', tier },
+      );
+      throw new StripeBillingConfigurationError();
+    }
+
+    this.validatedSubscriptionPrices.add(cacheKey);
+    this.loggerService.log(
+      `${this.constructorName} subscription price validated`,
+      { outcome: 'valid', tier },
+    );
+  }
+
+  private isStripePriceId(value: unknown): value is string {
+    return typeof value === 'string' && /^price_[A-Za-z0-9]+$/.test(value);
+  }
+
+  private isProductionCloud(): boolean {
+    return (
+      this.configService.get('NODE_ENV') === 'production' &&
+      ['1', 'true'].includes(
+        String(this.configService.get('GENFEED_CLOUD')).toLowerCase(),
+      )
+    );
+  }
+
+  private resolveConfiguredSubscriptionTier(
+    stripePriceId: string,
+  ): SubscriptionPriceTier | null {
+    if (
+      stripePriceId ===
+      this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY')
+    ) {
+      return 'pro';
+    }
+    if (
+      stripePriceId ===
+      this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY')
+    ) {
+      return 'scale';
+    }
+    return null;
   }
 
   /**
@@ -488,12 +601,35 @@ export class StripeService {
       // hard-fail checkout — callers re-create and rebind.
       if (isStripeResourceMissingError(error)) {
         this.loggerService.warn(`${url} customer missing on Stripe account`, {
-          customerId,
+          category: 'customer_missing',
         });
         return null;
       }
 
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(`${url} failed`, {
+        category: classifyStripeFailure(error),
+      });
+      throw error;
+    }
+  }
+
+  public async findOrganizationCustomers(
+    organizationId: string,
+  ): Promise<StripeCustomer[]> {
+    const escapedOrganizationId = organizationId.replaceAll("'", "\\'");
+    try {
+      const result = await this.stripe.customers.search({
+        limit: 10,
+        query: `metadata['organizationId']:'${escapedOrganizationId}' AND metadata['type']:'organization'`,
+      });
+      return result.data.filter(
+        (customer) => !customer.deleted,
+      ) as StripeCustomer[];
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} organization customer search failed`,
+        { category: classifyStripeFailure(error) },
+      );
       throw error;
     }
   }
@@ -516,7 +652,9 @@ export class StripeService {
         return_url: returnUrl,
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(`${url} failed`, {
+        category: classifyStripeFailure(error),
+      });
       throw error;
     }
   }
@@ -588,6 +726,7 @@ export class StripeService {
     origin: string,
     quantity: number = 1000,
     redirectUrls?: { success: string; cancel: string },
+    billingContext?: { organizationId: string },
   ): Promise<StripeCheckoutSession> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -610,6 +749,15 @@ export class StripeService {
       let sessionConfig: StripeCheckoutSessionCreateParams;
 
       if (isSubscription) {
+        const configuredTier =
+          this.resolveConfiguredSubscriptionTier(stripePriceId);
+        if (configuredTier && this.isProductionCloud()) {
+          await this.validateSubscriptionPriceForTier(
+            stripePriceId,
+            configuredTier,
+          );
+        }
+
         // Determine tier from price ID for metadata
         const tierMetadata = this.getSubscriptionTierMetadata(stripePriceId);
 
@@ -718,6 +866,24 @@ export class StripeService {
               plan_type: 'custom',
             },
           };
+        }
+
+        if (billingContext) {
+          const billingMetadata = {
+            [BILLING_ACCOUNT_METADATA.organizationId]:
+              billingContext.organizationId,
+            [BILLING_ACCOUNT_METADATA.type]: 'organization',
+          };
+          sessionConfig.metadata = {
+            ...sessionConfig.metadata,
+            ...billingMetadata,
+          };
+          if (sessionConfig.subscription_data) {
+            sessionConfig.subscription_data.metadata = {
+              ...sessionConfig.subscription_data.metadata,
+              ...billingMetadata,
+            };
+          }
         }
       }
 

@@ -137,6 +137,37 @@ export const TIER_INCLUDED_MONTHLY_CREDITS: Record<string, number> = {
   scale: 60_000,
 };
 
+export type SubscriptionPriceTier = 'pro' | 'scale';
+
+/**
+ * Stable Stripe price contracts keyed by Genfeed tier, never by Stripe product
+ * display name. The live catalog historically called the Pro product
+ * "Creator", so display-name validation would reject the correct price while
+ * accepting a renamed wrong one.
+ */
+export const SUBSCRIPTION_PRICE_CONTRACTS = {
+  pro: {
+    currency: 'usd',
+    includedMonthlyCredits: TIER_INCLUDED_MONTHLY_CREDITS.pro,
+    interval: 'month',
+    unitAmount: PLAN_PRICES.pro * 100,
+  },
+  scale: {
+    currency: 'usd',
+    includedMonthlyCredits: TIER_INCLUDED_MONTHLY_CREDITS.scale,
+    interval: 'month',
+    unitAmount: PLAN_PRICES.scale * 100,
+  },
+} as const satisfies Record<
+  SubscriptionPriceTier,
+  {
+    currency: string;
+    includedMonthlyCredits: number;
+    interval: 'month';
+    unitAmount: number;
+  }
+>;
+
 /**
  * Metadata key on a Stripe price that carries its monthly credit grant.
  *

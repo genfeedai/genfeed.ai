@@ -351,6 +351,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
 
       expect(result.data[0]).toEqual(
         expect.objectContaining({
+          isUnderUsing: false,
           organizationName: 'Acme Inc',
           planLimit: 0,
           status: SubscriptionStatus.ACTIVE,
@@ -388,6 +389,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
           balance: 0,
           currentPeriodEnd: null,
           isMaxedOut: true,
+          isUnderUsing: false,
           organizationName: 'N/A',
           status: null,
           usedPercent: 100,

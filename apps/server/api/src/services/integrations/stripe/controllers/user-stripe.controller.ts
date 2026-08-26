@@ -17,6 +17,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { classifyStripeFailure } from '@api/services/integrations/stripe/services/stripe-error.util';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { OrganizationCategory } from '@genfeedai/enums';
 import {
@@ -34,6 +35,7 @@ import {
   Inject,
   Post,
   Req,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -204,7 +206,25 @@ export class UserStripeController {
       }
 
       if (!dbUser.stripeCustomerId) {
-        return returnNotFound('Stripe Customer', user.id);
+        return returnBadRequest({
+          code: 'billing_customer_missing',
+          message: 'Billing account needs repair before the portal can open',
+          success: false,
+        });
+      }
+
+      const stripeCustomer = await this.stripeService.retrieveCustomer(
+        dbUser.stripeCustomerId,
+      );
+      if (
+        stripeCustomer?.metadata?.type !== 'user' ||
+        stripeCustomer.metadata.userId !== String(dbUser.id)
+      ) {
+        return returnBadRequest({
+          code: 'billing_customer_unverified',
+          message: 'Billing account needs repair before the portal can open',
+          success: false,
+        });
       }
 
       const returnUrl = `${origin}/credits`;
@@ -215,15 +235,16 @@ export class UserStripeController {
 
       return serializeSingle(request, StripeUrlSerializer, billingUrl);
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-
       if (error instanceof HttpException) {
         throw error;
       }
-
-      return returnInternalServerError(
-        `Failed to get billing portal URL: ${(error as Error)?.message}`,
-      );
+      this.loggerService.error(`${url} billing portal unavailable`, {
+        category: classifyStripeFailure(error),
+      });
+      throw new ServiceUnavailableException({
+        code: 'billing_provider_unavailable',
+        message: 'Billing portal is temporarily unavailable',
+      });
     }
   }
 

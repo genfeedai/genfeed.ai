@@ -19,7 +19,9 @@ export const stripeSchema = {
   STRIPE_PROMOTION_CODE_LAUNCH: Joi.string().optional().allow(''),
   STRIPE_PROMOTION_CODE_SKILLS_PRO: Joi.string().optional().allow(''),
   STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: Joi.string().optional(),
-  STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: Joi.string().optional(),
+  STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: Joi.string()
+    .pattern(/^price_[A-Za-z0-9]+$/)
+    .optional(),
   STRIPE_PRICE_SUBSCRIPTION_PRO_YEARLY: Joi.string().optional(),
   STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: Joi.string().optional(),
   STRIPE_PUBLISHABLE_KEY: conditionalRequired(),

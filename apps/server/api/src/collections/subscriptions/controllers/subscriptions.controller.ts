@@ -378,7 +378,7 @@ export class SubscriptionsController {
         ? new Date(subscription.currentPeriodEnd).toISOString()
         : null,
       isMaxedOut: usedPercent >= 90,
-      isUnderUsing: usedPercent <= 10,
+      isUnderUsing: planLimit > 0 && usedPercent <= 10,
       organizationId,
       organizationName: organizationNameById.get(organizationId) ?? 'N/A',
       planLimit,

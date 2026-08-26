@@ -2,6 +2,10 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { UsersService } from '@api/collections/users/services/users.service';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
+import {
+  BillingAccountResolutionError,
+  OrganizationBillingAccountService,
+} from '@api/services/integrations/stripe/services/organization-billing-account.service';
 import type { StripeSubscription } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import {
@@ -30,6 +34,7 @@ export class StripeSubscriptionWebhookHandler {
     private readonly supportService: StripeWebhookSupportService,
     private readonly lifecycleEmailService: LifecycleEmailService,
     private readonly creditReconciler: StripeSubscriptionCreditReconcilerService,
+    private readonly billingAccountService: OrganizationBillingAccountService,
   ) {}
 
   async handleSubscriptionCreated(
@@ -38,17 +43,27 @@ export class StripeSubscriptionWebhookHandler {
   ): Promise<void> {
     try {
       // Find existing subscription by Stripe customer ID
-      const existingSubscription =
+      let existingSubscription =
         await this.subscriptionsService.findByStripeCustomerId(
           subscription.customer as string,
         );
 
       if (!existingSubscription) {
-        this.loggerService.warn(`${url} subscription not found for customer`, {
-          customerId: subscription.customer,
-          stripeSubscriptionId: subscription.id,
-        });
-        return;
+        const organizationId =
+          await this.billingAccountService.resolveWebhookOrganization(
+            String(subscription.customer),
+            subscription.metadata,
+          );
+        existingSubscription =
+          await this.subscriptionsService.findByOrganizationId(organizationId);
+      }
+
+      if (!existingSubscription) {
+        this.loggerService.warn(
+          `${url} subscription reconciliation target unavailable`,
+          { category: 'subscription_missing' },
+        );
+        throw new Error('Subscription reconciliation target unavailable');
       }
 
       const organizationId = this.resolveSubscriptionOrganizationId(
@@ -125,10 +140,12 @@ export class StripeSubscriptionWebhookHandler {
         stripeSubscriptionId: subscription.id,
       });
     } catch (error: unknown) {
-      this.loggerService.error(
-        `${url} failed to handle subscription created`,
-        error,
-      );
+      this.loggerService.error(`${url} failed to handle subscription created`, {
+        category:
+          error instanceof BillingAccountResolutionError
+            ? error.category
+            : 'reconciliation_failed',
+      });
       throw error;
     }
   }

@@ -73,6 +73,7 @@ function buildSubscription(
 /** Minimal Stripe subscription shape the service actually reads. */
 function buildStripeSubscription(options: {
   currentPeriodEnd?: number | null;
+  interval?: 'month' | 'year' | null;
   priceId?: string;
   status?: string;
   unitAmount?: number | null;
@@ -86,6 +87,10 @@ function buildStripeSubscription(options: {
           id: 'si_1',
           price: {
             id: options.priceId ?? 'price_monthly',
+            recurring:
+              options.interval === null
+                ? null
+                : { interval: options.interval ?? 'month' },
             unit_amount:
               options.unitAmount === undefined ? 4900 : options.unitAmount,
           },
@@ -146,7 +151,10 @@ describe('SubscriptionsService', () => {
     stripeService = {
       changeSubscriptionPlan: vi.fn(),
       createOrganizationCustomer: vi.fn(),
-      getPrice: vi.fn(),
+      getPrice: vi.fn().mockResolvedValue({
+        id: 'price_monthly',
+        recurring: { interval: 'month' },
+      }),
       getSubscription: vi.fn(),
       getUpcomingInvoice: vi.fn(),
       retrieveCustomer: vi.fn(),
@@ -663,6 +671,10 @@ describe('SubscriptionsService', () => {
           status: 'active',
         }),
       );
+      stripeService.getPrice.mockResolvedValue({
+        id: 'price_yearly_pro',
+        recurring: { interval: 'year' },
+      });
       subscriptionDelegate.update.mockResolvedValue(
         buildSubscription({ plan: SubscriptionPlan.YEARLY }),
       );
@@ -710,6 +722,10 @@ describe('SubscriptionsService', () => {
     });
 
     it('leaves the balance alone and warns when the new price has no resolvable grant', async () => {
+      stripeService.getPrice.mockResolvedValue({
+        id: 'price_year_2026',
+        recurring: { interval: 'year' },
+      });
       stripeService.changeSubscriptionPlan.mockResolvedValue(
         buildStripeSubscription({ priceId: 'price_annual' }),
       );
@@ -766,20 +782,93 @@ describe('SubscriptionsService', () => {
       );
     });
 
-    it('does not reset credits when the canonical plan is unchanged', async () => {
+    it('resets credits when a monthly Pro price changes to monthly Scale', async () => {
+      stripeService.changeSubscriptionPlan.mockResolvedValue(
+        buildStripeSubscription({ priceId: 'price_scale_monthly' }),
+      );
+      subscriptionDelegate.update.mockResolvedValue(
+        buildSubscription({ stripePriceId: 'price_scale_monthly' }),
+      );
+      creditGrantService.resolvePlanCredits.mockResolvedValue(60_000);
+
+      await service.changeSubscriptionPlan(
+        ORGANIZATION_ID,
+        'price_scale_monthly',
+      );
+
+      expect(creditsUtilsService.resetOrganizationCredits).toHaveBeenCalledWith(
+        ORGANIZATION_ID,
+        60_000,
+        'change_to_monthly',
+        expect.stringContaining('price'),
+      );
+    });
+
+    it('resets credits when a monthly Scale price changes to monthly Pro', async () => {
+      subscriptionDelegate.findFirst.mockResolvedValue(
+        buildSubscription({ stripePriceId: 'price_scale_monthly' }),
+      );
+      stripeService.changeSubscriptionPlan.mockResolvedValue(
+        buildStripeSubscription({ priceId: 'price_pro_monthly' }),
+      );
+      subscriptionDelegate.update.mockResolvedValue(
+        buildSubscription({ stripePriceId: 'price_pro_monthly' }),
+      );
+      creditGrantService.resolvePlanCredits.mockResolvedValue(5_900);
+
+      await service.changeSubscriptionPlan(
+        ORGANIZATION_ID,
+        'price_pro_monthly',
+      );
+
+      expect(creditsUtilsService.resetOrganizationCredits).toHaveBeenCalledWith(
+        ORGANIZATION_ID,
+        5_900,
+        'change_to_monthly',
+        expect.stringContaining('price'),
+      );
+    });
+
+    it('does not reset credits when the Stripe price is unchanged', async () => {
       stripeService.changeSubscriptionPlan.mockResolvedValue(
         buildStripeSubscription({}),
       );
       subscriptionDelegate.update.mockResolvedValue(buildSubscription());
 
-      await service.changeSubscriptionPlan(
-        ORGANIZATION_ID,
-        'price_monthly_pro',
-      );
+      await service.changeSubscriptionPlan(ORGANIZATION_ID, 'price_monthly');
 
       expect(
         creditsUtilsService.resetOrganizationCredits,
       ).not.toHaveBeenCalled();
+    });
+
+    it('persists yearly cadence for an opaque yearly Stripe price id', async () => {
+      stripeService.getPrice.mockResolvedValue({
+        id: 'price_opaque',
+        recurring: { interval: 'year' },
+      });
+      stripeService.changeSubscriptionPlan.mockResolvedValue(
+        buildStripeSubscription({ interval: 'year', priceId: 'price_opaque' }),
+      );
+      subscriptionDelegate.update.mockResolvedValue(
+        buildSubscription({
+          plan: SubscriptionPlan.YEARLY,
+          stripePriceId: 'price_opaque',
+        }),
+      );
+      creditGrantService.resolvePlanCredits.mockResolvedValue(70_800);
+
+      await service.changeSubscriptionPlan(ORGANIZATION_ID, 'price_opaque');
+
+      expect(stripeService.getPrice).toHaveBeenCalledWith('price_opaque');
+      expect(creditGrantService.resolvePlanCredits).toHaveBeenCalledWith(
+        SubscriptionPlan.YEARLY,
+        'price_opaque',
+      );
+      const updateArgs = subscriptionDelegate.update.mock.calls[0] as [
+        { data: Record<string, unknown> },
+      ];
+      expect(updateArgs[0].data.plan).toBe(SubscriptionPlan.YEARLY);
     });
 
     it('maps a Stripe US-spelled `canceled` status to the Prisma CANCELLED label', async () => {

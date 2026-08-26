@@ -29,6 +29,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { UsersService } from '@api/collections/users/services/users.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { StripeController } from '@api/services/integrations/stripe/controllers/stripe.controller';
+import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
@@ -45,6 +46,7 @@ describe('StripeController', () => {
     createPaymentSession: ReturnType<typeof vi.fn>;
     createSetupCheckoutSession: ReturnType<typeof vi.fn>;
     getBillingPortalUrl: ReturnType<typeof vi.fn>;
+    findOrganizationCustomers: ReturnType<typeof vi.fn>;
     retrieveCustomer: ReturnType<typeof vi.fn>;
   };
   let subscriptionsService: {
@@ -99,7 +101,11 @@ describe('StripeController', () => {
       getBillingPortalUrl: vi
         .fn()
         .mockResolvedValue({ url: 'https://billing.stripe.com/portal' }),
-      retrieveCustomer: vi.fn().mockResolvedValue({ id: 'cus_test123' }),
+      findOrganizationCustomers: vi.fn().mockResolvedValue([]),
+      retrieveCustomer: vi.fn().mockResolvedValue({
+        id: 'cus_test123',
+        metadata: { organizationId: orgId, type: 'organization' },
+      }),
     };
 
     subscriptionsService = {
@@ -158,6 +164,7 @@ describe('StripeController', () => {
           useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
         },
         { provide: StripeService, useValue: stripeService },
+        OrganizationBillingAccountService,
         { provide: SUBSCRIPTIONS_SERVICE, useValue: subscriptionsService },
         { provide: CustomersService, useValue: customersService },
         { provide: UsersService, useValue: usersService },
@@ -206,6 +213,7 @@ describe('StripeController', () => {
         'https://app.genfeed.ai',
         1,
         undefined,
+        { organizationId: orgId },
       );
     });
 
@@ -272,6 +280,7 @@ describe('StripeController', () => {
         'https://app.genfeed.ai',
         1,
         undefined,
+        { organizationId: orgId },
       );
     });
 
@@ -322,6 +331,7 @@ describe('StripeController', () => {
         'https://app.genfeed.ai',
         1,
         undefined,
+        { organizationId: orgId },
       );
     });
 
@@ -350,6 +360,7 @@ describe('StripeController', () => {
         'https://app.genfeed.ai',
         1,
         { cancel: 'https://cancel.url', success: 'https://success.url' },
+        { organizationId: orgId },
       );
     });
 
@@ -364,7 +375,7 @@ describe('StripeController', () => {
   });
 
   describe('createSetupCheckout', () => {
-    it('prefers the organization customer row over a conflicting subscription projection', async () => {
+    it('blocks a conflicting organization customer projection', async () => {
       subscriptionsService.findByOrganizationId.mockResolvedValueOnce({
         ...mockSubscription,
         stripeCustomerId: 'cus_stale_projection',
@@ -374,13 +385,10 @@ describe('StripeController', () => {
         stripeCustomerId: 'cus_authoritative',
       });
 
-      await controller.createSetupCheckout(mockUser, mockRequest);
-
-      expect(stripeService.createSetupCheckoutSession).toHaveBeenCalledWith(
-        'cus_authoritative',
-        expect.any(String),
-        expect.any(String),
-      );
+      await expect(
+        controller.createSetupCheckout(mockUser, mockRequest),
+      ).rejects.toThrow(HttpException);
+      expect(stripeService.createSetupCheckoutSession).not.toHaveBeenCalled();
     });
 
     it('should create a setup checkout session', async () => {
@@ -468,11 +476,19 @@ describe('StripeController', () => {
 
     it('should handle stripe service errors gracefully', async () => {
       stripeService.getBillingPortalUrl.mockRejectedValueOnce(
-        new Error('Stripe is down'),
+        new Error('raw provider payload'),
       );
-      await expect(
-        controller.getBillingPortalUrl(mockUser, mockRequest),
-      ).rejects.toThrow(HttpException);
+      const error = await controller
+        .getBillingPortalUrl(mockUser, mockRequest)
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+      expect(
+        JSON.stringify((error as HttpException).getResponse()),
+      ).not.toContain('raw provider payload');
     });
   });
 });
