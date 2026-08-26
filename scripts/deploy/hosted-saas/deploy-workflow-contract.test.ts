@@ -23,4 +23,15 @@ describe('hosted SaaS Vercel deployment contract', () => {
 
     expect(matrix).not.toContain('vars.VERCEL_PROJECT_');
   });
+
+  test('routes the production app auth proxy through the public API', async () => {
+    const vercel = await workflow('_deploy-hosted-saas-vercel.yml');
+    const core = await workflow('_deploy-hosted-saas-core.yml');
+
+    expect(vercel).toContain(`DOMAIN: \${{ vars.DOMAIN }}`);
+    expect(vercel).toContain(`printf 'API_URL=https://api.%s\\n' "$DOMAIN"`);
+    expect(core).toContain(
+      `app-auth-proxy|https://\${APP_HOST}/v1/auth/get-session|null`,
+    );
+  });
 });
