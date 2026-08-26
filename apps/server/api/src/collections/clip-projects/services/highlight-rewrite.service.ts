@@ -49,12 +49,15 @@ Return ONLY the rewritten script. No explanation, no markdown, just the script t
   async rewrite(
     projectId: string,
     highlightId: string,
+    organizationId: string,
     platform: string,
     tone: string,
   ): Promise<{ rewrittenScript: string; originalScript: string }> {
     const project: ClipProjectDocument | null =
       await this.clipProjectsService.findOne({
         id: projectId,
+        isDeleted: false,
+        organizationId,
       });
 
     if (!project) {

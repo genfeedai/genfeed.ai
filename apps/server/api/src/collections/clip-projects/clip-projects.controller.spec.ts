@@ -19,7 +19,6 @@ import type {
   ResolveClipIdentityParams,
 } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import type { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
-import type { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
 import type { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
 import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -260,7 +259,6 @@ describe('ClipProjectsController', () => {
         brandsService as unknown as BrandsService,
       ),
       clipIdentityResolutionService as ClipIdentityResolutionService,
-      { rewrite: vi.fn() } as unknown as HighlightRewriteService,
       creditsUtilsService as unknown as CreditsUtilsService,
       hookClipApprovalService as unknown as HookClipApprovalService,
     );
