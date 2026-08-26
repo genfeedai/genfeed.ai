@@ -36,7 +36,6 @@ export default function AppHtmlDocument({
       lang={lang}
       className={fontVariables}
       data-theme={isSystemPreference ? undefined : initialTheme}
-      data-scroll-behavior="smooth"
       style={{
         colorScheme: isSystemPreference ? 'light dark' : initialTheme,
       }}
