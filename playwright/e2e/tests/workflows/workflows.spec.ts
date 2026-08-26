@@ -44,13 +44,17 @@ test.describe('Workflows', () => {
   }) => {
     const workflow = testWorkflows[1];
 
-    await authenticatedPage.goto(`/automate/workflows/${workflow.id}`, {
+    const workflowPath = brandPath(
+      `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.id}`,
+    );
+
+    await authenticatedPage.goto(workflowPath, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(
-      new RegExp(`/automate/workflows/${workflow.id}$`),
-    );
+    await expect
+      .poll(() => new URL(authenticatedPage.url()).pathname)
+      .toBe(workflowPath);
     await expect(
       authenticatedPage.locator(workflowsBackLinkSelector).first(),
     ).toBeVisible();
@@ -95,13 +99,15 @@ test.describe('Workflows', () => {
   test('workflow executions route renders execution history shell', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS, {
+    const executionsPath = brandPath(APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS);
+
+    await authenticatedPage.goto(executionsPath, {
       waitUntil: 'domcontentloaded',
     });
 
-    await expect(authenticatedPage).toHaveURL(
-      /\/automate\/workflows\/executions$/,
-    );
+    await expect
+      .poll(() => new URL(authenticatedPage.url()).pathname)
+      .toBe(executionsPath);
     await expect(
       executionsHistoryLocator(authenticatedPage).first(),
     ).toBeVisible();

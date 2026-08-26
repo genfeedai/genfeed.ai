@@ -156,7 +156,9 @@ test.describe('Routed organization context', () => {
     await expect(
       authenticatedPage.getByText('Organization switch failed'),
     ).toBeVisible();
-    await expect.poll(contextMock.getSwitchCount).toBe(1);
+    // The token/context remount retries the same routed confirmation once.
+    // Both attempts fail closed before any tenant-scoped request is released.
+    await expect.poll(contextMock.getSwitchCount).toBe(2);
     expect(tenantRequests).toEqual([]);
     await expect(authenticatedPage.getByTestId('sidebar-shell')).toHaveCount(0);
   });
