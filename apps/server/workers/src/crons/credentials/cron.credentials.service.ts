@@ -1,4 +1,3 @@
-import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
@@ -20,6 +19,7 @@ import { PinterestService } from '@server/services/integrations/pinterest/servic
 import { RedditService } from '@server/services/integrations/reddit/services/reddit.service';
 import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 
 interface TokenRefreshService {
   refreshToken(orgId: string, brandId: string): Promise<unknown>;

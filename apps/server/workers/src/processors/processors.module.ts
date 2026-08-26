@@ -50,7 +50,6 @@ import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.
 import { ThreadsModule } from '@api/services/integrations/threads/threads.module';
 import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
-import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
@@ -76,6 +75,7 @@ import { MastodonService } from '@server/services/integrations/mastodon/services
 import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
 import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 // --- collections/ processors ---
 import { ArticleGenerationProcessor } from '@workers/processors/api/collections/articles/processors/article-generation.processor';

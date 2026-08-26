@@ -1,13 +1,31 @@
-import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
-import { YoutubeCommentsService } from '@api/services/integrations/youtube/services/modules/youtube-comments.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { YoutubeAuthService } from '@server/services/integrations/youtube/services/modules/youtube-auth.service';
+import { YoutubeCommentsService } from '@server/services/integrations/youtube/services/modules/youtube-comments.service';
+
+interface YoutubeAuthServiceMock {
+  refreshToken: ReturnType<typeof vi.fn>;
+}
+
+interface YoutubeApiMock {
+  channels: { list: ReturnType<typeof vi.fn> };
+  comments: { insert: ReturnType<typeof vi.fn> };
+  commentThreads: {
+    insert: ReturnType<typeof vi.fn>;
+    list: ReturnType<typeof vi.fn>;
+  };
+}
+
+interface YoutubeCommentsServiceInternals {
+  authService: YoutubeAuthServiceMock;
+  youtubeAPI: YoutubeApiMock;
+}
 
 describe('YoutubeCommentsService', () => {
   let service: YoutubeCommentsService;
-  let mockAuthService: Record<string, unknown>;
-  let mockYoutubeAPI: Record<string, unknown>;
+  let mockAuthService: YoutubeAuthServiceMock;
+  let mockYoutubeAPI: YoutubeApiMock;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -25,7 +43,9 @@ describe('YoutubeCommentsService', () => {
     }).compile();
 
     service = module.get<YoutubeCommentsService>(YoutubeCommentsService);
-    mockAuthService = (service as unknown).authService;
+    const serviceInternals =
+      service as unknown as YoutubeCommentsServiceInternals;
+    mockAuthService = serviceInternals.authService;
 
     // Mock the YouTube API on the service instance
     mockYoutubeAPI = {
@@ -40,7 +60,7 @@ describe('YoutubeCommentsService', () => {
         list: vi.fn(),
       },
     };
-    (service as unknown).youtubeAPI = mockYoutubeAPI;
+    serviceInternals.youtubeAPI = mockYoutubeAPI;
   });
 
   it('should be defined', () => {
@@ -57,17 +77,13 @@ describe('YoutubeCommentsService', () => {
       const mockAuth = { credentials: { access_token: 'token' } };
       mockAuthService.refreshToken = vi.fn().mockResolvedValue(mockAuth);
 
-      (mockYoutubeAPI.channels as Record<string, unknown>).list = vi
-        .fn()
-        .mockResolvedValue({
-          data: { items: [{ id: 'UC123' }] },
-        });
+      mockYoutubeAPI.channels.list = vi.fn().mockResolvedValue({
+        data: { items: [{ id: 'UC123' }] },
+      });
 
-      (mockYoutubeAPI.commentThreads as Record<string, unknown>).insert = vi
-        .fn()
-        .mockResolvedValue({
-          data: { id: 'comment_abc123' },
-        });
+      mockYoutubeAPI.commentThreads.insert = vi.fn().mockResolvedValue({
+        data: { id: 'comment_abc123' },
+      });
 
       const result = await service.postComment(
         orgId,
@@ -87,11 +103,9 @@ describe('YoutubeCommentsService', () => {
     it('should throw when channel ID is not found', async () => {
       mockAuthService.refreshToken = vi.fn().mockResolvedValue({});
 
-      (mockYoutubeAPI.channels as Record<string, unknown>).list = vi
-        .fn()
-        .mockResolvedValue({
-          data: { items: [] },
-        });
+      mockYoutubeAPI.channels.list = vi.fn().mockResolvedValue({
+        data: { items: [] },
+      });
 
       await expect(
         service.postComment(orgId, brandId, videoId, commentText),
@@ -101,17 +115,13 @@ describe('YoutubeCommentsService', () => {
     it('should throw when no comment ID is returned', async () => {
       mockAuthService.refreshToken = vi.fn().mockResolvedValue({});
 
-      (mockYoutubeAPI.channels as Record<string, unknown>).list = vi
-        .fn()
-        .mockResolvedValue({
-          data: { items: [{ id: 'UC123' }] },
-        });
+      mockYoutubeAPI.channels.list = vi.fn().mockResolvedValue({
+        data: { items: [{ id: 'UC123' }] },
+      });
 
-      (mockYoutubeAPI.commentThreads as Record<string, unknown>).insert = vi
-        .fn()
-        .mockResolvedValue({
-          data: { id: null },
-        });
+      mockYoutubeAPI.commentThreads.insert = vi.fn().mockResolvedValue({
+        data: { id: null },
+      });
 
       await expect(
         service.postComment(orgId, brandId, videoId, commentText),
@@ -131,7 +141,7 @@ describe('YoutubeCommentsService', () => {
     it('should throw when YouTube API call fails', async () => {
       mockAuthService.refreshToken = vi.fn().mockResolvedValue({});
 
-      (mockYoutubeAPI.channels as Record<string, unknown>).list = vi
+      mockYoutubeAPI.channels.list = vi
         .fn()
         .mockRejectedValue(new Error('API quota exceeded'));
 
@@ -149,40 +159,36 @@ describe('YoutubeCommentsService', () => {
       const mockAuth = { credentials: { access_token: 'token' } };
       mockAuthService.refreshToken = vi.fn().mockResolvedValue(mockAuth);
 
-      (mockYoutubeAPI.channels as Record<string, unknown>).list = vi
-        .fn()
-        .mockResolvedValue({
-          data: { items: [{ id: 'UC123' }] },
-        });
+      mockYoutubeAPI.channels.list = vi.fn().mockResolvedValue({
+        data: { items: [{ id: 'UC123' }] },
+      });
 
-      (mockYoutubeAPI.commentThreads as Record<string, unknown>).list = vi
-        .fn()
-        .mockResolvedValue({
-          data: {
-            items: [
-              {
-                id: 'thread-1',
-                snippet: {
-                  topLevelComment: {
-                    id: 'comment-1',
-                    snippet: {
-                      authorChannelId: { value: 'author-channel-1' },
-                      authorDisplayName: 'Viewer',
-                      authorProfileImageUrl: 'https://example.com/avatar.jpg',
-                      likeCount: 3,
-                      publishedAt: '2026-07-01T10:00:00Z',
-                      textDisplay: 'Nice clip',
-                      textOriginal: 'Nice clip',
-                      updatedAt: '2026-07-01T10:00:00Z',
-                    },
+      mockYoutubeAPI.commentThreads.list = vi.fn().mockResolvedValue({
+        data: {
+          items: [
+            {
+              id: 'thread-1',
+              snippet: {
+                topLevelComment: {
+                  id: 'comment-1',
+                  snippet: {
+                    authorChannelId: { value: 'author-channel-1' },
+                    authorDisplayName: 'Viewer',
+                    authorProfileImageUrl: 'https://example.com/avatar.jpg',
+                    likeCount: 3,
+                    publishedAt: '2026-07-01T10:00:00Z',
+                    textDisplay: 'Nice clip',
+                    textOriginal: 'Nice clip',
+                    updatedAt: '2026-07-01T10:00:00Z',
                   },
-                  videoId: 'video-1',
                 },
+                videoId: 'video-1',
               },
-            ],
-            nextPageToken: 'next-token',
-          },
-        });
+            },
+          ],
+          nextPageToken: 'next-token',
+        },
+      });
 
       const result = await service.listRecentChannelComments(orgId, brandId, {
         maxResults: 10,
@@ -205,9 +211,7 @@ describe('YoutubeCommentsService', () => {
         ],
         nextPageToken: 'next-token',
       });
-      expect(
-        (mockYoutubeAPI.commentThreads as Record<string, unknown>).list,
-      ).toHaveBeenCalledWith(
+      expect(mockYoutubeAPI.commentThreads.list).toHaveBeenCalledWith(
         expect.objectContaining({
           allThreadsRelatedToChannelId: 'UC123',
           auth: mockAuth,
@@ -228,11 +232,9 @@ describe('YoutubeCommentsService', () => {
       const mockAuth = { credentials: { access_token: 'token' } };
       mockAuthService.refreshToken = vi.fn().mockResolvedValue(mockAuth);
 
-      (mockYoutubeAPI.comments as Record<string, unknown>).insert = vi
-        .fn()
-        .mockResolvedValue({
-          data: { id: 'reply-comment-1' },
-        });
+      mockYoutubeAPI.comments.insert = vi.fn().mockResolvedValue({
+        data: { id: 'reply-comment-1' },
+      });
 
       const result = await service.replyToComment(
         orgId,
@@ -242,9 +244,7 @@ describe('YoutubeCommentsService', () => {
       );
 
       expect(result).toEqual({ commentId: 'reply-comment-1' });
-      expect(
-        (mockYoutubeAPI.comments as Record<string, unknown>).insert,
-      ).toHaveBeenCalledWith({
+      expect(mockYoutubeAPI.comments.insert).toHaveBeenCalledWith({
         auth: mockAuth,
         part: ['snippet'],
         requestBody: {
@@ -259,11 +259,9 @@ describe('YoutubeCommentsService', () => {
     it('throws when YouTube does not return a reply comment ID', async () => {
       mockAuthService.refreshToken = vi.fn().mockResolvedValue({});
 
-      (mockYoutubeAPI.comments as Record<string, unknown>).insert = vi
-        .fn()
-        .mockResolvedValue({
-          data: { id: null },
-        });
+      mockYoutubeAPI.comments.insert = vi.fn().mockResolvedValue({
+        data: { id: null },
+      });
 
       await expect(
         service.replyToComment(

@@ -33,7 +33,6 @@
     "cookie-parser": "1.4.7",
     "effect": "3.22.1",
     "express": "5.2.1",
-    "google-auth-library": "11.0.2",
     "jose": "^6.2.10",
     "jsonapi-serializer": "3.6.9",
     "jsonwebtoken": "9.0.3",

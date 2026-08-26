@@ -137,6 +137,8 @@ export {
   type ServerPosts,
   type ServerPrisma,
   type ServerSocialAnalytics,
+  type ServerYoutubeUploader,
+  type YoutubeUploadPostInput,
 } from './server.dependencies';
 export { ApiKeyHelperService } from './services/api-key/api-key-helper.service';
 export { FilesClientService } from './services/files-microservice/client/files-client.service';

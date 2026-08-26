@@ -1,11 +1,14 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
-import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { SERVER_TOKENS } from '@server/server.dependencies';
+import { YoutubeAuthService } from '@server/services/integrations/youtube/services/modules/youtube-auth.service';
+import {
+  YoutubeOAuth2Util,
+  type YoutubeOAuthClient,
+} from '@server/shared/utils/youtube-oauth/youtube-oauth.util';
 
 // Mock external utils
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
@@ -14,7 +17,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
   },
 }));
 
-vi.mock('@api/shared/utils/youtube-oauth/youtube-oauth.util', () => ({
+vi.mock('@server/shared/utils/youtube-oauth/youtube-oauth.util', () => ({
   YoutubeOAuth2Util: {
     createClient: vi.fn(),
   },
@@ -76,7 +79,9 @@ describe('YoutubeAuthService', () => {
     vi.mocked(EncryptionUtil.decrypt).mockReturnValue(
       'decrypted-refresh-token-that-is-definitely-longer-than-fifty-characters-here',
     );
-    vi.mocked(YoutubeOAuth2Util.createClient).mockReturnValue(mockOAuthClient);
+    vi.mocked(YoutubeOAuth2Util.createClient).mockReturnValue(
+      mockOAuthClient as unknown as YoutubeOAuthClient,
+    );
 
     // Default: successful token refresh
     mockOAuthClient.credentials = {
@@ -100,7 +105,10 @@ describe('YoutubeAuthService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         YoutubeAuthService,
-        { provide: CredentialsService, useValue: credentialsService },
+        {
+          provide: SERVER_TOKENS.credentials,
+          useValue: credentialsService,
+        },
         { provide: LoggerService, useValue: loggerService },
         { provide: ConfigService, useValue: configService },
       ],
