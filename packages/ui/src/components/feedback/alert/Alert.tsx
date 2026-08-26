@@ -61,7 +61,7 @@ export default function Alert({
     >
       <span
         aria-hidden="true"
-        className={cn('shrink-0', icon === undefined && '[&>svg]:size-5')}
+        className={cn('shrink-0', icon == null && '[&>svg]:size-5')}
         data-slot="alert-icon"
       >
         {resolvedIcon}

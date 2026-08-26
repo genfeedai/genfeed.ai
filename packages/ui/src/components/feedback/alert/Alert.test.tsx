@@ -66,4 +66,12 @@ describe('Alert', () => {
     expect(severitySlot?.tagName).toBe('SPAN');
     expect(customIcon).toHaveClass('size-7');
   });
+
+  it('uses the default 20px severity icon when a null icon is supplied', () => {
+    const { container } = render(<Alert icon={null}>Default icon</Alert>);
+
+    expect(container.querySelector('[data-slot="alert-icon"]')).toHaveClass(
+      '[&>svg]:size-5',
+    );
+  });
 });
