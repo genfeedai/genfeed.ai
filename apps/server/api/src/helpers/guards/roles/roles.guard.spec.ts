@@ -386,4 +386,36 @@ describe('RolesGuard', () => {
       expect.any(Array),
     );
   });
+
+  it.each([undefined, null, '', 123])(
+    'rejects malformed Better Auth user context %s before membership lookup',
+    async (userId) => {
+      vi.spyOn(reflector, 'get').mockReturnValue(undefined);
+
+      const context = createContext({
+        organizationId: TOKEN_ORGANIZATION_ID,
+        userId,
+      });
+
+      await expectForbidden(guard.canActivate(context));
+      expect(mockMembersService.findOne).not.toHaveBeenCalled();
+    },
+  );
+
+  it('authorizes a UUID Better Auth user id from active membership', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue(undefined);
+    mockMembersService.findOne.mockResolvedValue({ id: 'member-1' });
+
+    const userId = '123e4567-e89b-42d3-a456-426614174000';
+    const context = createContext({
+      organizationId: TOKEN_ORGANIZATION_ID,
+      userId,
+    });
+
+    await expect(guard.canActivate(context)).resolves.toBe(true);
+    expect(mockMembersService.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({ userId }),
+      expect.any(Array),
+    );
+  });
 });

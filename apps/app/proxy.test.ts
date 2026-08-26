@@ -302,6 +302,64 @@ describe('proxy', () => {
     );
   });
 
+  it.each([
+    '/api#fragment',
+    '/robots.txt',
+    '/login',
+    '/logout',
+    '/sign-up',
+    '/?callbackUrl=%2Fonboarding',
+  ])('ignores the non-product callbackUrl %s', async (callbackUrl) => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/login', {
+        search: `?callbackUrl=${encodeURIComponent(callbackUrl)}`,
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/agent',
+    );
+  });
+
+  it('consumes a validated continuation from the fixed root callback', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/', {
+        search:
+          '?callbackUrl=%2Fdefault%2F%7E%2Fsettings%2Fcredits%3Ftab%3Dbilling',
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/default/~/settings/credits?tab=billing',
+    );
+  });
+
+  it('preserves the validated root continuation when the session must be restored', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedOutRequest('/', {
+        search: '?callbackUrl=%2Facme%2F~%2Fsettings%2Fcredits',
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    const location = new URL(response.headers.get('location') ?? '');
+    expect(location.pathname).toBe('/login');
+    expect(location.searchParams.get('callbackUrl')).toBe(
+      '/acme/~/settings/credits',
+    );
+  });
+
   it('honors org settings callbackUrl after session restore through /login', async () => {
     const { default: proxy } = await import('./proxy');
 

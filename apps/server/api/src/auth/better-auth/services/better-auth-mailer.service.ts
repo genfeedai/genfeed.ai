@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { isApplicationAuthCallbackPathname } from '@genfeedai/auth-client/callback';
+import { isSafeBrowserAuthCallbackURL } from '@genfeedai/auth-client/callback';
 import {
   buildSystemEmailHtml,
   buildSystemEmailParagraph,
@@ -21,25 +21,31 @@ export function resolveBrowserAuthActionUrl(
   actionUrl: string,
   appUrl: string | undefined,
 ): string {
-  if (!appUrl) {
-    return actionUrl;
-  }
-
   try {
     const action = new URL(actionUrl);
-    const app = new URL(appUrl);
     const supportedProtocols = new Set(['http:', 'https:']);
-    if (
-      !supportedProtocols.has(action.protocol) ||
-      !supportedProtocols.has(app.protocol)
-    ) {
+    if (!supportedProtocols.has(action.protocol)) {
       return actionUrl;
     }
 
-    action.protocol = app.protocol;
-    action.host = app.host;
+    let app: URL | null = null;
+    if (appUrl) {
+      try {
+        const parsedApp = new URL(appUrl);
+        if (supportedProtocols.has(parsedApp.protocol)) {
+          app = parsedApp;
+        }
+      } catch {
+        app = null;
+      }
+    }
 
-    const appRoot = new URL('/', app).toString();
+    const allowedCallbackPathnames = action.pathname.includes(
+      '/reset-password/',
+    )
+      ? ['/', '/reset-password']
+      : ['/'];
+
     for (const callbackParam of [
       'callbackURL',
       'newUserCallbackURL',
@@ -50,14 +56,20 @@ export function resolveBrowserAuthActionUrl(
         continue;
       }
 
-      try {
-        const callback = new URL(callbackURL, appRoot);
-        if (!isApplicationAuthCallbackPathname(callback.pathname)) {
-          action.searchParams.set(callbackParam, appRoot);
-        }
-      } catch {
-        action.searchParams.set(callbackParam, appRoot);
+      if (
+        !isSafeBrowserAuthCallbackURL(
+          callbackURL,
+          app?.origin ?? action.origin,
+          allowedCallbackPathnames,
+        )
+      ) {
+        action.searchParams.set(callbackParam, '/');
       }
+    }
+
+    if (app) {
+      action.protocol = app.protocol;
+      action.host = app.host;
     }
 
     return action.toString();

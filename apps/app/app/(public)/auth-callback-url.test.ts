@@ -4,6 +4,7 @@ import {
   getAuthCallbackURL,
   getAuthFlowHref,
   toAbsoluteAuthCallbackURL,
+  toAbsolutePasswordResetURL,
 } from './auth-callback-url';
 
 const SERVER_FALLBACK_ORIGIN = 'https://app.genfeed.ai';
@@ -53,7 +54,7 @@ describe('auth callback URL helpers', () => {
 
   it('expands relative callbacks to the active app origin', () => {
     expect(toAbsoluteAuthCallbackURL('/oauth/cli?port=4321')).toBe(
-      `${window.location.origin}/oauth/cli?port=4321`,
+      `${window.location.origin}/?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321`,
     );
   });
 
@@ -61,16 +62,41 @@ describe('auth callback URL helpers', () => {
     vi.stubGlobal('window', undefined);
 
     expect(toAbsoluteAuthCallbackURL('/oauth/cli?port=4321')).toBe(
-      `${SERVER_FALLBACK_ORIGIN}/oauth/cli?port=4321`,
+      `${SERVER_FALLBACK_ORIGIN}/?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321`,
     );
   });
 
-  it('leaves absolute callbacks and desktop deep links unchanged', () => {
-    expect(toAbsoluteAuthCallbackURL('https://app.genfeed.ai/')).toBe(
-      'https://app.genfeed.ai/',
-    );
+  it('uses one fixed browser callback and leaves desktop deep links unchanged', () => {
+    expect(toAbsoluteAuthCallbackURL('/')).toBe(`${window.location.origin}/`);
     expect(toAbsoluteAuthCallbackURL('genfeedai-desktop://auth')).toBe(
       'genfeedai-desktop://auth',
+    );
+  });
+
+  it('keeps password-reset completion on its fixed public action page', () => {
+    expect(
+      toAbsolutePasswordResetURL(
+        '/reset-password?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+      ),
+    ).toBe(
+      `${window.location.origin}/reset-password?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321`,
+    );
+    expect(toAbsolutePasswordResetURL('/api/version')).toBe(
+      `${window.location.origin}/reset-password`,
+    );
+  });
+
+  it('does not accept absolute URLs as explicit continuation values', () => {
+    const root = `${window.location.origin}/`;
+    expect(
+      getAuthCallbackURL(
+        new URLSearchParams({
+          callbackUrl: 'https://app.genfeed.ai/onboarding',
+        }),
+      ),
+    ).toBe('/');
+    expect(toAbsoluteAuthCallbackURL('https://app.genfeed.ai/onboarding')).toBe(
+      root,
     );
   });
 
@@ -98,6 +124,17 @@ describe('auth callback URL helpers', () => {
     '/v1/auth/get-session',
     '/trpc/session',
     '/_next/static/chunk.js',
+    '/ingest',
+    '/monitoring',
+    '/.well-known/openid-configuration',
+    '/robots.txt',
+    '/login',
+    '/logout',
+    '/sign-up',
+    '/?callbackUrl=%2Fonboarding',
+    '/\\evil.example/',
+    '\t/\\evil.example/',
+    'https://app.genfeed.ai@evil.example/',
     'https://app.genfeed.ai/api/version',
   ])('rejects non-application callback destination %s', (callbackURL) => {
     const params = new URLSearchParams({ callbackUrl: callbackURL });

@@ -1,4 +1,7 @@
-import { isApplicationAuthCallbackPathname } from '@genfeedai/auth-client/callback';
+import {
+  buildBrowserAuthCallbackURL,
+  resolveAuthContinuation,
+} from '@genfeedai/auth-client/callback';
 import {
   extractBrandDomain,
   resolveSelectedPlanParam,
@@ -21,19 +24,7 @@ function getExplicitAuthCallbackURL(
     searchParams.get('redirect_url') ||
     null;
 
-  return callbackURL && hasApplicationCallbackPath(callbackURL)
-    ? callbackURL
-    : null;
-}
-
-function hasApplicationCallbackPath(callbackURL: string): boolean {
-  try {
-    return isApplicationAuthCallbackPathname(
-      new URL(callbackURL, 'https://app.genfeed.ai').pathname,
-    );
-  } catch {
-    return false;
-  }
+  return resolveAuthContinuation(callbackURL);
 }
 
 function parsePositiveIntegerParam(value?: string | null): string | null {
@@ -105,70 +96,28 @@ export function getAuthFlowHref(path: string, callbackURL: string): string {
   return `${path}?${params.toString()}`;
 }
 
-/**
- * Hosts an authenticated callback is allowed to land on, in addition to the
- * active window origin. Anything outside this set is treated as an open-redirect
- * attempt and rewritten to the origin root.
- */
-const ALLOWED_CALLBACK_HOSTS = new Set([
-  'app.genfeed.ai',
-  'genfeed.ai',
-  'www.genfeed.ai',
-]);
-
-/** Native-app deep-link schemes explicitly trusted as post-auth targets. */
-const ALLOWED_DEEP_LINK_SCHEMES = ['genfeedai-desktop:'];
-
 export function toAbsoluteAuthCallbackURL(callbackURL: string): string {
   const origin =
     typeof window === 'undefined'
       ? 'https://app.genfeed.ai'
       : window.location.origin;
-  const fallback = `${origin}/`;
+  return buildBrowserAuthCallbackURL(callbackURL, origin);
+}
 
-  const lower = callbackURL.toLowerCase();
+/** Build the fixed public page URL used to complete a password reset. */
+export function toAbsolutePasswordResetURL(resetPath: string): string {
+  const origin =
+    typeof window === 'undefined'
+      ? 'https://app.genfeed.ai'
+      : window.location.origin;
+  const fallback = `${origin}/reset-password`;
 
-  // Trusted desktop deep links (e.g. genfeedai-desktop://auth) pass through.
-  if (ALLOWED_DEEP_LINK_SCHEMES.some((scheme) => lower.startsWith(scheme))) {
-    return callbackURL;
-  }
-
-  if (!hasApplicationCallbackPath(callbackURL)) {
+  try {
+    const resolved = new URL(resetPath, origin);
+    return resolved.origin === origin && resolved.pathname === '/reset-password'
+      ? resolved.toString()
+      : fallback;
+  } catch {
     return fallback;
   }
-
-  // Protocol-relative URLs (//evil.com) bypass origin checks — reject.
-  if (callbackURL.startsWith('//')) {
-    return fallback;
-  }
-
-  // Absolute URL carrying a scheme: only http(s) to the active origin or a
-  // known Genfeed host is allowed. javascript:/data:/external hosts are
-  // rewritten to the origin root to prevent post-auth open redirects.
-  if (/^[a-z][a-z0-9+.-]*:/i.test(callbackURL)) {
-    try {
-      const parsed = new URL(callbackURL);
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-        return fallback;
-      }
-      if (parsed.origin === origin) {
-        return callbackURL;
-      }
-      if (
-        parsed.protocol === 'https:' &&
-        ALLOWED_CALLBACK_HOSTS.has(parsed.hostname)
-      ) {
-        return callbackURL;
-      }
-      return fallback;
-    } catch {
-      return fallback;
-    }
-  }
-
-  if (callbackURL.startsWith('/')) {
-    return `${origin}${callbackURL}`;
-  }
-
-  return `${origin}/${callbackURL}`;
 }
