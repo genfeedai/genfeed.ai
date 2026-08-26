@@ -1,11 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CampaignTargetsService } from '@api/collections/campaign-targets/services/campaign-targets.service';
-import { AddCampaignTargetsDto } from '@api/collections/outreach-campaigns/dto/add-campaign-targets.dto';
 import { CreateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
 import type { OutreachCampaignsQueryDto } from '@api/collections/outreach-campaigns/dto/outreach-campaigns-query.dto';
 import { UpdateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/update-outreach-campaign.dto';
 import type { OutreachCampaignDocument } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
-import { parseCampaignTargetUrl } from '@api/collections/outreach-campaigns/services/campaign-target-url.util';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -13,22 +11,9 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discovery.service';
-import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
-import {
-  requireExecutableOutreachPair,
-  requireMatchingOutreachTargetPlatform,
-} from '@api/services/campaign/outreach-capability.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { BaseService } from '@api/shared/services/base/base.service';
-import {
-  CampaignDiscoverySource,
-  type CampaignPlatform,
-  CampaignStatus,
-  CampaignTargetStatus,
-  CampaignTargetType,
-  CampaignType,
-} from '@genfeedai/enums';
+import { CampaignStatus } from '@genfeedai/enums';
 import { OutreachCampaignSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -37,8 +22,6 @@ import {
   Controller,
   Delete,
   Get,
-  HttpCode,
-  HttpStatus,
   Param,
   Patch,
   Post,
@@ -61,8 +44,6 @@ export class OutreachCampaignsController extends BaseCRUDController<
     public readonly outreachCampaignsService: OutreachCampaignsService,
     public readonly loggerService: LoggerService,
     private readonly campaignTargetsService: CampaignTargetsService,
-    private readonly campaignDiscoveryService: CampaignDiscoveryService,
-    private readonly campaignExecutorService: CampaignExecutorService,
   ) {
     super(
       loggerService,
@@ -251,205 +232,6 @@ export class OutreachCampaignsController extends BaseCRUDController<
   }
 
   /**
-   * Add targets to a campaign. Defaults to manual URL addition; pass
-   * targetType: dm_recipient with usernames to add DM recipients instead.
-   */
-  @Post(':id/targets')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Add targets to a campaign' })
-  @ApiResponse({ description: 'Targets added successfully', status: 200 })
-  async addTargets(
-    @Param('id') id: string,
-    @CurrentUser() user: User,
-    @Body() body: AddCampaignTargetsDto,
-  ): Promise<{ added: number; skipped: number }> {
-    const campaign = await this.outreachCampaignsService.findOneById(
-      id,
-      user.organizationId,
-      user.brandId,
-    );
-
-    if (!campaign) {
-      throw new NotFoundException('Campaign', id);
-    }
-
-    requireExecutableOutreachPair({
-      campaignType: campaign.campaignType,
-      platform: campaign.platform,
-    });
-
-    if (body.targetType === CampaignTargetType.DM_RECIPIENT) {
-      return this.addDmRecipients(campaign, id, body.usernames ?? []);
-    }
-
-    return this.addUrlTargets(campaign, id, body.urls ?? []);
-  }
-
-  /**
-   * Add targets to a campaign via manual URL addition
-   */
-  private async addUrlTargets(
-    campaign: OutreachCampaignDocument,
-    id: string,
-    urls: string[],
-  ): Promise<{ added: number; skipped: number }> {
-    let skipped = 0;
-
-    // Parse and de-duplicate in memory first so the whole batch costs one
-    // existence query and one insert, whatever `urls.length` is.
-    const parsedByExternalId = new Map<
-      string,
-      {
-        platform: CampaignPlatform;
-        targetType: CampaignTargetType;
-        url: string;
-      }
-    >();
-
-    for (const url of urls) {
-      const parsed = parseCampaignTargetUrl(url);
-
-      if (!parsed || parsedByExternalId.has(parsed.externalId)) {
-        skipped++;
-        continue;
-      }
-
-      requireMatchingOutreachTargetPlatform({
-        campaignPlatform: campaign.platform,
-        targetPlatform: parsed.platform,
-      });
-
-      parsedByExternalId.set(parsed.externalId, { ...parsed, url });
-    }
-
-    const existingExternalIds =
-      await this.campaignTargetsService.findExistingExternalIds(
-        id,
-        campaign.organizationId,
-        [...parsedByExternalId.keys()],
-      );
-
-    const targets: Parameters<CampaignTargetsService['createMany']>[0] = [];
-
-    for (const [externalId, parsed] of parsedByExternalId) {
-      if (existingExternalIds.has(externalId)) {
-        skipped++;
-        continue;
-      }
-
-      targets.push({
-        campaignId: id,
-        contentUrl: parsed.url,
-        discoverySource: CampaignDiscoverySource.MANUAL,
-        externalId,
-        organizationId: campaign.organizationId,
-        platform: parsed.platform,
-        targetType: parsed.targetType,
-      });
-    }
-
-    const added = await this.campaignTargetsService.createManyForCampaign(
-      id,
-      campaign.organizationId,
-      targets,
-    );
-
-    return { added, skipped };
-  }
-
-  /**
-   * Add DM recipients to a campaign (by username)
-   */
-  private async addDmRecipients(
-    campaign: OutreachCampaignDocument,
-    id: string,
-    usernames: string[],
-  ): Promise<{ added: number; skipped: number }> {
-    if (campaign.campaignType !== CampaignType.DM_OUTREACH) {
-      throw new BadRequestException('Campaign is not a DM outreach campaign');
-    }
-    if (!campaign.platform) {
-      throw new BadRequestException('Campaign platform is missing');
-    }
-    const platform = campaign.platform as CampaignPlatform;
-
-    let skipped = 0;
-
-    // Normalize usernames: strip @, lowercase, dedup
-    const normalizedUsernames = [
-      ...new Set(
-        usernames
-          .map((u) => u.trim().replace(/^@/, '').toLowerCase())
-          .filter(Boolean),
-      ),
-    ];
-
-    // One existence query for the whole batch instead of one per username.
-    const existingExternalIds =
-      await this.campaignTargetsService.findExistingExternalIds(
-        id,
-        campaign.organizationId,
-        normalizedUsernames,
-      );
-
-    const targets: Parameters<CampaignTargetsService['createMany']>[0] = [];
-
-    for (const username of normalizedUsernames) {
-      if (existingExternalIds.has(username)) {
-        skipped++;
-        continue;
-      }
-
-      targets.push({
-        campaignId: id,
-        contentUrl: `https://x.com/${username}`,
-        discoverySource: CampaignDiscoverySource.MANUAL,
-        externalId: username,
-        organizationId: campaign.organizationId,
-        platform,
-        recipientUsername: username,
-        status: CampaignTargetStatus.PENDING,
-        targetType: CampaignTargetType.DM_RECIPIENT,
-      });
-    }
-
-    const added = await this.campaignTargetsService.createManyForCampaign(
-      id,
-      campaign.organizationId,
-      targets,
-    );
-
-    return { added, skipped };
-  }
-
-  /**
-   * Parse a single URL and return metadata
-   */
-  @Post('parse-url')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Parse a URL and return metadata' })
-  @ApiResponse({ description: 'URL parsed successfully', status: 200 })
-  parseUrlEndpoint(@Body() body: { url: string }): {
-    valid: boolean;
-    platform?: CampaignPlatform;
-    targetType?: CampaignTargetType;
-    externalId?: string;
-  } {
-    const parsed = parseCampaignTargetUrl(body.url);
-
-    if (!parsed) {
-      return { valid: false };
-    }
-
-    return {
-      externalId: parsed.externalId,
-      platform: parsed.platform,
-      targetType: parsed.targetType,
-      valid: true,
-    };
-  }
-
-  /**
    * Get campaign analytics
    */
   @Get(':id/analytics')
@@ -485,142 +267,6 @@ export class OutreachCampaignsController extends BaseCRUDController<
     return {
       ...analytics,
       targetStats,
-    };
-  }
-
-  /**
-   * Get targets for a campaign
-   */
-  @Get(':id/targets')
-  @ApiOperation({ summary: 'Get targets for a campaign' })
-  @ApiResponse({ description: 'Returns campaign targets', status: 200 })
-  async getTargets(
-    @Param('id') id: string,
-    @CurrentUser() user: User,
-  ): Promise<unknown[]> {
-    const campaign = await this.outreachCampaignsService.findOneById(
-      id,
-      user.organizationId,
-      user.brandId,
-    );
-
-    if (!campaign) {
-      throw new NotFoundException('Campaign', id);
-    }
-
-    return this.campaignTargetsService.findByCampaign(
-      id,
-      campaign.organizationId,
-    );
-  }
-
-  /**
-   * Discover targets for a campaign using AI-powered search
-   */
-  @Post(':id/targets/discover')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Discover targets using AI-powered search' })
-  @ApiResponse({ description: 'Targets discovered and added', status: 200 })
-  async discoverTargets(
-    @Param('id') id: string,
-    @CurrentUser() user: User,
-    @Body() body: { limit?: number; addToCampaign?: boolean },
-  ): Promise<{
-    discovered: number;
-    added: number;
-    targets: unknown[];
-  }> {
-    const campaign = await this.outreachCampaignsService.findOneById(
-      id,
-      user.organizationId,
-      user.brandId,
-    );
-
-    if (!campaign) {
-      throw new NotFoundException('Campaign', id);
-    }
-
-    requireExecutableOutreachPair({
-      campaignType: campaign.campaignType,
-      platform: campaign.platform,
-    });
-
-    if (!campaign.discoveryConfig) {
-      throw new BadRequestException(
-        'Campaign has no discovery configuration. Add keywords, hashtags, or subreddits first.',
-      );
-    }
-
-    const limit = body.limit || 50;
-    const targets = await this.campaignDiscoveryService.discoverTargets(
-      campaign,
-      limit,
-    );
-
-    let added = 0;
-    if (body.addToCampaign && targets.length > 0) {
-      added =
-        await this.campaignDiscoveryService.addDiscoveredTargetsToCampaign(
-          campaign,
-          targets,
-        );
-    }
-
-    return {
-      added,
-      discovered: targets.length,
-      targets: body.addToCampaign ? [] : targets,
-    };
-  }
-
-  /**
-   * Preview a reply for a specific target
-   */
-  @Post(':id/targets/:targetId/preview')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Preview AI-generated reply for a target' })
-  @ApiResponse({ description: 'Reply preview generated', status: 200 })
-  async previewReply(
-    @Param('id') id: string,
-    @Param('targetId') targetId: string,
-    @CurrentUser() user: User,
-  ): Promise<{
-    replyText: string;
-    target: unknown;
-  }> {
-    const campaign = await this.outreachCampaignsService.findOneById(
-      id,
-      user.organizationId,
-      user.brandId,
-    );
-
-    if (!campaign) {
-      throw new NotFoundException('Campaign', id);
-    }
-
-    requireExecutableOutreachPair({
-      campaignType: campaign.campaignType,
-      platform: campaign.platform,
-    });
-
-    const target = await this.campaignTargetsService.findById(
-      targetId,
-      campaign.organizationId,
-      id,
-    );
-
-    if (!target) {
-      throw new NotFoundException('CampaignTarget', targetId);
-    }
-
-    const replyText = await this.campaignExecutorService.previewReply(
-      campaign,
-      target,
-    );
-
-    return {
-      replyText,
-      target,
     };
   }
 }
