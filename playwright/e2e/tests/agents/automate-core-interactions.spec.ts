@@ -212,7 +212,10 @@ test.describe('Automate — Core Interactions', () => {
   }) => {
     await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/autopilot`);
 
-    await authenticatedPage.getByRole('link', { name: 'Add agent' }).click();
+    await authenticatedPage
+      .getByTestId('container-header-actions')
+      .getByRole('link', { name: 'Add agent' })
+      .click();
     await expect(authenticatedPage).toHaveURL(
       /\/automate\/agents\?add=library$/,
     );
