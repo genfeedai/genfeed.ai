@@ -29,6 +29,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -230,7 +231,7 @@ export class CredentialsPublishingController {
     });
   }
 
-  @Post(':credentialId/account-health/override')
+  @Patch(':credentialId/account-health/override')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @ApiOperation({
     operationId: 'CredentialsController.overrideAccountHealth',
