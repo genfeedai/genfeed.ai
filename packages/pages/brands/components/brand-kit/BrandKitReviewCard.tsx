@@ -15,6 +15,7 @@ import {
   type IBrandKitDiagnostic,
   type IBrandKitDraft,
   type IBrandKitDraftField,
+  type IBrandKitSourceEvidence,
 } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { BrandKitReviewCardProps } from '@props/pages/brand-detail.props';
@@ -88,6 +89,21 @@ const BRAND_KIT_REVIEW_COPY = {
   proposed: 'Proposed',
 } as const;
 
+type EvidenceKind = 'candidate' | 'extracted' | 'inferred' | 'missing';
+
+const COLOR_FIELD_KEYS = new Set<BrandKitFieldKey>([
+  'backgroundColor',
+  'primaryColor',
+  'secondaryColor',
+]);
+
+const EVIDENCE_KIND_CLASSNAMES: Record<EvidenceKind, string> = {
+  candidate: 'bg-warning/10 text-warning',
+  extracted: 'bg-success/10 text-success',
+  inferred: 'bg-info/10 text-info',
+  missing: 'bg-destructive/10 text-destructive',
+};
+
 const STRING_LIST_FIELDS = new Set<BrandKitFieldKey>([
   'strategyContentTypes',
   'strategyGoals',
@@ -111,6 +127,81 @@ function formatAppliedFieldsSummary(result: IBrandKitApplyResult): string {
 
 function formatConfidence(confidence: number | undefined): string {
   return `Confidence: ${confidence ? `${Math.round(confidence * 100)}%` : 'not scored'}`;
+}
+
+function getFieldEvidenceKind(
+  key: BrandKitFieldKey,
+  field: IBrandKitDraftField,
+): EvidenceKind {
+  if (!hasProposedValue(field)) {
+    return 'missing';
+  }
+
+  if (COLOR_FIELD_KEYS.has(key)) {
+    return 'candidate';
+  }
+
+  if (field.evidence.some((evidence) => evidence.sourceType !== 'system')) {
+    return 'extracted';
+  }
+
+  return 'inferred';
+}
+
+function EvidenceLabel({ kind }: { kind: EvidenceKind }) {
+  return (
+    <span
+      className={`inline-flex rounded-sm px-2 py-0.5 text-2xs font-black uppercase tracking-[0.12em] ${EVIDENCE_KIND_CLASSNAMES[kind]}`}
+    >
+      {kind}
+    </span>
+  );
+}
+
+function SourceEvidenceRows({
+  evidence,
+}: {
+  evidence: readonly IBrandKitSourceEvidence[];
+}) {
+  if (evidence.length === 0) {
+    return null;
+  }
+
+  return (
+    <ul aria-label="Source evidence" className="mt-3 divide-y divide-border">
+      {evidence.map((source, index) => (
+        <li
+          className="grid min-h-8 items-center gap-1 py-1.5 text-xs sm:grid-cols-[minmax(0,1fr)_auto]"
+          key={`${source.sourceType}-${source.sourceId ?? source.url ?? index}`}
+        >
+          <div className="min-w-0">
+            {source.url ? (
+              <a
+                className="block truncate rounded-sm font-medium text-foreground/80 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                href={source.url}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {source.label}
+              </a>
+            ) : (
+              <span className="font-medium text-foreground/80">
+                {source.label}
+              </span>
+            )}
+            {source.excerpt ? (
+              <p className="truncate text-2xs text-muted-foreground">
+                {source.excerpt}
+              </p>
+            ) : null}
+          </div>
+          <span className="font-mono text-2xs uppercase text-muted-foreground">
+            {source.sourceType} · {formatConfidence(source.confidence)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 function formatDraftPrompt(brandLabel: string): string {
@@ -549,7 +640,11 @@ export default function BrandKitReviewCard({
       description="Scan the brand site and apply proposed profile fields."
       bodyClassName="gap-3 p-4"
     >
-      <div className="space-y-3">
+      <div
+        aria-busy={isScanning || isApplying || isImportingAssets}
+        className="space-y-3"
+        data-scale-role="product"
+      >
         <div className="flex min-w-0 items-center gap-1 rounded-lg bg-background-tertiary p-1 shadow-border">
           <Input
             aria-label="Website URL"
@@ -559,6 +654,10 @@ export default function BrandKitReviewCard({
             onChange={(event) => setWebsiteUrl(event.target.value)}
           />
           <Button
+            aria-busy={isScanning}
+            ariaLabel={
+              isScanning ? 'Scanning brand sources' : draft ? 'Rescan' : 'Scan'
+            }
             className="h-8 shrink-0 px-3 text-xs"
             isDisabled={!websiteUrl.trim()}
             isLoading={isScanning}
@@ -578,13 +677,20 @@ export default function BrandKitReviewCard({
         />
 
         {error ? (
-          <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          <div
+            className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+            role="alert"
+          >
             {error}
           </div>
         ) : null}
 
         {draft ? (
-          <div className="rounded-md bg-background-secondary px-3 py-2 text-sm shadow-border">
+          <div
+            aria-live="polite"
+            className="rounded-md bg-background-secondary px-3 py-2 text-sm shadow-border"
+            role="status"
+          >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-medium">
                 {formatReadinessScore(draft.readiness.score)}
@@ -594,11 +700,29 @@ export default function BrandKitReviewCard({
               </span>
             </div>
             {draft.readiness.missingFields.length > 0 ? (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {formatMissingFields(draft.readiness.missingFields)}
-              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <EvidenceLabel kind="missing" />
+                <p className="text-xs text-muted-foreground">
+                  {formatMissingFields(draft.readiness.missingFields)}
+                </p>
+              </div>
             ) : null}
           </div>
+        ) : null}
+
+        {draft?.evidence.length ? (
+          <section
+            aria-labelledby="brand-kit-source-evidence"
+            className="space-y-1"
+          >
+            <h3
+              className="text-sm font-semibold"
+              id="brand-kit-source-evidence"
+            >
+              Source evidence
+            </h3>
+            <SourceEvidenceRows evidence={draft.evidence} />
+          </section>
         ) : null}
 
         {draft ? (
@@ -633,6 +757,7 @@ export default function BrandKitReviewCard({
                       const currentAssets = isAssetField
                         ? toAssetValues(field.currentValue)
                         : [];
+                      const evidenceKind = getFieldEvidenceKind(key, field);
 
                       return (
                         <div
@@ -641,10 +766,18 @@ export default function BrandKitReviewCard({
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
-                              <div className="font-medium">{field.label}</div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="font-medium">{field.label}</div>
+                                <EvidenceLabel kind={evidenceKind} />
+                              </div>
                               <div className="mt-1 text-xs text-muted-foreground">
                                 {formatConfidence(field.confidence)}
                               </div>
+                              {evidenceKind === 'candidate' ? (
+                                <p className="mt-1 text-2xs text-warning">
+                                  Candidate only · not a Genfeed product token
+                                </p>
+                              ) : null}
                             </div>
 
                             {isSelectable ? (
@@ -727,11 +860,16 @@ export default function BrandKitReviewCard({
                             <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
                               {field.diagnostics.map((diagnostic) => (
                                 <li key={`${key}-${diagnostic.code}`}>
+                                  <span className="font-medium capitalize text-foreground/70">
+                                    {diagnostic.severity}:
+                                  </span>{' '}
                                   {diagnostic.message}
                                 </li>
                               ))}
                             </ul>
                           ) : null}
+
+                          <SourceEvidenceRows evidence={field.evidence} />
                         </div>
                       );
                     })}
@@ -819,7 +957,11 @@ export default function BrandKitReviewCard({
                 </div>
 
                 {assetImportResult ? (
-                  <div className="rounded-md bg-background-secondary px-3 py-2 text-sm shadow-border">
+                  <div
+                    aria-live="polite"
+                    className="rounded-md bg-background-secondary px-3 py-2 text-sm shadow-border"
+                    role="status"
+                  >
                     {`Imported ${assetImportResult.importedAssetIds.length} assets; skipped ${assetImportResult.skippedCandidateIds.length}; failed ${assetImportResult.failedCandidateIds.length}. Status: ${assetImportResult.status}.`}
                   </div>
                 ) : null}
@@ -834,6 +976,9 @@ export default function BrandKitReviewCard({
                 <ul className="space-y-1 text-xs text-muted-foreground">
                   {diagnostics.map((diagnostic) => (
                     <li key={`${diagnostic.code}-${diagnostic.fieldKey ?? ''}`}>
+                      <span className="font-medium capitalize text-foreground/70">
+                        {diagnostic.severity}:
+                      </span>{' '}
                       {diagnostic.message}
                     </li>
                   ))}
@@ -842,7 +987,11 @@ export default function BrandKitReviewCard({
             ) : null}
 
             {applyResult ? (
-              <div className="rounded-md bg-background-secondary px-3 py-2 text-sm shadow-border">
+              <div
+                aria-live="polite"
+                className="rounded-md bg-background-secondary px-3 py-2 text-sm shadow-border"
+                role="status"
+              >
                 {formatAppliedFieldsSummary(applyResult)}
               </div>
             ) : null}

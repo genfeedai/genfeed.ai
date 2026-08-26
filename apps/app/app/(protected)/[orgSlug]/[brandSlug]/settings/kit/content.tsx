@@ -42,7 +42,22 @@ export default function BrandSettingsKitPage() {
 
   return (
     <Container>
-      <div className="mx-auto flex max-w-3xl flex-col gap-3">
+      <section
+        aria-label="Brand Kit settings"
+        className="mx-auto flex max-w-3xl flex-col gap-3"
+        data-control-baseline="32px"
+        data-scale-role="product"
+      >
+        <div className="flex flex-col gap-1 pb-1">
+          <h2 className="text-sm font-semibold text-foreground">
+            Review brand evidence
+          </h2>
+          <p className="text-xs leading-5 text-muted-foreground">
+            Review extracted and inferred evidence before accepting it.
+            Candidate colors stay separate from Genfeed product tokens.
+          </p>
+        </div>
+
         <BrandCompletenessCard brand={brand} />
 
         <BrandKitReviewCard
@@ -50,6 +65,15 @@ export default function BrandSettingsKitPage() {
           brandId={brandId}
           onRefreshBrand={() => handleRefreshBrand(true)}
         />
+
+        <div className="flex flex-col gap-1 border-t border-border pt-3">
+          <h2 className="text-sm font-semibold text-foreground">
+            Manual adjustments
+          </h2>
+          <p className="text-xs leading-5 text-muted-foreground">
+            Add owned guidance and reference assets after reviewing the scan.
+          </p>
+        </div>
 
         <BrandDetailManualKitCard
           brand={brand}
@@ -70,7 +94,7 @@ export default function BrandSettingsKitPage() {
           }
           onDeleteReference={handleRequestDeleteReference}
         />
-      </div>
+      </section>
     </Container>
   );
 }

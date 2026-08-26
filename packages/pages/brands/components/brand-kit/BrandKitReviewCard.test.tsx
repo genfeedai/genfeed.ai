@@ -1,6 +1,6 @@
 import type { IBrand, IBrandKitDraft } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandKitReviewCard from './BrandKitReviewCard';
 
@@ -37,15 +37,18 @@ vi.mock('@services/social/brands.service', () => ({
 
 vi.mock('@ui/card/Card', () => ({
   default: ({
+    bodyClassName: _bodyClassName,
     children,
     description,
     label,
-  }: {
+    ...props
+  }: HTMLAttributes<HTMLElement> & {
+    bodyClassName?: string;
     children: ReactNode;
     description?: string;
     label?: string;
   }) => (
-    <section>
+    <section {...props}>
       {label ? <h2>{label}</h2> : null}
       {description ? <p>{description}</p> : null}
       {children}
@@ -55,20 +58,26 @@ vi.mock('@ui/card/Card', () => ({
 
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
+    'aria-busy': ariaBusy,
     ariaLabel,
     children,
+    className,
     isDisabled,
     label,
     onClick,
   }: {
+    'aria-busy'?: boolean;
     ariaLabel?: string;
     children?: ReactNode;
+    className?: string;
     isDisabled?: boolean;
     label?: ReactNode;
     onClick?: () => void;
   }) => (
     <button
       aria-label={ariaLabel}
+      aria-busy={ariaBusy}
+      className={className}
       disabled={isDisabled}
       type="button"
       onClick={onClick}
@@ -81,17 +90,20 @@ vi.mock('@ui/primitives/button', () => ({
 vi.mock('@ui/primitives/input', () => ({
   Input: ({
     'aria-label': ariaLabel,
+    className,
     onChange,
     placeholder,
     value,
   }: {
     'aria-label'?: string;
+    className?: string;
     onChange?: (event: { target: { value: string } }) => void;
     placeholder?: string;
     value?: string;
   }) => (
     <input
       aria-label={ariaLabel}
+      className={className}
       placeholder={placeholder}
       value={value}
       onChange={(event) => onChange?.(event)}
@@ -162,14 +174,36 @@ function createDraft(): IBrandKitDraft {
       },
     ],
     brandId: 'brand-1',
-    diagnostics: [],
-    evidence: [],
+    diagnostics: [
+      {
+        code: 'brand_kit_source_confirmed',
+        message: 'Website metadata matched the public homepage.',
+        severity: 'info',
+      },
+    ],
+    evidence: [
+      {
+        confidence: 0.96,
+        excerpt: 'Acme builds operational tools.',
+        label: 'Acme homepage',
+        sourceType: 'website',
+        url: 'https://acme.test',
+      },
+    ],
     fields: {
       description: {
         applyActionDefault: 'preserve',
         currentValue: 'Old description',
+        confidence: 0.91,
         diagnostics: [],
-        evidence: [],
+        evidence: [
+          {
+            confidence: 0.91,
+            label: 'Homepage description',
+            sourceType: 'website',
+            url: 'https://acme.test/about',
+          },
+        ],
         group: 'profile',
         key: 'description',
         label: 'Description',
@@ -180,7 +214,14 @@ function createDraft(): IBrandKitDraft {
         applyActionDefault: 'preserve',
         currentValue: undefined,
         diagnostics: [],
-        evidence: [],
+        evidence: [
+          {
+            confidence: 0.88,
+            label: 'Website logo',
+            sourceType: 'website',
+            url: 'https://acme.test/logo.png',
+          },
+        ],
         group: 'assets',
         key: 'logo',
         label: 'Logo',
@@ -454,5 +495,115 @@ describe('BrandKitReviewCard', () => {
     expect(
       await screen.findByText(/Imported 1 assets; skipped 0; failed 0/),
     ).toBeInTheDocument();
+  });
+
+  it('keeps authenticated evidence review compact and explicit', async () => {
+    const { container } = render(
+      <BrandKitReviewCard
+        brand={brandFixture}
+        brandId="brand-1"
+        onRefreshBrand={mocks.onRefreshBrand}
+      />,
+    );
+
+    expect(
+      container.querySelector('[data-scale-role="product"]'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Website URL')).toHaveClass('h-8');
+    expect(screen.getByRole('button', { name: 'Scan' })).toHaveClass('h-8');
+
+    fireEvent.change(screen.getByLabelText('Website URL'), {
+      target: { value: 'https://acme.test' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Scan' }));
+
+    await screen.findByText('67% readiness');
+
+    expect(screen.getAllByText('extracted').length).toBeGreaterThan(0);
+    expect(screen.getByText('inferred')).toBeInTheDocument();
+    expect(screen.getByText('missing')).toBeInTheDocument();
+    expect(screen.getByText('Confidence: 91%')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Homepage description' }),
+    ).toHaveAttribute('href', 'https://acme.test/about');
+    expect(
+      screen.getByText('Website metadata matched the public homepage.'),
+    ).toBeInTheDocument();
+  });
+
+  it('labels proposed colors as candidates rather than product tokens', async () => {
+    const draft = createDraft();
+    draft.fields.primaryColor = {
+      applyActionDefault: 'preserve',
+      confidence: 0.64,
+      currentValue: '#0A0A0A',
+      diagnostics: [],
+      evidence: [
+        {
+          confidence: 0.64,
+          label: 'Homepage color sample',
+          sourceType: 'website',
+          url: 'https://acme.test',
+        },
+      ],
+      group: 'visual',
+      key: 'primaryColor',
+      label: 'Primary color',
+      ownerPath: 'brand.primaryColor',
+      proposedValue: '#051230',
+    };
+    mocks.crawlBrandKitWebsite.mockResolvedValueOnce(draft);
+
+    render(
+      <BrandKitReviewCard
+        brand={brandFixture}
+        brandId="brand-1"
+        onRefreshBrand={mocks.onRefreshBrand}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Website URL'), {
+      target: { value: 'https://acme.test' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Scan' }));
+
+    await screen.findByText('Primary color');
+
+    expect(screen.getByText('candidate')).toBeInTheDocument();
+    expect(
+      screen.getByText('Candidate only · not a Genfeed product token'),
+    ).toBeInTheDocument();
+  });
+
+  it('announces scanning and failed scans with the right live semantics', async () => {
+    let rejectScan: (reason: Error) => void = () => undefined;
+    mocks.crawlBrandKitWebsite.mockReturnValueOnce(
+      new Promise((_resolve, reject) => {
+        rejectScan = reject;
+      }),
+    );
+
+    render(
+      <BrandKitReviewCard
+        brand={brandFixture}
+        brandId="brand-1"
+        onRefreshBrand={mocks.onRefreshBrand}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Website URL'), {
+      target: { value: 'https://acme.test' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Scan' }));
+
+    expect(
+      screen.getByRole('button', { name: 'Scanning brand sources' }),
+    ).toHaveAttribute('aria-busy', 'true');
+
+    rejectScan(new Error('network down'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Failed to scan website for brand kit fields.',
+    );
   });
 });
