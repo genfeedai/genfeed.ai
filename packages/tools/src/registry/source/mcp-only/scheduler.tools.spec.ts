@@ -12,10 +12,22 @@ describe('MCP_SCHEDULER_TOOLS', () => {
       'create_scheduled_release',
       'get_scheduled_release',
       'get_scheduler_capability',
+      'list_brand_publishing_readiness',
       'list_scheduler_capabilities',
       'update_scheduled_release',
       'validate_scheduler_target',
     ]);
+  });
+
+  it('matches the REST brand publishing-readiness contract', () => {
+    const tool = toolsByName.get('list_brand_publishing_readiness');
+    expect(tool?.creditCost).toBe(0);
+    expect(tool?.parameters.required).toEqual(['brandId']);
+    expect(tool?.parameters.properties).toEqual({
+      brandId: expect.objectContaining({ type: 'string' }),
+    });
+    expect(tool?.description).toContain('credential');
+    expect(tool?.description).toContain('Read-only');
   });
 
   it('matches the REST channel-capability list query contract', () => {

@@ -20,6 +20,15 @@ function buildClient() {
       platform: 'youtube',
       status: 'supported',
     }),
+    listBrandPublishingReadiness: vi.fn().mockResolvedValue([
+      {
+        canSchedule: true,
+        credentialId: 'credential-1',
+        diagnostics: [],
+        providerKey: 'youtube',
+        state: 'publish_capable',
+      },
+    ]),
     listSchedulerCapabilities: vi.fn().mockResolvedValue([
       { label: 'YouTube', platform: 'youtube', status: 'supported' },
       { label: 'TikTok', platform: 'tiktok', status: 'supported' },
@@ -52,6 +61,7 @@ describe('SCHEDULER_TOOL_NAMES', () => {
       'create_scheduled_release',
       'get_scheduled_release',
       'get_scheduler_capability',
+      'list_brand_publishing_readiness',
       'list_scheduler_capabilities',
       'update_scheduled_release',
       'validate_scheduler_target',
@@ -227,6 +237,30 @@ describe('handleSchedulerTool', () => {
     expect(client.updateScheduledRelease).not.toHaveBeenCalled();
     expect(client.controlScheduledRelease).not.toHaveBeenCalled();
     expect(result.content[0].text).toContain('youtube');
+  });
+
+  it("lists a brand's publishing channels with credential readiness", async () => {
+    const client = buildClient();
+
+    const result = await call(client, 'list_brand_publishing_readiness', {
+      brandId: 'brand-1',
+    });
+
+    expect(client.listBrandPublishingReadiness).toHaveBeenCalledWith('brand-1');
+    expect(client.createScheduledRelease).not.toHaveBeenCalled();
+    expect(client.updateScheduledRelease).not.toHaveBeenCalled();
+    expect(client.controlScheduledRelease).not.toHaveBeenCalled();
+    expect(result.content[0].text).toContain('credential-1');
+    expect(result.content[0].text).toContain('publish_capable');
+  });
+
+  it('rejects brand publishing readiness discovery without a brand ID', async () => {
+    const client = buildClient();
+
+    await expect(
+      call(client, 'list_brand_publishing_readiness', {}),
+    ).rejects.toThrow(/brandId is required/);
+    expect(client.listBrandPublishingReadiness).not.toHaveBeenCalled();
   });
 
   it('describes an empty capability list without calling mutating methods', async () => {

@@ -205,6 +205,7 @@ describe('curated action catalog', () => {
   it('exposes read-only scheduler capability discovery on MCP only', () => {
     for (const name of [
       'get_scheduler_capability',
+      'list_brand_publishing_readiness',
       'list_scheduler_capabilities',
       'validate_scheduler_target',
     ]) {
@@ -219,6 +220,9 @@ describe('curated action catalog', () => {
       expect(entry && isPublishingApprovalRequired(entry), name).toBe(false);
     }
 
+    expect(
+      getToolByName('list_brand_publishing_readiness')?.parameters.required,
+    ).toEqual(['brandId']);
     expect(
       getToolByName('list_scheduler_capabilities')?.parameters.properties,
     ).toEqual(

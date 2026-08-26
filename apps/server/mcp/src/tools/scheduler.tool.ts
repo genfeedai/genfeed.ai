@@ -9,6 +9,7 @@ export const SCHEDULER_TOOL_NAMES = new Set([
   'create_scheduled_release',
   'get_scheduled_release',
   'get_scheduler_capability',
+  'list_brand_publishing_readiness',
   'list_scheduler_capabilities',
   'update_scheduled_release',
   'validate_scheduler_target',
@@ -33,9 +34,10 @@ const TARGET_UPDATE_FIELDS = new Set([
 
 /**
  * Scheduler MCP handlers. Lifecycle tools proxy canonical request bodies to
- * `/post-groups`. Capability tools proxy the existing `/schedules/channel-capabilities`
- * list, get, and validate routes. The API owns scheduler domain validation
- * and state transitions; these handlers perform no mutations of their own.
+ * `/post-groups`. Discovery tools proxy the existing channel-capability and
+ * brand publishing-readiness routes. The API owns scheduler validation,
+ * credential health, and state transitions; these handlers perform no
+ * mutations of their own.
  */
 export function handleSchedulerTool(
   client: ClientService,
@@ -74,6 +76,22 @@ export function handleSchedulerTool(
         requiredString(a, 'platform'),
       );
       return textJsonResult('Scheduler capability', result);
+    },
+    list_brand_publishing_readiness: async (a) => {
+      const result = await client.listBrandPublishingReadiness(
+        requiredString(a, 'brandId'),
+      );
+      return {
+        content: [
+          {
+            text:
+              result.length > 0
+                ? `Found ${result.length} publishing channels with readiness:\n\n${JSON.stringify(result, null, 2)}`
+                : 'No connected publishing channels found for this brand.',
+            type: 'text' as const,
+          },
+        ],
+      };
     },
     list_scheduler_capabilities: async (a) => {
       const result = await client.listSchedulerCapabilities({

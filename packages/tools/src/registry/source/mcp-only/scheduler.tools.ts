@@ -160,8 +160,8 @@ const updateProperties = {
 };
 
 /**
- * Thin MCP access to the canonical `/post-groups` scheduler lifecycle and the
- * existing `/schedules/channel-capabilities` list, get, and validate routes.
+ * Thin MCP access to the canonical `/post-groups` scheduler lifecycle plus the
+ * existing channel-capability and brand publishing-readiness routes.
  */
 export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
   {
@@ -243,6 +243,23 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
         releaseId: { description: 'Scheduled release ID', type: 'string' },
       },
       required: ['releaseId', 'action'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'List every connected publishing channel for a brand with its credential ID, provider, schedulability, health state, required action, and safe diagnostics. Read-only; use this before scheduling to avoid blocked or degraded targets.',
+    name: 'list_brand_publishing_readiness',
+    parameters: {
+      properties: {
+        brandId: {
+          description: 'Brand ID whose connected channels should be checked',
+          type: 'string',
+        },
+      },
+      required: ['brandId'],
       type: 'object',
     },
     requiredRole: 'user',

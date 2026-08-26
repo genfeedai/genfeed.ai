@@ -1,4 +1,8 @@
-import type { AgentToolResult, IReleaseGroup } from '@genfeedai/interfaces';
+import type {
+  AgentToolResult,
+  IPublishingProviderReadiness,
+  IReleaseGroup,
+} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { AdsClient } from '@mcp/services/client/ads.client';
@@ -350,6 +354,12 @@ export class ClientService {
     options: SchedulerCapabilityListOptions = {},
   ): Promise<Array<Record<string, unknown>>> {
     return this.scheduler.listSchedulerCapabilities(options);
+  }
+
+  listBrandPublishingReadiness(
+    brandId: string,
+  ): Promise<IPublishingProviderReadiness[]> {
+    return this.scheduler.listBrandPublishingReadiness(brandId);
   }
 
   getSchedulerCapability(platform: string): Promise<Record<string, unknown>> {
