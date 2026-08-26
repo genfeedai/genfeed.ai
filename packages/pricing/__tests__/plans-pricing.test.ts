@@ -30,6 +30,7 @@ import {
   PAYG_CREDIT_PACKS,
   PLAN_COPY,
   PLAN_LABELS,
+  SUBSCRIPTION_PRICE_CONTRACTS,
   setRuntimeMarginMultiplier,
   TIER_INCLUDED_MONTHLY_CREDITS,
   TRAINING_PACKAGES,
@@ -264,6 +265,21 @@ describe('creditsToOutputEstimate', () => {
 });
 
 describe('pricing constants', () => {
+  it('publishes Stripe contracts by tier rather than product display name', () => {
+    expect(SUBSCRIPTION_PRICE_CONTRACTS.pro).toEqual({
+      currency: 'usd',
+      includedMonthlyCredits: 5_900,
+      interval: 'month',
+      unitAmount: 4_900,
+    });
+    expect(SUBSCRIPTION_PRICE_CONTRACTS.scale).toEqual({
+      currency: 'usd',
+      includedMonthlyCredits: 60_000,
+      interval: 'month',
+      unitAmount: 49_900,
+    });
+  });
+
   it('prices every metered unit at its published credit cost', () => {
     expect(INTERNAL_CREDIT_COSTS.image).toBe(50);
     expect(INTERNAL_CREDIT_COSTS.image4k).toBe(100);
@@ -347,16 +363,18 @@ describe('website plan catalogue', () => {
     const pro = getProPlan();
 
     expect(pro.interval).toBe('month');
-    expect(pro.includedCredits).toBe(8_000);
+    expect(pro.includedCredits).toBe(5_900);
     expect(pro.outputs).toBeNull();
   });
 
   it('sells Scale as multi-organization B2B with a shared credit pool', () => {
     const scale = getScalePlan();
 
-    expect(scale.includedCredits).toBe(80_000);
-    expect(scale.features).toContain('Multi-organization account model');
-    expect(scale.features).toContain('Unlimited brands');
+    expect(scale.includedCredits).toBe(60_000);
+    expect(scale.features).toContain(
+      'Multiple organizations, one shared credit pool',
+    );
+    expect(scale.features).toContain('Unlimited brands and connected channels');
     expect(scale.outputs).toBeNull();
   });
 
@@ -370,9 +388,7 @@ describe('launch pricing', () => {
     const pro = getProPlan();
 
     expect(pro.launchPrice).toBe(39);
-    expect(pro.launchNote).toBe(
-      'Launch pricing (code EARLYGENFEED) for the first 12 months, then $49/month',
-    );
+    expect(pro.launchNote).toBe('EARLYGENFEED · 12 months, then $49/mo');
   });
 
   it('promises no redemption cap in the launch note', () => {

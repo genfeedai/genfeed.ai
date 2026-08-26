@@ -35,4 +35,20 @@ describe('hosted SaaS Vercel deployment contract', () => {
       `app-auth-proxy|https://\${APP_HOST}/v1/auth/get-session|null`,
     );
   });
+
+  test('fails closed unless the production app receives a valid Pro price', async () => {
+    const vercel = await workflow('_deploy-hosted-saas-vercel.yml');
+
+    expect(vercel).toContain(
+      `STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY: \${{ vars.STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY }}`,
+    );
+    expect(vercel).toContain(
+      `NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY=%s\\n`,
+    );
+    expect(vercel).toContain('Production Pro checkout is not configured.');
+    expect(vercel).toContain("'^price_[A-Za-z0-9]+$'");
+    expect(vercel).not.toContain(
+      'echo "$STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY"',
+    );
+  });
 });

@@ -124,7 +124,7 @@ function getOrderedPlans() {
  */
 export function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
   if (plan.type === 'payg') {
-    return 'Credits at $0.01 each';
+    return `Credits at $${BYOK_CREDIT_VALUE_DOLLARS.toFixed(2)} each`;
   }
 
   if (plan.type === 'subscription') {

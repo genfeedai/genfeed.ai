@@ -25,7 +25,6 @@ import {
 } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 /**
  * Prices change about as often as the pricing page does, but credit resolution
@@ -46,10 +45,13 @@ const PLAN_MONTHS: Partial<Record<SubscriptionPlan, number>> = {
   [SubscriptionPlan.YEARLY]: 12,
 };
 
-@Injectable()
 export class SubscriptionCreditGrantService {
   private readonly constructorName: string = String(this.constructor.name);
   private readonly priceCreditsCache = new Map<string, CachedPriceCredits>();
+  private readonly priceCreditsInFlight = new Map<
+    string,
+    Promise<number | null>
+  >();
 
   constructor(
     private readonly configService: ConfigService,
@@ -74,15 +76,19 @@ export class SubscriptionCreditGrantService {
       return cached;
     }
 
-    const credits =
-      (await this.readPriceMetadataCredits(stripePriceId)) ??
-      this.resolveTierCredits(stripePriceId);
+    const existingLookup = this.priceCreditsInFlight.get(stripePriceId);
+    if (existingLookup) {
+      return await existingLookup;
+    }
 
-    this.priceCreditsCache.set(stripePriceId, {
-      credits,
-      expiresAt: Date.now() + PRICE_CREDITS_CACHE_TTL_MS,
-    });
-    return credits;
+    const lookup = this.resolveAndCacheMonthlyCredits(stripePriceId);
+    this.priceCreditsInFlight.set(stripePriceId, lookup);
+
+    try {
+      return await lookup;
+    } finally {
+      this.priceCreditsInFlight.delete(stripePriceId);
+    }
   }
 
   /**
@@ -166,6 +172,20 @@ export class SubscriptionCreditGrantService {
     }
 
     return cached.credits;
+  }
+
+  private async resolveAndCacheMonthlyCredits(
+    stripePriceId: string,
+  ): Promise<number | null> {
+    const credits =
+      (await this.readPriceMetadataCredits(stripePriceId)) ??
+      this.resolveTierCredits(stripePriceId);
+
+    this.priceCreditsCache.set(stripePriceId, {
+      credits,
+      expiresAt: Date.now() + PRICE_CREDITS_CACHE_TTL_MS,
+    });
+    return credits;
   }
 
   private async readPriceMetadataCredits(

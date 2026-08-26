@@ -1,14 +1,20 @@
 import { createHash } from 'node:crypto';
 import {
+  classifyStripeFailure,
   isStripeResourceMissingError,
   isStripeSignatureVerificationError,
+  StripeBillingConfigurationError,
 } from '@api/services/integrations/stripe/services/stripe-error.util';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   creditPackTotalCredits,
+  INCLUDED_MONTHLY_CREDITS_METADATA_KEY,
   PAYG_CREDIT_PACKS,
   PAYG_MAX_PURCHASE_USD,
   PAYG_MIN_PURCHASE_USD,
+  parseIncludedMonthlyCredits,
+  SUBSCRIPTION_PRICE_CONTRACTS,
+  type SubscriptionPriceTier,
 } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -72,6 +78,7 @@ export class StripeService {
   // Eager initialization - create client in constructor to avoid race conditions
   // NestJS creates singleton services, so this runs once at startup
   public readonly stripe: StripeClient;
+  private readonly validatedSubscriptionPrices = new Set<string>();
 
   constructor(
     private readonly configService: ConfigService,
@@ -85,13 +92,108 @@ export class StripeService {
 
     // Eager initialization - create Stripe client in constructor
     this.stripe = new StripeConstructor(
-      this.configService.get('STRIPE_SECRET_KEY')!,
+      this.configService.get('STRIPE_SECRET_KEY') ?? '',
       {
         apiVersion: resolveStripeApiVersion(
           this.configService.get('STRIPE_API_VERSION'),
         ),
       },
     );
+  }
+
+  async onApplicationBootstrap(): Promise<void> {
+    const isProductionCloud =
+      this.configService.get('NODE_ENV') === 'production' &&
+      ['1', 'true'].includes(
+        String(this.configService.get('GENFEED_CLOUD')).toLowerCase(),
+      );
+    if (!isProductionCloud || isSelfHostedDeployment()) {
+      return;
+    }
+
+    const proPriceId = this.configService.get(
+      'STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY',
+    );
+    if (!this.isStripePriceId(proPriceId)) {
+      this.loggerService.error(
+        `${this.constructorName} production subscription price validation failed`,
+        { category: 'configuration', tier: 'pro' },
+      );
+      throw new StripeBillingConfigurationError();
+    }
+
+    await this.validateSubscriptionPriceForTier(proPriceId, 'pro');
+  }
+
+  public async validateSubscriptionPriceForTier(
+    stripePriceId: string,
+    tier: SubscriptionPriceTier,
+  ): Promise<void> {
+    const cacheKey = `${tier}:${stripePriceId}`;
+    if (this.validatedSubscriptionPrices.has(cacheKey)) {
+      return;
+    }
+
+    let price: StripePrice;
+    try {
+      price = await this.stripe.prices.retrieve(stripePriceId, {
+        expand: ['product'],
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} production subscription price validation failed`,
+        { category: classifyStripeFailure(error), tier },
+      );
+      throw new StripeBillingConfigurationError();
+    }
+
+    const contract = SUBSCRIPTION_PRICE_CONTRACTS[tier];
+    const includedMonthlyCredits = parseIncludedMonthlyCredits(
+      price.metadata?.[INCLUDED_MONTHLY_CREDITS_METADATA_KEY],
+    );
+    const matchesContract =
+      price.active === true &&
+      price.currency === contract.currency &&
+      price.recurring?.interval === contract.interval &&
+      price.recurring.interval_count === 1 &&
+      price.unit_amount === contract.unitAmount &&
+      includedMonthlyCredits === contract.includedMonthlyCredits;
+
+    if (!matchesContract) {
+      this.loggerService.error(
+        `${this.constructorName} production subscription price validation failed`,
+        { category: 'configuration', tier },
+      );
+      throw new StripeBillingConfigurationError();
+    }
+
+    this.validatedSubscriptionPrices.add(cacheKey);
+    this.loggerService.log(
+      `${this.constructorName} subscription price validated`,
+      { outcome: 'valid', tier },
+    );
+  }
+
+  private isStripePriceId(value: unknown): value is string {
+    return typeof value === 'string' && /^price_[A-Za-z0-9]+$/.test(value);
+  }
+
+  private resolveConfiguredSubscriptionTier(
+    stripePriceId: string,
+  ): SubscriptionPriceTier | null {
+    if (
+      stripePriceId ===
+      this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY')
+    ) {
+      return 'pro';
+    }
+    if (
+      stripePriceId ===
+      this.configService.get('STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY')
+    ) {
+      return 'scale';
+    }
+    return null;
   }
 
   /**
@@ -610,6 +712,15 @@ export class StripeService {
       let sessionConfig: StripeCheckoutSessionCreateParams;
 
       if (isSubscription) {
+        const configuredTier =
+          this.resolveConfiguredSubscriptionTier(stripePriceId);
+        if (configuredTier) {
+          await this.validateSubscriptionPriceForTier(
+            stripePriceId,
+            configuredTier,
+          );
+        }
+
         // Determine tier from price ID for metadata
         const tierMetadata = this.getSubscriptionTierMetadata(stripePriceId);
 

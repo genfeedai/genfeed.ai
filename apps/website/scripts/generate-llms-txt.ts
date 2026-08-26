@@ -337,7 +337,7 @@ function buildLlmsFull(): string {
   s.push('## Pricing');
   s.push('');
   s.push(
-    `Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ${PLAN_COPY.pro.creditRateAdvantage} better rate, paid API access, and unlimited team seats. Brands and connected channels are unlimited. ${PLAN_COPY.payg.name} and ${PLAN_COPY.pro.name} include one organization; ${PLAN_COPY.scale.name} adds multi-organization workflows. ${PLAN_COPY.pro.name} is ${PLAN_COPY.pro.monthlyPrice} with ${PLAN_COPY.pro.includedCredits} included. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
+    `Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ${PLAN_COPY.pro.creditRateAdvantage} better rate, API access on paid plans, and unlimited team seats. Brands and connected channels are unlimited. ${PLAN_COPY.payg.name} and ${PLAN_COPY.pro.name} include one organization; ${PLAN_COPY.scale.name} adds multi-organization workflows. ${PLAN_COPY.pro.name} is ${PLAN_COPY.pro.monthlyPrice} with ${PLAN_COPY.pro.includedCredits} included. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
   );
   s.push('');
 

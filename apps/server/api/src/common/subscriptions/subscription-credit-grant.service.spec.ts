@@ -4,7 +4,6 @@ import { SubscriptionPlan, SubscriptionTier } from '@genfeedai/enums';
 import { TIER_INCLUDED_MONTHLY_CREDITS } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Test, type TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const PRO_MONTHLY_PRICE_ID = 'price_pro_monthly';
@@ -22,23 +21,18 @@ describe('SubscriptionCreditGrantService', () => {
     STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY: SCALE_MONTHLY_PRICE_ID,
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
     configService.get.mockImplementation(
       (key: string) => configuredPrices[key] ?? '',
     );
     stripeService.getPrice.mockResolvedValue({ metadata: {} });
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        SubscriptionCreditGrantService,
-        { provide: ConfigService, useValue: configService },
-        { provide: LoggerService, useValue: loggerService },
-        { provide: StripeService, useValue: stripeService },
-      ],
-    }).compile();
-
-    service = module.get(SubscriptionCreditGrantService);
+    service = new SubscriptionCreditGrantService(
+      configService as unknown as ConfigService,
+      loggerService as unknown as LoggerService,
+      stripeService as unknown as StripeService,
+    );
   });
 
   afterEach(() => {
@@ -120,6 +114,41 @@ describe('SubscriptionCreditGrantService', () => {
       await service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID);
       await service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID);
 
+      expect(stripeService.getPrice).toHaveBeenCalledTimes(1);
+    });
+
+    it('coalesces concurrent cache misses into one Stripe round trip', async () => {
+      let releasePrice: (() => void) | undefined;
+      stripeService.getPrice.mockImplementation(
+        async () =>
+          await new Promise<{ metadata: Record<string, string> }>((resolve) => {
+            releasePrice = () =>
+              resolve({ metadata: { included_monthly_credits: '5900' } });
+          }),
+      );
+
+      const first = service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID);
+      const second = service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID);
+      releasePrice?.();
+
+      await expect(Promise.all([first, second])).resolves.toEqual([
+        5_900, 5_900,
+      ]);
+      expect(stripeService.getPrice).toHaveBeenCalledTimes(1);
+    });
+
+    it('coalesces a failed Stripe lookup before applying the tier fallback', async () => {
+      stripeService.getPrice.mockRejectedValue(new Error('stripe unavailable'));
+
+      await expect(
+        Promise.all([
+          service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID),
+          service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID),
+        ]),
+      ).resolves.toEqual([
+        TIER_INCLUDED_MONTHLY_CREDITS.pro,
+        TIER_INCLUDED_MONTHLY_CREDITS.pro,
+      ]);
       expect(stripeService.getPrice).toHaveBeenCalledTimes(1);
     });
 
