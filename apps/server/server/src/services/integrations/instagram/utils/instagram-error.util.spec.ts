@@ -5,7 +5,7 @@ import {
   isInstagramProfessionalAccountError,
   isInstagramRateLimitError,
   isInstagramScopeError,
-} from '@api/services/integrations/instagram/utils/instagram-error.util';
+} from '@server/services/integrations/instagram/utils/instagram-error.util';
 
 function graphError(
   code: number,
