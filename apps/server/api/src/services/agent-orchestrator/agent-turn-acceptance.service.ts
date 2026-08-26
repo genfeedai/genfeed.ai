@@ -13,6 +13,7 @@ import {
   AgentThreadStatus,
 } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
+import type { AgentRunJobData } from '@genfeedai/queue-contracts';
 import { AgentScopeContextService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -200,6 +201,34 @@ export class AgentTurnAcceptanceService {
       source: request.source ?? 'agent',
       threadId,
     };
+    const queuePayload = {
+      ...(context.apiKeyContext
+        ? {
+            apiKeyContext: {
+              isApiKey: context.apiKeyContext.isApiKey,
+              scopes: context.apiKeyContext.scopes,
+            },
+          }
+        : {}),
+      clientRequestId: request.clientRequestId,
+      ...(context.authToken
+        ? {
+            encryptedAuthToken: this.credentialCryptoService.encrypt(
+              context.authToken,
+            ),
+          }
+        : {}),
+      kind: 'agent-chat-turn',
+      organizationId: context.organizationId,
+      request: {
+        ...request,
+        clientRequestId: request.clientRequestId,
+        threadId,
+      },
+      runId,
+      threadId,
+      userId: context.userId,
+    } satisfies AgentRunJobData;
 
     const persistedRun = await measure('persist_run', () =>
       this.recoverUniqueCreate(
@@ -207,6 +236,11 @@ export class AgentTurnAcceptanceService {
           this.prisma.agentRun.upsert({
             create: {
               brandId: thread.brandId ?? undefined,
+              config: {
+                durableQueuePayload: JSON.parse(
+                  JSON.stringify(queuePayload),
+                ) as Prisma.InputJsonValue,
+              } as Prisma.InputJsonValue,
               id: runId,
               label: request.content.slice(0, 120),
               metadata: metadata as Prisma.InputJsonValue,
@@ -247,6 +281,28 @@ export class AgentTurnAcceptanceService {
     }
 
     const persistedStatus = String(persistedRun.status);
+    const isRecoverableEnqueueFailure =
+      persistedStatus === AgentRunStatus.FAILED &&
+      persistedMetadata?.requestState === 'enqueue_failed';
+    if (isRecoverableEnqueueFailure) {
+      await this.prisma.agentRun.updateMany({
+        data: {
+          completedAt: null,
+          error: null,
+          metadata: {
+            ...persistedMetadata,
+            requestState: 'queued',
+          } as Prisma.InputJsonValue,
+          status: AgentRunStatus.PENDING,
+        },
+        where: {
+          id: runId,
+          isDeleted: false,
+          organizationId: context.organizationId,
+          status: AgentRunStatus.FAILED,
+        },
+      });
+    }
     const isAlreadyOwnedOrTerminal = [
       AgentRunStatus.RUNNING,
       AgentRunStatus.COMPLETED,
@@ -255,28 +311,7 @@ export class AgentTurnAcceptanceService {
     if (!isAlreadyOwnedOrTerminal) {
       try {
         await measure('enqueue', () =>
-          this.queueService.queueRun({
-            apiKeyContext: context.apiKeyContext
-              ? {
-                  isApiKey: context.apiKeyContext.isApiKey,
-                  scopes: context.apiKeyContext.scopes,
-                }
-              : undefined,
-            clientRequestId: request.clientRequestId,
-            encryptedAuthToken: context.authToken
-              ? this.credentialCryptoService.encrypt(context.authToken)
-              : undefined,
-            kind: 'agent-chat-turn',
-            organizationId: context.organizationId,
-            request: {
-              ...request,
-              clientRequestId: request.clientRequestId,
-              threadId,
-            },
-            runId,
-            threadId,
-            userId: context.userId,
-          }),
+          this.queueService.queueRun(queuePayload),
         );
       } catch (error: unknown) {
         await this.prisma.agentRun.updateMany({

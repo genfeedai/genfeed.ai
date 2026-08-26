@@ -193,7 +193,7 @@ describe('CreditsInterceptor', () => {
         expect(creditDeductionQueueService.queueDeduction).toHaveBeenCalledWith(
           expect.objectContaining({
             idempotencyKey: 'agent-media-action-123-asset-123',
-            referenceId: 'action-123',
+            referenceId: 'asset-123',
             referenceType: 'agent-media:generation',
             settlementAssetId: 'asset-123',
           }),

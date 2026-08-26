@@ -90,6 +90,14 @@ describe('AgentTurnAcceptanceService', () => {
     expect(prisma.agentRun.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
+          config: {
+            durableQueuePayload: expect.objectContaining({
+              clientRequestId: acknowledgement.clientRequestId,
+              encryptedAuthToken: 'encrypted-token',
+              kind: 'agent-chat-turn',
+              runId: acknowledgement.runId,
+            }),
+          },
           id: acknowledgement.runId,
           metadata: expect.objectContaining({
             clientRequestId: acknowledgement.clientRequestId,
@@ -195,6 +203,35 @@ describe('AgentTurnAcceptanceService', () => {
         organizationId: 'org-1',
       }),
     });
+  });
+
+  it('restores an enqueue-failed run before an idempotent acknowledgement retry', async () => {
+    prisma.agentRun.upsert.mockImplementationOnce(({ create }) =>
+      Promise.resolve({
+        ...create,
+        metadata: { ...create.metadata, requestState: 'enqueue_failed' },
+        status: AgentRunStatus.FAILED,
+      }),
+    );
+
+    await service.accept(
+      { clientRequestId: 'enqueue-retry', content: 'Generate safely' },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+
+    expect(prisma.agentRun.updateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        completedAt: null,
+        error: null,
+        status: AgentRunStatus.PENDING,
+      }),
+      where: expect.objectContaining({
+        isDeleted: false,
+        organizationId: 'org-1',
+        status: AgentRunStatus.FAILED,
+      }),
+    });
+    expect(queueService.queueRun).toHaveBeenCalledOnce();
   });
 
   it('rejects a reused client request identity when the accepted payload changed', async () => {

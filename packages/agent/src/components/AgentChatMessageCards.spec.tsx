@@ -104,6 +104,31 @@ describe('ContentPreviewCard', () => {
     vi.useRealTimers();
   });
 
+  it('keeps reconciling a healthy long-running video beyond the image horizon', async () => {
+    vi.useFakeTimers();
+    const getGeneratedAssetEffect = vi.fn(() =>
+      Effect.succeed({ id: 'video-long', status: 'PROCESSING' }),
+    );
+
+    render(
+      <ContentPreviewCard
+        action={{
+          assetId: 'video-long',
+          assetKind: 'video',
+          id: 'video-long-card',
+          status: 'processing',
+          type: 'content_preview_card',
+        }}
+        apiService={{ getGeneratedAssetEffect } as never}
+      />,
+    );
+
+    await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+    expect(getGeneratedAssetEffect.mock.calls.length).toBeGreaterThan(150);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
   it('opens generated image variants from the conversation card', () => {
     render(
       <ContentPreviewCard

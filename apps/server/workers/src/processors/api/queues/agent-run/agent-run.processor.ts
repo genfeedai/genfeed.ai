@@ -395,6 +395,33 @@ export class AgentRunProcessor extends WorkerHost {
       });
       return;
     }
+    if (
+      persistedRun &&
+      String(persistedRun.status) === AgentRunStatus.RUNNING
+    ) {
+      const persistedError =
+        'Agent generation stopped before it could complete safely.';
+      await this.agentRunsService.fail(
+        data.runId,
+        data.organizationId,
+        persistedError,
+      );
+      await this.agentStreamPublisherService.publishError({
+        error: 'Agent generation stopped safely. Please retry.',
+        runId: data.runId,
+        threadId: data.threadId,
+        userId: data.userId,
+      });
+      this.agentStreamPublisherService.publishRunComplete({
+        error: persistedError,
+        organizationId: data.organizationId,
+        runId: data.runId,
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+        userId: data.userId,
+      });
+      return;
+    }
 
     const request = data.request as unknown as AgentChatRequest;
     try {

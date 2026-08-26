@@ -26,6 +26,7 @@ type CardStatus = 'idle' | 'uploading' | 'cloning' | 'done' | 'error';
 
 const EMPTY_EXISTING_VOICES: NonNullable<AgentUiAction['existingVoices']> = [];
 const MAX_VOICE_RECONCILIATION_FAILURES = 10;
+const MAX_VOICE_RECONCILIATION_ATTEMPTS = 360;
 
 export function VoiceCloneCard({
   action,
@@ -92,10 +93,15 @@ export function VoiceCloneCard({
       return;
     }
 
+    const controller = new AbortController();
     let consecutiveFailures = 0;
+    let totalAttempts = 0;
     const interval = window.setInterval(() => {
       if (action.voiceoverText) {
-        runAgentApiEffect(apiService.getGeneratedAssetEffect(activeVoiceId))
+        totalAttempts += 1;
+        runAgentApiEffect(
+          apiService.getGeneratedAssetEffect(activeVoiceId, controller.signal),
+        )
           .then((asset) => {
             consecutiveFailures = 0;
             const nextStatus = asset.status.toUpperCase();
@@ -109,6 +115,11 @@ export function VoiceCloneCard({
             ) {
               setStatus('error');
               setError('Voice generation failed. Please try again.');
+            } else if (totalAttempts >= MAX_VOICE_RECONCILIATION_ATTEMPTS) {
+              setStatus('error');
+              setError(
+                'Voice generation is taking longer than expected. Please try again.',
+              );
             }
           })
           .catch(() => {
@@ -146,6 +157,7 @@ export function VoiceCloneCard({
     }, 5000);
 
     return () => {
+      controller.abort();
       window.clearInterval(interval);
     };
   }, [action.voiceoverText, activeVoiceId, apiService, status]);

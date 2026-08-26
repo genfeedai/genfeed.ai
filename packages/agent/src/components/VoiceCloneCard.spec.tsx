@@ -170,6 +170,37 @@ describe('VoiceCloneCard', () => {
     vi.useRealTimers();
   });
 
+  it('bounds voice reconciliation when the asset remains processing', async () => {
+    vi.useFakeTimers();
+    const getGeneratedAssetEffect = vi.fn(() =>
+      Effect.succeed({ id: 'generated-voice-1', status: 'PROCESSING' }),
+    );
+    render(
+      <VoiceCloneCard
+        action={makeAction({
+          title: 'Generate Voice',
+          voiceoverText: 'Welcome to FUD News',
+        })}
+        apiService={makeApiService({ getGeneratedAssetEffect })}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /use selected voice/i }),
+      );
+    });
+    await vi.advanceTimersByTimeAsync(30 * 60 * 1000);
+
+    expect(getGeneratedAssetEffect).toHaveBeenCalledTimes(360);
+    expect(
+      screen.getByText(
+        'Voice generation is taking longer than expected. Please try again.',
+      ),
+    ).toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
   it('shows an error when no brand is active', async () => {
     render(
       <VoiceCloneCard

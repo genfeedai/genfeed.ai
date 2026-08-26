@@ -12,6 +12,7 @@ import { buttonVariants } from '@ui/primitives/button.variants';
 import { type ReactElement, useCallback, useEffect, useState } from 'react';
 
 const MAX_ASSET_RECONCILIATION_ATTEMPTS = 150;
+const MAX_VIDEO_RECONCILIATION_ATTEMPTS = 900;
 
 function formatPlatformLabel(platform: string): string {
   const normalized = platform.trim().toLowerCase();
@@ -176,6 +177,10 @@ export function ContentPreviewCard({
       return;
     }
     const controller = new AbortController();
+    const maxAttempts =
+      action.assetKind === 'video'
+        ? MAX_VIDEO_RECONCILIATION_ATTEMPTS
+        : MAX_ASSET_RECONCILIATION_ATTEMPTS;
     let attempts = 0;
     let timeout: ReturnType<typeof setTimeout> | undefined;
     const reconcile = async () => {
@@ -193,23 +198,20 @@ export function ContentPreviewCard({
           return;
         }
         if (
-          attempts < MAX_ASSET_RECONCILIATION_ATTEMPTS &&
+          attempts < maxAttempts &&
           !['archived', 'cancelled', 'failed', 'rejected'].includes(
             asset.status.toLowerCase(),
           )
         ) {
           timeout = setTimeout(reconcile, 2_000);
-        } else if (attempts >= MAX_ASSET_RECONCILIATION_ATTEMPTS) {
+        } else if (attempts >= maxAttempts) {
           setReconciledStatus('failed');
           setReconciliationError(
             'Unable to reconcile generated media. Please refresh and try again.',
           );
         }
       } catch {
-        if (
-          !controller.signal.aborted &&
-          attempts < MAX_ASSET_RECONCILIATION_ATTEMPTS
-        ) {
+        if (!controller.signal.aborted && attempts < maxAttempts) {
           timeout = setTimeout(reconcile, 4_000);
         } else if (!controller.signal.aborted) {
           setReconciledStatus('failed');
@@ -224,7 +226,7 @@ export function ContentPreviewCard({
       controller.abort();
       if (timeout) clearTimeout(timeout);
     };
-  }, [action.assetId, apiService, reconciledUrl]);
+  }, [action.assetId, action.assetKind, apiService, reconciledUrl]);
 
   const resolvedImages =
     action.assetKind === 'image' && reconciledUrl

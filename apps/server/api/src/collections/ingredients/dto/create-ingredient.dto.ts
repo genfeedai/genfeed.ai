@@ -19,6 +19,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  MaxLength,
 } from 'class-validator';
 
 export class CreateAvatarDto {
@@ -102,6 +103,7 @@ export class CreateIngredientDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(128)
   @ApiProperty({
     description: 'Confirmed agent action identity for durable reconciliation',
     required: false,

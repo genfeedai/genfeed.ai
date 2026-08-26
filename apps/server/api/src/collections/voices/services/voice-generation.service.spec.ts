@@ -217,6 +217,14 @@ describe('VoiceGenerationService', () => {
 
     expect(result).toMatchObject({ id: ingredientId });
     expect(shared.createMediaDocuments).not.toHaveBeenCalled();
+    expect(voices.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: IngredientCategory.VOICE,
+        organizationId,
+        sourceActionId: 'voice-card-1',
+      }),
+      expect.any(Array),
+    );
     expect(queue.queueVoiceGeneration).toHaveBeenCalledWith({
       ingredientId,
       organizationId,

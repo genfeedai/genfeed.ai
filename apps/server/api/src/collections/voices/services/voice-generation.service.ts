@@ -40,6 +40,7 @@ export class VoiceGenerationService {
     if (dto.sourceActionId) {
       const accepted = await this.voicesService.findOne(
         {
+          category: IngredientCategory.VOICE,
           isDeleted: false,
           organizationId: user.organizationId,
           sourceActionId: dto.sourceActionId,

@@ -152,6 +152,44 @@ describe('AgentRunProcessor', () => {
     expect(agentOrchestratorService.chatStream).not.toHaveBeenCalled();
   });
 
+  it('fails a stalled running chat turn instead of replaying side effects', async () => {
+    agentRunsService.getById.mockResolvedValue({ status: 'RUNNING' });
+    const job = {
+      attemptsMade: 1,
+      data: {
+        clientRequestId: 'request-1',
+        kind: 'agent-chat-turn',
+        organizationId: 'org-1',
+        request: {
+          clientRequestId: 'request-1',
+          content: 'Publish this campaign',
+          threadId: 'thread-1',
+        },
+        runId: 'run-1',
+        threadId: 'thread-1',
+        userId: 'user-1',
+      },
+    } as Job<AgentRunJobData>;
+
+    await processor.process(job);
+
+    expect(agentOrchestratorService.chatStream).not.toHaveBeenCalled();
+    expect(agentRunsService.fail).toHaveBeenCalledWith(
+      'run-1',
+      'org-1',
+      'Agent generation stopped before it could complete safely.',
+    );
+    expect(agentStreamPublisherService.publishError).toHaveBeenCalledWith({
+      error: 'Agent generation stopped safely. Please retry.',
+      runId: 'run-1',
+      threadId: 'thread-1',
+      userId: 'user-1',
+    });
+    expect(agentStreamPublisherService.publishRunComplete).toHaveBeenCalledWith(
+      expect.objectContaining({ runId: 'run-1', status: 'failed' }),
+    );
+  });
+
   it('persists and publishes a safe terminal failure when durable retries are exhausted', async () => {
     agentOrchestratorService.chatStream.mockRejectedValue(
       new Error('connect ECONNREFUSED 127.0.0.1:4635'),

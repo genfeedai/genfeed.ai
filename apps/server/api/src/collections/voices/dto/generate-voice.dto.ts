@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -25,6 +26,7 @@ export class GenerateVoiceDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(128)
   @ApiProperty({
     description: 'Confirmed agent action identity for durable reconciliation',
     required: false,

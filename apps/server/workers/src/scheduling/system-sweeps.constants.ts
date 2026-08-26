@@ -13,6 +13,7 @@ import { TRANSCRIPT_PURGE_SCHEDULE } from '@workers/crons/transcript-purge/trans
 export const SYSTEM_SWEEPS_QUEUE = 'system-sweeps';
 
 export const SYSTEM_SWEEP_JOBS = {
+  AGENT_TURN_RECONCILE: 'agent-turn-reconcile-sweep',
   BATCH_CREDIT_SETTLEMENT_RECONCILE: 'batch-credit-settlement-reconcile-sweep',
   BATCH_GENERATION_RECONCILE: 'batch-generation-reconcile-sweep',
   POSTS_PUBLISH: 'posts-publish-sweep',
@@ -33,6 +34,13 @@ export type SystemSweepDefinition = {
 };
 
 export const SYSTEM_SWEEP_DEFINITIONS: SystemSweepDefinition[] = [
+  {
+    // Accepted turns carry an encrypted durable queue payload. A deterministic
+    // BullMQ job id makes this safe beside a live or already queued job.
+    jobName: SYSTEM_SWEEP_JOBS.AGENT_TURN_RECONCILE,
+    pattern: '*/5 * * * *',
+    timezone: 'UTC',
+  },
   {
     jobName: SYSTEM_SWEEP_JOBS.POSTS_PUBLISH,
     pattern: '*/15 * * * *',

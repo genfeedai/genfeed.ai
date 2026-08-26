@@ -2,6 +2,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
+import { CronAgentTurnReconcileService } from '@workers/crons/agent-turn/cron.agent-turn-reconcile.service';
 import { CronBatchGenerationReconcileService } from '@workers/crons/batch-generation/cron.batch-generation-reconcile.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { CronReviewGateTimeoutService } from '@workers/crons/review-gate/cron.review-gate-timeout.service';
@@ -27,6 +28,7 @@ export class SystemSweepsProcessor extends WorkerHost {
 
   constructor(
     private readonly configService: ConfigService,
+    private readonly cronAgentTurnReconcileService: CronAgentTurnReconcileService,
     private readonly cronBatchGenerationReconcileService: CronBatchGenerationReconcileService,
     private readonly cronPostsService: CronPostsService,
     private readonly cronReviewGateTimeoutService: CronReviewGateTimeoutService,
@@ -49,6 +51,10 @@ export class SystemSweepsProcessor extends WorkerHost {
     }
 
     switch (job.name) {
+      case SYSTEM_SWEEP_JOBS.AGENT_TURN_RECONCILE:
+        await this.cronAgentTurnReconcileService.reconcileStrandedTurns();
+        return;
+
       case SYSTEM_SWEEP_JOBS.POSTS_PUBLISH:
         await this.cronPostsService.publishScheduledPosts();
         return;
