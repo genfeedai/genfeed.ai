@@ -9,6 +9,31 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import type { IEntityAnalyticsStats } from '@genfeedai/interfaces';
 
 // ---------------------------------------------------------------------------
+// Admin summary
+// ---------------------------------------------------------------------------
+
+/** Stable projection serialized by GET /analytics. */
+export interface AnalyticsAdminSummary {
+  activeBots: number;
+  activeWorkflows: number;
+  monthlyGrowth: number;
+  pendingPosts: number;
+  recentActivities: number;
+  totalBrands: number;
+  totalCredentialsConnected: number;
+  totalCredits: number;
+  totalImages: number;
+  totalModels: number;
+  totalOrganizations: number;
+  totalPosts: number;
+  totalSubscriptions: number;
+  totalUsers: number;
+  totalVideos: number;
+  totalViews: number;
+  viewsGrowth: number;
+}
+
+// ---------------------------------------------------------------------------
 // Date range
 // ---------------------------------------------------------------------------
 

@@ -1,65 +1,32 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
-import { BotsService } from '@api/collections/bots/services/bots.service';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
-import { UsersService } from '@api/collections/users/services/users.service';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
 import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import {
-  AdminBrandsQueryDto,
-  AdminOrgsQueryDto,
   AnalyticsDateRangeDto,
   AnalyticsExportQueryDto,
   AnalyticsFilterQueryDto,
   GrowthQueryDto,
-  LeaderboardQueryDto,
   TopContentQueryDto,
   ViralHooksQueryDto,
 } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
-import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
-import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
-import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
+import { CredentialPlatform } from '@genfeedai/enums';
 import {
-  BotStatus,
-  CredentialPlatform,
-  IngredientCategory,
-  TargetExecutionState,
-  WorkflowStatus,
-} from '@genfeedai/enums';
-import {
-  type ISubscriptionsService,
-  SUBSCRIPTIONS_SERVICE,
-} from '@genfeedai/interfaces/billing';
-import {
-  AnalyticSerializer,
-  AnalyticsBrandLeaderboardSerializer,
-  AnalyticsBrandStatsSerializer,
   AnalyticsEngagementSerializer,
   AnalyticsGrowthSerializer,
   AnalyticsHooksSerializer,
-  AnalyticsOrgLeaderboardSerializer,
-  AnalyticsOrgStatsSerializer,
   AnalyticsOverviewSerializer,
   AnalyticsPlatformSerializer,
   AnalyticsTimeseriesWithPlatformsSerializer,
@@ -73,7 +40,6 @@ import {
   Controller,
   ForbiddenException,
   Get,
-  Inject,
   Query,
   Req,
   Res,
@@ -111,19 +77,7 @@ export class AnalyticsController {
 
     private readonly analyticsService: AnalyticsService,
     private readonly analyticsExportService: AnalyticsExportService,
-    private readonly entityLeaderboardService: EntityLeaderboardService,
     private readonly businessAnalyticsService: BusinessAnalyticsService,
-    private readonly botsService: BotsService,
-    private readonly brandsService: BrandsService,
-    readonly _creditTransactionsService: CreditTransactionsService,
-    private readonly ingredientsService: IngredientsService,
-    private readonly modelsService: ModelsService,
-    private readonly organizationsService: OrganizationsService,
-    private readonly postsService: PostsService,
-    @Inject(SUBSCRIPTIONS_SERVICE)
-    private readonly subscriptionsService: ISubscriptionsService,
-    private readonly usersService: UsersService,
-    private readonly workflowsService: WorkflowsService,
     private readonly tiktokService: TiktokService,
     private readonly twitterService: TwitterService,
     private readonly youtubeService: YoutubeService,
@@ -144,124 +98,6 @@ export class AnalyticsController {
       ...this.readObjectRecord(value),
       platform,
     };
-  }
-
-  @Get()
-  @RolesDecorator('superadmin')
-  @Cache({
-    keyGenerator: (req) =>
-      `analytics:super-admin:${req.user?.id ?? 'anonymous'}`,
-    tags: ['analytics', 'super-admin'],
-    ttl: 300, // Cache for 5 minutes
-  })
-  async findAll(
-    @Req() req: ExpressRequest,
-    @Query() query: BaseQueryDto,
-  ): Promise<unknown> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(url, { query });
-
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-
-    // Get super admin analytics
-    const [
-      totalSubscriptions,
-      totalUsers,
-      totalPosts,
-      totalBrands,
-      totalVideos,
-      totalImages,
-      totalOrganizations,
-      activeWorkflows,
-      activeBots,
-      totalModels,
-      pendingPosts,
-    ] = await Promise.all([
-      this.subscriptionsService.findAll({ where: {} }, options),
-      this.usersService.findAll({ where: {} }, options),
-      this.postsService.findAll({ where: {} }, options),
-      this.brandsService.findAll({ where: {} }, options),
-      this.ingredientsService.findAll(
-        {
-          where: {
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.VIDEO,
-            ),
-          },
-        },
-        options,
-      ),
-      this.ingredientsService.findAll(
-        {
-          where: {
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.IMAGE,
-            ),
-          },
-        },
-        options,
-      ),
-      this.organizationsService.findAll(
-        { where: { isDeleted: false } },
-        options,
-      ),
-      this.workflowsService.findAll(
-        { where: { isDeleted: false, status: WorkflowStatus.ACTIVE } },
-        options,
-      ),
-      this.botsService.findAll(
-        { where: { isDeleted: false, status: BotStatus.ACTIVE } },
-        options,
-      ),
-      this.modelsService.findAll({ where: { isDeleted: false } }, options),
-      this.postsService.findAll(
-        {
-          where: {
-            isDeleted: false,
-            ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHING),
-          },
-        },
-        options,
-      ),
-    ]);
-
-    const extractTotal = (result: unknown): number => {
-      if (!result || typeof result !== 'object') {
-        return 0;
-      }
-
-      const counts = result as { total?: unknown; totalDocs?: unknown };
-      if (typeof counts.total === 'number') {
-        return counts.total;
-      }
-
-      return typeof counts.totalDocs === 'number' ? counts.totalDocs : 0;
-    };
-
-    const flattenedData = {
-      activeBots: extractTotal(activeBots),
-      activeWorkflows: extractTotal(activeWorkflows),
-      monthlyGrowth: 0,
-      pendingPosts: extractTotal(pendingPosts),
-      recentActivities: 0,
-      totalBrands: extractTotal(totalBrands),
-      totalCredentialsConnected: 0,
-      totalCredits: 0,
-      totalImages: extractTotal(totalImages),
-      totalModels: extractTotal(totalModels),
-      totalOrganizations: extractTotal(totalOrganizations),
-      totalPosts: extractTotal(totalPosts),
-      totalSubscriptions: extractTotal(totalSubscriptions),
-      totalUsers: extractTotal(totalUsers),
-      totalVideos: extractTotal(totalVideos),
-      totalViews: 0,
-      viewsGrowth: 0,
-    };
-
-    return serializeSingle(req, AnalyticSerializer, flattenedData);
   }
 
   @Get('business')
@@ -412,109 +248,6 @@ export class AnalyticsController {
       this.loggerService.error(`${url} failed`, error);
       return serializeSingle(req, AnalyticsTrendSerializer, []);
     }
-  }
-
-  @Get('organizations/leaderboard')
-  @RolesDecorator('superadmin')
-  @Cache({
-    keyGenerator: (req) =>
-      `analytics:leaderboard:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.sort || 'engagement'}:${req.query?.limit || '10'}`,
-    tags: ['analytics', 'super-admin', 'leaderboard'],
-    ttl: 300, // Cache for 5 minutes
-  })
-  async getOrganizationsLeaderboard(
-    @Req() req: ExpressRequest,
-    @Query() query: LeaderboardQueryDto,
-  ): Promise<unknown> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(url, { query });
-
-    const data =
-      await this.entityLeaderboardService.getOrganizationsLeaderboard(
-        query.startDate,
-        query.endDate,
-        query.sort,
-        query.limit,
-      );
-    return serializeSingle(req, AnalyticsOrgLeaderboardSerializer, data);
-  }
-
-  @Get('organizations')
-  @RolesDecorator('superadmin')
-  @Cache({
-    keyGenerator: (req) =>
-      `analytics:orgs:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.page || '1'}:${req.query?.limit || '20'}:${req.query?.sort || 'engagement'}`,
-    tags: ['analytics', 'super-admin', 'organizations'],
-    ttl: 300, // Cache for 5 minutes
-  })
-  async getOrganizationsWithStats(
-    @Req() req: ExpressRequest,
-    @Query() query: AdminOrgsQueryDto,
-  ): Promise<unknown> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(url, { query });
-
-    const data = await this.entityLeaderboardService.getOrganizationsWithStats(
-      query.startDate,
-      query.endDate,
-      query.page,
-      query.limit,
-      query.sort,
-    );
-    return serializeSingle(req, AnalyticsOrgStatsSerializer, data);
-  }
-
-  @Get('brands/leaderboard')
-  @Cache({
-    keyGenerator: (req) =>
-      `analytics:brands-leaderboard:${req.user?.id ?? 'anonymous'}:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.sort || 'engagement'}:${req.query?.limit || '10'}`,
-    tags: ['analytics', 'brands-leaderboard'],
-    ttl: 300, // Cache for 5 minutes
-  })
-  async getBrandsLeaderboard(
-    @CurrentUser() user: User,
-    @Req() req: ExpressRequest,
-    @Query() query: LeaderboardQueryDto,
-  ): Promise<unknown> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const organizationId = this.getScopedOrganizationId(user);
-    this.loggerService.log(url, { query });
-
-    const data = await this.entityLeaderboardService.getBrandsLeaderboard(
-      query.startDate,
-      query.endDate,
-      query.sort,
-      query.limit,
-      organizationId,
-    );
-    return serializeSingle(req, AnalyticsBrandLeaderboardSerializer, data);
-  }
-
-  @Get('brands')
-  @Cache({
-    keyGenerator: (req) =>
-      `analytics:brands:${req.user?.id ?? 'anonymous'}:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.page || '1'}:${req.query?.limit || '20'}:${req.query?.sort || 'engagement'}`,
-    tags: ['analytics', 'brands'],
-    ttl: 300, // Cache for 5 minutes
-  })
-  async getBrandsWithStats(
-    @CurrentUser() user: User,
-    @Req() req: ExpressRequest,
-    @Query() query: AdminBrandsQueryDto,
-  ): Promise<unknown> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const organizationId = this.getScopedOrganizationId(user);
-    this.loggerService.log(url, { query });
-
-    const data = await this.entityLeaderboardService.getBrandsWithStats(
-      query.startDate,
-      query.endDate,
-      query.page,
-      query.limit,
-      query.sort,
-      organizationId,
-    );
-    return serializeSingle(req, AnalyticsBrandStatsSerializer, data);
   }
 
   @Get('timeseries')
