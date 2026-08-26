@@ -153,7 +153,9 @@ test.describe('Agents — Sub-Sections', () => {
       authenticatedPage.getByText(/template/i).first(),
     ).toBeVisible();
   });
+});
 
+test.describe('Agents — Sub-Sections — unauthenticated', () => {
   test('unauthenticated user is redirected from agents routes', async ({
     unauthenticatedPage,
   }) => {

@@ -13,6 +13,7 @@
     "@genfeedai/pricing": "*",
     "@genfeedai/styles": "*",
     "@genfeedai/types": "*",
+    "@genfeedai/ui": "*",
     "@genfeedai/workflows": "*",
     "@remotion/player": "4.0.513",
     "@serwist/turbopack": "9.5.12",

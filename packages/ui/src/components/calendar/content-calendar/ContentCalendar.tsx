@@ -283,7 +283,7 @@ function FullCalendarHost({ options }: FullCalendarHostProps) {
   if (loadError) {
     return (
       <ErrorFallback
-        description={`The schedule grid could not start: ${loadError.message}`}
+        description="The schedule grid could not start. Try again, or open the list view."
         error={loadError}
         resetErrorBoundary={() => {
           setLoadError(null);
