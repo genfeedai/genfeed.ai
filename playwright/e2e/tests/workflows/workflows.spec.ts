@@ -59,10 +59,10 @@ test.describe('Workflows', () => {
       authenticatedPage.locator(workflowsBackLinkSelector).first(),
     ).toBeVisible();
     await expect(
-      authenticatedPage
-        .getByText(workflow.name)
-        .or(authenticatedPage.getByText('Untitled Workflow'))
-        .first(),
+      authenticatedPage.getByRole('button', {
+        exact: true,
+        name: workflow.name,
+      }),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('button', { name: 'Publish' }),

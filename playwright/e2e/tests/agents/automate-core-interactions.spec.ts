@@ -153,7 +153,12 @@ test.describe('Automate — Core Interactions', () => {
   }) => {
     await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/agents`);
 
-    await tryClick(authenticatedPage, 'button:has-text("Add agent")');
+    await authenticatedPage
+      .getByRole('button', { exact: true, name: 'Add agent' })
+      .click();
+    await expect
+      .poll(() => new URL(authenticatedPage.url()).searchParams.get('add'))
+      .toBe('library');
     await expect(authenticatedPage.getByRole('dialog')).toBeVisible();
 
     await expect(authenticatedPage.locator('body')).toBeVisible();

@@ -147,8 +147,7 @@ test.describe('Workspace — deep interactions', () => {
 
     const historyItem = authenticatedPage
       .getByTestId('workspace-inbox')
-      .getByTestId('workspace-task-row')
-      .first();
+      .getByText('Launch caption', { exact: true });
     await expect(historyItem).toBeVisible();
     await historyItem.click();
     await expect(
