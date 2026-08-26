@@ -12,6 +12,7 @@
  * trunk cannot keep a stale P0 on the board.
  */
 
+import { applyTrackerLabel } from './ci-tracker-labels.mjs';
 import { triageCiFailureOnProject } from './genfeed-project-board.mjs';
 
 export const MASTER_CI_FAILURE_LABEL = 'master-ci-failure';
@@ -110,7 +111,13 @@ export async function reportMasterCiFailure({
     repo,
     title: `🚨 Tests Gate failed on master push — ${date}`,
     body,
-    labels: [MASTER_CI_FAILURE_LABEL],
+  });
+
+  await applyTrackerLabel(github, {
+    owner,
+    repo,
+    issueNumber: created.data.number,
+    label: MASTER_CI_FAILURE_LABEL,
   });
 
   await triageCiFailureOnProject(github, {

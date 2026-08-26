@@ -17,11 +17,16 @@ import {
   resolveMasterCiFailure,
 } from './master-ci-failure-reporter.mjs';
 
-function createGithubMock({ openIssues = [], createNumber = 99 } = {}) {
+function createGithubMock({
+  openIssues = [],
+  createNumber = 99,
+  labelsApplied = [MASTER_CI_FAILURE_LABEL],
+} = {}) {
   const comments = [];
   const created = [];
   const updates = [];
   const graphqlCalls = [];
+  const labelCalls = [];
 
   const github = {
     paginate: async (_fn, params) => {
@@ -50,6 +55,12 @@ function createGithubMock({ openIssues = [], createNumber = 99 } = {}) {
             },
           };
         },
+        // Mirrors the real endpoint: it returns the issue's labels AFTER the
+        // add, which is the only trustworthy signal that the label landed.
+        addLabels: async (payload) => {
+          labelCalls.push(payload);
+          return { data: labelsApplied.map((name) => ({ name })) };
+        },
         get: async ({ issue_number }) => ({
           data: {
             number: issue_number,
@@ -77,7 +88,7 @@ function createGithubMock({ openIssues = [], createNumber = 99 } = {}) {
     },
   };
 
-  return { github, comments, created, updates, graphqlCalls };
+  return { github, comments, created, labelCalls, updates, graphqlCalls };
 }
 
 test('buildMasterCiFailureBody names the commit, run, and auto-close contract', () => {
@@ -124,7 +135,7 @@ test('reportMasterCiFailure comments existing open tracker and re-asserts P0', a
 });
 
 test('reportMasterCiFailure creates tracker and triages project fields', async () => {
-  const { github, created, graphqlCalls } = createGithubMock({
+  const { github, created, labelCalls, graphqlCalls } = createGithubMock({
     openIssues: [],
   });
 
@@ -139,14 +150,46 @@ test('reportMasterCiFailure creates tracker and triages project fields', async (
 
   assert.equal(result.action, 'created');
   assert.equal(result.issueNumber, 99);
-  assert.equal(created[0].labels[0], MASTER_CI_FAILURE_LABEL);
   assert.match(created[0].title, /2026-08-08/);
+
+  // The label is applied through addLabels, never left to create-time labels:
+  // GitHub silently drops that field for a token without push access, and an
+  // unlabeled tracker is invisible to both the dedupe and the resolve path.
+  assert.equal(labelCalls.length, 1);
+  assert.equal(labelCalls[0].issue_number, 99);
+  assert.deepEqual(labelCalls[0].labels, [MASTER_CI_FAILURE_LABEL]);
 
   const optionIds = graphqlCalls.map((c) => c.vars?.optionId).filter(Boolean);
   assert.ok(optionIds.includes(PRIORITY_P0));
   assert.ok(optionIds.includes(AREA_INFRA));
   assert.ok(optionIds.includes(WORK_TYPE_BUG));
   assert.ok(optionIds.includes(BLAST_RADIUS_INFRA));
+});
+
+test('reportMasterCiFailure fails loudly when the tracker label does not land', async () => {
+  // The silent-drop case (#3634, #3659): the issue is filed, the label is not,
+  // and nothing downstream can ever find it again. Surfacing that as a red job
+  // is the point — a silently unlabeled tracker looks like success.
+  const { github, created, graphqlCalls } = createGithubMock({
+    openIssues: [],
+    labelsApplied: [],
+  });
+
+  await assert.rejects(
+    reportMasterCiFailure({
+      github,
+      owner: 'genfeedai',
+      repo: 'genfeed.ai',
+      body: 'first red push',
+      date: '2026-08-08',
+      core: { info: () => {}, warning: () => {} },
+    }),
+    new RegExp(`missing the ${MASTER_CI_FAILURE_LABEL} label`),
+  );
+
+  assert.equal(created.length, 1);
+  // An unfindable tracker must not be promoted onto the board as if it were fine.
+  assert.equal(graphqlCalls.length, 0);
 });
 
 test('reportMasterCiFailure files the issue but fails when project GraphQL is denied', async () => {
