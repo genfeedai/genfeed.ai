@@ -10,6 +10,7 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import { UsersService } from '@services/organization/users.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
   deriveBrandNameFromDomain,
@@ -94,6 +95,7 @@ function BrandContentContent() {
   const { getToken } = useAuthIdentity();
   const { push } = useRouter();
   const { handleStepComplete } = useOnboarding();
+  const translate = useTranslations('pages.onboarding.brand');
   const searchParams = useSearchParams();
   const isAutoRequested = searchParams.get('auto') === 'true';
   const initialBrandName =
@@ -109,6 +111,7 @@ function BrandContentContent() {
   const [targetAudience, setTargetAudience] = useState('');
   const [tone, setTone] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [accountType, setAccountType] = useState<OrganizationCategory | null>(
     null,
   );
@@ -182,6 +185,9 @@ function BrandContentContent() {
         }
       } catch (error) {
         logger.error('Failed to prefill onboarding data', error);
+        if (!controller.signal.aborted) {
+          setErrorMessage(translate('errors.initialization'));
+        }
       }
     };
 
@@ -190,7 +196,7 @@ function BrandContentContent() {
     return () => {
       controller.abort();
     };
-  }, [getToken]);
+  }, [getToken, translate]);
 
   const resolveBrandId = useCallback(
     async (token: string): Promise<string | null> => {
@@ -222,14 +228,15 @@ function BrandContentContent() {
   const handleAccountTypeSelect = useCallback(
     async (category: OrganizationCategory) => {
       setAccountType(category);
+      setErrorMessage(null);
       try {
         const token = await resolveAuthToken(getToken);
         if (!token) {
-          return;
+          throw new Error('Authentication is unavailable');
         }
         const orgId = await resolveOrgId(token);
         if (!orgId) {
-          return;
+          throw new Error('No organization found for the current workspace');
         }
         await OrganizationsService.getInstance(token).updateAccountType(
           orgId,
@@ -237,9 +244,10 @@ function BrandContentContent() {
         );
       } catch (error) {
         logger.error('Failed to set account type', error);
+        setErrorMessage(translate('errors.accountType'));
       }
     },
-    [getToken, resolveOrgId],
+    [getToken, resolveOrgId, translate],
   );
 
   const handleContinue = useCallback(
@@ -263,11 +271,12 @@ function BrandContentContent() {
       }
 
       setSubmitting(true);
+      setErrorMessage(null);
 
       try {
         const token = await resolveAuthToken(getToken);
         if (!token) {
-          return;
+          throw new Error('Authentication is unavailable');
         }
 
         const brandUrl = skipWebsite
@@ -350,6 +359,7 @@ function BrandContentContent() {
         await handleStepComplete('brand');
       } catch (error) {
         logger.error('Failed to continue onboarding', error);
+        setErrorMessage(translate('errors.continue'));
         setSubmitting(false);
       }
     },
@@ -362,16 +372,18 @@ function BrandContentContent() {
       targetAudience,
       tone,
       handleStepComplete,
+      translate,
     ],
   );
 
   const handleSkipOnboarding = useCallback(async () => {
     setSubmitting(true);
+    setErrorMessage(null);
 
     try {
       const token = await resolveAuthToken(getToken);
       if (!token) {
-        return;
+        throw new Error('Authentication is unavailable');
       }
 
       const orgId = await resolveOrgId(token);
@@ -390,9 +402,10 @@ function BrandContentContent() {
       push('/');
     } catch (error) {
       logger.error('Failed to skip onboarding', error);
+      setErrorMessage(translate('errors.skip'));
       setSubmitting(false);
     }
-  }, [getToken, push, resolveOrgId]);
+  }, [getToken, push, resolveOrgId, translate]);
 
   const handleWebsiteUrlChange = useCallback((value: string) => {
     setWebsiteUrl(value);
@@ -437,6 +450,7 @@ function BrandContentContent() {
         websiteUrl={websiteUrl}
         targetAudience={targetAudience}
         tone={tone}
+        errorMessage={errorMessage}
         submitting={submitting}
         onBrandNameChange={setBrandName}
         onOrganizationNameChange={setOrganizationName}
