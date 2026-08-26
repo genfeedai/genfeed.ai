@@ -58,21 +58,20 @@ test.describe('Workflows', () => {
     await expect(
       authenticatedPage.locator(workflowsBackLinkSelector).first(),
     ).toBeVisible();
-    const editorToolbar = authenticatedPage.locator(
-      '.workflow-topbar-shell:visible',
-    );
+    const editorToolbar = authenticatedPage.locator('.workflow-topbar-shell');
     await expect(editorToolbar).toBeVisible();
+    const workspaceInspector = authenticatedPage.getByRole('complementary', {
+      name: 'Workspace inspector',
+    });
+    await expect(workspaceInspector).toBeVisible();
     await expect(
-      editorToolbar.getByRole('button', {
-        exact: true,
-        name: workflow.name,
-      }),
+      workspaceInspector.getByText(workflow.name, { exact: true }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: 'Publish' }),
+      editorToolbar.getByRole('button', { name: 'Publish' }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: 'Archive' }),
+      editorToolbar.getByRole('button', { name: 'Archive' }),
     ).toBeVisible();
   });
 

@@ -156,7 +156,15 @@ test.describe('Workspace — deep interactions', () => {
       .getByRole('dialog')
       .filter({ has: inspector });
     await expect(inspectorDialog).toBeVisible();
-    await inspectorDialog.getByRole('button', { name: 'Close' }).click();
+    await expect
+      .poll(() => new URL(authenticatedPage.url()).searchParams.get('taskId'))
+      .toBe('workspace-task-review-1');
+    await inspectorDialog
+      .getByRole('button', { exact: true, name: 'Close' })
+      .click();
+    await expect
+      .poll(() => new URL(authenticatedPage.url()).searchParams.get('taskId'))
+      .toBeNull();
     await expect(inspectorDialog).toBeHidden();
 
     const primaryAction = authenticatedPage
