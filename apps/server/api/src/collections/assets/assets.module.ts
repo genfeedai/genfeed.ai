@@ -5,7 +5,9 @@ folder organization, and asset tagging system.
  */
 
 import { AssetsController } from '@api/collections/assets/controllers/assets.controller';
+import { AssetsIngestionController } from '@api/collections/assets/controllers/operations/assets-ingestion.controller';
 import { AssetsOperationsController } from '@api/collections/assets/controllers/operations/assets-operations.controller';
+import { AssetIngestionService } from '@api/collections/assets/services/asset-ingestion.service';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
@@ -22,7 +24,11 @@ import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [AssetsController, AssetsOperationsController],
+  controllers: [
+    AssetsIngestionController,
+    AssetsOperationsController,
+    AssetsController,
+  ],
   exports: [AssetsService],
   imports: [
     BrandsCoreModule,
@@ -37,6 +43,11 @@ import { Module } from '@nestjs/common';
     PromptBuilderModule,
     ReplicateModule,
   ],
-  providers: [AssetsService, CreditsGuard, CreditsInterceptor],
+  providers: [
+    AssetsService,
+    AssetIngestionService,
+    CreditsGuard,
+    CreditsInterceptor,
+  ],
 })
 export class AssetsModule {}
