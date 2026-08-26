@@ -37,6 +37,43 @@ Themes and downstream actions reference evidence IDs rather than copying source
 content. This keeps briefs, publications, and response workflows traceable back
 to their supporting observations.
 
+## Themes and attributable signals
+
+`POST /listening-topics/:id/analyze` accepts explicit, non-overlapping current
+and previous windows. The windows must have equal duration, each is limited to
+31 days, and both use inclusive-start/exclusive-end boundaries. The optional
+`minimumEvidencePerWindow` threshold defaults to 2.
+
+Analysis uses the versioned `deterministic-keyword-v1` methodology. It is a
+non-LLM algorithm: fresh evidence is assigned to the longest normalized topic
+keyword found in its excerpt, with a deterministic `unclassified` fallback.
+Each evidence record belongs to exactly one generated theme. The explicit
+`ListeningThemeEvidence` join stores every contributing evidence ID inside the
+same organization, brand, and topic scope.
+
+Signals are calculated only from sources with fresh evidence in both windows.
+The persisted signal retains all included and excluded source IDs, every
+evidence ID used in the calculation, both windows, methodology version,
+confidence, and an idempotency key. Four bounded signal contracts are emitted:
+
+- `volume`: the current-window evidence count;
+- `change`: current versus previous relative change, clamped to `[-1, 1]`;
+- `comparative`: normalized current-versus-previous difference in `[-1, 1]`;
+- `sentiment_direction`: the mean numeric `sentiment` or `sentimentScore`
+  metric, clamped to `[-1, 1]`.
+
+Missing, stale, source-coverage-gapped, or underpowered evidence produces an
+`insufficient_evidence` signal with a reason, confidence `0`, and `value: null`.
+The analysis response is discriminated by `status: sufficient` or
+`status: insufficient_evidence`. Repeating the same topic, windows, threshold,
+and methodology revives and updates the same theme and signal identities rather
+than creating duplicates.
+
+Scoped historical reads are available at
+`GET /listening-topics/:id/themes` and
+`GET /listening-topics/:id/signals`. Both exclude soft-deleted rows and require
+the authenticated organization and brand scope.
+
 ## Operational invariants
 
 - Every read and write is scoped by both `organizationId` and `brandId`.
@@ -48,6 +85,5 @@ to their supporting observations.
 - Contract changes increment `LISTENING_CONTRACT_VERSION` and require compatible
   serializers and consumers.
 
-This contract defines storage and transport boundaries only. Provider polling,
-collector credentials, theme extraction, alerting, and UI workflows are separate
-milestone deliverables.
+Provider credentials, alerting, downstream review, and UI workflows remain
+separate milestone deliverables.

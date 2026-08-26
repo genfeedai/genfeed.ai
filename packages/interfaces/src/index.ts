@@ -237,6 +237,7 @@ export * from './settings/dashboard-settings.interface';
 export * from './settings/platform-setting.interface';
 export * from './settings/settings.interface';
 export * from './social/link.interface';
+export * from './social/listening-analysis.interface';
 export * from './social/listening-topic.interface';
 export * from './social/social-inbox.interface';
 export * from './social/social-warmup-enrollment.interface';

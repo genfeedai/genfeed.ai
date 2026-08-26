@@ -1,0 +1,39 @@
+import { createEntityAttributes } from '@genfeedai/helpers';
+
+export const listeningThemeAttributes = createEntityAttributes([
+  'organizationId',
+  'brandId',
+  'topicId',
+  'label',
+  'clusterKey',
+  'methodologyVersion',
+  'analysisKey',
+  'currentWindowStart',
+  'currentWindowEnd',
+  'previousWindowStart',
+  'previousWindowEnd',
+  'evidenceIds',
+  'idempotencyKey',
+]);
+
+export const listeningSignalAttributes = createEntityAttributes([
+  'organizationId',
+  'brandId',
+  'topicId',
+  'themeId',
+  'signalType',
+  'status',
+  'insufficiencyReason',
+  'value',
+  'confidence',
+  'methodologyVersion',
+  'analysisKey',
+  'currentWindowStart',
+  'currentWindowEnd',
+  'previousWindowStart',
+  'previousWindowEnd',
+  'includedSourceIds',
+  'excludedSourceIds',
+  'evidenceIds',
+  'idempotencyKey',
+]);

@@ -1,11 +1,15 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { AnalyzeListeningTopicDto } from '@api/collections/listening-topics/dto/analyze-listening-topic.dto';
 import { CollectListeningTopicDto } from '@api/collections/listening-topics/dto/collect-listening-topic.dto';
 import { CreateListeningTopicDto } from '@api/collections/listening-topics/dto/create-listening-topic.dto';
 import {
+  ListeningAnalysisQueryDto,
   ListeningEvidenceQueryDto,
   ListeningTopicsQueryDto,
 } from '@api/collections/listening-topics/dto/listening-topics-query.dto';
 import { UpdateListeningTopicDto } from '@api/collections/listening-topics/dto/update-listening-topic.dto';
+import { serializeListeningAnalysis } from '@api/collections/listening-topics/helpers/listening-analysis-response.helper';
+import { ListeningTopicAnalysisService } from '@api/collections/listening-topics/services/listening-topic-analysis.service';
 import { ListeningTopicCollectorService } from '@api/collections/listening-topics/services/listening-topic-collector.service';
 import { ListeningTopicsService } from '@api/collections/listening-topics/services/listening-topics.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -18,6 +22,8 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import {
   ListeningEvidenceSerializer,
+  ListeningSignalSerializer,
+  ListeningThemeSerializer,
   ListeningTopicSerializer,
 } from '@genfeedai/serializers';
 import {
@@ -44,6 +50,7 @@ export class ListeningTopicsController {
   constructor(
     private readonly listeningTopicsService: ListeningTopicsService,
     private readonly listeningTopicCollectorService: ListeningTopicCollectorService,
+    private readonly listeningTopicAnalysisService: ListeningTopicAnalysisService,
   ) {}
 
   @Get()
@@ -101,6 +108,24 @@ export class ListeningTopicsController {
     return serializeSingle(request, ListeningTopicSerializer, topic);
   }
 
+  @Post(':id/analyze')
+  @HttpCode(HttpStatus.OK)
+  async analyze(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query() query: BrandScopeQueryDto,
+    @Param('id') id: string,
+    @Body() body: AnalyzeListeningTopicDto,
+  ) {
+    const context = resolveRequiredBrandRequestContext(user, query);
+    const result = await this.listeningTopicAnalysisService.analyzeScoped(
+      id,
+      body,
+      context,
+    );
+    return serializeListeningAnalysis(request, result);
+  }
+
   @Patch(':id')
   async update(
     @Req() request: Request,
@@ -144,5 +169,37 @@ export class ListeningTopicsController {
       query,
     );
     return serializeCollection(request, ListeningEvidenceSerializer, result);
+  }
+
+  @Get(':id/themes')
+  async listThemes(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Query() query: ListeningAnalysisQueryDto,
+  ) {
+    const context = resolveRequiredBrandRequestContext(user, query);
+    const result = await this.listeningTopicAnalysisService.listThemesScoped(
+      id,
+      context,
+      query,
+    );
+    return serializeCollection(request, ListeningThemeSerializer, result);
+  }
+
+  @Get(':id/signals')
+  async listSignals(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Query() query: ListeningAnalysisQueryDto,
+  ) {
+    const context = resolveRequiredBrandRequestContext(user, query);
+    const result = await this.listeningTopicAnalysisService.listSignalsScoped(
+      id,
+      context,
+      query,
+    );
+    return serializeCollection(request, ListeningSignalSerializer, result);
   }
 }
