@@ -74,6 +74,12 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
+    delegate: 'studioLook',
+    table: 'studio_looks',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
     delegate: 'moodBoard',
     table: 'mood_boards',
     brandField: 'brandId',
@@ -468,6 +474,18 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
+    delegate: 'listeningTheme',
+    table: 'listening_themes',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'listeningSignal',
+    table: 'listening_signals',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
     delegate: 'outreachCampaign',
     table: 'outreach_campaigns',
     brandField: 'brandId',
@@ -688,7 +706,9 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
  * listed here — so a new one can't slip through unreviewed.
  */
 export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
+  'AgentTransfer',
   'ContentVersionPin',
+  'ListeningThemeEvidence',
   'LlmVendorCost',
   'MediaVendorCost',
   'Member',
@@ -706,7 +726,9 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
  * via SECOND_ORDER_TARGETS.
  */
 export const AUDITOR_IGNORED_TABLES: readonly string[] = [
+  'agent_transfers',
   'content_version_pins',
+  'listening_theme_evidence',
   'llm_vendor_costs',
   'media_vendor_costs',
   'members',

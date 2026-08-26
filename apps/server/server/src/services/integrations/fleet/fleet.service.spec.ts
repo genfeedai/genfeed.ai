@@ -2,6 +2,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SERVER_TOKENS } from '@server/server.dependencies';
+import type { Mocked } from 'vitest';
 
 import { FleetService } from './fleet.service';
 
@@ -19,8 +20,8 @@ vi.mock('axios', () => ({
 
 describe('FleetService', () => {
   let service: FleetService;
-  let _configService: vi.Mocked<ConfigService>;
-  let loggerService: vi.Mocked<LoggerService>;
+  let _configService: Mocked<ConfigService>;
+  let loggerService: Mocked<LoggerService>;
   let customerInstancesService: {
     findRunningForOrg: ReturnType<typeof vi.fn>;
   };

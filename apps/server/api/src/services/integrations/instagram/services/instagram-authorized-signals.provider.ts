@@ -169,16 +169,17 @@ export class InstagramAuthorizedSignalsProvider {
           ),
         )
       : undefined;
-
-    const [profileResult, mediaResult] = await Promise.all([
-      this.settle(profilePromise),
-      this.settle(
-        mediaResultOrRetry(mediaPromise, () =>
+    const mediaWithFallbackPromise = mediaPromise
+      ? mediaResultOrRetry(mediaPromise, () =>
           this.requestWithRetry(() =>
             this.fetchMedia(accessToken, igUserId, false),
           ),
-        ),
-      ),
+        )
+      : undefined;
+
+    const [profileResult, mediaResult] = await Promise.all([
+      this.settle(profilePromise),
+      this.settle(mediaWithFallbackPromise),
     ]);
 
     return { mediaResult, profileResult };
@@ -410,13 +411,9 @@ export class InstagramAuthorizedSignalsProvider {
 }
 
 async function mediaResultOrRetry<T>(
-  promise: Promise<T> | undefined,
+  promise: Promise<T>,
   retryWithoutInsights: () => Promise<T>,
-): Promise<T | undefined> {
-  if (!promise) {
-    return undefined;
-  }
-
+): Promise<T> {
   try {
     return await promise;
   } catch (error: unknown) {

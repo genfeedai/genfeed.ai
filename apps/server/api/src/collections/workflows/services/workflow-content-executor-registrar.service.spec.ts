@@ -110,7 +110,7 @@ function runTalkingHeadScriptNode(openRouterService: {
       label: 'Talking-head Script',
       type: 'talkingHeadScript',
     },
-    new Map([
+    new Map<string, unknown>([
       ['brandVoice', 'Direct and practical'],
       ['harnessContext', { bannedPhrases: ['game-changing'] }],
     ]),

@@ -24,7 +24,7 @@ import { XAdsOAuthService } from './x-ads-oauth.service';
 
 describe('XAdsOAuthService', () => {
   let configGet: ReturnType<typeof vi.fn>;
-  let loggerService: vi.Mocked<Pick<LoggerService, 'error'>>;
+  let loggerService: Mocked<Pick<LoggerService, 'error'>>;
   let service: XAdsOAuthService;
 
   const config: Record<string, string> = {

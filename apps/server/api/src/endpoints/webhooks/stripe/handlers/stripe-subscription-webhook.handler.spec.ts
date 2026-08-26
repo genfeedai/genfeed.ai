@@ -219,7 +219,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
 
       expect(loggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('failed to handle subscription created'),
-        reconciliationError,
+        { category: 'reconciliation_failed' },
       );
     });
   });

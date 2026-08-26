@@ -9,6 +9,7 @@ export class AssetEntity extends BaseEntity implements Asset {
   declare readonly parentBrandId: string | null;
   declare readonly parentIngredientId: string | null;
   declare readonly parentArticleId: string | null;
+  declare readonly referenceCategory: Asset['referenceCategory'];
   declare readonly externalId: string | null;
   declare readonly category: Asset['category'];
   declare readonly localAssetId: string | null;

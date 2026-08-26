@@ -132,7 +132,7 @@ function makeContext(post: PublisherPostInput): PublishContext {
 
 describe('BasePublisherService', () => {
   let publisher: TestPublisher;
-  let mockLogger: vi.Mocked<ServerLogger>;
+  let mockLogger: Mocked<ServerLogger>;
   let mockConfig: { ingredientsEndpoint: string };
 
   beforeEach(() => {
@@ -140,7 +140,7 @@ describe('BasePublisherService', () => {
       error: vi.fn(),
       log: vi.fn(),
       warn: vi.fn(),
-    } as unknown as vi.Mocked<ServerLogger>;
+    } as unknown as Mocked<ServerLogger>;
 
     mockConfig = {
       ingredientsEndpoint: 'https://cdn.example.com',

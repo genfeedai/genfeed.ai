@@ -34,7 +34,9 @@ describe('Posts split controllers', () => {
     expect(Reflect.getMetadata(API_KEY_SCOPES_KEY, handler)).toEqual([
       ApiKeyScope.POSTS_SCHEDULE,
     ]);
-    expect(PostsOperationsController.prototype.retryPost).toBeUndefined();
+    expect(
+      Reflect.get(PostsOperationsController.prototype, 'retryPost'),
+    ).toBeUndefined();
   });
 
   it.each([PostsOperationsController, PostsRetryController])(

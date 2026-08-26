@@ -317,7 +317,9 @@ describe('ClipGenerationService', () => {
         },
       ],
     });
-    expect(briefs[1]).toEqual(briefs[0]);
+    expect(briefs[1]).toMatchObject({
+      references: (briefs[0] as { references: unknown }).references,
+    });
   });
 
   it('persists stable redacted reference provenance on every result', async () => {

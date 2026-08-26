@@ -10,6 +10,7 @@ import {
   ViralHooksQueryDto,
 } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { CacheService } from '@api/services/cache/services/cache.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
@@ -95,6 +96,10 @@ describe('AnalyticsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AnalyticsController],
       providers: [
+        {
+          provide: CacheService,
+          useValue: { get: vi.fn(), set: vi.fn() },
+        },
         { provide: LoggerService, useValue: loggerService },
         { provide: AnalyticsService, useValue: analyticsService },
         {

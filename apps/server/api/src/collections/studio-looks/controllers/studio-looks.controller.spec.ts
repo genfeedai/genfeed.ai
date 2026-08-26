@@ -1,5 +1,6 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { StudioLooksController } from '@api/collections/studio-looks/controllers/studio-looks.controller';
+import { StudioLooksQueryDto } from '@api/collections/studio-looks/dto/studio-looks-query.dto';
 import { StudioLooksService } from '@api/collections/studio-looks/services/studio-looks.service';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -74,7 +75,11 @@ describe('StudioLooksController', () => {
     service.updateScoped.mockResolvedValueOnce({ id: 'look-1' });
     service.removeScoped.mockResolvedValueOnce(true);
 
-    await controller.findAll(request, user, { assetType: 'video' });
+    await controller.findAll(
+      request,
+      user,
+      Object.assign(new StudioLooksQueryDto(), { assetType: 'video' as const }),
+    );
     await controller.update(request, user, 'look-1', { label: 'Updated' });
     await controller.remove(user, 'look-1');
 
@@ -95,7 +100,7 @@ describe('StudioLooksController', () => {
     const requestUser = { ...user, brandId: '' };
 
     await expect(
-      controller.findAll(request, requestUser, {}),
+      controller.findAll(request, requestUser, new StudioLooksQueryDto()),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(service.listScoped).not.toHaveBeenCalled();
   });

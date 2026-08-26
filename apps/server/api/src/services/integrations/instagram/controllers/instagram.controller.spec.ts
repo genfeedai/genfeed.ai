@@ -362,19 +362,18 @@ describe('InstagramController', () => {
           })),
         );
 
-        const result = await controller.verify(mockRequest, {
-          code: callbackCode,
-          state,
-        });
+        const failure = await captureHttpException(
+          controller.verify(mockRequest, {
+            code: callbackCode,
+            state,
+          }),
+        );
 
-        expect(result).toEqual({
-          errors: [
-            {
-              detail:
-                'Instagram rejected the authorization code. It may have expired, already been used, or be invalid. Please reconnect your Instagram account.',
-              title: 'Authentication failed',
-            },
-          ],
+        expect(failure.getStatus()).toBe(HttpStatus.BAD_REQUEST);
+        expect(failure.getResponse()).toEqual({
+          detail:
+            'Instagram rejected the authorization code. It may have expired, already been used, or be invalid. Please reconnect your Instagram account.',
+          title: 'Authentication failed',
         });
         expect(loggerErrorMock).toHaveBeenCalledWith(
           expect.stringContaining('failed'),
@@ -411,21 +410,22 @@ describe('InstagramController', () => {
         })),
       );
 
-      const result = await controller.verify(mockRequest, {
-        code: 'redirect-mismatch-code',
-        state,
-      });
+      const failure = await captureHttpException(
+        controller.verify(mockRequest, {
+          code: 'redirect-mismatch-code',
+          state,
+        }),
+      );
 
-      expect(result).toEqual({
-        errors: [
-          {
-            detail:
-              'Instagram rejected the authorization because the redirect URI did not match. Please reconnect your Instagram account. If the problem continues, contact support.',
-            title: 'Configuration error',
-          },
-        ],
+      expect(failure.getStatus()).toBe(HttpStatus.BAD_REQUEST);
+      expect(failure.getResponse()).toEqual({
+        detail:
+          'Instagram rejected the authorization because the redirect URI did not match. Please reconnect your Instagram account. If the problem continues, contact support.',
+        title: 'Configuration error',
       });
-      expect(JSON.stringify(result)).not.toContain(providerMessage);
+      expect(JSON.stringify(failure.getResponse())).not.toContain(
+        providerMessage,
+      );
       expect(loggerErrorMock).toHaveBeenCalledWith(
         expect.stringContaining('failed'),
         expect.objectContaining({
@@ -555,17 +555,16 @@ describe('InstagramController', () => {
         })),
       );
 
-      const result = await controller.verify(mockRequest, {
-        code: 'long-token-code',
-        state,
-      });
-
-      expect(result).toEqual(
-        expect.objectContaining({
-          errors: expect.arrayContaining([
-            expect.objectContaining({ title: 'Authentication failed' }),
-          ]),
+      const failure = await captureHttpException(
+        controller.verify(mockRequest, {
+          code: 'long-token-code',
+          state,
         }),
+      );
+
+      expect(failure.getStatus()).toBe(HttpStatus.BAD_REQUEST);
+      expect(failure.getResponse()).toEqual(
+        expect.objectContaining({ title: 'Authentication failed' }),
       );
       expect(loggerErrorMock).toHaveBeenCalledWith(
         expect.stringContaining('failed'),

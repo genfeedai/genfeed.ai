@@ -28,10 +28,12 @@ describe('InstagramService', () => {
     // The service resolves its account through the multi-account resolver;
     // the double answers with whatever `findOne` is primed to return so the
     // existing single-account cases keep describing one connected account.
-    resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
-      (credentialsMock.findOne as vi.Mock)(options),
-    ),
+    resolveBrandAccount: vi.fn(),
   } satisfies ServerCredentialStore;
+  credentialsMock.resolveBrandAccount.mockImplementation(
+    (options: { credentialId?: string | null }) =>
+      (credentialsMock.findOne as Mock)(options),
+  );
 
   const httpServiceMock = {
     get: vi.fn(),
@@ -74,7 +76,7 @@ describe('InstagramService', () => {
         externalId: 'acc',
       });
 
-      (httpServiceMock.post as vi.Mock).mockReturnValue(
+      (httpServiceMock.post as Mock).mockReturnValue(
         of({ data: { id: 'msg' } }),
       );
 
@@ -108,7 +110,7 @@ describe('InstagramService', () => {
         externalId: 'acc',
       });
 
-      (httpServiceMock.get as vi.Mock).mockReturnValue(
+      (httpServiceMock.get as Mock).mockReturnValue(
         of({
           data: {
             data: [
@@ -182,7 +184,7 @@ describe('InstagramService', () => {
         externalId: 'account-1',
       });
 
-      (httpServiceMock.get as vi.Mock).mockReturnValue(
+      (httpServiceMock.get as Mock).mockReturnValue(
         of({
           data: {
             data: [
@@ -260,7 +262,7 @@ describe('InstagramService', () => {
 
   describe('getTrends', () => {
     it('returns empty trends when no Instagram credential is connected', async () => {
-      (credentialsMock.findOne as vi.Mock).mockResolvedValue(null);
+      (credentialsMock.findOne as Mock).mockResolvedValue(null);
 
       const result = await service.getTrends('org', 'brand');
 
@@ -269,14 +271,14 @@ describe('InstagramService', () => {
     });
 
     it('maps connected account hashtag engagement without static fallback trends', async () => {
-      (credentialsMock.findOne as vi.Mock).mockResolvedValue({
+      (credentialsMock.findOne as Mock).mockResolvedValue({
         accessToken: 'token',
         accessTokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         externalId: 'instagram-account',
         id: 'credential-id',
         isConnected: true,
       });
-      (httpServiceMock.get as vi.Mock).mockReturnValue(
+      (httpServiceMock.get as Mock).mockReturnValue(
         of({
           data: {
             data: [
@@ -296,14 +298,14 @@ describe('InstagramService', () => {
     });
 
     it('does not return hard-coded hashtags when provider lookup fails', async () => {
-      (credentialsMock.findOne as vi.Mock).mockResolvedValue({
+      (credentialsMock.findOne as Mock).mockResolvedValue({
         accessToken: 'token',
         accessTokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         externalId: 'instagram-account',
         id: 'credential-id',
         isConnected: true,
       });
-      (httpServiceMock.get as vi.Mock).mockReturnValue(
+      (httpServiceMock.get as Mock).mockReturnValue(
         throwError(() => new Error('Meta unavailable')),
       );
 

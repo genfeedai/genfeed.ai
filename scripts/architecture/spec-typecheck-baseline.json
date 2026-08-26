@@ -425,27 +425,11 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts",
-      "fingerprint": "0cbce4431b3cedd2749e",
-      "message": "Argument of type 'PrismaService' is not assignable to parameter of type 'ServerPrisma'.   The types of 'lifecycleEmailDelivery.findFirst(...).then' are incompatible between these types.     Type '<TResult1 = { metadata: JsonValue; createdAt: Date; id: string; updatedAt: Date; userId: string; status: string; sequence: string; email: string; canceledAt: Date | null; ... 5 more ...; triggerKey: string; } | null, TResult2 = never>(onfulfilled?: ((value: { ...; } | null) => TResult1 | PromiseLike<...>) | ... 1 mo...' is not assignable to type '<TResult1 = { id: string; email: string; sequence: string; step: string; triggerKey: string; status: string; scheduledFor: Date; metadata: unknown; user: { id: string; email: string | null; firstName: string | null; isDeleted: boolean; }; } | null, TResult2 = never>(onfulfilled?: ((value: { ...; } | null) => TResult...'.       Types of parameters 'onfulfilled' and 'onfulfilled' are incompatible.         Types of parameters 'value' and 'value' are incompatible.           Type '{ metadata: JsonValue; createdAt: Date; id: string; updatedAt: Date; userId: string; status: string; sequence: string; email: string; canceledAt: Date | null; ... 5 more ...; triggerKey: string; } | null' is not assignable to type '{ id: string; email: string; sequence: string; step: string; triggerKey: string; status: string; scheduledFor: Date; metadata: unknown; user: { id: string; email: string | null; firstName: string | null; isDeleted: boolean; }; } | null'.             Property 'user' is missing in type '{ metadata: JsonValue; createdAt: Date; id: string; updatedAt: Date; userId: string; status: string; sequence: string; email: string; canceledAt: Date | null; failureReason: string | null; ... 4 more ...; triggerKey: string; }' but required in type '{ id: string; email: string; sequence: string; step: string; triggerKey: string; status: string; scheduledFor: Date; metadata: unknown; user: { id: string; email: string | null; firstName: string | null; isDeleted: boolean; }; }'.",
-      "workspace": "api"
-    },
-    {
       "code": 2820,
       "count": 1,
       "file": "apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts",
       "fingerprint": "e1901f0d88c748b46fa8",
       "message": "Type '\"video\"' is not assignable to type 'PostCategory'. Did you mean '\"VIDEO\"'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-performance/services/analytics-sync.service.spec.ts",
-      "fingerprint": "e2f02e35541d184583ee",
-      "message": "Argument of type 'PrismaService' is not assignable to parameter of type 'ServerPrisma'.   The types of 'lifecycleEmailDelivery.findFirst(...).then' are incompatible between these types.     Type '<TResult1 = { metadata: JsonValue; createdAt: Date; id: string; updatedAt: Date; userId: string; status: string; sequence: string; email: string; canceledAt: Date | null; ... 5 more ...; triggerKey: string; } | null, TResult2 = never>(onfulfilled?: ((value: { ...; } | null) => TResult1 | PromiseLike<...>) | ... 1 mo...' is not assignable to type '<TResult1 = { id: string; email: string; sequence: string; step: string; triggerKey: string; status: string; scheduledFor: Date; metadata: unknown; user: { id: string; email: string | null; firstName: string | null; isDeleted: boolean; }; } | null, TResult2 = never>(onfulfilled?: ((value: { ...; } | null) => TResult...'.       Types of parameters 'onfulfilled' and 'onfulfilled' are incompatible.         Types of parameters 'value' and 'value' are incompatible.           Type '{ metadata: JsonValue; createdAt: Date; id: string; updatedAt: Date; userId: string; status: string; sequence: string; email: string; canceledAt: Date | null; ... 5 more ...; triggerKey: string; } | null' is not assignable to type '{ id: string; email: string; sequence: string; step: string; triggerKey: string; status: string; scheduledFor: Date; metadata: unknown; user: { id: string; email: string | null; firstName: string | null; isDeleted: boolean; }; } | null'.             Property 'user' is missing in type '{ metadata: JsonValue; createdAt: Date; id: string; updatedAt: Date; userId: string; status: string; sequence: string; email: string; canceledAt: Date | null; failureReason: string | null; ... 4 more ...; triggerKey: string; }' but required in type '{ id: string; email: string; sequence: string; step: string; triggerKey: string; status: string; scheduledFor: Date; metadata: unknown; user: { id: string; email: string | null; firstName: string | null; isDeleted: boolean; }; }'.",
       "workspace": "api"
     },
     {
@@ -470,22 +454,6 @@
       "file": "apps/server/api/src/collections/contexts/controllers/contexts.controller.spec.ts",
       "fingerprint": "9e6778028c676bc9fc36",
       "message": "Type '\"general\"' is not assignable to type '\"custom\" | \"audience\" | \"brand_voice\" | \"content_library\"'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2698,
-      "count": 2,
-      "file": "apps/server/api/src/collections/credentials/controllers/credentials.controller.spec.ts",
-      "fingerprint": "259e3d64b345a18bb827",
-      "message": "Spread types may only be created from object types.",
-      "workspace": "api"
-    },
-    {
-      "code": 18047,
-      "count": 2,
-      "file": "apps/server/api/src/collections/credentials/controllers/credentials.controller.spec.ts",
-      "fingerprint": "20b3bb3563a3c5d0afc7",
-      "message": "'result.data' is possibly 'null'.",
       "workspace": "api"
     },
     {
@@ -801,22 +769,6 @@
       "workspace": "api"
     },
     {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/images/controllers/transformations/images-transformations.controller.spec.ts",
-      "fingerprint": "93211e13500096623612",
-      "message": "Property 'errors' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/images/controllers/transformations/images-transformations.controller.spec.ts",
-      "fingerprint": "95b9678871b2471234d6",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'IResizeBodyParams'.   Type '{}' is missing the following properties from type 'IResizeBodyParams': width, height",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/images/entities/image.entity.spec.ts",
@@ -985,14 +937,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/musics/controllers/musics-operations.controller.spec.ts",
-      "fingerprint": "55bd8b4336c0e828ba72",
-      "message": "Argument of type 'Request' is not assignable to parameter of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.   Type 'Request' is missing the following properties from type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>': cookies, signedCookies, get, header, and 99 more.",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/musics/entities/music.entity.spec.ts",
@@ -1038,14 +982,6 @@
       "file": "apps/server/api/src/collections/organizations/controllers/organizations-members.controller.spec.ts",
       "fingerprint": "347eff97d8bee8100d11",
       "message": "Argument of type '{}' is not assignable to parameter of type 'BaseQueryDto'.   Type '{}' is missing the following properties from type 'BaseQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2769,
-      "count": 1,
-      "file": "apps/server/api/src/collections/organizations/controllers/organizations.controller.spec.ts",
-      "fingerprint": "014457d12f1055103f5d",
-      "message": "No overload matches this call.   Overload 1 of 2, '(request: Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>, user: AuthenticatedUser, query: OrganizationQueryDto & { ...; }): Promise<...>', gave the following error.     Argument of type '{ mine: true; }' is not assignable to parameter of type 'OrganizationQueryDto & { readonly mine: true; }'.       Type '{ mine: true; }' is missing the following properties from type 'OrganizationQueryDto': page, limit, isDeleted, sort   Overload 2 of 2, '(request: Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>, user: AuthenticatedUser, query: OrganizationQueryDto): Promise<...>', gave the following error.     Argument of type '{ mine: true; }' is not assignable to parameter of type 'OrganizationQueryDto'.       Type '{ mine: true; }' is missing the following properties from type 'OrganizationQueryDto': page, limit, isDeleted, sort",
       "workspace": "api"
     },
     {
@@ -1766,14 +1702,6 @@
       "file": "apps/server/api/src/endpoints/ai-actions/ai-actions.controller.spec.ts",
       "fingerprint": "e73cd5d00a9865dbd4f3",
       "message": "Type '\"hook_improve\"' is not assignable to type 'AiActionType'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2571,
-      "count": 1,
-      "file": "apps/server/api/src/endpoints/analytics/analytics.controller.spec.ts",
-      "fingerprint": "272442b57dc5bebda919",
-      "message": "Object is of type 'unknown'.",
       "workspace": "api"
     },
     {

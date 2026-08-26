@@ -15,6 +15,9 @@ describe('AgentRunsService', () => {
     updateMany: vi.fn(),
     upsert: vi.fn(),
   };
+  const agentTransfer = {
+    updateMany: vi.fn(),
+  };
   const logger = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -42,6 +45,7 @@ describe('AgentRunsService', () => {
     agentRun.upsert.mockImplementation(({ create }) =>
       Promise.resolve({ ...create }),
     );
+    agentTransfer.updateMany.mockResolvedValue({ count: 1 });
     artifactReferenceService.resolveReference.mockImplementation((reference) =>
       Promise.resolve({ reference }),
     );
@@ -56,7 +60,7 @@ describe('AgentRunsService', () => {
     });
 
     service = new AgentRunsService(
-      { agentRun } as unknown as PrismaService,
+      { agentRun, agentTransfer } as unknown as PrismaService,
       logger as unknown as LoggerService,
       artifactReferenceService as unknown as AgentArtifactReferenceService,
     );

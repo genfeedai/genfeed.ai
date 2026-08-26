@@ -116,11 +116,10 @@ describe('AgentRunsController', () => {
     });
 
     it('should allow organization-scoped users to select a brand', () => {
-      const organizationUser: User = {
-        ...mockUser,
+      const organizationUser = {
         ...mockUser,
         brandId: undefined,
-      };
+      } as unknown as User;
 
       const query = controller.buildFindAllQuery(organizationUser, {
         brandId: otherBrandId,
@@ -366,10 +365,10 @@ describe('AgentRunsController', () => {
 
     it('uses a selected brand for organization-scoped cancellation', async () => {
       const runId = testId('run', 2);
-      const organizationUser: User = {
+      const organizationUser = {
         ...mockUser,
         brandId: undefined,
-      };
+      } as unknown as User;
       mockOperationsService.cancelRun.mockResolvedValue({ id: runId });
 
       await controller.patch(
@@ -458,11 +457,10 @@ describe('AgentRunsController', () => {
     });
 
     it('uses a requested brand for organization-scoped detail access', async () => {
-      const organizationUser: User = {
-        ...mockUser,
+      const organizationUser = {
         ...mockUser,
         brandId: undefined,
-      };
+      } as unknown as User;
       mockServiceMethods.findOne.mockResolvedValue({ id: 'run1' });
 
       await controller.findOne(

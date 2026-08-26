@@ -25,10 +25,12 @@ describe('RedditService', () => {
       // Multi-account resolution routes through `resolveBrandAccount`; the double
       // answers with whatever `findOne` is primed to return so the existing
       // single-account cases keep describing one connected account.
-      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
-        credentialsMock.findOne(options),
-      ),
+      resolveBrandAccount: vi.fn(),
     } satisfies ServerCredentialStore;
+    credentialsMock.resolveBrandAccount.mockImplementation(
+      (options: { credentialId?: string | null }) =>
+        credentialsMock.findOne(options),
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -78,11 +80,11 @@ describe('RedditService', () => {
   it('refreshes token', async () => {
     const orgId = testId('org');
     const brandId = testId('brand');
-    (credentialsService.findOne as vi.Mock).mockResolvedValue({
+    (credentialsService.findOne as Mock).mockResolvedValue({
       id: 'cred',
       refreshToken: 'refresh',
     });
-    (httpService.post as vi.Mock).mockReturnValue(
+    (httpService.post as Mock).mockReturnValue(
       of({
         data: { access_token: 'a', expires_in: 3600, refresh_token: 'b' },
       }),
@@ -100,11 +102,11 @@ describe('RedditService', () => {
     // named one instead of whichever happens to be the brand default.
     const orgId = testId('org');
     const brandId = testId('brand');
-    (credentialsService.findOne as vi.Mock).mockResolvedValue({
+    (credentialsService.findOne as Mock).mockResolvedValue({
       id: 'cred-2',
       refreshToken: 'refresh',
     });
-    (httpService.post as vi.Mock).mockReturnValue(
+    (httpService.post as Mock).mockReturnValue(
       of({
         data: { access_token: 'a', expires_in: 3600, refresh_token: 'b' },
       }),
@@ -128,15 +130,15 @@ describe('RedditService', () => {
     beforeEach(() => {
       // `submitPost` always refreshes first, so the token exchange is the first
       // post call and the submission is the last one.
-      (credentialsService.findOne as vi.Mock).mockResolvedValue({
+      (credentialsService.findOne as Mock).mockResolvedValue({
         id: 'cred',
         refreshToken: 'refresh',
       });
-      (credentialsService.patch as vi.Mock).mockResolvedValue({
+      (credentialsService.patch as Mock).mockResolvedValue({
         accessToken: 'access',
         id: 'cred',
       });
-      (httpService.post as vi.Mock)
+      (httpService.post as Mock)
         .mockReturnValueOnce(
           of({
             data: { access_token: 'a', expires_in: 3600, refresh_token: 'b' },
@@ -149,7 +151,7 @@ describe('RedditService', () => {
     // body back rather than matching a serialised string.
     const submittedParams = () =>
       new URLSearchParams(
-        (httpService.post as vi.Mock).mock.calls.at(-1)?.[1] as string,
+        (httpService.post as Mock).mock.calls.at(-1)?.[1] as string,
       );
 
     it('sends the flair id when one is selected', async () => {

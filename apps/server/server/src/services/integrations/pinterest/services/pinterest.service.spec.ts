@@ -31,10 +31,12 @@ describe('PinterestService', () => {
     // Multi-account resolution routes through `resolveBrandAccount`; the double
     // answers with whatever `findOne` is primed to return so the existing
     // single-account cases keep describing one connected account.
-    resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
-      (credentialsServiceMock.findOne as vi.Mock)(options),
-    ),
+    resolveBrandAccount: vi.fn(),
   } satisfies ServerCredentialStore;
+  credentialsServiceMock.resolveBrandAccount.mockImplementation(
+    (options: { credentialId?: string | null }) =>
+      (credentialsServiceMock.findOne as Mock)(options),
+  );
 
   beforeEach(async () => {
     process.env.PINTEREST_CLIENT_ID = 'client';
@@ -88,9 +90,7 @@ describe('PinterestService', () => {
   });
 
   it('createPin posts to API', async () => {
-    (httpServiceMock.post as vi.Mock).mockReturnValue(
-      of({ data: { id: '1' } }),
-    );
+    (httpServiceMock.post as Mock).mockReturnValue(of({ data: { id: '1' } }));
 
     const id = await service.createPin(
       'token',
@@ -109,7 +109,7 @@ describe('PinterestService', () => {
   });
 
   it('exchangeCodeForToken exchanges code', async () => {
-    (httpServiceMock.post as vi.Mock).mockReturnValue(
+    (httpServiceMock.post as Mock).mockReturnValue(
       of({ data: { access_token: 'a', refresh_token: 'r' } }),
     );
 
@@ -120,7 +120,7 @@ describe('PinterestService', () => {
   });
 
   it('searchPins returns items', async () => {
-    (httpServiceMock.get as vi.Mock).mockReturnValue(
+    (httpServiceMock.get as Mock).mockReturnValue(
       of({ data: { items: [{ id: 1 }] } }),
     );
 
@@ -137,7 +137,7 @@ describe('PinterestService', () => {
   });
 
   it('getPinAnalytics requests analytics', async () => {
-    (httpServiceMock.get as vi.Mock).mockReturnValue(
+    (httpServiceMock.get as Mock).mockReturnValue(
       of({ data: { metrics: {} } }),
     );
 
@@ -154,10 +154,10 @@ describe('PinterestService', () => {
 
   describe('getMediaAnalytics', () => {
     it('maps Pinterest provider metrics using the stored credential', async () => {
-      (credentialsServiceMock.findOne as vi.Mock).mockResolvedValue({
+      (credentialsServiceMock.findOne as Mock).mockResolvedValue({
         accessToken: 'stored-token',
       });
-      (httpServiceMock.get as vi.Mock).mockReturnValue(
+      (httpServiceMock.get as Mock).mockReturnValue(
         of({
           data: {
             metrics: {
@@ -197,7 +197,7 @@ describe('PinterestService', () => {
     });
 
     it('throws instead of returning zeroed mock metrics when credentials are missing', async () => {
-      (credentialsServiceMock.findOne as vi.Mock).mockResolvedValue(null);
+      (credentialsServiceMock.findOne as Mock).mockResolvedValue(null);
 
       await expect(
         service.getMediaAnalytics('org', 'brand', 'pin-1'),
@@ -207,10 +207,10 @@ describe('PinterestService', () => {
     });
 
     it('finds metrics nested under a wrapper object via breadth-first traversal', async () => {
-      (credentialsServiceMock.findOne as vi.Mock).mockResolvedValue({
+      (credentialsServiceMock.findOne as Mock).mockResolvedValue({
         accessToken: 'stored-token',
       });
-      (httpServiceMock.get as vi.Mock).mockReturnValue(
+      (httpServiceMock.get as Mock).mockReturnValue(
         of({
           data: {
             metrics: {
@@ -238,10 +238,10 @@ describe('PinterestService', () => {
     });
 
     it('throws when Pinterest returns no metric values', async () => {
-      (credentialsServiceMock.findOne as vi.Mock).mockResolvedValue({
+      (credentialsServiceMock.findOne as Mock).mockResolvedValue({
         accessToken: 'stored-token',
       });
-      (httpServiceMock.get as vi.Mock).mockReturnValue(
+      (httpServiceMock.get as Mock).mockReturnValue(
         of({ data: { metrics: {} } }),
       );
 

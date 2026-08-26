@@ -29,6 +29,7 @@ import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.s
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ReferenceImageCategory } from '@genfeedai/enums';
 import type { FastlaneFormat } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -826,7 +827,7 @@ describe('BrandsService', () => {
           assets: [
             {
               mimeType: 'image/png',
-              referenceCategory: 'FACE',
+              referenceCategory: ReferenceImageCategory.FACE,
               role: 'reference',
               url: 'https://acme.example/character.png',
             },
@@ -862,7 +863,7 @@ describe('BrandsService', () => {
             {
               candidateId: 'reference-candidate',
               mimeType: 'image/webp',
-              referenceCategory: 'PRODUCT',
+              referenceCategory: ReferenceImageCategory.PRODUCT,
               role: 'reference',
               url: 'https://acme.example/reference.webp',
             },
@@ -921,7 +922,7 @@ describe('BrandsService', () => {
           assets: [
             {
               mimeType: 'image/png',
-              referenceCategory: 'PRODUCT',
+              referenceCategory: ReferenceImageCategory.PRODUCT,
               role: 'logo',
               url: 'https://acme.example/logo.png',
             },

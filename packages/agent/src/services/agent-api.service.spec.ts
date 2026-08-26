@@ -420,7 +420,7 @@ describe('AgentApiService', () => {
       const result = await Effect.runPromise(
         service.getMessagesEffect('c-1', { cursor: 'older-cursor' }),
       );
-      expect(result).toEqual([{ id: 'm-1', threadId: 'c-1' }]);
+      expect(result).toEqual([{ id: 'm-1', metadata: {}, threadId: 'c-1' }]);
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('c-1/messages?cursor=older-cursor'),
         expect.anything(),
@@ -452,7 +452,14 @@ describe('AgentApiService', () => {
 
       expect(result).toEqual({
         hasMore: true,
-        messages: [{ content: 'Older message', id: 'm-1', threadId: 'c-1' }],
+        messages: [
+          {
+            content: 'Older message',
+            id: 'm-1',
+            metadata: {},
+            threadId: 'c-1',
+          },
+        ],
         nextCursor: 'next-opaque-cursor',
       });
       expect(mockFetch).toHaveBeenCalledWith(

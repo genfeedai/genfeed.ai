@@ -69,6 +69,12 @@ export class BrandRemixRunProviderDispatchService {
         'Canonical generation references are missing.',
       );
     }
+    const imageRunReferences: ImageGenerationBriefReference[] =
+      runReferences.flatMap((reference) =>
+        reference.role === 'first_frame' || reference.role === 'last_frame'
+          ? []
+          : [{ ...reference, role: reference.role }],
+      );
     const dimensions = remixDimensions(draft.output.aspectRatio);
     const prompt = this.compileProviderPrompt(params.config);
 
@@ -91,10 +97,7 @@ export class BrandRemixRunProviderDispatchService {
         params.onPlaceholderCreated,
         params.placeholderScope,
         params.onCreditsPrepared,
-        runReferences.filter(
-          (reference): reference is ImageGenerationBriefReference =>
-            reference.role !== 'first_frame' && reference.role !== 'last_frame',
-        ),
+        imageRunReferences,
       );
       return this.generatedAssetId(response);
     }

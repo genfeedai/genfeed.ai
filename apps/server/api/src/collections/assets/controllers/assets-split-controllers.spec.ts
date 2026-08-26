@@ -68,13 +68,17 @@ describe('Assets split controllers', () => {
         AssetsIngestionController.prototype.createUpload,
       ),
     ).toHaveLength(1);
-    expect(
-      Reflect.getMetadata(
-        'design:paramtypes',
-        AssetsIngestionController.prototype,
-        'createUpload',
-      ),
-    ).toEqual([Object, Object, Object, CreateAssetDto]);
+    const uploadParameterTypes = Reflect.getMetadata(
+      'design:paramtypes',
+      AssetsIngestionController.prototype,
+      'createUpload',
+    ) as Array<{ name?: string }>;
+    expect(uploadParameterTypes[0]?.name).toBe('Request');
+    expect(uploadParameterTypes.slice(1)).toEqual([
+      Object,
+      Object,
+      CreateAssetDto,
+    ]);
     expect(
       Reflect.getMetadata(
         'design:paramtypes',
@@ -132,9 +136,11 @@ describe('Assets split controllers', () => {
   });
 
   it('moves ingestion handlers off the generation controller', () => {
-    expect(AssetsOperationsController.prototype.createUpload).toBeUndefined();
     expect(
-      AssetsOperationsController.prototype.createFromIngredient,
+      Reflect.get(AssetsOperationsController.prototype, 'createUpload'),
+    ).toBeUndefined();
+    expect(
+      Reflect.get(AssetsOperationsController.prototype, 'createFromIngredient'),
     ).toBeUndefined();
   });
 

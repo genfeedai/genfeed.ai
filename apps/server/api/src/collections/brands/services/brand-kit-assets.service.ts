@@ -46,6 +46,15 @@ const BRAND_KIT_ALLOWED_EXTENSIONS = new Set([
   '.png',
   '.webp',
 ]);
+
+function toReferenceImageCategory(
+  value: unknown,
+): ReferenceImageCategory | undefined {
+  return Object.values(ReferenceImageCategory).find(
+    (category) => category === value,
+  );
+}
+
 /**
  * The columns the resolver reads, kept as a Prisma select so the row type stays
  * tied to the schema even though the batched read goes through `$queryRaw`.
@@ -404,7 +413,7 @@ export class BrandKitAssetsService {
       const persistedReferenceCategory =
         candidate.role === 'reference'
           ? (candidate.referenceCategory ??
-            existing.referenceCategory ??
+            toReferenceImageCategory(existing.referenceCategory) ??
             referenceCategory)
           : undefined;
       if (

@@ -23,7 +23,7 @@ describe('TikTokAdsService', () => {
     get: ReturnType<typeof vi.fn>;
     post: ReturnType<typeof vi.fn>;
   };
-  let logger: vi.Mocked<LoggerService>;
+  let logger: Mocked<LoggerService>;
 
   beforeEach(async () => {
     httpService = { get: vi.fn(), post: vi.fn() };

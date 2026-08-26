@@ -8,8 +8,8 @@ import { HedraService } from './hedra.service';
 
 describe('HedraService', () => {
   let service: HedraService;
-  let postSpy: vi.Mock;
-  let getSpy: vi.Mock;
+  let postSpy: Mock;
+  let getSpy: Mock;
 
   beforeEach(async () => {
     postSpy = vi.fn();

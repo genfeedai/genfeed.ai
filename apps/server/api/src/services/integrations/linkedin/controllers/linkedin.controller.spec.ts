@@ -150,13 +150,19 @@ describe('LinkedInController', () => {
         new Error('DB error'),
       );
 
-      const result = await controller.connect(
-        mockRequest,
-        mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
-        { brandId },
+      const error = await expectHttpStatus(
+        controller.connect(
+          mockRequest,
+          mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+          { brandId },
+        ),
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
 
-      expect(result).toHaveProperty('errors');
+      expect(error.getResponse()).toEqual({
+        detail: 'Failed to initiate LinkedIn OAuth',
+        title: 'Internal Server Error',
+      });
     });
 
     it('maps a missing LinkedIn client id to 503 instead of a catch-all 500', async () => {
@@ -311,12 +317,18 @@ describe('LinkedInController', () => {
         new Error('Network error'),
       );
 
-      const result = await controller.verify(mockRequest, {
-        code: 'code',
-        state,
-      });
+      const error = await expectHttpStatus(
+        controller.verify(mockRequest, {
+          code: 'code',
+          state,
+        }),
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
 
-      expect(result).toHaveProperty('errors');
+      expect(error.getResponse()).toEqual({
+        detail: 'Failed to verify LinkedIn OAuth',
+        title: 'Internal Server Error',
+      });
     });
 
     it('should rethrow HttpException from service', async () => {

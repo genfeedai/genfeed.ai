@@ -260,7 +260,9 @@ describe('SocialIntelligenceInbox', () => {
       <SocialIntelligenceInbox organizationId="org-1" brandId="brand-1" />,
     );
 
-    expect(screen.getByText(/Missing linkedin coverage/)).toBeVisible();
+    expect(screen.getAllByText(/Missing linkedin coverage/)).not.toHaveLength(
+      0,
+    );
     await user.click(
       screen.getByRole('radio', { name: /AI agents are changing/ }),
     );

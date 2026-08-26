@@ -91,6 +91,7 @@ describe('ContentOrchestrationController', () => {
       });
       expect(mockBrandsService.findOne).toHaveBeenCalledWith({
         id: brandId,
+        isDeleted: false,
         organizationId: orgId,
       });
       expect(mockQueueService.queueGenerateAndPublish).toHaveBeenCalled();

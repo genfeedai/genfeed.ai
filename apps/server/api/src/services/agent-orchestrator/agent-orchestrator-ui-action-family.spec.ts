@@ -8,6 +8,7 @@ const EXPECTED_ACTION_FAMILIES = {
   approve_plan: 'plan',
   revise_plan: 'plan',
   confirm_create_brand: 'brand-identity',
+  confirm_agent_transfer: 'confirmed-tool',
   confirm_rename_brand: 'brand-identity',
   confirm_install_official_workflow: 'confirmed-tool',
   confirm_publish_post: 'confirmed-tool',
