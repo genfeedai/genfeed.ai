@@ -4223,19 +4223,24 @@ model ListeningTopic {
 /// Explicit source membership keeps topic authorization reviewable and avoids
 /// embedding provider-specific source payloads in ListeningTopic.
 model ListeningTopicSource {
-  id             String         @id @default(cuid())
-  organizationId String
-  organization   Organization   @relation(fields: [organizationId], references: [id])
-  brandId        String
-  brand          Brand          @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
-  topicId        String
-  topic          ListeningTopic @relation(fields: [topicId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
-  sourceId       String
-  source         SocialSource   @relation(fields: [sourceId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade)
-  platform       String
-  isDeleted      Boolean        @default(false)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id                  String         @id @default(cuid())
+  organizationId      String
+  organization        Organization   @relation(fields: [organizationId], references: [id])
+  brandId             String
+  brand               Brand          @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  topicId             String
+  topic               ListeningTopic @relation(fields: [topicId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
+  sourceId            String
+  source              SocialSource   @relation(fields: [sourceId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade)
+  platform            String
+  collectionState     String         @default("pending")
+  collectionCursor    String?
+  lastCollectedAt     DateTime?
+  lastCollectionError String?
+  rateLimitedAt       DateTime?
+  isDeleted           Boolean        @default(false)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 
   evidence ListeningEvidence[]
 
