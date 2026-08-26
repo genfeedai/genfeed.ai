@@ -131,12 +131,9 @@ export class WorkflowPage {
       .first();
 
     // Canvas
-    this.canvas = page.locator(
-      '[data-testid="workflow-canvas"],' +
-        ' .react-flow,' +
-        ' .reactflow-wrapper,' +
-        ' [class*="ReactFlow"]',
-    );
+    this.canvas = page.getByRole('application').filter({
+      has: page.getByRole('button', { name: 'Fit View' }),
+    });
     this.canvasEmpty = page.locator(
       '[data-testid="empty-canvas"],' +
         ' [data-testid="canvas-placeholder"],' +

@@ -345,11 +345,10 @@ test.describe('Clip Factory', () => {
     ).toBeVisible();
 
     await authenticatedPage
-      .getByRole('textbox')
-      .first()
+      .locator(`input[value="${mockHighlights[0].title}"]`)
       .fill('Edited Hook Title');
     await authenticatedPage
-      .locator('textarea')
+      .getByPlaceholder('Edit the script or caption text for this clip...')
       .first()
       .fill('Edited hook summary for generation.');
     await authenticatedPage.getByLabel(/avatar id/i).fill('heygen-avatar-1');
