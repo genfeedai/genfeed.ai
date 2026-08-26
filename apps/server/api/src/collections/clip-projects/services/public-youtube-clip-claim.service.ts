@@ -6,7 +6,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { PublicClipToolStoreService } from '@api/services/public-clip-tool/public-clip-tool-store.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@genfeedai/server';
-import { GoneException, Injectable } from '@nestjs/common';
+import { ConflictException, GoneException, Injectable } from '@nestjs/common';
 
 interface ClaimPublicYoutubeClipInput {
   readonly brandId?: string;
@@ -44,6 +44,13 @@ export class PublicYoutubeClipClaimService {
         code: 'public_youtube_clip_not_claimable',
         detail: 'The free-tool project is not ready to continue yet.',
         title: 'Gone',
+      });
+    }
+    if (['generating', 'queued'].includes(session.preview.status)) {
+      throw new ConflictException({
+        code: 'public_youtube_clip_preview_in_progress',
+        detail: 'Wait for the free preview to finish before continuing.',
+        title: 'Conflict',
       });
     }
 

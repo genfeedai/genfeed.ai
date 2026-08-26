@@ -139,4 +139,31 @@ describe('PublicYoutubeClipClaimService', () => {
     expect(store.getSession).not.toHaveBeenCalled();
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
+
+  it('does not discard a preview that is still rendering during handoff', async () => {
+    store.getSession.mockResolvedValueOnce({
+      highlights: [],
+      preview: { jobId: 'preview-job-1', status: 'generating' },
+      sourceVideoUrl: 'https://www.youtube.com/watch?v=abc12345',
+      status: 'ready',
+      transcriptSegments: [],
+    });
+
+    await expect(
+      service.claim({
+        previewToken: 'a'.repeat(43),
+        user: {
+          id: 'user-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        } as never,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: 'public_youtube_clip_preview_in_progress' },
+      status: 409,
+    });
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(store.deleteSession).not.toHaveBeenCalled();
+  });
 });

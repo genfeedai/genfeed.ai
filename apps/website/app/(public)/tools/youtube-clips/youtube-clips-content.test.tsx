@@ -138,4 +138,30 @@ describe('YoutubeClipsContent', () => {
       }),
     ).toBeDisabled();
   });
+
+  it('keeps auth handoff closed until an in-flight preview can be saved', async () => {
+    mocks.preview.mockResolvedValueOnce({
+      ...readySession,
+      preview: { recommendationId: 'moment-1', status: 'generating' },
+    });
+    render(<YoutubeClipsContent />);
+    fireEvent.change(screen.getByLabelText('YouTube URL'), {
+      target: { value: 'https://youtu.be/abc12345' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Analyze YouTube video' }),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Generate free preview for The strongest moment',
+      }),
+    );
+
+    expect(
+      await screen.findByText(/Finish rendering this preview/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Create workspace and continue' }),
+    ).not.toBeInTheDocument();
+  });
 });

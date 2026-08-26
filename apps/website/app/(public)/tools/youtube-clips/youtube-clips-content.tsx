@@ -277,6 +277,9 @@ export default function YoutubeClipsContent(): React.ReactElement {
   };
 
   const previewLocked = session?.preview.status !== 'available';
+  const previewInFlight =
+    session?.preview.status === 'generating' ||
+    session?.preview.status === 'queued';
 
   return (
     <PageLayout
@@ -461,29 +464,41 @@ export default function YoutubeClipsContent(): React.ReactElement {
                 Create a workspace to keep this transcript, recommendations, and
                 preview as a real Studio Clips project.
               </Text>
-              <Button asChild size={ButtonSize.PUBLIC} withWrapper={false}>
-                <Link
-                  data-ph-no-capture
-                  href={buildAuthHandoffHref('sign-up', session.previewToken)}
-                  onClick={() => captureAuthHandoff('sign_up')}
-                >
-                  Create workspace and continue
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size={ButtonSize.PUBLIC}
-                variant={ButtonVariant.SECONDARY}
-                withWrapper={false}
-              >
-                <Link
-                  data-ph-no-capture
-                  href={buildAuthHandoffHref('login', session.previewToken)}
-                  onClick={() => captureAuthHandoff('sign_in')}
-                >
-                  Sign in and continue
-                </Link>
-              </Button>
+              {previewInFlight ? (
+                <Text className="text-sm leading-6 text-surface/65">
+                  Finish rendering this preview before continuing so it is saved
+                  with the Studio project.
+                </Text>
+              ) : (
+                <>
+                  <Button asChild size={ButtonSize.PUBLIC} withWrapper={false}>
+                    <Link
+                      data-ph-no-capture
+                      href={buildAuthHandoffHref(
+                        'sign-up',
+                        session.previewToken,
+                      )}
+                      onClick={() => captureAuthHandoff('sign_up')}
+                    >
+                      Create workspace and continue
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    size={ButtonSize.PUBLIC}
+                    variant={ButtonVariant.SECONDARY}
+                    withWrapper={false}
+                  >
+                    <Link
+                      data-ph-no-capture
+                      href={buildAuthHandoffHref('login', session.previewToken)}
+                      onClick={() => captureAuthHandoff('sign_in')}
+                    >
+                      Sign in and continue
+                    </Link>
+                  </Button>
+                </>
+              )}
             </div>
           ) : null}
         </aside>
