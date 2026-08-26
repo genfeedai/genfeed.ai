@@ -262,7 +262,10 @@ describeWithDatabase('Brand remix paid draft integration', () => {
       {} as never,
       { findAll: vi.fn().mockResolvedValue([]) } as never,
       {
-        findOne: vi.fn().mockResolvedValue({ accessToken: 'x-access-token' }),
+        findOne: vi.fn().mockResolvedValue({
+          accessToken: 'x-access-token',
+          accessTokenSecret: 'x-access-token-secret',
+        }),
       } as never,
       { getAdapter: vi.fn().mockReturnValue(adapter) } as never,
       {} as never,
@@ -307,7 +310,10 @@ describeWithDatabase('Brand remix paid draft integration', () => {
       title: 'tweet-owned-1',
     });
     expect(xProvider.getPromotedTweetStats).toHaveBeenCalledWith(
-      'x-access-token',
+      {
+        accessToken: 'x-access-token',
+        accessTokenSecret: 'x-access-token-secret',
+      },
       'x-account-1',
       ['promoted-tweet-1'],
       expect.objectContaining({

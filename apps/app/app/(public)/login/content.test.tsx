@@ -376,7 +376,7 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(locationAssignMock).toHaveBeenCalledWith(
-        `${originalLocation.origin}/settings/credits`,
+        absoluteCallback('/settings/credits'),
       );
     });
     expect(desktopRuntimeMocks.eventOrder).toEqual([
