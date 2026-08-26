@@ -5,6 +5,7 @@ import { buildClipProjectReadiness } from '@api/collections/clip-shared/clip-ter
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PublicClipToolStoreService } from '@api/services/public-clip-tool/public-clip-tool-store.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { CLIP_SOURCE_SCHEMA_VERSION } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { ConflictException, GoneException, Injectable } from '@nestjs/common';
@@ -111,7 +112,7 @@ export class PublicYoutubeClipClaimService {
                       kind: 'youtube',
                       maxRetries: 3,
                       retryCount: 0,
-                      schemaVersion: 1,
+                      schemaVersion: CLIP_SOURCE_SCHEMA_VERSION,
                       status: 'completed',
                       updatedAt: new Date().toISOString(),
                     },
