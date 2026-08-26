@@ -308,7 +308,7 @@ describe('BrandDetailSocialMediaCard', () => {
     );
   });
 
-  it('does not offer Fanvue, which has no OAuth connect route', () => {
+  it('offers Fanvue under Creator and omits unavailable X Ads', () => {
     render(
       <BrandDetailSocialMediaCard
         brandId="brand-1"
@@ -318,8 +318,13 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    expect(screen.queryByText('Fanvue')).not.toBeInTheDocument();
-    expect(screen.queryByText('Creator')).not.toBeInTheDocument();
+    expect(screen.getByText('Creator')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Connect Fanvue' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Connect X Ads' }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders connected social links', () => {
@@ -434,6 +439,24 @@ describe('BrandDetailSocialMediaCard', () => {
 
     await waitFor(() => {
       expect(servicesPlatform).toHaveBeenCalledWith('google-ads');
+      expect(postConnect).toHaveBeenCalledWith({ brandId: 'brand-1' });
+    });
+  });
+
+  it('starts Fanvue OAuth through the existing brand-scoped service route', async () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[]}
+        connectedPlatformsCount={0}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /connect/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fanvue' }));
+
+    await waitFor(() => {
+      expect(servicesPlatform).toHaveBeenCalledWith('fanvue');
       expect(postConnect).toHaveBeenCalledWith({ brandId: 'brand-1' });
     });
   });

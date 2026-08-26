@@ -102,7 +102,11 @@ export class RolesGuard implements CanActivate {
       );
     }
 
-    if (!isEntityId(user.userId ?? user.id)) {
+    const authenticatedUserId = user.userId ?? user.id;
+    if (
+      typeof authenticatedUserId !== 'string' ||
+      authenticatedUserId.length === 0
+    ) {
       throw new HttpException(
         {
           detail: 'User context is invalid',
@@ -118,7 +122,7 @@ export class RolesGuard implements CanActivate {
         isActive: true,
         isDeleted: false,
         organizationId: organizationId,
-        userId: user.userId ?? user.id,
+        userId: authenticatedUserId,
       },
       [PopulateBuilder.withFields('role', ['id', 'key', 'label'])],
     );

@@ -11,7 +11,7 @@ import { type ChangeEvent, type FormEvent, useState } from 'react';
 import {
   getAuthCallbackURL,
   getAuthFlowHref,
-  toAbsoluteAuthCallbackURL,
+  toAbsolutePasswordResetURL,
 } from '../auth-callback-url';
 import {
   AUTH_PRIMARY_BUTTON_CLASS_NAME,
@@ -29,7 +29,7 @@ export default function ForgotPasswordContent() {
   const callbackURL = getAuthCallbackURL(searchParams);
   const loginHref = getAuthFlowHref('/login/password', callbackURL);
   const resetPath = getAuthFlowHref('/reset-password', callbackURL);
-  const resetRedirectTo = toAbsoluteAuthCallbackURL(resetPath);
+  const resetRedirectTo = toAbsolutePasswordResetURL(resetPath);
 
   async function handlePasswordResetRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

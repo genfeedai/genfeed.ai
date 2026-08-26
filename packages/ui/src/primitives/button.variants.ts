@@ -88,25 +88,19 @@ const nativeButtonVariants = cva(
       size: {
         default: 'h-8 px-3.5 py-1.5',
         icon: 'h-8 w-8 justify-center',
-        'icon-lg': 'h-9 w-9 justify-center',
-        'icon-sm': 'h-7 w-7 justify-center',
-        'icon-xs': 'h-6 w-6 justify-center',
         lg: 'h-9 px-4 text-[13px]',
-        md: 'h-8 px-3.5 py-1.5',
         sm: 'h-7 px-2.5 text-xs',
         xl: 'h-10 px-5 text-[14px]',
         xs: 'h-6 px-2 text-[11px] gap-1',
       },
       variant: {
         default:
-          'justify-center rounded-md bg-primary text-primary-foreground hover:bg-accent-hover shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]',
+          'justify-center rounded-md bg-primary text-primary-foreground hover:bg-accent-hover shadow-border',
         destructive:
           'justify-center rounded-md bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25',
         ghost:
           'rounded-md bg-transparent text-muted-foreground hover:bg-hover hover:text-foreground',
         link: 'justify-center text-foreground underline-offset-4 hover:underline',
-        outline:
-          'justify-center rounded-md bg-transparent border border-border text-foreground hover:bg-hover',
         secondary:
           'justify-center rounded-md bg-tertiary text-foreground border border-border hover:bg-hover',
       },
@@ -114,7 +108,7 @@ const nativeButtonVariants = cva(
     compoundVariants: [
       {
         className: 'justify-start',
-        size: ['default', 'lg', 'md', 'sm', 'xl', 'xs'],
+        size: ['default', 'lg', 'sm', 'xl', 'xs'],
         variant: 'ghost',
       },
     ],

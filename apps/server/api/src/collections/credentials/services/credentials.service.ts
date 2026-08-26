@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
+import { OAUTH_STATE_TTL_MS } from '@api/collections/credentials/constants/oauth.constants';
 import { CreateCredentialDto } from '@api/collections/credentials/dto/create-credential.dto';
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
@@ -23,8 +24,6 @@ import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-
-const OAUTH_STATE_TTL_MS = 15 * 60 * 1000;
 
 function hashOAuthRequestToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -330,7 +329,7 @@ export class CredentialsService extends BaseService<
     }
 
     await this.prisma.credential.updateMany({
-      data: { isDeleted: true, oauthState: null },
+      data: { isDeleted: true, oauthState: null, oauthToken: null },
       where: {
         brandId,
         externalId: null,

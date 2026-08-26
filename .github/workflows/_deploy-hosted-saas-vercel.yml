@@ -41,6 +41,7 @@ jobs:
       # Resolve project ids here, after `environment: production`, not in strategy.matrix
       # — environment vars are empty during matrix expansion.
       BUILD_ID: ${{ inputs.source_sha }}
+      DOMAIN: ${{ vars.DOMAIN }}
       FRONTEND_REPOSITORY: ${{ github.repository }}
       FRONTEND_SHA: ${{ inputs.source_sha }}
       VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
@@ -122,8 +123,16 @@ jobs:
           } >> "${env_file}.tmp"
 
           if [ "${{ matrix.label }}" = "app" ]; then
-            awk '!/^NEXT_PUBLIC_GENFEED_CLOUD=/' "${env_file}.tmp" > "${env_file}.app"
-            printf 'NEXT_PUBLIC_GENFEED_CLOUD=1\n' >> "${env_file}.app"
+            if [ -z "${DOMAIN}" ]; then
+              echo "::error::DOMAIN is required to configure the app API proxy."
+              exit 1
+            fi
+
+            awk '!/^(API_URL|NEXT_PUBLIC_GENFEED_CLOUD)=/' "${env_file}.tmp" > "${env_file}.app"
+            {
+              printf 'API_URL=https://api.%s\n' "$DOMAIN"
+              printf 'NEXT_PUBLIC_GENFEED_CLOUD=1\n'
+            } >> "${env_file}.app"
             mv "${env_file}.app" "$env_file"
           else
             mv "${env_file}.tmp" "$env_file"

@@ -183,6 +183,7 @@
         "@genfeedai/pricing": "*",
         "@genfeedai/styles": "*",
         "@genfeedai/types": "*",
+        "@genfeedai/ui": "*",
         "@genfeedai/workflows": "*",
         "@remotion/player": "4.0.513",
         "@serwist/turbopack": "9.5.12",
@@ -721,6 +722,7 @@
       "name": "@genfeedai/auth-client",
       "version": "0.1.0",
       "dependencies": {
+        "@genfeedai/constants": "workspace:*",
         "better-auth": "1.6.29",
         "zod": "4.4.3",
       },

@@ -381,7 +381,7 @@ describe('CredentialsService', () => {
       );
 
       expect(prisma.credential.updateMany).toHaveBeenCalledWith({
-        data: { isDeleted: true, oauthState: null },
+        data: { isDeleted: true, oauthState: null, oauthToken: null },
         where: {
           brandId,
           externalId: null,

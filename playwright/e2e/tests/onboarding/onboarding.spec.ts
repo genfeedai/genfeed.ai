@@ -46,7 +46,9 @@ test.describe('Onboarding Flow', () => {
         new RegExp(`${brandPath(APP_ROUTES.WORKSPACE.ROOT)}(?:[/?#]|$)`),
       );
       await expect(
-        onboardingPage.getByTestId('operational-home-sections'),
+        onboardingPage
+          .getByTestId('desktop-sidebar-rail')
+          .getByRole('link', { name: 'Dashboard' }),
       ).toBeVisible();
     });
   });

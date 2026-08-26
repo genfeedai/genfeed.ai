@@ -58,6 +58,7 @@ export {
   pinterestSchema,
   redditSchema,
   slackSchema,
+  threadsSchema,
   tiktokSchema,
   twitterSchema,
   youtubeSchema,
