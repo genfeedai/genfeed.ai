@@ -3,11 +3,10 @@ import {
   reportScheduledFailure,
 } from './scheduled-failure-tracker.mjs';
 
-export const NIGHTLY_E2E_FAILURE_LABEL = 'nightly-e2e-failure';
-export const NIGHTLY_E2E_FAILURE_TITLE = 'Nightly E2E suite is failing';
-export const NIGHTLY_E2E_WORKFLOW_IDENTITY = '.github/workflows/e2e.yml';
+export const COVERAGE_FAILURE_LABEL = 'scheduled-coverage-failure';
+export const COVERAGE_WORKFLOW_IDENTITY = '.github/workflows/coverage.yml';
 
-export async function reportNightlyE2eFailure({
+export async function reportCoverageFailures({
   github,
   owner,
   repo,
@@ -26,9 +25,9 @@ export async function reportNightlyE2eFailure({
         github,
         owner,
         repo,
-        trackerLabel: NIGHTLY_E2E_FAILURE_LABEL,
-        trackerDescription: 'Scheduled nightly E2E failures',
-        workflowIdentity: NIGHTLY_E2E_WORKFLOW_IDENTITY,
+        trackerLabel: COVERAGE_FAILURE_LABEL,
+        trackerDescription: 'Scheduled coverage workflow failures',
+        workflowIdentity: COVERAGE_WORKFLOW_IDENTITY,
         failedJob: failure.failedJob,
         excerpt: failure.excerpt,
         sha,
@@ -37,7 +36,7 @@ export async function reportNightlyE2eFailure({
         runUrl,
         occurredAt,
         reproduction:
-          'Dispatch the E2E Tests workflow with the same nightly inputs.',
+          'Dispatch the Coverage workflow and select the failing workspace job.',
         core,
       }),
     );
@@ -45,7 +44,7 @@ export async function reportNightlyE2eFailure({
   return results;
 }
 
-export async function resolveNightlyE2eFailures({
+export async function resolveCoverageFailures({
   github,
   owner,
   repo,
@@ -59,8 +58,8 @@ export async function resolveNightlyE2eFailures({
     github,
     owner,
     repo,
-    trackerLabel: NIGHTLY_E2E_FAILURE_LABEL,
-    workflowIdentity: NIGHTLY_E2E_WORKFLOW_IDENTITY,
+    trackerLabel: COVERAGE_FAILURE_LABEL,
+    workflowIdentity: COVERAGE_WORKFLOW_IDENTITY,
     sha,
     runId,
     runUrl,

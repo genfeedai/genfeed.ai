@@ -404,3 +404,106 @@ jobs:
             echo "::error::apps/app E2E shard ${{ matrix.shard }}/4 tests passed but no non-empty LCOV report was generated at $report"
             exit 1
           fi
+
+  scheduled-failure-report:
+    name: Report or recover scheduled coverage failures
+    needs:
+      - coverage-packages
+      - coverage-hooks
+      - coverage-app
+      - coverage-app-merge
+      - coverage-api
+      - coverage-api-merge
+      - coverage-e2e
+    if: ${{ !cancelled() && github.event_name == 'schedule' }}
+    concurrency:
+      group: scheduled-coverage-failure-reporter
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout workflow helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Create, update, or recover bounded coverage trackers
+        continue-on-error: true
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
+          script: |
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const {
+              reportCoverageFailures,
+              resolveCoverageFailures,
+            } = await import(
+              pathToFileURL(
+                path.join(
+                  process.env.GITHUB_WORKSPACE,
+                  'scripts/ci/coverage-failure-reporter.mjs',
+                ),
+              ).href,
+            );
+            const { owner, repo } = context.repo;
+            const jobs = await github.paginate(
+              github.rest.actions.listJobsForWorkflowRun,
+              {
+                owner,
+                repo,
+                run_id: Number(process.env.RUN_ID),
+                filter: 'latest',
+                per_page: 100,
+              },
+            );
+            const failedJobs = jobs.filter((job) =>
+              ['failure', 'cancelled', 'timed_out'].includes(job.conclusion),
+            );
+            if (failedJobs.length === 0) {
+              await resolveCoverageFailures({
+                github,
+                owner,
+                repo,
+                sha: process.env.SOURCE_SHA,
+                runId: Number(process.env.RUN_ID),
+                runUrl: process.env.RUN_URL,
+                core,
+              });
+              return;
+            }
+            const failures = failedJobs.map((job) => {
+              const failedStep = job.steps?.find((step) =>
+                ['failure', 'cancelled', 'timed_out'].includes(step.conclusion),
+              );
+              const stepName = failedStep?.name ?? 'unknown step';
+              let excerpt = `Coverage workflow job failed in ${stepName}.`;
+              if (/assert.*report|download.*report|merge.*report/i.test(stepName)) {
+                excerpt = `Missing coverage report or artifact in step: ${stepName}.`;
+              } else if (/coverage/i.test(stepName)) {
+                excerpt = `Coverage test or threshold step failed: ${stepName}.`;
+              } else if (job.conclusion === 'cancelled' || job.conclusion === 'timed_out') {
+                excerpt = `Runner cancellation or timeout in coverage step: ${stepName}.`;
+              }
+              return { failedJob: job.name, excerpt };
+            });
+            await reportCoverageFailures({
+              github,
+              owner,
+              repo,
+              failures,
+              sha: process.env.SOURCE_SHA,
+              runId: Number(process.env.RUN_ID),
+              runAttempt: Number(process.env.RUN_ATTEMPT),
+              runUrl: process.env.RUN_URL,
+              core,
+            });
