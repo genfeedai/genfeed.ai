@@ -121,4 +121,63 @@ describe('PublicYoutubeClipsService', () => {
 
     expect(queue.enqueue).not.toHaveBeenCalled();
   });
+
+  it('renders the one preview from the durable source artifact', async () => {
+    const readySession = {
+      ...storedSession,
+      highlights: [
+        {
+          clip_type: 'educational',
+          end_time: 40,
+          id: 'moment-1',
+          start_time: 10,
+          summary: 'Useful moment',
+          tags: [],
+          title: 'Useful moment',
+          virality_score: 80,
+        },
+      ],
+      sourceVideoS3Key: 'videos/public-source.mp4',
+      status: 'ready' as const,
+      transcriptSegments: [{ end: 40, start: 0, text: 'Transcript' }],
+    };
+    store.getSession.mockResolvedValue(readySession);
+    store.reservePreview.mockResolvedValue({
+      ...readySession,
+      preview: {
+        jobId: 'public-youtube-preview-session-1',
+        recommendationId: 'moment-1',
+        status: 'queued',
+      },
+    });
+    files.processVideo.mockResolvedValue({
+      ingredientId: 'public-youtube-preview-session-1',
+      jobId: 'public-youtube-preview-session-1',
+      status: 'queued',
+      type: 'clip-trim',
+    });
+    store.patchByToken.mockResolvedValue({
+      ...readySession,
+      preview: {
+        jobId: 'public-youtube-preview-session-1',
+        recommendationId: 'moment-1',
+        status: 'generating',
+      },
+    });
+
+    await service.requestPreview(token, 'moment-1');
+
+    expect(files.processVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        params: expect.objectContaining({
+          endTime: 40,
+          s3Key: 'videos/public-source.mp4',
+          startTime: 10,
+        }),
+      }),
+    );
+    expect(files.processVideo.mock.calls[0][0].params).not.toHaveProperty(
+      'inputPath',
+    );
+  });
 });

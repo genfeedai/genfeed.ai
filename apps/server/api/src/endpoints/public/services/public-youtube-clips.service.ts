@@ -141,8 +141,9 @@ export class PublicYoutubeClipsService {
             highlight.end_time,
           ),
           endTime: highlight.end_time,
-          inputPath: reserved.sourceVideoUrl,
-          s3Key: reserved.sourceVideoS3Key,
+          ...(reserved.sourceVideoS3Key
+            ? { s3Key: reserved.sourceVideoS3Key }
+            : { inputPath: reserved.sourceVideoUrl }),
           startTime: highlight.start_time,
         },
         type: 'clip-trim',
