@@ -9,6 +9,11 @@ import { Text } from '@ui/typography/text';
 import HomeFooter from '@web-components/home/_footer';
 import { Layers } from 'lucide-react';
 import Link from 'next/link';
+import {
+  BrandOSPreviewAction,
+  BrandOSPreviewState,
+  BrandOSPreviewStateCatalog,
+} from './brand-os-preview-state';
 
 interface Swatch {
   hex: string;
@@ -216,17 +221,80 @@ export default function BrandOSContent(): React.ReactElement {
                 as="h1"
                 className="max-w-3xl font-semibold tracking-[-0.02em] text-5xl leading-none text-surface sm:text-6xl lg:text-7xl"
               >
-                The Genfeed Brand OS.
+                Turn your website into an AI-readable Brand OS.
               </Heading>
 
               <Text className="max-w-2xl text-base leading-7 text-surface/55 sm:text-lg">
-                The living design system behind Genfeed: dark-first,
-                information-dense, and aligned with the ShipCode and Linear
-                visual language. Depth comes from layered background tones and
-                inset-shadow containment; color enters only through the
-                product's content. This page is the system itself, drawn from{' '}
-                <span className="font-mono text-surface/70">DESIGN.md</span>.
+                Build a reviewable system for voice, visual direction, content
+                pillars, and generation rules. Every recommendation shows its
+                source, confidence, and gaps before anything reaches your brand
+                workspace.
               </Text>
+
+              <BrandOSPreviewAction />
+            </div>
+          </div>
+        </section>
+
+        {/* Source-backed preview — one monument-scale campaign object. */}
+        <section
+          className="border-b border-edge/5 bg-fill/[0.02] py-16 sm:py-20 lg:py-24"
+          id="brand-os-preview"
+        >
+          <div className="container mx-auto px-6">
+            <div className="mx-auto flex max-w-6xl flex-col gap-8">
+              <div className="grid gap-4 lg:grid-cols-[0.7fr_1fr] lg:items-end">
+                <div className="flex flex-col gap-3">
+                  <SectionLabel>Source-backed preview</SectionLabel>
+                  <Heading
+                    as="h2"
+                    className="max-w-xl text-4xl font-semibold tracking-[-0.02em] text-surface sm:text-5xl"
+                  >
+                    Strategy with receipts.
+                  </Heading>
+                </div>
+                <Text className="max-w-2xl text-sm leading-6 text-surface/60 lg:justify-self-end">
+                  Extracted evidence is not an assumption. Inferred direction is
+                  not a fact. Candidate palettes remain exploration, and missing
+                  proof stays missing until a source closes the gap.
+                </Text>
+              </div>
+
+              <BrandOSPreviewState
+                scaleRole="monument"
+                showEvidence
+                state="ready"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Presentational state contract; no anonymous API or persistence. */}
+        <section
+          className="border-b border-edge/5 py-16 sm:py-20"
+          id="brand-os-states"
+        >
+          <div className="container mx-auto px-6">
+            <div className="mx-auto flex max-w-6xl flex-col gap-8">
+              <div className="grid gap-4 lg:grid-cols-[0.7fr_1fr] lg:items-end">
+                <div className="flex flex-col gap-3">
+                  <SectionLabel>State contract</SectionLabel>
+                  <Heading
+                    as="h2"
+                    className="max-w-xl text-4xl font-semibold tracking-[-0.02em] text-surface"
+                  >
+                    No silent state changes.
+                  </Heading>
+                </div>
+                <Text className="max-w-2xl text-sm leading-6 text-surface/60 lg:justify-self-end">
+                  The public preview names progress, partial evidence, recovery,
+                  conversion, and review outcomes. This catalog is
+                  presentational; generation and saving remain in the product
+                  flow.
+                </Text>
+              </div>
+
+              <BrandOSPreviewStateCatalog />
             </div>
           </div>
         </section>
@@ -518,7 +586,11 @@ export default function BrandOSContent(): React.ReactElement {
             </div>
 
             <div className="flex flex-row items-center mt-12 flex-wrap justify-center gap-3">
-              <Button asChild size={ButtonSize.PUBLIC}>
+              <Button
+                asChild
+                size={ButtonSize.PUBLIC}
+                variant={ButtonVariant.SECONDARY}
+              >
                 <a href={appHref} rel="noopener noreferrer" target="_blank">
                   Open the studio
                 </a>
@@ -526,7 +598,7 @@ export default function BrandOSContent(): React.ReactElement {
               <Button
                 asChild
                 size={ButtonSize.PUBLIC}
-                variant={ButtonVariant.SECONDARY}
+                variant={ButtonVariant.GHOST}
               >
                 <Link href="/">Back to Genfeed.ai</Link>
               </Button>

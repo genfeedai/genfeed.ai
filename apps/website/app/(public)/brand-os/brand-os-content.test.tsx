@@ -28,14 +28,17 @@ vi.mock('@web-components/home/_footer', () => ({
 }));
 
 describe('BrandOSContent', () => {
-  it('renders the Genfeed Brand OS design-system heading', () => {
+  it('renders the source-backed Brand OS promise', () => {
     render(<BrandOSContent />);
 
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: /the genfeed brand os/i,
+        name: /turn your website into an ai-readable brand os/i,
       }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /strategy with receipts/i }),
     ).toBeInTheDocument();
   });
 
@@ -60,9 +63,18 @@ describe('BrandOSContent', () => {
     expect(screen.getByText('Discord')).toBeInTheDocument();
   });
 
-  it('links to the studio and back home without a lead-capture form', () => {
+  it('keeps one clear primary CTA without adding the anonymous intake flow', () => {
     render(<BrandOSContent />);
 
+    const primaryCta = screen.getByRole('link', {
+      name: /build your brand os/i,
+    });
+
+    expect(primaryCta).toHaveAttribute('href', '#brand-os-preview');
+    expect(primaryCta).toHaveClass('bg-primary');
+    expect(
+      screen.getByRole('link', { name: /inspect every state/i }),
+    ).toHaveClass('bg-tertiary');
     expect(
       screen.getByRole('link', { name: /open the studio/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai');
@@ -71,5 +83,21 @@ describe('BrandOSContent', () => {
     ).toHaveAttribute('href', '/');
     // The intake form was removed — no public website URL field remains.
     expect(screen.queryByLabelText(/public website url/i)).toBeNull();
+  });
+
+  it('shows labeled evidence, sources, confidence, and candidate boundaries', () => {
+    render(<BrandOSContent />);
+
+    expect(screen.getByText('Confidence: 98%')).toBeInTheDocument();
+    expect(screen.getByText('extracted')).toBeInTheDocument();
+    expect(screen.getByText('inferred')).toBeInTheDocument();
+    expect(screen.getAllByText('candidate').length).toBeGreaterThan(0);
+    expect(screen.getByText('missing')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Exploration only — not Genfeed product tokens/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Current product color tokens remain unchanged/i),
+    ).toBeInTheDocument();
   });
 });
