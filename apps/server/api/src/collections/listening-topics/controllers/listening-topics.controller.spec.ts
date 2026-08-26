@@ -1,5 +1,6 @@
 import { ListeningTopicsController } from '@api/collections/listening-topics/controllers/listening-topics.controller';
 import type { ListeningTopicAnalysisService } from '@api/collections/listening-topics/services/listening-topic-analysis.service';
+import type { ListeningTopicAttributionService } from '@api/collections/listening-topics/services/listening-topic-attribution.service';
 import type { ListeningTopicCollectorService } from '@api/collections/listening-topics/services/listening-topic-collector.service';
 import type { ListeningTopicsService } from '@api/collections/listening-topics/services/listening-topics.service';
 import { resolveRequiredBrandRequestContext } from '@api/helpers/utils/auth/auth.util';
@@ -18,6 +19,7 @@ vi.mock('@genfeedai/serializers', async (importOriginal) => {
   return {
     ...actual,
     ListeningEvidenceSerializer: { serialize: vi.fn() },
+    ListeningTopicOutcomeSerializer: { serialize: vi.fn() },
     ListeningSignalSerializer: { serialize: vi.fn() },
     ListeningThemeSerializer: { serialize: vi.fn() },
     ListeningTopicSerializer: { serialize: vi.fn() },
@@ -53,10 +55,14 @@ describe('ListeningTopicsController', () => {
     listThemesScoped: vi.fn(),
     reviewThemeScoped: vi.fn(),
   };
+  const attributionService = {
+    listOutcomesScoped: vi.fn(),
+  };
   const controller = new ListeningTopicsController(
     service as unknown as ListeningTopicsService,
     collectorService as unknown as ListeningTopicCollectorService,
     analysisService as unknown as ListeningTopicAnalysisService,
+    attributionService as unknown as ListeningTopicAttributionService,
   );
 
   beforeEach(() => {
@@ -229,6 +235,36 @@ describe('ListeningTopicsController', () => {
         evidenceIds: ['evidence-1'],
         reviewState: 'deferred',
       }),
+    });
+  });
+
+  it('returns theme outcomes inside the authenticated tenant and brand scope', async () => {
+    const query = { brandId: 'brand-1' } as never;
+    attributionService.listOutcomesScoped.mockResolvedValue([
+      { actionId: 'post-1', id: 'post-1', state: 'measured' },
+    ]);
+
+    const result = await controller.listThemeOutcomes(
+      request,
+      user,
+      query,
+      'topic-1',
+      'theme-1',
+    );
+
+    expect(attributionService.listOutcomesScoped).toHaveBeenCalledWith(
+      'topic-1',
+      'theme-1',
+      {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+    );
+    expect(result).toEqual({
+      data: {
+        docs: [{ actionId: 'post-1', id: 'post-1', state: 'measured' }],
+      },
     });
   });
 });

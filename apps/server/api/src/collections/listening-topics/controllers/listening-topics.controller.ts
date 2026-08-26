@@ -11,6 +11,7 @@ import { ReviewListeningThemeDto } from '@api/collections/listening-topics/dto/r
 import { UpdateListeningTopicDto } from '@api/collections/listening-topics/dto/update-listening-topic.dto';
 import { serializeListeningAnalysis } from '@api/collections/listening-topics/helpers/listening-analysis-response.helper';
 import { ListeningTopicAnalysisService } from '@api/collections/listening-topics/services/listening-topic-analysis.service';
+import { ListeningTopicAttributionService } from '@api/collections/listening-topics/services/listening-topic-attribution.service';
 import { ListeningTopicCollectorService } from '@api/collections/listening-topics/services/listening-topic-collector.service';
 import { ListeningTopicsService } from '@api/collections/listening-topics/services/listening-topics.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -25,6 +26,7 @@ import {
   ListeningEvidenceSerializer,
   ListeningSignalSerializer,
   ListeningThemeSerializer,
+  ListeningTopicOutcomeSerializer,
   ListeningTopicSerializer,
 } from '@genfeedai/serializers';
 import {
@@ -52,6 +54,7 @@ export class ListeningTopicsController {
     private readonly listeningTopicsService: ListeningTopicsService,
     private readonly listeningTopicCollectorService: ListeningTopicCollectorService,
     private readonly listeningTopicAnalysisService: ListeningTopicAnalysisService,
+    private readonly listeningTopicAttributionService: ListeningTopicAttributionService,
   ) {}
 
   @Get()
@@ -144,6 +147,26 @@ export class ListeningTopicsController {
       context,
     );
     return serializeSingle(request, ListeningThemeSerializer, theme);
+  }
+
+  @Get(':topicId/themes/:themeId/outcomes')
+  async listThemeOutcomes(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query() query: BrandScopeQueryDto,
+    @Param('topicId') topicId: string,
+    @Param('themeId') themeId: string,
+  ) {
+    const context = resolveRequiredBrandRequestContext(user, query);
+    const outcomes =
+      await this.listeningTopicAttributionService.listOutcomesScoped(
+        topicId,
+        themeId,
+        context,
+      );
+    return serializeCollection(request, ListeningTopicOutcomeSerializer, {
+      docs: outcomes,
+    });
   }
 
   @Patch(':id')

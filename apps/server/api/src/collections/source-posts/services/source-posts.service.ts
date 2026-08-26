@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { SourcePostDocument } from '@api/collections/source-posts/schemas/source-post.schema';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
@@ -10,10 +11,12 @@ import {
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type {
+  ListeningPostAttributionInput,
   SourcePostDraftActionInput,
   SourcePostDraftActionResult,
   SourcePostMetrics,
 } from '@genfeedai/interfaces';
+import { MAX_LISTENING_ATTRIBUTION_EVIDENCE_IDS } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -81,9 +84,16 @@ type PrismaDelegate<T> = {
   upsert: (args: Record<string, unknown>) => Promise<T>;
 };
 
+type ListeningThemeAttributionRecord = {
+  evidence: Array<{
+    evidence: { id: string; sourcePostId?: string | null };
+  }>;
+  id: string;
+};
+
 type PrismaWithSourcePosts = Omit<
   PrismaService,
-  'credential' | 'ingredient' | 'post' | 'sourcePost'
+  'credential' | 'ingredient' | 'listeningTheme' | 'post' | 'sourcePost'
 > & {
   credential: PrismaDelegate<{
     id: string;
@@ -98,6 +108,7 @@ type PrismaWithSourcePosts = Omit<
     label?: string | null;
     status?: string | null;
   }>;
+  listeningTheme: PrismaDelegate<ListeningThemeAttributionRecord>;
   sourcePost: PrismaDelegate<SourcePostDocument>;
 };
 
@@ -287,6 +298,11 @@ export class SourcePostsService {
     input: SourcePostDraftActionInput = {},
   ): Promise<SourcePostDraftActionResult> {
     const sourcePost = await this.findOneScoped(id, context);
+    const attribution = await this.resolveListeningAttribution(
+      sourcePost.id,
+      input,
+      context,
+    );
     const platform = normalizeCredentialPlatform(sourcePost.platform);
     const credential = await this.credentialsService.resolveBrandAccount({
       brandId: context.brandId,
@@ -303,29 +319,138 @@ export class SourcePostsService {
 
     const actionType = input.actionType ?? SourcePostActionType.DRAFT;
     const description = input.text?.trim() || buildDraftDescription(sourcePost);
-    const post = await this.db.post.create({
-      data: {
-        brandId: context.brandId,
-        category: 'TEXT',
-        credentialId: credential.id,
-        description,
-        label: buildDraftLabel(actionType, sourcePost),
-        organizationId: context.organizationId,
-        platform,
-        quoteTweetId:
-          sourcePost.platform === SocialSourcePlatform.TWITTER &&
-          actionType === SourcePostActionType.QUOTE
-            ? sourcePost.externalId
-            : null,
-        source: 'source-post',
-        sourceActionId: sourcePost.id,
-        targetExecutionState: TargetExecutionState.DRAFT,
-        userId: context.userId,
-        visibility: PostVisibility.PUBLIC,
-      },
-    });
+    const targetIdempotencyKey = attribution
+      ? buildAttributionIdempotencyKey(sourcePost.id, actionType, attribution)
+      : null;
+    const data = {
+      brandId: context.brandId,
+      category: 'TEXT',
+      credentialId: credential.id,
+      description,
+      label: buildDraftLabel(actionType, sourcePost),
+      ...(attribution && {
+        listeningEvidenceIds: attribution.listeningEvidenceIds,
+        listeningThemeId: attribution.listeningThemeId,
+        listeningTopicId: attribution.listeningTopicId,
+        targetIdempotencyKey,
+      }),
+      organizationId: context.organizationId,
+      platform,
+      quoteTweetId:
+        sourcePost.platform === SocialSourcePlatform.TWITTER &&
+        actionType === SourcePostActionType.QUOTE
+          ? sourcePost.externalId
+          : null,
+      source: 'source-post',
+      sourceActionId: sourcePost.id,
+      targetExecutionState: TargetExecutionState.DRAFT,
+      userId: context.userId,
+      visibility: PostVisibility.PUBLIC,
+    };
+    const post = attribution
+      ? await this.db.post.upsert({
+          create: data,
+          update: {},
+          where: {
+            organizationId_targetIdempotencyKey: {
+              organizationId: context.organizationId,
+              targetIdempotencyKey,
+            },
+          },
+        })
+      : await this.db.post.create({ data });
 
     return { draftId: post.id, post };
+  }
+
+  private async resolveListeningAttribution(
+    sourcePostId: string,
+    input: SourcePostDraftActionInput,
+    context: { organizationId: string; brandId: string },
+  ): Promise<ListeningPostAttributionInput | null> {
+    const hasAttribution = Boolean(
+      input.listeningTopicId ||
+        input.listeningThemeId ||
+        input.listeningEvidenceIds,
+    );
+    if (!hasAttribution) {
+      return null;
+    }
+
+    const listeningTopicId = input.listeningTopicId?.trim();
+    const listeningThemeId = input.listeningThemeId?.trim();
+    const listeningEvidenceIds = [
+      ...new Set(
+        (input.listeningEvidenceIds ?? [])
+          .map((evidenceId) => evidenceId.trim())
+          .filter(Boolean),
+      ),
+    ].sort();
+    if (
+      !listeningTopicId ||
+      !listeningThemeId ||
+      listeningEvidenceIds.length === 0 ||
+      listeningEvidenceIds.length > MAX_LISTENING_ATTRIBUTION_EVIDENCE_IDS
+    ) {
+      throw new BadRequestException(
+        'Listening attribution requires a topic, theme, and bounded evidence set',
+      );
+    }
+
+    const theme = await this.db.listeningTheme.findFirst({
+      include: {
+        evidence: {
+          include: {
+            evidence: { select: { id: true, sourcePostId: true } },
+          },
+          where: {
+            evidence: {
+              brandId: context.brandId,
+              id: { in: listeningEvidenceIds },
+              isDeleted: false,
+              organizationId: context.organizationId,
+              topicId: listeningTopicId,
+            },
+          },
+        },
+      },
+      where: scopedWhere(context.organizationId, {
+        brandId: context.brandId,
+        id: listeningThemeId,
+        topic: {
+          is: {
+            brandId: context.brandId,
+            isDeleted: false,
+            organizationId: context.organizationId,
+          },
+        },
+        topicId: listeningTopicId,
+      }),
+    });
+    const representedEvidenceIds = new Set(
+      theme?.evidence.map(({ evidence }) => evidence.id) ?? [],
+    );
+    const representsSourcePost = theme?.evidence.some(
+      ({ evidence }) => evidence.sourcePostId === sourcePostId,
+    );
+    if (
+      !theme ||
+      representedEvidenceIds.size !== listeningEvidenceIds.length ||
+      listeningEvidenceIds.some(
+        (evidenceId) => !representedEvidenceIds.has(evidenceId),
+      ) ||
+      !representsSourcePost
+    ) {
+      throw new BadRequestException(
+        'Listening attribution evidence is unavailable',
+      );
+    }
+
+    return {
+      listeningEvidenceIds,
+      listeningThemeId,
+      listeningTopicId,
+    };
   }
 
   async attachIngredientToPost(
@@ -443,6 +568,25 @@ export class SourcePostsService {
       .filter((line): line is string => Boolean(line))
       .join('\n');
   }
+}
+
+function buildAttributionIdempotencyKey(
+  sourcePostId: string,
+  actionType: SourcePostDraftActionInput['actionType'],
+  attribution: ListeningPostAttributionInput,
+): string {
+  const digest = createHash('sha256')
+    .update(
+      [
+        sourcePostId,
+        actionType ?? SourcePostActionType.DRAFT,
+        attribution.listeningTopicId,
+        attribution.listeningThemeId,
+        ...attribution.listeningEvidenceIds,
+      ].join(':'),
+    )
+    .digest('hex');
+  return `listening-response:${digest}`;
 }
 
 function normalizeCredentialPlatform(platform: string): CredentialPlatform {

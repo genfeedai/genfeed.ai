@@ -4,6 +4,7 @@ import type {
   IListeningEvidence,
   IListeningSignal,
   IListeningTheme,
+  IListeningTopicOutcome,
   ISocialIntelligenceTopicBundle,
   ListeningInboxScope,
   ReviewListeningThemeState,
@@ -131,6 +132,21 @@ export class ListeningTopicsService extends BaseService<
       ),
     );
     return deserializeResource<IListeningTheme>(response.data);
+  }
+
+  async listThemeOutcomes(
+    topicId: string,
+    themeId: string,
+    scope: ListeningInboxScope,
+  ): Promise<IListeningTopicOutcome[]> {
+    const response = await this.executeWithErrorHandling(
+      `GET listening theme ${themeId} outcomes`,
+      this.instance.get<JsonApiResponseDocument>(
+        `/${topicId}/themes/${themeId}/outcomes`,
+        { params: scope },
+      ),
+    );
+    return this.extractCollection<IListeningTopicOutcome>(response.data);
   }
 
   private listAnalysisCollection<T>(

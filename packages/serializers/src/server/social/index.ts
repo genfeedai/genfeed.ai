@@ -1,5 +1,6 @@
 export * from './listening-analysis.serializer';
 export * from './listening-topic.serializer';
+export * from './listening-topic-outcome.serializer';
 export * from './social-conversation.serializer';
 export * from './social-message.serializer';
 export * from './social-reply-campaign.serializer';

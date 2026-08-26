@@ -1,5 +1,6 @@
 export * from './listening-analysis.config';
 export * from './listening-topic.config';
+export * from './listening-topic-outcome.config';
 export * from './social-conversation.config';
 export * from './social-message.config';
 export * from './social-reply-campaign.config';

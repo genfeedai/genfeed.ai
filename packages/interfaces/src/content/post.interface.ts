@@ -81,6 +81,9 @@ export interface IPost extends IBaseEntity {
   isShareToFeedSelected?: boolean;
   platformUrl?: string | null;
   sourceActionId?: string | null;
+  listeningTopicId?: string | null;
+  listeningThemeId?: string | null;
+  listeningEvidenceIds?: string[];
   source?: string | null;
   sourceWorkflowId?: string | null;
   sourceWorkflowName?: string | null;

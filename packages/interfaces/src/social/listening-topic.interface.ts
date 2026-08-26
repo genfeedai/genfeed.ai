@@ -143,6 +143,35 @@ export interface ListeningAttributionReference {
   recordedAt: string;
 }
 
+export type ListeningOutcomeState =
+  | 'draft'
+  | 'scheduled'
+  | 'published'
+  | 'measured';
+
+/** Canonical lifecycle projection for one Post attributed to a theme. */
+export interface IListeningTopicOutcome extends IBaseEntity {
+  organizationId: string;
+  brandId: string;
+  topicId: string;
+  themeId: string;
+  evidenceIds: string[];
+  state: ListeningOutcomeState;
+  /** Canonical content action identity. This is the attributed Post id. */
+  actionId: string;
+  /** Existing source-post provenance retained in Post.sourceActionId. */
+  sourcePostId?: string | null;
+  /** Canonical PostGroup identity after ensureReleaseForPost. */
+  releaseId?: string | null;
+  /** Stable provider publication identity from Post.externalId. */
+  publicationId?: string | null;
+  /** Latest canonical PostAnalytics row identity, when measurement exists. */
+  latestPostAnalyticsId?: string | null;
+  scheduledAt?: string | null;
+  publishedAt?: string | null;
+  measuredAt?: string | null;
+}
+
 export interface IListeningScope {
   organizationId: string;
   brandId: string;

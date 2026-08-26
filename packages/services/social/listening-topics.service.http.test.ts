@@ -138,4 +138,40 @@ describe('ListeningTopicsService social intelligence HTTP contract', () => {
       reviewState: 'deferred',
     });
   });
+
+  it('loads attributed outcomes for one scoped topic theme', async () => {
+    http.get.mockResolvedValue(
+      axiosResponse(
+        collectionDocument([
+          {
+            actionId: 'post-1',
+            evidenceIds: ['evidence-1'],
+            id: 'post-1',
+            latestPostAnalyticsId: 'analytics-1',
+            publicationId: 'provider-post-1',
+            releaseId: 'release-1',
+            state: 'measured',
+            themeId: 'theme-1',
+            topicId: 'topic-1',
+          },
+        ]),
+      ),
+    );
+
+    const outcomes = await service.listThemeOutcomes('topic-1', 'theme-1', {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+    });
+
+    expect(http.get).toHaveBeenCalledWith('/topic-1/themes/theme-1/outcomes', {
+      params: { brandId: 'brand-1', organizationId: 'org-1' },
+    });
+    expect(outcomes).toEqual([
+      expect.objectContaining({
+        actionId: 'post-1',
+        latestPostAnalyticsId: 'analytics-1',
+        state: 'measured',
+      }),
+    ]);
+  });
 });
