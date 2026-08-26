@@ -3,6 +3,8 @@ import type {
   ClipLibraryLinkStatus,
   ClipProjectReadResponse,
   ClipReferenceFrameSet,
+  HookClipApprovalAction,
+  HookClipApprovalStatus,
 } from '@genfeedai/interfaces';
 import type {
   ClipProjectSummary,
@@ -45,6 +47,11 @@ interface GenerateClipsPayload {
   avatarProvider?: string;
   mode: ClipResultMode;
   voiceId?: string;
+}
+
+interface SubmitHookApprovalPayload {
+  action: HookClipApprovalAction;
+  feedback?: string;
 }
 
 interface CreateFromYoutubePayload {
@@ -274,6 +281,43 @@ export class ClipsApiService {
       { signal },
     );
     return this.extractPayload<ClipProjectReadResponse>(data) ?? {};
+  }
+
+  async getHookApproval(
+    projectId: string,
+    signal?: AbortSignal,
+  ): Promise<HookClipApprovalStatus> {
+    const data = await this.fetchJson<unknown>(
+      `${this.apiEndpoint}/clip-projects/${projectId}/hook-approval`,
+      { signal },
+    );
+    return (
+      this.extractPayload<HookClipApprovalStatus>(data) ?? {
+        attempt: 0,
+        remainingClipCount: 0,
+        state: 'not_required',
+      }
+    );
+  }
+
+  async submitHookApproval(
+    projectId: string,
+    payload: SubmitHookApprovalPayload,
+  ): Promise<HookClipApprovalStatus> {
+    const data = await this.fetchJson<unknown>(
+      `${this.apiEndpoint}/clip-projects/${projectId}/hook-approval`,
+      {
+        body: JSON.stringify(payload),
+        method: 'POST',
+      },
+    );
+    return (
+      this.extractPayload<HookClipApprovalStatus>(data) ?? {
+        attempt: 0,
+        remainingClipCount: 0,
+        state: 'not_required',
+      }
+    );
   }
 
   async selectReferenceFrame(

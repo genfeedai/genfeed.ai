@@ -8,6 +8,7 @@ import { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/
 import {
   type GenerateClipHighlightDto,
   GenerateClipsDto,
+  SubmitHookClipDecisionDto,
 } from '@api/collections/clip-projects/dto/generate-clips.dto';
 import { SelectClipReferenceFrameDto } from '@api/collections/clip-projects/dto/select-clip-reference-frame.dto';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
@@ -19,6 +20,7 @@ import type {
 } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import type { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
 import type { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
+import type { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
 import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
@@ -198,6 +200,11 @@ describe('ClipProjectsController', () => {
   let publishHandoffService: {
     preparePublishHandoff: ReturnType<typeof vi.fn>;
   };
+  let hookClipApprovalService: {
+    getStatus: ReturnType<typeof vi.fn>;
+    isProjectReconciliationBlocked: ReturnType<typeof vi.fn>;
+    submitDecision: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     clipProjectsService = createMockClipProjectsService();
@@ -229,6 +236,15 @@ describe('ClipProjectsController', () => {
     publishHandoffService = {
       preparePublishHandoff: vi.fn(),
     };
+    hookClipApprovalService = {
+      getStatus: vi.fn().mockResolvedValue({
+        attempt: 0,
+        remainingClipCount: 0,
+        state: 'not_required',
+      }),
+      isProjectReconciliationBlocked: vi.fn().mockReturnValue(false),
+      submitDecision: vi.fn(),
+    };
 
     controller = new ClipProjectsController(
       createMockLogger(),
@@ -246,6 +262,7 @@ describe('ClipProjectsController', () => {
       clipIdentityResolutionService as ClipIdentityResolutionService,
       { rewrite: vi.fn() } as unknown as HighlightRewriteService,
       creditsUtilsService as unknown as CreditsUtilsService,
+      hookClipApprovalService as unknown as HookClipApprovalService,
     );
     handoffsController = new ClipProjectHandoffsController(
       createMockLogger(),
@@ -577,6 +594,41 @@ describe('ClipProjectsController', () => {
       expect(validateSync(dto)).toEqual([]);
     });
 
+    it('validates the optional hook approval switch', () => {
+      const highlights = [
+        { id: 'highlight-1', summary: 'Summary', title: 'Title' },
+      ];
+      const valid = plainToInstance(GenerateClipsDto, {
+        editedHighlights: highlights,
+        hookApprovalRequired: false,
+        selectedHighlightIds: ['highlight-1'],
+      });
+      const invalid = plainToInstance(GenerateClipsDto, {
+        editedHighlights: highlights,
+        hookApprovalRequired: 'yes',
+        selectedHighlightIds: ['highlight-1'],
+      });
+
+      expect(validateSync(valid)).toEqual([]);
+      expect(validateSync(invalid).map((error) => error.property)).toContain(
+        'hookApprovalRequired',
+      );
+    });
+
+    it('requires feedback for request-changes and reject decisions', () => {
+      const missingFeedback = plainToInstance(SubmitHookClipDecisionDto, {
+        action: 'request_changes',
+      });
+      const approval = plainToInstance(SubmitHookClipDecisionDto, {
+        action: 'approve',
+      });
+
+      expect(
+        validateSync(missingFeedback).map((error) => error.property),
+      ).toContain('feedback');
+      expect(validateSync(approval)).toEqual([]);
+    });
+
     it('should validate optional avatar credentials in raw-cut mode', () => {
       const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
         avatarId: 123,
@@ -818,6 +870,69 @@ describe('ClipProjectsController', () => {
       clipResultIds: ['clip-result-1'],
       status: 'generating',
     });
+  });
+
+  it('defaults multi-clip avatar generation to one-credit hook approval', async () => {
+    const project = createProject(projectId, organizationId);
+    const hook = project.highlights?.[0];
+    if (!hook) {
+      throw new Error('Expected hook fixture');
+    }
+    project.highlights?.push({
+      ...hook,
+      clip_type: 'body',
+      id: 'highlight-2',
+      title: 'Body',
+    });
+    const dto: GenerateClipsDto = {
+      avatarId: 'avatar-1',
+      avatarProvider: 'heygen',
+      editedHighlights: [
+        { id: 'highlight-1', summary: 'Hook', title: 'Hook' },
+        { id: 'highlight-2', summary: 'Body', title: 'Body' },
+      ],
+      selectedHighlightIds: ['highlight-1', 'highlight-2'],
+      voiceId: 'voice-1',
+    };
+    vi.mocked(clipProjectsService.findOne).mockResolvedValue(project);
+    vi.mocked(clipProjectsService.patch).mockResolvedValue(project);
+    vi.mocked(clipGenerationService.generateClips).mockResolvedValue({
+      clipResultIds: ['hook-result-1'],
+      providerJobIds: ['hook-job-1'],
+      queuedClipCount: 1,
+    });
+
+    await controller.generateClips(currentUser as never, projectId, dto);
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith(organizationId, 1);
+    expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
+      expect.objectContaining({ hookApprovalRequired: true }),
+    );
+  });
+
+  it('routes trusted hook decisions with tenant and canonical reviewer context', async () => {
+    hookClipApprovalService.submitDecision.mockResolvedValue({
+      attempt: 1,
+      remainingClipCount: 2,
+      state: 'approved',
+    });
+
+    const result = await controller.submitHookClipDecision(
+      currentUser as never,
+      projectId,
+      { action: 'approve' },
+    );
+
+    expect(hookClipApprovalService.submitDecision).toHaveBeenCalledWith({
+      action: 'approve',
+      feedback: undefined,
+      organizationId,
+      projectId,
+      userId,
+    });
+    expect(result.data.state).toBe('approved');
   });
 
   it('should resolve persisted brand defaults before reviewed generation', async () => {

@@ -17,7 +17,16 @@ function makeDto(overrides: Partial<StartClipRunDto> = {}): StartClipRunDto {
 
 function createStateStore(): ClipOrchestratorStateStore {
   const values = new Map<string, unknown>();
+  const claims = new Set<string>();
   return {
+    claim: vi.fn(async (namespace: string, id: string) => {
+      const key = `${namespace}:${id}`;
+      if (claims.has(key)) {
+        return false;
+      }
+      claims.add(key);
+      return true;
+    }),
     delete: vi.fn(async (namespace: string, id: string) => {
       values.delete(`${namespace}:${id}`);
     }),
@@ -56,6 +65,17 @@ describe('ClipOrchestratorService', () => {
     expect(run.currentState).toBe(ClipRunState.Idle);
     expect(run.projectId).toBe('proj-1');
     expect(run.id).toBeDefined();
+  });
+
+  it('indexes the current run by tenant-scoped project', async () => {
+    const run = await service.startRun(makeDto());
+
+    await expect(service.getProjectRun('proj-1', 'org-1')).resolves.toEqual(
+      expect.objectContaining({ id: run.id }),
+    );
+    await expect(service.getProjectRun('proj-1', 'org-2')).resolves.toBe(
+      undefined,
+    );
   });
 
   it('resolves categorized brand references once into immutable run state', async () => {
@@ -173,6 +193,44 @@ describe('ClipOrchestratorService', () => {
     expect((await service.getRun(run.id))?.currentState).toBe(
       ClipRunState.Publishing,
     );
+  });
+
+  it('pauses generation for hook confirmation and resumes generation', async () => {
+    const run = await service.startRun(makeDto({ confirmationRequired: true }));
+    await service.transition(run.id, ClipRunState.Generating);
+
+    await service.requestConfirmation(run.id, ClipRunState.Generating);
+    expect((await service.getRun(run.id))?.currentState).toBe(
+      ClipRunState.AwaitingConfirmation,
+    );
+
+    await service.confirm(run.id);
+    expect((await service.getRun(run.id))?.currentState).toBe(
+      ClipRunState.Generating,
+    );
+  });
+
+  it('claims each hook decision attempt only once', async () => {
+    const run = await service.startRun(makeDto());
+
+    await expect(service.claimConfirmation(run.id, 1)).resolves.toBe(true);
+    await expect(service.claimConfirmation(run.id, 1)).resolves.toBe(false);
+    await expect(service.claimConfirmation(run.id, 2)).resolves.toBe(true);
+  });
+
+  it('merges hook approval metadata without replacing immutable run data', async () => {
+    const run = await service.startRun(
+      makeDto({ metadata: { existing: 'value' } }),
+    );
+
+    const updated = await service.updateMetadata(run.id, {
+      hookApproval: { attempt: 1 },
+    });
+
+    expect(updated.metadata).toEqual({
+      existing: 'value',
+      hookApproval: { attempt: 1 },
+    });
   });
 
   // -------------------------------------------------------------------------

@@ -16,6 +16,7 @@ import { ClipGenerationRequestService } from '@api/collections/clip-projects/ser
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
 import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
+import { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
 import { RawCutClipService } from '@api/collections/clip-projects/services/raw-cut-clip.service';
 import { RawCutClipCompletionService } from '@api/collections/clip-projects/services/raw-cut-clip-completion.service';
 import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
@@ -23,6 +24,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { AvatarVideoModule } from '@api/services/avatar-video/avatar-video.module';
+import { ClipOrchestratorModule } from '@api/services/clip-orchestrator/clip-orchestrator.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { Module } from '@nestjs/common';
@@ -35,6 +37,7 @@ import { Module } from '@nestjs/common';
     ClipIdentityResolutionService,
     ClipLibraryLinkService,
     HighlightRewriteService,
+    HookClipApprovalService,
     RawCutClipCompletionService,
     RawCutClipService,
   ],
@@ -42,6 +45,7 @@ import { Module } from '@nestjs/common';
     BrandsCoreModule,
     CaptionsModule,
     ClipResultsModule,
+    ClipOrchestratorModule,
     CreditsModule,
     IngredientsModule,
     MetadataModule,
@@ -56,6 +60,7 @@ import { Module } from '@nestjs/common';
     ClipIdentityResolutionService,
     ClipLibraryLinkService,
     HighlightRewriteService,
+    HookClipApprovalService,
     RawCutClipCompletionService,
     RawCutClipService,
   ],

@@ -5,6 +5,8 @@ import {
   type ClipResultMode,
   DEFAULT_CLIP_REFERENCE_POLICY,
   DEFAULT_CLIP_RESULT_MODE,
+  HOOK_CLIP_APPROVAL_ACTIONS,
+  type HookClipApprovalAction,
 } from '@genfeedai/interfaces';
 import {
   SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
@@ -15,9 +17,12 @@ import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsIn,
+  IsNotEmpty,
   IsOptional,
   IsString,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -45,6 +50,16 @@ export class GenerateClipHighlightDto {
 }
 
 export class GenerateClipsDto {
+  @IsOptional()
+  @IsBoolean()
+  @ApiProperty({
+    default: true,
+    description:
+      'Pause multi-clip avatar generation after the completed hook clip for operator approval',
+    required: false,
+  })
+  readonly hookApprovalRequired?: boolean;
+
   @IsOptional()
   @IsIn([...CLIP_REFERENCE_POLICIES])
   @ApiProperty({
@@ -115,4 +130,27 @@ export class GenerateClipsDto {
     required: false,
   })
   readonly avatarProvider?: SupportedAvatarVideoProviderName;
+}
+
+export const HOOK_CLIP_DECISIONS = HOOK_CLIP_APPROVAL_ACTIONS;
+
+export type HookClipDecision = HookClipApprovalAction;
+
+export class SubmitHookClipDecisionDto {
+  @IsIn(HOOK_CLIP_DECISIONS)
+  @ApiProperty({
+    description: 'Operator decision for the completed hook clip',
+    enum: HOOK_CLIP_DECISIONS,
+    required: true,
+  })
+  readonly action!: HookClipDecision;
+
+  @ValidateIf((dto: SubmitHookClipDecisionDto) => dto.action !== 'approve')
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'Required guidance for rejection or hook regeneration',
+    required: false,
+  })
+  readonly feedback?: string;
 }

@@ -38,6 +38,7 @@ export const CONFIRMATION_CHECKPOINTS: Set<ClipRunState> = new Set([
 export const VALID_TRANSITIONS: Record<ClipRunState, Set<ClipRunState>> = {
   [ClipRunState.Idle]: new Set([ClipRunState.Generating, ClipRunState.Failed]),
   [ClipRunState.Generating]: new Set([
+    ClipRunState.AwaitingConfirmation,
     ClipRunState.Merging,
     ClipRunState.Reframing, // skip merging when not needed
     ClipRunState.Failed,
@@ -62,6 +63,7 @@ export const VALID_TRANSITIONS: Record<ClipRunState, Set<ClipRunState>> = {
     ClipRunState.Publishing,
   ]),
   [ClipRunState.AwaitingConfirmation]: new Set([
+    ClipRunState.Generating,
     ClipRunState.Publishing,
     ClipRunState.Failed,
   ]),

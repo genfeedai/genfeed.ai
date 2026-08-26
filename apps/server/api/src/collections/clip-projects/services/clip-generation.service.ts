@@ -2,6 +2,8 @@ import { ClipResultsService } from '@api/collections/clip-results/clip-results.s
 import type { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
 import { type ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
+import { ClipOrchestratorService } from '@api/services/clip-orchestrator/clip-orchestrator.service';
+import { ClipRunState } from '@api/services/clip-orchestrator/clip-run-state.enum';
 import {
   type GenerationBriefReference,
   videoGenerationBriefSchema,
@@ -12,7 +14,7 @@ import type {
 } from '@genfeedai/interfaces';
 import type { SupportedAvatarVideoProviderName } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { generateClipSrt, type TranscriptSegment } from './clip-srt.util';
 import {
   getRawCutTrimJobId,
@@ -65,6 +67,8 @@ export interface ClipGenerationInput {
   transcriptSegments?: TranscriptSegment[];
   room?: string;
   runReferences?: readonly ClipRunGenerationReference[];
+  /** Opt into hook-first approval for a multi-clip batch. */
+  hookApprovalRequired?: boolean;
 }
 
 export type ClipRunGenerationReference = GenerationBriefReference & {
@@ -75,6 +79,16 @@ export interface ClipGenerationResult {
   clipResultIds: string[];
   providerJobIds: string[];
   queuedClipCount: number;
+}
+
+export interface HookClipApprovalPlan {
+  attempt: number;
+  hookClipResultId: string;
+  hookInput: ClipGenerationInput;
+  phase: 'generating_hook' | 'resuming' | 'approved' | 'rejected' | 'failed';
+  remainingInput: ClipGenerationInput;
+  feedback?: string;
+  lastAction?: 'approve' | 'request_changes' | 'reject';
 }
 
 /**
@@ -118,6 +132,8 @@ export class ClipGenerationService {
     private readonly avatarVideoService: AvatarVideoService,
     private readonly rawCutClipService: RawCutClipService,
     private readonly logger: LoggerService,
+    @Optional()
+    private readonly clipOrchestrator?: ClipOrchestratorService,
   ) {}
 
   /**
@@ -129,12 +145,91 @@ export class ClipGenerationService {
     input: ClipGenerationInput,
   ): Promise<ClipGenerationResult> {
     const mode: ClipGenerationMode = input.mode ?? 'avatar';
+    const hookApprovalRequired =
+      input.hookApprovalRequired ??
+      (mode === 'avatar' && input.highlights.length > 1);
+    if (hookApprovalRequired && input.highlights.length > 1) {
+      return this.generateHookFirst(input);
+    }
+
+    return this.dispatchClips(input);
+  }
+
+  private async dispatchClips(
+    input: ClipGenerationInput,
+  ): Promise<ClipGenerationResult> {
+    const mode: ClipGenerationMode = input.mode ?? 'avatar';
 
     if (mode === 'raw-cut') {
       return this.generateRawCutClips(input);
     }
 
     return this.generateAvatarClips(input);
+  }
+
+  private async generateHookFirst(
+    input: ClipGenerationInput,
+  ): Promise<ClipGenerationResult> {
+    if (!this.clipOrchestrator) {
+      throw new Error('Clip orchestrator is required for hook approval');
+    }
+
+    const hookIndex = input.highlights.findIndex(
+      (highlight) => highlight.clip_type.toLowerCase() === 'hook',
+    );
+    const resolvedHookIndex = hookIndex >= 0 ? hookIndex : 0;
+    const hook = input.highlights[resolvedHookIndex];
+    if (!hook) {
+      throw new Error('Hook approval requires at least one highlight');
+    }
+    const remainingHighlights = input.highlights.filter(
+      (_, index) => index !== resolvedHookIndex,
+    );
+    const immutableReferences = Object.freeze(
+      (input.runReferences ?? []).map((reference) =>
+        Object.freeze({ ...reference }),
+      ),
+    );
+    const hookInput: ClipGenerationInput = {
+      ...input,
+      highlights: [hook],
+      hookApprovalRequired: false,
+      runReferences: immutableReferences,
+    };
+    const remainingInput: ClipGenerationInput = {
+      ...input,
+      highlights: remainingHighlights,
+      hookApprovalRequired: false,
+      runReferences: immutableReferences,
+    };
+    const run = await this.clipOrchestrator.startRun({
+      confirmationRequired: true,
+      organizationId: input.orgId,
+      projectId: input.projectId,
+      runReferences: immutableReferences,
+      userId: input.userId,
+    });
+    await this.clipOrchestrator.transition(run.id, ClipRunState.Generating);
+
+    const result = await this.dispatchClips(hookInput);
+    const hookClipResultId = result.clipResultIds[0];
+    if (!hookClipResultId || result.queuedClipCount === 0) {
+      await this.clipOrchestrator.reject(
+        run.id,
+        'Hook generation failed before a provider job was queued.',
+      );
+      return result;
+    }
+
+    const hookApproval: HookClipApprovalPlan = {
+      attempt: 1,
+      hookClipResultId,
+      hookInput,
+      phase: 'generating_hook',
+      remainingInput,
+    };
+    await this.clipOrchestrator.updateMetadata(run.id, { hookApproval });
+    return result;
   }
 
   /**

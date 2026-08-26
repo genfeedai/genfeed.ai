@@ -5,6 +5,7 @@ import type {
   ClipReferenceFrameSet,
   ClipResultMode,
   ClipResultStatus,
+  HookClipApprovalStatus,
 } from '@genfeedai/interfaces';
 
 // ─── Shared Types ─────────────────────────────────────────────────
@@ -83,6 +84,7 @@ export interface ProjectState {
   estimatedClips?: number;
   mode: ClipResultMode;
   referenceFrames?: ClipReferenceFrameSet;
+  hookApproval?: HookClipApprovalStatus;
 }
 
 // ─── Component Props ──────────────────────────────────────────────

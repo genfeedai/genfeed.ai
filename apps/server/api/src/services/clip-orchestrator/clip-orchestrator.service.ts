@@ -66,14 +66,19 @@ export class ClipOrchestratorService {
    * Start a new clip orchestration run.
    */
   async startRun(dto: StartClipRunDto): Promise<ClipRun> {
-    const runReferences = dto.brandId
-      ? toBrandGenerationReferences(
-          await this.brandsService.resolveBrandKitAssets(
-            dto.brandId,
-            dto.organizationId,
-          ),
-        )
-      : Object.freeze([]);
+    const resolvedReferences = dto.runReferences
+      ? dto.runReferences
+      : dto.brandId
+        ? toBrandGenerationReferences(
+            await this.brandsService.resolveBrandKitAssets(
+              dto.brandId,
+              dto.organizationId,
+            ),
+          )
+        : [];
+    const runReferences = Object.freeze(
+      resolvedReferences.map((reference) => Object.freeze({ ...reference })),
+    );
     const run: ClipRun = {
       confirmationRequired: dto.confirmationRequired ?? false,
       createdAt: new Date(),
@@ -90,6 +95,7 @@ export class ClipOrchestratorService {
     };
 
     await this.persistRun(run);
+    await this.stateStore.set('project-runs', this.projectRunKey(run), run.id);
     return run;
   }
 
@@ -98,6 +104,59 @@ export class ClipOrchestratorService {
    */
   async getRun(runId: string): Promise<ClipRun | undefined> {
     return this.stateStore.get('runs', runId, reviveClipRun);
+  }
+
+  /** Resolve the current run without trusting a client-supplied run id. */
+  async getProjectRun(
+    projectId: string,
+    organizationId: string,
+  ): Promise<ClipRun | undefined> {
+    const runId = await this.stateStore.get<string>(
+      'project-runs',
+      `${organizationId}:${projectId}`,
+    );
+    return runId ? this.getRun(runId) : undefined;
+  }
+
+  /** Merge durable run metadata while preserving the immutable run identity. */
+  async updateMetadata(
+    runId: string,
+    metadata: Record<string, unknown>,
+  ): Promise<ClipRun> {
+    const run = await this.getRunOrThrow(runId);
+    run.metadata = { ...(run.metadata ?? {}), ...metadata };
+    run.updatedAt = new Date();
+    await this.persistRun(run);
+    return run;
+  }
+
+  /** Pause an in-flight step at the existing confirmation state. */
+  async requestConfirmation(
+    runId: string,
+    pendingState: ClipRunState,
+  ): Promise<ClipRun> {
+    const run = await this.getRunOrThrow(runId);
+    this.validateTransition(
+      run.currentState,
+      ClipRunState.AwaitingConfirmation,
+    );
+    return this.applyTransition(
+      run,
+      ClipRunState.AwaitingConfirmation,
+      pendingState,
+    );
+  }
+
+  /** Claim one review attempt exactly once across replicas. */
+  async claimConfirmation(runId: string, attempt: number): Promise<boolean> {
+    return this.stateStore.claim('confirmation-claims', `${runId}:${attempt}`);
+  }
+
+  /** Stop a paused or active run without advancing any pending work. */
+  async reject(runId: string, reason: string): Promise<ClipRun> {
+    const run = await this.getRunOrThrow(runId);
+    run.error = reason;
+    return this.applyTransition(run, ClipRunState.Failed);
   }
 
   /**
@@ -369,6 +428,10 @@ export class ClipOrchestratorService {
 
   private async persistRun(run: ClipRun): Promise<void> {
     await this.stateStore.set('runs', run.id, run);
+  }
+
+  private projectRunKey(run: Pick<ClipRun, 'organizationId' | 'projectId'>) {
+    return `${run.organizationId}:${run.projectId}`;
   }
 
   private getCurrentStep(run: ClipRun): ClipRunStepDto {

@@ -1,6 +1,8 @@
 import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
 import type { AvatarVideoProvider } from '@api/services/avatar-video/avatar-video-provider.interface';
+import type { ClipOrchestratorService } from '@api/services/clip-orchestrator/clip-orchestrator.service';
+import { ClipRunState } from '@api/services/clip-orchestrator/clip-run-state.enum';
 import type { ClipReferenceProvenance } from '@genfeedai/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -91,6 +93,7 @@ function makeInput(
   return {
     avatarId: 'avatar-123',
     highlights: [makeHighlight()],
+    hookApprovalRequired: false,
     orgId,
     projectId,
     userId,
@@ -135,6 +138,64 @@ describe('ClipGenerationService', () => {
 
     expect(clipResultsService.create).toHaveBeenCalledTimes(2);
     expect(result.clipResultIds).toEqual(['cr-1', 'cr-2']);
+  });
+
+  it('dispatches only the hook and stores the remaining immutable plan when approval is required', async () => {
+    const orchestrator = {
+      startRun: vi.fn().mockResolvedValue({ id: 'run-1' }),
+      transition: vi.fn().mockResolvedValue({}),
+      updateMetadata: vi.fn().mockResolvedValue({}),
+    };
+    service = new ClipGenerationService(
+      clipResultsService as unknown as ClipResultsService,
+      avatarVideoService as unknown as AvatarVideoService,
+      rawCutClipService as unknown as RawCutClipService,
+      logger,
+      orchestrator as unknown as ClipOrchestratorService,
+    );
+    const hook = makeHighlight({ title: 'Hook' });
+    const body = makeHighlight({ clip_type: 'body', title: 'Body' });
+    const productReference = Object.freeze({
+      assetId: 'product-1',
+      description: 'Ceramic mug',
+      role: 'product' as const,
+      url: 'https://cdn.example.com/product.png',
+    });
+
+    const result = await service.generateClips(
+      makeInput({
+        highlights: [body, hook],
+        hookApprovalRequired: undefined,
+        runReferences: Object.freeze([productReference]),
+      }),
+    );
+
+    expect(provider.generateVideo).toHaveBeenCalledTimes(1);
+    expect(provider.generateVideo).toHaveBeenCalledWith(
+      expect.objectContaining({ script: 'Hook. A compelling moment' }),
+    );
+    expect(result.clipResultIds).toEqual(['clip-result-1']);
+    expect(orchestrator.transition).toHaveBeenCalledWith(
+      'run-1',
+      ClipRunState.Generating,
+    );
+    expect(orchestrator.updateMetadata).toHaveBeenCalledWith(
+      'run-1',
+      expect.objectContaining({
+        hookApproval: expect.objectContaining({
+          attempt: 1,
+          hookClipResultId: 'clip-result-1',
+          hookInput: expect.objectContaining({
+            highlights: [hook],
+            runReferences: [productReference],
+          }),
+          remainingInput: expect.objectContaining({
+            highlights: [body],
+            runReferences: [productReference],
+          }),
+        }),
+      }),
+    );
   });
 
   it('persists mode "avatar" on every clip-result it creates', async () => {
