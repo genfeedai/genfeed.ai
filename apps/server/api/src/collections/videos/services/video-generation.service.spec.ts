@@ -272,6 +272,7 @@ describe('VideoGenerationService', () => {
       replicateService,
       service,
       sharedService,
+      videosService,
     };
   };
 
