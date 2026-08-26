@@ -1,3 +1,5 @@
+import { brandPath } from '@e2e/utils/app-chrome';
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
@@ -8,7 +10,7 @@ import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass
  * All clip-project and clip-result API requests are mocked.
  */
 
-const CLIPS_URL = '/studio/clips';
+const CLIPS_URL = brandPath(APP_ROUTES.STUDIO.CLIPS);
 const API_ANALYZE = '**/clip-projects/analyze';
 const API_CREATE_FROM_YOUTUBE = '**/clip-projects/from-youtube';
 const API_GENERATE = '**/clip-projects/*/generate';
