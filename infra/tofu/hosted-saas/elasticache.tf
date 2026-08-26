@@ -29,11 +29,11 @@ resource "aws_ssm_parameter" "redis_password" {
   value       = random_password.redis_auth_token.result
 }
 
-# BullMQ keeps waiting jobs in hashes with no TTL. Under an eviction policy that
-# only considers volatile keys, a full cache still refuses to write and the
-# default policy would silently drop state we cannot rebuild -- so production
-# runs `noeviction` and fails writes loudly instead. This group is declared here
-# because a console-only setting is lost the moment the group is recreated.
+# BullMQ keeps waiting jobs in hashes with no TTL. `volatile-lru` evicts only
+# TTL-bearing keys and returns write errors when none are evictable. Production
+# runs `noeviction`, which returns write errors at the memory limit without
+# evicting keys. This group is declared here because a console-only setting is
+# lost the moment the group is recreated.
 resource "aws_elasticache_parameter_group" "redis" {
   name        = "${local.name_prefix}-redis7"
   family      = "redis7"
