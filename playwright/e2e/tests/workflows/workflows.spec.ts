@@ -71,7 +71,7 @@ test.describe('Workflows', () => {
   test('workflow creation route renders restored navigation and draft actions', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW, {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.WORKFLOWS_NEW), {
       waitUntil: 'domcontentloaded',
     });
 

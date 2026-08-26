@@ -116,7 +116,9 @@ test.describe('Routed organization context', () => {
     });
 
     await expect(
-      authenticatedPage.getByTestId('organization-switcher-trigger'),
+      authenticatedPage
+        .getByTestId('desktop-sidebar-rail')
+        .getByTestId('organization-switcher-trigger'),
     ).toContainText('Alpha Organization');
     await expect.poll(contextMock.getSwitchCount).toBe(1);
     await expect

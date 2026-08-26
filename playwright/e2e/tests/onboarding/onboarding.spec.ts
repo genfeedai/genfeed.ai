@@ -90,7 +90,7 @@ test.describe('Onboarding Flow', () => {
       await page.enterWorkspace();
       await expect
         .poll(() => new URL(onboardingPage.url()).pathname)
-        .toBe(brandPath(APP_ROUTES.WORKSPACE.ROOT));
+        .toBe(brandPath(APP_ROUTES.WORKSPACE.OVERVIEW));
       await expect(
         onboardingPage
           .getByTestId('desktop-sidebar-rail')
@@ -150,9 +150,9 @@ test.describe('Onboarding Flow', () => {
       await page.waitForStep(1);
       await page.skipStep();
 
-      // This web fixture enables the agent-first journey, so Skip completes
-      // the brand gate and lands on the organization-scoped handoff.
-      await page.assertAgentHandoff(AGENT_HANDOFF_PATH);
+      // Skip completes onboarding, so the root resolver enters the regular
+      // organization-scoped agent instead of reopening the onboarding thread.
+      await page.assertAgentHandoff(orgPath(APP_ROUTES.AGENT.ROOT));
     });
   });
 
