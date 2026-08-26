@@ -242,6 +242,34 @@ describe('ArticleDetailRoute', () => {
     ]);
   });
 
+  it('keeps a numeric author identifier out of the public article byline', async () => {
+    getPublicArticleBySlug.mockResolvedValue(
+      article({
+        author: '23423424',
+        user: {
+          firstName: 'Vincent',
+          handle: '23423424',
+          lastName: 'Tellier',
+        } as Article['user'],
+      }),
+    );
+
+    const element = (await ArticleDetailRoute({
+      params: Promise.resolve({ slug: 'numeric-author' }),
+      searchParams: Promise.resolve({}),
+    })) as ReactElement<{ children?: ReactNode }>;
+
+    const [articleJsonLd] = readJsonLdScripts(element) as [
+      { author: { name: string } },
+    ];
+    const detail = Children.toArray(element.props.children).at(
+      -1,
+    ) as ReactElement<{ article: Article }>;
+
+    expect(articleJsonLd.author.name).toBe('Vincent Tellier');
+    expect(detail.props.article.author).toBe('Vincent Tellier');
+  });
+
   it('passes the preview token through and flags an unpublished article', async () => {
     getPublicArticleBySlug.mockResolvedValue(article({ publishedAt: null }));
 

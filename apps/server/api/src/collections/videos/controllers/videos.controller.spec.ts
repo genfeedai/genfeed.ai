@@ -423,7 +423,12 @@ describe('VideosController', () => {
         // above. This catches constructor-dependency regressions that the
         // previous `new VideoGenerationService(...)` pattern silently missed.
         FalVideoGenerationProviderAdapter,
-        HiggsFieldVideoGenerationProviderAdapter,
+        {
+          inject: [HiggsFieldService],
+          provide: HiggsFieldVideoGenerationProviderAdapter,
+          useFactory: (higgsFieldService: HiggsFieldService) =>
+            new HiggsFieldVideoGenerationProviderAdapter(higgsFieldService),
+        },
         KlingAiVideoGenerationProviderAdapter,
         ReplicateVideoGenerationProviderAdapter,
         VideoGenerationCompletionService,

@@ -6,6 +6,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { PublicService } from '@services/external/public.service';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { resolvePublicArticleAuthor } from './article-author';
 import ArticleDetailContent from './article-detail';
 import { getPublicArticleBySlugCached } from './article-loader';
 
@@ -142,15 +143,13 @@ export default async function ArticleDetail({
   // so the article itself — not the query string — decides whether to warn the
   // reader that this is not live yet.
   const isPreview = !article.publishedAt;
+  const authorLabel = resolvePublicArticleAuthor(article);
 
   const articleJsonLd = buildArticleJsonLd({
-    author:
-      typeof article.author === 'string' && article.author.trim().length > 0
-        ? article.author.trim()
-        : {
-            name: 'Genfeed',
-            url: 'https://genfeed.ai',
-          },
+    author: authorLabel ?? {
+      name: 'Genfeed',
+      url: 'https://genfeed.ai',
+    },
     body: typeof article.content === 'string' ? article.content : undefined,
     dateModified: article.updatedAt || article.createdAt,
     datePublished: article.publishedAt || article.createdAt,
@@ -217,7 +216,7 @@ export default async function ArticleDetail({
         article={JSON.parse(
           JSON.stringify({
             ...article,
-            author: article.author,
+            author: authorLabel,
             readingTime: article.readingTime,
             wordCount: article.wordCount,
           }),

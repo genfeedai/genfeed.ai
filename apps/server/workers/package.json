@@ -1,7 +1,7 @@
 {
   "dependencies": {
-    "@aws-sdk/client-cloudwatch": "3.1112.0",
-    "@aws-sdk/client-ec2": "3.1112.0",
+    "@aws-sdk/client-cloudwatch": "3.1118.0",
+    "@aws-sdk/client-ec2": "3.1118.0",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
@@ -16,13 +16,13 @@
     "@nestjs/axios": "4.0.1",
     "@nestjs/bullmq": "11.0.5",
     "@nestjs/event-emitter": "3.1.0",
-    "bullmq": "6.1.2",
+    "bullmq": "6.2.2",
     "rxjs": "7.8.2",
     "tsconfig-paths": "4.2.0"
   },
   "description": "Genfeed Workers Service (Cron Jobs)",
   "devDependencies": {
-    "@nestjs/testing": "11.2.1",
+    "@nestjs/testing": "11.2.3",
     "@types/multer": "2.2.0",
     "unplugin-swc": "1.5.11"
   },

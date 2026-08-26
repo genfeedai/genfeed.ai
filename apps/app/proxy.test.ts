@@ -346,9 +346,10 @@ describe('proxy', () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
-      makeSignedOutRequest('/', {
-        search: '?callbackUrl=%2Facme%2F~%2Fsettings%2Fcredits',
-      }),
+      makeSignedOutRequest(
+        '/',
+        '?callbackUrl=%2Facme%2F~%2Fsettings%2Fcredits',
+      ),
       {} as never,
     );
 
@@ -1858,9 +1859,10 @@ describe('proxy', () => {
     expect(response.status).toBe(307);
     const location = new URL(response.headers.get('location') ?? '');
     expect(location.pathname).toBe('/login');
-    expect(location.searchParams.get('callbackUrl')).toBe(
-      '/desktop/local-preview',
-    );
+    // `/desktop` is a reserved root segment and only `/desktop/local[/…]` is an
+    // allowed continuation, so a look-alike path is gated *and* refused as a
+    // post-login destination rather than being pinned as a callback.
+    expect(location.searchParams.get('callbackUrl')).toBeNull();
   });
 
   it('lets signed-in desktop onboarding render', async () => {

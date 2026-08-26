@@ -480,6 +480,56 @@
       "storageLabel": "Storage"
     }
   },
+  "onboarding": {
+    "brand": {
+      "actions": {
+        "continue": "Continue",
+        "skip": "Skip Onboarding"
+      },
+      "audience": {
+        "label": "Who is this for?",
+        "options": {
+          "creators": "Creators",
+          "developers": "Developers",
+          "founders": "Founders",
+          "marketingTeams": "Marketing teams"
+        }
+      },
+      "errors": {
+        "accountType": "We couldn't save your account type. Try selecting it again.",
+        "continue": "We couldn't save your workspace. Check your connection and try again.",
+        "initialization": "We couldn't load your workspace details. You can retry Continue or Skip Onboarding.",
+        "skip": "We couldn't skip onboarding. Check your connection and try again.",
+        "title": "Onboarding could not continue"
+      },
+      "fields": {
+        "name": {
+          "label": "Name",
+          "placeholder": "Your name or brand"
+        },
+        "optional": "(optional)",
+        "organization": {
+          "label": "Organization",
+          "placeholder": "Your organization"
+        },
+        "required": "(required)",
+        "website": {
+          "help": "We'll extract your brand colors, logo, and voice",
+          "label": "Website URL",
+          "placeholder": "https://yoursite.com"
+        }
+      },
+      "tone": {
+        "label": "How should it sound?",
+        "options": {
+          "bold": "Bold",
+          "minimal": "Minimal",
+          "playful": "Playful",
+          "professional": "Professional"
+        }
+      }
+    }
+  },
   "credentialPostingTimes": {
     "add": "Add",
     "addTime": "Add a time",

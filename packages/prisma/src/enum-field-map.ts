@@ -2235,6 +2235,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       's3Key',
       'sampleAudioUrl',
       'scope',
+      'sourceActionId',
       'status',
       'templateVersion',
       'training',

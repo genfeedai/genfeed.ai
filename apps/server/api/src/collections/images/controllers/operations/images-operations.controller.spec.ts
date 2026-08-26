@@ -243,7 +243,12 @@ describe('ImagesOperationsController', () => {
         ImageGenerationProviderDispatchService,
         ImageGenerationProviderRegistryService,
         ImageGenerationService,
-        HiggsFieldImageGenerationProviderAdapter,
+        {
+          inject: [HiggsFieldService],
+          provide: HiggsFieldImageGenerationProviderAdapter,
+          useFactory: (higgsFieldService: HiggsFieldService) =>
+            new HiggsFieldImageGenerationProviderAdapter(higgsFieldService),
+        },
         KlingAiImageGenerationProviderAdapter,
         LeonardoImageGenerationProviderAdapter,
         ReplicateImageGenerationProviderAdapter,

@@ -328,7 +328,7 @@ export class HiggsFieldService {
               `Higgsfield job ${requestId} failed: ${s.error ?? 'unknown error'}`,
             );
           }
-          return s.status === 'completed' && Boolean(s.output?.image_url);
+          return s.status === 'completed';
         },
         {
           intervalMs: options?.pollIntervalMs ?? 10_000,
