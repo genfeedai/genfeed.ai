@@ -27,10 +27,15 @@ function createHarness(analyticsMap = new Map<string, unknown>()) {
     getMediaAnalyticsBatch: vi.fn().mockResolvedValue(analyticsMap),
   } satisfies ServerTwitterAnalytics;
   const credentials = {
+    findAll: vi.fn(),
+    findBrandAccounts: vi.fn(),
     findOne: vi.fn().mockResolvedValue({
       accessToken: 'access-token',
       accessTokenSecret: 'access-secret',
     }),
+    mergeWarmupSignals: vi.fn(),
+    patch: vi.fn(),
+    resolveBrandAccount: vi.fn(),
   } satisfies ServerCredentialStore;
   const logger = {
     error: vi.fn(),

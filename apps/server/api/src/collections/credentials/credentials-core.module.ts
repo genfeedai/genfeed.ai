@@ -6,7 +6,13 @@ import { CredentialPublishingReadinessService } from '@api/collections/credentia
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PublishingProviderSetupModule } from '@api/collections/publishing-setup/publishing-provider-setup.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
+import { SERVER_TOKENS } from '@genfeedai/server';
 import { Module } from '@nestjs/common';
+
+const SERVER_CREDENTIAL_STORE_PROVIDER = {
+  provide: SERVER_TOKENS.credentials,
+  useExisting: CredentialsService,
+};
 
 /**
  * This module is a leaf that most of the graph imports, so it must not reach
@@ -22,6 +28,7 @@ import { Module } from '@nestjs/common';
     CredentialPostingTimesService,
     CredentialPublishingReadinessService,
     CredentialsService,
+    SERVER_CREDENTIAL_STORE_PROVIDER,
   ],
   imports: [FilesClientModule, PublishingProviderSetupModule],
   providers: [
@@ -31,6 +38,7 @@ import { Module } from '@nestjs/common';
     CredentialPostingTimesService,
     CredentialPublishingReadinessService,
     CredentialsService,
+    SERVER_CREDENTIAL_STORE_PROVIDER,
   ],
 })
 export class CredentialsCoreModule {}

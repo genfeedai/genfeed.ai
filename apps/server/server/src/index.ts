@@ -84,6 +84,17 @@ export {
   type WeeklySummary,
 } from './collections/content-performance/services/performance-summary.service';
 export type {
+  Credential,
+  CredentialDocument,
+  CredentialFindAllOptions,
+  CredentialFindAllQuery,
+  CredentialFindAllResult,
+  CredentialPatch,
+  CredentialQuery,
+  ResolveBrandAccountOptions,
+} from './collections/credentials/credential.types';
+export type { ServerCredentialStore } from './collections/credentials/credentials.port';
+export type {
   ServerModelDimensions,
   ServerModelRecord,
 } from './collections/models/model-record.types';
@@ -114,7 +125,6 @@ export {
   SERVER_TOKENS,
   type ServerBrandMemorySync,
   type ServerConfig,
-  type ServerCredentialStore,
   type ServerLogger,
   type ServerNotifications,
   type ServerPostAnalytics,
