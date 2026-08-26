@@ -241,9 +241,11 @@ test.describe('Agent Onboarding', () => {
       },
     ]);
 
-    await authenticatedPage.route('**/agent/chat', async (route) => {
+    await authenticatedPage.route('**/agent/threads/turns', async (route) => {
       await route.fulfill({
         body: JSON.stringify({
+          brandId: 'brand-voice-1',
+          contextVersion: 1,
           creditsRemaining: 118,
           creditsUsed: 2,
           message: {
@@ -318,6 +320,8 @@ test.describe('Agent Onboarding', () => {
 
         await route.fulfill({
           body: JSON.stringify({
+            brandId: 'brand-voice-1',
+            contextVersion: 1,
             creditsRemaining: 118,
             creditsUsed: 0,
             message: {
@@ -346,15 +350,6 @@ test.describe('Agent Onboarding', () => {
     await authenticatedPage.goto(APP_ROUTES.AGENT.ONBOARDING);
     await authenticatedPage.waitForLoadState('domcontentloaded');
     await expect(authenticatedPage).toHaveURL(/\/agent\/onboarding(?:[/?#]|$)/);
-    const hasOnboardingCrash = await authenticatedPage
-      .getByText('Something went wrong')
-      .first()
-      .isVisible()
-      .catch(() => false);
-    test.skip(
-      hasOnboardingCrash,
-      'Agent onboarding host still errors in mocked app-core; login-less shell is covered above.',
-    );
     const composer = authenticatedPage
       .locator(
         '[data-testid="agent-chat-input-shell"] [contenteditable="true"]',
