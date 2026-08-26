@@ -161,6 +161,13 @@ describe('RoutedOrganizationProvider', () => {
 
   it('switches a stale backend context, clears tenant state, refreshes the token, and verifies before matching', async () => {
     const queryClient = new QueryClient();
+    let resolveSwitch: (() => void) | undefined;
+    switchOrganizationMock.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSwitch = resolve;
+        }),
+    );
     queryClient.setQueryData(['tenant-data'], { organizationId: 'org_bravo' });
     getMyOrganizationsMock
       .mockResolvedValueOnce(BRAVO_ACTIVE)
@@ -172,6 +179,11 @@ describe('RoutedOrganizationProvider', () => {
       expect(switchOrganizationMock).toHaveBeenCalledWith('org_alpha'),
     );
     expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
+
+    await act(async () => {
+      resolveSwitch?.();
+      await Promise.resolve();
+    });
 
     await waitFor(() =>
       expect(screen.getByTestId('status')).toHaveTextContent('matched'),
