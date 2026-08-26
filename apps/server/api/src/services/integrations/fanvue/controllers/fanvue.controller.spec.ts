@@ -5,27 +5,26 @@ import { FanvueController } from '@api/services/integrations/fanvue/controllers/
 import { FanvueService } from '@api/services/integrations/fanvue/services/fanvue.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/helpers/utils/response/response.util', () => ({
-  returnBadRequest: vi.fn().mockImplementation((detail) => ({
-    errors: [{ ...detail, status: '400' }],
-  })),
-  returnInternalServerError: vi.fn().mockImplementation((msg) => ({
-    errors: [{ detail: msg, status: '500' }],
-  })),
-  returnNotFound: vi.fn().mockImplementation((_name, _credentialId) => ({
-    errors: [{ status: '404' }],
-  })),
-  serializeSingle: vi
-    .fn()
-    .mockImplementation((_req, _serializer, data) => ({ data })),
-}));
+vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@api/helpers/utils/response/response.util')
+    >();
+
+  return {
+    ...actual,
+    serializeSingle: vi
+      .fn()
+      .mockImplementation((_req, _serializer, data) => ({ data })),
+  };
+});
 
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {
@@ -53,6 +52,7 @@ describe('FanvueController', () => {
     exchangeCodeForTokens: ReturnType<typeof vi.fn>;
     generatePkce: ReturnType<typeof vi.fn>;
     getUserProfile: ReturnType<typeof vi.fn>;
+    requireConfigured: ReturnType<typeof vi.fn>;
   };
 
   const orgId = testId('org');
@@ -73,17 +73,6 @@ describe('FanvueController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [FanvueController],
       providers: [
-        {
-          provide: ConfigService,
-          useValue: {
-            get: vi.fn((key: string) => {
-              if (key === 'FANVUE_CLIENT_ID') return 'test-client-id';
-              if (key === 'FANVUE_REDIRECT_URI')
-                return 'https://app.genfeed.ai/fanvue/callback';
-              return null;
-            }),
-          },
-        },
         {
           provide: BrandsService,
           useValue: {
@@ -132,6 +121,7 @@ describe('FanvueController', () => {
               handle: 'testcreator',
               uuid: 'fanvue-uuid-1',
             }),
+            requireConfigured: vi.fn(),
           },
         },
         {
@@ -169,6 +159,7 @@ describe('FanvueController', () => {
         id: brandId,
         organizationId: orgId,
       });
+      expect(fanvueService.requireConfigured).toHaveBeenCalledOnce();
       expect(fanvueService.generatePkce).toHaveBeenCalled();
       expect(credentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
         expect.anything(),
@@ -188,17 +179,29 @@ describe('FanvueController', () => {
       });
     });
 
-    it('should return bad request when brand is not found', async () => {
+    it('should preserve bad request when brand is not found', async () => {
       brandsService.findOne.mockResolvedValue(null);
 
-      const result = await controller.connect(mockReq, mockUser, {
-        brandId,
-      } as never);
-
-      expect(result).toEqual({
-        errors: [expect.objectContaining({ status: '400' })],
-      });
+      await expect(
+        controller.connect(mockReq, mockUser, { brandId } as never),
+      ).rejects.toMatchObject({ status: 400 });
       expect(fanvueService.generatePkce).not.toHaveBeenCalled();
+    });
+
+    it('fails closed before generating or persisting PKCE state', async () => {
+      fanvueService.requireConfigured.mockImplementation(() => {
+        throw new ServiceUnavailableException(
+          'Fanvue OAuth is not configured for this deployment.',
+        );
+      });
+
+      await expect(
+        controller.connect(mockReq, mockUser, { brandId } as never),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+
+      expect(fanvueService.generatePkce).not.toHaveBeenCalled();
+      expect(credentialsService.beginOAuthForBrand).not.toHaveBeenCalled();
+      expect(fanvueService.buildAuthUrl).not.toHaveBeenCalled();
     });
   });
 
@@ -259,42 +262,38 @@ describe('FanvueController', () => {
       });
     });
 
-    it('should return bad request when code or state is missing', async () => {
-      const result = await controller.verify(mockReq, {
-        code: undefined,
-        state: undefined,
-      } as never);
-
-      expect(result).toEqual({
-        errors: [expect.objectContaining({ status: '400' })],
-      });
+    it('should preserve bad request when code or state is missing', async () => {
+      await expect(
+        controller.verify(mockReq, {
+          code: undefined,
+          state: undefined,
+        } as never),
+      ).rejects.toMatchObject({ status: 400 });
     });
 
-    it('should return not found when credential does not exist', async () => {
+    it('should preserve not found when credential does not exist', async () => {
       credentialsService.findPendingOAuthCredential.mockResolvedValue(null);
 
-      const result = await controller.verify(mockReq, {
-        code: 'auth-code',
-        state: 'missing-state',
-      } as never);
-
-      expect(result).toEqual({ errors: [{ status: '404' }] });
+      await expect(
+        controller.verify(mockReq, {
+          code: 'auth-code',
+          state: 'missing-state',
+        } as never),
+      ).rejects.toMatchObject({ status: 404 });
     });
 
-    it('should return bad request when oauthToken (code_verifier) is missing', async () => {
+    it('should preserve bad request when oauthToken is missing', async () => {
       credentialsService.findPendingOAuthCredential.mockResolvedValue({
         id: 'test-object-id',
         oauthToken: null,
       });
 
-      const result = await controller.verify(mockReq, {
-        code: 'auth-code',
-        state: 'opaque-oauth-state',
-      } as never);
-
-      expect(result).toEqual({
-        errors: [expect.objectContaining({ status: '400' })],
-      });
+      await expect(
+        controller.verify(mockReq, {
+          code: 'auth-code',
+          state: 'opaque-oauth-state',
+        } as never),
+      ).rejects.toMatchObject({ status: 400 });
     });
 
     it('should return bad request on invalid_grant error', async () => {
@@ -308,13 +307,32 @@ describe('FanvueController', () => {
         },
       });
 
-      const result = await controller.verify(mockReq, {
-        code: 'expired-code',
-        state: 'opaque-oauth-state',
-      } as never);
+      await expect(
+        controller.verify(mockReq, {
+          code: 'expired-code',
+          state: 'opaque-oauth-state',
+        } as never),
+      ).rejects.toMatchObject({ status: 400 });
+    });
 
-      expect(result).toEqual({
-        errors: [expect.objectContaining({ status: '400' })],
+    it('preserves a sanitized configuration error from token exchange', async () => {
+      credentialsService.findPendingOAuthCredential.mockResolvedValue({
+        id: 'test-object-id',
+        oauthToken: 'encrypted-verifier',
+      });
+      fanvueService.exchangeCodeForTokens.mockRejectedValue(
+        new ServiceUnavailableException(
+          'Fanvue OAuth is not configured for this deployment.',
+        ),
+      );
+
+      await expect(
+        controller.verify(mockReq, {
+          code: 'auth-code',
+          state: 'opaque-oauth-state',
+        } as never),
+      ).rejects.toMatchObject({
+        message: 'Fanvue OAuth is not configured for this deployment.',
       });
     });
 
@@ -327,14 +345,12 @@ describe('FanvueController', () => {
         new Error('Network error'),
       );
 
-      const result = await controller.verify(mockReq, {
-        code: 'auth-code',
-        state: 'opaque-oauth-state',
-      } as never);
-
-      expect(result).toEqual({
-        errors: [expect.objectContaining({ status: '500' })],
-      });
+      await expect(
+        controller.verify(mockReq, {
+          code: 'auth-code',
+          state: 'opaque-oauth-state',
+        } as never),
+      ).rejects.toMatchObject({ status: 500 });
     });
   });
 });

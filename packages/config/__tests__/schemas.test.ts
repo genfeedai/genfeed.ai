@@ -46,6 +46,7 @@ import {
   shopifySchema,
   slackSchema,
   snapchatSchema,
+  threadsSchema,
   tiktokSchema,
   twitterSchema,
   whatsappSchema,
@@ -934,6 +935,48 @@ describe('Config Schemas', () => {
     });
   });
 
+  describe('threadsSchema', () => {
+    it('covers every Threads setting consumed by the API', () => {
+      expect(Object.keys(threadsSchema).sort()).toEqual([
+        'THREADS_API_VERSION',
+        'THREADS_CLIENT_ID',
+        'THREADS_CLIENT_SECRET',
+        'THREADS_GRAPH_URL',
+        'THREADS_REDIRECT_URI',
+      ]);
+      for (const value of Object.values(threadsSchema)) {
+        expect(Joi.isSchema(value)).toBe(true);
+      }
+    });
+
+    it('keeps an unavailable integration optional but validates configured URLs', () => {
+      const schema = Joi.object(threadsSchema);
+
+      expect(schema.validate({}).error).toBeUndefined();
+      expect(
+        schema.validate({
+          THREADS_API_VERSION: 'v1.0',
+          THREADS_CLIENT_ID: 'threads-client-id',
+          THREADS_CLIENT_SECRET: 'threads-client-secret',
+          THREADS_GRAPH_URL: 'https://graph.threads.net',
+          THREADS_REDIRECT_URI: 'https://app.genfeed.ai/oauth/threads',
+        }).error,
+      ).toBeUndefined();
+      expect(
+        schema.validate({ THREADS_REDIRECT_URI: 'not-a-url' }).error,
+      ).toBeDefined();
+      expect(
+        schema.validate({ THREADS_GRAPH_URL: 'not-a-url' }).error,
+      ).toBeDefined();
+      expect(
+        schema.validate({
+          THREADS_GRAPH_URL: 'PLACEHOLDER_NOT_CONFIGURED',
+          THREADS_REDIRECT_URI: 'PLACEHOLDER_NOT_CONFIGURED',
+        }).error,
+      ).toBeUndefined();
+    });
+  });
+
   describe('slackSchema', () => {
     it('should be a non-empty object of Joi schemas', () => {
       expect(typeof slackSchema).toBe('object');
@@ -1067,6 +1110,10 @@ describe('Config Schemas', () => {
   });
 
   describe('allSocialSchema', () => {
+    it('includes the Threads runtime contract', () => {
+      expect(allSocialSchema).toMatchObject(threadsSchema);
+    });
+
     it('should be a non-empty object of Joi schemas', () => {
       expect(typeof allSocialSchema).toBe('object');
       const keys = Object.keys(allSocialSchema);
