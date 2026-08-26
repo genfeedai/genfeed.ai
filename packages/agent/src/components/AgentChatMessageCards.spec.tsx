@@ -3,10 +3,10 @@ import {
   OAuthConnectCard,
 } from '@genfeedai/agent/components/AgentChatMessageCards';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Effect } from 'effect';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const action = {
   id: 'connect-twitter',
@@ -33,6 +33,10 @@ describe('OAuthConnectCard', () => {
 });
 
 describe('ContentPreviewCard', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('reconciles an accepted image asset into the persisted conversation card', async () => {
     vi.useFakeTimers();
     const getGeneratedAssetEffect = vi
@@ -63,10 +67,12 @@ describe('ContentPreviewCard', () => {
     );
 
     expect(screen.getByLabelText('Image generation in progress')).toBeVisible();
-    await vi.advanceTimersByTimeAsync(2_000);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000);
+    });
 
     expect(
-      await screen.findByRole('button', {
+      screen.getByRole('button', {
         name: 'Open Image generating 1 preview',
       }),
     ).toBeInTheDocument();
@@ -74,7 +80,6 @@ describe('ContentPreviewCard', () => {
       'image-queued',
       expect.any(AbortSignal),
     );
-    vi.useRealTimers();
   });
 
   it('bounds reconciliation polling for an asset that never becomes readable', async () => {
@@ -96,12 +101,13 @@ describe('ContentPreviewCard', () => {
       />,
     );
 
-    await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+    });
     expect(getGeneratedAssetEffect).toHaveBeenCalledTimes(150);
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Unable to reconcile generated media. Please refresh and try again.',
     );
-    vi.useRealTimers();
   });
 
   it('keeps reconciling a healthy long-running video beyond the image horizon', async () => {
@@ -123,10 +129,11 @@ describe('ContentPreviewCard', () => {
       />,
     );
 
-    await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+    });
     expect(getGeneratedAssetEffect.mock.calls.length).toBeGreaterThan(150);
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    vi.useRealTimers();
   });
 
   it('opens generated image variants from the conversation card', () => {
