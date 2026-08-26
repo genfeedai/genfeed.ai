@@ -276,29 +276,18 @@ export function useWorkspacePageContent({
   );
 
   useEffect(() => {
-    if (
-      selectedTaskId &&
-      !workspaceTasks.some((task) => task.id === selectedTaskId)
-    ) {
-      setSelectedTaskId(null);
-    }
-  }, [selectedTaskId, workspaceTasks]);
-
-  useEffect(() => {
     if (!requestedTaskId) {
+      setSelectedTaskId(null);
       return;
     }
 
     if (!workspaceTasks.some((task) => task.id === requestedTaskId)) {
-      return;
-    }
-
-    if (selectedTaskId === requestedTaskId) {
+      setSelectedTaskId(null);
       return;
     }
 
     setSelectedTaskId(requestedTaskId);
-  }, [requestedTaskId, selectedTaskId, workspaceTasks]);
+  }, [requestedTaskId, workspaceTasks]);
 
   useEffect(() => {
     const controller = new AbortController();
