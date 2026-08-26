@@ -109,6 +109,7 @@ function BrandContentContent() {
   const [targetAudience, setTargetAudience] = useState('');
   const [tone, setTone] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [accountType, setAccountType] = useState<OrganizationCategory | null>(
     null,
   );
@@ -182,6 +183,11 @@ function BrandContentContent() {
         }
       } catch (error) {
         logger.error('Failed to prefill onboarding data', error);
+        if (!controller.signal.aborted) {
+          setErrorMessage(
+            "We couldn't load your workspace details. You can retry Continue or Skip Onboarding.",
+          );
+        }
       }
     };
 
@@ -222,14 +228,15 @@ function BrandContentContent() {
   const handleAccountTypeSelect = useCallback(
     async (category: OrganizationCategory) => {
       setAccountType(category);
+      setErrorMessage(null);
       try {
         const token = await resolveAuthToken(getToken);
         if (!token) {
-          return;
+          throw new Error('Authentication is unavailable');
         }
         const orgId = await resolveOrgId(token);
         if (!orgId) {
-          return;
+          throw new Error('No organization found for the current workspace');
         }
         await OrganizationsService.getInstance(token).updateAccountType(
           orgId,
@@ -237,6 +244,9 @@ function BrandContentContent() {
         );
       } catch (error) {
         logger.error('Failed to set account type', error);
+        setErrorMessage(
+          "We couldn't save your account type. Try selecting it again.",
+        );
       }
     },
     [getToken, resolveOrgId],
@@ -263,11 +273,12 @@ function BrandContentContent() {
       }
 
       setSubmitting(true);
+      setErrorMessage(null);
 
       try {
         const token = await resolveAuthToken(getToken);
         if (!token) {
-          return;
+          throw new Error('Authentication is unavailable');
         }
 
         const brandUrl = skipWebsite
@@ -350,6 +361,9 @@ function BrandContentContent() {
         await handleStepComplete('brand');
       } catch (error) {
         logger.error('Failed to continue onboarding', error);
+        setErrorMessage(
+          "We couldn't save your workspace. Check your connection and try again.",
+        );
         setSubmitting(false);
       }
     },
@@ -367,11 +381,12 @@ function BrandContentContent() {
 
   const handleSkipOnboarding = useCallback(async () => {
     setSubmitting(true);
+    setErrorMessage(null);
 
     try {
       const token = await resolveAuthToken(getToken);
       if (!token) {
-        return;
+        throw new Error('Authentication is unavailable');
       }
 
       const orgId = await resolveOrgId(token);
@@ -390,6 +405,9 @@ function BrandContentContent() {
       push('/');
     } catch (error) {
       logger.error('Failed to skip onboarding', error);
+      setErrorMessage(
+        "We couldn't skip onboarding. Check your connection and try again.",
+      );
       setSubmitting(false);
     }
   }, [getToken, push, resolveOrgId]);
@@ -437,6 +455,7 @@ function BrandContentContent() {
         websiteUrl={websiteUrl}
         targetAudience={targetAudience}
         tone={tone}
+        errorMessage={errorMessage}
         submitting={submitting}
         onBrandNameChange={setBrandName}
         onOrganizationNameChange={setOrganizationName}

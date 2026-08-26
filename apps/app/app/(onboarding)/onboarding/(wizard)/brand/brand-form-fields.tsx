@@ -1,6 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { ArrowRight, Globe } from 'lucide-react';
@@ -11,6 +12,7 @@ type Props = {
   targetAudience: string;
   tone: string;
   websiteUrl: string;
+  errorMessage: string | null;
   submitting: boolean;
   onBrandNameChange: (value: string) => void;
   onOrganizationNameChange: (value: string) => void;
@@ -81,6 +83,7 @@ export default function BrandFormFields({
   targetAudience,
   tone,
   websiteUrl,
+  errorMessage,
   submitting,
   onBrandNameChange,
   onOrganizationNameChange,
@@ -176,6 +179,15 @@ export default function BrandFormFields({
         value={tone}
         onChange={onToneChange}
       />
+
+      {errorMessage ? (
+        <Alert type={AlertCategory.ERROR}>
+          <div className="space-y-1">
+            <div className="font-medium">Onboarding could not continue</div>
+            <div className="text-xs text-foreground/70">{errorMessage}</div>
+          </div>
+        </Alert>
+      ) : null}
 
       {/* Continue button */}
       <div className="step-actions opacity-0">
