@@ -1,4 +1,12 @@
 import type {
+  VideoContinuityClipFinding,
+  VideoContinuityQaReport,
+} from '@genfeedai/interfaces';
+import {
+  createNotAssessedContinuityDimension,
+  VIDEO_CONTINUITY_QA_SCHEMA_VERSION,
+} from '@genfeedai/interfaces';
+import type {
   VideoQaFailure,
   VideoQaFailureCode,
   VideoQaReport,
@@ -38,6 +46,7 @@ export interface VideoQaContract {
 }
 
 export interface VideoQaExecutorOutput extends VideoQaReport {
+  continuityQa?: VideoContinuityQaReport;
   report: VideoQaReport;
   video: string | null;
 }
@@ -49,6 +58,15 @@ export type VideoQaProcessor = (params: {
   blackDurationSeconds: number;
   freezeDurationSeconds: number;
 }) => Promise<VideoQaInspectionRaw>;
+
+export type VideoQaContinuityResolver = (params: {
+  characterReferenceUrls: string[];
+  contactSheetUrl: string;
+  organizationId: string;
+  productReferenceUrls: string[];
+  runId: string;
+  videoUrl: string;
+}) => Promise<{ finding: VideoContinuityClipFinding; modelKey: string }>;
 
 interface ParsedProbe {
   durationSeconds: number | null;
@@ -407,7 +425,7 @@ function isFiniteNumber(value: unknown): boolean {
 /**
  * Video QA Executor
  *
- * Deterministic FFmpeg/ffprobe inspection. No vision or LLM scoring.
+ * Deterministic FFmpeg/ffprobe inspection with optional advisory continuity.
  * Failed checks return a structured report with passed: false and do not
  * forward the source video.
  *
@@ -416,9 +434,14 @@ function isFiniteNumber(value: unknown): boolean {
 export class VideoQaExecutor extends BaseExecutor {
   readonly nodeType = 'videoQa';
   private processor: VideoQaProcessor | null = null;
+  private continuityResolver: VideoQaContinuityResolver | null = null;
 
   setProcessor(processor: VideoQaProcessor): void {
     this.processor = processor;
+  }
+
+  setContinuityResolver(resolver: VideoQaContinuityResolver): void {
+    this.continuityResolver = resolver;
   }
 
   validate(node: ExecutableNode): { valid: boolean; errors: string[] } {
@@ -507,11 +530,22 @@ export class VideoQaExecutor extends BaseExecutor {
       'isContactSheetEnabled',
       false,
     );
+    const isContinuityQaEnabled = this.getOptionalConfig<boolean>(
+      node.config,
+      'isContinuityQaEnabled',
+      false,
+    );
+    const characterReferenceUrls = readStringArray(
+      node.config.characterReferenceUrls,
+    );
+    const productReferenceUrls = readStringArray(
+      node.config.productReferenceUrls,
+    );
 
     const inspection = await this.processor({
       blackDurationSeconds,
       freezeDurationSeconds,
-      isContactSheetEnabled,
+      isContactSheetEnabled: isContactSheetEnabled || isContinuityQaEnabled,
       organizationId: context.organizationId,
       videoUrl,
     });
@@ -531,9 +565,21 @@ export class VideoQaExecutor extends BaseExecutor {
       },
       inspection,
     });
+    const continuityQa = isContinuityQaEnabled
+      ? await this.resolveContinuityQa({
+          characterReferenceUrls,
+          contactSheetUrl: inspection.contactSheetUrl,
+          organizationId: context.organizationId,
+          productReferenceUrls,
+          projectId: context.workflowId,
+          runId: context.runId,
+          videoUrl,
+        })
+      : undefined;
 
     const output: VideoQaExecutorOutput = {
       ...report,
+      ...(continuityQa ? { continuityQa } : {}),
       report,
       video: report.passed ? videoUrl : null,
     };
@@ -541,19 +587,196 @@ export class VideoQaExecutor extends BaseExecutor {
     return {
       data: output,
       metadata: {
+        continuityStatus: continuityQa?.status,
         failureCount: report.failures.length,
         passed: report.passed,
       },
     };
   }
+
+  private async resolveContinuityQa(params: {
+    characterReferenceUrls: string[];
+    contactSheetUrl: string | null;
+    organizationId: string;
+    productReferenceUrls: string[];
+    projectId: string;
+    runId: string;
+    videoUrl: string;
+  }): Promise<VideoContinuityQaReport> {
+    const completedAt = new Date().toISOString();
+    const referenceAssetIds = {
+      character: params.characterReferenceUrls,
+      product: params.productReferenceUrls,
+    };
+    const base = {
+      completedAt,
+      projectId: params.projectId,
+      referenceAssetIds,
+      runId: params.runId,
+      schemaVersion: VIDEO_CONTINUITY_QA_SCHEMA_VERSION,
+    } as const;
+
+    if (
+      params.characterReferenceUrls.length === 0 &&
+      params.productReferenceUrls.length === 0
+    ) {
+      return buildSkippedContinuityReport(
+        base,
+        'canonical_references_unavailable',
+      );
+    }
+    if (!this.continuityResolver) {
+      return buildSkippedContinuityReport(
+        base,
+        'continuity_resolver_unavailable',
+      );
+    }
+    if (!params.contactSheetUrl) {
+      const finding = createExtractionFailureFinding(params.videoUrl);
+      return {
+        ...base,
+        clips: [finding],
+        status: 'partial',
+        summary: summarizeContinuityClips([finding]),
+      };
+    }
+
+    try {
+      const result = await this.continuityResolver({
+        characterReferenceUrls: params.characterReferenceUrls,
+        contactSheetUrl: params.contactSheetUrl,
+        organizationId: params.organizationId,
+        productReferenceUrls: params.productReferenceUrls,
+        runId: params.runId,
+        videoUrl: params.videoUrl,
+      });
+      return {
+        ...base,
+        clips: [result.finding],
+        modelKey: result.modelKey,
+        status: result.finding.errors.length > 0 ? 'partial' : 'completed',
+        summary: summarizeContinuityClips([result.finding]),
+      };
+    } catch (error: unknown) {
+      const finding = createModelFailureFinding(params, error);
+      return {
+        ...base,
+        clips: [finding],
+        status: 'partial',
+        summary: summarizeContinuityClips([finding]),
+      };
+    }
+  }
 }
 
 export function createVideoQaExecutor(
   processor?: VideoQaProcessor,
+  continuityResolver?: VideoQaContinuityResolver,
 ): VideoQaExecutor {
   const executor = new VideoQaExecutor();
   if (processor) {
     executor.setProcessor(processor);
   }
+  if (continuityResolver) {
+    executor.setContinuityResolver(continuityResolver);
+  }
   return executor;
+}
+
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter(
+        (entry): entry is string =>
+          typeof entry === 'string' && entry.trim().length > 0,
+      )
+    : [];
+}
+
+function buildSkippedContinuityReport(
+  base: Pick<
+    VideoContinuityQaReport,
+    | 'completedAt'
+    | 'projectId'
+    | 'referenceAssetIds'
+    | 'runId'
+    | 'schemaVersion'
+  >,
+  skipReason: NonNullable<VideoContinuityQaReport['skipReason']>,
+): VideoContinuityQaReport {
+  return {
+    ...base,
+    clips: [],
+    skipReason,
+    status: 'skipped',
+    summary: {
+      assessedClipCount: 0,
+      driftClipCount: 0,
+      errorClipCount: 0,
+      totalClipCount: 0,
+    },
+  };
+}
+
+function createExtractionFailureFinding(
+  videoUrl: string,
+): VideoContinuityClipFinding {
+  const unavailable = createNotAssessedContinuityDimension(
+    'Representative frames could not be extracted.',
+  );
+  return {
+    character: unavailable,
+    clipId: 'workflow-video',
+    clipIndex: 0,
+    errors: [
+      {
+        code: 'FRAME_EXTRACTION_FAILED',
+        message: 'Video QA did not return a contact sheet.',
+      },
+    ],
+    evidenceFrames: [],
+    outfit: unavailable,
+    product: unavailable,
+    videoUrl,
+  };
+}
+
+function createModelFailureFinding(
+  params: { contactSheetUrl: string; videoUrl: string },
+  error: unknown,
+): VideoContinuityClipFinding {
+  const unavailable = createNotAssessedContinuityDimension(
+    'The vision comparison could not be completed.',
+  );
+  return {
+    character: unavailable,
+    clipId: 'workflow-video',
+    clipIndex: 0,
+    errors: [
+      {
+        code: 'MODEL_FAILED',
+        message: error instanceof Error ? error.message : 'Vision model failed',
+      },
+    ],
+    evidenceFrames: [{ kind: 'contact_sheet', url: params.contactSheetUrl }],
+    outfit: unavailable,
+    product: unavailable,
+    videoUrl: params.videoUrl,
+  };
+}
+
+function summarizeContinuityClips(clips: VideoContinuityClipFinding[]) {
+  return {
+    assessedClipCount: clips.filter((clip) =>
+      [clip.character, clip.outfit, clip.product].some(
+        (finding) => finding.verdict !== 'not_assessed',
+      ),
+    ).length,
+    driftClipCount: clips.filter((clip) =>
+      [clip.character, clip.outfit, clip.product].some(
+        (finding) => finding.verdict === 'drift',
+      ),
+    ).length,
+    errorClipCount: clips.filter((clip) => clip.errors.length > 0).length,
+    totalClipCount: clips.length,
+  };
 }

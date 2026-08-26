@@ -7,7 +7,10 @@ import {
   normalizeReviewDecision,
   ReviewDecision,
 } from '@genfeedai/enums';
-import type { IPublishApproval } from '@genfeedai/interfaces';
+import type {
+  IPublishApproval,
+  VideoContinuityQaReport,
+} from '@genfeedai/interfaces';
 import type { Batch } from '@genfeedai/prisma';
 
 export interface BatchItem {
@@ -53,6 +56,7 @@ export interface BatchItemFull extends BatchItem {
   createdAt?: string;
   versionPinId?: string;
   publishApproval?: IPublishApproval;
+  continuityQa?: VideoContinuityQaReport;
 }
 
 /**
@@ -155,6 +159,7 @@ export interface ReviewInboxItemSummary {
   reviewDecision: ReviewDecision;
   status: string;
   summary: string;
+  continuityQa?: VideoContinuityQaReport;
 }
 
 export interface ReviewInboxSummary {

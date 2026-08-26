@@ -4,7 +4,12 @@ import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 /** Steps in the clip run pipeline. */
-export type ClipRunStep = 'generate' | 'merge' | 'reframe' | 'publish-handoff';
+export type ClipRunStep =
+  | 'generate'
+  | 'merge'
+  | 'continuity-qa'
+  | 'reframe'
+  | 'publish-handoff';
 
 /** Possible statuses for a step. */
 export type StepStatus = 'pending' | 'running' | 'done' | 'failed' | 'skipped';
@@ -87,7 +92,18 @@ export class ClipRunObserverService {
       progress = this.createInitialProgress(clipRunId);
     }
 
-    const stepEntry = progress.steps.find((s) => s.step === step);
+    let stepEntry = progress.steps.find((s) => s.step === step);
+    if (!stepEntry && step === 'continuity-qa') {
+      stepEntry = { status: 'pending', step };
+      const publishIndex = progress.steps.findIndex(
+        (entry) => entry.step === 'publish-handoff',
+      );
+      progress.steps.splice(
+        publishIndex < 0 ? progress.steps.length : publishIndex,
+        0,
+        stepEntry,
+      );
+    }
     if (!stepEntry) {
       return;
     }

@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { ReviewDecision } from '@genfeedai/enums';
-import type { IAgentRun } from '@genfeedai/interfaces';
+import type { IAgentRun, VideoContinuityQaReport } from '@genfeedai/interfaces';
 import { Task, type TaskEvent } from '@services/management/tasks.service';
 import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
 
@@ -16,6 +16,7 @@ export interface ReviewInboxItem {
   platform?: string;
   reviewDecision: ReviewDecision;
   summary: string;
+  continuityQa?: VideoContinuityQaReport;
 }
 
 export interface ReviewInboxSummary {
@@ -127,6 +128,25 @@ export const WORKSPACE_SECTION_STACK_CLASS = 'space-y-4';
 
 export function isTaskInInboxQueue(task: Task): boolean {
   return task.dismissedAt == null && task.reviewState !== 'dismissed';
+}
+
+export function getTaskContinuityQa(
+  task: Task,
+): VideoContinuityQaReport | undefined {
+  const candidate = task.decomposition?.continuityQa;
+  return isVideoContinuityQaReport(candidate) ? candidate : undefined;
+}
+
+export function isVideoContinuityQaReport(
+  value: unknown,
+): value is VideoContinuityQaReport {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    (value as Record<string, unknown>).schemaVersion === 1 &&
+    Array.isArray((value as Record<string, unknown>).clips)
+  );
 }
 
 export function isUnreadInboxTask(task: Task): boolean {

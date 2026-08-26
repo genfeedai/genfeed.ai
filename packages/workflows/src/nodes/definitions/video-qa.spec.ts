@@ -19,6 +19,12 @@ describe('video-qa node', () => {
       expect(DEFAULT_VIDEO_QA_DATA.isContactSheetEnabled).toBe(false);
     });
 
+    it('should default advisory continuity QA off with no references', () => {
+      expect(DEFAULT_VIDEO_QA_DATA.isContinuityQaEnabled).toBe(false);
+      expect(DEFAULT_VIDEO_QA_DATA.characterReferenceUrls).toEqual([]);
+      expect(DEFAULT_VIDEO_QA_DATA.productReferenceUrls).toEqual([]);
+    });
+
     it('should default input video and report to null', () => {
       expect(DEFAULT_VIDEO_QA_DATA.inputVideo).toBeNull();
       expect(DEFAULT_VIDEO_QA_DATA.report).toBeNull();
@@ -56,9 +62,9 @@ describe('video-qa node', () => {
       expect(videoInput?.type).toBe('video');
     });
 
-    it('should expose passed, report, and fail-closed video outputs', () => {
+    it('should expose deterministic and advisory continuity outputs', () => {
       const outputIds = videoQaNodeDefinition.outputs.map((entry) => entry.id);
-      expect(outputIds).toEqual(['passed', 'report', 'video']);
+      expect(outputIds).toEqual(['passed', 'report', 'continuityQa', 'video']);
     });
 
     it('should reference default data', () => {

@@ -3,6 +3,7 @@ vi.mock('@genfeedai/workflows', () => ({
   parseWorkflowGenerationResponse: vi.fn(() => ({ workflow: {} })),
 }));
 
+import { ClipContinuityFinalizationService } from '@api/services/clip-orchestrator/clip-continuity-finalization.service';
 import { ClipOrchestratorModule } from '@api/services/clip-orchestrator/clip-orchestrator.module';
 import { ClipOrchestratorService } from '@api/services/clip-orchestrator/clip-orchestrator.service';
 import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
@@ -24,6 +25,7 @@ describe('ClipOrchestratorModule', () => {
 
     for (const service of [
       ClipOrchestratorService,
+      ClipContinuityFinalizationService,
       ClipOrchestratorStateStore,
       ClipRunObserverService,
       PortraitConversionService,

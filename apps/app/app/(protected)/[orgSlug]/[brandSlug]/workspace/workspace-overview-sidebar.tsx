@@ -14,7 +14,12 @@ import type { Task, TasksService } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
-import { CircleCheck, ClipboardCheck, Inbox } from 'lucide-react';
+import {
+  AlertTriangle,
+  CircleCheck,
+  ClipboardCheck,
+  Inbox,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
@@ -175,6 +180,57 @@ export function WorkspaceOverviewSidebar({
                     <p className="text-xs text-foreground/40">
                       <ClientFormattedDate value={item.createdAt} />
                     </p>
+                    {item.continuityQa ? (
+                      <div
+                        className="mt-2 space-y-2 rounded-md border border-border/70 p-2"
+                        data-testid={`continuity-${item.id}`}
+                      >
+                        <p className="flex items-center gap-1 text-xs font-semibold text-foreground/70">
+                          {item.continuityQa.summary.driftClipCount > 0 ? (
+                            <AlertTriangle className="size-3.5 text-amber-300" />
+                          ) : null}
+                          Continuity:{' '}
+                          {item.continuityQa.status.replace('_', ' ')}
+                        </p>
+                        {item.continuityQa.skipReason ? (
+                          <p className="text-xs text-foreground/50">
+                            {item.continuityQa.skipReason.replaceAll('_', ' ')}
+                          </p>
+                        ) : null}
+                        {item.continuityQa.clips.map((clip) => (
+                          <div
+                            key={clip.clipId}
+                            className="text-xs text-foreground/55"
+                          >
+                            <p>
+                              Clip {clip.clipIndex + 1}: character{' '}
+                              {clip.character.verdict}, outfit{' '}
+                              {clip.outfit.verdict}, product{' '}
+                              {clip.product.verdict}
+                            </p>
+                            {clip.errors.map((error) => (
+                              <p
+                                key={`${clip.clipId}-${error.code}`}
+                                className="text-amber-200/80"
+                              >
+                                {error.message}
+                              </p>
+                            ))}
+                            {clip.evidenceFrames.map((frame, index) => (
+                              <Link
+                                key={frame.url}
+                                href={frame.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mr-2 underline underline-offset-2"
+                              >
+                                Evidence {index + 1}
+                              </Link>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                   {normalizeReviewDecision(item.reviewDecision) ===
                   ReviewDecision.APPROVED ? (
