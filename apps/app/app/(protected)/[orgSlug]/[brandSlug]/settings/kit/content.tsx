@@ -9,6 +9,7 @@ import Card from '@ui/card/Card';
 import BrandCompletenessCard from '@ui/cards/brand-completeness-card/BrandCompletenessCard';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
+import { useTranslations } from 'next-intl';
 import { captureBrandOsFunnelStage } from '@/lib/analytics';
 
 /**
@@ -16,6 +17,7 @@ import { captureBrandOsFunnelStage } from '@/lib/analytics';
  * Not part of the public profile surface.
  */
 export default function BrandSettingsKitPage() {
+  const translate = useTranslations('pages.brandKitSettings');
   const {
     brand,
     brandId,
@@ -35,7 +37,9 @@ export default function BrandSettingsKitPage() {
     return (
       <Container>
         <Card>
-          <p className="text-sm text-muted-foreground">Brand not found.</p>
+          <p className="text-sm text-muted-foreground">
+            {translate('brandMissing')}
+          </p>
         </Card>
       </Container>
     );
@@ -51,11 +55,10 @@ export default function BrandSettingsKitPage() {
       >
         <div className="flex flex-col gap-1 pb-1">
           <h2 className="text-sm font-semibold text-foreground">
-            Review brand evidence
+            {translate('reviewTitle')}
           </h2>
           <p className="text-xs leading-5 text-muted-foreground">
-            Review extracted and inferred evidence before accepting it.
-            Candidate colors stay separate from Genfeed product tokens.
+            {translate('reviewDescription')}
           </p>
         </div>
 
@@ -74,10 +77,10 @@ export default function BrandSettingsKitPage() {
 
         <div className="flex flex-col gap-1 border-t border-border pt-3">
           <h2 className="text-sm font-semibold text-foreground">
-            Manual adjustments
+            {translate('manualAdjustments')}
           </h2>
           <p className="text-xs leading-5 text-muted-foreground">
-            Add owned guidance and reference assets after reviewing the scan.
+            {translate('manualDescription')}
           </p>
         </div>
 

@@ -10,6 +10,7 @@ import {
 } from '@server/server.dependencies';
 import { FacebookService } from '@server/services/integrations/facebook/services/facebook.service';
 import { of, throwError } from 'rxjs';
+import type { Mock } from 'vitest';
 
 describe('FacebookService', () => {
   let service: FacebookService;

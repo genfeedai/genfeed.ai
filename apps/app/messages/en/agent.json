@@ -79,6 +79,10 @@
     "visibilityPublic": "Public",
     "visibilityUnlisted": "Unlisted"
   },
+  "transferProvenance": {
+    "copy": "Copy",
+    "openConversation": "Open conversation"
+  },
   "settings": {
     "autoDescription": "Use the platform default model",
     "autoLabel": "Auto",

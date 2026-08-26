@@ -1,3 +1,5 @@
+import type { Mock } from 'vitest';
+
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => val) },
 }));

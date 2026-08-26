@@ -23,6 +23,7 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { ExternalLink, Inbox, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
 interface SocialIntelligenceInboxProps {
@@ -149,6 +150,7 @@ export default function SocialIntelligenceInbox({
   brandId,
   organizationId,
 }: SocialIntelligenceInboxProps) {
+  const translate = useTranslations('pages.socialIntelligence');
   const inbox = useSocialIntelligence({
     brandId: brandId ?? '',
     enabled: Boolean(brandId),
@@ -342,8 +344,9 @@ export default function SocialIntelligenceInbox({
             <div>
               <h3 className="text-base font-semibold">{bundle.topic.label}</h3>
               <p className="text-xs text-muted-foreground">
-                {bundle.topic.sources.length} monitored source
-                {bundle.topic.sources.length === 1 ? '' : 's'}
+                {translate('monitoredSources', {
+                  count: bundle.topic.sources.length,
+                })}
               </p>
             </div>
             <div className="grid gap-4 xl:grid-cols-2">
@@ -381,7 +384,7 @@ export default function SocialIntelligenceInbox({
                     <dl className="grid gap-2 text-xs text-muted-foreground">
                       <div>
                         <dt className="font-medium text-foreground">
-                          Current window
+                          {translate('currentWindow')}
                         </dt>
                         <dd>
                           {formatWindow(
@@ -392,7 +395,7 @@ export default function SocialIntelligenceInbox({
                       </div>
                       <div>
                         <dt className="font-medium text-foreground">
-                          Previous window
+                          {translate('previousWindow')}
                         </dt>
                         <dd>
                           {formatWindow(
@@ -405,14 +408,18 @@ export default function SocialIntelligenceInbox({
 
                     <div className="space-y-2">
                       <p className="text-xs font-medium text-foreground">
-                        Source coverage
+                        {translate('sourceCoverage')}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Included: {coverage.included.join(', ') || 'None'}
+                        {translate('includedSources', {
+                          sources: coverage.included.join(', ') || 'None',
+                        })}
                       </p>
                       {coverage.missing.length > 0 ? (
                         <p className="text-xs text-warning">
-                          Excluded / missing: {coverage.missing.join(', ')}
+                          {translate('excludedSources', {
+                            sources: coverage.missing.join(', '),
+                          })}
                         </p>
                       ) : null}
                       {coverage.reason ? (
@@ -468,7 +475,7 @@ export default function SocialIntelligenceInbox({
                                     rel="noreferrer"
                                     target="_blank"
                                   >
-                                    Open source
+                                    {translate('openSource')}
                                     <ExternalLink className="size-3" />
                                   </Link>
                                 ) : null}
@@ -482,7 +489,7 @@ export default function SocialIntelligenceInbox({
                     {!hasResponseEvidence ||
                     (selected && !selected.sourcePostId) ? (
                       <p className="text-xs text-warning">
-                        Response unavailable for this evidence
+                        {translate('responseUnavailable')}
                       </p>
                     ) : null}
 
@@ -577,6 +584,7 @@ export default function SocialIntelligenceInbox({
     handleReview,
     inbox,
     selectedEvidence,
+    translate,
   ]);
 
   return (
@@ -593,11 +601,10 @@ export default function SocialIntelligenceInbox({
             className="text-lg font-semibold"
             id="social-intelligence-heading"
           >
-            Social intelligence inbox
+            {translate('title')}
           </h2>
           <p className="text-sm text-muted-foreground">
-            Review attributable listening themes before creating downstream
-            work.
+            {translate('description')}
           </p>
         </div>
       </div>

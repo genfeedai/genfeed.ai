@@ -1,3 +1,5 @@
+import type { Mocked } from 'vitest';
+
 // Break circular dependencies: both YoutubeAnalyticsService and YoutubeMetadataService import YoutubeService
 vi.mock(
   '@server/services/integrations/youtube/services/modules/youtube-analytics.service',

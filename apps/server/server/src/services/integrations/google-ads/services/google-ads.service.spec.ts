@@ -8,6 +8,7 @@ import {
 } from '@server/server.dependencies';
 import type { AxiosResponse } from 'axios';
 import { of, throwError } from 'rxjs';
+import type { Mocked } from 'vitest';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: { getCallerName: vi.fn().mockReturnValue('testMethod') },

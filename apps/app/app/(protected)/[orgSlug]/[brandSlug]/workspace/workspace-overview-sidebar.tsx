@@ -97,9 +97,7 @@ export function WorkspaceOverviewSidebar({
         ))}
       </div>
     ) : (
-      <p className="text-sm text-foreground/45">
-        No active workspace tasks right now.
-      </p>
+      <p className="text-sm text-foreground/45">{translate('noActiveTasks')}</p>
     );
 
   const historyContent =
@@ -138,7 +136,7 @@ export function WorkspaceOverviewSidebar({
 
           <div className="border-t border-border pt-4">
             <div className="flex items-center justify-between text-sm text-foreground/55">
-              <span>Live runs</span>
+              <span>{translate('liveRuns')}</span>
               <span>{initialActiveRuns.length}</span>
             </div>
           </div>
@@ -189,8 +187,9 @@ export function WorkspaceOverviewSidebar({
                           {item.continuityQa.summary.driftClipCount > 0 ? (
                             <AlertTriangle className="size-3.5 text-amber-300" />
                           ) : null}
-                          Continuity:{' '}
-                          {item.continuityQa.status.replace('_', ' ')}
+                          {translate('continuityStatus', {
+                            status: item.continuityQa.status.replace('_', ' '),
+                          })}
                         </p>
                         {item.continuityQa.skipReason ? (
                           <p className="text-xs text-foreground/50">
@@ -203,10 +202,12 @@ export function WorkspaceOverviewSidebar({
                             className="text-xs text-foreground/55"
                           >
                             <p>
-                              Clip {clip.clipIndex + 1}: character{' '}
-                              {clip.character.verdict}, outfit{' '}
-                              {clip.outfit.verdict}, product{' '}
-                              {clip.product.verdict}
+                              {translate('clipContinuitySummary', {
+                                character: clip.character.verdict,
+                                index: clip.clipIndex + 1,
+                                outfit: clip.outfit.verdict,
+                                product: clip.product.verdict,
+                              })}
                             </p>
                             {clip.errors.map((error) => (
                               <p
@@ -224,7 +225,9 @@ export function WorkspaceOverviewSidebar({
                                 rel="noreferrer"
                                 className="mr-2 underline underline-offset-2"
                               >
-                                Evidence {index + 1}
+                                {translate('evidenceNumber', {
+                                  number: index + 1,
+                                })}
                               </Link>
                             ))}
                           </div>
@@ -246,8 +249,7 @@ export function WorkspaceOverviewSidebar({
             </div>
           ) : (
             <p className="text-sm text-foreground/45">
-              Recent outputs will appear here once the workspace starts routing
-              work.
+              {translate('recentOutputsEmpty')}
             </p>
           )}
         </Card>
@@ -266,7 +268,9 @@ export function WorkspaceOverviewSidebar({
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
             >
-              <Link href={APP_ROUTES.WORKSPACE.INBOX_UNREAD}>Open Inbox</Link>
+              <Link href={APP_ROUTES.WORKSPACE.INBOX_UNREAD}>
+                {translate('openInbox')}
+              </Link>
             </Button>
           }
           bodyClassName="p-4"

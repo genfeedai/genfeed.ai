@@ -9,6 +9,7 @@ import {
   YoutubeOAuth2Util,
   type YoutubeOAuthClient,
 } from '@server/shared/utils/youtube-oauth/youtube-oauth.util';
+import type { Mock } from 'vitest';
 
 // Mock external utils
 vi.mock('@libs/utils/encryption/encryption.util', () => ({

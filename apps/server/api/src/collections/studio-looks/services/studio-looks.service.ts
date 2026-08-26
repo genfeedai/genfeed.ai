@@ -73,8 +73,12 @@ export class StudioLooksService extends BaseService<StudioLookDocument> {
     dto: UpdateStudioLookDto,
     scope: StudioLookRequestScope,
   ): Promise<StudioLookDocument | null> {
-    const where = this.scopeWhere(id, scope);
-    const existing = await this.prisma.studioLook.findFirst({ where });
+    const existing = await this.prisma.studioLook.findFirst({
+      where: scopedWhere(scope.organizationId, {
+        brandId: scope.brandId,
+        id,
+      }),
+    });
     if (!existing) {
       return null;
     }
@@ -87,13 +91,21 @@ export class StudioLooksService extends BaseService<StudioLookDocument> {
 
     const { count } = await this.prisma.studioLook.updateMany({
       data,
-      where,
+      where: scopedWhere(scope.organizationId, {
+        brandId: scope.brandId,
+        id,
+      }),
     });
     if (count === 0) {
       return null;
     }
 
-    return await this.prisma.studioLook.findFirst({ where });
+    return await this.prisma.studioLook.findFirst({
+      where: scopedWhere(scope.organizationId, {
+        brandId: scope.brandId,
+        id,
+      }),
+    });
   }
 
   async removeScoped(
@@ -102,19 +114,13 @@ export class StudioLooksService extends BaseService<StudioLookDocument> {
   ): Promise<boolean> {
     const { count } = await this.prisma.studioLook.updateMany({
       data: { isDeleted: true },
-      where: this.scopeWhere(id, scope),
+      where: scopedWhere(scope.organizationId, {
+        brandId: scope.brandId,
+        id,
+      }),
     });
 
     return count > 0;
-  }
-
-  private scopeWhere(id: string, scope: StudioLookRequestScope) {
-    return {
-      brandId: scope.brandId,
-      id,
-      isDeleted: false,
-      organizationId: scope.organizationId,
-    };
   }
 
   private toCreateData(dto: CreateStudioLookDto) {

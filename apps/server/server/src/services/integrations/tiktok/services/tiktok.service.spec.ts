@@ -13,6 +13,7 @@ import {
   TiktokService,
 } from '@server/services/integrations/tiktok/services/tiktok.service';
 import { of } from 'rxjs';
+import type { Mock } from 'vitest';
 
 vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: {

@@ -68,6 +68,7 @@ vi.mock('lucide-react', () => ({
   Archive: () => <span data-testid="hi-archive" />,
   Ban: () => <span data-testid="hi-ban" />,
   CircleCheck: () => <span data-testid="hi-circle-check" />,
+  CircleX: () => <span data-testid="hi-circle-x" />,
   ChevronDown: () => <span data-testid="hi-chevron-down" />,
   ChevronRight: () => <span data-testid="hi-chevron-right" />,
   Clipboard: () => <span data-testid="hi-clipboard-document" />,

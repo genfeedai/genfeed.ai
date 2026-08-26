@@ -4,6 +4,7 @@ import { HttpService } from '@nestjs/axios';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
+import type { Mocked } from 'vitest';
 import { GoogleAdsOAuthService } from './google-ads-oauth.service';
 
 describe('GoogleAdsOAuthService', () => {

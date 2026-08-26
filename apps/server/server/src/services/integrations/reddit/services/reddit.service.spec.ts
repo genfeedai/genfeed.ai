@@ -8,7 +8,15 @@ import {
   type ServerCredentialStore,
 } from '@server/server.dependencies';
 import { of } from 'rxjs';
+import type { Mock } from 'vitest';
 import { RedditService } from './reddit.service';
+
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
+  EncryptionUtil: {
+    decrypt: vi.fn((value: string) => value),
+    encrypt: vi.fn((value: string) => value),
+  },
+}));
 
 describe('RedditService', () => {
   let service: RedditService;

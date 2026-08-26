@@ -26,6 +26,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BrandKitAssetGrid from './BrandKitAssetGrid';
 import BrandKitAssetTile from './BrandKitAssetTile';
@@ -321,6 +322,7 @@ export default function BrandKitReviewCard({
   onBrandOsDraftLoaded,
   onRefreshBrand,
 }: BrandKitReviewCardProps) {
+  const translate = useTranslations('pages.brandKitReview');
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
   );
@@ -766,7 +768,7 @@ export default function BrandKitReviewCard({
               className="text-sm font-semibold"
               id="brand-kit-source-evidence"
             >
-              Source evidence
+              {translate('sourceEvidence')}
             </h3>
             <SourceEvidenceRows evidence={draft.evidence} />
           </section>
@@ -822,7 +824,7 @@ export default function BrandKitReviewCard({
                               </div>
                               {evidenceKind === 'candidate' ? (
                                 <p className="mt-1 text-2xs text-warning">
-                                  Candidate only · not a Genfeed product token
+                                  {translate('candidateTokenNotice')}
                                 </p>
                               ) : null}
                             </div>
