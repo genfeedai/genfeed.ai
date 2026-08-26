@@ -17,6 +17,7 @@ describe('CreditsInterceptor', () => {
   let loggerService: LoggerService;
 
   const mockRequest: {
+    body?: { sourceActionId?: string };
     creditsConfig?: CreditsConfig;
     user?: {
       id: string;
@@ -47,6 +48,7 @@ describe('CreditsInterceptor', () => {
   } as CallHandler;
 
   beforeEach(async () => {
+    delete mockRequest.body;
     const mockCreditDeductionQueueService = {
       queueByokUsage: vi.fn().mockResolvedValue(undefined),
       queueDeduction: vi.fn().mockResolvedValue(undefined),
@@ -56,6 +58,7 @@ describe('CreditsInterceptor', () => {
       debug: vi.fn(),
       error: vi.fn(),
       log: vi.fn(),
+      warn: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -166,6 +169,87 @@ describe('CreditsInterceptor', () => {
           },
         });
       });
+    });
+
+    it('queues confirmed media settlement against the persisted asset identity', async () => {
+      mockRequest.body = { sourceActionId: 'action-123' };
+      mockRequest.creditsConfig = {
+        amount: 10,
+        description: 'Image generation',
+        source: ActivitySource.IMAGE_GENERATION,
+      } as CreditsConfig;
+      mockRequest.user = {
+        id: 'user_123',
+        organizationId,
+        userId,
+      };
+      const handler = {
+        handle: () => of({ data: { id: 'asset-123' } }),
+      } as CallHandler;
+
+      interceptor.intercept(mockContext, handler).subscribe();
+
+      await vi.waitFor(() =>
+        expect(creditDeductionQueueService.queueDeduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            idempotencyKey: 'agent-media-action-123',
+            referenceId: 'action-123',
+            referenceType: 'agent-media:generation',
+            settlementAssetId: 'asset-123',
+          }),
+        ),
+      );
+    });
+
+    it('does not charge confirmed media when acceptance returned no persisted asset', async () => {
+      mockRequest.body = { sourceActionId: 'action-without-asset' };
+      mockRequest.creditsConfig = {
+        amount: 10,
+        description: 'Image generation',
+        source: ActivitySource.IMAGE_GENERATION,
+      } as CreditsConfig;
+      mockRequest.user = {
+        id: 'user_123',
+        organizationId,
+        userId,
+      };
+
+      interceptor.intercept(mockContext, mockHandler).subscribe();
+
+      await vi.waitFor(() =>
+        expect(
+          creditDeductionQueueService.queueDeduction,
+        ).not.toHaveBeenCalled(),
+      );
+    });
+
+    it('fails media acceptance when its durable settlement job cannot be persisted', async () => {
+      mockRequest.body = { sourceActionId: 'action-queue-failure' };
+      mockRequest.creditsConfig = {
+        amount: 10,
+        description: 'Image generation',
+        source: ActivitySource.IMAGE_GENERATION,
+      } as CreditsConfig;
+      mockRequest.user = {
+        id: 'user_123',
+        organizationId,
+        userId,
+      };
+      vi.mocked(
+        creditDeductionQueueService.queueDeduction,
+      ).mockRejectedValueOnce(new Error('settlement queue unavailable'));
+      const handler = {
+        handle: () => of({ data: { id: 'asset-queue-failure' } }),
+      } as CallHandler;
+
+      await expect(
+        new Promise((resolve, reject) => {
+          interceptor.intercept(mockContext, handler).subscribe({
+            error: reject,
+            next: resolve,
+          });
+        }),
+      ).rejects.toThrow('settlement queue unavailable');
     });
 
     it('should forward the pricing audit stamp as deduction metadata', async () => {

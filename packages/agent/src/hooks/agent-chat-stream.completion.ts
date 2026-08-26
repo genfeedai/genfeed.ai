@@ -7,6 +7,7 @@ import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { extractLastGeneratedAssetFromMetadata } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
+import { serializeAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 
 export type ResolveStreamFromMessagesDeps = {
   apiService: AgentApiService;
@@ -116,9 +117,15 @@ export async function resolveStreamFromMessages(
     });
     if (deps.isThreadVisible(pending.threadId)) {
       deps.setError(
-        error instanceof Error
-          ? error.message
-          : 'Agent run did not finish before the recovery timeout.',
+        serializeAgentError({
+          detail:
+            error instanceof Error
+              ? error.message
+              : 'Agent run did not finish before the recovery timeout.',
+          message: 'Agent run recovery timed out',
+          source: 'stream_recovery',
+          status: 408,
+        }),
       );
       deps.setActiveRunStatus('failed');
       deps.resetStreamState();

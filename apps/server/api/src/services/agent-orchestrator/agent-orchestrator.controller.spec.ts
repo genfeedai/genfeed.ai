@@ -26,7 +26,7 @@ describe('AgentOrchestratorController', () => {
   let controller: AgentOrchestratorController;
   let service: {
     chat: ReturnType<typeof vi.fn>;
-    chatStream: ReturnType<typeof vi.fn>;
+    acceptChatStream: ReturnType<typeof vi.fn>;
   };
   let agentGoalsService: {
     create: ReturnType<typeof vi.fn>;
@@ -42,7 +42,7 @@ describe('AgentOrchestratorController', () => {
   beforeEach(() => {
     service = {
       chat: vi.fn(),
-      chatStream: vi.fn(),
+      acceptChatStream: vi.fn(),
     };
     agentGoalsService = {
       create: vi.fn(),
@@ -605,7 +605,7 @@ describe('AgentOrchestratorController', () => {
       usersService.findOne.mockResolvedValue({
         id: identity.organizationId,
       });
-      service.chatStream.mockResolvedValue({
+      service.acceptChatStream.mockResolvedValue({
         runId: 'run-1',
         startedAt: '2026-03-12T00:00:00.000Z',
         threadId: 'thread-stream',
@@ -617,7 +617,7 @@ describe('AgentOrchestratorController', () => {
         'Bearer token123',
       );
 
-      expect(service.chatStream).toHaveBeenCalledWith(
+      expect(service.acceptChatStream).toHaveBeenCalledWith(
         expect.objectContaining({ threadId: 'thread-stream' }),
         expect.any(Object),
       );
@@ -635,7 +635,7 @@ describe('AgentOrchestratorController', () => {
       usersService.findOne.mockResolvedValue({
         id: identity.organizationId,
       });
-      service.chatStream.mockResolvedValue({
+      service.acceptChatStream.mockResolvedValue({
         runId: 'run-1',
         startedAt: '2026-03-12T00:00:00.000Z',
         threadId: 'thread-stream',
@@ -648,7 +648,7 @@ describe('AgentOrchestratorController', () => {
         'Bearer token123',
       );
 
-      expect(service.chatStream).toHaveBeenCalledWith(
+      expect(service.acceptChatStream).toHaveBeenCalledWith(
         expect.objectContaining({ threadId: 'thread-stream' }),
         expect.any(Object),
       );

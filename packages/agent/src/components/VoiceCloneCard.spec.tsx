@@ -25,6 +25,7 @@ import { VoiceCloneCard } from '@genfeedai/agent/components/VoiceCloneCard';
 interface ApiOverrides {
   cloneVoiceEffect?: ReturnType<typeof vi.fn>;
   getClonedVoicesEffect?: ReturnType<typeof vi.fn>;
+  generateVoiceEffect?: ReturnType<typeof vi.fn>;
   setBrandVoiceDefaultsEffect?: ReturnType<typeof vi.fn>;
 }
 
@@ -38,6 +39,9 @@ function makeApiService(overrides: ApiOverrides = {}): AgentApiService {
       }),
     ),
     getClonedVoicesEffect: vi.fn(() => Effect.succeed([])),
+    generateVoiceEffect: vi.fn(() =>
+      Effect.succeed({ id: 'generated-voice-1', status: 'PROCESSING' }),
+    ),
     setBrandVoiceDefaultsEffect: vi.fn(() => Effect.succeed(undefined)),
     ...overrides,
   } as unknown as AgentApiService;
@@ -101,6 +105,34 @@ describe('VoiceCloneCard', () => {
     await waitFor(() =>
       expect(screen.queryByText('Voice setup')).not.toBeInTheDocument(),
     );
+  });
+
+  it('generates requested speech from the selected voice instead of only saving a default', async () => {
+    const generateVoiceEffect = vi.fn(() =>
+      Effect.succeed({ id: 'generated-voice-1', status: 'PROCESSING' }),
+    );
+    render(
+      <VoiceCloneCard
+        action={makeAction({
+          title: 'Generate Voice',
+          voiceoverText: 'Welcome to FUD News',
+        })}
+        apiService={makeApiService({ generateVoiceEffect })}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /use selected voice/i }),
+      );
+    });
+
+    expect(generateVoiceEffect).toHaveBeenCalledWith({
+      sourceActionId: 'voice-card-1',
+      text: 'Welcome to FUD News',
+      voiceId: 'voice-1',
+      waitForCompletion: false,
+    });
   });
 
   it('shows an error when no brand is active', async () => {

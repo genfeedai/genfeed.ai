@@ -14,6 +14,7 @@ import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
+import { resolveIngredientMediaUrl } from '@api/helpers/utils/ingredient-media-url/ingredient-media-url.util';
 import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -31,6 +32,7 @@ import type {
 import type { Prisma } from '@genfeedai/prisma';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { scopedWhere } from '@genfeedai/server';
+import { ConfigService } from '@libs/config/config.service';
 import {
   BadRequestException,
   Body,
@@ -58,6 +60,7 @@ export class IngredientsController {
     private readonly ingredientsService: IngredientsService,
     private readonly foldersService: FoldersService,
     private readonly cancellationService: IngredientGenerationCancellationService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -203,9 +206,18 @@ export class IngredientsController {
       ids,
       user.organizationId,
     );
+    const cdnOrigin = this.configService.ingredientsEndpoint.replace(
+      /\/ingredients\/?$/,
+      '',
+    );
+    const renderableIngredients = ingredients.map((ingredient) => ({
+      ...ingredient,
+      cdnUrl:
+        resolveIngredientMediaUrl(ingredient, cdnOrigin) ?? ingredient.cdnUrl,
+    }));
 
     return serializeCollection(request, IngredientSerializer, {
-      docs: ingredients,
+      docs: renderableIngredients,
     });
   }
 

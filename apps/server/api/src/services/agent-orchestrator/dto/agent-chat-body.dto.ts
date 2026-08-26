@@ -42,6 +42,16 @@ import {
 export class AgentChatBodyDto {
   @IsString()
   @IsNotEmpty()
+  @IsOptional()
+  @MaxLength(128)
+  @ApiProperty({
+    description: 'Stable client-generated identity for idempotent turn retries',
+    maxLength: 128,
+  })
+  clientRequestId?: string;
+
+  @IsString()
+  @IsNotEmpty()
   @MaxLength(32000)
   @ApiProperty({
     description: 'The user message content for this turn',

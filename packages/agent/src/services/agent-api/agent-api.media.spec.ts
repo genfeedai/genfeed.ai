@@ -10,6 +10,7 @@ import {
   createPromptEffect,
   generateIngredientEffect,
   getClonedVoicesEffect,
+  getGeneratedAssetEffect,
   getModelsEffect,
   mergeVideosEffect,
   reframeVideoEffect,
@@ -146,6 +147,29 @@ describe('agent-api.media effects', () => {
       generateIngredientEffect(makeApi(), 'video', { prompt: 'waves' }),
     );
     expect(lastRequest().url).toBe('http://api.test/videos');
+  });
+
+  it('maps the canonical persisted CDN field to a renderable reconciliation URL', async () => {
+    mockJsonApiCollection(
+      [
+        {
+          cdnUrl: 'https://cdn.genfeed.ai/images/generated.png',
+          id: 'ing-1',
+          status: 'GENERATED',
+        },
+      ],
+      'ingredient',
+    );
+
+    const result = await Effect.runPromise(
+      getGeneratedAssetEffect(makeApi(), 'ing-1'),
+    );
+
+    expect(result).toMatchObject({
+      id: 'ing-1',
+      status: 'GENERATED',
+      url: 'https://cdn.genfeed.ai/images/generated.png',
+    });
   });
 
   it('cloneVoiceEffect posts the form data to the clone endpoint', async () => {

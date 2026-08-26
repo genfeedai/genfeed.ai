@@ -40,6 +40,7 @@ export interface AgentChatRequest {
   artifactReferences?: AgentArtifactReference[];
   attachments?: AgentChatAttachment[];
   brandId?: string | null;
+  clientRequestId?: string;
   content: string;
   expectedContextVersion?: number;
   pageContext?: AgentPageContext;
@@ -50,9 +51,22 @@ export interface AgentChatRequest {
   systemPromptOverride?: string;
 }
 
+export interface AgentTurnAcknowledgement {
+  brandId?: string;
+  clientRequestId: string;
+  contextId: string;
+  contextVersion: number;
+  queuedAt: string;
+  runId: string;
+  status: 'queued';
+  threadId: string;
+}
+
 export interface AgentChatContext {
   apiKeyContext?: ApiKeyPublishingContext;
   authToken?: string;
+  /** Queue-owned turns await execution so BullMQ retains the durable lease. */
+  executionMode?: 'background';
   /** Campaign ID — when set, enables campaign coordination features */
   campaignId?: string;
   /**

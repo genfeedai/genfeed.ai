@@ -29,6 +29,7 @@ import { PostAnalyticsService } from '@api/collections/posts/services/post-analy
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
+import { VoicesModule } from '@api/collections/voices/voices.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { HeygenPollModule } from '@api/queues/heygen-poll/heygen-poll.module';
@@ -158,6 +159,7 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     forwardRef(() => PostsModule),
     forwardRef(() => ReplyBotConfigsModule),
     forwardRef(() => SocialInboxModule),
+    forwardRef(() => VoicesModule),
     forwardRef(() => WorkflowExecutionsModule),
     forwardRef(() => WorkflowsModule),
     // Service modules (provide services injected by processors)

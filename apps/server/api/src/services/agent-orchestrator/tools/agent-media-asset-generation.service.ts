@@ -169,11 +169,12 @@ export class AgentMediaAssetGenerationService {
       height: dimensions.height,
       prompt,
       text: prompt,
-      waitForCompletion: true,
+      waitForCompletion: false,
       width: dimensions.width,
       ...(requestedOutputs ? { outputs: requestedOutputs } : {}),
       ...(ctx.brandId ? { brandId: ctx.brandId } : {}),
       ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
+      ...(ctx.sourceActionId ? { sourceActionId: ctx.sourceActionId } : {}),
       ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
       ...(resolvedReferences.references.length > 0
         ? { references: resolvedReferences.references }
@@ -213,38 +214,43 @@ export class AgentMediaAssetGenerationService {
       response,
       this.configService.ingredientsEndpoint,
     );
-    if (!id || !cdnUrl) {
+    if (!id) {
       this.loggerService.warn(
         `generateImage returned no renderable asset for org=${ctx.organizationId} id=${id ?? 'none'}`,
       );
       return this.buildImageGenerationIncompleteResult({
-        error: id
-          ? 'Image generation finished without a usable CDN URL.'
-          : 'Image generation did not return an asset id.',
+        error: 'Image generation did not return an asset id.',
         promptPreview,
         status: Status.PROCESSING,
       });
     }
 
-    this.scoreAsset(id, 'image', ctx.organizationId);
-    await this.onboardingHandler.completeJourneyMission(
-      ctx,
-      'generate_first_image',
-    );
-    const onboardingStatus =
-      await this.onboardingHandler.checkOnboardingStatus(ctx);
+    if (cdnUrl) {
+      this.scoreAsset(id, 'image', ctx.organizationId);
+      await this.onboardingHandler.completeJourneyMission(
+        ctx,
+        'generate_first_image',
+      );
+    }
+    const onboardingStatus = cdnUrl
+      ? await this.onboardingHandler.checkOnboardingStatus(ctx)
+      : {};
+    const status = cdnUrl ? Status.GENERATED : Status.PROCESSING;
 
     return {
       creditsUsed: 0,
-      data: { id, status: Status.GENERATED, url: cdnUrl },
+      data: { id, status, url: cdnUrl },
       isBillingDelegated: true,
       nextActions: [
         {
           ctas: [{ href: `/g/image/${id}`, label: 'View in gallery' }],
-          description: `Image generated from: "${promptPreview}"`,
+          assetId: id,
+          assetKind: 'image',
+          description: `Image ${cdnUrl ? 'generated' : 'is generating'} from: "${promptPreview}"`,
           id: `image-gen-${id}`,
-          images: [cdnUrl],
-          title: 'Image generated',
+          images: cdnUrl ? [cdnUrl] : [],
+          status: cdnUrl ? 'completed' : 'processing',
+          title: cdnUrl ? 'Image generated' : 'Image generating',
           type: 'content_preview_card',
         },
         ...(onboardingStatus.nextActions ?? []),
@@ -379,7 +385,7 @@ export class AgentMediaAssetGenerationService {
       this.configService.ingredientsEndpoint,
     );
 
-    if (id) {
+    if (id && cdnUrl) {
       // Fire-and-forget quality scoring must not delay the generation result.
       this.scoreAsset(id, 'video', ctx.organizationId);
       await this.onboardingHandler.completeJourneyMission(
@@ -387,20 +393,25 @@ export class AgentMediaAssetGenerationService {
         'generate_first_video',
       );
     }
-    const onboardingStatus =
-      await this.onboardingHandler.checkOnboardingStatus(ctx);
+    const onboardingStatus = cdnUrl
+      ? await this.onboardingHandler.checkOnboardingStatus(ctx)
+      : {};
+    const status = cdnUrl ? Status.GENERATED : Status.PROCESSING;
 
     return {
       creditsUsed: 0,
-      data: { id, status: Status.GENERATED, url: cdnUrl },
+      data: { id, status, url: cdnUrl },
       isBillingDelegated: true,
       nextActions: id
         ? [
             {
               ctas: [{ href: `/g/video/${id}`, label: 'View in gallery' }],
-              description: `Video generated from: "${(params.prompt as string).substring(0, 80)}"`,
+              assetId: id,
+              assetKind: 'video',
+              description: `Video ${cdnUrl ? 'generated' : 'is generating'} from: "${(params.prompt as string).substring(0, 80)}"`,
               id: `video-gen-${id}`,
-              title: 'Video generated',
+              status: cdnUrl ? 'completed' : 'processing',
+              title: cdnUrl ? 'Video generated' : 'Video generating',
               type: 'content_preview_card',
               videos: cdnUrl ? [cdnUrl] : [],
             },
@@ -448,7 +459,8 @@ export class AgentMediaAssetGenerationService {
       {
         text: params.text as string,
         voiceId: params.voiceId as string,
-        waitForCompletion: true,
+        waitForCompletion: false,
+        ...(ctx.sourceActionId ? { sourceActionId: ctx.sourceActionId } : {}),
       },
       ctx,
     );
@@ -457,16 +469,28 @@ export class AgentMediaAssetGenerationService {
       readMediaResponseString(response, 'audioUrl') ??
       readMediaAssetUrl(response, this.configService.ingredientsEndpoint);
 
-    return this.buildSimpleAssetResult({
-      assetUrl: cdnUrl,
-      billingDelegated: true,
-      description: `Speech generated: "${(params.text as string).substring(0, 80)}"`,
-      endpoint: 'voice',
-      id,
-      mediaKey: 'audio',
-      response,
-      title: 'Voice generated',
-    });
+    const status = cdnUrl ? Status.GENERATED : Status.PROCESSING;
+    return {
+      creditsUsed: 0,
+      data: { id, status, url: cdnUrl },
+      isBillingDelegated: true,
+      nextActions: id
+        ? [
+            {
+              assetId: id,
+              assetKind: 'voice',
+              audio: cdnUrl ? [cdnUrl] : [],
+              ctas: [{ href: `/g/voice/${id}`, label: 'View in gallery' }],
+              description: `Speech ${cdnUrl ? 'generated' : 'is generating'}: "${(params.text as string).substring(0, 80)}"`,
+              id: `voice-gen-${id}`,
+              status: cdnUrl ? 'completed' : 'processing',
+              title: cdnUrl ? 'Voice generated' : 'Voice generating',
+              type: 'content_preview_card',
+            },
+          ]
+        : [],
+      success: Boolean(id),
+    };
   }
 
   async generateAsIdentity(
@@ -559,10 +583,13 @@ export class AgentMediaAssetGenerationService {
       height: params.dimensions.height,
       prompt: params.prompt,
       text: params.prompt,
-      waitForCompletion: true,
+      waitForCompletion: false,
       width: params.dimensions.width,
       ...(params.ctx.brandId ? { brandId: params.ctx.brandId } : {}),
       ...(params.ctx.runId ? { agentRunId: params.ctx.runId } : {}),
+      ...(params.ctx.sourceActionId
+        ? { sourceActionId: params.ctx.sourceActionId }
+        : {}),
       ...(params.ctx.strategyId
         ? { agentStrategyId: params.ctx.strategyId }
         : {}),

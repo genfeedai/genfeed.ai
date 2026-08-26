@@ -116,7 +116,13 @@ export function UiActionRenderer({
       );
       break;
     case 'content_preview_card':
-      card = <ContentPreviewCard action={action} onCopy={liveOnCopy} />;
+      card = (
+        <ContentPreviewCard
+          action={action}
+          apiService={apiService}
+          onCopy={liveOnCopy}
+        />
+      );
       break;
     case 'payment_cta_card':
       card = (

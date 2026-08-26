@@ -226,6 +226,7 @@ export class AgentBaseApiService {
             message: detail
               ? `${message}: ${response.status} - ${detail}`
               : `${message}: ${response.status}`,
+            source: 'api',
             status: response.status,
           }),
         );
@@ -258,6 +259,7 @@ export class AgentBaseApiService {
           detail: cause instanceof Error ? cause.message : undefined,
           message:
             cause instanceof Error ? cause.message : 'Network request failed',
+          source: 'network',
           status: 0,
         }),
       try: () => fetch(url, init),

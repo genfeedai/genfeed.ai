@@ -17,7 +17,11 @@ import {
   buildPrunaaiPVideoGenerationSource,
 } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import { MODEL_KEYS } from '@genfeedai/constants';
-import { IngredientCategory, ModelProvider } from '@genfeedai/enums';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  ModelProvider,
+} from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -249,6 +253,7 @@ describe('VideoGenerationService', () => {
       creditsService,
       executionService,
       preparationService,
+      videosService as never,
     );
 
     return {
@@ -309,6 +314,80 @@ describe('VideoGenerationService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('returns the accepted source-action asset without dispatching the provider again', async () => {
+    const { klingAIService, service, sharedService, videosService } =
+      createService();
+    videosService.findOne.mockResolvedValue({
+      id: 'video-accepted',
+      metadata: { externalId: 'provider-job-1' },
+      status: IngredientStatus.PROCESSING,
+    });
+
+    const response = await service.generateVideo(
+      buildUser(),
+      baseDto({
+        sourceActionId: 'generation-card-1',
+        waitForCompletion: false,
+      }),
+      buildRequest(),
+    );
+
+    expect(response).toMatchObject({ data: { id: 'video-accepted' } });
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(klingAIService.queueGenerateTextToVideo).not.toHaveBeenCalled();
+  });
+
+  it('re-dispatches a source-action placeholder that never reached a provider', async () => {
+    const { klingAIService, service, sharedService, videosService } =
+      createService();
+    videosService.findOne.mockResolvedValue({
+      createdAt: new Date(Date.now() - 10 * 60 * 1000),
+      id: 'video-orphaned',
+      metadata: { externalId: null },
+      status: IngredientStatus.PROCESSING,
+    });
+
+    await service.generateVideo(
+      buildUser(),
+      baseDto({
+        sourceActionId: 'generation-card-orphaned',
+        waitForCompletion: false,
+      }),
+      buildRequest(),
+    );
+
+    expect(videosService.patch).toHaveBeenCalledWith('video-orphaned', {
+      status: IngredientStatus.FAILED,
+    });
+    expect(sharedService.createMediaDocuments).toHaveBeenCalled();
+    expect(klingAIService.queueGenerateTextToVideo).toHaveBeenCalled();
+  });
+
+  it('reuses a fresh source-action placeholder while provider dispatch may still be in flight', async () => {
+    const { klingAIService, service, sharedService, videosService } =
+      createService();
+    videosService.findOne.mockResolvedValue({
+      createdAt: new Date(),
+      id: 'video-in-flight',
+      metadata: { externalId: null },
+      status: IngredientStatus.PROCESSING,
+    });
+
+    const response = await service.generateVideo(
+      buildUser(),
+      baseDto({
+        sourceActionId: 'generation-card-in-flight',
+        waitForCompletion: false,
+      }),
+      buildRequest(),
+    );
+
+    expect(response).toMatchObject({ data: { id: 'video-in-flight' } });
+    expect(videosService.patch).not.toHaveBeenCalled();
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(klingAIService.queueGenerateTextToVideo).not.toHaveBeenCalled();
   });
 
   it('awaits durable placeholder linkage before provider dispatch', async () => {

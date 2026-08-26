@@ -50,6 +50,27 @@ describe('runIdempotent', () => {
     expect(cache.releaseLock).not.toHaveBeenCalled();
   });
 
+  it('supports a short in-flight lock while retaining the completed result window', async () => {
+    const cache = createCache();
+
+    await runIdempotent(
+      cache as never,
+      'media-key',
+      async () => ({ id: 'asset-1' }),
+      { lockTtlSeconds: 120 },
+    );
+
+    expect(cache.acquireLock).toHaveBeenCalledWith(
+      'idempotency:media-key',
+      120,
+    );
+    expect(cache.set).toHaveBeenCalledWith(
+      'idempotency-result:media-key',
+      { id: 'asset-1' },
+      { ttl: 3600 },
+    );
+  });
+
   it('releases the lock when the operation fails so callers can retry', async () => {
     const cache = createCache();
     const error = new Error('boom');

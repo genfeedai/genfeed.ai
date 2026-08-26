@@ -5,6 +5,7 @@ import {
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
 const action = {
@@ -32,6 +33,47 @@ describe('OAuthConnectCard', () => {
 });
 
 describe('ContentPreviewCard', () => {
+  it('reconciles an accepted image asset into the persisted conversation card', async () => {
+    vi.useFakeTimers();
+    const getGeneratedAssetEffect = vi
+      .fn()
+      .mockReturnValueOnce(
+        Effect.succeed({ id: 'image-queued', status: 'PROCESSING' }),
+      )
+      .mockReturnValue(
+        Effect.succeed({
+          id: 'image-queued',
+          status: 'generated',
+          url: 'https://cdn.test/image-queued.png',
+        }),
+      );
+
+    render(
+      <ContentPreviewCard
+        action={{
+          assetId: 'image-queued',
+          assetKind: 'image',
+          id: 'image-output',
+          status: 'processing',
+          title: 'Image generating',
+          type: 'content_preview_card',
+        }}
+        apiService={{ getGeneratedAssetEffect } as never}
+      />,
+    );
+
+    expect(screen.getByLabelText('Image generation in progress')).toBeVisible();
+    await vi.advanceTimersByTimeAsync(2_000);
+
+    expect(
+      await screen.findByRole('button', {
+        name: 'Open Image generating 1 preview',
+      }),
+    ).toBeInTheDocument();
+    expect(getGeneratedAssetEffect).toHaveBeenCalledWith('image-queued');
+    vi.useRealTimers();
+  });
+
   it('opens generated image variants from the conversation card', () => {
     render(
       <ContentPreviewCard

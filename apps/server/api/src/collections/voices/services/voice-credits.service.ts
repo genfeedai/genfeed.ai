@@ -1,5 +1,6 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { ActivitySource } from '@genfeedai/enums';
 import type { CreditsConfig } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
 import type { Request } from 'express';
@@ -51,6 +52,32 @@ export class VoiceCreditsService {
 
     await this.assertOrganizationCanAfford(organizationId, credits);
     this.finalizeRequestCredits(request, credits);
+  }
+
+  async settleBackgroundGenerationCredits(params: {
+    durationSeconds: number;
+    ingredientId: string;
+    organizationId: string;
+    userId: string;
+  }): Promise<void> {
+    const credits = Math.max(
+      1,
+      Math.ceil(
+        ((Number(params.durationSeconds) || 0) / 60) * VOICE_CREDITS_PER_MINUTE,
+      ),
+    );
+    await this.creditsUtilsService.deductCreditsFromOrganization(
+      params.organizationId,
+      params.userId,
+      credits,
+      'Voice generation (TTS)',
+      ActivitySource.VOICE_GENERATION,
+      {
+        maxOverdraftCredits: credits,
+        referenceId: params.ingredientId,
+        referenceType: 'agent-media:voice-generation',
+      },
+    );
   }
 
   async settleElevenLabsCloneCredits(

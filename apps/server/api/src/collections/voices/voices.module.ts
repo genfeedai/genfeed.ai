@@ -19,6 +19,7 @@ import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { VotesModule } from '@api/collections/votes/votes.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { QueuesModule } from '@api/queues/core/queues.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
@@ -34,7 +35,7 @@ import { Module } from '@nestjs/common';
     VoicesCatalogController,
     VoicesOperationsController,
   ],
-  exports: [ExternalVoiceCatalogService, VoicesService],
+  exports: [ExternalVoiceCatalogService, VoiceGenerationService, VoicesService],
   imports: [
     IngredientsModule,
     MetadataModule,
@@ -48,6 +49,7 @@ import { Module } from '@nestjs/common';
     FleetModule,
     HeyGenModule,
     NotificationsPublisherModule,
+    QueuesModule,
     VotesModule,
   ],
   providers: [

@@ -7,6 +7,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { testId } from '@helpers/testing/test-id.helper';
+import { ConfigService } from '@libs/config/config.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -91,6 +92,12 @@ describe('IngredientsController folder assignment', () => {
           provide: IngredientGenerationCancellationService,
           useValue: {
             cancelProcessingIngredient: vi.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            ingredientsEndpoint: 'https://cdn.genfeed.ai/ingredients',
           },
         },
       ],

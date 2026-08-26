@@ -23,6 +23,14 @@ export class GenerateVoiceDto {
   })
   readonly voiceId!: string;
 
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Confirmed agent action identity for durable reconciliation',
+    required: false,
+  })
+  readonly sourceActionId?: string;
+
   @IsNumber()
   @IsOptional()
   @Min(0.5)

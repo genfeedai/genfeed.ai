@@ -297,6 +297,7 @@ const createService = () => {
     failedGenerationService,
     falService,
     ingredientsService,
+    imagesService,
     loggerService,
     metadataService,
     modelRegistrationService,
@@ -338,6 +339,83 @@ beforeEach(() => {
 });
 
 describe('ImageGenerationService', () => {
+  it('returns the accepted source-action asset without dispatching the provider again', async () => {
+    const { imagesService, replicateService, service, sharedService } =
+      createService();
+    imagesService.findOne.mockResolvedValue({
+      id: 'ing-accepted',
+      metadata: { externalId: 'provider-job-1' },
+      organizationId: 'org-1',
+      status: IngredientStatus.PROCESSING,
+    });
+
+    const response = await service.generateImage(
+      buildUser(),
+      baseDto({
+        sourceActionId: 'generation-card-1',
+        waitForCompletion: false,
+      }),
+      buildRequest(),
+    );
+
+    expect(response).toMatchObject({ data: { id: 'ing-accepted' } });
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+  });
+
+  it('re-dispatches a source-action placeholder that never reached a provider', async () => {
+    const { imagesService, replicateService, service, sharedService } =
+      createService();
+    imagesService.findOne.mockResolvedValue({
+      createdAt: new Date(Date.now() - 10 * 60 * 1000),
+      id: 'ing-orphaned',
+      metadata: { externalId: null },
+      organizationId: 'org-1',
+      status: IngredientStatus.PROCESSING,
+    });
+
+    await service.generateImage(
+      buildUser(),
+      baseDto({
+        sourceActionId: 'generation-card-orphaned',
+        waitForCompletion: false,
+      }),
+      buildRequest(),
+    );
+
+    expect(imagesService.patch).toHaveBeenCalledWith('ing-orphaned', {
+      status: IngredientStatus.FAILED,
+    });
+    expect(sharedService.createMediaDocuments).toHaveBeenCalled();
+    expect(replicateService.generateTextToImage).toHaveBeenCalled();
+  });
+
+  it('reuses a fresh source-action placeholder while provider dispatch may still be in flight', async () => {
+    const { imagesService, replicateService, service, sharedService } =
+      createService();
+    imagesService.findOne.mockResolvedValue({
+      createdAt: new Date(),
+      id: 'ing-in-flight',
+      metadata: { externalId: null },
+      organizationId: 'org-1',
+      status: IngredientStatus.PROCESSING,
+    });
+
+    const response = await service.generateImage(
+      buildUser(),
+      baseDto({
+        sourceActionId: 'generation-card-in-flight',
+        waitForCompletion: false,
+      }),
+      buildRequest(),
+    );
+
+    expect(response).toMatchObject({ data: { id: 'ing-in-flight' } });
+    expect(imagesService.patch).not.toHaveBeenCalled();
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+  });
+
   it('awaits durable placeholder linkage before provider dispatch', async () => {
     const { replicateService, service, sharedService } = createService();
     const order: string[] = [];

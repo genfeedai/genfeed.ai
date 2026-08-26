@@ -100,6 +100,14 @@ export class CreateIngredientDto {
   @ApiProperty({ required: false })
   readonly agentStrategyId?: string;
 
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Confirmed agent action identity for durable reconciliation',
+    required: false,
+  })
+  readonly sourceActionId?: string;
+
   @IsEntityId({ each: true })
   @IsArray()
   @IsOptional()

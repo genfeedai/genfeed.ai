@@ -3,6 +3,7 @@ import type { IngredientDocument } from '@api/collections/ingredients/schemas/in
 import type { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto';
 import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
+import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
@@ -26,6 +27,7 @@ export class VoiceGenerationService {
     private readonly sharedService: SharedService,
     private readonly voiceCreditsService: VoiceCreditsService,
     private readonly voicesService: VoicesService,
+    private readonly agentRunQueueService: AgentRunQueueService,
   ) {}
 
   async generate(
@@ -34,6 +36,38 @@ export class VoiceGenerationService {
     request: Request,
   ): Promise<IngredientDocument> {
     this.validateRequest(dto);
+
+    if (dto.sourceActionId) {
+      const accepted = await this.voicesService.findOne(
+        {
+          isDeleted: false,
+          organizationId: user.organizationId,
+          sourceActionId: dto.sourceActionId,
+          status: {
+            in: [
+              IngredientStatus.PROCESSING,
+              IngredientStatus.GENERATED,
+              IngredientStatus.VALIDATED,
+            ],
+          },
+        },
+        [PopulatePatterns.metadataFull],
+      );
+      if (accepted) {
+        if (
+          String(accepted.status).toUpperCase() === IngredientStatus.PROCESSING
+        ) {
+          await this.agentRunQueueService.queueVoiceGeneration({
+            ingredientId: String(accepted.id),
+            organizationId: user.organizationId,
+            text: dto.text,
+            userId: user.userId ?? user.id,
+            voiceId: dto.voiceId,
+          });
+        }
+        return accepted;
+      }
+    }
 
     await this.voiceCreditsService.assertOrganizationCanAfford(
       user.organizationId,
@@ -48,42 +82,146 @@ export class VoiceGenerationService {
         extension: MetadataExtension.MP3,
         organizationId: user.organizationId,
         status: IngredientStatus.PROCESSING,
+        sourceActionId: dto.sourceActionId,
         voiceSource: 'generated',
       },
     );
     const ingredientId = String(ingredientData.id);
 
-    try {
-      const result = await this.elevenLabsService.generateAndUploadAudio(
-        dto.voiceId,
-        dto.text,
+    if (dto.waitForCompletion !== true) {
+      await this.agentRunQueueService.queueVoiceGeneration({
         ingredientId,
-        user.organizationId,
-        user.userId ?? user.id,
+        organizationId: user.organizationId,
+        text: dto.text,
+        userId: user.userId ?? user.id,
+        voiceId: dto.voiceId,
+      });
+      const accepted = await this.voicesService.findOne(
+        {
+          id: ingredientId,
+          isDeleted: false,
+          organizationId: user.organizationId,
+        },
+        [PopulatePatterns.metadataFull],
+      );
+      if (!accepted) {
+        throw new HttpException(
+          {
+            detail: `Ingredient ${ingredientId} not found after acceptance`,
+            title: 'Generation error',
+          },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      return accepted;
+    }
+
+    return this.executeGeneration({
+      ingredientId,
+      organizationId: user.organizationId,
+      request,
+      text: dto.text,
+      userId: user.userId ?? user.id,
+      voiceId: dto.voiceId,
+    });
+  }
+
+  async executeQueuedGeneration(params: {
+    ingredientId: string;
+    organizationId: string;
+    text: string;
+    userId: string;
+    voiceId: string;
+  }): Promise<IngredientDocument> {
+    const existing = await this.voicesService.findOne(
+      {
+        id: params.ingredientId,
+        isDeleted: false,
+        organizationId: params.organizationId,
+      },
+      [PopulatePatterns.metadataFull],
+    );
+    if (
+      (existing?.cdnUrl || existing?.s3Key) &&
+      ['GENERATED', 'VALIDATED'].includes(String(existing.status).toUpperCase())
+    ) {
+      await this.voiceCreditsService.settleBackgroundGenerationCredits({
+        durationSeconds: Number(existing.duration) || 0,
+        ingredientId: params.ingredientId,
+        organizationId: params.organizationId,
+        userId: params.userId,
+      });
+      return existing;
+    }
+    return this.executeGeneration(params);
+  }
+
+  private async executeGeneration(params: {
+    ingredientId: string;
+    organizationId: string;
+    request?: Request;
+    text: string;
+    userId: string;
+    voiceId: string;
+  }): Promise<IngredientDocument> {
+    let result: { audioUrl: string; duration: number };
+    try {
+      result = await this.elevenLabsService.generateAndUploadAudio(
+        params.voiceId,
+        params.text,
+        params.ingredientId,
+        params.organizationId,
+        params.userId,
       );
 
       await this.voicesService.patchAll(
-        { id: ingredientId },
         {
+          id: params.ingredientId,
+          isDeleted: false,
+          organizationId: params.organizationId,
+        },
+        {
+          cdnUrl: result.audioUrl,
           duration: result.duration,
           status: IngredientStatus.GENERATED,
-          url: result.audioUrl,
         },
       );
-      await this.voiceCreditsService.settleGenerationCredits(
-        request,
-        user.organizationId,
-        result.duration,
+    } catch (error: unknown) {
+      return await this.handleFailure(
+        params.ingredientId,
+        params.organizationId,
+        error,
       );
+    }
+
+    try {
+      if (params.request) {
+        await this.voiceCreditsService.settleGenerationCredits(
+          params.request,
+          params.organizationId,
+          result.duration,
+        );
+      } else {
+        await this.voiceCreditsService.settleBackgroundGenerationCredits({
+          durationSeconds: result.duration,
+          ingredientId: params.ingredientId,
+          organizationId: params.organizationId,
+          userId: params.userId,
+        });
+      }
 
       const completedIngredient = await this.voicesService.findOne(
-        { id: ingredientId },
+        {
+          id: params.ingredientId,
+          isDeleted: false,
+          organizationId: params.organizationId,
+        },
         [PopulatePatterns.metadataFull],
       );
       if (!completedIngredient) {
         throw new HttpException(
           {
-            detail: `Ingredient ${ingredientId} not found after generation`,
+            detail: `Ingredient ${params.ingredientId} not found after generation`,
             title: 'Generation error',
           },
           HttpStatus.INTERNAL_SERVER_ERROR,
@@ -92,7 +230,14 @@ export class VoiceGenerationService {
 
       return completedIngredient;
     } catch (error: unknown) {
-      return await this.handleFailure(ingredientId, error);
+      if (!params.request) {
+        throw error;
+      }
+      return await this.handleFailure(
+        params.ingredientId,
+        params.organizationId,
+        error,
+      );
     }
   }
 
@@ -114,12 +259,13 @@ export class VoiceGenerationService {
 
   private async handleFailure(
     ingredientId: string,
+    organizationId: string,
     error: unknown,
   ): Promise<never> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.error(`${url} voice generation failed`, error);
     await this.voicesService.patchAll(
-      { id: ingredientId },
+      { id: ingredientId, isDeleted: false, organizationId },
       { status: IngredientStatus.FAILED },
     );
 

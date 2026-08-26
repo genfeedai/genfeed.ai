@@ -10,6 +10,12 @@ export class AgentApiRequestError extends Data.TaggedError(
 )<{
   readonly detail?: string;
   readonly message: string;
+  readonly source?:
+    | 'acknowledgement'
+    | 'api'
+    | 'network'
+    | 'provider'
+    | 'stream_recovery';
   readonly status: number;
 }> {}
 

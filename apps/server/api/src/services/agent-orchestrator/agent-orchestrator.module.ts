@@ -58,6 +58,7 @@ import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agen
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
+import { AgentTurnAcceptanceService } from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
 import { AgentTurnRoundRunnerService } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
@@ -207,6 +208,7 @@ import { Module } from '@nestjs/common';
     AgentRouteRewriteService,
     AgentStreamEffectsService,
     AgentThreadEventRecorderService,
+    AgentTurnAcceptanceService,
     AgentToolExecutorService,
     AgentTurnRoundRunnerService,
     {

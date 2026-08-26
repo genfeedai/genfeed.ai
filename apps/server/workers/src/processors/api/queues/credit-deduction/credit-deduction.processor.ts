@@ -8,6 +8,7 @@ import {
   CreditDeductionJobData,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job, UnrecoverableError } from 'bullmq';
@@ -25,6 +26,7 @@ export class CreditDeductionProcessor extends WorkerHost {
     private readonly notificationsService: NotificationsService,
     private readonly redisService: RedisService,
     private readonly logger: LoggerService,
+    private readonly prisma: PrismaService,
   ) {
     super();
   }
@@ -44,6 +46,13 @@ export class CreditDeductionProcessor extends WorkerHost {
       if (type === 'deduct-credits') {
         if (!userId) {
           throw new UnrecoverableError('Credit deduction job missing userId');
+        }
+
+        if (
+          job.data.settlementAssetId &&
+          !(await this.isMediaSettlementBillable(job.data))
+        ) {
+          return;
         }
 
         await this.creditsUtilsService.deductCreditsFromOrganization(
@@ -102,6 +111,48 @@ export class CreditDeductionProcessor extends WorkerHost {
       // Transient error — BullMQ retries
       throw error;
     }
+  }
+
+  private async isMediaSettlementBillable(
+    data: CreditDeductionJobData,
+  ): Promise<boolean> {
+    const asset = await this.prisma.ingredient.findFirst({
+      select: { cdnUrl: true, id: true, s3Key: true, status: true },
+      where: {
+        id: data.settlementAssetId,
+        isDeleted: false,
+        organizationId: data.organizationId,
+      },
+    });
+    const status = String(asset?.status ?? '').toUpperCase();
+    if (['FAILED', 'REJECTED', 'ARCHIVED'].includes(status)) {
+      this.logger.log(
+        `${this.constructorName} skipped terminal media settlement`,
+        {
+          assetId: data.settlementAssetId,
+          organizationId: data.organizationId,
+          status,
+        },
+      );
+      return false;
+    }
+    if (status !== 'GENERATED' && status !== 'VALIDATED') {
+      throw new Error(
+        `Media asset ${data.settlementAssetId} is not terminal (${status || 'missing'})`,
+      );
+    }
+    if (!asset?.cdnUrl && !asset?.s3Key) {
+      this.logger.log(
+        `${this.constructorName} skipped inaccessible media settlement`,
+        {
+          assetId: data.settlementAssetId,
+          organizationId: data.organizationId,
+          status,
+        },
+      );
+      return false;
+    }
+    return true;
   }
 
   private async checkLowCredits(organizationId: string): Promise<void> {

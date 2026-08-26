@@ -10,6 +10,7 @@ import type {
   UpdateAgentThreadContextPayload,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiError } from '@genfeedai/agent/services/agent-api-error';
+import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import type {
   AgentApiCollectionPage,
   AgentBaseApiService,
@@ -121,11 +122,27 @@ export function chatStreamEffect(
     ? `${AGENT_THREADS_ENDPOINT}/${threadId}/turns/stream`
     : `${AGENT_THREADS_ENDPOINT}/turns/stream`;
 
-  return api.fetchJsonEffect<AgentChatStreamResponse>(
-    `${api.config.baseUrl}${endpoint}`,
-    { body: JSON.stringify(body), method: 'POST', signal },
-    'Agent chat stream failed',
-  );
+  return api
+    .fetchJsonEffect<AgentChatStreamResponse>(
+      `${api.config.baseUrl}${endpoint}`,
+      { body: JSON.stringify(body), method: 'POST', signal },
+      'Agent chat stream failed',
+    )
+    .pipe(
+      Effect.mapError((error) =>
+        error instanceof AgentApiRequestError
+          ? new AgentApiRequestError({
+              detail: error.detail,
+              message: error.message,
+              source:
+                error.status === 408 || error.status === 504
+                  ? 'acknowledgement'
+                  : error.source,
+              status: error.status,
+            })
+          : error,
+      ),
+    );
 }
 
 export function getThreadsEffect(

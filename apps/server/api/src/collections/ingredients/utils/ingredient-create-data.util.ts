@@ -61,6 +61,7 @@ const INGREDIENT_SCALAR_FIELDS = [
   's3Key',
   'sampleAudioUrl',
   'scope',
+  'sourceActionId',
   'status',
   'templateVersion',
   'trainingId',

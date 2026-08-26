@@ -199,6 +199,45 @@ describe('useAgentChatStream', () => {
     );
   });
 
+  it('retries an ambiguous acknowledgement once with the same client request identity', async () => {
+    const acceptedAt = '2026-08-26T08:00:00.000Z';
+    const chatStream = vi
+      .fn()
+      .mockRejectedValueOnce(
+        Object.assign(new Error('Network request failed'), { status: 0 }),
+      )
+      .mockResolvedValue({
+        clientRequestId: 'server-echo',
+        contextId: 'thread-recovered:v1',
+        contextVersion: 1,
+        queuedAt: acceptedAt,
+        runId: 'run-recovered',
+        status: 'queued',
+        threadId: 'thread-recovered',
+      });
+    const apiService = createApiService({ chatStream });
+
+    const { result } = renderHook(() => useAgentChatStream({ apiService }));
+
+    await act(async () => {
+      await result.current.sendMessage('Recover this acknowledgement');
+    });
+
+    expect(chatStream).toHaveBeenCalledTimes(2);
+    const firstRequest = chatStream.mock.calls[0]?.[0];
+    const retryRequest = chatStream.mock.calls[1]?.[0];
+    expect(firstRequest.clientRequestId).toEqual(expect.any(String));
+    expect(retryRequest.clientRequestId).toBe(firstRequest.clientRequestId);
+    expect(useAgentChatStore.getState()).toEqual(
+      expect.objectContaining({
+        activeRunId: 'run-recovered',
+        activeRunStatus: 'running',
+        activeThreadId: 'thread-recovered',
+        runStartedAt: acceptedAt,
+      }),
+    );
+  });
+
   it('writes the send title into the store immediately without a refresh event', async () => {
     const refreshListener = vi.fn();
     window.addEventListener('agent:threads:refresh', refreshListener);
@@ -581,25 +620,23 @@ describe('useAgentChatStream', () => {
     );
   });
 
-  it('falls back to non-streaming chat when the socket is not ready', async () => {
+  it('durably accepts the turn when the socket is not ready', async () => {
     socketReady = false;
     socketConnected = false;
 
+    const queuedAt = '2026-08-26T09:00:00.000Z';
     const apiService = createApiService({
-      chat: vi.fn().mockResolvedValue({
+      chat: vi.fn(),
+      chatStream: vi.fn().mockResolvedValue({
         brandId: null,
+        clientRequestId: 'request-offline-socket',
+        contextId: 'context-offline-socket',
         contextVersion: 1,
-        creditsRemaining: 96,
-        creditsUsed: 4,
-        message: {
-          content: 'Here are your analytics.',
-          metadata: {},
-          role: 'assistant',
-        },
+        queuedAt,
+        runId: 'run-offline-socket',
+        status: 'queued',
         threadId: 'thread-fallback',
-        toolCalls: [],
       }),
-      chatStream: vi.fn(),
     });
 
     const { result } = renderHook(() =>
@@ -614,20 +651,18 @@ describe('useAgentChatStream', () => {
 
     const state = useAgentChatStore.getState();
 
-    expect(apiService.chatStream).not.toHaveBeenCalled();
-    expect(apiService.chat).toHaveBeenCalledTimes(1);
-    // No client-side default: the hook sends model: undefined and the
-    // server resolves the registry default (agent-runtime-model.constant).
-    expect(apiService.chat).toHaveBeenCalledWith(
+    expect(apiService.chat).not.toHaveBeenCalled();
+    expect(apiService.chatStream).toHaveBeenCalledTimes(1);
+    expect(apiService.chatStream).toHaveBeenCalledWith(
       expect.objectContaining({
         content: 'Show me the analytics',
         model: undefined,
       }),
-      undefined,
+      expect.any(AbortSignal),
     );
     expect(state.activeThreadId).toBe('thread-fallback');
-    expect(state.messages.at(-1)?.content).toBe('Here are your analytics.');
-    expect(state.stream.isStreaming).toBe(false);
+    expect(state.activeRunId).toBe('run-offline-socket');
+    expect(state.stream.isStreaming).toBe(true);
     expect(state.threads[0]).toEqual(
       expect.objectContaining({
         brandId: null,

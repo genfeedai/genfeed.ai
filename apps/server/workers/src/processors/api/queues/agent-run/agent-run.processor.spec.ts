@@ -22,6 +22,10 @@ describe('AgentRunProcessor', () => {
   };
   let agentOrchestratorService: {
     chat: ReturnType<typeof vi.fn>;
+    chatStream: ReturnType<typeof vi.fn>;
+  };
+  let voiceGenerationService: {
+    executeQueuedGeneration: ReturnType<typeof vi.fn>;
   };
   let agentStrategiesService: {
     checkQuota?: ReturnType<typeof vi.fn>;
@@ -33,6 +37,7 @@ describe('AgentRunProcessor', () => {
     executeQueuedRun: ReturnType<typeof vi.fn>;
   };
   let agentStreamPublisherService: {
+    publishError: ReturnType<typeof vi.fn>;
     publishRunComplete: ReturnType<typeof vi.fn>;
     publishRunStart: ReturnType<typeof vi.fn>;
   };
@@ -58,7 +63,9 @@ describe('AgentRunProcessor', () => {
 
     agentOrchestratorService = {
       chat: vi.fn(),
+      chatStream: vi.fn(),
     };
+    voiceGenerationService = { executeQueuedGeneration: vi.fn() };
 
     agentStrategiesService = {
       incrementFailures: vi.fn(),
@@ -71,6 +78,7 @@ describe('AgentRunProcessor', () => {
     };
 
     agentStreamPublisherService = {
+      publishError: vi.fn(),
       publishRunComplete: vi.fn(),
       publishRunStart: vi.fn(),
     };
@@ -87,8 +95,100 @@ describe('AgentRunProcessor', () => {
       agentStrategiesService as never,
       agentStrategyAutopilotService as never,
       agentStreamPublisherService as never,
+      voiceGenerationService as never,
       undefined as never,
       taskOrchestratorService as never,
+    );
+  });
+
+  it('holds the BullMQ lease while an accepted chat turn executes in the background', async () => {
+    const job = {
+      data: {
+        clientRequestId: 'request-1',
+        kind: 'agent-chat-turn',
+        organizationId: 'org-1',
+        request: {
+          clientRequestId: 'request-1',
+          content: 'Generate an image',
+          threadId: 'thread-1',
+        },
+        runId: 'run-1',
+        threadId: 'thread-1',
+        userId: 'user-1',
+      },
+    } as Job<AgentRunJobData>;
+
+    await processor.process(job);
+
+    expect(agentOrchestratorService.chatStream).toHaveBeenCalledWith(
+      expect.objectContaining({ clientRequestId: 'request-1' }),
+      expect.objectContaining({ executionMode: 'background', runId: 'run-1' }),
+    );
+    expect(agentRunsService.complete).not.toHaveBeenCalled();
+  });
+
+  it('persists and publishes a safe terminal failure when durable retries are exhausted', async () => {
+    agentOrchestratorService.chatStream.mockRejectedValue(
+      new Error('connect ECONNREFUSED 127.0.0.1:4635'),
+    );
+    const job = {
+      attemptsMade: 2,
+      data: {
+        clientRequestId: 'request-1',
+        kind: 'agent-chat-turn',
+        organizationId: 'org-1',
+        request: {
+          clientRequestId: 'request-1',
+          content: 'Generate an image',
+          threadId: 'thread-1',
+        },
+        runId: 'run-1',
+        threadId: 'thread-1',
+        userId: 'user-1',
+      },
+      opts: { attempts: 3 },
+    } as Job<AgentRunJobData>;
+
+    await expect(processor.process(job)).rejects.toThrow();
+
+    expect(agentRunsService.fail).toHaveBeenCalledWith(
+      'run-1',
+      'org-1',
+      'Agent generation could not be completed after durable retries.',
+    );
+    expect(agentStreamPublisherService.publishError).toHaveBeenCalledWith({
+      error: 'Agent generation could not be completed. Please retry.',
+      runId: 'run-1',
+      threadId: 'thread-1',
+      userId: 'user-1',
+    });
+  });
+
+  it('redelivers queued voice rendering through the durable worker', async () => {
+    const job = {
+      data: {
+        kind: 'voice-generation',
+        organizationId: 'org-1',
+        runId: 'voice-1',
+        userId: 'user-1',
+        voiceRequest: {
+          ingredientId: 'voice-1',
+          text: 'Hello',
+          voiceId: 'provider-voice-1',
+        },
+      },
+    } as Job<AgentRunJobData>;
+
+    await processor.process(job);
+
+    expect(voiceGenerationService.executeQueuedGeneration).toHaveBeenCalledWith(
+      {
+        ingredientId: 'voice-1',
+        organizationId: 'org-1',
+        text: 'Hello',
+        userId: 'user-1',
+        voiceId: 'provider-voice-1',
+      },
     );
   });
 
@@ -203,6 +303,7 @@ describe('AgentRunProcessor', () => {
         strategiesService as never,
         agentStrategyAutopilotService as never,
         agentStreamPublisherService as never,
+        voiceGenerationService as never,
         campaignExecutionService as never,
         undefined,
       );

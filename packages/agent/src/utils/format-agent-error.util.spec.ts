@@ -2,6 +2,39 @@ import { describe, expect, it } from 'vitest';
 import { formatAgentError } from './format-agent-error.util';
 
 describe('formatAgentError', () => {
+  it.each([
+    [
+      { source: 'acknowledgement', status: 504 },
+      'Turn acknowledgement timed out',
+    ],
+    [{ source: 'stream_recovery', status: 408 }, 'Run timed out'],
+    [{ source: 'provider', status: 504 }, 'Provider temporarily unavailable'],
+    [{ source: 'network', status: 0 }, 'Connection interrupted'],
+  ] as const)(
+    'classifies structured %s errors without raw-string guessing',
+    (input, title) => {
+      expect(formatAgentError(input).title).toBe(title);
+    },
+  );
+
+  it('never exposes localhost health checks in production recovery copy', () => {
+    const formatted = formatAgentError({ source: 'network', status: 0 });
+    expect(`${formatted.summary} ${formatted.recovery}`).not.toMatch(
+      /localhost|127\.0\.0\.1/i,
+    );
+  });
+
+  it('classifies the message inside a structured API error instead of rendering its transport envelope', () => {
+    const formatted = formatAgentError({
+      message: 'Generation failed: 500',
+      source: 'api',
+      status: 500,
+    });
+
+    expect(formatted.title).toBe('Connection interrupted');
+    expect(formatted.detail).not.toMatch(/agent-error|\{"/i);
+  });
+
   it('maps missing provider credentials to configuration guidance', () => {
     const formatted = formatAgentError(
       'OPENROUTER_API_KEY is not configured for this environment',
