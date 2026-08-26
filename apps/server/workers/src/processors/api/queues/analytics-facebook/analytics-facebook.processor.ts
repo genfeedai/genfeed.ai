@@ -1,4 +1,3 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
@@ -12,6 +11,7 @@ import {
   ANALYTICS_FACEBOOK_QUEUE,
   SocialAnalyticsJobData,
 } from '@genfeedai/queue-contracts';
+import { SERVER_TOKENS, type ServerCredentialStore } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BrokenCircuitError,
@@ -22,7 +22,6 @@ import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject } from '@nestjs/common';
 import { classifyAnalyticsCollectionError } from '@server/analytics/analytics-collection-state';
-import { SERVER_TOKENS } from '@server/server.dependencies';
 import { ANALYTICS_JOB_LIMITER } from '@workers/processors/api/queues/shared/analytics-queue-limiters';
 import { Job } from 'bullmq';
 
@@ -31,7 +30,8 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
   private readonly circuitBreaker: ProcessorCircuitBreaker;
 
   constructor(
-    private readonly credentialsService: CredentialsService,
+    @Inject(SERVER_TOKENS.credentials)
+    private readonly credentialsService: ServerCredentialStore,
     private readonly facebookService: FacebookService,
     private readonly postAnalyticsService: PostAnalyticsService,
     @Inject(SERVER_TOKENS.analyticsCollectionState)

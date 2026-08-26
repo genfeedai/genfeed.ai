@@ -1,5 +1,4 @@
-import type { Credential } from '@genfeedai/prisma';
-
-export type { Credential } from '@genfeedai/prisma';
-
-export type CredentialDocument = Credential;
+export type {
+  Credential,
+  CredentialDocument,
+} from '@server/collections/credentials/credential.types';

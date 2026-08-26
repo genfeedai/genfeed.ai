@@ -2,7 +2,6 @@ import { createHash, randomBytes } from 'node:crypto';
 import { OAUTH_STATE_TTL_MS } from '@api/collections/credentials/constants/oauth.constants';
 import { CreateCredentialDto } from '@api/collections/credentials/dto/create-credential.dto';
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
-import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import type { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
@@ -23,7 +22,14 @@ import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import type {
+  CredentialDocument,
+  ResolveBrandAccountOptions,
+} from '@server/collections/credentials/credential.types';
+import type { ServerCredentialStore } from '@server/collections/credentials/credentials.port';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+
+export type { ResolveBrandAccountOptions } from '@server/collections/credentials/credential.types';
 
 function hashOAuthRequestToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -86,24 +92,6 @@ export interface OAuthCredentialScope {
   userId?: string;
 }
 
-/**
- * How a brand-scoped caller names the account it acts as. `credentialId` is
- * optional only so pre-multi-account call sites keep compiling; every caller
- * that can know the account SHOULD pass it.
- */
-export type ResolveBrandAccountOptions = {
-  brandId: string;
-  credentialId?: string | null;
-  /**
-   * Include accounts whose connection has lapsed. Token-repair paths need this
-   * — a refresh that failed flips `isConnected` off, and the next attempt still
-   * has to find the row it is trying to repair. Publishing paths leave it off.
-   */
-  isDisconnectedIncluded?: boolean;
-  organizationId: string;
-  platform: CredentialPlatform;
-};
-
 export type PendingOAuthCredential = CredentialDocument & {
   brandId: string;
   organizationId: string;
@@ -111,11 +99,14 @@ export type PendingOAuthCredential = CredentialDocument & {
 };
 
 @Injectable()
-export class CredentialsService extends BaseService<
-  CredentialDocument,
-  CreateCredentialDto,
-  UpdateCredentialDto
-> {
+export class CredentialsService
+  extends BaseService<
+    CredentialDocument,
+    CreateCredentialDto,
+    UpdateCredentialDto
+  >
+  implements ServerCredentialStore
+{
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,

@@ -1,5 +1,7 @@
 import type { Prisma, PrismaClient } from '@genfeedai/prisma';
 
+export type { ServerCredentialStore } from './collections/credentials/credentials.port';
+
 export const SERVER_TOKENS = {
   analyticsCollectionState: 'SERVER_ANALYTICS_COLLECTION_STATE',
   config: 'SERVER_CONFIG',
@@ -27,10 +29,6 @@ export interface ServerLogger {
   error(message: string, trace?: unknown, context?: unknown): void;
   log(message: string, context?: unknown): void;
   warn(message: string, context?: unknown): void;
-}
-
-export interface ServerCredentialStore {
-  findOne(query: unknown): Promise<unknown>;
 }
 
 export interface ServerTwitterAnalytics {

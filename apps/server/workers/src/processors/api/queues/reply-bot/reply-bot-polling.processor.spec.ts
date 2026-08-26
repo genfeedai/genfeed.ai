@@ -1,6 +1,6 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
+import { SERVER_TOKENS, type ServerCredentialStore } from '@genfeedai/server';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -42,7 +42,7 @@ const makeJob = (data: ReplyBotPollingJobData): Job<ReplyBotPollingJobData> =>
 describe('ReplyBotPollingProcessor', () => {
   let processor: ReplyBotPollingProcessor;
   let replyBotOrchestratorService: vi.Mocked<ReplyBotOrchestratorService>;
-  let credentialsService: vi.Mocked<CredentialsService>;
+  let credentialsService: vi.Mocked<ServerCredentialStore>;
   let loggerService: vi.Mocked<LoggerService>;
   let circuitExecute: ReturnType<typeof vi.fn>;
 
@@ -79,7 +79,7 @@ describe('ReplyBotPollingProcessor', () => {
           useValue: { findAll: vi.fn() },
         },
         {
-          provide: CredentialsService,
+          provide: SERVER_TOKENS.credentials,
           useValue: { findOne: vi.fn() },
         },
         {
@@ -95,7 +95,7 @@ describe('ReplyBotPollingProcessor', () => {
 
     processor = module.get(ReplyBotPollingProcessor);
     replyBotOrchestratorService = module.get(ReplyBotOrchestratorService);
-    credentialsService = module.get(CredentialsService);
+    credentialsService = module.get(SERVER_TOKENS.credentials);
     loggerService = module.get(LoggerService);
   });
 

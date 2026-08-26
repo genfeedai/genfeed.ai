@@ -1,4 +1,3 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
@@ -8,6 +7,7 @@ import { RedditService } from '@api/services/integrations/reddit/services/reddit
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { SERVER_TOKENS } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronCredentialsService } from '@workers/crons/credentials/cron.credentials.service';
@@ -36,7 +36,7 @@ describe('CronCredentialsService', () => {
           },
         },
         {
-          provide: CredentialsService,
+          provide: SERVER_TOKENS.credentials,
           useValue: credentialsService,
         },
         {

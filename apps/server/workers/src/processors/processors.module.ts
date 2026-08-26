@@ -18,7 +18,6 @@ import { ContentPerformanceModule } from '@api/collections/content-performance/c
 import { ContextsModule } from '@api/collections/contexts/contexts.module';
 import { CreativePatternsModule } from '@api/collections/creative-patterns/creative-patterns.module';
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { InsightsModule } from '@api/collections/insights/insights.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
@@ -197,10 +196,6 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     AnalyticsTwitterJobService,
     AnalyticsYouTubeJobService,
     PostAnalyticsCollectionStateService,
-    {
-      provide: SERVER_TOKENS.credentials,
-      useExisting: CredentialsService,
-    },
     {
       provide: SERVER_TOKENS.analyticsCollectionState,
       useExisting: PostAnalyticsCollectionStateService,

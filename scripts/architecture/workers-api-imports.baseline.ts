@@ -35,8 +35,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/collections/creative-patterns/creative-patterns.module',
   '@api/collections/creative-patterns/creative-patterns.service',
   '@api/collections/credentials/credentials.module',
-  '@api/collections/credentials/schemas/credential.schema',
-  '@api/collections/credentials/services/credentials.service',
   '@api/collections/credits/credits.module',
   '@api/collections/credits/services/credit-transactions.service',
   '@api/collections/credits/services/credits.utils.service',

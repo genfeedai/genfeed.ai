@@ -1,5 +1,3 @@
-import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
@@ -13,9 +11,14 @@ import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
 } from '@genfeedai/enums';
+import {
+  type CredentialDocument,
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 interface TokenRefreshService {
@@ -38,7 +41,8 @@ export class CronCredentialsService {
 
   constructor(
     private readonly logger: LoggerService,
-    private readonly credentialsService: CredentialsService,
+    @Inject(SERVER_TOKENS.credentials)
+    private readonly credentialsService: ServerCredentialStore,
     private readonly facebookService: FacebookService,
     private readonly googleAdsService: GoogleAdsService,
     private readonly instagramService: InstagramService,

@@ -1,4 +1,3 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
@@ -8,6 +7,7 @@ import {
   ReplyBotPollingJobData,
   ReplyBotPollingResult,
 } from '@genfeedai/queue-contracts';
+import { SERVER_TOKENS, type ServerCredentialStore } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BrokenCircuitError,
@@ -15,6 +15,7 @@ import {
   type ProcessorCircuitBreaker,
 } from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Inject } from '@nestjs/common';
 import { Job } from 'bullmq';
 
 @Processor(REPLY_BOT_POLLING_QUEUE)
@@ -24,7 +25,8 @@ export class ReplyBotPollingProcessor extends WorkerHost {
   constructor(
     private readonly replyBotOrchestratorService: ReplyBotOrchestratorService,
     readonly _replyBotConfigsService: ReplyBotConfigsService,
-    private readonly credentialsService: CredentialsService,
+    @Inject(SERVER_TOKENS.credentials)
+    private readonly credentialsService: ServerCredentialStore,
     private readonly logger: LoggerService,
   ) {
     super();

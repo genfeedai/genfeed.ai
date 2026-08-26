@@ -1,7 +1,5 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
@@ -34,10 +32,15 @@ import {
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import type { PostPublishJobData } from '@genfeedai/queue-contracts';
+import {
+  type CredentialDocument,
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   createChannelTargetError,
   createFailedPublishResult,
@@ -82,7 +85,8 @@ export class ScheduledPostDeliveryService {
   constructor(
     private readonly logger: LoggerService,
     private readonly activitiesService: ActivitiesService,
-    private readonly credentialsService: CredentialsService,
+    @Inject(SERVER_TOKENS.credentials)
+    private readonly credentialsService: ServerCredentialStore,
     private readonly organizationsService: OrganizationsService,
     private readonly postsService: PostsService,
     private readonly quotaService: QuotaService,

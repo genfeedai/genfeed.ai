@@ -1,4 +1,3 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
@@ -7,6 +6,7 @@ import {
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import { PostVisibility, TargetExecutionState } from '@genfeedai/enums';
+import { SERVER_TOKENS } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
@@ -90,7 +90,7 @@ describe('CronTiktokStatusService', () => {
           useValue: tiktokService,
         },
         {
-          provide: CredentialsService,
+          provide: SERVER_TOKENS.credentials,
           useValue: {
             patch: vi.fn(),
           },
