@@ -78,6 +78,15 @@ describe('ImageGenerationHandler', () => {
     expect(result.mediaUrls).toEqual(['https://img.test/1.jpg']);
     expect(result.skillSlug).toBe('image-generation');
     expect(result.type).toBe('image');
+    expect(result.metadata).toMatchObject({
+      generationBriefEvidence: {
+        modelKey: expect.any(String),
+        reason: 'legacy_prompt_builder',
+        status: 'exempted',
+        surface: 'agent_skill',
+      },
+      generationSource: 'generation-brief-exemption:legacy_prompt_builder',
+    });
   });
 
   it('generates image draft from Leonardo model', async () => {

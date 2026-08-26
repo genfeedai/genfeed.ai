@@ -12,6 +12,8 @@ export interface ImageGenOutput {
   // is a Uint8Array subclass so runtime resolver values remain assignable.
   imageBuffer?: Uint8Array;
   filename?: string;
+  generationBriefEvidence?: Record<string, unknown>;
+  generationSource?: string;
   model: string;
   provider: string;
 }

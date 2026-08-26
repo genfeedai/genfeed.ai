@@ -1,8 +1,13 @@
+import * as imageGenerationBriefRegistry from '@api/services/generation-brief/image-generation-brief-registry';
 import { runImageGenerationBrief } from '@api/services/generation-brief/run-image-generation-brief';
-import { FLUX_SCHNELL_MODEL_KEY } from '@api-types/contracts/generation-capability-profile.contract';
+import {
+  FLUX_SCHNELL_MODEL_KEY,
+  QWEN_IMAGE_MODEL_KEY,
+} from '@api-types/contracts/generation-capability-profile.contract';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ImageTaskModel } from '@genfeedai/enums';
-import { describe, expect, it } from 'vitest';
+import { ServiceUnavailableException } from '@nestjs/common';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('runImageGenerationBrief', () => {
   it('stamps the originating surface on compiled evidence (#3469)', () => {
@@ -45,6 +50,26 @@ describe('runImageGenerationBrief', () => {
     expect(workflow.evidence.surface).toBe('workflow');
   });
 
+  it('preserves an explicit avoid input in the canonical brief and native provider dispatch', () => {
+    const result = runImageGenerationBrief({
+      avoid: ['watermark, blurry text'],
+      height: 1024,
+      model: QWEN_IMAGE_MODEL_KEY,
+      objective: 'A launch poster',
+      surface: 'workflow',
+      width: 1024,
+    });
+
+    expect(result.brief?.constraints).toContainEqual({
+      kind: 'avoid',
+      required: false,
+      value: 'watermark, blurry text',
+    });
+    expect(result.dispatch).toMatchObject({
+      negative_prompt: 'watermark, blurry text',
+    });
+  });
+
   it('records an explicit exemption instead of compiling unregistered skill models', () => {
     const result = runImageGenerationBrief({
       height: 1024,
@@ -62,5 +87,42 @@ describe('runImageGenerationBrief', () => {
       status: 'exempted',
       surface: 'agent_skill',
     });
+  });
+
+  it('fails with a typed configuration error before compilation when a required registry entry disappears', () => {
+    const registryEntry =
+      imageGenerationBriefRegistry.getImageGenerationBriefRegistryEntry(
+        FLUX_SCHNELL_MODEL_KEY,
+      );
+    if (!registryEntry) {
+      throw new Error('FLUX Schnell registry fixture is missing');
+    }
+    const compile = vi.fn(registryEntry.compile);
+    const registryLookup = vi
+      .spyOn(
+        imageGenerationBriefRegistry,
+        'getImageGenerationBriefRegistryEntry',
+      )
+      .mockReturnValueOnce({ ...registryEntry, compile })
+      .mockReturnValueOnce(undefined);
+
+    let failure: unknown;
+    try {
+      runImageGenerationBrief({
+        height: 1080,
+        model: FLUX_SCHNELL_MODEL_KEY,
+        objective: 'a sunset over the ocean',
+        surface: 'workflow',
+        width: 1920,
+      });
+    } catch (error: unknown) {
+      failure = error;
+    } finally {
+      registryLookup.mockRestore();
+    }
+
+    expect(failure).toBeInstanceOf(ServiceUnavailableException);
+    expect((failure as Error).message).toContain(FLUX_SCHNELL_MODEL_KEY);
+    expect(compile).not.toHaveBeenCalled();
   });
 });

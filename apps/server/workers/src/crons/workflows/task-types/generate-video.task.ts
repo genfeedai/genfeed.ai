@@ -5,6 +5,7 @@ import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-fac
 import { runVideoGenerationBrief } from '@api/services/generation-brief';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
+import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import {
   ByokProvider,
   VideoResolution,
@@ -40,7 +41,44 @@ export interface GenerateVideoResult {
     model: string;
     prompt: string;
     duration?: number;
+    generationBriefEvidence?: VideoGenerationBriefPersistedEvidence;
+    generationSource?: string;
     generationTime?: number;
+  };
+}
+
+const VIDEO_RESOLUTION_SHORT_EDGE: Record<
+  NonNullable<GenerateVideoConfig['resolution']>,
+  number
+> = {
+  '1080p': 1080,
+  '4k': 2160,
+  '480p': 480,
+  '720p': 720,
+};
+
+function roundToEven(value: number): number {
+  return Math.max(2, Math.round(value / 2) * 2);
+}
+
+function resolveScheduledVideoDimensions(
+  config: Pick<GenerateVideoConfig, 'aspectRatio' | 'resolution'>,
+): { height: number; width: number } {
+  const shortEdge = VIDEO_RESOLUTION_SHORT_EDGE[config.resolution ?? '1080p'];
+  const [ratioWidth, ratioHeight] = (config.aspectRatio ?? '16:9')
+    .split(':')
+    .map(Number) as [number, number];
+
+  if (ratioWidth >= ratioHeight) {
+    return {
+      height: shortEdge,
+      width: roundToEven((shortEdge * ratioWidth) / ratioHeight),
+    };
+  }
+
+  return {
+    height: roundToEven((shortEdge * ratioHeight) / ratioWidth),
+    width: shortEdge,
   };
 }
 
@@ -71,6 +109,10 @@ export class GenerateVideoTask {
     organizationId: string,
   ): Promise<GenerateVideoResult> {
     const startTime = Date.now();
+    let generationBriefEvidence:
+      | VideoGenerationBriefPersistedEvidence
+      | undefined;
+    let generationSource: string | undefined;
 
     try {
       this.logger.log(
@@ -78,16 +120,19 @@ export class GenerateVideoTask {
         'GenerateVideoTask',
       );
 
+      const { height, width } = resolveScheduledVideoDimensions(config);
       const compiled = runVideoGenerationBrief({
         durationSeconds: config.duration,
-        height: 1080,
+        height,
         model: config.model,
         objective: config.prompt,
         seed: config.seed,
         surface: 'schedule',
         visualDirection: config.style,
-        width: 1920,
+        width,
       });
+      generationBriefEvidence = compiled.evidence;
+      generationSource = compiled.generationSource;
       // An exempt model has no compiler, so it keeps the operator's raw prompt.
       const compiledConfig: GenerateVideoConfig = {
         ...config,
@@ -163,6 +208,8 @@ export class GenerateVideoTask {
       return {
         metadata: {
           duration: config.duration,
+          generationBriefEvidence,
+          generationSource,
           generationTime,
           model: config.model,
           prompt: config.prompt,
@@ -176,6 +223,8 @@ export class GenerateVideoTask {
       return {
         error: (error as Error).message || 'Video generation failed',
         metadata: {
+          ...(generationBriefEvidence ? { generationBriefEvidence } : {}),
+          ...(generationSource ? { generationSource } : {}),
           model: config.model,
           prompt: config.prompt,
         },

@@ -1,4 +1,5 @@
 import { ManagedInferenceProvider } from '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
+import * as generationBrief from '@api/services/generation-brief';
 import { VideoTaskModel } from '@genfeedai/enums';
 import { GenerateVideoTask } from '@workers/crons/workflows/task-types/generate-video.task';
 
@@ -50,6 +51,10 @@ describe('GenerateVideoTask', () => {
       managedInferenceClientService as never,
       logger as never,
     );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('routes unavailable local ComfyUI video through managed genfeedai provider', async () => {
@@ -116,4 +121,72 @@ describe('GenerateVideoTask', () => {
     );
     expect(falService.generateVideo).not.toHaveBeenCalled();
   });
+
+  it.each([
+    {
+      aspectRatio: '16:9' as const,
+      expectedHeight: 2160,
+      expectedWidth: 3840,
+      resolution: '4k' as const,
+    },
+    {
+      aspectRatio: '9:16' as const,
+      expectedHeight: 1920,
+      expectedWidth: 1080,
+      resolution: '1080p' as const,
+    },
+    {
+      aspectRatio: '1:1' as const,
+      expectedHeight: 720,
+      expectedWidth: 720,
+      resolution: '720p' as const,
+    },
+  ])(
+    'compiles scheduled $resolution $aspectRatio video with $expectedWidth x $expectedHeight dimensions and retains provenance',
+    async ({ aspectRatio, expectedHeight, expectedWidth, resolution }) => {
+      const evidence = {
+        compilerId: null,
+        compilerVersion: null,
+        modelKey: VideoTaskModel.KLINGAI,
+        profileId: null,
+        profileVersion: null,
+        reason: 'legacy_prompt_builder' as const,
+        status: 'exempted' as const,
+        surface: 'schedule' as const,
+      };
+      const runVideoGenerationBrief = vi
+        .spyOn(generationBrief, 'runVideoGenerationBrief')
+        .mockReturnValue({
+          evidence,
+          generationSource: 'generation-brief-exemption:legacy_prompt_builder',
+        });
+      byokService.resolveApiKey.mockResolvedValue(undefined);
+      klingaiService.generateTextToVideo.mockResolvedValue(
+        'https://video.test/kling.mp4',
+      );
+
+      const result = await task.execute(
+        {
+          aspectRatio,
+          model: VideoTaskModel.KLINGAI,
+          prompt: 'cinematic product reveal',
+          resolution,
+        },
+        'user-1',
+        'org-1',
+      );
+
+      expect(runVideoGenerationBrief).toHaveBeenCalledWith(
+        expect.objectContaining({
+          height: expectedHeight,
+          surface: 'schedule',
+          width: expectedWidth,
+        }),
+      );
+      expect(result.metadata).toMatchObject({
+        generationBriefEvidence: evidence,
+        generationSource: 'generation-brief-exemption:legacy_prompt_builder',
+      });
+    },
+  );
 });

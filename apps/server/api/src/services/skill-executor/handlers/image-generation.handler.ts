@@ -227,6 +227,8 @@ export class ImageGenerationHandler implements SkillHandler {
       mediaUrls: [imageUrl],
       metadata: {
         fallbackUsed,
+        generationBriefEvidence: compiled.evidence,
+        generationSource: compiled.generationSource,
         height,
         model,
         prompt,
