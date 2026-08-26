@@ -17,10 +17,7 @@ import {
 } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { ByokService } from '@api/services/byok/byok.service';
-import {
-  modelKeyToByokProvider,
-  modelProviderToByokProvider,
-} from '@api/services/byok/byok-provider-map.util';
+import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import type { ByokProvider } from '@genfeedai/enums';
 import { buildPricingAuditStamp } from '@genfeedai/pricing';
@@ -86,10 +83,7 @@ export class ImageGenerationCreditsService {
     modelKey: string,
     modelProvider?: string,
   ): Promise<ByokProvider | undefined> {
-    const provider =
-      (modelProvider
-        ? modelProviderToByokProvider(modelProvider)
-        : undefined) ?? modelKeyToByokProvider(modelKey);
+    const provider = resolveModelByokProvider(modelKey, modelProvider);
     if (
       !provider ||
       !(await this.byokService.isByokActiveForProvider(

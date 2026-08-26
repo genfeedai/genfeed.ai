@@ -6,7 +6,8 @@ import {
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import type { ByokService } from '@api/services/byok/byok.service';
-import { ByokProvider } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ByokProvider, ModelProvider } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -314,6 +315,60 @@ describe('CreditsGuard', () => {
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).not.toHaveBeenCalled();
+  });
+
+  it('does not let Replicate BYOK bypass credits for a Higgsfield catalog row', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
+    modelsService.findOne.mockResolvedValue({
+      cost: 10,
+      key: MODEL_KEYS.HIGGSFIELD_SOUL,
+      provider: ModelProvider.REPLICATE,
+    });
+    byokService.isByokActiveForProvider.mockImplementation(
+      (_organizationId: string, provider: ByokProvider) =>
+        Promise.resolve(provider === ByokProvider.REPLICATE),
+    );
+
+    await guard.canActivate(
+      createContext({ model: MODEL_KEYS.HIGGSFIELD_SOUL }),
+    );
+
+    expect(byokService.isByokActiveForProvider).toHaveBeenCalledWith(
+      orgId,
+      ByokProvider.HIGGSFIELD,
+    );
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith(orgId, 10);
+  });
+
+  it('bypasses credits exactly once when Higgsfield BYOK is active', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
+    modelsService.findOne.mockResolvedValue({
+      cost: 10,
+      key: MODEL_KEYS.HIGGSFIELD_SOUL,
+      provider: ModelProvider.REPLICATE,
+    });
+    byokService.isByokActiveForProvider.mockImplementation(
+      (_organizationId: string, provider: ByokProvider) =>
+        Promise.resolve(provider === ByokProvider.HIGGSFIELD),
+    );
+    const context = createContext({ model: MODEL_KEYS.HIGGSFIELD_SOUL });
+
+    await guard.canActivate(context);
+
+    expect(byokService.isByokActiveForProvider).toHaveBeenCalledTimes(1);
+    expect(byokService.isByokActiveForProvider).toHaveBeenCalledWith(
+      orgId,
+      ByokProvider.HIGGSFIELD,
+    );
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+    expect(context.switchToHttp().getRequest().creditsConfig).toMatchObject({
+      isByokBypass: true,
+      provider: ByokProvider.HIGGSFIELD,
+    });
   });
 
   it('stores creditsConfig on the request after successful check', async () => {

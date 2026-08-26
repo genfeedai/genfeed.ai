@@ -42,6 +42,7 @@ import { FileQueueModule } from '@api/services/files-microservice/queue/file-que
 import { ComfyUIModule } from '@api/services/integrations/comfyui/comfyui.module';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
+import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { KlingAIModule } from '@api/services/integrations/klingai/klingai.module';
 import { LeonardoAIModule } from '@api/services/integrations/leonardoai/leonardoai.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
@@ -104,7 +105,12 @@ import { Module } from '@nestjs/common';
   providers: [
     FalImageGenerationProviderAdapter,
     GenfeedAiImageGenerationProviderAdapter,
-    HiggsFieldImageGenerationProviderAdapter,
+    {
+      inject: [HiggsFieldService],
+      provide: HiggsFieldImageGenerationProviderAdapter,
+      useFactory: (higgsFieldService: HiggsFieldService) =>
+        new HiggsFieldImageGenerationProviderAdapter(higgsFieldService),
+    },
     ImageGenerationCreditsService,
     ImageGenerationProviderDispatchService,
     ImageGenerationProviderRegistryService,
