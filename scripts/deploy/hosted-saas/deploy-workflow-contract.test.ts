@@ -29,6 +29,7 @@ describe('hosted SaaS Vercel deployment contract', () => {
     const core = await workflow('_deploy-hosted-saas-core.yml');
 
     expect(vercel).toContain(`DOMAIN: \${{ vars.DOMAIN }}`);
+    expect(vercel).toContain(`awk '!/^(API_URL|NEXT_PUBLIC_GENFEED_CLOUD)=/'`);
     expect(vercel).toContain(`printf 'API_URL=https://api.%s\\n' "$DOMAIN"`);
     expect(core).toContain(
       `app-auth-proxy|https://\${APP_HOST}/v1/auth/get-session|null`,
