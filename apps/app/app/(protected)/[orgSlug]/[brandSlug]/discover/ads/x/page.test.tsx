@@ -24,7 +24,7 @@ describe('DiscoverXAdsPage', () => {
   it('shows the DSA Ads Repository notice without interaction', () => {
     render(<DiscoverXAdsPage />);
 
-    const notice = screen.getByRole('alert');
+    const notice = screen.getByRole('status');
 
     expect(notice).toHaveTextContent('DSA');
     expect(notice).toHaveTextContent("X's public Ads Repository");
