@@ -35,19 +35,10 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { AxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
+import { TiktokAnalyticsService } from './tiktok-analytics.service';
+import { resolveTikTokPrivacyLevel } from './tiktok-publishing.mapper';
 
 const TIKTOK_TOKEN_REFRESH_BUFFER_MS = 15 * 60 * 1000;
-
-/**
- * Catalog privacy values translated to TikTok's `privacy_level` vocabulary.
- * The catalog stays platform-neutral, so this is the only place the provider
- * spelling appears.
- */
-const TIKTOK_PRIVACY_LEVEL_BY_SETTING: Record<string, string> = {
-  friends: 'MUTUAL_FOLLOW_FRIENDS',
-  private: 'SELF_ONLY',
-  public: 'PUBLIC_TO_EVERYONE',
-};
 
 interface TikTokTokenResponse {
   access_token?: string;
@@ -66,13 +57,11 @@ export class TiktokService {
   private readonly contentType = 'application/json; charset=UTF-8';
   private readonly apiKey: string;
   private readonly apiSecret: string;
+  private readonly analyticsService: TiktokAnalyticsService;
 
   // Retry settings for polling TikTok publish status
   public readonly RETRY_MAX_ATTEMPTS = 30;
   public readonly RETRY_DELAY_MS = 5_000;
-
-  // Common privacy level selection logic
-  private readonly PREFERRED_PRIVACY_LEVEL = 'SELF_ONLY';
 
   constructor(
     private readonly configService: ConfigService,
@@ -83,6 +72,15 @@ export class TiktokService {
   ) {
     this.apiKey = this.configService.get('TIKTOK_CLIENT_KEY') ?? '';
     this.apiSecret = this.configService.get('TIKTOK_CLIENT_SECRET') ?? '';
+    this.analyticsService = new TiktokAnalyticsService(
+      this.httpService,
+      this.loggerService,
+      this.endpoint,
+      (organizationId, brandId, credentialId) =>
+        this.getValidCredential(organizationId, brandId, credentialId),
+      (resolvedCredentialId, error, context) =>
+        this.handleAuthorizationError(resolvedCredentialId, error, context),
+    );
   }
 
   /**
@@ -206,31 +204,6 @@ export class TiktokService {
   }
 
   /**
-   * Select privacy level from available options.
-   *
-   * A composer choice only wins if the creator's account actually offers the
-   * matching level — TikTok rejects the publish outright for a level absent
-   * from `privacy_level_options`, so an unavailable choice degrades to the
-   * account-safe default rather than failing the release.
-   */
-  private selectPrivacyLevel(
-    availablePrivacyLevels: string[],
-    requestedPrivacy?: string,
-  ): string {
-    const requestedLevel = requestedPrivacy
-      ? TIKTOK_PRIVACY_LEVEL_BY_SETTING[requestedPrivacy]
-      : undefined;
-
-    if (requestedLevel && availablePrivacyLevels.includes(requestedLevel)) {
-      return requestedLevel;
-    }
-
-    return availablePrivacyLevels.includes(this.PREFERRED_PRIVACY_LEVEL)
-      ? this.PREFERRED_PRIVACY_LEVEL
-      : availablePrivacyLevels[0];
-  }
-
-  /**
    * Validate creator info and privacy levels
    */
   private validateCreatorInfo(
@@ -254,7 +227,7 @@ export class TiktokService {
     }
 
     const requestedPrivacy = readChannelSettingString(settings, 'privacyLevel');
-    const privacyLevel = this.selectPrivacyLevel(
+    const privacyLevel = resolveTikTokPrivacyLevel(
       availablePrivacyLevels,
       requestedPrivacy,
     );
@@ -999,78 +972,11 @@ export class TiktokService {
     mediaId: string,
     credentialId?: string,
   ): Promise<ITikTokMediaAnalytics> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    let credential: CredentialDocument | CredentialEntity | null = null;
-
-    try {
-      credential = await this.getValidCredential(
-        organizationId,
-        brandId,
-        credentialId,
-      );
-
-      if (!credential.accessToken) {
-        throw new Error('TikTok credential not found');
-      }
-
-      // Decrypt the access token
-      const decryptedAccessToken = EncryptionUtil.decrypt(
-        credential.accessToken,
-      );
-
-      // Fetch comprehensive media metrics
-      const res = await firstValueFrom(
-        this.httpService.get(`${this.endpoint}/video/query/`, {
-          headers: { Authorization: `Bearer ${decryptedAccessToken}` },
-          params: {
-            fields:
-              'like_count,comment_count,view_count,share_count,download_count,reach_count,impression_count,full_video_watched_rate,average_watch_time,total_time_watched',
-            video_ids: mediaId,
-          },
-        }),
-      );
-
-      const item = res.data?.data?.videos?.[0] || {};
-
-      // Calculate engagement rate
-      const totalEngagements =
-        (item.like_count || 0) +
-        (item.comment_count || 0) +
-        (item.share_count || 0) +
-        (item.download_count || 0);
-
-      const engagementRate =
-        item.view_count > 0 ? (totalEngagements / item.view_count) * 100 : 0;
-
-      return {
-        averageWatchTime: item.average_watch_time || undefined,
-        comments: item.comment_count || 0,
-        completionRate: item.full_video_watched_rate
-          ? Number((item.full_video_watched_rate * 100).toFixed(2))
-          : undefined,
-        downloads: item.download_count || undefined,
-        engagementRate:
-          engagementRate > 0 ? Number(engagementRate.toFixed(2)) : undefined,
-        impressions: item.impression_count || undefined,
-        likes: item.like_count || 0,
-        mediaType: 'video', // Default to video as API doesn't distinguish between video/photo
-        reach: item.reach_count || undefined,
-        shares: item.share_count || undefined,
-        views: item.view_count || 0,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-
-      // If auth error and we have a credential, mark it as disconnected
-      if (this.isAuthError(error) && credential) {
-        await this.handleAuthError(
-          credential.id,
-          this.getErrorCode(error),
-          url,
-        );
-      }
-
-      throw error;
-    }
+    return this.analyticsService.getMediaAnalytics(
+      organizationId,
+      brandId,
+      mediaId,
+      credentialId,
+    );
   }
 }

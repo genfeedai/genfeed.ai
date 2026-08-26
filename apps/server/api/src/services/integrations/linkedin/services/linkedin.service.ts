@@ -32,6 +32,10 @@ import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { AuthClient } from 'linkedin-api-client';
 import { firstValueFrom } from 'rxjs';
+import {
+  LinkedInAnalyticsService,
+  type LinkedInMediaAnalytics,
+} from './linkedin-analytics.service';
 
 interface LinkedInCredential {
   id: string;
@@ -88,16 +92,6 @@ type LinkedInCommentsResponse = {
   elements?: LinkedInCommentElement[];
 };
 
-type LinkedInReactionCounts = {
-  like?: number;
-  celebrate?: number;
-  support?: number;
-  funny?: number;
-  love?: number;
-  insightful?: number;
-  curious?: number;
-};
-
 const LINKEDIN_PROVIDER = getIntegrationProviderDefinition('linkedin');
 
 /**
@@ -121,6 +115,7 @@ export class LinkedInService {
   private readonly apiBaseUrl =
     LINKEDIN_PROVIDER?.endpoints.apiBaseUrl ?? 'https://api.linkedin.com/v2';
   private authClient: AuthClient;
+  private readonly analyticsService: LinkedInAnalyticsService;
   private readonly integrationHttpClient: IntegrationHttpClient;
 
   constructor(
@@ -139,6 +134,12 @@ export class LinkedInService {
       clientSecret: this.configService.get('LINKEDIN_CLIENT_SECRET') as string,
       redirectUrl: this.configService.get('LINKEDIN_REDIRECT_URI') as string,
     });
+    this.analyticsService = new LinkedInAnalyticsService(
+      this.httpService,
+      this.loggerService,
+      (organizationId, brandId, credentialId) =>
+        this.refreshToken(organizationId, brandId, credentialId),
+    );
   }
 
   private getApiUrl(path: string): string {
@@ -932,130 +933,12 @@ export class LinkedInService {
     brandId: string,
     shareId: string,
     credentialId?: string,
-  ): Promise<{
-    views: number;
-    likes: number;
-    comments: number;
-    shares?: number;
-    impressions?: number;
-    clicks?: number;
-    engagementRate?: number;
-    reach?: number;
-    reactions?: {
-      like?: number;
-      celebrate?: number;
-      support?: number;
-      funny?: number;
-      love?: number;
-      insightful?: number;
-      curious?: number;
-    };
-    mediaType?: 'text' | 'image' | 'video' | 'article' | 'document' | 'mixed';
-  }> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const credential = await this.refreshToken(
-        organizationId,
-        brandId,
-        credentialId,
-      );
-
-      if (!credential?.accessToken) {
-        throw new Error('LinkedIn credential not found or invalid');
-      }
-
-      // Decrypt access token before use
-      const decryptedAccessToken = EncryptionUtil.decrypt(
-        credential.accessToken,
-      );
-
-      // Fetch both social actions and share statistics
-      const [socialActionsResponse, shareStatsResponse] = await Promise.all([
-        firstValueFrom(
-          this.httpService.get(
-            `https://api.linkedin.com/v2/socialActions/${shareId}`,
-            {
-              headers: {
-                Authorization: `Bearer ${decryptedAccessToken}`,
-                'X-Restli-Protocol-Version': '2.0.0',
-              },
-            },
-          ),
-        ).catch(() => null),
-        firstValueFrom(
-          this.httpService.get(
-            `https://api.linkedin.com/v2/organizationalEntityShareStatistics?q=organizationalEntity&organizationalEntity=${shareId}`,
-            {
-              headers: {
-                Authorization: `Bearer ${decryptedAccessToken}`,
-                'X-Restli-Protocol-Version': '2.0.0',
-              },
-            },
-          ),
-        ).catch(() => null),
-      ]);
-
-      const socialActions = socialActionsResponse?.data || {};
-      const shareStats = shareStatsResponse?.data?.elements?.[0] || {};
-
-      // Extract reaction breakdown if available
-      const reactionsSummary = socialActions.reactionsSummary || {};
-      const reactions: Record<string, number> = {};
-
-      if (reactionsSummary.aggregatedTotalReactions) {
-        for (const [reactionType, count] of Object.entries(
-          reactionsSummary.aggregatedTotalReactions,
-        )) {
-          const type = reactionType.toLowerCase().replace('reaction_type_', '');
-          if (typeof count === 'number') {
-            reactions[type] = count;
-          }
-        }
-      }
-
-      // Calculate engagement metrics
-      const totalEngagements =
-        (socialActions.likeCount || 0) +
-        (socialActions.commentCount || 0) +
-        (shareStats.shareCount || 0) +
-        (shareStats.clickCount || 0);
-
-      const impressions =
-        shareStats.impressionCount || socialActions.viewCount || 0;
-      const engagementRate =
-        impressions > 0 ? (totalEngagements / impressions) * 100 : 0;
-
-      // Try to determine media type from share content
-      // This would require fetching the actual share content
-      let mediaType:
-        | 'text'
-        | 'image'
-        | 'video'
-        | 'article'
-        | 'document'
-        | 'mixed'
-        | undefined;
-
-      return {
-        clicks: shareStats.clickCount || undefined,
-        comments: socialActions.commentCount || shareStats.commentCount || 0,
-        engagementRate:
-          engagementRate > 0 ? Number(engagementRate.toFixed(2)) : undefined,
-        impressions: impressions || undefined,
-        likes: socialActions.likeCount || shareStats.likeCount || 0,
-        mediaType,
-        reach: shareStats.uniqueImpressionsCount || undefined,
-        reactions:
-          Object.keys(reactions).length > 0
-            ? (reactions as LinkedInReactionCounts)
-            : undefined,
-        shares: shareStats.shareCount || undefined,
-        views: socialActions.viewCount || shareStats.impressionCount || 0,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
+  ): Promise<LinkedInMediaAnalytics> {
+    return this.analyticsService.getMediaAnalytics(
+      organizationId,
+      brandId,
+      shareId,
+      credentialId,
+    );
   }
 }

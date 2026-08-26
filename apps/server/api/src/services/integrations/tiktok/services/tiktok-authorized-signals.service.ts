@@ -10,8 +10,6 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import {
-  getTikTokRetryAfterMs,
-  isTikTokAuthorizationError,
   isTikTokRateLimitError,
   isTikTokScopeError,
   parseTikTokGrantedScopes,
@@ -21,7 +19,6 @@ import {
   type TikTokAuthorizedSignalEvidence,
   type TikTokAuthorizedSignalReason,
   type TikTokAuthorizedSignalsSnapshot,
-  type TikTokOwnedVideoSignal,
   tiktokAuthorizedSignalsSnapshotSchema,
 } from '@api-types/contracts/tiktok-authorized-signals.contract';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
@@ -30,16 +27,22 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { firstValueFrom } from 'rxjs';
+import {
+  readBoolean,
+  readHttpUrl,
+  readNonNegativeInteger,
+  readRecord,
+  readString,
+  readStringArray,
+  type SettledResult,
+  type TikTokVideosFetch,
+  TiktokAuthorizedSignalsProvider,
+} from './tiktok-authorized-signals.provider';
 
 const TIKTOK_AUTHORIZED_SIGNALS_CACHE_TTL_SECONDS = 5 * 60;
 const TIKTOK_STALE_SIGNALS_CACHE_TTL_SECONDS = 60;
 const TIKTOK_AUTHORIZED_SIGNALS_STORAGE_KEY = 'tiktokAuthorized';
 const TIKTOK_AUTHORIZATION_STORAGE_KEY = 'tiktokAuthorization';
-const TIKTOK_SIGNAL_MAX_ATTEMPTS = 2;
-const TIKTOK_SIGNAL_RETRY_FALLBACK_MS = 1_000;
-const TIKTOK_SIGNAL_RETRY_MAX_MS = 5_000;
-const TIKTOK_SIGNAL_REQUEST_TIMEOUT_MS = 10_000;
 const TIKTOK_VIDEO_LIMIT = 20;
 
 const USER_BASIC_SCOPE = 'user.info.basic';
@@ -88,83 +91,6 @@ const CREATOR_FIELDS = [
   'stitchDisabled',
 ] as const;
 
-const USER_INFO_PROVIDER_FIELDS_BY_SCOPE = {
-  [USER_BASIC_SCOPE]: ['avatar_url', 'display_name'],
-  [USER_PROFILE_SCOPE]: [
-    'bio_description',
-    'is_verified',
-    'profile_deep_link',
-    'username',
-  ],
-  [USER_STATS_SCOPE]: [
-    'follower_count',
-    'following_count',
-    'likes_count',
-    'video_count',
-  ],
-} as const;
-
-const VIDEO_PROVIDER_FIELDS = [
-  'id',
-  'create_time',
-  'share_url',
-  'video_description',
-  'duration',
-  'title',
-  'like_count',
-  'comment_count',
-  'share_count',
-  'view_count',
-].join(',');
-
-interface TikTokUserInfoResponse {
-  data?: {
-    user?: {
-      avatar_url?: unknown;
-      bio_description?: unknown;
-      display_name?: unknown;
-      follower_count?: unknown;
-      following_count?: unknown;
-      is_verified?: unknown;
-      likes_count?: unknown;
-      profile_deep_link?: unknown;
-      username?: unknown;
-      video_count?: unknown;
-    };
-  };
-}
-
-interface TikTokVideoListResponse {
-  data?: {
-    cursor?: unknown;
-    has_more?: unknown;
-    videos?: Array<{
-      comment_count?: unknown;
-      create_time?: unknown;
-      duration?: unknown;
-      id?: unknown;
-      like_count?: unknown;
-      share_count?: unknown;
-      share_url?: unknown;
-      title?: unknown;
-      video_description?: unknown;
-      view_count?: unknown;
-    }>;
-  };
-}
-
-interface TikTokCreatorInfoResponse {
-  data?: {
-    comment_disabled?: unknown;
-    creator_nickname?: unknown;
-    creator_username?: unknown;
-    duet_disabled?: unknown;
-    max_video_post_duration_sec?: unknown;
-    privacy_level_options?: unknown;
-    stitch_disabled?: unknown;
-  };
-}
-
 export interface RefreshTikTokAuthorizedSignalsParams {
   /**
    * Raw (plaintext) OAuth access token from a just-completed token exchange.
@@ -192,46 +118,6 @@ type GenfeedPublishOutcome =
   | 'cancelled'
   | 'skipped';
 
-function readRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
-
-function readHttpUrl(value: unknown): string | undefined {
-  const candidate = readString(value);
-  if (!candidate) {
-    return undefined;
-  }
-
-  try {
-    const url = new URL(candidate);
-    return ['http:', 'https:'].includes(url.protocol) ? candidate : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function readBoolean(value: unknown): boolean | undefined {
-  return typeof value === 'boolean' ? value : undefined;
-}
-
-function readNonNegativeInteger(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 0
-    ? value
-    : undefined;
-}
-
-function readStringArray(value: unknown): string[] | undefined {
-  return Array.isArray(value) && value.every((item) => typeof item === 'string')
-    ? value
-    : undefined;
-}
-
 function mapOutcome(value: unknown): GenfeedPublishOutcome | undefined {
   const outcomes = new Set<string>([
     TargetExecutionState.SCHEDULED,
@@ -253,6 +139,7 @@ export class TiktokAuthorizedSignalsService {
   private readonly endpoint = 'https://open.tiktokapis.com/v2';
   private readonly contentType = 'application/json; charset=UTF-8';
   private readonly constructorName = this.constructor.name;
+  private readonly provider: TiktokAuthorizedSignalsProvider;
 
   constructor(
     private readonly cacheService: CacheService,
@@ -262,7 +149,13 @@ export class TiktokAuthorizedSignalsService {
     private readonly prisma: PrismaService,
     private readonly tiktokService: TiktokService,
     private readonly socialWarmupEnrollmentsService: SocialWarmupEnrollmentsService,
-  ) {}
+  ) {
+    this.provider = new TiktokAuthorizedSignalsProvider(
+      this.httpService,
+      this.endpoint,
+      this.contentType,
+    );
+  }
 
   async refresh(
     params: RefreshTikTokAuthorizedSignalsParams,
@@ -379,35 +272,18 @@ export class TiktokAuthorizedSignalsService {
       throw error;
     }
 
-    const userInfoPromise = grantedScopes.some((scope) =>
-      [USER_BASIC_SCOPE, USER_PROFILE_SCOPE, USER_STATS_SCOPE].includes(scope),
-    )
-      ? this.requestWithRetry(() =>
-          this.fetchUserInfo(accessToken, grantedScopes),
-        )
-      : undefined;
-    const videosPromise = grantedScopes.includes(VIDEO_LIST_SCOPE)
-      ? this.requestWithRetry(() => this.fetchVideos(accessToken))
-      : undefined;
-    const creatorInfoPromise = grantedScopes.includes(VIDEO_PUBLISH_SCOPE)
-      ? this.requestWithRetry(() => this.fetchCreatorInfo(accessToken))
-      : undefined;
-
-    const [userInfoResult, videosResult, creatorInfoResult] = await Promise.all(
-      [
-        this.settle(userInfoPromise),
-        this.settle(videosPromise),
-        this.settle(creatorInfoPromise),
-      ],
+    const providerResult = await this.provider.fetch(
+      accessToken,
+      grantedScopes,
+      {
+        user: [USER_BASIC_SCOPE, USER_PROFILE_SCOPE, USER_STATS_SCOPE],
+        videoList: VIDEO_LIST_SCOPE,
+        videoPublish: VIDEO_PUBLISH_SCOPE,
+      },
     );
-    const providerErrors = [
-      userInfoResult.error,
-      videosResult.error,
-      creatorInfoResult.error,
-    ].filter((error) => error !== undefined);
-    const authorizationError = providerErrors.find((error) =>
-      this.isAuthorizationFailure(error),
-    );
+    const { creatorInfoResult, userInfoResult, videosResult } = providerResult;
+    const authorizationError =
+      this.provider.findAuthorizationError(providerResult);
 
     if (authorizationError) {
       await this.tiktokService.handleAuthorizationError(
@@ -482,148 +358,9 @@ export class TiktokAuthorizedSignalsService {
     );
   }
 
-  private async fetchUserInfo(
-    accessToken: string,
-    grantedScopes: string[],
-  ): Promise<Record<string, unknown>> {
-    const fields = Object.entries(USER_INFO_PROVIDER_FIELDS_BY_SCOPE)
-      .filter(([scope]) => grantedScopes.includes(scope))
-      .flatMap(([, scopeFields]) => scopeFields)
-      .join(',');
-    const response = await firstValueFrom(
-      this.httpService.get<TikTokUserInfoResponse>(
-        `${this.endpoint}/user/info/`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': this.contentType,
-          },
-          params: { fields },
-          timeout: TIKTOK_SIGNAL_REQUEST_TIMEOUT_MS,
-        },
-      ),
-    );
-
-    return readRecord(response.data?.data?.user);
-  }
-
-  private async fetchVideos(accessToken: string): Promise<{
-    hasMore: boolean;
-    rawVideoCount: number;
-    videos: TikTokOwnedVideoSignal[];
-  }> {
-    const response = await firstValueFrom(
-      this.httpService.post<TikTokVideoListResponse>(
-        `${this.endpoint}/video/list/?fields=${VIDEO_PROVIDER_FIELDS}`,
-        { max_count: TIKTOK_VIDEO_LIMIT },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': this.contentType,
-          },
-          timeout: TIKTOK_SIGNAL_REQUEST_TIMEOUT_MS,
-        },
-      ),
-    );
-    const rawVideos = Array.isArray(response.data?.data?.videos)
-      ? response.data.data.videos
-      : [];
-
-    return {
-      hasMore: response.data?.data?.has_more === true,
-      rawVideoCount: rawVideos.length,
-      videos: rawVideos.flatMap((video) => {
-        const id = readString(video.id);
-        if (!id) {
-          return [];
-        }
-
-        return [
-          {
-            commentCount: readNonNegativeInteger(video.comment_count),
-            createTime: readNonNegativeInteger(video.create_time),
-            duration: readNonNegativeInteger(video.duration),
-            id,
-            likeCount: readNonNegativeInteger(video.like_count),
-            shareCount: readNonNegativeInteger(video.share_count),
-            shareUrl: readHttpUrl(video.share_url),
-            title: readString(video.title),
-            videoDescription: readString(video.video_description),
-            viewCount: readNonNegativeInteger(video.view_count),
-          },
-        ];
-      }),
-    };
-  }
-
-  private async fetchCreatorInfo(
-    accessToken: string,
-  ): Promise<Record<string, unknown>> {
-    const response = await firstValueFrom(
-      this.httpService.post<TikTokCreatorInfoResponse>(
-        `${this.endpoint}/post/publish/creator_info/query/`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': this.contentType,
-          },
-          timeout: TIKTOK_SIGNAL_REQUEST_TIMEOUT_MS,
-        },
-      ),
-    );
-
-    return readRecord(response.data?.data);
-  }
-
-  private async requestWithRetry<T>(request: () => Promise<T>): Promise<T> {
-    let lastError: unknown;
-
-    for (let attempt = 0; attempt < TIKTOK_SIGNAL_MAX_ATTEMPTS; attempt += 1) {
-      try {
-        return await request();
-      } catch (error: unknown) {
-        lastError = error;
-        if (
-          !isTikTokRateLimitError(error) ||
-          attempt === TIKTOK_SIGNAL_MAX_ATTEMPTS - 1
-        ) {
-          throw error;
-        }
-
-        const delayMs = getTikTokRetryAfterMs(
-          error,
-          TIKTOK_SIGNAL_RETRY_FALLBACK_MS * 2 ** attempt,
-          TIKTOK_SIGNAL_RETRY_MAX_MS,
-        );
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
-    }
-
-    throw lastError;
-  }
-
-  private async settle<T>(
-    promise: Promise<T> | undefined,
-  ): Promise<{ error?: unknown; value?: T }> {
-    if (!promise) {
-      return {};
-    }
-
-    try {
-      return { value: await promise };
-    } catch (error: unknown) {
-      return { error };
-    }
-  }
-
-  private isAuthorizationFailure(error: unknown): boolean {
-    return !isTikTokScopeError(error) && isTikTokAuthorizationError(error);
-  }
-
   private buildProfileEvidence(
     grantedScopes: string[],
-    result: { error?: unknown; value?: Record<string, unknown> },
+    result: SettledResult<Record<string, unknown>>,
     previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): TikTokAuthorizedSignalEvidence {
@@ -699,7 +436,7 @@ export class TiktokAuthorizedSignalsService {
 
   private buildStatisticsEvidence(
     grantedScopes: string[],
-    result: { error?: unknown; value?: Record<string, unknown> },
+    result: SettledResult<Record<string, unknown>>,
     previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): TikTokAuthorizedSignalEvidence {
@@ -763,14 +500,7 @@ export class TiktokAuthorizedSignalsService {
 
   private buildPublicVideosEvidence(
     grantedScopes: string[],
-    result: {
-      error?: unknown;
-      value?: {
-        hasMore: boolean;
-        rawVideoCount: number;
-        videos: TikTokOwnedVideoSignal[];
-      };
-    },
+    result: SettledResult<TikTokVideosFetch>,
     previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): TikTokAuthorizedSignalEvidence {
@@ -824,7 +554,7 @@ export class TiktokAuthorizedSignalsService {
 
   private buildCreatorCapabilitiesEvidence(
     grantedScopes: string[],
-    result: { error?: unknown; value?: Record<string, unknown> },
+    result: SettledResult<Record<string, unknown>>,
     previousSnapshot: TikTokAuthorizedSignalsSnapshot | undefined,
     observedAt: string,
   ): TikTokAuthorizedSignalEvidence {
