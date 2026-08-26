@@ -1,6 +1,5 @@
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
   AnalyticsCollectionAttemptRef,
@@ -22,6 +21,7 @@ import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject } from '@nestjs/common';
 import { classifyAnalyticsCollectionError } from '@server/analytics/analytics-collection-state';
+import { FacebookService } from '@server/services/integrations/facebook/services/facebook.service';
 import { ANALYTICS_JOB_LIMITER } from '@workers/processors/api/queues/shared/analytics-queue-limiters';
 import { Job } from 'bullmq';
 
