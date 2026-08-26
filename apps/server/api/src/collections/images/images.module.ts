@@ -10,6 +10,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ImagesController } from '@api/collections/images/controllers/images.controller';
 import { ImagesOperationsController } from '@api/collections/images/controllers/operations/images-operations.controller';
 import { ImagesRelationshipsController } from '@api/collections/images/controllers/relationships/images-relationships.controller';
+import { ImagesReframeController } from '@api/collections/images/controllers/transformations/images-reframe.controller';
 import { ImagesResizeController } from '@api/collections/images/controllers/transformations/images-resize.controller';
 import { ImagesTransformationsController } from '@api/collections/images/controllers/transformations/images-transformations.controller';
 import { ImagesUploadsController } from '@api/collections/images/controllers/upload/images-uploads.controller';
@@ -18,6 +19,7 @@ import { ImageGenerationService } from '@api/collections/images/services/image-g
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
+import { ImageReframeService } from '@api/collections/images/services/image-reframe.service';
 import { ImageResizeService } from '@api/collections/images/services/image-resize.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
 import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
@@ -67,6 +69,7 @@ import { Module } from '@nestjs/common';
     ImagesOperationsController,
     ImagesRelationshipsController,
     ImagesResizeController,
+    ImagesReframeController,
     ImagesTransformationsController,
     ImagesUploadsController,
   ],
@@ -121,6 +124,7 @@ import { Module } from '@nestjs/common';
     ImageGenerationProviderRegistryService,
     ImageGenerationService,
     ImageResizeService,
+    ImageReframeService,
     KlingAiImageGenerationProviderAdapter,
     LeonardoImageGenerationProviderAdapter,
     ModelRegistrationService,

@@ -7,14 +7,11 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ImagesTransformationsController } from '@api/collections/images/controllers/transformations/images-transformations.controller';
-import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -40,7 +37,6 @@ describe('ImagesTransformationsController', () => {
   let _sharedService: SharedService;
   let _replicateService: ReplicateService;
   let _promptBuilderService: PromptBuilderService;
-  let _creditsUtilsService: CreditsUtilsService;
   let _modelsService: ModelsService;
 
   const userId = testId('user');
@@ -48,7 +44,6 @@ describe('ImagesTransformationsController', () => {
   const brandId = testId('brand');
   const imageId = testId('image');
   const metadataId = testId('metadata');
-  const promptId = testId('prompt');
   const resizedImageId = testId('resized');
   const newMetadataId = testId('metadata', 2);
   const activityId = testId('activity');
@@ -88,9 +83,6 @@ describe('ImagesTransformationsController', () => {
     configService: {
       ingredientsEndpoint: 'https://api.example.com/ingredients',
     },
-    creditsUtilsService: {
-      deductCreditsFromOrganization: vi.fn(),
-    },
     failedGenerationService: {
       handleFailedImageGeneration: vi.fn(),
     },
@@ -122,14 +114,7 @@ describe('ImagesTransformationsController', () => {
         templateVersion: null,
       }),
     },
-    promptsService: {
-      create: vi.fn().mockResolvedValue({
-        id: promptId,
-        original: 'Test prompt',
-      }),
-    },
     replicateService: {
-      generateTextToImage: vi.fn().mockResolvedValue('generation-id-123'),
       runModel: vi.fn().mockResolvedValue('generation-id-123'),
     },
     routerService: {
@@ -159,10 +144,6 @@ describe('ImagesTransformationsController', () => {
         },
         { provide: ConfigService, useValue: mockServices.configService },
         {
-          provide: CreditsUtilsService,
-          useValue: mockServices.creditsUtilsService,
-        },
-        {
           provide: FailedGenerationService,
           useValue: mockServices.failedGenerationService,
         },
@@ -170,7 +151,6 @@ describe('ImagesTransformationsController', () => {
         { provide: LoggerService, useValue: mockServices.loggerService },
         { provide: MetadataService, useValue: mockServices.metadataService },
         { provide: ModelsService, useValue: mockServices.modelsService },
-        { provide: PromptsService, useValue: mockServices.promptsService },
         {
           provide: PromptBuilderService,
           useValue: mockServices.promptBuilderService,
@@ -206,7 +186,6 @@ describe('ImagesTransformationsController', () => {
     _replicateService = module.get<ReplicateService>(ReplicateService);
     _promptBuilderService =
       module.get<PromptBuilderService>(PromptBuilderService);
-    _creditsUtilsService = module.get<CreditsUtilsService>(CreditsUtilsService);
     _modelsService = module.get<ModelsService>(ModelsService);
   });
 
@@ -216,93 +195,6 @@ describe('ImagesTransformationsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
-  });
-
-  describe('reframeImage', () => {
-    it('should reframe an image', async () => {
-      const createImageDto: CreateImageDto = {
-        format: 'landscape',
-        height: 1080,
-        text: 'Reframe to landscape',
-        width: 1920,
-      };
-
-      mockServices.imagesService.findOne.mockResolvedValue(mockImage);
-
-      const result = await controller.reframeImage(
-        mockRequest,
-        imageId,
-        mockUser,
-        createImageDto,
-      );
-
-      expect(mockServices.imagesService.findOne).toHaveBeenCalled();
-      expect(mockServices.promptsService.create).toHaveBeenCalled();
-      expect(
-        mockServices.sharedService.createMediaDocuments,
-      ).toHaveBeenCalled();
-      expect(
-        mockServices.replicateService.generateTextToImage,
-      ).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-
-    it('should throw error when parent image not found', async () => {
-      mockServices.imagesService.findOne.mockResolvedValue(null);
-
-      await expect(
-        controller.reframeImage(mockRequest, imageId, mockUser, {
-          text: 'Reframe',
-        }),
-      ).rejects.toThrow(HttpException);
-    });
-
-    it('should use default dimensions based on format', async () => {
-      const createImageDto: CreateImageDto = {
-        format: 'square',
-        text: 'Reframe to square',
-      };
-
-      mockServices.imagesService.findOne.mockResolvedValue(mockImage);
-
-      await controller.reframeImage(
-        mockRequest,
-        imageId,
-        mockUser,
-        createImageDto,
-      );
-
-      expect(
-        mockServices.sharedService.createMediaDocuments,
-      ).toHaveBeenCalledWith(
-        mockUser,
-        expect.objectContaining({
-          height: 1080,
-          width: 1080,
-        }),
-      );
-    });
-
-    it('should deduct credits after successful generation', async () => {
-      const createImageDto: CreateImageDto = {
-        text: 'Reframe to landscape',
-      };
-
-      mockServices.imagesService.findOne.mockResolvedValue(mockImage);
-
-      await controller.reframeImage(
-        mockRequest,
-        imageId,
-        mockUser,
-        createImageDto,
-      );
-
-      // Credits deduction is handled by the CreditsInterceptor, not directly called
-      // The generation call is the key assertion
-      expect(
-        mockServices.replicateService.generateTextToImage,
-      ).toHaveBeenCalled();
-    });
   });
 
   describe('upscaleImage', () => {
