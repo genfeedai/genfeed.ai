@@ -4,6 +4,7 @@ vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
 
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
+import { AdsGatewayWriteController } from '@api/services/ads-gateway/ads-gateway-write.controller';
 import { ApiKeyScope } from '@genfeedai/enums';
 
 const READ_HANDLERS = [
@@ -53,7 +54,7 @@ describe('AdsGatewayController RBAC', () => {
   it.each(WRITE_HANDLERS)('requires owner or admin role for %s', (handler) => {
     const metadata = Reflect.getMetadata(
       'roles',
-      AdsGatewayController.prototype[handler],
+      AdsGatewayWriteController.prototype[handler],
     );
 
     expect(metadata).toEqual(['owner', 'admin']);
@@ -62,31 +63,31 @@ describe('AdsGatewayController RBAC', () => {
   it.each(WRITE_HANDLERS)('requires the admin scope for %s', (handler) => {
     const metadata = Reflect.getMetadata(
       API_KEY_SCOPES_KEY,
-      AdsGatewayController.prototype[handler],
+      AdsGatewayWriteController.prototype[handler],
     );
 
     expect(metadata).toEqual([ApiKeyScope.ADMIN]);
   });
 
   it('leaves no paid-media route without role and scope metadata', () => {
-    const prototype = AdsGatewayController.prototype as unknown as Record<
-      string,
-      object
-    >;
-
-    const routeHandlers = Object.getOwnPropertyNames(prototype)
-      .filter((name) => name !== 'constructor')
-      .filter((name) => Reflect.hasMetadata('path', prototype[name]));
+    const prototypes = [
+      AdsGatewayController.prototype,
+      AdsGatewayWriteController.prototype,
+    ] as unknown as Array<Record<string, object>>;
+    const routeHandlers = prototypes.flatMap((prototype) =>
+      Object.getOwnPropertyNames(prototype)
+        .filter((name) => name !== 'constructor')
+        .filter((name) => Reflect.hasMetadata('path', prototype[name]))
+        .map((name) => prototype[name]),
+    );
 
     expect(routeHandlers).toHaveLength(
       READ_HANDLERS.length + WRITE_HANDLERS.length,
     );
 
     for (const handler of routeHandlers) {
-      expect(Reflect.getMetadata('roles', prototype[handler])).toBeDefined();
-      expect(
-        Reflect.getMetadata(API_KEY_SCOPES_KEY, prototype[handler]),
-      ).toBeDefined();
+      expect(Reflect.getMetadata('roles', handler)).toBeDefined();
+      expect(Reflect.getMetadata(API_KEY_SCOPES_KEY, handler)).toBeDefined();
     }
   });
 });

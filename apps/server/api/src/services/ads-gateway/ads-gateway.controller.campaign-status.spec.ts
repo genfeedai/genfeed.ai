@@ -17,14 +17,15 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { AdsGatewayController } from '@api/services/ads-gateway/ads-gateway.controller';
+import { INVALID_CAMPAIGN_STATUS_MESSAGE } from '@api/services/ads-gateway/ads-campaign-status.util';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
+import { AdsGatewayRequestContextService } from '@api/services/ads-gateway/ads-gateway-request-context.service';
+import { AdsGatewayWriteController } from '@api/services/ads-gateway/ads-gateway-write.controller';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
-describe('AdsGatewayController paused-only campaign writes', () => {
-  let controller: AdsGatewayController;
+describe('AdsGatewayWriteController paused-only campaign writes', () => {
+  let controller: AdsGatewayWriteController;
   let adsGatewayService: {
     comparePlatforms: ReturnType<typeof vi.fn>;
     getAdapter: ReturnType<typeof vi.fn>;
@@ -62,18 +63,21 @@ describe('AdsGatewayController paused-only campaign writes', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [AdsGatewayController],
+      controllers: [AdsGatewayWriteController],
       providers: [
         { provide: AdsGatewayService, useValue: adsGatewayService },
         { provide: CredentialsService, useValue: credentialsService },
         { provide: LoggerService, useValue: { log: vi.fn() } },
+        AdsGatewayRequestContextService,
       ],
     })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
       .compile();
 
-    controller = module.get<AdsGatewayController>(AdsGatewayController);
+    controller = module.get<AdsGatewayWriteController>(
+      AdsGatewayWriteController,
+    );
   });
 
   const ACTIVATING_STATUSES = [
@@ -95,7 +99,7 @@ describe('AdsGatewayController paused-only campaign writes', () => {
           objective: 'OUTCOME_TRAFFIC',
           status,
         }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(INVALID_CAMPAIGN_STATUS_MESSAGE);
 
       expect(credentialsService.findOne).not.toHaveBeenCalled();
       expect(adsGatewayService.getAdapter).not.toHaveBeenCalled();
@@ -111,7 +115,7 @@ describe('AdsGatewayController paused-only campaign writes', () => {
           ...baseBody,
           status,
         }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(INVALID_CAMPAIGN_STATUS_MESSAGE);
 
       expect(credentialsService.findOne).not.toHaveBeenCalled();
       expect(adsGatewayService.getAdapter).not.toHaveBeenCalled();
@@ -170,8 +174,11 @@ describe('AdsGatewayController paused-only campaign writes', () => {
         objective: 'OUTCOME_TRAFFIC',
         status: 'ACTIVE',
       }),
-    ).rejects.toThrow(BadRequestException);
+    ).rejects.toThrow(
+      'Invalid platform: snapchat. Must be one of: meta, google, tiktok, x',
+    );
 
     expect(credentialsService.findOne).not.toHaveBeenCalled();
+    expect(adsGatewayService.getAdapter).not.toHaveBeenCalled();
   });
 });
