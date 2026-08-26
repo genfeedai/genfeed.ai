@@ -78,6 +78,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { ByokService } from '@api/services/byok/byok.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
+import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -302,6 +303,12 @@ describe('ImagesOperationsController', () => {
           useValue: {
             emitGenerationCompleted: vi.fn().mockResolvedValue(undefined),
             emitGenerationFailed: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: MediaGenerationCostService,
+          useValue: {
+            recordGenerationCost: vi.fn().mockResolvedValue(undefined),
           },
         },
         {
