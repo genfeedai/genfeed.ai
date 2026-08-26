@@ -1,5 +1,11 @@
-import { get, post } from './client';
-import { flattenCollection, type JsonApiCollectionResponse } from './json-api';
+import type { IReleaseGroup } from '@genfeedai/interfaces';
+import { get, patch, post } from './client';
+import {
+  flattenCollection,
+  flattenSingle,
+  type JsonApiCollectionResponse,
+  type JsonApiSingleResponse,
+} from './json-api';
 
 export interface ScheduleEntry {
   id: string;
@@ -50,4 +56,30 @@ export async function getOptimalTimes(
   if (timezone) body.timezone = timezone;
   const response = await post<JsonApiCollectionResponse>('/schedules/optimal', body);
   return flattenCollection<OptimalTime>(response);
+}
+
+export async function getScheduledRelease(releaseId: string): Promise<IReleaseGroup> {
+  const response = await get<JsonApiSingleResponse>(
+    `/post-groups/${encodeURIComponent(releaseId)}`
+  );
+  return flattenSingle<IReleaseGroup>(response);
+}
+
+export async function cancelScheduledRelease(releaseId: string): Promise<IReleaseGroup> {
+  const response = await patch<JsonApiSingleResponse>(
+    `/post-groups/${encodeURIComponent(releaseId)}`,
+    { action: 'cancel' }
+  );
+  return flattenSingle<IReleaseGroup>(response);
+}
+
+export async function rescheduleScheduledRelease(
+  releaseId: string,
+  scheduledDate: string
+): Promise<IReleaseGroup> {
+  const response = await patch<JsonApiSingleResponse>(
+    `/post-groups/${encodeURIComponent(releaseId)}`,
+    { scheduledDate }
+  );
+  return flattenSingle<IReleaseGroup>(response);
 }

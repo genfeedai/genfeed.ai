@@ -3,8 +3,67 @@ title: API Reference
 description: 'Interactive OpenAPI reference for the Genfeed.ai REST API — browse every endpoint, schema, and response directly in the browser.'
 ---
 
-import SwaggerUI from '../../components/SwaggerUI'
+import SwaggerUI from '../../components/SwaggerUI';
 
 Explore the Genfeed.ai API with the interactive documentation below.
+
+## Scheduling
+
+Scheduling uses release groups: one shared piece of content with one or more
+channel targets. Send a bearer API key with the appropriate posts scope. The
+canonical release identifier returned by any surface can be used by REST, MCP,
+or the CLI.
+
+### Release lifecycle
+
+| Method  | Route                                     | Purpose                                                                                                                                                         |
+| ------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`   | `/v1/post-groups`                         | List release groups. Supports release-window, brand, status, platform, credential, execution-state, content-type, source, search, sort, and pagination filters. |
+| `POST`  | `/v1/post-groups`                         | Create a draft or scheduled multi-channel release. An optional `Idempotency-Key` header makes retries safe.                                                     |
+| `POST`  | `/v1/post-groups/from-post`               | Ensure an existing post has a canonical release group.                                                                                                          |
+| `GET`   | `/v1/post-groups/{id}`                    | Read the current release and per-target status.                                                                                                                 |
+| `PATCH` | `/v1/post-groups/{id}`                    | Edit release fields, reschedule with `scheduledDate`, or apply a lifecycle `action`.                                                                            |
+| `PATCH` | `/v1/post-groups/{id}/targets/{targetId}` | Edit one channel target or apply a target scheduling/publish action.                                                                                            |
+| `POST`  | `/v1/post-groups/recurrence/preview`      | Preview a recurrence rule without creating a release.                                                                                                           |
+| `PATCH` | `/v1/post-groups/{id}/series/future`      | Edit future occurrences in a recurring series.                                                                                                                  |
+
+`PATCH /v1/post-groups/{id}` accepts lifecycle actions `cancel`, `pause`,
+`resume`, and `publish-now`. Recurring-series actions and calendar moves use the
+same route. To reschedule without changing content, send the request field
+`scheduledDate`; serialized responses expose the resulting timestamp as
+`scheduledAt`.
+
+```bash
+curl -X PATCH https://api.genfeed.ai/v1/post-groups/RELEASE_ID \
+  -H "Authorization: Bearer $GENFEED_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"scheduledDate":"2026-09-01T10:00:00.000Z"}'
+```
+
+Cancel the same release with the canonical lifecycle action:
+
+```bash
+curl -X PATCH https://api.genfeed.ai/v1/post-groups/RELEASE_ID \
+  -H "Authorization: Bearer $GENFEED_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"cancel"}'
+```
+
+### Calendar, channel capabilities, and readiness
+
+| Method | Route                                                  | Purpose                                                                                                                                  |
+| ------ | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/v1/schedules/calendar`                               | Read scheduled entries for an optional `start` and `end` range.                                                                          |
+| `POST` | `/v1/schedules/bulk`                                   | Schedule multiple content items.                                                                                                         |
+| `POST` | `/v1/schedules/optimal`                                | Suggest posting times for an optional platform and timezone. This may consume generation credits.                                        |
+| `GET`  | `/v1/schedules/channel-capabilities`                   | List channel publishing contracts. `includeHidden` and `includePlanned` are optional boolean query parameters.                           |
+| `GET`  | `/v1/schedules/channel-capabilities/{platform}`        | Read one platform's limits, media rules, publish modes, settings, and support status.                                                    |
+| `POST` | `/v1/schedules/channel-capabilities/validate`          | Validate a proposed target without creating or updating a release.                                                                       |
+| `GET`  | `/v1/credentials/brand/{brandId}/publishing-readiness` | List the brand's connected channels with credential ID, provider, `canSchedule`, readiness state, required action, and safe diagnostics. |
+
+Check publishing readiness before creating a release. A channel with
+`canSchedule: false` must be repaired before it can be used as a target;
+`requiredAction` and `diagnostics` explain the next step without returning
+credential secrets.
 
 <SwaggerUI />

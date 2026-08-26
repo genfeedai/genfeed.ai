@@ -1,4 +1,7 @@
-import type { IReleaseGroup } from '@genfeedai/interfaces';
+import type {
+  IPublishingProviderReadiness,
+  IReleaseGroup,
+} from '@genfeedai/interfaces';
 import type { BaseApiClient } from './base-api-client';
 
 export type ScheduledReleaseControlAction =
@@ -23,10 +26,10 @@ export interface ValidateSchedulerTargetInput {
 }
 
 /**
- * Scheduler release lifecycle and channel-capability proxy. The MCP layer
- * forwards the canonical scheduler request bodies unchanged; validation,
- * organization scope, state transitions, idempotency, and publishing rules
- * remain API-owned.
+ * Scheduler release lifecycle, channel-capability, and brand-readiness proxy.
+ * The MCP layer forwards canonical scheduler requests unchanged; validation,
+ * organization scope, state transitions, idempotency, credential diagnostics,
+ * and publishing rules remain API-owned.
  */
 export class SchedulerClient {
   constructor(private readonly base: BaseApiClient) {}
@@ -127,6 +130,23 @@ export class SchedulerClient {
         return this.base.unwrapList<Record<string, unknown>>(response);
       },
       this.base.failWithDetail('Failed to list scheduler capabilities'),
+    );
+  }
+
+  listBrandPublishingReadiness(
+    brandId: string,
+  ): Promise<IPublishingProviderReadiness[]> {
+    this.base.logger.debug('Listing brand publishing readiness', { brandId });
+
+    return this.base.request(
+      'listing brand publishing readiness',
+      async (http) => {
+        const response = await http.get(
+          `/credentials/brand/${encodeURIComponent(brandId)}/publishing-readiness`,
+        );
+        return this.base.unwrapList<IPublishingProviderReadiness>(response);
+      },
+      this.base.failWithDetail('Failed to list brand publishing readiness'),
     );
   }
 

@@ -59,6 +59,7 @@ describe('ToolRegistryService.classify', () => {
     ['get_clip_project', 'clip-projects'],
     ['get_scheduled_release', 'scheduler'],
     ['get_scheduler_capability', 'scheduler'],
+    ['list_brand_publishing_readiness', 'scheduler'],
     ['list_scheduler_capabilities', 'scheduler'],
     ['update_scheduled_release', 'scheduler'],
     ['validate_scheduler_target', 'scheduler'],

@@ -1,14 +1,130 @@
+import { confirm } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
 import { requireAuth } from '@/api/client';
-import { type BulkScheduleItem, bulkSchedule, getCalendar, getOptimalTimes } from '@/api/schedules';
-import { formatHeader, formatLabel, formatSuccess, print, printJson } from '@/ui/theme';
+import {
+  type BulkScheduleItem,
+  bulkSchedule,
+  cancelScheduledRelease,
+  getCalendar,
+  getOptimalTimes,
+  getScheduledRelease,
+  rescheduleScheduledRelease,
+} from '@/api/schedules';
+import {
+  formatHeader,
+  formatLabel,
+  formatSuccess,
+  formatWarning,
+  print,
+  printJson,
+} from '@/ui/theme';
 import { handleError } from '@/utils/errors';
 
 export const scheduleCommand = new Command('schedule').description(
   'Content scheduling and calendar'
 );
+
+scheduleCommand
+  .command('status')
+  .description('Read a scheduled release status')
+  .argument('<release-id>', 'Scheduled release ID')
+  .option('--json', 'Output as JSON')
+  .action(async (releaseId, options) => {
+    try {
+      await requireAuth();
+
+      const spinner = ora('Fetching scheduled release...').start();
+      const release = await getScheduledRelease(releaseId);
+      spinner.stop();
+
+      if (options.json) {
+        printJson(release);
+        return;
+      }
+
+      print(formatHeader('\nScheduled Release:\n'));
+      print(formatLabel('ID', release.id));
+      print(formatLabel('Title', release.title));
+      print(formatLabel('Status', release.status));
+      if (release.scheduledAt) {
+        print(formatLabel('Scheduled', new Date(release.scheduledAt).toLocaleString()));
+      }
+      print(formatLabel('Timezone', release.timezone));
+      print(formatLabel('Targets', String(release.targets?.length ?? 0)));
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
+scheduleCommand
+  .command('cancel')
+  .description('Cancel a scheduled release')
+  .argument('<release-id>', 'Scheduled release ID')
+  .option('-f, --force', 'Skip confirmation')
+  .option('--json', 'Output as JSON')
+  .action(async (releaseId, options) => {
+    try {
+      await requireAuth();
+
+      if (!options.force) {
+        const confirmed = await confirm({
+          default: false,
+          message: `Cancel scheduled release ${releaseId}?`,
+        });
+        if (!confirmed) {
+          print(formatWarning('Cancellation aborted'));
+          return;
+        }
+      }
+
+      const spinner = ora('Cancelling scheduled release...').start();
+      const release = await cancelScheduledRelease(releaseId);
+      spinner.succeed('Scheduled release cancelled');
+
+      if (options.json) {
+        printJson(release);
+        return;
+      }
+
+      print(formatSuccess('Scheduled release cancelled'));
+      print(formatLabel('ID', release.id));
+      print(formatLabel('Status', release.status));
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
+scheduleCommand
+  .command('reschedule')
+  .description('Move a scheduled release to a new date')
+  .argument('<release-id>', 'Scheduled release ID')
+  .requiredOption('--scheduled-at <iso>', 'New scheduled date in ISO-8601 format')
+  .option('--json', 'Output as JSON')
+  .action(async (releaseId, options) => {
+    try {
+      await requireAuth();
+
+      const spinner = ora('Rescheduling release...').start();
+      const release = await rescheduleScheduledRelease(releaseId, options.scheduledAt);
+      spinner.succeed('Scheduled release rescheduled');
+
+      if (options.json) {
+        printJson(release);
+        return;
+      }
+
+      print(formatSuccess('Scheduled release rescheduled'));
+      print(formatLabel('ID', release.id));
+      print(formatLabel('Status', release.status));
+      if (release.scheduledAt) {
+        print(formatLabel('Scheduled', new Date(release.scheduledAt).toLocaleString()));
+      }
+    } catch (error) {
+      handleError(error);
+    }
+  });
 
 scheduleCommand
   .command('calendar')

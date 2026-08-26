@@ -454,6 +454,28 @@ describe('ClientService (MCP)', () => {
       expect(result).toEqual(capabilities);
     });
 
+    it('lists brand publishing readiness through the canonical credentials route', async () => {
+      const readiness = [
+        {
+          canSchedule: true,
+          credentialId: 'credential-1',
+          diagnostics: [],
+          providerKey: 'youtube',
+          state: 'publish_capable',
+        },
+      ];
+      (mockAxiosInstance.get as Mock).mockResolvedValue({ data: readiness });
+
+      const result = await service.listBrandPublishingReadiness('brand/1');
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/credentials/brand/brand%2F1/publishing-readiness',
+      );
+      expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+      expect(mockAxiosInstance.patch).not.toHaveBeenCalled();
+      expect(result).toEqual(readiness);
+    });
+
     it('gets one scheduler capability using an encoded platform', async () => {
       const capability = {
         label: 'TikTok',

@@ -486,6 +486,12 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   },
   {
     method: 'Get',
+    sub: 'brand/:brandId/publishing-readiness',
+    controller: 'credentials',
+    tools: ['list_brand_publishing_readiness'],
+  },
+  {
+    method: 'Get',
     sub: 'channel-capabilities/:platform',
     controller: 'schedules',
     tools: ['get_scheduler_capability'],
