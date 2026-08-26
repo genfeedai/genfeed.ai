@@ -1,0 +1,15 @@
+export enum AgentTransferDeliveryMode {
+  SEND = 'SEND',
+  SEND_AND_RUN = 'SEND_AND_RUN',
+}
+
+export enum AgentTransferStatus {
+  PENDING = 'PENDING',
+  DELIVERED = 'DELIVERED',
+  QUEUED = 'QUEUED',
+  RUNNING = 'RUNNING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
+  DEPTH_LIMIT_REACHED = 'DEPTH_LIMIT_REACHED',
+}

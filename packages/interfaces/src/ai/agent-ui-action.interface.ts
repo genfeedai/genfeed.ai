@@ -38,7 +38,8 @@ export type AgentUiActionType =
   | 'next_steps_card'
   | 'livestream_bot_status_card'
   | 'brand_interview_offer_card'
-  | 'brand_interview_complete_card';
+  | 'brand_interview_complete_card'
+  | 'agent_transfer_card';
 
 export interface AgentUiActionBase {
   id: string;

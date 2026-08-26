@@ -382,6 +382,22 @@ enum AgentRunStatus {
   CANCELLED
 }
 
+enum AgentTransferDeliveryMode {
+  SEND
+  SEND_AND_RUN
+}
+
+enum AgentTransferStatus {
+  PENDING
+  DELIVERED
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  DEPTH_LIMIT_REACHED
+}
+
 enum BotStatus {
   ACTIVE
   PAUSED
@@ -553,6 +569,7 @@ model User {
   agentMemories            AgentMemory[]
   agentThreads             AgentThread[]
   agentMessages            AgentMessage[]
+  agentTransfers           AgentTransfer[]
   socialConversations      SocialConversation[]
   socialMessages           SocialMessage[]
   agentWorkflows           AgentWorkflow[]
@@ -662,6 +679,7 @@ model Organization {
   agentMemories                 AgentMemory[]
   agentThreads                  AgentThread[]
   agentMessages                 AgentMessage[]
+  agentTransfers                AgentTransfer[]
   socialConversations           SocialConversation[]
   socialMessages                SocialMessage[]
   agentThreadEvents             AgentThreadEvent[]
@@ -855,6 +873,8 @@ model Brand {
   agentMemories              AgentMemory[]
   agentMessages              AgentMessage[]
   agentThreads               AgentThread[]
+  outboundAgentTransfers     AgentTransfer[]             @relation("agent_transfer_source_brand")
+  inboundAgentTransfers      AgentTransfer[]             @relation("agent_transfer_destination_brand")
   socialConversations        SocialConversation[]
   socialMessages             SocialMessage[]
   agentStrategyOpportunities AgentStrategyOpportunity[]
@@ -3137,6 +3157,8 @@ model AgentThread {
 
   messages      AgentMessage[]
   runs          AgentRun[]
+  outboundTransfers AgentTransfer[] @relation("agent_transfer_source_thread")
+  inboundTransfers  AgentTransfer[] @relation("agent_transfer_destination_thread")
   posts         Post[]                @relation("post_agent_thread_scope")
   events        AgentThreadEvent[]
   snapshots     AgentThreadSnapshot[]
@@ -3177,6 +3199,60 @@ model AgentMessage {
   @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc), id(sort: Desc)], map: "agent_messages_org_thread_created_id_desc_idx")
   @@index([threadId, isDeleted, id])
   @@map("agent_messages")
+}
+
+/// Immutable, user-authorized handoff between two agent conversations. Only
+/// lifecycle projection fields may change after creation; the migration owns
+/// the database trigger that enforces that boundary.
+model AgentTransfer {
+  id                          String                    @id @default(cuid())
+  organizationId              String
+  organization                Organization              @relation(fields: [organizationId], references: [id])
+  userId                      String
+  user                        User                      @relation(fields: [userId], references: [id])
+  sourceBrandId               String?
+  sourceBrand                 Brand?                    @relation("agent_transfer_source_brand", fields: [sourceBrandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  destinationBrandId          String?
+  destinationBrand            Brand?                    @relation("agent_transfer_destination_brand", fields: [destinationBrandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  sourceThreadId              String
+  sourceThread                AgentThread               @relation("agent_transfer_source_thread", fields: [sourceThreadId], references: [id])
+  destinationThreadId         String
+  destinationThread           AgentThread               @relation("agent_transfer_destination_thread", fields: [destinationThreadId], references: [id])
+  sourceMessageId             String?
+  destinationMessageId        String?
+  destinationRunId            String?                   @unique
+  destinationRun              AgentRun?                  @relation(fields: [destinationRunId], references: [id])
+  deliveryMode                AgentTransferDeliveryMode
+  status                      AgentTransferStatus        @default(PENDING)
+  idempotencyKey              String
+  requestHash                 String
+  correlationId               String                    @unique
+  parentCorrelationId         String?
+  depth                       Int                       @default(0)
+  content                     String
+  selectedContext             Json                      @default("{}")
+  artifactReferences          Json                      @default("[]")
+  artifactVersionPinIds       String[]                  @default([])
+  completionSummary           String?
+  outputArtifactReferences    Json                      @default("[]")
+  outputArtifactVersionPinIds String[]                  @default([])
+  failureReason               String?
+  progress                    Int                       @default(0)
+  retryCount                  Int                       @default(0)
+  deliveredAt                 DateTime?
+  queuedAt                    DateTime?
+  startedAt                   DateTime?
+  completedAt                 DateTime?
+  lastAttemptAt               DateTime?
+  isDeleted                   Boolean                   @default(false)
+  createdAt                   DateTime                  @default(now())
+  updatedAt                   DateTime                  @updatedAt
+
+  @@unique([organizationId, userId, idempotencyKey], map: "agent_transfers_org_user_idempotency_key")
+  @@index([organizationId, userId, sourceThreadId, isDeleted, createdAt(sort: Desc)], map: "agent_transfers_source_thread_idx")
+  @@index([organizationId, userId, destinationThreadId, isDeleted, createdAt(sort: Desc)], map: "agent_transfers_destination_thread_idx")
+  @@index([organizationId, destinationRunId, isDeleted], map: "agent_transfers_destination_run_idx")
+  @@map("agent_transfers")
 }
 
 model SocialConversation {
@@ -3396,6 +3472,7 @@ model AgentRun {
   newsletters Newsletter[]
   captions    Caption[]
   tasks       Task[]       @relation("task_linked_runs")
+  destinationTransfer AgentTransfer?
 
   metadata              Json     @default("{}")
   label                 String?

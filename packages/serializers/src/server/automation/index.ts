@@ -2,6 +2,7 @@
 export * from '@serializers/server/automation/agent-campaign.serializer';
 export * from '@serializers/server/automation/agent-run.serializer';
 export * from '@serializers/server/automation/agent-strategy.serializer';
+export * from '@serializers/server/automation/agent-transfer.serializer';
 export * from '@serializers/server/automation/bot.serializer';
 export * from '@serializers/server/automation/bot-activity.serializer';
 export * from '@serializers/server/automation/brand-memory.serializer';

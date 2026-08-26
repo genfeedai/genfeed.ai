@@ -11,12 +11,13 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiError } from '@genfeedai/agent/services/agent-api-error';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
-import type {
-  AgentApiCollectionPage,
-  AgentBaseApiService,
-} from '@genfeedai/agent/services/agent-base-api.service';
+import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
 import { AgentThreadStatus } from '@genfeedai/enums';
-import type { AgentScopePayload } from '@genfeedai/interfaces';
+import type {
+  AgentScopePayload,
+  AgentTransferPresentation,
+  IAgentTransfer,
+} from '@genfeedai/interfaces';
 import { Effect } from 'effect';
 
 export const AGENT_THREADS_ENDPOINT = '/agent/threads';
@@ -59,6 +60,99 @@ function mapMessagesToThread(
     ...message,
     threadId,
   }));
+}
+
+function hydrateTransferCards(
+  messages: AgentChatMessage[],
+  transfers: IAgentTransfer[],
+  threadId: string,
+): AgentChatMessage[] {
+  const byId = new Map(transfers.map((transfer) => [transfer.id, transfer]));
+  const byIdempotencyKey = new Map(
+    transfers.map((transfer) => [transfer.idempotencyKey, transfer]),
+  );
+  return mapMessagesToThread(messages, threadId).map((message) => {
+    const marker = message.metadata?.agentTransfer;
+    const markedTransfer = marker ? byId.get(marker.transferId) : undefined;
+    const presentation = markedTransfer
+      ? ({
+          ...markedTransfer,
+          direction:
+            marker?.direction ??
+            (markedTransfer.sourceThreadId === threadId
+              ? 'outbound'
+              : 'inbound'),
+        } satisfies AgentTransferPresentation)
+      : undefined;
+    const uiActions = message.metadata?.uiActions?.map((action) => {
+      if (action.type !== 'agent_transfer_card') {
+        return action;
+      }
+      const idempotencyKey =
+        typeof action.data?.idempotencyKey === 'string'
+          ? action.data.idempotencyKey
+          : undefined;
+      const transfer = idempotencyKey
+        ? byIdempotencyKey.get(idempotencyKey)
+        : undefined;
+      return transfer
+        ? {
+            ...action,
+            data: {
+              ...(action.data ?? {}),
+              transfer: {
+                ...transfer,
+                direction:
+                  transfer.sourceThreadId === threadId ? 'outbound' : 'inbound',
+              },
+            },
+          }
+        : action;
+    });
+    return {
+      ...message,
+      metadata: {
+        ...(message.metadata ?? {}),
+        ...(marker
+          ? {
+              agentTransfer: {
+                ...marker,
+                ...(presentation ? { transfer: presentation } : {}),
+              },
+            }
+          : {}),
+        ...(uiActions ? { uiActions } : {}),
+      },
+    };
+  });
+}
+
+function getTransfersEffect(
+  api: AgentBaseApiService,
+  threadId: string,
+  signal?: AbortSignal,
+): Effect.Effect<IAgentTransfer[], AgentApiError> {
+  return api
+    .fetchCollectionEffect<IAgentTransfer>(
+      `${api.config.baseUrl}/agent/transfers?threadId=${encodeURIComponent(threadId)}`,
+      { signal },
+      'Failed to fetch conversation transfers',
+      'Failed to deserialize conversation transfers',
+    )
+    .pipe(Effect.catchAll(() => Effect.succeed([])));
+}
+
+export function retryAgentTransferEffect(
+  api: AgentBaseApiService,
+  transferId: string,
+  signal?: AbortSignal,
+): Effect.Effect<IAgentTransfer, AgentApiError> {
+  return api.fetchResourceEffect<IAgentTransfer>(
+    `${api.config.baseUrl}/agent/transfers/${encodeURIComponent(transferId)}/retry`,
+    { method: 'POST', signal },
+    'Failed to retry conversation transfer',
+    'Failed to deserialize conversation transfer',
+  );
 }
 
 export function createThreadEffect(
@@ -383,14 +477,19 @@ export function getMessagesEffect(
   params?: GetMessagesParams,
   signal?: AbortSignal,
 ): Effect.Effect<AgentChatMessage[], AgentApiError> {
-  return api
-    .fetchCollectionEffect<AgentChatMessage>(
+  return Effect.all({
+    messages: api.fetchCollectionEffect<AgentChatMessage>(
       buildMessagesUrl(api, threadId, params),
       { signal },
       'Failed to fetch messages',
       'Failed to deserialize thread messages',
-    )
-    .pipe(Effect.map((messages) => mapMessagesToThread(messages, threadId)));
+    ),
+    transfers: getTransfersEffect(api, threadId, signal),
+  }).pipe(
+    Effect.map(({ messages, transfers }) =>
+      hydrateTransferCards(messages, transfers, threadId),
+    ),
+  );
 }
 
 export function getMessagesPageEffect(
@@ -399,22 +498,21 @@ export function getMessagesPageEffect(
   params?: GetMessagesParams,
   signal?: AbortSignal,
 ): Effect.Effect<AgentMessagesPage, AgentApiError> {
-  return api
-    .fetchCollectionPageEffect<AgentChatMessage>(
+  return Effect.all({
+    page: api.fetchCollectionPageEffect<AgentChatMessage>(
       buildMessagesUrl(api, threadId, params),
       { signal },
       'Failed to fetch messages',
       'Failed to deserialize thread messages',
-    )
-    .pipe(
-      Effect.map(
-        (
-          page: AgentApiCollectionPage<AgentChatMessage>,
-        ): AgentMessagesPage => ({
-          hasMore: page.hasMore,
-          messages: mapMessagesToThread(page.docs, threadId),
-          nextCursor: page.nextCursor,
-        }),
-      ),
-    );
+    ),
+    transfers: getTransfersEffect(api, threadId, signal),
+  }).pipe(
+    Effect.map(
+      ({ page, transfers }): AgentMessagesPage => ({
+        hasMore: page.hasMore,
+        messages: hydrateTransferCards(page.docs, transfers, threadId),
+        nextCursor: page.nextCursor,
+      }),
+    ),
+  );
 }

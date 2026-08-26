@@ -129,6 +129,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'install_official_workflow', surfaces: ['agent'] },
   { name: 'install_system_workflow', surfaces: ['agent', 'mcp'] },
   { name: 'list_ads_research', surfaces: ['agent', 'mcp'] },
+  { name: 'list_agent_conversations', surfaces: ['agent'] },
   { name: 'list_agent_runs', surfaces: ['mcp'] },
   { name: 'list_avatars', surfaces: ['mcp'] },
   { name: 'list_brand_publishing_readiness', surfaces: ['mcp'] },
@@ -209,6 +210,7 @@ export const CURATED_ACTION_CATALOG = [
   // clients own their own affordances and have no card surface to render into.
   { name: 'suggest_next_steps', surfaces: ['agent'] },
   { name: 'tag_social_conversation', surfaces: ['mcp'] },
+  { name: 'transfer_agent_conversation', surfaces: ['agent'] },
   { name: 'update_goal', surfaces: ['agent'] },
   {
     isPublishingApprovalRequired: true,

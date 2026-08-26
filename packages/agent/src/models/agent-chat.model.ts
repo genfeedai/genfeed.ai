@@ -10,6 +10,7 @@ import type {
   AgentClipRunIdentity,
   AgentDashboardOperation,
   AgentPublishTargetProposal,
+  AgentTransferPresentation,
   AgentUIBlock,
   AnalyticsQueryReference,
   ScopedResearchFindingReference,
@@ -38,6 +39,11 @@ export interface AgentChatMessageMetadata {
   attachments?: ChatAttachment[];
   suggestedActions?: SuggestedAction[];
   proposedPlan?: AgentProposedPlan | null;
+  agentTransfer?: {
+    direction: 'inbound' | 'outbound';
+    transfer?: AgentTransferPresentation;
+    transferId: string;
+  };
 }
 
 export interface AgentInputOption {
@@ -188,7 +194,8 @@ export interface AgentUiAction {
     | 'next_steps_card'
     | 'livestream_bot_status_card'
     | 'brand_interview_offer_card'
-    | 'brand_interview_complete_card';
+    | 'brand_interview_complete_card'
+    | 'agent_transfer_card';
   title: string;
   description?: string;
   contentFormat?:

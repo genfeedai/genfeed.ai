@@ -114,6 +114,8 @@ export enum AgentToolName {
   LIST_X_ACCOUNT_ACTIVITY = 'list_x_account_activity',
   DRAFT_X_QUOTE = 'draft_x_quote',
   DRAFT_X_REPOST = 'draft_x_repost',
+  LIST_AGENT_CONVERSATIONS = 'list_agent_conversations',
+  TRANSFER_AGENT_CONVERSATION = 'transfer_agent_conversation',
 }
 
 /** @deprecated Prefer canonical tool metadata from @genfeedai/tools. */

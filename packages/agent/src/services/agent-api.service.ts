@@ -60,6 +60,10 @@ export class AgentApiService extends AgentBaseApiService {
   unpinThreadEffect = threadsApi.unpinThreadEffect.bind(null, this);
   getMessagesEffect = threadsApi.getMessagesEffect.bind(null, this);
   getMessagesPageEffect = threadsApi.getMessagesPageEffect.bind(null, this);
+  retryAgentTransferEffect = threadsApi.retryAgentTransferEffect.bind(
+    null,
+    this,
+  );
 
   // Runs / credits / readiness
   getInstallReadinessEffect = runsApi.getInstallReadinessEffect.bind(

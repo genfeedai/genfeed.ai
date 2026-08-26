@@ -1,6 +1,7 @@
 export * from '@serializers/attributes/automation/agent-campaign.attributes';
 export * from '@serializers/attributes/automation/agent-run.attributes';
 export * from '@serializers/attributes/automation/agent-strategy.attributes';
+export * from '@serializers/attributes/automation/agent-transfer.attributes';
 export * from '@serializers/attributes/automation/bot.attributes';
 export * from '@serializers/attributes/automation/bot-activity.attributes';
 export * from '@serializers/attributes/automation/brand-memory.attributes';

@@ -105,7 +105,22 @@ function AgentChatMessageInner({
   const generatedContent = message.metadata?.generatedContent;
   const generatedContentType = message.metadata?.contentType;
   const toolCalls = message.metadata?.toolCalls;
-  const uiActions = message.metadata?.uiActions;
+  const metadataTransfer = message.metadata?.agentTransfer?.transfer;
+  const uiActions = useMemo(() => {
+    const actions = message.metadata?.uiActions ?? [];
+    if (!metadataTransfer) {
+      return actions;
+    }
+    return [
+      ...actions,
+      {
+        data: { transfer: metadataTransfer },
+        id: `agent-transfer:${metadataTransfer.id}:${metadataTransfer.direction}`,
+        title: 'Conversation transfer',
+        type: 'agent_transfer_card' as const,
+      },
+    ];
+  }, [message.metadata?.uiActions, metadataTransfer]);
   const normalizedUiActions = useMemo(() => {
     if (!uiActions?.length) {
       return [];
@@ -149,7 +164,9 @@ function AgentChatMessageInner({
   const shouldSuppressFallbackMessage =
     !isUser && hasUiActions && isToolOnlyFallbackMessage;
   const shouldRenderMessageContent =
-    Boolean(message.content) && !shouldSuppressFallbackMessage;
+    Boolean(message.content) &&
+    !shouldSuppressFallbackMessage &&
+    !metadataTransfer;
   const copyContent =
     message.content.trim().length > 0
       ? message.content

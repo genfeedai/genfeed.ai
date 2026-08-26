@@ -9,6 +9,7 @@ import {
   PaymentCtaCard,
 } from '@genfeedai/agent/components/AgentChatMessageCards';
 import { AgentCompletionSummaryCard } from '@genfeedai/agent/components/AgentCompletionSummaryCard';
+import { AgentTransferProvenanceCard } from '@genfeedai/agent/components/AgentTransferProvenanceCard';
 import { AiTextActionCard } from '@genfeedai/agent/components/AiTextActionCard';
 import { AnalyticsSnapshotCard } from '@genfeedai/agent/components/AnalyticsSnapshotCard';
 import { BatchGenerationCard } from '@genfeedai/agent/components/BatchGenerationCard';
@@ -100,6 +101,16 @@ export function UiActionRenderer({
   let card: ReactElement | null = null;
 
   switch (action.type) {
+    case 'agent_transfer_card':
+      card = (
+        <AgentTransferProvenanceCard
+          action={action}
+          apiService={liveApiService}
+          onCopy={liveOnCopy}
+          onUiAction={liveOnUiAction}
+        />
+      );
+      break;
     case 'completion_summary_card':
       card = (
         <AgentCompletionSummaryCard

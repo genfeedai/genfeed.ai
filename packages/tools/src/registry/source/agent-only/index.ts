@@ -5,6 +5,7 @@ import { AGENT_ANALYTICS_TOOLS } from './analytics.tools.js';
 import { AGENT_BRAND_PROFILE_TOOLS } from './brand-profile.tools.js';
 import { AGENT_CAMPAIGN_TOOLS } from './campaign.tools.js';
 import { AGENT_CONTENT_TOOLS } from './content.tools.js';
+import { AGENT_CONVERSATION_TRANSFER_TOOLS } from './conversation-transfer.tools.js';
 import { AGENT_DASHBOARD_LAYOUT_TOOLS } from './dashboard-layout.tools.js';
 import { AGENT_GENERATION_TOOLS } from './generation.tools.js';
 import { AGENT_IDENTITY_TOOLS } from './identity.tools.js';
@@ -21,6 +22,7 @@ export const AGENT_ONLY_TOOLS: SourceTool[] = [
   ...AGENT_OTHER_TOOLS,
   ...AGENT_OPERATOR_TOOLS,
   ...AGENT_CONTENT_TOOLS,
+  ...AGENT_CONVERSATION_TRANSFER_TOOLS,
   ...AGENT_ANALYTICS_TOOLS,
   ...AGENT_SOCIAL_TOOLS,
   ...AGENT_CAMPAIGN_TOOLS,

@@ -10,6 +10,7 @@ export * from './ai/agent-scope-context.interface';
 export * from './ai/agent-strategy.interface';
 export * from './ai/agent-stream-events.interface';
 export * from './ai/agent-tool.interface';
+export * from './ai/agent-transfer.interface';
 export * from './ai/agent-ui-action.interface';
 export * from './ai/agent-ui-block.interface';
 export * from './ai/agent-wizard.interface';

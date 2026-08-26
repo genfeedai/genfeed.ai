@@ -3,6 +3,7 @@ export type SupportedThreadUiAction =
   | 'approve_plan'
   | 'revise_plan'
   | 'confirm_create_brand'
+  | 'confirm_agent_transfer'
   | 'confirm_rename_brand'
   | 'confirm_install_official_workflow'
   | 'confirm_publish_post'
@@ -13,6 +14,7 @@ const THREAD_UI_ACTION_FAMILIES = {
   approve_plan: 'plan',
   revise_plan: 'plan',
   confirm_create_brand: 'brand-identity',
+  confirm_agent_transfer: 'confirmed-tool',
   confirm_rename_brand: 'brand-identity',
   confirm_install_official_workflow: 'confirmed-tool',
   confirm_publish_post: 'confirmed-tool',

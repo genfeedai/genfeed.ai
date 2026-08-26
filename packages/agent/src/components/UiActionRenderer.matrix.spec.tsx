@@ -65,6 +65,10 @@ const STANDALONE_CASES: Array<[string, Partial<AgentUiAction>]> = [
   ['livestream_bot_status_card', { sessionStatus: 'running' }],
   ['brand_interview_offer_card', {}],
   ['brand_interview_complete_card', {}],
+  [
+    'agent_transfer_card',
+    { data: { content: 'Handoff', direction: 'outbound', status: 'PENDING' } },
+  ],
   ['ai_text_action_card', { textContent: 'text' }],
 ];
 
