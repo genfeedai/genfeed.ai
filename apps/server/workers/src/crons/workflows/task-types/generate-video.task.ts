@@ -4,7 +4,6 @@ import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { runVideoGenerationBrief } from '@api/services/generation-brief';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
-import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import {
   ByokProvider,
@@ -14,6 +13,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
+import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
 import { KlingAIService } from '@server/services/integrations/klingai/services/klingai.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 

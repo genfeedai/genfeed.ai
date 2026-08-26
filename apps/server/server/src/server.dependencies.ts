@@ -1,9 +1,11 @@
+import type { ByokProvider } from '@genfeedai/enums';
 import type { Prisma, PrismaClient } from '@genfeedai/prisma';
 
 export type { ServerCredentialStore } from './collections/credentials/credentials.port';
 
 export const SERVER_TOKENS = {
   analyticsCollectionState: 'SERVER_ANALYTICS_COLLECTION_STATE',
+  byok: 'SERVER_BYOK',
   config: 'SERVER_CONFIG',
   credentials: 'SERVER_CREDENTIALS',
   instagram: 'SERVER_INSTAGRAM',
@@ -23,6 +25,13 @@ export const SERVER_TOKENS = {
 
 export interface ServerConfig {
   get(key: string): string | undefined;
+}
+
+export interface ServerByokResolver {
+  resolveApiKey(
+    organizationId: string,
+    provider: ByokProvider,
+  ): Promise<{ apiKey: string; apiSecret?: string } | undefined>;
 }
 
 export interface ServerLogger {

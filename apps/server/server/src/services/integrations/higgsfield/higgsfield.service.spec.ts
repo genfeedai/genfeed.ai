@@ -1,9 +1,9 @@
-import { ByokService } from '@api/services/byok/byok.service';
-import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
+import { SERVER_TOKENS } from '@server/server.dependencies';
+import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
 import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
 import { of, throwError } from 'rxjs';
@@ -29,7 +29,7 @@ describe('HiggsFieldService', () => {
     };
 
     mockByokService = {
-      resolveApiKey: vi.fn().mockResolvedValue(null),
+      resolveApiKey: vi.fn().mockResolvedValue(undefined),
     };
 
     mockPollUntilService = {
@@ -50,7 +50,7 @@ describe('HiggsFieldService', () => {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: LoggerService, useValue: mockLogger },
         { provide: HttpService, useValue: mockHttpService },
-        { provide: ByokService, useValue: mockByokService },
+        { provide: SERVER_TOKENS.byok, useValue: mockByokService },
         { provide: PollUntilService, useValue: mockPollUntilService },
       ],
     }).compile();
