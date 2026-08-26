@@ -6,6 +6,7 @@
 
 /** Completion-time facts about one finalized media generation. */
 export interface IMediaGenerationCostContext {
+  brandId?: string | null;
   category: string;
   durationSeconds?: number | null;
   height?: number | null;
@@ -16,6 +17,7 @@ export interface IMediaGenerationCostContext {
 }
 
 export interface IMediaVendorCostRecordInput {
+  brandId?: string | null;
   category: string;
   ingredientId?: string;
   isByok: boolean;

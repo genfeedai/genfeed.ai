@@ -895,6 +895,8 @@ model Brand {
   moodBoard                  MoodBoard?                 @relation("brand_moodboard")
   dashboardLayouts           DashboardLayout[]          @relation("brand_dashboard_layout")
   brandInterviews            BrandInterview[]
+  llmVendorCosts             LlmVendorCost[]             @relation("llm_vendor_cost_brand")
+  mediaVendorCosts           MediaVendorCost[]           @relation("media_vendor_cost_brand")
   warmupAccounts             WarmupAccount[]
   contentVersionPins         ContentVersionPin[]
   publishApprovals           PublishApproval[]
@@ -2674,6 +2676,8 @@ model LlmVendorCost {
   id               String       @id @default(cuid())
   organizationId   String
   organization     Organization @relation(fields: [organizationId], references: [id])
+  brandId          String?
+  brand             Brand?       @relation("llm_vendor_cost_brand", fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   provider         String
   model            String
   promptTokens     Int          @default(0)
@@ -2688,6 +2692,7 @@ model LlmVendorCost {
   updatedAt        DateTime     @updatedAt
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "llm_vendor_costs_org_deleted_created_at_idx")
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "llm_vendor_costs_org_brand_deleted_created_at_idx")
   @@index([organizationId, isDeleted, model, createdAt(sort: Desc)], map: "llm_vendor_costs_org_deleted_model_created_at_idx")
   @@map("llm_vendor_costs")
 }
@@ -2700,10 +2705,13 @@ model MediaVendorCost {
   id               String       @id @default(cuid())
   organizationId   String
   organization     Organization @relation(fields: [organizationId], references: [id])
+  brandId          String?
+  brand             Brand?       @relation("media_vendor_cost_brand", fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   provider         String
   model            String
   category         String
   ingredientId     String?
+  idempotencyKey   String?      @unique
   units            Float        @default(1)
   pricingType      String?
   vendorCostMicros Int          @default(0)
@@ -2713,6 +2721,7 @@ model MediaVendorCost {
   updatedAt        DateTime     @updatedAt
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "media_vendor_costs_org_deleted_created_at_idx")
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "media_vendor_costs_org_brand_deleted_created_at_idx")
   @@index([organizationId, isDeleted, model, createdAt(sort: Desc)], map: "media_vendor_costs_org_deleted_model_created_at_idx")
   @@map("media_vendor_costs")
 }

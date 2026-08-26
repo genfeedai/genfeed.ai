@@ -20,6 +20,7 @@ export class LlmVendorCostLedgerService {
   async record(input: ILlmVendorCostRecordInput): Promise<void> {
     await this.prisma.llmVendorCost.create({
       data: {
+        brandId: input.brandId,
         completionTokens: input.completionTokens,
         isByok: input.isByok,
         isDeleted: false,

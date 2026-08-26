@@ -18,18 +18,35 @@ export class MediaVendorCostLedgerService {
   ) {}
 
   async record(input: IMediaVendorCostRecordInput): Promise<void> {
+    const data = {
+      brandId: input.brandId ?? null,
+      category: input.category,
+      idempotencyKey: input.ingredientId
+        ? `media:${input.organizationId}:${input.ingredientId}`
+        : null,
+      ingredientId: input.ingredientId,
+      isByok: input.isByok,
+      isDeleted: false,
+      model: input.model,
+      organizationId: input.organizationId,
+      pricingType: input.pricingType,
+      provider: input.provider,
+      units: input.units,
+      vendorCostMicros: input.vendorCostMicros,
+    };
+
+    if (data.idempotencyKey) {
+      await this.prisma.mediaVendorCost.upsert({
+        create: data,
+        update: {},
+        where: { idempotencyKey: data.idempotencyKey },
+      });
+      return;
+    }
+
     await this.prisma.mediaVendorCost.create({
       data: {
-        category: input.category,
-        ingredientId: input.ingredientId,
-        isByok: input.isByok,
-        isDeleted: false,
-        model: input.model,
-        organizationId: input.organizationId,
-        pricingType: input.pricingType,
-        provider: input.provider,
-        units: input.units,
-        vendorCostMicros: input.vendorCostMicros,
+        ...data,
       },
     });
   }

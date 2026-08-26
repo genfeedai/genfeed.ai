@@ -28,6 +28,9 @@ export function buildLlmGenerationTelemetryProperties(
   if (event.organizationId) {
     properties.organization_id = event.organizationId;
   }
+  if (event.brandId) {
+    properties.brand_id = event.brandId;
+  }
   if (event.runId) {
     properties.run_id = event.runId;
   }

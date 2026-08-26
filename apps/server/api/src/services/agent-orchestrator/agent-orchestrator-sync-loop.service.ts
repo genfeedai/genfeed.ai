@@ -228,6 +228,7 @@ export class AgentOrchestratorSyncLoopService {
           }),
           context.organizationId,
           {
+            brandId: context.scope?.brandId,
             runId: context.runId,
             threadId,
             userId: context.userId,

@@ -46,6 +46,7 @@ import { KlingAIModule } from '@api/services/integrations/klingai/klingai.module
 import { LeonardoAIModule } from '@api/services/integrations/leonardoai/leonardoai.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { SolanaModule } from '@api/services/integrations/solana/solana.module';
+import { MediaVendorCostModule } from '@api/services/media-vendor-cost/media-vendor-cost.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { RouterModule } from '@api/services/router/router.module';
@@ -87,6 +88,7 @@ import { Module } from '@nestjs/common';
     HiggsFieldModule,
     KlingAIModule,
     LeonardoAIModule,
+    MediaVendorCostModule,
     ModelsModule,
     NotificationsModule,
     IngredientCompletionModule,

@@ -364,6 +364,7 @@ export class LlmDispatcherService {
     const response = await run();
     try {
       await this.llmCompletionTelemetryService.recordCompletion({
+        brandId: callContext?.brandId,
         completionTokens: response.usage?.completion_tokens ?? 0,
         isByok,
         latencyMs: Date.now() - startedAt,

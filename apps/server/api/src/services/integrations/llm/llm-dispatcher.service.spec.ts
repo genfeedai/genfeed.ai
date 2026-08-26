@@ -551,7 +551,7 @@ describe('LlmDispatcherService', () => {
       await service.chatCompletion(
         makeParams('deepseek/deepseek-v4-flash-0731'),
         orgId,
-        { runId: 'run-1', threadId: 'thread-1' },
+        { brandId: 'brand-1', runId: 'run-1', threadId: 'thread-1' },
       );
 
       expect(
@@ -561,6 +561,7 @@ describe('LlmDispatcherService', () => {
         llmCompletionTelemetryService.recordCompletion,
       ).toHaveBeenCalledWith(
         expect.objectContaining({
+          brandId: 'brand-1',
           completionTokens: 5,
           isByok: false,
           model: 'test-model',

@@ -204,6 +204,7 @@ export class WebhooksService {
       width?: number;
     } | null;
     void this.mediaGenerationCostService.recordGenerationCost({
+      brandId: ingredient.brandId ?? null,
       category: input.categoryValue,
       durationSeconds: generationMetadata?.duration ?? null,
       height: generationMetadata?.height ?? null,

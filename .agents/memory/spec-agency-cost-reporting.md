@@ -37,6 +37,8 @@ reporting surface.
   `ingredientId` where possible.
 - Existing rows that cannot be resolved remain `brandId = null` and report as
   `Unattributed`.
+- Media writes use a unique organization + ingredient idempotency key so a
+  synchronous completion followed by webhook finalization remains one cost.
 - Both ledgers retain micro-USD integers and never store prompt/completion text.
 
 ### Authenticated API
@@ -90,6 +92,8 @@ See `decisions-agency-cost-reporting.md`.
 - WHEN a media generation is finalized, THE SYSTEM SHALL persist the generated
   ingredient's `brandId` with its vendor-cost row across webhook and synchronous
   completion paths.
+- WHEN the same media completion is observed more than once, THE SYSTEM SHALL
+  retain one provider-cost row for that organization and ingredient.
 - WHEN an organization member requests a cost summary, THE SYSTEM SHALL return
   provider cost and credits separately for the organization and each brand.
 - WHEN a valid brand filter is supplied, THE SYSTEM SHALL return only entries

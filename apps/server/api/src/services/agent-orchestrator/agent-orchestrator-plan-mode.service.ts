@@ -194,6 +194,7 @@ export class AgentOrchestratorPlanModeService {
       }),
       params.context.organizationId,
       {
+        brandId: params.context.scope?.brandId,
         runId: params.context.runId,
         threadId: params.threadId,
         userId: params.context.userId,

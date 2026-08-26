@@ -39,6 +39,8 @@ credits. Summaries aggregate both measures independently.
 - Historical media rows backfill through `ingredientId`.
 - Historical LLM rows backfill through `runId` first and `threadId` second.
 - Missing attribution stays nullable and is labeled `Unattributed`.
+- Media completion writes are idempotent per organization + ingredient because
+  synchronous return and provider webhook paths can observe the same output.
 - Every brand filter is checked against `(brand.id, organizationId,
   isDeleted=false)` before a report query runs.
 
