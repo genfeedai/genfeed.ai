@@ -7,14 +7,12 @@ import {
   GenerateClipsDto,
   SubmitHookClipDecisionDto,
 } from '@api/collections/clip-projects/dto/generate-clips.dto';
-import { RewriteHighlightDto } from '@api/collections/clip-projects/dto/rewrite-highlight.dto';
 import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import { isTranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
-import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
 import { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -22,7 +20,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -81,7 +78,6 @@ export class ClipProjectsController {
     private readonly clipGenerationService: ClipGenerationService,
     private readonly clipGenerationRequestService: ClipGenerationRequestService,
     private readonly clipIdentityResolutionService: ClipIdentityResolutionService,
-    private readonly highlightRewriteService: HighlightRewriteService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly hookClipApprovalService: HookClipApprovalService,
   ) {}
@@ -243,65 +239,6 @@ export class ClipProjectsController {
     });
 
     return { identity, projectId, status: 'analyzing' };
-  }
-
-  @Get(':projectId/highlights')
-  @ApiOperation({
-    description:
-      'Returns the highlights array from a ClipProject after analysis.',
-    summary: 'Get project highlights',
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getHighlights(
-    @CurrentUser() user: User,
-    @Param('projectId') projectId: string,
-  ) {
-    const project = await this.clipProjectsService.findOne({
-      id: projectId,
-      organizationId: user.organizationId,
-    });
-
-    if (!project) {
-      throw new NotFoundException('ClipProject', projectId);
-    }
-
-    return {
-      highlights: project.highlights || [],
-      projectId: String(project.id),
-      status: project.status,
-    };
-  }
-
-  @Post(':projectId/highlights/:highlightId/rewrite')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    description:
-      'Rewrite a highlight script using AI to make it more viral for a specific platform and tone.',
-    summary: 'Viral rewrite a highlight script',
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async rewriteHighlight(
-    @CurrentUser() user: User,
-    @Param('projectId') projectId: string,
-    @Param('highlightId') highlightId: string,
-    @Body() dto: RewriteHighlightDto,
-  ): Promise<{ rewrittenScript: string; originalScript: string }> {
-    // Verify the project belongs to the user's org
-    const project = await this.clipProjectsService.findOne({
-      id: projectId,
-      organizationId: user.organizationId,
-    });
-
-    if (!project) {
-      throw new NotFoundException('ClipProject', projectId);
-    }
-
-    return this.highlightRewriteService.rewrite(
-      projectId,
-      highlightId,
-      dto.platform ?? 'tiktok',
-      dto.tone ?? 'hook',
-    );
   }
 
   @Post(':projectId/generate')

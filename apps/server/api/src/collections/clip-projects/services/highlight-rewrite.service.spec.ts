@@ -3,6 +3,7 @@ import { InternalServerErrorException } from '@nestjs/common';
 import { HighlightRewriteService } from './highlight-rewrite.service';
 
 describe('HighlightRewriteService', () => {
+  const organizationId = 'org-1';
   let service: HighlightRewriteService;
   let mockOpenRouterService: {
     chatCompletion: ReturnType<typeof vi.fn>;
@@ -73,7 +74,13 @@ describe('HighlightRewriteService', () => {
   });
 
   it('returns rewritten script from LLM', async () => {
-    const result = await service.rewrite('project-1', 'h1', 'tiktok', 'hook');
+    const result = await service.rewrite(
+      'project-1',
+      'h1',
+      organizationId,
+      'tiktok',
+      'hook',
+    );
 
     expect(result.rewrittenScript).toBe(
       'Stop scrolling. AI just changed everything. Here is why.',
@@ -85,7 +92,7 @@ describe('HighlightRewriteService', () => {
   });
 
   it('persists rewrittenScript to highlight in DB', async () => {
-    await service.rewrite('project-1', 'h1', 'tiktok', 'hook');
+    await service.rewrite('project-1', 'h1', organizationId, 'tiktok', 'hook');
 
     expect(mockClipProjectsService.patch).toHaveBeenCalledWith(
       'project-1',
@@ -101,7 +108,13 @@ describe('HighlightRewriteService', () => {
   });
 
   it('uses correct platform in prompt', async () => {
-    await service.rewrite('project-1', 'h1', 'linkedin', 'educational');
+    await service.rewrite(
+      'project-1',
+      'h1',
+      organizationId,
+      'linkedin',
+      'educational',
+    );
 
     const callArgs = mockOpenRouterService.chatCompletion.mock.calls[0][0];
     const prompt = callArgs.messages[0].content;
@@ -116,7 +129,7 @@ describe('HighlightRewriteService', () => {
     );
 
     await expect(
-      service.rewrite('project-1', 'h1', 'tiktok', 'hook'),
+      service.rewrite('project-1', 'h1', organizationId, 'tiktok', 'hook'),
     ).rejects.toThrow(InternalServerErrorException);
 
     expect(mockLoggerService.error).toHaveBeenCalled();
@@ -133,7 +146,13 @@ describe('HighlightRewriteService', () => {
       ],
     });
 
-    const result = await service.rewrite('project-1', 'h1', 'tiktok', 'hook');
+    const result = await service.rewrite(
+      'project-1',
+      'h1',
+      organizationId,
+      'tiktok',
+      'hook',
+    );
 
     expect(result.rewrittenScript).toBe(
       'Stop scrolling. AI just changed everything.',
@@ -142,7 +161,37 @@ describe('HighlightRewriteService', () => {
 
   it('handles missing originalScript', async () => {
     await expect(
-      service.rewrite('project-1', 'h2', 'tiktok', 'hook'),
+      service.rewrite('project-1', 'h2', organizationId, 'tiktok', 'hook'),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  it('scopes the project lookup to the current organization', async () => {
+    await service.rewrite('project-1', 'h1', organizationId, 'tiktok', 'hook');
+
+    expect(mockClipProjectsService.findOne).toHaveBeenCalledWith({
+      id: 'project-1',
+      isDeleted: false,
+      organizationId,
+    });
+  });
+
+  it('preserves the missing project error', async () => {
+    mockClipProjectsService.findOne.mockResolvedValue(null);
+
+    await expect(
+      service.rewrite('project-1', 'h1', organizationId, 'tiktok', 'hook'),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  it('preserves the missing highlight error', async () => {
+    await expect(
+      service.rewrite(
+        'project-1',
+        'missing-highlight',
+        organizationId,
+        'tiktok',
+        'hook',
+      ),
     ).rejects.toThrow(NotFoundException);
   });
 });
