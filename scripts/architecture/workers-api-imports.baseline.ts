@@ -134,7 +134,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/services/integrations/linkedin/linkedin.module',
   '@api/services/integrations/linkedin/services/linkedin.service',
   '@api/services/integrations/mastodon/mastodon.module',
-  '@api/services/integrations/mastodon/services/mastodon.service',
   '@api/services/integrations/pinterest/pinterest.module',
   '@api/services/integrations/publishers/interfaces/publisher.interface',
   '@api/services/integrations/publishers/publisher-factory.service',

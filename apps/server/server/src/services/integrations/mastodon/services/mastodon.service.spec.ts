@@ -1,5 +1,3 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
 import { OAuthGrantType } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -7,6 +5,11 @@ import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  SERVER_TOKENS,
+  type ServerCredentialStore,
+} from '@server/server.dependencies';
+import { MastodonService } from '@server/services/integrations/mastodon/services/mastodon.service';
 import { of, throwError } from 'rxjs';
 
 vi.mock('@libs/utils/encryption/encryption.util');
@@ -14,39 +17,39 @@ vi.mock('@libs/utils/encryption/encryption.util');
 describe('MastodonService', () => {
   let service: MastodonService;
   let configService: vi.Mocked<ConfigService>;
-  let credentialsService: vi.Mocked<CredentialsService>;
   let loggerService: vi.Mocked<LoggerService>;
   let httpService: vi.Mocked<HttpService>;
 
   const instanceUrl = 'https://mastodon.social';
+  const resolveBrandAccount = vi.fn();
+  const credentialsStore = {
+    findAll: vi.fn(),
+    findBrandAccounts: vi.fn(),
+    findOne: vi.fn(),
+    mergeWarmupSignals: vi.fn(),
+    patch: vi.fn(),
+    resolveBrandAccount,
+  } satisfies ServerCredentialStore;
 
   beforeEach(async () => {
-    const credentialsMock = {
-      findOne: vi.fn(),
-      // Multi-account resolution routes through `resolveBrandAccount`; the double
-      // answers with whatever `findOne` is primed to return so the existing
-      // single-account cases keep describing one connected account.
-      resolveBrandAccount: vi.fn((options: { credentialId?: string | null }) =>
-        credentialsMock.findOne(options),
-      ),
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MastodonService,
         {
           provide: ConfigService,
           useValue: {
-            get: vi.fn((k: string) =>
+            get: vi.fn((key) =>
               // default: no app URL configured → allowlist warn-skips;
               // the redirectUri allowlist suite overrides per test
-              k === 'GENFEEDAI_APP_URL' ? undefined : `mock-${k}`,
+              String(key) === 'GENFEEDAI_APP_URL'
+                ? undefined
+                : `mock-${String(key)}`,
             ),
           },
         },
         {
-          provide: CredentialsService,
-          useValue: credentialsMock,
+          provide: SERVER_TOKENS.credentials,
+          useValue: credentialsStore,
         },
         {
           provide: LoggerService,
@@ -61,7 +64,6 @@ describe('MastodonService', () => {
 
     service = module.get<MastodonService>(MastodonService);
     configService = module.get(ConfigService);
-    credentialsService = module.get(CredentialsService);
     loggerService = module.get(LoggerService);
     httpService = module.get(HttpService);
   });
@@ -296,7 +298,7 @@ describe('MastodonService', () => {
     const brandId = 'test-object-id';
 
     it('should return analytics data from status endpoint', async () => {
-      credentialsService.findOne.mockResolvedValue({
+      resolveBrandAccount.mockResolvedValue({
         accessToken: 'encrypted-token',
         description: instanceUrl,
       } as never);
@@ -332,7 +334,7 @@ describe('MastodonService', () => {
     });
 
     it('should return zero counts when credential is missing', async () => {
-      credentialsService.findOne.mockResolvedValue(null);
+      resolveBrandAccount.mockResolvedValue(null);
 
       const result = await service.getMediaAnalytics(orgId, brandId, 's1');
 
@@ -346,7 +348,7 @@ describe('MastodonService', () => {
     });
 
     it('should return zero counts on API error', async () => {
-      credentialsService.findOne.mockResolvedValue({
+      resolveBrandAccount.mockResolvedValue({
         accessToken: 'enc',
         description: instanceUrl,
       } as never);
@@ -369,8 +371,10 @@ describe('MastodonService', () => {
 
   describe('redirectUri allowlist', () => {
     it('rejects redirect URIs outside the configured app origin', () => {
-      configService.get.mockImplementation((k: string) =>
-        k === 'GENFEEDAI_APP_URL' ? 'https://app.genfeed.ai' : `mock-${k}`,
+      configService.get.mockImplementation((key) =>
+        String(key) === 'GENFEEDAI_APP_URL'
+          ? 'https://app.genfeed.ai'
+          : `mock-${String(key)}`,
       );
 
       expect(() =>
@@ -384,8 +388,10 @@ describe('MastodonService', () => {
     });
 
     it('accepts redirect URIs under the configured app origin', () => {
-      configService.get.mockImplementation((k: string) =>
-        k === 'GENFEEDAI_APP_URL' ? 'https://app.genfeed.ai///' : `mock-${k}`,
+      configService.get.mockImplementation((key) =>
+        String(key) === 'GENFEEDAI_APP_URL'
+          ? 'https://app.genfeed.ai///'
+          : `mock-${String(key)}`,
       );
 
       expect(() =>

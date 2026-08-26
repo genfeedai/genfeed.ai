@@ -48,7 +48,6 @@ import { InstagramService } from '@api/services/integrations/instagram/services/
 import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { MastodonModule } from '@api/services/integrations/mastodon/mastodon.module';
-import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
 import { ThreadsModule } from '@api/services/integrations/threads/threads.module';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
@@ -75,6 +74,7 @@ import { AnalyticsTwitterJobService } from '@server/analytics/services/analytics
 import { AnalyticsYouTubeJobService } from '@server/analytics/services/analytics-youtube-job.service';
 import { PostAnalyticsCollectionStateService } from '@server/analytics/services/post-analytics-collection-state.service';
 import { SERVER_TOKENS } from '@server/server.dependencies';
+import { MastodonService } from '@server/services/integrations/mastodon/services/mastodon.service';
 import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 // --- collections/ processors ---
