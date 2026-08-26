@@ -127,7 +127,16 @@ export interface SocialPostImportResult {
   source: ISocialSource;
 }
 
-export interface SourcePostDraftActionInput {
+export const MAX_LISTENING_ATTRIBUTION_EVIDENCE_IDS = 100;
+
+export interface ListeningPostAttributionInput {
+  listeningTopicId: string;
+  listeningThemeId: string;
+  listeningEvidenceIds: string[];
+}
+
+export interface SourcePostDraftActionInput
+  extends Partial<ListeningPostAttributionInput> {
   actionType?: SourcePostActionType | string;
   /** Which of the brand's accounts on this platform the draft publishes as. */
   credentialId?: string;

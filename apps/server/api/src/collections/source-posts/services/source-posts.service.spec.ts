@@ -40,6 +40,10 @@ describe('SourcePostsService', () => {
     create: vi.fn(),
     findFirst: vi.fn(),
     update: vi.fn(),
+    upsert: vi.fn(),
+  };
+  const listeningTheme = {
+    findFirst: vi.fn(),
   };
 
   let service: SourcePostsService;
@@ -47,7 +51,12 @@ describe('SourcePostsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service = new SourcePostsService(
-      { ingredient, post, sourcePost } as unknown as PrismaService,
+      {
+        ingredient,
+        listeningTheme,
+        post,
+        sourcePost,
+      } as unknown as PrismaService,
       logger,
       credentialsService as never,
     );
@@ -182,6 +191,155 @@ describe('SourcePostsService', () => {
       }),
     });
     expect(result.draftId).toBe('draft-repost');
+  });
+
+  it('validates scoped theme evidence before creating an attributed response draft', async () => {
+    sourcePost.findFirst.mockResolvedValue({
+      brandId: 'brand-1',
+      externalId: 'tweet-3',
+      id: 'source-post-3',
+      organizationId: 'org-1',
+      platform: SocialSourcePlatform.TWITTER,
+      text: 'Theme evidence',
+    });
+    listeningTheme.findFirst.mockResolvedValue({
+      evidence: [
+        {
+          evidence: { id: 'evidence-1', sourcePostId: 'source-post-3' },
+        },
+      ],
+      id: 'theme-1',
+    });
+    credentialsService.findOne.mockResolvedValue({
+      id: 'credential-1',
+      platform: 'twitter',
+    });
+    post.upsert.mockResolvedValue({
+      id: 'draft-attributed',
+      status: 'draft',
+    });
+
+    const result = await service.createDraftFromPost(
+      'source-post-3',
+      { brandId: 'brand-1', organizationId: 'org-1', userId: 'legacyUser42' },
+      {
+        actionType: SourcePostActionType.REPLY,
+        listeningEvidenceIds: ['evidence-1'],
+        listeningThemeId: 'theme-1',
+        listeningTopicId: 'topic-1',
+      },
+    );
+
+    expect(listeningTheme.findFirst).toHaveBeenCalledWith({
+      include: {
+        evidence: {
+          include: {
+            evidence: { select: { id: true, sourcePostId: true } },
+          },
+          where: {
+            evidence: {
+              brandId: 'brand-1',
+              id: { in: ['evidence-1'] },
+              isDeleted: false,
+              organizationId: 'org-1',
+              topicId: 'topic-1',
+            },
+          },
+        },
+      },
+      where: {
+        brandId: 'brand-1',
+        id: 'theme-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        topic: {
+          is: {
+            brandId: 'brand-1',
+            isDeleted: false,
+            organizationId: 'org-1',
+          },
+        },
+        topicId: 'topic-1',
+      },
+    });
+    expect(post.upsert).toHaveBeenCalledWith({
+      create: expect.objectContaining({
+        listeningEvidenceIds: ['evidence-1'],
+        listeningThemeId: 'theme-1',
+        listeningTopicId: 'topic-1',
+        sourceActionId: 'source-post-3',
+        targetIdempotencyKey: expect.stringMatching(/^listening-response:/),
+        userId: 'legacyUser42',
+      }),
+      update: {},
+      where: {
+        organizationId_targetIdempotencyKey: {
+          organizationId: 'org-1',
+          targetIdempotencyKey: expect.stringMatching(/^listening-response:/),
+        },
+      },
+    });
+    expect(post.create).not.toHaveBeenCalled();
+    expect(result.draftId).toBe('draft-attributed');
+  });
+
+  it.each([
+    ['missing evidence', { evidence: [], id: 'theme-1' }],
+    [
+      'foreign evidence',
+      {
+        evidence: [
+          {
+            evidence: {
+              id: 'foreign-evidence',
+              sourcePostId: 'source-post-4',
+            },
+          },
+        ],
+        id: 'theme-1',
+      },
+    ],
+    [
+      'theme evidence for another source post',
+      {
+        evidence: [
+          {
+            evidence: {
+              id: 'evidence-1',
+              sourcePostId: 'other-source-post',
+            },
+          },
+        ],
+        id: 'theme-1',
+      },
+    ],
+  ])('rejects %s before any Post write', async (_label, theme) => {
+    sourcePost.findFirst.mockResolvedValue({
+      brandId: 'brand-1',
+      externalId: 'tweet-4',
+      id: 'source-post-4',
+      organizationId: 'org-1',
+      platform: SocialSourcePlatform.TWITTER,
+      text: 'Untrusted evidence',
+    });
+    listeningTheme.findFirst.mockResolvedValue(theme);
+
+    await expect(
+      service.createDraftFromPost(
+        'source-post-4',
+        { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+        {
+          actionType: SourcePostActionType.REPLY,
+          listeningEvidenceIds: ['evidence-1'],
+          listeningThemeId: 'theme-1',
+          listeningTopicId: 'topic-1',
+        },
+      ),
+    ).rejects.toThrow('Listening attribution evidence is unavailable');
+
+    expect(credentialsService.findOne).not.toHaveBeenCalled();
+    expect(post.create).not.toHaveBeenCalled();
+    expect(post.upsert).not.toHaveBeenCalled();
   });
 
   it('attaches an image ingredient to a scoped post draft', async () => {

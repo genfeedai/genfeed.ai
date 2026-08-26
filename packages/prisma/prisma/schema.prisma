@@ -2215,6 +2215,10 @@ model Post {
   publishApproval                PublishApproval?   @relation("active_publish_approval", fields: [publishApprovalId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   publishApprovals               PublishApproval[]  @relation("post_publish_approvals")
   sourceActionId                 String?
+  listeningTopicId              String?
+  listeningThemeId              String?
+  listeningTheme                ListeningTheme?     @relation("post_listening_theme", fields: [listeningThemeId, organizationId, brandId, listeningTopicId], references: [id, organizationId, brandId, topicId], onDelete: Restrict, onUpdate: Cascade)
+  listeningEvidenceIds          String[]            @default([])
   sourceWorkflowId               String?
   sourceWorkflowName             String?
   // Origin label for the post (e.g. agent, fastlane, manual). Free-form string.
@@ -2260,6 +2264,7 @@ model Post {
   @@index([brandId, credentialId, isDeleted, createdAt(sort: Desc)], map: "posts_brand_credential_deleted_created_at_idx")
   @@index([brandId, platform, isDeleted, createdAt(sort: Desc)], map: "posts_brand_platform_deleted_created_at_idx")
   @@index([organizationId, groupId, targetExecutionState, isDeleted], map: "posts_group_target_execution_idx")
+  @@index([organizationId, brandId, listeningThemeId], map: "posts_org_brand_listening_theme_idx")
   @@index([organizationId, isDeleted, targetExecutionState, platform, analyticsNextCollectAt, id], map: "posts_analytics_due_idx")
   @@map("posts")
 }
@@ -4328,6 +4333,7 @@ model ListeningTheme {
 
   evidence ListeningThemeEvidence[]
   signals  ListeningSignal[]
+  posts    Post[]                   @relation("post_listening_theme")
 
   @@unique([id, organizationId, brandId, topicId], map: "listening_themes_id_scope_topic_key")
   @@unique([organizationId, brandId, topicId, idempotencyKey], map: "listening_themes_scope_idempotency_key")

@@ -213,7 +213,12 @@ describe('SocialIntelligenceInbox', () => {
 
     expect(mocks.createDraft).toHaveBeenCalledWith(
       'source-post-1',
-      { actionType: 'reply' },
+      {
+        actionType: 'reply',
+        listeningEvidenceIds: ['evidence-1'],
+        listeningThemeId: 'theme-1',
+        listeningTopicId: 'topic-1',
+      },
       { brandId: 'brand-1' },
     );
     expect(screen.getByText('Response saved as a draft')).toBeVisible();

@@ -106,6 +106,9 @@ export class PostEntity extends BaseEntity {
     reviewedAt: Date;
   }>;
   declare readonly sourceActionId?: string;
+  declare readonly listeningTopicId?: string;
+  declare readonly listeningThemeId?: string;
+  declare readonly listeningEvidenceIds?: string[];
   declare readonly sourceWorkflowId?: string;
   declare readonly sourceWorkflowName?: string;
 

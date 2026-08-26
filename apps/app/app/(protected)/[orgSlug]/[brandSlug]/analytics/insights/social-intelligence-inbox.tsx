@@ -269,7 +269,12 @@ export default function SocialIntelligenceInbox({
         const service = await getSourcePostsService();
         await service.createDraft(
           evidence.sourcePostId,
-          { actionType: SourcePostActionType.REPLY },
+          {
+            actionType: SourcePostActionType.REPLY,
+            listeningEvidenceIds: [evidence.id],
+            listeningThemeId: theme.id,
+            listeningTopicId: bundle.topic.id,
+          },
           { brandId },
         );
         setMessage(theme.id, 'Response saved as a draft');
