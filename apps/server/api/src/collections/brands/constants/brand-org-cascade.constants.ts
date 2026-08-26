@@ -57,9 +57,10 @@ export interface SecondOrderCascadeTarget {
  *
  * Excluded on purpose (see KNOWN_EXCLUDED): `Member` (its brand link is
  * `lastUsedBrandId`, a per-user UI pointer — the member row belongs to its own org
- * and must NOT move), plus `ContentVersionPin` and `PublishApproval` (version-bound
- * authority records whose composite Brand foreign keys cascade atomically with the
- * Brand row instead of being rewritten by the generic target loop).
+ * and must NOT move), plus `ContentVersionPin`, `LlmVendorCost`,
+ * `MediaVendorCost`, and `PublishApproval` (records whose composite Brand foreign
+ * keys cascade atomically with the Brand row instead of being rewritten by the
+ * generic target loop).
  *
  * Non-standard field names are hand-mapped: `Asset` (parentBrandId/parentOrgId),
  * `ContextBase` (sourceBrandId), `Lead` (proactiveBrandId → proactiveOrganizationId,
@@ -688,6 +689,8 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
  */
 export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
   'ContentVersionPin',
+  'LlmVendorCost',
+  'MediaVendorCost',
   'Member',
   'PublishApproval',
 ];
@@ -704,6 +707,8 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
  */
 export const AUDITOR_IGNORED_TABLES: readonly string[] = [
   'content_version_pins',
+  'llm_vendor_costs',
+  'media_vendor_costs',
   'members',
   'publish_approvals',
 ];

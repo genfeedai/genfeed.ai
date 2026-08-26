@@ -867,23 +867,23 @@ export class StripeService {
             },
           };
         }
+      }
 
-        if (billingContext) {
-          const billingMetadata = {
-            [BILLING_ACCOUNT_METADATA.organizationId]:
-              billingContext.organizationId,
-            [BILLING_ACCOUNT_METADATA.type]: 'organization',
-          };
-          sessionConfig.metadata = {
-            ...sessionConfig.metadata,
+      if (billingContext) {
+        const billingMetadata = {
+          [BILLING_ACCOUNT_METADATA.organizationId]:
+            billingContext.organizationId,
+          [BILLING_ACCOUNT_METADATA.type]: 'organization',
+        };
+        sessionConfig.metadata = {
+          ...sessionConfig.metadata,
+          ...billingMetadata,
+        };
+        if (sessionConfig.subscription_data) {
+          sessionConfig.subscription_data.metadata = {
+            ...sessionConfig.subscription_data.metadata,
             ...billingMetadata,
           };
-          if (sessionConfig.subscription_data) {
-            sessionConfig.subscription_data.metadata = {
-              ...sessionConfig.subscription_data.metadata,
-              ...billingMetadata,
-            };
-          }
         }
       }
 
