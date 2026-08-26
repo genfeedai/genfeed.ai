@@ -289,6 +289,49 @@ test('consolidates static validation into one runner slot', () => {
   );
 });
 
+test('adopts a fair pull-request validation budget with a stricter ratchet target', () => {
+  const budget = JSON.parse(
+    readFileSync(
+      path.join(REPOSITORY_ROOT, 'scripts', 'ci', 'pr-validation-budget.json'),
+      'utf8',
+    ),
+  );
+
+  assert.equal(budget.version, 1);
+  assert.equal(budget.issue, 1850);
+  assert.deepEqual(budget.measurement, {
+    sampleUnit: 'distinct-latest-pr-head',
+    scope: 'changed-scope',
+    startTimestamp: 'workflow-created-at',
+    endTimestamp: 'tests-gate-completed-at',
+    minimumSuccessfulHeads: 50,
+    percentileMethod: 'nearest-rank',
+  });
+  assert.deepEqual(budget.operatingBudgetMinutes, {
+    median: 10,
+    p95: 20,
+  });
+  assert.deepEqual(budget.ratchetTargetMinutes, {
+    median: 8,
+    p95: 15,
+  });
+  assert.equal(
+    budget.runnerWaste.minimumReductionPercent,
+    50,
+    'superseded-run waste must retain the parent issue reduction target',
+  );
+  assert.equal(budget.fullSuite.status, 'observe-separately');
+  assert.equal(budget.mergeGroup.status, 'observe-separately');
+  assert.ok(
+    budget.ratchetTargetMinutes.median <= budget.operatingBudgetMinutes.median,
+    'the median ratchet may only tighten the operating budget',
+  );
+  assert.ok(
+    budget.ratchetTargetMinutes.p95 <= budget.operatingBudgetMinutes.p95,
+    'the p95 ratchet may only tighten the operating budget',
+  );
+});
+
 test('caps the CI job inventory at twenty jobs', () => {
   // Runner-slot starvation is a head-count problem: every job occupies a
   // slot for its full queue+setup+run span. New validation belongs inside an
