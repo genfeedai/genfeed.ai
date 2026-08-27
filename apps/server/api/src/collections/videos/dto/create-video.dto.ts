@@ -371,6 +371,16 @@ export class CreateVideoDto extends CreateIngredientDto {
   })
   readonly brandingMode?: 'off' | 'brand';
 
+  @IsOptional()
+  @IsIn(['off', 'guided', 'strict'])
+  @ApiProperty({
+    description:
+      'Generation-brief fidelity. When set, overrides brandingMode for brief compilation.',
+    enum: ['off', 'guided', 'strict'],
+    required: false,
+  })
+  readonly fidelityMode?: 'off' | 'guided' | 'strict';
+
   @IsBoolean()
   @IsOptional()
   @ApiProperty({

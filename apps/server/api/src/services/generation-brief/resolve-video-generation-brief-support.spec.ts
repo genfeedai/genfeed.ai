@@ -1,3 +1,4 @@
+import { REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-video-generation-brief-families';
 import { resolveVideoGenerationBriefSupport } from '@api/services/generation-brief/resolve-video-generation-brief-support';
 import {
   MINIMAX_H3_COMPILER_ID,
@@ -19,6 +20,12 @@ const VIDEO_MODEL_KEYS = Object.entries(MODEL_OUTPUT_CAPABILITIES)
   .filter(([, capability]) => capability.category === ModelCategory.VIDEO)
   .map(([modelKey]) => modelKey);
 
+const COMPILED_REMAINING_MODEL_KEYS = new Set(
+  REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES.flatMap((family) =>
+    family.profiles.map((profile) => profile.modelKey),
+  ),
+);
+
 describe('resolveVideoGenerationBriefSupport', () => {
   it('compiles PrunaAI P-Video through the versioned generation brief', () => {
     expect(
@@ -31,9 +38,6 @@ describe('resolveVideoGenerationBriefSupport', () => {
       profileId: PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_ID,
       profileVersion: 1,
     });
-    expect(PRUNAAI_P_VIDEO_MODEL_KEY).toBe(
-      MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
-    );
   });
 
   it('compiles MiniMax H3 through the versioned generation brief', () => {
@@ -47,31 +51,41 @@ describe('resolveVideoGenerationBriefSupport', () => {
       profileId: MINIMAX_H3_CAPABILITY_PROFILE_ID,
       profileVersion: 1,
     });
-    expect(MINIMAX_H3_MODEL_KEY).toBe(MODEL_KEYS.REPLICATE_MINIMAX_H3);
   });
 
-  it.each(
-    VIDEO_MODEL_KEYS.filter(
-      (modelKey) =>
-        modelKey !== MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO &&
-        modelKey !== MODEL_KEYS.REPLICATE_MINIMAX_H3,
-    ),
-  )('exempts video model %s from brief compilation', (modelKey) => {
-    expect(resolveVideoGenerationBriefSupport(modelKey)).toEqual({
-      compilerId: null,
+  it.each([...COMPILED_REMAINING_MODEL_KEYS])(
+    'compiles remaining video model %s',
+    (modelKey) => {
+      expect(resolveVideoGenerationBriefSupport(modelKey).kind).toBe('compile');
+    },
+  );
+
+  it('covers every catalog video model key with compile support', () => {
+    for (const modelKey of VIDEO_MODEL_KEYS) {
+      expect(resolveVideoGenerationBriefSupport(modelKey).kind).toBe('compile');
+    }
+  });
+
+  it('exempts non-generative video transforms', () => {
+    expect(
+      resolveVideoGenerationBriefSupport(
+        MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+      ),
+    ).toMatchObject({
       kind: 'exempt',
-      modelKey,
-      profileId: null,
-      reason: 'legacy_prompt_builder',
+      reason: 'non_generative_transform',
     });
   });
 
-  it('exempts non-catalog video providers instead of claiming brief support', () => {
+  it('never falls through to legacy_prompt_builder for an unrecognized model key', () => {
     expect(
-      resolveVideoGenerationBriefSupport(MODEL_KEYS.KLINGAI_V2),
-    ).toMatchObject({
+      resolveVideoGenerationBriefSupport('unknown-provider/unknown-model'),
+    ).toEqual({
+      compilerId: null,
       kind: 'exempt',
-      reason: 'legacy_prompt_builder',
+      modelKey: 'unknown-provider/unknown-model',
+      profileId: null,
+      reason: 'unregistered_model',
     });
   });
 });

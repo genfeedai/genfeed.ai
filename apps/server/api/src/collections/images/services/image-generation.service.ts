@@ -447,6 +447,7 @@ export class ImageGenerationService {
         avoid,
         brandingMode: params.createImageDto.brandingMode,
         composition,
+        fidelityMode: params.createImageDto.fidelityMode,
         height: params.height,
         isBrandingEnabled: params.createImageDto.isBrandingEnabled,
         lighting: params.createImageDto.lighting,

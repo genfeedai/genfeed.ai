@@ -1,0 +1,113 @@
+/**
+ * Capability profiles for remaining selectable video model keys under #1650.
+ */
+
+import { z } from 'zod';
+import { generationReferenceRoleValues } from './generation-brief.contract';
+import {
+  generationCapabilityNegativePromptSchema,
+  generationCapabilityPromptSchema,
+  generationCapabilityTextRenderingSchema,
+  generationCapabilityToggleSchema,
+} from './generation-capability-profile.contract';
+import {
+  videoGenerationCapabilityDurationSchema,
+  videoGenerationCapabilityReferencesSchema,
+  videoGenerationModeSchema,
+} from './video-generation-capability-profile.contract';
+
+const remainingVideoDispatchDefaultsSchema = z
+  .object({
+    resolution: z.string().trim().min(1).max(32).optional(),
+  })
+  .strict();
+
+export const remainingVideoCapabilityProfileSchema = z
+  .object({
+    aspectRatios: z
+      .array(z.string().regex(/^[1-9]\d{0,3}:[1-9]\d{0,3}$/))
+      .min(1)
+      .max(20),
+    audio: generationCapabilityToggleSchema,
+    defaultAspectRatio: z.string().regex(/^[1-9]\d{0,3}:[1-9]\d{0,3}$/),
+    defaults: remainingVideoDispatchDefaultsSchema,
+    duration: videoGenerationCapabilityDurationSchema,
+    generationModes: z.array(videoGenerationModeSchema).min(1).max(8),
+    id: z.string().trim().min(1).max(255),
+    isBatchSupported: z.boolean(),
+    maxOutputs: z.number().int().positive().max(8),
+    mediaKind: z.literal('video'),
+    modelKey: z.string().trim().min(1).max(255),
+    negativePrompt: generationCapabilityNegativePromptSchema,
+    prompt: generationCapabilityPromptSchema,
+    references: videoGenerationCapabilityReferencesSchema,
+    resolution: generationCapabilityToggleSchema,
+    seed: generationCapabilityToggleSchema,
+    textRendering: generationCapabilityTextRenderingSchema,
+    version: z.number().int().positive(),
+  })
+  .strict();
+
+export type RemainingVideoCapabilityProfile = z.infer<
+  typeof remainingVideoCapabilityProfileSchema
+>;
+
+const REMAINING_VIDEO_ASPECT_RATIOS = [
+  '16:9',
+  '9:16',
+  '4:3',
+  '3:4',
+  '1:1',
+] as const;
+
+export function buildRemainingVideoCapabilityProfile(input: {
+  audioSupported?: boolean;
+  defaultAspectRatio?: string;
+  defaultSeconds?: number;
+  id: string;
+  maxReferences: number;
+  maxSeconds?: number;
+  minSeconds?: number;
+  modelKey: string;
+  nativeFields?: string[];
+  negativePromptSupported?: boolean;
+  requireImageToVideo?: boolean;
+  seedSupported?: boolean;
+}): RemainingVideoCapabilityProfile {
+  const maxReferences = input.maxReferences;
+  return remainingVideoCapabilityProfileSchema.parse({
+    aspectRatios: [...REMAINING_VIDEO_ASPECT_RATIOS],
+    audio: { supported: input.audioSupported === true },
+    defaultAspectRatio: input.defaultAspectRatio ?? '16:9',
+    defaults: {},
+    duration: {
+      defaultSeconds: input.defaultSeconds ?? 5,
+      maxSeconds: input.maxSeconds ?? 15,
+      minSeconds: input.minSeconds ?? 1,
+      supported: true,
+    },
+    generationModes: input.requireImageToVideo
+      ? ['image_to_video']
+      : ['text_to_video', 'image_to_video'],
+    id: input.id,
+    isBatchSupported: false,
+    maxOutputs: 4,
+    mediaKind: 'video',
+    modelKey: input.modelKey,
+    negativePrompt: { supported: input.negativePromptSupported === true },
+    prompt: {
+      enhancement: 'unsupported',
+      format: 'natural_language',
+      maxCharacters: 10_000,
+    },
+    references: {
+      max: maxReferences,
+      nativeFields: input.nativeFields ?? [],
+      roles: maxReferences > 0 ? [...generationReferenceRoleValues] : [],
+    },
+    resolution: { supported: false },
+    seed: { supported: input.seedSupported !== false },
+    textRendering: 'prompt_only',
+    version: 1,
+  });
+}

@@ -2,7 +2,9 @@ import { MetadataEntity } from '@api/collections/metadata/entities/metadata.enti
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import {
   runImageGenerationBrief,
+  runVideoGenerationBrief,
   toRedactedGenerationBriefProviderData,
+  toRedactedVideoGenerationBriefProviderData,
 } from '@api/services/generation-brief';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -20,6 +22,7 @@ import {
   ReframeExecutor,
   TextToSpeechExecutor,
   UpscaleExecutor,
+  VideoGenExecutor,
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -38,6 +41,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
 
   register(engine: WorkflowEngine): void {
     this.registerImageGenExecutor(engine);
+    this.registerVideoGenExecutor(engine);
     this.registerLipSyncExecutor(engine);
     this.registerTextToSpeechExecutor(engine);
     this.registerReframeExecutor(engine);
@@ -146,6 +150,91 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     engine.registerExecutor(
       'imageGen',
       this.helper.wrapEngineExecutor(imageGenExecutor),
+    );
+  }
+
+  private registerVideoGenExecutor(engine: WorkflowEngine): void {
+    if (!this.promptBuilderService || !this.replicateService) {
+      return;
+    }
+
+    const videoGenExecutor = new VideoGenExecutor();
+    const replicateService = this.replicateService;
+
+    videoGenExecutor.setResolver(async (model, params, context) => {
+      const references = Array.isArray(params.references)
+        ? params.references.filter(
+            (reference): reference is string => typeof reference === 'string',
+          )
+        : undefined;
+      const prompt = typeof params.prompt === 'string' ? params.prompt : '';
+      const height = typeof params.height === 'number' ? params.height : 1080;
+      const width = typeof params.width === 'number' ? params.width : 1920;
+      const duration =
+        typeof params.duration === 'number' ? params.duration : undefined;
+      const negativePrompt =
+        typeof params.negativePrompt === 'string'
+          ? params.negativePrompt
+          : undefined;
+      const compiled = runVideoGenerationBrief({
+        avoid: negativePrompt ? [negativePrompt] : undefined,
+        durationSeconds: duration,
+        height,
+        model: model as string,
+        objective: prompt,
+        referenceIds: [],
+        references: references?.map((assetId) => ({
+          assetId,
+          role: 'first_frame' as const,
+        })),
+        seed: typeof params.seed === 'number' ? params.seed : undefined,
+        surface: 'workflow',
+        width,
+      });
+      const input = compiled.dispatch ?? { prompt };
+      const brandId = this.helper.requireBrandId(params.brandId, 'videoGen');
+      const pendingOutput = await this.helper.createAndLinkProcessingOutput({
+        output: {
+          brandId,
+          category: IngredientCategory.VIDEO,
+          extension: MetadataExtension.MP4,
+          externalId: null,
+          generationPrompt: prompt,
+          generationSource: compiled.generationSource,
+          model: model as string,
+          organizationId: context.organizationId,
+          providerData: toRedactedVideoGenerationBriefProviderData(
+            compiled.evidence,
+          ),
+          userId: context.userId,
+        },
+        resultUrl: (ingredientId) =>
+          this.helper.buildVideoIngredientUrl(ingredientId),
+        runProvider: () => replicateService.runModel(model, input),
+      });
+
+      return {
+        generationBriefEvidence: compiled.evidence,
+        generationSource: compiled.generationSource,
+        model,
+        provider: 'replicate',
+        videoUrl: this.helper.buildVideoIngredientUrl(
+          pendingOutput.ingredientId,
+        ),
+      };
+    });
+
+    engine.registerExecutor(
+      'videoGen',
+      this.helper.wrapEngineExecutor(videoGenExecutor),
+    );
+    engine.registerExecutor(
+      'generateVideo',
+      this.helper.wrapEngineExecutor(videoGenExecutor),
+    );
+    engine.registerExecutor(
+      'ai-generate-video',
+      this.helper.wrapEngineExecutor(videoGenExecutor),
     );
   }
 

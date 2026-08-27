@@ -240,9 +240,7 @@ describe('RemixBriefInspector', () => {
       screen.getByRole('button', { name: 'Choose library asset' }),
     );
     fireEvent.click(screen.getByRole('combobox', { name: 'Fidelity' }));
-    fireEvent.click(
-      screen.getByRole('option', { name: 'Strict (currently unavailable)' }),
-    );
+    fireEvent.click(screen.getByRole('option', { name: 'Strict' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continue to Studio' }));
 
     expect(mocks.confirm).toHaveBeenCalledWith(

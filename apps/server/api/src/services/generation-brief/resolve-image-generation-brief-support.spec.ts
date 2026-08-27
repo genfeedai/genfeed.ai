@@ -1,3 +1,4 @@
+import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-image-generation-brief-families';
 import { resolveImageGenerationBriefSupport } from '@api/services/generation-brief/resolve-image-generation-brief-support';
 import type { GenerationBriefExemptionReason } from '@api-types/contracts/generation-brief-compiler.contract';
 import {
@@ -312,6 +313,15 @@ const EXPECTED_COMPILE_SUPPORT: ReadonlyArray<ExpectedCompileSupport> = [
     profileId: RUNWAY_GEN4_IMAGE_TURBO_CAPABILITY_PROFILE_ID,
     profileVersion: RUNWAY_GEN4_IMAGE_TURBO_CAPABILITY_PROFILE_VERSION,
   },
+  ...REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES.flatMap((family) =>
+    family.profiles.map((profile) => ({
+      compilerId: family.compilerId,
+      compilerVersion: family.compilerVersion,
+      modelKey: profile.modelKey,
+      profileId: profile.id,
+      profileVersion: profile.version,
+    })),
+  ),
 ];
 
 const COMPILED_MODEL_KEYS = new Set(

@@ -84,6 +84,7 @@ export class BrandRemixRunProviderDispatchService {
         {
           brandId: params.brandId,
           brandingMode: 'brand',
+          fidelityMode: draft.fidelityMode,
           height: dimensions.height,
           isBrandingEnabled: true,
           outputs: 1,
@@ -112,6 +113,7 @@ export class BrandRemixRunProviderDispatchService {
             ('durationSeconds' in draft.output &&
               draft.output.durationSeconds) ||
             8,
+          fidelityMode: draft.fidelityMode,
           height: dimensions.height,
           isBrandingEnabled: true,
           outputs: 1,

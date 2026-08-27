@@ -5,6 +5,7 @@ import { assertRedactedGenerationBriefEvidence } from '@api/services/generation-
 import { resolveImageGenerationBriefSupport } from '@api/services/generation-brief/resolve-image-generation-brief-support';
 import { resolveImageGenerationFidelityMode } from '@api/services/generation-brief/resolve-image-generation-fidelity-mode';
 import type {
+  GenerationFidelityMode,
   ImageGenerationBrief,
   ImageGenerationBriefReference,
 } from '@api-types/contracts/generation-brief.contract';
@@ -24,6 +25,7 @@ export interface RunImageGenerationBriefInput {
   avoid?: string[];
   brandingMode?: 'off' | 'brand';
   composition?: string;
+  fidelityMode?: GenerationFidelityMode;
   height: number;
   isBrandingEnabled?: boolean;
   lighting?: string;
@@ -94,12 +96,14 @@ export function runImageGenerationBrief(
   // Operator-supplied avoid terms are independent of brand styling. They must
   // remain active even when branding is off so compilers with a native
   // negative-prompt field can preserve them at dispatch.
-  const fidelityMode = input.avoid?.some((value) => value.trim().length > 0)
-    ? 'guided'
-    : resolveImageGenerationFidelityMode({
-        brandingMode: input.brandingMode,
-        isBrandingEnabled: input.isBrandingEnabled,
-      });
+  const fidelityMode =
+    input.fidelityMode ??
+    (input.avoid?.some((value) => value.trim().length > 0)
+      ? 'guided'
+      : resolveImageGenerationFidelityMode({
+          brandingMode: input.brandingMode,
+          isBrandingEnabled: input.isBrandingEnabled,
+        }));
   const brief = assembleImageGenerationBrief({
     avoid: input.avoid,
     composition: input.composition,

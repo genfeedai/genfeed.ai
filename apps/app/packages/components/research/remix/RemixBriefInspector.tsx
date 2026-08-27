@@ -729,9 +729,7 @@ export default function RemixBriefInspector(): ReactElement {
                 <SelectContent>
                   {generationFidelityModeValues.map((mode) => (
                     <SelectItem key={mode} value={mode}>
-                      {mode === 'strict'
-                        ? 'Strict (currently unavailable)'
-                        : formatLabel(mode)}
+                      {formatLabel(mode)}
                     </SelectItem>
                   ))}
                 </SelectContent>

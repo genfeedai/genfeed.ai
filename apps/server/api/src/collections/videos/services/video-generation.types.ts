@@ -77,7 +77,7 @@ export interface ResolvedVideoGenerationRequest {
 export interface VideoGenerationContext extends ResolvedVideoGenerationRequest {
   abortSignal: AbortSignal;
   briefEvidence?: VideoGenerationBriefPersistedEvidence;
-  compiledDispatch?: MinimaxH3Dispatch | PrunaaiPVideoDispatch;
+  compiledDispatch?: Record<string, unknown>;
   generationBrief?: VideoGenerationBrief;
   generationSource?: string;
   height: number;
@@ -98,9 +98,5 @@ import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dt
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { SharedService } from '@api/shared/services/shared/shared.service';
 import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
-import type {
-  MinimaxH3Dispatch,
-  PrunaaiPVideoDispatch,
-  VideoGenerationBriefPersistedEvidence,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
+import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import type { ModelProvider } from '@genfeedai/enums';

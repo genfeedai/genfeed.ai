@@ -475,6 +475,38 @@ export const RUNWAY_GEN4_IMAGE_TURBO_IMAGE_COMPILER_ID =
   'runway-gen4-image-turbo-image-compiler';
 export const RUNWAY_GEN4_IMAGE_TURBO_IMAGE_COMPILER_VERSION = 1;
 
+const remainingImageDispatchValueSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.array(z.string().trim().min(1).max(2_048)),
+]);
+
+export const remainingImageDispatchSchema = z
+  .object({
+    prompt: z.string().trim().min(1).max(10_000),
+  })
+  .catchall(remainingImageDispatchValueSchema);
+export type RemainingImageDispatch = z.infer<
+  typeof remainingImageDispatchSchema
+>;
+
+export const GPT_IMAGE_IMAGE_COMPILER_ID = 'gpt-image-image-compiler';
+export const RECRAFT_IMAGE_COMPILER_ID = 'recraft-image-compiler';
+export const GROK_IMAGINE_IMAGE_COMPILER_ID = 'grok-imagine-image-compiler';
+export const SDXL_IMAGE_COMPILER_ID = 'sdxl-image-compiler';
+export const LEONARDO_IMAGE_COMPILER_ID = 'leonardo-image-compiler';
+export const HIGGSFIELD_SOUL_IMAGE_COMPILER_ID =
+  'higgsfield-soul-image-compiler';
+export const FAL_FLUX_IMAGE_COMPILER_ID = 'fal-flux-image-compiler';
+export const FAL_FLUX_2_PRO_IMAGE_COMPILER_ID = 'fal-flux-2-pro-image-compiler';
+export const FAL_NANO_BANANA_2_IMAGE_COMPILER_ID =
+  'fal-nano-banana-2-image-compiler';
+export const GENFEED_FLUX_IMAGE_COMPILER_ID = 'genfeed-flux-image-compiler';
+export const GENFEED_PULID_IMAGE_COMPILER_ID = 'genfeed-pulid-image-compiler';
+export const Z_IMAGE_TURBO_IMAGE_COMPILER_ID = 'z-image-turbo-image-compiler';
+export const REMAINING_IMAGE_COMPILER_VERSION = 1;
+
 export type ImageGenerationBriefDispatch =
   | FluxSchnellDispatch
   | ImagenDispatch
@@ -491,4 +523,5 @@ export type ImageGenerationBriefDispatch =
   | Flux2ProDispatch
   | FluxKontextProDispatch
   | QwenImageDispatch
-  | RunwayGen4ImageTurboDispatch;
+  | RunwayGen4ImageTurboDispatch
+  | RemainingImageDispatch;

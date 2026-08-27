@@ -766,16 +766,20 @@ describe('VideoGenerationService', () => {
     it('bypasses brief compilation for a model without a registered compiler', async () => {
       const { service, sharedService } = createService();
 
-      await service.generateVideo(buildUser(), baseDto(), buildRequest());
+      await service.generateVideo(
+        buildUser(),
+        baseDto({ model: 'unknown-provider/unknown-video' }),
+        buildRequest(),
+      );
 
       const [, payload] = sharedService.createMediaDocuments.mock.calls[0];
       expect(payload.generationSource).toBe(
-        'generation-brief-exemption:legacy_prompt_builder',
+        'generation-brief-exemption:unregistered_model',
       );
       expect(payload.providerData).toMatchObject({
         compilerId: null,
         profileId: null,
-        reason: 'legacy_prompt_builder',
+        reason: 'unregistered_model',
         status: 'exempted',
         surface: 'studio',
       });

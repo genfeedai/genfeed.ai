@@ -70,7 +70,7 @@ describe('BrandRemixRunPlanningService', () => {
     );
   });
 
-  it('blocks strict fidelity before any generation dispatch', () => {
+  it('blocks strict fidelity when no identity or product reference is present', () => {
     const draft = {
       fidelityMode: 'strict',
       identity: {},
@@ -85,6 +85,27 @@ describe('BrandRemixRunPlanningService', () => {
 
     expect(readiness.state).toBe('blocked');
     expect(readiness.issues.map((issue) => issue.code)).toContain(
+      'missing_required_reference',
+    );
+  });
+
+  it('allows strict fidelity when a required reference is present', () => {
+    const draft = {
+      fidelityMode: 'strict',
+      identity: {},
+      intent: { objective: 'Create an original brand execution.' },
+      output: { aspectRatio: '1:1', count: 1, kind: 'image' },
+      references: [{ assetId: 'product-1', role: 'product' }],
+      reviewRequired: true,
+      target: { kind: 'organic', platform: 'instagram' },
+    } as BrandRemixDraft;
+
+    const readiness = planning.buildReadiness(brandContext, draft);
+
+    expect(readiness.issues.map((issue) => issue.code)).not.toContain(
+      'missing_required_reference',
+    );
+    expect(readiness.issues.map((issue) => issue.code)).not.toContain(
       'unsupported_fidelity',
     );
   });

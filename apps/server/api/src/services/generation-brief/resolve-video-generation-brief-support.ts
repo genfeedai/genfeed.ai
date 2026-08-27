@@ -1,50 +1,31 @@
+import {
+  getVideoGenerationBriefExemptionReason,
+  getVideoGenerationBriefRegistryEntry,
+} from '@api/services/generation-brief/video-generation-brief-registry';
 import type { VideoGenerationBriefSupport } from '@api-types/contracts/video-generation-brief-compiler.contract';
-import {
-  MINIMAX_H3_COMPILER_ID,
-  MINIMAX_H3_COMPILER_VERSION,
-  PRUNAAI_P_VIDEO_COMPILER_ID,
-  PRUNAAI_P_VIDEO_COMPILER_VERSION,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
-import {
-  MINIMAX_H3_CAPABILITY_PROFILE_ID,
-  MINIMAX_H3_CAPABILITY_PROFILE_VERSION,
-  MINIMAX_H3_MODEL_KEY,
-  PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_ID,
-  PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_VERSION,
-  PRUNAAI_P_VIDEO_MODEL_KEY,
-} from '@api-types/contracts/video-generation-capability-profile.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
 
 export function resolveVideoGenerationBriefSupport(
   model: string,
 ): VideoGenerationBriefSupport {
-  if (model === MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO) {
+  const entry = getVideoGenerationBriefRegistryEntry(model);
+  if (entry) {
     return {
-      compilerId: PRUNAAI_P_VIDEO_COMPILER_ID,
-      compilerVersion: PRUNAAI_P_VIDEO_COMPILER_VERSION,
+      compilerId: entry.compilerId,
+      compilerVersion: entry.compilerVersion,
       kind: 'compile',
-      modelKey: PRUNAAI_P_VIDEO_MODEL_KEY,
-      profileId: PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_ID,
-      profileVersion: PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_VERSION,
+      modelKey: entry.modelKey,
+      profileId: entry.profileId,
+      profileVersion: entry.profileVersion,
     };
   }
 
-  if (model === MODEL_KEYS.REPLICATE_MINIMAX_H3) {
-    return {
-      compilerId: MINIMAX_H3_COMPILER_ID,
-      compilerVersion: MINIMAX_H3_COMPILER_VERSION,
-      kind: 'compile',
-      modelKey: MINIMAX_H3_MODEL_KEY,
-      profileId: MINIMAX_H3_CAPABILITY_PROFILE_ID,
-      profileVersion: MINIMAX_H3_CAPABILITY_PROFILE_VERSION,
-    };
-  }
+  const exemptionReason = getVideoGenerationBriefExemptionReason(model);
 
   return {
     compilerId: null,
     kind: 'exempt',
     modelKey: model,
     profileId: null,
-    reason: 'legacy_prompt_builder',
+    reason: exemptionReason ?? 'unregistered_model',
   };
 }

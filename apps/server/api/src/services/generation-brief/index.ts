@@ -43,3 +43,9 @@ export {
 } from '@api/services/generation-brief/run-image-generation-brief';
 export type { RunVideoGenerationBriefInput } from '@api/services/generation-brief/run-video-generation-brief';
 export { runVideoGenerationBrief } from '@api/services/generation-brief/run-video-generation-brief';
+export {
+  getVideoGenerationBriefExemptionReason,
+  getVideoGenerationBriefRegistryEntry,
+  VIDEO_GENERATION_BRIEF_EXEMPTIONS,
+  VIDEO_GENERATION_BRIEF_REGISTRY,
+} from '@api/services/generation-brief/video-generation-brief-registry';

@@ -81,11 +81,10 @@ describe('ImageGenerationHandler', () => {
     expect(result.metadata).toMatchObject({
       generationBriefEvidence: {
         modelKey: expect.any(String),
-        reason: 'legacy_prompt_builder',
-        status: 'exempted',
+        status: 'compiled',
         surface: 'agent_skill',
       },
-      generationSource: 'generation-brief-exemption:legacy_prompt_builder',
+      generationSource: expect.stringContaining('generation-brief:'),
     });
   });
 

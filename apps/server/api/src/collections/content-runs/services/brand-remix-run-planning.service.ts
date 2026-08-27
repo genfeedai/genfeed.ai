@@ -217,12 +217,12 @@ export class BrandRemixRunPlanningService {
     draft: BrandRemixDraft,
   ): BrandRemixReadiness {
     const issues: BrandRemixReadiness['issues'] = [];
-    if (draft.fidelityMode === 'strict') {
+    if (draft.fidelityMode === 'strict' && draft.references.length === 0) {
       issues.push({
-        code: 'unsupported_fidelity',
-        field: 'fidelityMode',
+        code: 'missing_required_reference',
+        field: 'references',
         message:
-          'Strict fidelity is not supported by the current remix providers. Switch to Guided to generate an original brand execution.',
+          'Strict fidelity requires at least one identity, product, or frame reference.',
         severity: 'blocked',
       });
     }

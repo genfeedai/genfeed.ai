@@ -45,6 +45,13 @@ export const GENERATION_BRIEF_GENERATIVE_ENTRY_POINTS: readonly GenerationBriefG
       surface: 'workflow',
     },
     {
+      id: 'workflow-videoGen',
+      marker: 'runVideoGenerationBrief',
+      source:
+        'apps/server/api/src/collections/workflows/services/workflow-media-generation-executor-registrar.service.ts',
+      surface: 'workflow',
+    },
+    {
       id: 'agent-skill-image',
       marker: 'runImageGenerationBrief',
       source:
