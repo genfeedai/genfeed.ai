@@ -41,6 +41,7 @@ const DEFAULT_CATALOG_PATH =
 const DEFAULT_ENUM_PATH = 'packages/interfaces/src/ai/agent-tool.interface.ts';
 const DEFAULT_DISPATCH_GLOBS = [
   'apps/server/api/src/services/agent-orchestrator/tools/**/*.ts',
+  'apps/server/server/src/services/agent-orchestrator/tools/**/*.ts',
 ];
 const DEFAULT_IGNORE_GLOBS = [
   '**/*.spec.ts',
