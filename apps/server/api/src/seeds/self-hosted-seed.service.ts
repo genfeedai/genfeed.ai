@@ -18,7 +18,6 @@ import { MemberRole } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 
 @Injectable()
 export class SelfHostedSeedService implements OnApplicationBootstrap {
@@ -27,7 +26,6 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
-    private readonly moduleRef: ModuleRef,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -102,8 +100,6 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
 
     await this.ensureDefaultRoles();
     await this.ensureOwnerMembership(org.id, user.id);
-
-    await this.provisionDefaultWorkflows(user.id, org.id);
 
     this.logger.log(
       `Self-hosted workspace seeded (org=${org.id}, user=${user.id})`,
@@ -244,59 +240,5 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
       `Created default workspace member (org=${organizationId}, user=${userId}, role=${role.key})`,
       this.context,
     );
-  }
-
-  private async provisionDefaultWorkflows(
-    userId: string,
-    organizationId: string,
-  ): Promise<void> {
-    try {
-      const { WorkflowTemplateSeederService } = await import(
-        '@api/collections/workflows/services/workflow-template-seeder.service'
-      );
-      const workflowSeeder = this.moduleRef.get(WorkflowTemplateSeederService, {
-        strict: false,
-      });
-
-      await workflowSeeder.ensureAdAutomationWorkflows(userId, organizationId);
-      await workflowSeeder.ensureCampaignOrchestrationWorkflows(
-        userId,
-        organizationId,
-      );
-      await workflowSeeder.ensureOutreachCampaignDispatchWorkflows(
-        userId,
-        organizationId,
-      );
-      await workflowSeeder.ensureAgentAutopilotWorkflows(
-        userId,
-        organizationId,
-      );
-      await workflowSeeder.ensureAnalyticsSyncWorkflows(userId, organizationId);
-      await workflowSeeder.ensureContentProductionWorkflows(
-        userId,
-        organizationId,
-      );
-      await workflowSeeder.ensureContentLoopAutopilotWorkflows(
-        userId,
-        organizationId,
-      );
-      await workflowSeeder.ensureReplyPollingWorkflows(userId, organizationId);
-      await workflowSeeder.ensureTrendNotificationWorkflows(
-        userId,
-        organizationId,
-      );
-      await workflowSeeder.ensureLivestreamBotWorkflows(userId, organizationId);
-      await workflowSeeder.ensureSystemActionWorkflows(userId, organizationId);
-
-      // Seeded schedules fire via BullMQ job schedulers; register them now so
-      // they don't wait for the next service restart.
-      await workflowSeeder.syncOrganizationWorkflowSchedulers(organizationId);
-    } catch (error) {
-      this.logger.error(
-        'Failed to provision default self-hosted workflows',
-        error,
-        this.context,
-      );
-    }
   }
 }

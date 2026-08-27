@@ -69,7 +69,7 @@ type WorkflowCreateExtras = CreateWorkflowDto &
  * and the ownership guards shared by the workflows controllers.
  *
  * Sibling concerns split out in #754:
- * - `WorkflowTemplateSeederService` — idempotent per-org system workflow seeding
+ * - `WorkflowTemplateSeederService` — operator-only catalog backfill helpers
  * - `WorkflowStepRunnerService` — step-based execution engine
  * - `WorkflowRunControlService` — partial runs, resume, credits, execution logs
  * - `WorkflowWebhookService` — inbound webhook credentials + trigger path

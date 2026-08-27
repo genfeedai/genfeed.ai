@@ -7,7 +7,6 @@ import {
   LOWEST_COST_VIDEO_MODEL_KEY,
 } from '@genfeedai/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { ModuleRef } from '@nestjs/core';
 
 import { SelfHostedSeedService } from './self-hosted-seed.service';
 
@@ -90,17 +89,19 @@ describe('SelfHostedSeedService', () => {
     service = new SelfHostedSeedService(
       prisma as unknown as PrismaService,
       logger as unknown as LoggerService,
-      {} as ModuleRef,
     );
   });
 
-  it('does not auto-provision Daily Trends Digest on self-host bootstrap', () => {
+  it('does not clone system workflows on self-host bootstrap', () => {
     const source = readFileSync(
       resolve(__dirname, 'self-hosted-seed.service.ts'),
       'utf8',
     );
 
+    expect(source).not.toContain('provisionDefaultWorkflows');
+    expect(source).not.toContain('WorkflowTemplateSeederService');
     expect(source).not.toContain('ensureDailyTrendsDigestWorkflow');
+    expect(source).not.toContain('ensureTrendNotificationWorkflows');
   });
 
   it('backfills an active owner member when the default workspace already exists', async () => {

@@ -391,10 +391,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds the default-on ad automation workflow set for an
-   * organization. Missing credentials/config are handled inside the action
-   * nodes as per-org skips, so new organizations get the workflows immediately
-   * and they begin doing real work once ad automation becomes eligible.
+   * Operator helper: install the ad automation catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureAdAutomationWorkflows(
     userId: string,
@@ -411,9 +409,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds the default-on campaign orchestration workflow set for
-   * an organization. The workflow actions preserve the previous cron scanner
-   * behavior by filtering eligible campaigns inside the node execution.
+   * Operator helper: install the campaign orchestration catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureCampaignOrchestrationWorkflows(
     userId: string,
@@ -429,10 +426,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds the default-on outreach campaign dispatch workflow for
-   * an organization. The node preserves previous cron scanner behavior by
-   * selecting active, non-deleted campaigns inside execution, scoped to the
-   * workflow organization.
+   * Operator helper: install the outreach campaign dispatch catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureOutreachCampaignDispatchWorkflows(
     userId: string,
@@ -448,9 +443,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds the default-on recurring agent automation workflow set
-   * for an organization. The workflow nodes preserve the previous cron scanner
-   * behavior by filtering active strategies/personas inside execution.
+   * Operator helper: install the agent autopilot catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureAgentAutopilotWorkflows(
     userId: string,
@@ -466,9 +460,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds the default-on analytics sync workflow set for an
-   * organization. Nodes preserve previous cron behavior by dispatching existing
-   * provider queue jobs scoped to the workflow organization.
+   * Operator helper: install the analytics sync catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureAnalyticsSyncWorkflows(
     userId: string,
@@ -484,9 +477,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds the default-on content production workflow set for an
-   * organization. Existing content schedules are mirrored into workflow rows
-   * with their own cron expression/timezone and enabled state.
+   * Operator helper: install the content production catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureContentProductionWorkflows(
     userId: string,
@@ -502,13 +494,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds the default-on content loop autopilot workflow for an
-   * organization (#3018): daily analytics sync followed by a harness winner
-   * promotion sweep, so the closed content loop keeps improving without an
-   * operator manually running analytics sync or `promote-winners`. Brands
-   * without a connected credential are simply skipped inside the node, not a
-   * hard failure — same `tenant-connected-account` credential policy as the
-   * other default-on families.
+   * Operator helper: install the content loop autopilot catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureContentLoopAutopilotWorkflows(
     userId: string,
@@ -524,10 +511,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds default-on reply/social polling workflow schedules for
-   * an organization. Nodes preserve the previous cron scanner behavior by
-   * discovering active reply configs and workflow social trigger nodes during
-   * execution, scoped to the workflow organization.
+   * Operator helper: install the reply/social polling catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureReplyPollingWorkflows(
     userId: string,
@@ -543,10 +528,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds default-on trend notification workflow schedules for an
-   * organization. Each cadence executor checks the org owner's current settings
-   * at run time, preserving legacy frequency/recipient semantics while letting
-   * workflow schedule toggles pause the tenant-facing notification path.
+   * Operator helper: install the trend notification catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureTrendNotificationWorkflows(
     userId: string,
@@ -563,9 +546,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds default-on livestream bot active-session processing for
-   * an organization. The executor preserves the previous per-minute cron scan
-   * while keeping execution scoped to the workflow organization.
+   * Operator helper: install the livestream bot catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureLivestreamBotWorkflows(
     userId: string,
@@ -581,10 +563,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds action-level system workflows that wrap historical
-   * hardcoded product actions. Runtime callers still create-on-demand as a
-   * fail-closed backstop, but seeded orgs can inspect/duplicate these workflows
-   * before the first action execution.
+   * Operator helper: inspect-only system-action rows. Runtime still
+   * create-on-demand as a fail-closed backstop. Not called from deploy or signup.
    */
   async ensureSystemActionWorkflows(
     userId: string,
