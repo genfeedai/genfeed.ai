@@ -7,7 +7,7 @@ import type { OutreachCampaignDocument } from '@api/collections/outreach-campaig
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';

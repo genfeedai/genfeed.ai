@@ -1,6 +1,6 @@
 import { type AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';

@@ -20,7 +20,7 @@ vi.mock('@api/services/integrations/youtube/services/youtube.service', () => ({
 import process from 'node:process';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';

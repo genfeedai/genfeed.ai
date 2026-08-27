@@ -1,7 +1,7 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';

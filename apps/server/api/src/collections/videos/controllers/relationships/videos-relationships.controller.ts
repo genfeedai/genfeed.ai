@@ -7,7 +7,7 @@
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
+import { type PostDocument } from '@server/collections/posts/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';

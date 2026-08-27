@@ -15,7 +15,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LinkedInController } from '@api/services/integrations/linkedin/controllers/linkedin.controller';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';

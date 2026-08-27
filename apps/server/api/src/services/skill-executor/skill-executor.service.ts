@@ -1,7 +1,7 @@
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { isExecutableBuiltInSkillIdentity } from '@api/collections/skills/constants/skill-validation.constant';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { ContentGeoOptimizerHandler } from '@api/services/skill-executor/handlers/content-geo-optimizer.handler';
 import { ContentWritingHandler } from '@api/services/skill-executor/handlers/content-writing.handler';

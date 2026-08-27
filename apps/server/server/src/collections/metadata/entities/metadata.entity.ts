@@ -1,5 +1,5 @@
-import type { Metadata } from '@api/collections/metadata/schemas/metadata.schema';
-import { BaseEntity } from '@api/shared/entities/base/base.entity';
+import type { Metadata } from '@genfeedai/prisma';
+import { BaseEntity } from '@server/entities/base.entity';
 
 export class MetadataEntity extends BaseEntity implements Metadata {
   declare readonly promptId: string | null;

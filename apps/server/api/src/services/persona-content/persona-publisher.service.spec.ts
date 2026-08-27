@@ -1,7 +1,7 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PersonaPublisherService } from '@api/services/persona-content/persona-publisher.service';
 import {
   PostCategory,

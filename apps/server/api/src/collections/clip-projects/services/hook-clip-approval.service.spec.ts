@@ -1,7 +1,7 @@
 import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
 import type { ClipOrchestratorService } from '@api/services/clip-orchestrator/clip-orchestrator.service';
 import { ClipRunState } from '@api/services/clip-orchestrator/clip-run-state.enum';
 import { BadRequestException } from '@nestjs/common';

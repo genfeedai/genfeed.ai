@@ -1,5 +1,5 @@
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   type BatchItemFull,
   type BatchWithConfig,

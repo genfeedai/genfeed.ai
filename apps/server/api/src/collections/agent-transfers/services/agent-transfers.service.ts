@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { CreateAgentTransferDto } from '@api/collections/agent-transfers/dto/create-agent-transfer.dto';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   AgentTurnAcceptanceService,
   buildAgentTurnRunId,

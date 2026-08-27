@@ -40,7 +40,7 @@ import { AdminFleetService } from '@api/endpoints/admin/fleet/fleet.service';
 import { AdminFleetMediaController } from '@api/endpoints/admin/fleet/fleet-media.controller';
 import { AdminFleetOperationsController } from '@api/endpoints/admin/fleet/fleet-operations.controller';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { FleetReviewStatus } from '@genfeedai/enums';

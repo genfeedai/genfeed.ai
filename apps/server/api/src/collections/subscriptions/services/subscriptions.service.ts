@@ -6,7 +6,7 @@ import type { UpdateSubscriptionDto } from '@api/collections/subscriptions/dto/u
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {

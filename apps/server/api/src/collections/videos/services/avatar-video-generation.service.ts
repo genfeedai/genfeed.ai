@@ -4,7 +4,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
@@ -16,7 +16,7 @@ import type {
   GenerationPlaceholderCreatedCallback,
   GenerationPlaceholderScope,
 } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';

@@ -1,6 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CreateLipSyncDto } from '@api/collections/videos/dto/create-lip-sync.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';

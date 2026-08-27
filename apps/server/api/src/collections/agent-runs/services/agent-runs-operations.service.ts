@@ -1,6 +1,6 @@
 import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { LoggerService } from '@libs/logger/logger.service';

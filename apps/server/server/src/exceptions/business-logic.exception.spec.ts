@@ -1,5 +1,5 @@
-import { PlanLimitExceededException } from '@api/helpers/exceptions/business/business-logic.exception';
 import { HttpStatus } from '@nestjs/common';
+import { PlanLimitExceededException } from '@server/exceptions/business-logic.exception';
 import { describe, expect, it } from 'vitest';
 
 describe('PlanLimitExceededException', () => {

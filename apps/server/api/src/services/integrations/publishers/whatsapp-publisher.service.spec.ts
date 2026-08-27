@@ -1,6 +1,6 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
-import type { PostEntity } from '@api/collections/posts/entities/post.entity';
+import type { PostEntity } from '@server/collections/posts/entities/post.entity';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { WhatsappPublisherService } from '@api/services/integrations/publishers/whatsapp-publisher.service';
 import { WhatsappService } from '@api/services/integrations/whatsapp/services/whatsapp.service';

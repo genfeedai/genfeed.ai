@@ -9,7 +9,7 @@ import {
   PRISMA_SERIALIZATION_FAILURE,
   RUN_SELECT,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type BrandRemixRunConfig,

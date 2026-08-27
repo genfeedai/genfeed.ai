@@ -22,7 +22,7 @@ vi.mock(
 
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadProjectorService } from '@api/services/agent-threading/services/agent-thread-projector.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';

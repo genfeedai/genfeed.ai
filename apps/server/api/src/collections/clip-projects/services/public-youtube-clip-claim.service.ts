@@ -2,7 +2,7 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { buildClipProjectReadiness } from '@api/collections/clip-shared/clip-terminal-contract.util';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PublicClipToolStoreService } from '@api/services/public-clip-tool/public-clip-tool-store.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CLIP_SOURCE_SCHEMA_VERSION } from '@genfeedai/interfaces';

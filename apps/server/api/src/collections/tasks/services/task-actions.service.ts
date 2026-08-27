@@ -4,7 +4,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { type TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import type { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {

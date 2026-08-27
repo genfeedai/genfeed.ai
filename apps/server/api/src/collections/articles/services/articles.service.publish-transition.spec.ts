@@ -19,7 +19,7 @@ import { ArticleVersionService } from '@api/collections/articles/services/articl
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ArticleScope, ArticleStatus } from '@genfeedai/enums';

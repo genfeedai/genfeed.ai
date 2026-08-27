@@ -1,4 +1,4 @@
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import { ValidationException } from '@server/exceptions/validation.exception';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import * as PrismaEnums from '@genfeedai/prisma';
 import { getModelMeta } from '@genfeedai/prisma';

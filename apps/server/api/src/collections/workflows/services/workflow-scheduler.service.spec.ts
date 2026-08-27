@@ -1,7 +1,7 @@
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { EXECUTABLE_WORKFLOW_SELECT } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
-import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
+import { buildSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

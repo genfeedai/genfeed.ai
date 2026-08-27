@@ -8,7 +8,7 @@ import { type TrendingSoundDocument } from '@api/collections/trends/schemas/tren
 import { type TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
-import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
 import {
   calculateEstimatedTextCredits,
   getMinimumTextCredits,

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { QueueService } from '@api/queues/core/queue.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { TikTokAdsService } from '@api/services/integrations/tiktok-ads/services/tiktok-ads.service';
 import { CredentialPlatform } from '@genfeedai/enums';

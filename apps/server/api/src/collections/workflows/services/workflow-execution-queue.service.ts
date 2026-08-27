@@ -2,7 +2,7 @@ import type {
   DelayResumeJobData,
   TriggerEvent,
 } from '@api/collections/workflows/services/workflow-executor.service';
-import { isProtectedSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
+import { isProtectedSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
 import {
   ActionOrigin,
   type ActionOriginContext,

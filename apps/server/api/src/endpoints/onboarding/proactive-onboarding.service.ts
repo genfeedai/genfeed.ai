@@ -20,7 +20,7 @@ import {
   getProactivePrepStage,
   isProactiveInviteEligible,
 } from '@api/endpoints/onboarding/services/proactive-onboarding-value.util';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';

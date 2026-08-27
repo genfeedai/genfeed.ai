@@ -10,7 +10,7 @@ import { AgentRunsService } from '@api/collections/agent-runs/services/agent-run
 import { AgentRunsOperationsService } from '@api/collections/agent-runs/services/agent-runs-operations.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { customLabels } from '@server/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {

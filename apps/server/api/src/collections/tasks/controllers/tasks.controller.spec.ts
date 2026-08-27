@@ -6,7 +6,7 @@ import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import type { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
 import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { TaskSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';

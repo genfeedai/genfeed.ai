@@ -12,7 +12,7 @@ import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strate
 import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
 import { ContentPerformanceService } from '@api/collections/content-performance/services/content-performance.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { TargetExecutionState } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';

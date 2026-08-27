@@ -7,7 +7,7 @@ import {
   nextSlugCandidate,
   slugAllocationBase,
 } from '@api/collections/shared/slug-allocation.util';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { Prisma } from '@genfeedai/prisma';

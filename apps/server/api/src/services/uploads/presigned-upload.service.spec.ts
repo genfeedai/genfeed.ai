@@ -1,8 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
+import { IngredientEntity } from '@server/collections/ingredients/entities/ingredient.entity';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';

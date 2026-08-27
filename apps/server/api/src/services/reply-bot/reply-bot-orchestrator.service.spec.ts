@@ -2,7 +2,7 @@ import { BotActivitiesService } from '@api/collections/bot-activities/services/b
 import { MonitoredAccountsService } from '@api/collections/monitored-accounts/services/monitored-accounts.service';
 import { ProcessedTweetsService } from '@api/collections/processed-tweets/services/processed-tweets.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
-import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';

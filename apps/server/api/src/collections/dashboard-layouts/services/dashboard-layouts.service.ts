@@ -7,8 +7,8 @@ import {
   CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { ValidationException } from '@server/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { sanitizeLayoutForPersistence } from '@genfeedai/agent/dashboard';

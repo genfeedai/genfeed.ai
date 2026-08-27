@@ -6,7 +6,7 @@ import {
 } from '@api/endpoints/webhooks/stripe/stripe-webhook-error.util';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { Public } from '@libs/decorators/public.decorator';

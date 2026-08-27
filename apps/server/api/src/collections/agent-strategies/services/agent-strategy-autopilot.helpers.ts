@@ -1,7 +1,7 @@
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
 import { AgentStrategyReportType } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import {
   AgentAutonomyMode,
   normalizeAgentAutonomyMode,

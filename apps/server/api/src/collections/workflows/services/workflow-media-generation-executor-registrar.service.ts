@@ -1,4 +1,4 @@
-import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import {
   runImageGenerationBrief,

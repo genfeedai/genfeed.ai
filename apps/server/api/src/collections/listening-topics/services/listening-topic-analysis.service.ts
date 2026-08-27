@@ -6,7 +6,7 @@ import type {
   ListeningSignalDocument,
   ListeningThemeDocument,
 } from '@api/collections/listening-topics/schemas/listening-topic.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type IListeningScope,

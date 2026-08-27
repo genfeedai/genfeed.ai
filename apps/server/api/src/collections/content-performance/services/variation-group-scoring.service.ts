@@ -2,7 +2,7 @@ import {
   computeVariantPerformanceScore,
   rankByScoreDesc,
 } from '@api/collections/content-performance/utils/variant-performance-scoring.util';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TargetExecutionState } from '@genfeedai/enums';

@@ -1,4 +1,4 @@
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {

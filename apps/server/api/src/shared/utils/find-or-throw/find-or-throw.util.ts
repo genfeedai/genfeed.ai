@@ -1,4 +1,4 @@
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 
 interface FindFirstDelegate<TArgs, TResult> {
   findFirst(args: TArgs): Promise<TResult | null>;

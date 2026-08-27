@@ -245,6 +245,8 @@ export interface ServerPrisma {
   member: PrismaClient['member'];
   newsletter: PrismaClient['newsletter'];
   post: PrismaClient['post'];
+  workflow: PrismaClient['workflow'];
+  workflowExecution: PrismaClient['workflowExecution'];
   publishApproval: PrismaClient['publishApproval'];
   postAnalytics: {
     aggregate(args: unknown): Promise<{

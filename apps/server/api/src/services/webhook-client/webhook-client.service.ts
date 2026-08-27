@@ -1,5 +1,5 @@
-import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
-import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import { IngredientEntity } from '@server/collections/ingredients/entities/ingredient.entity';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import {
   WEBHOOK_CLIENT_QUEUE,

@@ -1,4 +1,4 @@
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { BatchContentQueueService } from '@api/services/batch-content/batch-content-queue.service';
 import type { BatchContentRequest } from '@api/services/batch-content/interfaces/batch-content.interfaces';
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';

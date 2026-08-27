@@ -2,13 +2,13 @@ import { ActivitiesService } from '@api/collections/activities/services/activiti
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { PostEntity } from '@api/collections/posts/entities/post.entity';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import { PostEntity } from '@server/collections/posts/entities/post.entity';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
-} from '@api/collections/workflows/services/system-workflow-provenance.service';
+} from '@server/collections/workflows/system-workflow-provenance.service';
 import { ReplyInboundQueueService } from '@api/queues/reply-bot/reply-inbound-queue.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';

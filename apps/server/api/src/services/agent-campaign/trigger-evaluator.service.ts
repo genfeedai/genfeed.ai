@@ -8,7 +8,7 @@ import {
   type AnalyticsBestPostingTime,
   AnalyticsService,
 } from '@api/endpoints/analytics/analytics.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   ContentEngineService,
   type TriggerDispatchType,

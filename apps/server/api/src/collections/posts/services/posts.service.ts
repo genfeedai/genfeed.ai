@@ -1,11 +1,11 @@
 import process from 'node:process';
 import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
+import { IngredientEntity } from '@server/collections/ingredients/entities/ingredient.entity';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import {
   batchSchedulePosts,
   type PostBatchScheduleItem,
@@ -15,7 +15,7 @@ import {
 import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {

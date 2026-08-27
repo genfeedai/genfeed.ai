@@ -15,7 +15,7 @@ import {
   type ResolvedClipReference,
   resolveSelectedClipReference,
 } from '@api/collections/clip-projects/services/clip-reference-generation.util';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type {
   AgentClipRunIdentity,
   ClipResultMode,

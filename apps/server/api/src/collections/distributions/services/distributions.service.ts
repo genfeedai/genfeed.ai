@@ -1,7 +1,7 @@
 import { CreateDistributionDto } from '@api/collections/distributions/dto/create-distribution.dto';
 import { DistributionEntity } from '@api/collections/distributions/entities/distribution.entity';
 import type { DistributionDocument } from '@api/collections/distributions/schemas/distribution.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { DistributionPlatform, PublishStatus } from '@genfeedai/enums';

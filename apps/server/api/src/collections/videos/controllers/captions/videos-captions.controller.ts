@@ -3,7 +3,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import type { CaptionDocument } from '@api/collections/captions/schemas/caption.schema';
 import { CaptionsService } from '@api/collections/captions/services/captions.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CreateVideoWithCaptionsDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';

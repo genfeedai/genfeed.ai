@@ -8,7 +8,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { ProcessedTweetsService } from '@api/collections/processed-tweets/services/processed-tweets.service';
 import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   readReplyBotCredentialId,
   toReplyBotCredentialData,

@@ -1,12 +1,4 @@
 import {
-  buildSystemWorkflowMetadata,
-  getSystemWorkflowMetadata,
-  SYSTEM_WORKFLOW_METADATA_KEY,
-  SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
-  SYSTEM_WORKFLOW_TEMPLATE_VERSION,
-} from '@api/collections/workflows/system-workflow.contract';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import {
   ActionOrigin,
   WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
   WorkflowExecutionTrigger,
@@ -23,7 +15,15 @@ import {
   withActionOriginMetadata,
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
+import {
+  buildSystemWorkflowMetadata,
+  getSystemWorkflowMetadata,
+  SYSTEM_WORKFLOW_METADATA_KEY,
+  SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
+  SYSTEM_WORKFLOW_TEMPLATE_VERSION,
+} from '@server/collections/workflows/system-workflow.contract';
 
 export const SYSTEM_WORKFLOW_ACTION_IDS = {
   BRAND_REMIX_PAUSED_META_DRAFT: 'brand-remix-paused-meta-draft',

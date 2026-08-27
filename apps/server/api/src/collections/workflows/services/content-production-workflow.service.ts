@@ -1,6 +1,6 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';

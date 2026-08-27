@@ -4,7 +4,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { MetaAdsBulkController } from '@api/services/integrations/meta-ads/controllers/meta-ads-bulk.controller';
 import { AdBulkUploadService } from '@api/services/integrations/meta-ads/services/ad-bulk-upload.service';

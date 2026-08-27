@@ -11,7 +11,7 @@ import {
   type WorkflowDocument,
   type WorkflowStep,
 } from '@api/collections/workflows/schemas/workflow.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   type TaskJobRequest,

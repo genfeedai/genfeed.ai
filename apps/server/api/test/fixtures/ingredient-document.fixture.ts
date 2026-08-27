@@ -1,6 +1,6 @@
-import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
+import { IngredientEntity } from '@server/collections/ingredients/entities/ingredient.entity';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import type { MetadataDocument } from '@api/collections/metadata/schemas/metadata.schema';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 

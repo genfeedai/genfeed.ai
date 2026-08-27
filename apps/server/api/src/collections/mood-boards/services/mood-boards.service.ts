@@ -1,7 +1,7 @@
 import type { CreateMoodBoardDto } from '@api/collections/mood-boards/dto/create-mood-board.dto';
 import type { UpdateMoodBoardDto } from '@api/collections/mood-boards/dto/update-mood-board.dto';
 import type { MoodBoardDocument } from '@api/collections/mood-boards/schemas/mood-board.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { scopedWhere } from '@genfeedai/server';

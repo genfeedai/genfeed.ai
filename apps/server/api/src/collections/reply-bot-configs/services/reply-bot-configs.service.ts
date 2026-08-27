@@ -5,7 +5,7 @@ import type {
   ReplyBotConfigDocument,
   ReplyBotRateLimits,
 } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';

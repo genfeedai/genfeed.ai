@@ -1,4 +1,4 @@
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
 import { ListingType, PromptCategory } from '@genfeedai/enums';

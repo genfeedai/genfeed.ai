@@ -2,7 +2,7 @@ import { CaptionsService } from '@api/collections/captions/services/captions.ser
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideoProvenanceService } from '@api/collections/videos/services/video-provenance.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { IngredientCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';

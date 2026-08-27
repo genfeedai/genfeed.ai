@@ -1,5 +1,5 @@
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { VoiceProvider } from '@genfeedai/enums';
 
 describe('ClipIdentityResolutionService', () => {

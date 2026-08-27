@@ -13,7 +13,7 @@ import {
   TaskPlanningService,
 } from '@api/collections/tasks/services/task-planning.service';
 import { TaskRoutingService } from '@api/collections/tasks/services/task-routing.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';

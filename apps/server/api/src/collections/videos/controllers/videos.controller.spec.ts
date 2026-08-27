@@ -44,7 +44,7 @@ import type { VoteDocument } from '@api/collections/votes/schemas/vote.schema';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { ByokService } from '@api/services/byok/byok.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';

@@ -17,7 +17,7 @@ import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/servi
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
-} from '@api/collections/workflows/services/system-workflow-provenance.service';
+} from '@server/collections/workflows/system-workflow-provenance.service';
 import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';

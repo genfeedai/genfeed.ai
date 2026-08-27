@@ -1,4 +1,4 @@
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { ConflictException } from '@nestjs/common';
 
 const IDEMPOTENCY_TTL_SECONDS = 3600; // 1 hour window

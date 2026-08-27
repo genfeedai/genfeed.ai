@@ -3,7 +3,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
-import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
 import {
   calculateEstimatedTextCredits,
   getMinimumTextCredits,

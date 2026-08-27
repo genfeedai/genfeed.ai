@@ -1,5 +1,5 @@
 import type { Credential } from '@api/collections/credentials/schemas/credential.schema';
-import { BaseEntity } from '@api/shared/entities/base/base.entity';
+import { BaseEntity } from '@server/entities/base.entity';
 
 export class CredentialEntity extends BaseEntity implements Credential {
   declare readonly id: string;

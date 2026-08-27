@@ -1,6 +1,6 @@
 import process from 'node:process';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { ConfigModule } from '@libs/config/config.module';

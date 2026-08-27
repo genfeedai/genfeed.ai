@@ -6,7 +6,7 @@ import type {
   OutreachCampaignDocument,
 } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
-import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-executor.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';

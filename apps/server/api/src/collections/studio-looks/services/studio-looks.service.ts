@@ -1,7 +1,7 @@
 import type { CreateStudioLookDto } from '@api/collections/studio-looks/dto/create-studio-look.dto';
 import type { UpdateStudioLookDto } from '@api/collections/studio-looks/dto/update-studio-look.dto';
 import type { StudioLookDocument } from '@api/collections/studio-looks/schemas/studio-look.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';

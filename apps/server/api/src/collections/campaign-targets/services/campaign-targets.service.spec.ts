@@ -1,5 +1,5 @@
 import { CampaignTargetsService } from '@api/collections/campaign-targets/services/campaign-targets.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CampaignDiscoverySource,

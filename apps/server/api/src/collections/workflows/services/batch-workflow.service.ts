@@ -5,7 +5,7 @@ import {
   BatchWorkflowJobStatus,
 } from '@api/collections/workflows/schemas/batch-workflow-job.schema';
 import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';

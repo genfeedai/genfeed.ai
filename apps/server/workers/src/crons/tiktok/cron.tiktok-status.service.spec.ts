@@ -2,7 +2,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
-} from '@api/collections/workflows/services/system-workflow-provenance.service';
+} from '@server/collections/workflows/system-workflow-provenance.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import { PostVisibility, TargetExecutionState } from '@genfeedai/enums';
 import { SERVER_TOKENS } from '@genfeedai/server';

@@ -3,7 +3,7 @@ import type { ClipProjectsService } from '@api/collections/clip-projects/clip-pr
 import { RewriteHighlightDto } from '@api/collections/clip-projects/dto/rewrite-highlight.dto';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import type { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { plainToInstance } from 'class-transformer';

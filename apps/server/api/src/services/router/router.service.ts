@@ -3,7 +3,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { isModelOnAllowlist } from '@api/collections/models/utils/enabled-model.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type {
   ModelRecommendation,
   ModelResolution,

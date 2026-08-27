@@ -1,7 +1,7 @@
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { ValidationException } from '@server/exceptions/validation.exception';
 import { QueryBuilder } from '@api/helpers/utils/query-builder.util';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BaseQueryNormalizationAdapter,

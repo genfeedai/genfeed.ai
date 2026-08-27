@@ -4,7 +4,7 @@ import {
   type LivestreamBotProcessingResult,
 } from '@api/collections/bots/services/bots-livestream.service';
 import { BotsRestreamChatService } from '@api/collections/bots/services/bots-restream-chat.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { Injectable, Optional, type Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 

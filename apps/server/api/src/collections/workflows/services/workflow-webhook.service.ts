@@ -3,7 +3,7 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { WorkflowStepRunnerService } from '@api/collections/workflows/services/workflow-step-runner.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { toPrismaJson } from '@genfeedai/prisma';

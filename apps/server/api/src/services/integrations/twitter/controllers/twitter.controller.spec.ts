@@ -20,7 +20,7 @@ vi.mock('twitter-api-v2', () => ({
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TwitterController } from '@api/services/integrations/twitter/controllers/twitter.controller';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';

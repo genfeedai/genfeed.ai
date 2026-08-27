@@ -1,7 +1,7 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
 import {
   ClipOrchestratorService,
   type ClipRun,

@@ -8,7 +8,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
-import { PlanLimitExceededException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { PlanLimitExceededException } from '@server/exceptions/business-logic.exception';
 import {
   getIsSuperAdmin,
   getSubscriptionTier,

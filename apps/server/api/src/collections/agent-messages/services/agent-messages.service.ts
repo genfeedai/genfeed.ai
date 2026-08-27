@@ -4,7 +4,7 @@ import {
   decodeAgentMessageCursor,
   encodeAgentMessageCursor,
 } from '@api/collections/agent-messages/utils/agent-message-cursor.util';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { authorizeAgentArtifactWrite } from '@api/shared/utils/agent-artifact-reference-write.util';

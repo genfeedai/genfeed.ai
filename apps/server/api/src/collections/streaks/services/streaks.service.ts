@@ -3,7 +3,7 @@ import type {
   StreakDocument,
   StreakMilestoneHistoryEntry,
 } from '@api/collections/streaks/schemas/streak.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivityKey } from '@genfeedai/enums';

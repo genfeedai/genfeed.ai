@@ -11,7 +11,7 @@ import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflo
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';

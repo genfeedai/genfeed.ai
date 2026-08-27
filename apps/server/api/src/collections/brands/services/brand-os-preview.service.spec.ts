@@ -1,6 +1,6 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { RedisService } from '@libs/redis/redis.service';

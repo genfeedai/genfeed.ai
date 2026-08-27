@@ -1,4 +1,4 @@
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import { ValidationException } from '@server/exceptions/validation.exception';
 import type { ModelFieldMeta } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 

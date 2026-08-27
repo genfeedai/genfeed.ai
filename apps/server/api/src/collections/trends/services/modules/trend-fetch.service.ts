@@ -5,7 +5,7 @@ import type {
   TrendData,
 } from '@api/collections/trends/interfaces/trend.interfaces';
 import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';

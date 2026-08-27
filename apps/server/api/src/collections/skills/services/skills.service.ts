@@ -16,8 +16,8 @@ import {
   SKILL_STATUSES,
   type SkillDocument,
 } from '@api/collections/skills/schemas/skill.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { ValidationException } from '@server/exceptions/validation.exception';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';

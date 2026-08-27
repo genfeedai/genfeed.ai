@@ -6,7 +6,7 @@ import {
   AgentStrategiesService,
   type AgentStrategyCreateInput,
 } from '@api/collections/agent-strategies/services/agent-strategies.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {

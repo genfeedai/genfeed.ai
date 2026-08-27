@@ -1,5 +1,5 @@
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PostAnalytics } from '@genfeedai/prisma';

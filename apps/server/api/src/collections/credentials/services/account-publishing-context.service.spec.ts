@@ -2,7 +2,7 @@ import { AccountHealthService } from '@api/collections/credentials/services/acco
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type { ConfigService } from '@libs/config/config.service';
 

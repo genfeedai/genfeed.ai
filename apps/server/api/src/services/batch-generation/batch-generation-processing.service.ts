@@ -1,7 +1,7 @@
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { BatchAlreadyOwnedException } from '@api/services/batch-generation/batch-already-owned.exception';
 import { BATCH_LEASE_STALE_MS } from '@api/services/batch-generation/batch-generation.constants';
 import {

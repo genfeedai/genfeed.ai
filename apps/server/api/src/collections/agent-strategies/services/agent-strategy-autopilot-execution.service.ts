@@ -29,7 +29,7 @@ import type {
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import { PostAccountFanoutService } from '@api/collections/posts/services/post-account-fanout.service';
 import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';

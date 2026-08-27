@@ -22,7 +22,7 @@ import {
   InsufficientCreditsException,
   InvalidOperationException,
   ResourceNotReadyException,
-} from '@api/helpers/exceptions/business/business-logic.exception';
+} from '@server/exceptions/business-logic.exception';
 import {
   AIServiceException,
   ExternalServiceException,
@@ -30,8 +30,8 @@ import {
   SocialMediaException,
   StorageServiceException,
 } from '@api/helpers/exceptions/external/external-service.exception';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { ValidationException } from '@server/exceptions/validation.exception';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { HttpException, HttpStatus } from '@nestjs/common';
 

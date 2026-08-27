@@ -1,6 +1,6 @@
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
-import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { PostLifecycleService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';

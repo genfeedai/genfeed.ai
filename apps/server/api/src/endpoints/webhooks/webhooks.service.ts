@@ -9,7 +9,7 @@ import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata
 import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
 import { extractUserIds } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { validateRoomMatch } from '@api/helpers/utils/websocket-room/websocket-room.util';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';

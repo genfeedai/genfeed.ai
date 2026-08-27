@@ -1,4 +1,4 @@
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { HarnessWinnerPromotionService } from '@api/services/harness/harness-winner-promotion.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@genfeedai/server';

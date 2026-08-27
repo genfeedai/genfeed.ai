@@ -2,7 +2,7 @@ import { CreateWatchlistDto } from '@api/collections/watchlists/dto/create-watch
 import { UpdateWatchlistDto } from '@api/collections/watchlists/dto/update-watchlist.dto';
 import type { WatchlistDocument } from '@api/collections/watchlists/schemas/watchlist.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';

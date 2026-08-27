@@ -1,7 +1,7 @@
 import { CampaignMemoryQueueService } from '@api/services/agent-campaign/campaign-memory-queue.service';
 import { OrchestratorQueueService } from '@api/services/agent-campaign/orchestrator-queue.service';
 import { TriggerEvaluatorQueueService } from '@api/services/agent-campaign/trigger-evaluator-queue.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AgentCampaign } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';

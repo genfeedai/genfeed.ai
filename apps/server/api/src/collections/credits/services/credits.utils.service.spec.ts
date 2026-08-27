@@ -5,7 +5,7 @@ import { CreditTransactionsService } from '@api/collections/credits/services/cre
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import { BusinessLogicException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';

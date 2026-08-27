@@ -3,7 +3,7 @@ import { SystemWorkflowCatalogService } from '@api/collections/workflows/service
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
-import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
+import { buildSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
 import {
   WorkflowExecutionTrigger,
   WorkflowStatus,

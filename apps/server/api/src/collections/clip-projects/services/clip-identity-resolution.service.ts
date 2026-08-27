@@ -1,5 +1,5 @@
 import { resolveClipIdentity } from '@api/collections/clip-projects/services/clip-identity-resolution.util';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';

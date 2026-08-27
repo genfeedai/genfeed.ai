@@ -1,8 +1,8 @@
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
-import type { CacheService } from '@api/services/cache/services/cache.service';
+import type { CacheService } from '@server/services/cache/cache.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
 import { PostCategory, TargetExecutionState } from '@genfeedai/enums';

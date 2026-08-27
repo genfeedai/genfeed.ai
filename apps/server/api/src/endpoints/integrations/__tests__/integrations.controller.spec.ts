@@ -5,7 +5,7 @@ import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-int
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
 import { InternalIntegrationsController } from '@api/endpoints/integrations/integrations.controller';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import type { OrgIntegration } from '@genfeedai/prisma';

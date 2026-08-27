@@ -8,7 +8,7 @@ import type {
 import { TREND_SOURCE_PREVIEW_LIMIT } from '@api/collections/trends/services/modules/trend-source.constants';
 import { TrendSourceItemsService } from '@api/collections/trends/services/modules/trend-source-items.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';

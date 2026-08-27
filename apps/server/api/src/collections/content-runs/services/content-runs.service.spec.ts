@@ -1,5 +1,5 @@
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
 import type {

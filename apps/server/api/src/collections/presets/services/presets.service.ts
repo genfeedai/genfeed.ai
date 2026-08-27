@@ -1,7 +1,7 @@
 import { CreatePresetDto } from '@api/collections/presets/dto/create-preset.dto';
 import { UpdatePresetDto } from '@api/collections/presets/dto/update-preset.dto';
 import { type PresetDocument } from '@api/collections/presets/schemas/preset.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';

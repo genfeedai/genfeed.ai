@@ -15,8 +15,8 @@ import { BrandInterviewService } from '@api/collections/brands/brand-interview/s
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BrandInterviewStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';

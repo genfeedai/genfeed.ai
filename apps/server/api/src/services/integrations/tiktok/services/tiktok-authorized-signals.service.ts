@@ -6,8 +6,8 @@ import {
   CACHE_TAGS,
   SCOPED_CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { CacheService } from '@server/services/cache/cache.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import {
   isTikTokRateLimitError,

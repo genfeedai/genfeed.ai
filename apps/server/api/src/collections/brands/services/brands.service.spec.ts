@@ -1,4 +1,4 @@
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 
 // Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.Brand (fontFamily +
 // scope enum fields) via the light @genfeedai/prisma/testing subpath — no
@@ -26,7 +26,7 @@ import {
 import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ReferenceImageCategory } from '@genfeedai/enums';

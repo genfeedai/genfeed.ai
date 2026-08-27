@@ -5,7 +5,7 @@ import type {
 import type { TrendingHashtagDocument } from '@api/collections/trends/schemas/trending-hashtag.schema';
 import type { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
 import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';

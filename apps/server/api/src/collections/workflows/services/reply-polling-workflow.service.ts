@@ -7,7 +7,7 @@ import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapte
 import { YoutubeSocialAdapter } from '@api/collections/workflows/services/adapters/youtube-social.adapter';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import {
   type ProcessingResult,
   ReplyBotOrchestratorService,

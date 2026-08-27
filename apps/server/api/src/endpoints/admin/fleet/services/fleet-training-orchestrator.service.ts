@@ -5,7 +5,7 @@ import { TrainingsService } from '@api/collections/trainings/services/trainings.
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   FleetReviewStatus as FleetReviewStatusEnum,

@@ -1,4 +1,4 @@
-import { BaseEntity } from '@api/shared/entities/base/base.entity';
+import { BaseEntity } from '@server/entities/base.entity';
 import { type Setting } from '@genfeedai/prisma';
 
 export class SettingEntity extends BaseEntity implements Setting {

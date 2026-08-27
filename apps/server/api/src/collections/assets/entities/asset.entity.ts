@@ -1,5 +1,5 @@
 import type { Asset } from '@api/collections/assets/schemas/asset.schema';
-import { BaseEntity } from '@api/shared/entities/base/base.entity';
+import { BaseEntity } from '@server/entities/base.entity';
 
 export class AssetEntity extends BaseEntity implements Asset {
   declare readonly id: string;

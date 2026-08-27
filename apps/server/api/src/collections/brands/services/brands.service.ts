@@ -42,8 +42,8 @@ import {
 } from '@api/common/constants/cache-patterns.constants';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { CacheService } from '@server/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type {

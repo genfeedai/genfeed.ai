@@ -2,7 +2,7 @@ import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
 import { TrendSourceItemsService } from '@api/collections/trends/services/modules/trend-source-items.service';
 import { TrendSourcePreviewService } from '@api/collections/trends/services/modules/trend-source-preview.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';

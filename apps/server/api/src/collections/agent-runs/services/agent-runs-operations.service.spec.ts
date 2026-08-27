@@ -3,7 +3,7 @@ import {
   type AgentRunOperationScope,
   AgentRunsOperationsService,
 } from '@api/collections/agent-runs/services/agent-runs-operations.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { testId } from '@helpers/testing/test-id.helper';

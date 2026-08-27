@@ -1,6 +1,6 @@
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { PostEntity } from '@api/collections/posts/entities/post.entity';
+import { PostEntity } from '@server/collections/posts/entities/post.entity';
 import {
   ActivityEntityModel,
   ActivityKey,

@@ -1,6 +1,6 @@
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { CacheClientService } from '@api/services/cache/services/cache-client.service';
-import { CacheTagsService } from '@api/services/cache/services/cache-tags.service';
+import { CacheClientService } from '@server/services/cache/cache-client.service';
+import { CacheTagsService } from '@server/services/cache/cache-tags.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 

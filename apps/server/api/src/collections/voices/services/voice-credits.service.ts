@@ -1,5 +1,5 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
 import { ActivitySource } from '@genfeedai/enums';
 import type { CreditsConfig } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';

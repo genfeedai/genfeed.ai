@@ -5,7 +5,7 @@ import { type WorkflowVisualNode } from '@api/collections/workflows/schemas/work
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   WorkflowExecutionStatus,

@@ -56,7 +56,7 @@ import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { XActivityWebhookController } from '@api/endpoints/webhooks/x-activity/webhooks.x-activity.controller';
 import { TransactionModule } from '@api/helpers/utils/transaction/transaction.module';
 import { BotGatewayModule } from '@api/services/bot-gateway/bot-gateway.module';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { ArgilModule } from '@api/services/integrations/argil/argil.module';

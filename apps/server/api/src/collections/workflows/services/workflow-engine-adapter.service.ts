@@ -44,7 +44,7 @@ import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collection
 import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-processing-executor-registrar.service';
 import { WorkflowSocialExecutorRegistrarService } from '@api/collections/workflows/services/workflow-social-executor-registrar.service';
 import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';

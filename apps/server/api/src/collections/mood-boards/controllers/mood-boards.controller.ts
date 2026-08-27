@@ -3,7 +3,7 @@ import { UpdateMoodBoardDto } from '@api/collections/mood-boards/dto/update-mood
 import { MoodBoardsService } from '@api/collections/mood-boards/services/mood-boards.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   returnNotFound,
   serializeSingle,

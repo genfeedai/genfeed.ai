@@ -11,7 +11,7 @@ import type {
   StripeRecurringInterval,
 } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
 import { getEmailLogMetadata } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {

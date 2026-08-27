@@ -1,7 +1,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import type {
   BatchConfig,
@@ -17,7 +17,7 @@ import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status
 import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
 import type { ContentMixConfig } from '@api/services/batch-generation/schemas/batch.schema';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BatchItemStatus,

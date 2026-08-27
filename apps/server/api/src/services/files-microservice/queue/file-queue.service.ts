@@ -1,6 +1,6 @@
 import type { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
 import { JobState } from '@genfeedai/enums';
 import type {

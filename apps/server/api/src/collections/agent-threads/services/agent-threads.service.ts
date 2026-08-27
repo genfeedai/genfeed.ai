@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import type { AgentRoomDocument } from '@api/collections/agent-threads/schemas/agent-thread.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type { AgentThreadSnapshotDocument } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';

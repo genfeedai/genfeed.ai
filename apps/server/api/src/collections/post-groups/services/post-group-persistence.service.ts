@@ -11,7 +11,7 @@ import type {
 } from '@api/collections/post-groups/services/post-group.types';
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
 import {

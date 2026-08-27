@@ -21,7 +21,7 @@ import { ArticleTranscriptService } from '@api/collections/articles/services/art
 import { ArticleVersionService } from '@api/collections/articles/services/article-version.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

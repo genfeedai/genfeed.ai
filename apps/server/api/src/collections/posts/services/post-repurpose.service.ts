@@ -1,11 +1,11 @@
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import {
   type PostCreateInput,
   PostsService,
 } from '@api/collections/posts/services/posts.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';

@@ -1,7 +1,7 @@
-import { CacheClientService } from '@api/services/cache/services/cache-client.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { CacheClientService } from '@server/services/cache/cache-client.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /* ---------- mock ioredis ---------- */

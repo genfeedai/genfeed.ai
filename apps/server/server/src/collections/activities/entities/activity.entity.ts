@@ -1,10 +1,10 @@
-import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import type {
   ActionOrigin,
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
 } from '@genfeedai/enums';
+import { BaseEntity } from '@server/entities/base.entity';
 
 export class ActivityEntity extends BaseEntity {
   declare readonly action: string | null;

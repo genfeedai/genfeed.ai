@@ -12,8 +12,8 @@ import { ClipGenerationRequestService } from '@api/collections/clip-projects/ser
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';

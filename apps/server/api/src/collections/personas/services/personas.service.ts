@@ -1,8 +1,8 @@
 import { CreatePersonaDto } from '@api/collections/personas/dto/create-persona.dto';
 import { UpdatePersonaDto } from '@api/collections/personas/dto/update-persona.dto';
 import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { ValidationException } from '@server/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { PrismaUpdate } from '@api/shared/services/base/base-query-normalization.adapter';

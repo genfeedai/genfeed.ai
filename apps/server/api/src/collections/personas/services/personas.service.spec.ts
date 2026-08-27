@@ -1,5 +1,5 @@
 import { PersonasService } from '@api/collections/personas/services/personas.service';
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import { ValidationException } from '@server/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';

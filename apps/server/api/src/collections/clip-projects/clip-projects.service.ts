@@ -6,8 +6,8 @@ import {
   buildClipProjectReadiness,
   isTerminalClipProjectStatus,
 } from '@api/collections/clip-shared/clip-terminal-contract.util';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { ValidationException } from '@server/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BaseService,

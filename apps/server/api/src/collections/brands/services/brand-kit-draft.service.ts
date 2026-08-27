@@ -7,7 +7,7 @@ import type {
   BrandAgentVoice,
   BrandDocument,
 } from '@api/collections/brands/schemas/brand.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { FontFamily } from '@genfeedai/enums';
 import {

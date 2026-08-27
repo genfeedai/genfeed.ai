@@ -11,7 +11,7 @@ import type {
   ContextLayers,
   SystemPromptOptions,
 } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { PatternMatcherService } from '@api/services/pattern-matcher/pattern-matcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {

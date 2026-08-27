@@ -1,4 +1,4 @@
-import { BaseEntity } from '@api/shared/entities/base/base.entity';
+import { BaseEntity } from '@server/entities/base.entity';
 import { EntityFactory } from '@api/shared/factories/entity/entity.factory';
 import { describe, expect, it } from 'vitest';
 

@@ -13,7 +13,7 @@ import {
   buildBrandProfileAnalysisPrompt,
   parseGeneratedBrandProfile,
 } from '@api/collections/brands/utils/brand-profile-generation.util';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { LLM_DEFAULTS } from '@genfeedai/constants';

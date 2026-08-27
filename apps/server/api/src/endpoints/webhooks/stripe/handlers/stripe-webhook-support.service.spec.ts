@@ -7,7 +7,7 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {

@@ -1,7 +1,7 @@
 import type { UpdateHarnessProfileDto } from '@api/collections/harness-profiles/dto/update-harness-profile.dto';
 import type { UpsertHarnessProfileDto } from '@api/collections/harness-profiles/dto/upsert-harness-profile.dto';
 import type { HarnessProfileDocument } from '@api/collections/harness-profiles/schemas/harness-profile.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   type HarnessPackSeed,
   mergeSeedIntoExistingExamples,

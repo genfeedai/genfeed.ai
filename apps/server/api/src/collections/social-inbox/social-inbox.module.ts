@@ -7,7 +7,7 @@ import { SocialInboxQueryService } from '@api/collections/social-inbox/services/
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
 import { SocialReplyCampaignService } from '@api/collections/social-inbox/services/social-reply-campaign.service';
 import { SocialReplyCampaignDispatchService } from '@api/collections/social-inbox/services/social-reply-campaign-dispatch.service';
-import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';

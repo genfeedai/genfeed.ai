@@ -1,6 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { sanitizeHtml } from '@genfeedai/helpers';
 import type {
   NewsletterFeedBrand,

@@ -13,10 +13,10 @@ import {
   buildSystemWorkflowDuplicateMetadata,
   isProtectedSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
-} from '@api/collections/workflows/system-workflow.contract';
+} from '@server/collections/workflows/system-workflow.contract';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { EntityFactory } from '@api/shared/factories/entity/entity.factory';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';

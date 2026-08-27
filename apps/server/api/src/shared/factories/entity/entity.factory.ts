@@ -1,4 +1,4 @@
-import { BaseEntity } from '@api/shared/entities/base/base.entity';
+import { BaseEntity } from '@server/entities/base.entity';
 import { Type } from '@nestjs/common';
 
 type SerializableDocument = {

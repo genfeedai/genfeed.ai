@@ -4,8 +4,8 @@ import { CreateCredentialDto } from '@api/collections/credentials/dto/create-cre
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import type { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { ValidationException } from '@server/exceptions/validation.exception';
 import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {

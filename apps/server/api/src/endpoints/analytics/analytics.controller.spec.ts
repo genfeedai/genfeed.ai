@@ -10,7 +10,7 @@ import {
   ViralHooksQueryDto,
 } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';

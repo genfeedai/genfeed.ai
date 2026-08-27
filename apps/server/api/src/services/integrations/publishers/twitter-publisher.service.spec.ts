@@ -19,8 +19,8 @@ vi.mock('twitter-api-v2', () => ({
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
-import type { PostEntity } from '@api/collections/posts/entities/post.entity';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostEntity } from '@server/collections/posts/entities/post.entity';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import type {
   MediaInfo,

@@ -1,4 +1,4 @@
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import {
   RATE_LIMIT_KEY,
   type RateLimitOptions,

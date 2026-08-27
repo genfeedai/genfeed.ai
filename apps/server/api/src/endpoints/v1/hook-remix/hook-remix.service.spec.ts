@@ -8,7 +8,7 @@ import type {
   CreateHookRemixDto,
 } from '@api/endpoints/v1/hook-remix/dto/create-hook-remix.dto';
 import { HookRemixService } from '@api/endpoints/v1/hook-remix/hook-remix.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

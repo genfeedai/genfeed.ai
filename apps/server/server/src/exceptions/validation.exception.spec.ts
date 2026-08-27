@@ -1,5 +1,5 @@
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { HttpStatus } from '@nestjs/common';
+import { ValidationException } from '@server/exceptions/validation.exception';
 import { describe, expect, it } from 'vitest';
 
 describe('ValidationException', () => {

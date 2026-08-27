@@ -6,7 +6,7 @@ import type {
   DelayResumeJobData,
   TriggerEvent,
 } from '@api/collections/workflows/services/workflow-executor.service';
-import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
+import { buildSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
 import { ActionOrigin, WorkflowStatus } from '@genfeedai/enums';
 import { runWithActionOrigin } from '@genfeedai/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

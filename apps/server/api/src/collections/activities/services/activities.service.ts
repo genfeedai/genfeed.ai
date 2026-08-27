@@ -1,6 +1,6 @@
 import { CreateActivityDto } from '@api/collections/activities/dto/create-activity.dto';
 import { UpdateActivityDto } from '@api/collections/activities/dto/update-activity.dto';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
 import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { StreaksService as StreaksServiceToken } from '@api/collections/streaks/services/streaks.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';

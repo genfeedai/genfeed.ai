@@ -4,13 +4,13 @@ import {
   buildSystemWorkflowDuplicateMetadata,
   buildSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
-} from '@api/collections/workflows/system-workflow.contract';
+} from '@server/collections/workflows/system-workflow.contract';
 import {
   getSystemWorkflowCatalogEntry,
   listSystemWorkflowCatalog,
   type SystemWorkflowCatalogEntry,
 } from '@api/collections/workflows/system-workflow-catalog';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowStatus } from '@genfeedai/enums';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';

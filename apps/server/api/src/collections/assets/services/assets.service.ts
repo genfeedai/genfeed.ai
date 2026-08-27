@@ -2,7 +2,7 @@ import { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
 import { UpdateAssetDto } from '@api/collections/assets/dto/update-asset.dto';
 import type { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
 import { buildAssetParentColumns } from '@api/collections/assets/utils/asset-parent.util';
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import { ValidationException } from '@server/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AssetParent } from '@genfeedai/enums';

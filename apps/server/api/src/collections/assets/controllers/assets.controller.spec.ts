@@ -5,7 +5,7 @@ import type { UpdateAssetDto } from '@api/collections/assets/dto/update-asset.dt
 import type { Asset } from '@api/collections/assets/schemas/asset.schema';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { AssetCategory, AssetParent } from '@genfeedai/enums';
 import { HttpException } from '@nestjs/common';

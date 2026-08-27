@@ -10,7 +10,7 @@ import { PostVariationService } from '@api/collections/posts/services/post-varia
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentIntelligencePlatform } from '@genfeedai/enums';

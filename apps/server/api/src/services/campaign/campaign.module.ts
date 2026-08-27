@@ -8,7 +8,7 @@
 import { CampaignTargetsModule } from '@api/collections/campaign-targets/campaign-targets.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { OutreachCampaignsCoreModule } from '@api/collections/outreach-campaigns/outreach-campaigns-core.module';
-import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discovery.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-executor.service';

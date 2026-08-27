@@ -1,6 +1,6 @@
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
-import { isSweepDrivenSystemWorkflow } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { isSweepDrivenSystemWorkflow } from '@server/collections/workflows/system-workflow-provenance.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import {
   EXECUTABLE_WORKFLOW_SELECT,

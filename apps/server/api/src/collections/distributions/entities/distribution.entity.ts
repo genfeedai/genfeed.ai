@@ -1,5 +1,5 @@
 import type { Distribution } from '@api/collections/distributions/schemas/distribution.schema';
-import { BaseEntity } from '@api/shared/entities/base/base.entity';
+import { BaseEntity } from '@server/entities/base.entity';
 import type {
   DistributionContentType,
   DistributionPlatform,

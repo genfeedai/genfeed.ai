@@ -12,7 +12,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { isCloudDeployment } from '@genfeedai/config';
 import { Prisma } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';

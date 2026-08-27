@@ -3,7 +3,7 @@ import type { CustomersService } from '@api/collections/customers/services/custo
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import type { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type {
   StripeCustomer,
   StripeService,

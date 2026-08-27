@@ -2,7 +2,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
 import type { PipelineStep } from '@api/services/content-orchestration/pipeline.interfaces';
 import { StepExecutorService } from '@api/services/content-orchestration/step-executor.service';

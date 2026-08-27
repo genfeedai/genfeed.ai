@@ -1,4 +1,4 @@
-import { BusinessLogicException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
 import { ActivitySource, CreditTransactionCategory } from '@genfeedai/enums';
 import type { CreditDeductionJobData } from '@genfeedai/queue-contracts';
 import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-deduction/credit-deduction.processor';

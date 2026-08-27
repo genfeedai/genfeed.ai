@@ -9,7 +9,7 @@ import {
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';

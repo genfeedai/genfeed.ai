@@ -1,7 +1,7 @@
-import { CacheClientService } from '@api/services/cache/services/cache-client.service';
-import { CacheTagsService } from '@api/services/cache/services/cache-tags.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { CacheClientService } from '@server/services/cache/cache-client.service';
+import { CacheTagsService } from '@server/services/cache/cache-tags.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('CacheTagsService', () => {

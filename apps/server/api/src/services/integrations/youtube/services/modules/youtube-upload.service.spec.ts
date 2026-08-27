@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { PostEntity } from '@api/collections/posts/entities/post.entity';
+import { PostEntity } from '@server/collections/posts/entities/post.entity';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { YoutubeUploadService } from '@api/services/integrations/youtube/services/modules/youtube-upload.service';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';

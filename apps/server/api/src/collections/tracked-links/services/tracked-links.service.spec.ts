@@ -1,5 +1,5 @@
 import { TrackedLinksService } from '@api/collections/tracked-links/services/tracked-links.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BadRequestException } from '@nestjs/common';
 

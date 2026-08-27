@@ -1,5 +1,5 @@
 import type { Organization } from '@api/collections/organizations/schemas/organization.schema';
-import { BaseEntity } from '@api/shared/entities/base/base.entity';
+import { BaseEntity } from '@server/entities/base.entity';
 
 export class OrganizationEntity extends BaseEntity implements Organization {
   declare readonly id: string;

@@ -4,7 +4,7 @@ import {
   VOICE_CREDITS_PER_MINUTE,
   VoiceCreditsService,
 } from '@api/collections/voices/services/voice-credits.service';
-import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
 import type { Request } from 'express';
 
 describe('VoiceCreditsService', () => {

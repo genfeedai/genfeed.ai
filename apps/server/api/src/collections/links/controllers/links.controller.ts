@@ -10,7 +10,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';

@@ -13,7 +13,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
 import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import { ValidationException } from '@server/exceptions/validation.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

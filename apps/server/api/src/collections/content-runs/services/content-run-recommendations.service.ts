@@ -7,7 +7,7 @@ import {
   isContentRunRecord,
   toContentRunJsonValue,
 } from '@api/collections/content-runs/utils/content-run-data.util';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   ContentOptimizationService,
   type WinnerContentSignal,

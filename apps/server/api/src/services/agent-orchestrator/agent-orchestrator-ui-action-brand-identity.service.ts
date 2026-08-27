@@ -13,7 +13,7 @@ import type {
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { recordAgentRunScope } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { AgentMessageRole } from '@genfeedai/enums';
 import {
   AgentToolName,

@@ -1,5 +1,5 @@
-import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { type Ingredient } from '@genfeedai/prisma';
+import { BaseEntity } from '@server/entities/base.entity';
 
 export class IngredientEntity extends BaseEntity implements Ingredient {
   declare readonly id: string;

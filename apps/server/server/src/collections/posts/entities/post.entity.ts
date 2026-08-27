@@ -1,4 +1,3 @@
-import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import {
   CredentialPlatform,
   PostCategory,
@@ -8,6 +7,7 @@ import {
   type ReviewDecision,
   TargetExecutionState,
 } from '@genfeedai/enums';
+import { BaseEntity } from '@server/entities/base.entity';
 
 export interface PostAnalyticsSummary {
   totalViews: number;

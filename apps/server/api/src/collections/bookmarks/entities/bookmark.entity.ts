@@ -1,4 +1,4 @@
-import { BaseEntity } from '@api/shared/entities/base/base.entity';
+import { BaseEntity } from '@server/entities/base.entity';
 import { type Bookmark } from '@genfeedai/prisma';
 
 export class BookmarkEntity extends BaseEntity implements Bookmark {

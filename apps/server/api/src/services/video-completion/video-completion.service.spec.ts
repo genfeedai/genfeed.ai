@@ -2,7 +2,7 @@ import { RawCutClipCompletionService } from '@api/collections/clip-projects/serv
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { VideoCompletionService } from '@api/services/video-completion/video-completion.service';

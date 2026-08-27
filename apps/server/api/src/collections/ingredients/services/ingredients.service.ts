@@ -7,7 +7,7 @@ import {
 } from '@api/collections/ingredients/utils/ingredient-create-data.util';
 import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';

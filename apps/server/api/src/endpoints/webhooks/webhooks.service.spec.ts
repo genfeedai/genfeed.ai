@@ -5,7 +5,7 @@ vi.mock('@api/collections/evaluations/services/evaluations.service', () => ({
 import type { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
-import type { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
+import type { IngredientEntity } from '@server/collections/ingredients/entities/ingredient.entity';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { MetadataDocument } from '@api/collections/metadata/schemas/metadata.schema';
@@ -17,7 +17,7 @@ import { MediaUploadService } from '@api/endpoints/webhooks/services/media-uploa
 import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata-lookup.service';
 import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';

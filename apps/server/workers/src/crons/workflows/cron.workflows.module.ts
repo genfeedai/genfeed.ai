@@ -5,6 +5,7 @@ import { ByokModule } from '@api/services/byok/byok.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
+import { CacheModule } from '@server/services/cache/cache.module';
 import { CronWorkflowsService } from '@workers/crons/workflows/cron.workflows.service';
 import { GenerateArticleTask } from '@workers/crons/workflows/task-types/generate-article.task';
 import { GenerateImageTask } from '@workers/crons/workflows/task-types/generate-image.task';
@@ -16,6 +17,7 @@ import { GenerationServicesModule } from '@workers/services/generation-services.
   exports: [CronWorkflowsService],
   imports: [
     ByokModule,
+    CacheModule,
     CreditsModule,
     GenerationServicesModule,
     HttpModule,

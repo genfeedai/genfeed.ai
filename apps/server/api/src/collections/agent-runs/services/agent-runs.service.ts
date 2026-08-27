@@ -2,9 +2,9 @@ import { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-
 import { UpdateAgentRunDto } from '@api/collections/agent-runs/dto/update-agent-run.dto';
 import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BaseService,

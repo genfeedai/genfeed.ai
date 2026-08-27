@@ -1,7 +1,7 @@
 import { CreateElementSceneDto } from '@api/collections/elements/scenes/dto/create-scene.dto';
 import { UpdateElementSceneDto } from '@api/collections/elements/scenes/dto/update-scene.dto';
 import type { ElementSceneDocument } from '@api/collections/elements/scenes/schemas/scene.schema';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';

@@ -19,7 +19,7 @@ import { MonitoredAccountsModule } from '@api/collections/monitored-accounts/mon
 import { ProcessedTweetsModule } from '@api/collections/processed-tweets/processed-tweets.module';
 import { ReplyBotConfigsCoreModule } from '@api/collections/reply-bot-configs/reply-bot-configs-core.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
-import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';

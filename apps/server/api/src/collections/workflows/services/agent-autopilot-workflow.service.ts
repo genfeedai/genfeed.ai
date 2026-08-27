@@ -4,7 +4,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { AiInfluencerService } from '@api/services/ai-influencer/ai-influencer.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentAutonomyMode,

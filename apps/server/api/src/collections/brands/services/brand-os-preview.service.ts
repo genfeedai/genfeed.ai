@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { hashToken, toBase64Url } from '@api/auth/shared/pkce.util';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type { BrandKitSourceBrand } from '@genfeedai/helpers';
 import {

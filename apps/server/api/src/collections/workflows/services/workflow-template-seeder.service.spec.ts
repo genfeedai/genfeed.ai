@@ -1,7 +1,7 @@
 import {
   SYSTEM_WORKFLOW_ACTION_DEFINITIONS,
   SYSTEM_WORKFLOW_ACTION_IDS,
-} from '@api/collections/workflows/services/system-workflow-provenance.service';
+} from '@server/collections/workflows/system-workflow-provenance.service';
 import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import {
   buildSystemWorkflowDuplicateMetadata,
@@ -10,7 +10,7 @@ import {
   SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY,
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
-} from '@api/collections/workflows/system-workflow.contract';
+} from '@server/collections/workflows/system-workflow.contract';
 import { WorkflowStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
@@ -11,7 +11,7 @@ import {
   GenerateTweetsDto,
   TweetTone,
 } from '@api/collections/posts/dto/generate-tweets.dto';
-import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
+import { type PostDocument } from '@server/collections/posts/post.schema';
 import {
   extractPostGenerationLabel,
   parsePostGenerationContent,

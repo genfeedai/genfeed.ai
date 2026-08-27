@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { SourcePostDocument } from '@api/collections/source-posts/schemas/source-post.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,

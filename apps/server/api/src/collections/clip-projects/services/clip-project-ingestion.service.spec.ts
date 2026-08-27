@@ -5,7 +5,7 @@ import type { ClipIdentityResolutionService } from '@api/collections/clip-projec
 import { ClipProjectIngestionService } from '@api/collections/clip-projects/services/clip-project-ingestion.service';
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
 import type { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import type { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
 import type { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';

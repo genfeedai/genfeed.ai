@@ -11,7 +11,7 @@ import { RunEntity } from '@api/collections/runs/entities/run.entity';
 import { RunsService } from '@api/collections/runs/services/runs.service';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   serializeCollection,
   serializeSingle,

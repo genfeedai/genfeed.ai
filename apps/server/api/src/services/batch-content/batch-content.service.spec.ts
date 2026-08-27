@@ -1,5 +1,5 @@
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { BatchContentService } from '@api/services/batch-content/batch-content.service';
 import type { BatchContentQueueService } from '@api/services/batch-content/batch-content-queue.service';
 import type {

@@ -1,5 +1,5 @@
 import { CampaignQueueService } from '@api/queues/campaign/campaign-queue.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional, type Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';

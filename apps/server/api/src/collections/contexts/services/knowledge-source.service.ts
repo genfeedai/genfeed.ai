@@ -11,7 +11,7 @@ import {
   upsertKnowledgeSource,
   writeKnowledgeSources,
 } from '@api/collections/contexts/utils/knowledge-source.util';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { KnowledgeSourceIngestQueueService } from '@api/queues/knowledge-source-ingest/knowledge-source-ingest-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { KnowledgeBaseStatus } from '@genfeedai/enums';

@@ -17,8 +17,8 @@ import { EvaluationsOperationsService } from '@api/collections/evaluations/servi
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { resolveIngredientMediaUrl } from '@api/helpers/utils/ingredient-media-url/ingredient-media-url.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';

@@ -1,9 +1,9 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import type { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
+import type { IngredientEntity } from '@server/collections/ingredients/entities/ingredient.entity';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import type { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import type { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

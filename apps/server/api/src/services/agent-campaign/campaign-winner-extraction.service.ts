@@ -1,7 +1,7 @@
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { AnalyticsMetric } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';

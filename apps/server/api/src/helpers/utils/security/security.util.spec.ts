@@ -1,5 +1,5 @@
 import { promises as fs } from 'node:fs';
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import { ValidationException } from '@server/exceptions/validation.exception';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 
 // Mock node:fs module

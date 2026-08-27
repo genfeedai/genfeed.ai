@@ -1,5 +1,5 @@
 import { KnowledgeSourceService } from '@api/collections/contexts/services/knowledge-source.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { KnowledgeBaseCategory, KnowledgeBaseStatus } from '@genfeedai/enums';
 
 describe('KnowledgeSourceService', () => {

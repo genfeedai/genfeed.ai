@@ -1,4 +1,4 @@
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import { ValidationException } from '@server/exceptions/validation.exception';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 
 describe('EntityIdUtil', () => {

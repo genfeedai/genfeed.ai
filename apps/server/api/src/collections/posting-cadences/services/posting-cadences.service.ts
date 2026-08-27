@@ -8,8 +8,8 @@ import { PostGroupsService } from '@api/collections/post-groups/services/post-gr
 import type { BookCalendarSlotDto } from '@api/collections/posting-cadences/dto/calendar-slot-action.dto';
 import type { CreatePostingCadenceDto } from '@api/collections/posting-cadences/dto/create-posting-cadence.dto';
 import type { UpdatePostingCadenceDto } from '@api/collections/posting-cadences/dto/update-posting-cadence.dto';
-import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   type ApiKeyPublishingContext,
   assertApiKeyPublishingScope,

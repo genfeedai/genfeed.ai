@@ -2,7 +2,7 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { ListingType, PromptCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';

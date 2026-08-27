@@ -5,7 +5,7 @@
 
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
-import type { PostEntity } from '@api/collections/posts/entities/post.entity';
+import type { PostEntity } from '@server/collections/posts/entities/post.entity';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import type {
   MediaInfo,

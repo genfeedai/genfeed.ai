@@ -5,7 +5,7 @@ import {
   resolveEffectiveSeatsLimit,
   UNLIMITED_SEATS_FAIR_USE_CEILING,
 } from '@api/collections/organization-settings/utils/seat-policy.util';
-import { PlanLimitExceededException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { PlanLimitExceededException } from '@server/exceptions/business-logic.exception';
 import {
   getIsSuperAdmin,
   getSubscriptionTier,

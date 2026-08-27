@@ -1,5 +1,5 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import {
   WorkflowRecurrenceType,

@@ -8,7 +8,7 @@ import { PostGroupContractService } from '@api/collections/post-groups/services/
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   type ApiKeyPublishingContext,
   assertApiKeyPublishingScope,

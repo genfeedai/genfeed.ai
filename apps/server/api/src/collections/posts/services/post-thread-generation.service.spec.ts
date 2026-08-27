@@ -4,7 +4,7 @@ vi.mock('@api/collections/templates/services/templates.service', () => ({
 
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';

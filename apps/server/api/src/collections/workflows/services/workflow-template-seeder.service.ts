@@ -1,4 +1,4 @@
-import { SYSTEM_WORKFLOW_ACTION_DEFINITIONS } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { SYSTEM_WORKFLOW_ACTION_DEFINITIONS } from '@server/collections/workflows/system-workflow-provenance.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { areWorkflowMetadataValuesEqual } from '@api/collections/workflows/services/workflow-template-seeder-metadata.util';
 import {
@@ -12,7 +12,7 @@ import {
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
   type SystemWorkflowMetadata,
-} from '@api/collections/workflows/system-workflow.contract';
+} from '@server/collections/workflows/system-workflow.contract';
 import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/ad-automation-workflows.template';
 import { AGENT_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/agent-autopilot-workflows.template';
 import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/analytics-sync-workflows.template';

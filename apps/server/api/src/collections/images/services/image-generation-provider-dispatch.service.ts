@@ -1,4 +1,4 @@
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type {
   ImageGenerationCompletionPlan,
@@ -22,7 +22,7 @@ import {
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { isGenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
-import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { toRedactedGenerationBriefProviderData } from '@api/services/generation-brief';

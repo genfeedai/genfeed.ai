@@ -1,6 +1,6 @@
 import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 

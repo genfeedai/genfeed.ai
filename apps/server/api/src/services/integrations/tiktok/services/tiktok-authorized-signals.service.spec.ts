@@ -6,8 +6,8 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { CacheService } from '@server/services/cache/cache.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TiktokAuthorizedSignalsService } from '@api/services/integrations/tiktok/services/tiktok-authorized-signals.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';

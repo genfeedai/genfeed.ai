@@ -7,7 +7,7 @@ import { SocialAdapterFactory } from '@api/collections/workflows/services/adapte
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.types';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';

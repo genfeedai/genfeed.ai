@@ -12,7 +12,7 @@ import { EditorProjectsService } from '@api/collections/editor-projects/editor-p
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';
 import { EditorTrackType, IngredientFormat } from '@genfeedai/enums';

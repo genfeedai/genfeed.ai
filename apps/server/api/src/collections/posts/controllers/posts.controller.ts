@@ -15,7 +15,7 @@ import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
 import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
 import { createPost } from '@api/collections/posts/handlers/post-create.handler';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';

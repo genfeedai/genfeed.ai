@@ -1,5 +1,5 @@
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { Status } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';

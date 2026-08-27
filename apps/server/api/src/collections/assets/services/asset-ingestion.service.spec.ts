@@ -6,8 +6,8 @@ import { AssetsService } from '@api/collections/assets/services/assets.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { ValidationException } from '@server/exceptions/validation.exception';
+import { CacheService } from '@server/services/cache/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   AssetCategory,

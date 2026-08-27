@@ -2,7 +2,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
-} from '@api/collections/workflows/services/system-workflow-provenance.service';
+} from '@server/collections/workflows/system-workflow-provenance.service';
 import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';

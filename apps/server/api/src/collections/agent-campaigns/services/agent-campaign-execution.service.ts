@@ -2,7 +2,7 @@ import { type AgentCampaignDocument } from '@api/collections/agent-campaigns/sch
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
 import { AgentRuntimeService } from '@api/services/agent-runtime/agent-runtime.service';
 import { AgentExecutionTrigger } from '@genfeedai/enums';

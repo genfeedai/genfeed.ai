@@ -11,7 +11,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import { CreateFontFamilyDto } from '@api/collections/font-families/dto/create-font-family.dto';
 import { UpdateFontFamilyDto } from '@api/collections/font-families/dto/update-font-family.dto';
 import { FontFamiliesService } from '@api/collections/font-families/services/font-families.service';
-import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
+import { ValidationException } from '@server/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';

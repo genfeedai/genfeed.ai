@@ -1,6 +1,6 @@
-import { CacheClientService } from '@api/services/cache/services/cache-client.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { CacheClientService } from '@server/services/cache/cache-client.service';
 import type Redis from 'ioredis';
 
 @Injectable()

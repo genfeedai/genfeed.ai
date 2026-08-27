@@ -1,6 +1,6 @@
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { BusinessLogicException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { CreditTransactionCategory } from '@genfeedai/enums';
 import {

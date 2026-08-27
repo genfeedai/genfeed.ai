@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import type {
   GeneratePostVariationsParams,
@@ -13,7 +13,7 @@ import {
 } from '@api/collections/posts/services/source-post-variation-output.util';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';

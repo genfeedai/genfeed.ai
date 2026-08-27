@@ -1,9 +1,9 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import {
   extractPostGenerationLabel,
   parsePostGenerationSlots,

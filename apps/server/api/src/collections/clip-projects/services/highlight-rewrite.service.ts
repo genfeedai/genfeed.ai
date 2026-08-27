@@ -1,6 +1,6 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { type ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   getDefaultModel,
   OpenRouterModelTier,

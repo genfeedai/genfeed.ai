@@ -6,7 +6,7 @@ import {
   socialWarmupEventRecordFromStorage,
   socialWarmupSignalRecordFromStorage,
 } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { readRecordOrEmpty as readJsonRecord } from '@api/shared/utils/object/read-record-or-empty.util';
 import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';

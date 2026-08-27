@@ -1,7 +1,7 @@
 import { CreateElementStyleDto } from '@api/collections/elements/styles/dto/create-style.dto';
 import { UpdateElementStyleDto } from '@api/collections/elements/styles/dto/update-style.dto';
 import type { ElementStyleDocument } from '@api/collections/elements/styles/schemas/style.schema';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';

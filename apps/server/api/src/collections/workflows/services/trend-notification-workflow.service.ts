@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import type { TrendNotificationCadence } from '@api/collections/workflows/templates/trend-notification-workflows.template';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ParseMode, TrendNotificationFrequency } from '@genfeedai/enums';

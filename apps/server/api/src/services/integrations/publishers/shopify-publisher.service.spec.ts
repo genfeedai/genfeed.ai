@@ -4,7 +4,7 @@
 
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
-import { PostEntity } from '@api/collections/posts/entities/post.entity';
+import { PostEntity } from '@server/collections/posts/entities/post.entity';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { ShopifyPublisherService } from '@api/services/integrations/publishers/shopify-publisher.service';
 import { ShopifyService } from '@api/services/integrations/shopify/services/shopify.service';

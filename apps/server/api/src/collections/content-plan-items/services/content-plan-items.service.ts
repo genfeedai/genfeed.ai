@@ -9,7 +9,7 @@ import {
   asString,
   serializeDate,
 } from '@api/collections/content-plans/utils/content-plan-data.util';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentPlanItemStatus } from '@genfeedai/enums';
 import {

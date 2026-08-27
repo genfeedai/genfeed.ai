@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 
 /** Generate a unique cache key for a paginated query descriptor. */

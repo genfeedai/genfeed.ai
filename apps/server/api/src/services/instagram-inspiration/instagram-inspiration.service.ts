@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import {
   analyzeInstagramSignals,
   buildInstagramRemixPrompt,

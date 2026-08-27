@@ -8,7 +8,7 @@ import { McpConnectionVerificationService } from '@api/collections/api-keys/serv
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { ApiAccessGuard } from '@api/helpers/guards/api-access/api-access.guard';
 import {
   serializeCollection,

@@ -1,5 +1,5 @@
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { HttpStatus } from '@nestjs/common';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { describe, expect, it } from 'vitest';
 
 describe('NotFoundException', () => {

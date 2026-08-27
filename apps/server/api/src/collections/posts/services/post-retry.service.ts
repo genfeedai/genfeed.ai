@@ -1,4 +1,4 @@
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TargetExecutionState } from '@genfeedai/enums';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';

@@ -18,7 +18,7 @@ import type { OrganizationSettingsService } from '@api/collections/organization-
 import type { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import type { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import type { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
-import type { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import type { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import type { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import type { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import type { ByokService } from '@api/services/byok/byok.service';

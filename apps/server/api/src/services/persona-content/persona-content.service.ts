@@ -1,6 +1,6 @@
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { AvatarProvider, VoiceProvider } from '@genfeedai/enums';

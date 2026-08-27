@@ -6,7 +6,7 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type { RouterService } from '@api/services/router/router.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';

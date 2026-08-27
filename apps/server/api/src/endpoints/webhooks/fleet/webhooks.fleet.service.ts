@@ -1,6 +1,6 @@
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import {
   calculateFleetComputeCredits,

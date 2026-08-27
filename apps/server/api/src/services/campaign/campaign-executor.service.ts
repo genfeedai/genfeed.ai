@@ -20,7 +20,7 @@ import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/se
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
-} from '@api/collections/workflows/services/system-workflow-provenance.service';
+} from '@server/collections/workflows/system-workflow-provenance.service';
 import { resolveCampaignScope } from '@api/services/campaign/campaign-scope.util';
 import {
   isCampaignOutreachPairExecutable,

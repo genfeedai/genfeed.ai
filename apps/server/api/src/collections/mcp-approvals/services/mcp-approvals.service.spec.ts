@@ -1,5 +1,5 @@
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ApiKeyScope } from '@genfeedai/enums';

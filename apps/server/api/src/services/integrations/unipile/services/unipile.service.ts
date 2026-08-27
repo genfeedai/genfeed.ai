@@ -1,5 +1,5 @@
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   type UnipileAccount,
   type UnipileConnection,

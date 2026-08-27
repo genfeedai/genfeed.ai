@@ -17,7 +17,7 @@ import type { OrganizationDocument } from '@api/collections/organizations/schema
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { OrganizationsOperationsService } from '@api/collections/organizations/services/organizations-operations.service';
 import { SKIP_ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpStatus } from '@nestjs/common';
 import type { Request } from 'express';

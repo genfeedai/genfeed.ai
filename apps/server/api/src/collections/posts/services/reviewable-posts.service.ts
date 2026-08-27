@@ -1,4 +1,4 @@
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import {
   type PostCreateInput,
   PostsService,

@@ -1,7 +1,7 @@
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
-} from '@api/collections/workflows/services/system-workflow-provenance.service';
+} from '@server/collections/workflows/system-workflow-provenance.service';
 import type { XAdsRequestCredentials } from '@api/services/integrations/x-ads/interfaces/x-ads.interface';
 import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';

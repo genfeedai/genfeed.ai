@@ -2,7 +2,7 @@ import { ActivitiesModule } from '@api/collections/activities/activities.module'
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
-import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import { PublishersModule } from '@api/services/integrations/publishers/publishers.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';

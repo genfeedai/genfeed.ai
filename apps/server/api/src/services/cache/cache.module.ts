@@ -1,9 +1,9 @@
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { CacheStrategies } from '@api/services/cache/cache-strategies';
-import { CacheService } from '@api/services/cache/services/cache.service';
-import { CacheClientService } from '@api/services/cache/services/cache-client.service';
-import { CacheTagsService } from '@api/services/cache/services/cache-tags.service';
+import { CacheService } from '@server/services/cache/cache.service';
+import { CacheClientService } from '@server/services/cache/cache-client.service';
+import { CacheTagsService } from '@server/services/cache/cache-tags.service';
 import { AggregationCacheStrategy } from '@api/services/cache/strategies/aggregation-cache.strategy';
 import { BrandCacheStrategy } from '@api/services/cache/strategies/brand-cache.strategy';
 import { PublicationCacheStrategy } from '@api/services/cache/strategies/publication-cache.strategy';

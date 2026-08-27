@@ -1,6 +1,6 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
-import type { CacheService } from '@api/services/cache/services/cache.service';
+import type { CacheService } from '@server/services/cache/cache.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,

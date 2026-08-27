@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { VariationGroupScoringService } from '@api/collections/content-performance/services/variation-group-scoring.service';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import {
   type PostCreateInput,
   PostsService,

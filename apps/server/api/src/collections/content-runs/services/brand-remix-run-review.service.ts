@@ -15,7 +15,7 @@ import { TrendReferenceCorpusService } from '@api/collections/trends/services/tr
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
-} from '@api/collections/workflows/services/system-workflow-provenance.service';
+} from '@server/collections/workflows/system-workflow-provenance.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import type { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
 import {

@@ -1,4 +1,4 @@
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { ApifyRunBudgetService } from '@api/services/integrations/apify/services/modules/apify-run-budget.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

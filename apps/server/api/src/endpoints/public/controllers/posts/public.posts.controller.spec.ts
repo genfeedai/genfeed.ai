@@ -1,5 +1,5 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PublicPostsController } from '@api/endpoints/public/controllers/posts/public.posts.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';

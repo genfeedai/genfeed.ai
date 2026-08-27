@@ -2,7 +2,7 @@ import type { CreditTransactionsDocument } from '@api/collections/credits/schema
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { BusinessLogicException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';

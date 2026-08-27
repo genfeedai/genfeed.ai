@@ -14,7 +14,7 @@ import { TrendVideoService } from '@api/collections/trends/services/modules/tren
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';

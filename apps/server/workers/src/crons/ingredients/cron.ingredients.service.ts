@@ -1,7 +1,7 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import {
   ActivityKey,
   categoryToPlural,

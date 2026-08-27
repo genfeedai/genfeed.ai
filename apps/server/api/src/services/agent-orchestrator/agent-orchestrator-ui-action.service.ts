@@ -32,7 +32,7 @@ import {
   AgentRuntimeSessionService,
   getRuntimeBindingEffect,
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import type { ValidatedAgentScope } from '@genfeedai/interfaces';
 import { AgentScopeContextService } from '@genfeedai/server';

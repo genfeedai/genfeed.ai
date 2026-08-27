@@ -52,7 +52,7 @@ import { IntegrationsService } from '@api/endpoints/integrations/integrations.se
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';

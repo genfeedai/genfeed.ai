@@ -1,7 +1,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ReviewablePostsService } from '@api/collections/posts/services/reviewable-posts.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type {
   ContentGatewayResult,
   ContentSignal,

@@ -10,7 +10,7 @@ import type {
 } from '@api/collections/social-sources/schemas/social-source.schema';
 import type { SourcePostDocument } from '@api/collections/source-posts/schemas/source-post.schema';
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
 import type {
   CollectedSourcePost,

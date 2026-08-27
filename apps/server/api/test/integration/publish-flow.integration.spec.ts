@@ -44,7 +44,7 @@ import type { CredentialDocument } from '@api/collections/credentials/schemas/cr
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
-import { PostEntity } from '@api/collections/posts/entities/post.entity';
+import { PostEntity } from '@server/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';

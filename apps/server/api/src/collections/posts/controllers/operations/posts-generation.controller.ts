@@ -15,7 +15,7 @@ import { GenerateHooksDto } from '@api/collections/posts/dto/generate-hooks.dto'
 import { GenerateSourcePostVariationsDto } from '@api/collections/posts/dto/generate-source-post-variations.dto';
 import { RepurposePostDto } from '@api/collections/posts/dto/repurpose-post.dto';
 import { PostVariationSourceGuard } from '@api/collections/posts/guards/post-variation-source.guard';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@server/collections/posts/post.schema';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostVariationService } from '@api/collections/posts/services/post-variation.service';
@@ -29,7 +29,7 @@ import {
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';

@@ -1,6 +1,6 @@
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
 import type { CreativePatternDocument } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import type { PatternType } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
 
