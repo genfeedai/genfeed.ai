@@ -216,4 +216,28 @@ describe('useFastlaneSchedule', () => {
     const payload = mockCreate.mock.calls[0][0] as { brandId?: string };
     expect(payload.brandId).toBe('brand-9');
   });
+
+  it('passes postingSetId into the release create payload', async () => {
+    const assets = [makeAsset('asset-1')];
+    const targets = [makeTarget('cred-a')];
+
+    const { result } = renderHook(() => useFastlaneSchedule('brand-1'));
+
+    await act(async () => {
+      await result.current.scheduleApproved({
+        assets,
+        targets,
+        captions: {},
+        postingSetId: 'set-1',
+        timezone: 'UTC',
+      });
+    });
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        postingSetId: 'set-1',
+      }),
+    );
+  });
 });
