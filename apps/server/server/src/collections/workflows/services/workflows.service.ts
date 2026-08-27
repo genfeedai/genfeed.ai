@@ -1,3 +1,19 @@
+import {
+  ListingType,
+  WorkflowExecutionTrigger,
+  WorkflowLifecycle,
+  WorkflowStatus,
+  WorkflowStepCategory,
+  WorkflowStepStatus,
+} from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { CreateWorkflowDto } from '@server/collections/workflows/dto/create-workflow.dto';
 import { UpdateWorkflowDto } from '@server/collections/workflows/dto/update-workflow.dto';
 import { WorkflowEntity } from '@server/collections/workflows/entities/workflow.entity';
@@ -15,29 +31,13 @@ import {
   SYSTEM_WORKFLOW_METADATA_KEY,
 } from '@server/collections/workflows/system-workflow.contract';
 import { WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/workflow-templates';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 import { MarketplaceApiClient } from '@server/marketplace-integration/marketplace-api-client';
 import { EntityFactory } from '@server/shared/factories/entity/entity.factory';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BaseService } from '@server/shared/services/base/base.service';
 import { pickDefinedFields } from '@server/shared/utils/object/pick-defined-fields.util';
-import {
-  ListingType,
-  WorkflowExecutionTrigger,
-  WorkflowLifecycle,
-  WorkflowStatus,
-  WorkflowStepCategory,
-  WorkflowStepStatus,
-} from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-} from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 
 const WORKFLOW_CONFIG_FIELDS = [
   'comfyuiTemplate',
@@ -69,7 +69,7 @@ type WorkflowCreateExtras = CreateWorkflowDto &
  * and the ownership guards shared by the workflows controllers.
  *
  * Sibling concerns split out in #754:
- * - `WorkflowTemplateSeederService` — idempotent per-org system workflow seeding
+ * - `WorkflowTemplateSeederService` — operator-only catalog backfill helpers
  * - `WorkflowStepRunnerService` — step-based execution engine
  * - `WorkflowRunControlService` — partial runs, resume, credits, execution logs
  * - `WorkflowWebhookService` — inbound webhook credentials + trigger path

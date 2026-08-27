@@ -1,6 +1,6 @@
-import { SYSTEM_WORKFLOW_ACTION_DEFINITIONS } from '@server/collections/workflows/system-workflow-provenance.service';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import { areWorkflowMetadataValuesEqual } from '@server/collections/workflows/services/workflow-template-seeder-metadata.util';
+import { SYSTEM_WORKFLOW_ACTION_DEFINITIONS } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { areWorkflowMetadataValuesEqual } from '@api/collections/workflows/services/workflow-template-seeder-metadata.util';
 import {
   buildSystemWorkflowMetadata,
   buildSystemWorkflowUpgradeMetadata,
@@ -12,28 +12,24 @@ import {
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
   type SystemWorkflowMetadata,
-} from '@server/collections/workflows/system-workflow.contract';
-import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/ad-automation-workflows.template';
-import { AGENT_AUTOPILOT_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/agent-autopilot-workflows.template';
-import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/analytics-sync-workflows.template';
-import { CAMPAIGN_ORCHESTRATION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/campaign-orchestration-workflows.template';
-import { CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/content-loop-autopilot-workflows.template';
-import { CONTENT_PRODUCTION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/content-production-workflows.template';
-import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@server/collections/workflows/templates/daily-trends-digest.template';
-import { LIVESTREAM_BOT_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/livestream-bot-workflows.template';
-import { OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/outreach-campaign-dispatch-workflows.template';
-import { REPLY_POLLING_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/reply-polling-workflows.template';
-import { TREND_NOTIFICATION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/trend-notification-workflows.template';
-import { type WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+} from '@api/collections/workflows/system-workflow.contract';
+import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/ad-automation-workflows.template';
+import { AGENT_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/agent-autopilot-workflows.template';
+import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
+import { CAMPAIGN_ORCHESTRATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/campaign-orchestration-workflows.template';
+import { CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-loop-autopilot-workflows.template';
+import { CONTENT_PRODUCTION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-production-workflows.template';
+import { LIVESTREAM_BOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/livestream-bot-workflows.template';
+import { OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/outreach-campaign-dispatch-workflows.template';
+import { REPLY_POLLING_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/reply-polling-workflows.template';
+import { TREND_NOTIFICATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/trend-notification-workflows.template';
+import { type WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
-
-/** Template id for the predetermined per-org Daily Trends Digest workflow. */
-const DAILY_TRENDS_DIGEST_TEMPLATE_ID = 'daily-trends-digest';
 
 const WORKFLOW_SCHEDULER_SYNC_SELECT = {
   id: true,
@@ -395,142 +391,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds the predetermined "Daily Trends Digest" workflow for an
-   * organization. Kept for operator backfill / self-host scripts only —
-   * organization creation no longer auto-seeds (#2176 catalog install).
-   * Unlike the template seeders below, an existing row that was toggled off is
-   * repaired back to enabled.
-   */
-  async ensureDailyTrendsDigestWorkflow(
-    userId: string,
-    organizationId: string,
-  ): Promise<void> {
-    const where = scopedWhere(organizationId, {
-      metadata: {
-        equals: DAILY_TRENDS_DIGEST_TEMPLATE_ID,
-        path: ['sourceTemplateId'],
-      },
-    });
-
-    const createData = this.buildDailyTrendsDigestCreateData(
-      userId,
-      organizationId,
-    );
-
-    // Fast path: most calls hit an already-seeded org.
-    const preCheck = await this.prisma.workflow.findFirst({
-      select: { id: true, isScheduleEnabled: true, metadata: true },
-      where,
-    });
-
-    if (preCheck) {
-      const metadataPatch = this.buildSeededWorkflowMetadataPatch({
-        desiredMetadata: createData.metadata,
-        existingMetadata: preCheck.metadata,
-      });
-      if (!preCheck.isScheduleEnabled || metadataPatch) {
-        await this.prisma.workflow.update({
-          data: {
-            ...(metadataPatch
-              ? { metadata: metadataPatch as Prisma.InputJsonValue }
-              : {}),
-            ...(!preCheck.isScheduleEnabled ? { isScheduleEnabled: true } : {}),
-          },
-          where: scopedWhere(organizationId, { id: preCheck.id }),
-        });
-      }
-      await this.reconcileDesiredSystemWorkflowDuplicates(
-        organizationId,
-        createData.metadata,
-      );
-      return;
-    }
-
-    try {
-      await this.prisma.$transaction(
-        async (tx) => {
-          const existing = await tx.workflow.findFirst({
-            select: { id: true, isScheduleEnabled: true, metadata: true },
-            where,
-          });
-
-          if (existing) {
-            const metadataPatch = this.buildSeededWorkflowMetadataPatch({
-              desiredMetadata: createData.metadata,
-              existingMetadata: existing.metadata,
-            });
-            if (!existing.isScheduleEnabled || metadataPatch) {
-              await tx.workflow.update({
-                data: {
-                  ...(metadataPatch
-                    ? { metadata: metadataPatch as Prisma.InputJsonValue }
-                    : {}),
-                  ...(!existing.isScheduleEnabled
-                    ? { isScheduleEnabled: true }
-                    : {}),
-                },
-                where: scopedWhere(organizationId, { id: existing.id }),
-              });
-            }
-            return;
-          }
-
-          await tx.workflow.create({
-            data: createData as Prisma.WorkflowCreateInput,
-          });
-        },
-        { isolationLevel: 'Serializable' },
-      );
-    } catch (error) {
-      const errorCode = (error as { code?: string }).code;
-      if (errorCode === 'P2034') {
-        this.logger?.debug(
-          'ensureDailyTrendsDigestWorkflow: serialization conflict - workflow already seeded by concurrent request',
-          { organizationId },
-        );
-      } else {
-        throw error;
-      }
-    }
-
-    await this.reconcileDesiredSystemWorkflowDuplicates(
-      organizationId,
-      createData.metadata,
-    );
-  }
-
-  private buildDailyTrendsDigestCreateData(
-    userId: string,
-    organizationId: string,
-  ): Record<string, unknown> {
-    return {
-      edges: DAILY_TRENDS_DIGEST_TEMPLATE.edges as Prisma.InputJsonValue,
-      executionCount: 0,
-      isDeleted: false,
-      isScheduleEnabled: true,
-      label: 'Daily Trends Digest',
-      metadata: this.buildSeededSystemWorkflowMetadata({
-        changeSummary: DAILY_TRENDS_DIGEST_TEMPLATE.changeSummary,
-        sourceIssue: 1011,
-        sourceTemplateId: DAILY_TRENDS_DIGEST_TEMPLATE_ID,
-        version: DAILY_TRENDS_DIGEST_TEMPLATE.version,
-      }),
-      nodes: DAILY_TRENDS_DIGEST_TEMPLATE.nodes as Prisma.InputJsonValue,
-      organizationId,
-      progress: 0,
-      schedule: DAILY_TRENDS_DIGEST_TEMPLATE.schedule ?? '0 7 * * *',
-      status: WorkflowStatus.ACTIVE,
-      steps: [],
-      timezone: DAILY_TRENDS_DIGEST_TEMPLATE.timezone ?? 'UTC',
-      userId,
-    };
-  }
-
-  /**
-   * Idempotently seeds the default-on ad automation workflow set for an
-   * organization. Missing credentials/config are handled inside the action
-   * nodes as per-org skips, so new organizations get the workflows immediately
-   * and they begin doing real work once ad automation becomes eligible.
+   * Operator helper: install the ad automation catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureAdAutomationWorkflows(
     userId: string,
@@ -547,9 +409,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds the default-on campaign orchestration workflow set for
-   * an organization. The workflow actions preserve the previous cron scanner
-   * behavior by filtering eligible campaigns inside the node execution.
+   * Operator helper: install the campaign orchestration catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureCampaignOrchestrationWorkflows(
     userId: string,
@@ -565,10 +426,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds the default-on outreach campaign dispatch workflow for
-   * an organization. The node preserves previous cron scanner behavior by
-   * selecting active, non-deleted campaigns inside execution, scoped to the
-   * workflow organization.
+   * Operator helper: install the outreach campaign dispatch catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureOutreachCampaignDispatchWorkflows(
     userId: string,
@@ -584,9 +443,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds the default-on recurring agent automation workflow set
-   * for an organization. The workflow nodes preserve the previous cron scanner
-   * behavior by filtering active strategies/personas inside execution.
+   * Operator helper: install the agent autopilot catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureAgentAutopilotWorkflows(
     userId: string,
@@ -602,9 +460,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds the default-on analytics sync workflow set for an
-   * organization. Nodes preserve previous cron behavior by dispatching existing
-   * provider queue jobs scoped to the workflow organization.
+   * Operator helper: install the analytics sync catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureAnalyticsSyncWorkflows(
     userId: string,
@@ -620,9 +477,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds the default-on content production workflow set for an
-   * organization. Existing content schedules are mirrored into workflow rows
-   * with their own cron expression/timezone and enabled state.
+   * Operator helper: install the content production catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureContentProductionWorkflows(
     userId: string,
@@ -638,13 +494,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds the default-on content loop autopilot workflow for an
-   * organization (#3018): daily analytics sync followed by a harness winner
-   * promotion sweep, so the closed content loop keeps improving without an
-   * operator manually running analytics sync or `promote-winners`. Brands
-   * without a connected credential are simply skipped inside the node, not a
-   * hard failure — same `tenant-connected-account` credential policy as the
-   * other default-on families.
+   * Operator helper: install the content loop autopilot catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureContentLoopAutopilotWorkflows(
     userId: string,
@@ -660,10 +511,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds default-on reply/social polling workflow schedules for
-   * an organization. Nodes preserve the previous cron scanner behavior by
-   * discovering active reply configs and workflow social trigger nodes during
-   * execution, scoped to the workflow organization.
+   * Operator helper: install the reply/social polling catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureReplyPollingWorkflows(
     userId: string,
@@ -679,10 +528,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds default-on trend notification workflow schedules for an
-   * organization. Each cadence executor checks the org owner's current settings
-   * at run time, preserving legacy frequency/recipient semantics while letting
-   * workflow schedule toggles pause the tenant-facing notification path.
+   * Operator helper: install the trend notification catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureTrendNotificationWorkflows(
     userId: string,
@@ -699,9 +546,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds default-on livestream bot active-session processing for
-   * an organization. The executor preserves the previous per-minute cron scan
-   * while keeping execution scoped to the workflow organization.
+   * Operator helper: install the livestream bot catalog set for one
+   * organization. Not called from deploy or signup.
    */
   async ensureLivestreamBotWorkflows(
     userId: string,
@@ -717,10 +563,8 @@ export class WorkflowTemplateSeederService {
   }
 
   /**
-   * Idempotently seeds action-level system workflows that wrap historical
-   * hardcoded product actions. Runtime callers still create-on-demand as a
-   * fail-closed backstop, but seeded orgs can inspect/duplicate these workflows
-   * before the first action execution.
+   * Operator helper: inspect-only system-action rows. Runtime still
+   * create-on-demand as a fail-closed backstop. Not called from deploy or signup.
    */
   async ensureSystemActionWorkflows(
     userId: string,

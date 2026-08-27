@@ -12,12 +12,9 @@ export type ContentLoopAutopilotWorkflowTemplate = WorkflowTemplate & {
  * window and de-dupes inside `promoteTopPerformers`), and diagnosable per
  * node in the workflow's execution history.
  *
- * Default-on for every organization (seeded via
- * `WorkflowTemplateSeederService.ensureContentLoopAutopilotWorkflows`), same
- * as the sibling `analytics-sync` family — opt-out via the workflow's own
- * enable/disable toggle, not opt-in. Brands without a connected credential
- * are simply skipped inside each node (`credentialPolicy:
- * 'tenant-connected-account'`), never a hard failure.
+ * Catalog-install only. Brands without a connected credential are skipped
+ * inside each node (`credentialPolicy: 'tenant-connected-account'`), never a
+ * hard failure.
  */
 export const CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES = [
   {
