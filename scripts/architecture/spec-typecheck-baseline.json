@@ -1017,14 +1017,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 2,
-      "file": "apps/server/api/src/collections/posts/services/posts.service.spec.ts",
-      "fingerprint": "38f81c4fa067cbb09525",
-      "message": "Type 'string' is not assignable to type 'Date'.",
-      "workspace": "api"
-    },
-    {
       "code": 2353,
       "count": 1,
       "file": "apps/server/api/src/collections/posts/services/posts.service.spec.ts",
@@ -1374,14 +1366,6 @@
       "file": "apps/server/api/src/collections/videos/controllers/transformations/upscale/videos-upscale.controller.spec.ts",
       "fingerprint": "9ef36a8ac3101f0a32d7",
       "message": "Property 'id' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/videos/controllers/videos-split-controllers.spec.ts",
-      "fingerprint": "68316e1f8050fcc94929",
-      "message": "Property 'mergeVideos' does not exist on type 'VideosRelationshipsController'.",
       "workspace": "api"
     },
     {
@@ -2817,14 +2801,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 6,
-      "file": "apps/server/api/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
-      "fingerprint": "49fcba193dfec6ce92af",
-      "message": "Argument of type 'PostEntity' is not assignable to parameter of type 'PostDocument'.   Type 'PostEntity' is missing the following properties from type 'PostDocument': entityModel, agentRunId, agentStrategyId, source, and 19 more.",
-      "workspace": "api"
-    },
-    {
       "code": 2304,
       "count": 4,
       "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
@@ -2838,14 +2814,6 @@
       "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
       "fingerprint": "e13f84a28991fa7a3bbe",
       "message": "Type 'null' is not assignable to type 'string'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 6,
-      "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
-      "fingerprint": "8fb8a24753f88ea27e1b",
-      "message": "Argument of type 'PostEntity' is not assignable to parameter of type 'PostDocument'.   Type 'PostEntity' is missing the following properties from type 'PostDocument': entityModel, agentRunId, agentStrategyId, source, and 19 more.",
       "workspace": "api"
     },
     {

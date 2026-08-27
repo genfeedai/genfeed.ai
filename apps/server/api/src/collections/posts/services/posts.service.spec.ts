@@ -738,7 +738,7 @@ describe('PostsService batchSchedule', () => {
   it('mints a version-bound approval when creating a scheduled post', async () => {
     const { postPublishQueueService, publishApprovalsService, service } =
       makeService();
-    const scheduledDate = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    const scheduledDate = new Date(Date.now() + 60 * 60 * 1000);
 
     await service.create(
       {
@@ -779,7 +779,7 @@ describe('PostsService batchSchedule', () => {
         label: 'Now',
         organizationId: 'org-1',
         platform: CredentialPlatform.TWITTER,
-        scheduledDate: new Date().toISOString(),
+        scheduledDate: new Date(),
         targetExecutionState: TargetExecutionState.SCHEDULED,
         userId: 'user-1',
       },

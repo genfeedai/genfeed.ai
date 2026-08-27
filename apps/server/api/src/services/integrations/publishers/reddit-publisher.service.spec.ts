@@ -5,11 +5,12 @@
 
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
-import type { PostEntity } from '@api/collections/posts/entities/post.entity';
+
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import type {
   MediaInfo,
   PublishContext,
+  PublisherPostInput,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { RedditPublisherService } from '@api/services/integrations/publishers/reddit-publisher.service';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
@@ -80,7 +81,7 @@ describe('RedditPublisherService', () => {
     organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
     userId: mockUserId,
-  } as unknown as PostEntity;
+  } as unknown as PublisherPostInput;
 
   // Mock post with image
   const mockImagePost = {
@@ -94,11 +95,11 @@ describe('RedditPublisherService', () => {
     organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
     userId: mockUserId,
-  } as unknown as PostEntity;
+  } as unknown as PublisherPostInput;
 
   // Create publish context helper
   const createPublishContext = (
-    post: PostEntity,
+    post: PublisherPostInput,
     credential = mockCredential,
     settings: ChannelTargetSettings = {},
   ): PublishContext => ({
@@ -269,7 +270,7 @@ describe('RedditPublisherService', () => {
       const context = createPublishContext({
         ...mockTextPost,
         description: 'a'.repeat(40_000),
-      } as unknown as PostEntity);
+      } as unknown as PublisherPostInput);
       const result = service.validatePost(context, textMediaInfo);
       expect(result.valid).toBe(true);
     });
@@ -278,7 +279,7 @@ describe('RedditPublisherService', () => {
       const context = createPublishContext({
         ...mockTextPost,
         description: 'a'.repeat(40_001),
-      } as unknown as PostEntity);
+      } as unknown as PublisherPostInput);
       const result = service.validatePost(context, textMediaInfo);
       expect(result.valid).toBe(false);
       expect(result.errorCode).toBe('caption_too_long');
@@ -570,7 +571,7 @@ describe('RedditPublisherService', () => {
       redditService.postComment.mockResolvedValue({
         commentId: 'comment-123',
       });
-      postsService.patch.mockResolvedValue({} as unknown as PostEntity);
+      postsService.patch.mockResolvedValue({} as unknown as PublisherPostInput);
 
       await service.publishThreadChildren(
         context,
@@ -628,7 +629,7 @@ describe('RedditPublisherService', () => {
       redditService.postComment.mockResolvedValue({
         commentId: 'comment-123',
       });
-      postsService.patch.mockResolvedValue({} as unknown as PostEntity);
+      postsService.patch.mockResolvedValue({} as unknown as PublisherPostInput);
 
       await service.publishThreadChildren(
         context,
@@ -647,7 +648,7 @@ describe('RedditPublisherService', () => {
       const singleChild = [mockChildren[0]];
 
       redditService.postComment.mockResolvedValue({ commentId: null });
-      postsService.patch.mockResolvedValue({} as unknown as PostEntity);
+      postsService.patch.mockResolvedValue({} as unknown as PublisherPostInput);
 
       await service.publishThreadChildren(
         context,
@@ -673,7 +674,7 @@ describe('RedditPublisherService', () => {
         .mockRejectedValueOnce(new Error('API error'))
         .mockResolvedValueOnce({ commentId: 'comment-2' });
 
-      postsService.patch.mockResolvedValue({} as unknown as PostEntity);
+      postsService.patch.mockResolvedValue({} as unknown as PublisherPostInput);
 
       await service.publishThreadChildren(
         context,
@@ -692,7 +693,7 @@ describe('RedditPublisherService', () => {
       redditService.postComment.mockResolvedValue({
         commentId: 'comment-123',
       });
-      postsService.patch.mockResolvedValue({} as unknown as PostEntity);
+      postsService.patch.mockResolvedValue({} as unknown as PublisherPostInput);
 
       await service.publishThreadChildren(
         context,
@@ -717,7 +718,7 @@ describe('RedditPublisherService', () => {
       redditService.postComment.mockResolvedValue({
         commentId: 'comment-123',
       });
-      postsService.patch.mockResolvedValue({} as unknown as PostEntity);
+      postsService.patch.mockResolvedValue({} as unknown as PublisherPostInput);
 
       await service.publishThreadChildren(
         context,

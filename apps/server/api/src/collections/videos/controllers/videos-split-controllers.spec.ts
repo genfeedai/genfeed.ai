@@ -81,7 +81,9 @@ describe('Videos split controllers', () => {
   });
 
   it('removes mergeVideos from the relationships controller', () => {
-    expect(VideosRelationshipsController.prototype.mergeVideos).toBeUndefined();
+    expect(
+      Object.hasOwn(VideosRelationshipsController.prototype, 'mergeVideos'),
+    ).toBe(false);
   });
 
   it('preserves LogMethod on the moved transport', () => {
