@@ -288,6 +288,7 @@ export interface ModalPostHeaderProps {
  */
 export interface ModalPostContentProps {
   activeTab: 'setup' | 'platforms';
+  applyEnabledCredentialIds?: (credentialIds: string[]) => void;
   form: UseFormReturn<MultiPostSchema>;
   platformConfigs: IPostPlatformConfig[];
   globalScheduledDate: Date | null;
@@ -308,6 +309,7 @@ export interface ModalPostContentProps {
  * Props for ModalPostPlatformsTab component
  */
 export interface ModalPostPlatformsTabProps {
+  applyEnabledCredentialIds?: (credentialIds: string[]) => void;
   form: UseFormReturn<MultiPostSchema>;
   ingredients?: IIngredient[];
   platformConfigs: IPostPlatformConfig[];

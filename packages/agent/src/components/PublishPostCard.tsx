@@ -5,6 +5,8 @@ import type {
   AgentUiActionHandler,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant, PostVisibility } from '@genfeedai/enums';
+import { usePostingSets } from '@hooks/data/content/use-posting-sets/use-posting-sets';
+import { usePostingSignatures } from '@hooks/data/content/use-posting-signatures/use-posting-signatures';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
@@ -16,6 +18,8 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import PostingSetPicker from '@ui/publisher/PostingSetPicker';
+import PostingSignaturePicker from '@ui/publisher/PostingSignaturePicker';
 import { Calendar, CircleCheck, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
@@ -33,6 +37,10 @@ import {
   targetToggleName,
   VISIBILITY_VALUES,
 } from './publish-post-card.helpers';
+import {
+  buildSignatureAttachments,
+  postingSetTargetsFromSelection,
+} from './schedule-post-card.helpers';
 
 const VISIBILITY_MESSAGE_KEYS = {
   [PostVisibility.PRIVATE]: 'visibilityPrivate',
@@ -253,6 +261,28 @@ export function PublishPostCard({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [selectedSetId, setSelectedSetId] = useState<string | undefined>();
+  const [signatureIdsByTarget, setSignatureIdsByTarget] = useState<
+    Record<string, string[]>
+  >(() => {
+    const initial: Record<string, string[]> = {};
+    for (const target of targetProposals) {
+      if (target.signatureIds && target.signatureIds.length > 0) {
+        initial[target.id] = target.signatureIds;
+      }
+    }
+    return initial;
+  });
+  const {
+    createSet,
+    expandError,
+    expandSet,
+    isExpanding,
+    isSaving,
+    saveError,
+    sets,
+  } = usePostingSets();
+  const { signatures } = usePostingSignatures();
   const selectedPlatformSet = useMemo(
     () => new Set(selectedPlatforms),
     [selectedPlatforms],
@@ -322,6 +352,45 @@ export function PublishPostCard({
     });
   }, []);
 
+  const handleSelectSet = useCallback(
+    async (id: string) => {
+      setSelectedSetId(id);
+      const expanded = await expandSet(id, {
+        ...(scheduledAt.trim()
+          ? { scheduledDate: new Date(scheduledAt).toISOString() }
+          : {}),
+      });
+      const expandedIds = new Set(
+        expanded.map((target) => target.credentialId),
+      );
+      setSelectedTargetIds(
+        targetProposals
+          .filter((target) => expandedIds.has(target.credentialId))
+          .map((target) => target.id),
+      );
+    },
+    [expandSet, scheduledAt, targetProposals],
+  );
+
+  const handleSaveCurrent = useCallback(
+    async (label: string) => {
+      if (selectedTargets.length === 0) {
+        return;
+      }
+      await createSet({
+        label,
+        targets: postingSetTargetsFromSelection({
+          targets: selectedTargets.map((target) => ({
+            credentialId: target.credentialId,
+            platform: target.platform,
+            signatureIds: signatureIdsByTarget[target.id],
+          })),
+        }),
+      });
+    },
+    [createSet, selectedTargets, signatureIdsByTarget],
+  );
+
   const handleCaptionChange = useCallback(
     (event: ChangeEvent<HTMLTextAreaElement>) => {
       setCaption(event.target.value);
@@ -369,18 +438,28 @@ export function PublishPostCard({
         platforms,
         scheduledAt: normalizedScheduledAt,
         sourceActionId: action.id,
+        ...(selectedSetId ? { postingSetId: selectedSetId } : {}),
         ...(hasStructuredTargets
           ? {
-              targets: selectedTargets.map((target) => ({
-                caption: resolveEffectiveCaption(
-                  caption,
-                  captionOverrides[target.id],
-                ),
-                credentialId: target.credentialId,
-                platform: target.platform,
-                settings: settingsByTarget[target.id] ?? target.settings,
-                visibility: visibilityByTarget[target.id] ?? visibility,
-              })),
+              targets: selectedTargets.map((target) => {
+                const signatureIds = signatureIdsByTarget[target.id] ?? [];
+                return {
+                  attachments: buildSignatureAttachments({
+                    platform: target.platform,
+                    selectedIds: signatureIds,
+                    signatures,
+                  }),
+                  caption: resolveEffectiveCaption(
+                    caption,
+                    captionOverrides[target.id],
+                  ),
+                  credentialId: target.credentialId,
+                  platform: target.platform,
+                  settings: settingsByTarget[target.id] ?? target.settings,
+                  ...(signatureIds.length > 0 ? { signatureIds } : {}),
+                  visibility: visibilityByTarget[target.id] ?? visibility,
+                };
+              }),
             }
           : {}),
         visibility,
@@ -402,7 +481,10 @@ export function PublishPostCard({
     onUiAction,
     scheduledAt,
     selectedPlatforms,
+    selectedSetId,
     selectedTargets,
+    signatureIdsByTarget,
+    signatures,
     settingsByTarget,
     targetProposals.length,
     visibility,
@@ -443,6 +525,22 @@ export function PublishPostCard({
           {action.description}
         </p>
       ) : null}
+
+      <PostingSetPicker
+        canSave={selectedTargets.length > 0 || selectedPlatforms.length > 0}
+        expandError={expandError ?? undefined}
+        isExpanding={isExpanding}
+        isSaving={isSaving}
+        onSaveCurrent={(label) => {
+          void handleSaveCurrent(label);
+        }}
+        onSelectSet={(id) => {
+          void handleSelectSet(id);
+        }}
+        saveError={saveError ?? undefined}
+        selectedSetId={selectedSetId}
+        sets={sets}
+      />
 
       <div className="mb-3">
         <label
@@ -558,6 +656,18 @@ export function PublishPostCard({
                           </SelectContent>
                         </Select>
                       </div>
+
+                      <PostingSignaturePicker
+                        onChange={(signatureIds) => {
+                          setSignatureIdsByTarget((current) => ({
+                            ...current,
+                            [target.id]: signatureIds,
+                          }));
+                        }}
+                        platform={target.platform}
+                        selectedIds={signatureIdsByTarget[target.id] ?? []}
+                        signatures={signatures}
+                      />
 
                       {settingFields.length > 0 ? (
                         <div className="mb-2 space-y-2">

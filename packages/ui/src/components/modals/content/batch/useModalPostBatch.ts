@@ -68,6 +68,7 @@ export interface UseModalPostBatchReturn {
   handlePreviousStep: () => void;
   // platform configs
   platformConfigs: IPostPlatformConfig[];
+  applyEnabledCredentialIds: (credentialIds: string[]) => void;
   togglePlatform: (credentialId: string) => void;
   updatePlatformConfig: (
     credentialId: string,
@@ -755,6 +756,18 @@ export function useModalPostBatch(props: ModalPostProps) {
     );
   };
 
+  const applyEnabledCredentialIds = (credentialIds: string[]) => {
+    const selected = new Set(credentialIds);
+    setPlatformConfigs((prev) =>
+      prev.map((config) => ({
+        ...config,
+        enabled:
+          selected.has(config.credentialId) &&
+          config.isCredentialValid !== false,
+      })),
+    );
+  };
+
   const updatePlatformConfig = (
     credentialId: string,
     updates: Partial<IPostPlatformConfig>,
@@ -893,6 +906,7 @@ export function useModalPostBatch(props: ModalPostProps) {
     handleNextStep,
     handlePreviousStep,
     platformConfigs,
+    applyEnabledCredentialIds,
     togglePlatform,
     updatePlatformConfig,
     globalScheduledDate,

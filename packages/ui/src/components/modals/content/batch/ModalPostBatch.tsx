@@ -26,6 +26,7 @@ export default function ModalPostBatch(props: ModalPostProps) {
     handleNextStep,
     handlePreviousStep,
     platformConfigs,
+    applyEnabledCredentialIds,
     togglePlatform,
     updatePlatformConfig,
     globalScheduledDate,
@@ -114,6 +115,7 @@ export default function ModalPostBatch(props: ModalPostProps) {
                     <ModalPostContent
                       activeTab={activeTab}
                       form={form}
+                      applyEnabledCredentialIds={applyEnabledCredentialIds}
                       platformConfigs={platformConfigs}
                       globalScheduledDate={globalScheduledDate}
                       setGlobalScheduledDate={setGlobalScheduledDate}

@@ -169,4 +169,34 @@ describe('agent-publish-target.util', () => {
       visibility: PostVisibility.PUBLIC,
     });
   });
+
+  it('carries posting-signature attachments onto the scheduler target', () => {
+    expect(
+      toCanonicalChannelTarget({
+        attachments: [
+          {
+            body: '— Genfeed',
+            kind: 'signature',
+            order: 0,
+            platform: 'twitter',
+          },
+        ],
+        credentialId: 'cred-twitter',
+        order: 0,
+        platform: CredentialPlatform.TWITTER,
+        timezone: 'Europe/Malta',
+        visibility: PostVisibility.PUBLIC,
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        attachments: [
+          expect.objectContaining({
+            body: '— Genfeed',
+            kind: 'signature',
+          }),
+        ],
+        timezone: 'Europe/Malta',
+      }),
+    );
+  });
 });

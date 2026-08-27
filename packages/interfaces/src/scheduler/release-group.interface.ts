@@ -90,6 +90,8 @@ export interface PostGroupCreateProvenance {
   agentRunId?: string;
   agentStrategyId?: string;
   agentThreadId?: string;
+  autoPublishPolicyId?: string;
+  postingSetId?: string;
   source?: string;
   sourceActionId?: string;
 }

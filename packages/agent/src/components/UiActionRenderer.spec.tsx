@@ -19,6 +19,7 @@ const cardPropsSpies = vi.hoisted(() => ({
   oauthConnect: vi.fn(),
   paymentCta: vi.fn(),
   publishPost: vi.fn(),
+  schedulePost: vi.fn(),
   voiceClone: vi.fn(),
   workflowCreated: vi.fn(),
   workflowExecute: vi.fn(),
@@ -124,6 +125,13 @@ vi.mock('@genfeedai/agent/components/PublishPostCard', () => ({
   },
 }));
 
+vi.mock('@genfeedai/agent/components/SchedulePostCard', () => ({
+  SchedulePostCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.schedulePost(props);
+    return <div data-testid="schedule-post-card" />;
+  },
+}));
+
 vi.mock('@genfeedai/agent/components/VoiceCloneCard', () => ({
   VoiceCloneCard: (props: Record<string, unknown>) => {
     cardPropsSpies.voiceClone(props);
@@ -205,6 +213,12 @@ const handlerDrivenCases = [
     expectations: [{ cardProp: 'onUiAction', rendererHandler: 'onUiAction' }],
     spy: cardPropsSpies.publishPost,
     testId: 'publish-post-card',
+  },
+  {
+    actionType: 'schedule_post_card',
+    expectations: [{ cardProp: 'onUiAction', rendererHandler: 'onUiAction' }],
+    spy: cardPropsSpies.schedulePost,
+    testId: 'schedule-post-card',
   },
   {
     actionType: 'ingredient_picker_card',

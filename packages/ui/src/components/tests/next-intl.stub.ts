@@ -70,6 +70,32 @@ const UI_TEST_MESSAGES = {
       attachFiles: 'Attach files',
       referenceLibrary: 'Reference library content',
     },
+    postingSets: {
+      disconnected: 'Disconnected',
+      expanding: 'Expanding posting set…',
+      label: 'Posting set',
+      none: 'No posting set',
+      placeholder: 'Apply a saved set',
+      save: 'Save set',
+      saveLabel: 'Save current channels as a set',
+      savePlaceholder: 'Set name',
+      saving: 'Saving…',
+      selectAria: 'Saved posting set',
+      signatures: 'Posting signature',
+    },
+    schedulePostCard: {
+      cannotSchedule: 'Cannot confirm this channel',
+      channels: 'Channels',
+      confirmSchedule: 'Schedule',
+      defaultTitle: 'Schedule Post',
+      noChannels: 'No connected channels are available for this brand.',
+      scheduled:
+        'Post scheduled for {count, plural, one {# platform} other {# platforms}}',
+      scheduling: 'Scheduling…',
+      timezone: 'Timezone',
+      timezoneAria: 'Schedule timezone',
+      validationRequired: 'Choose a time and at least one healthy channel.',
+    },
   },
   pages: {
     library: {

@@ -165,6 +165,7 @@ export const createReleaseGroupSchema = z.object({
   brandId: idSchema.optional(),
   idempotencyKey: idempotencyKeySchema.optional(),
   media: z.array(releaseMediaReferenceSchema).optional(),
+  postingSetId: idSchema.optional(),
   recurrence: recurrenceInputSchema.optional(),
   scheduledDate: dateStringSchema.optional(),
   status: z.nativeEnum(ReleaseStatus).optional(),
