@@ -1,6 +1,9 @@
 export const APP_ROUTES = {
   ROOT: '/',
   CONNECT: '/connect',
+  DESKTOP: {
+    LOCAL: '/desktop/local',
+  },
   LOGIN: '/login',
   LOGOUT: '/logout',
   MANAGED_CREDITS_SUCCESS: '/managed-credits/success',
@@ -625,7 +628,7 @@ const AUTH_CONTINUATION_ROUTE_PREFIXES = [
   APP_ROUTES.OAUTH,
   APP_ROUTES.ONBOARDING.ROOT,
   '/agent-auth',
-  '/desktop/local',
+  APP_ROUTES.DESKTOP.LOCAL,
   '/managed-credits',
   '/request-access',
   LEGACY_APP_ROUTES.TASKS,

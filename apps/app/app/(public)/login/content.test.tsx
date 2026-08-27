@@ -284,9 +284,7 @@ describe('LoginPage', () => {
     await waitFor(() => {
       expect(desktopRuntimeMocks.enableOfflineMode).toHaveBeenCalledOnce();
     });
-    expect(locationAssignMock).toHaveBeenCalledWith(
-      APP_ROUTES.ONBOARDING.BRAND,
-    );
+    expect(locationAssignMock).toHaveBeenCalledWith(APP_ROUTES.DESKTOP.LOCAL);
   });
 
   it('subscribes before opening the system browser and can return to idle', async () => {

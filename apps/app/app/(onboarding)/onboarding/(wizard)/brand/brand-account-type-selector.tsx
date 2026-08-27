@@ -35,7 +35,7 @@ export default function BrandAccountTypeSelector({
   onSelect,
 }: Props) {
   return (
-    <div className="step-form opacity-0 max-w-md mb-8">
+    <div className="step-form max-w-md mb-8">
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
         I am a…
       </p>

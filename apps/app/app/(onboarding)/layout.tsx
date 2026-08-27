@@ -19,7 +19,9 @@ export default function OnboardingSetupLayout({ children }: LayoutProps) {
   const isDesktopLocalOnboarding =
     isDesktopClient() &&
     (pathname === APP_ROUTES.ONBOARDING.BRAND ||
-      pathname === APP_ROUTES.ONBOARDING.PROVIDERS);
+      pathname.startsWith(`${APP_ROUTES.ONBOARDING.BRAND}/`) ||
+      pathname === APP_ROUTES.ONBOARDING.PROVIDERS ||
+      pathname.startsWith(`${APP_ROUTES.ONBOARDING.PROVIDERS}/`));
 
   const content = (
     <ApiStatusProvider>

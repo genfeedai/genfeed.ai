@@ -310,7 +310,7 @@ export default function LoginBetterAuth({
     setIsStartingLocalMode(true);
     try {
       await bridge.app.enableOfflineMode();
-      window.location.assign(APP_ROUTES.ONBOARDING.BRAND);
+      window.location.assign(APP_ROUTES.DESKTOP.LOCAL);
     } catch (error) {
       setDesktopErrorMessage(
         error instanceof Error

@@ -122,7 +122,7 @@ export default function BrandFormFields({
   ];
 
   return (
-    <div className="step-form opacity-0 max-w-md space-y-6">
+    <div className="step-form max-w-md space-y-6">
       {/* Name */}
       <div>
         <label
@@ -220,7 +220,7 @@ export default function BrandFormFields({
       ) : null}
 
       {/* Continue button */}
-      <div className="step-actions opacity-0">
+      <div className="step-actions">
         <div className="flex items-center gap-3">
           <Button
             variant={ButtonVariant.DEFAULT}
