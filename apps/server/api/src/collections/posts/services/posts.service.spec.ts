@@ -66,7 +66,16 @@ describe('PostsService batchSchedule', () => {
     const cacheService = { invalidateByTags: vi.fn() };
     const publishApprovalsService = {
       assertPostMutable: vi.fn(),
+      createForCurrentPost: vi.fn().mockResolvedValue({
+        artifactVersionPinId: 'pin-1',
+        id: 'approval-1',
+        operationId: 'op-1',
+      }),
       invalidatePost: vi.fn(),
+      markQueued: vi.fn(),
+    };
+    const postPublishQueueService = {
+      enqueue: vi.fn(),
     };
 
     return {
@@ -74,6 +83,7 @@ describe('PostsService batchSchedule', () => {
       cacheService,
       credential,
       post,
+      postPublishQueueService,
       publishApprovalsService,
       service: new PostsService(
         { $transaction, credential, post } as unknown as PrismaService,
@@ -83,6 +93,7 @@ describe('PostsService batchSchedule', () => {
         undefined,
         undefined,
         publishApprovalsService as unknown as PublishApprovalsService,
+        postPublishQueueService as never,
       ),
     };
   }
@@ -304,10 +315,10 @@ describe('PostsService batchSchedule', () => {
     expect(post.create.mock.calls[0]?.[0].data).not.toHaveProperty('status');
   });
 
-  it('rejects unsupported visibility before persistence', () => {
+  it('rejects unsupported visibility before persistence', async () => {
     const { post, service } = makeService();
 
-    expect(() =>
+    await expect(
       service.create(
         {
           brandId: 'brand-1',
@@ -323,14 +334,14 @@ describe('PostsService batchSchedule', () => {
         },
         [],
       ),
-    ).toThrow('instagram does not support private visibility.');
+    ).rejects.toThrow('instagram does not support private visibility.');
     expect(post.create).not.toHaveBeenCalled();
   });
 
   it('rejects scheduling until an account and platform are selected', async () => {
     const { post, service } = makeService();
 
-    expect(() =>
+    await expect(
       service.create(
         {
           brandId: 'brand-1',
@@ -343,7 +354,7 @@ describe('PostsService batchSchedule', () => {
         },
         [],
       ),
-    ).toThrow(
+    ).rejects.toThrow(
       'A credential and platform are required before scheduling or publishing a post.',
     );
     expect(post.create).not.toHaveBeenCalled();
@@ -477,7 +488,12 @@ describe('PostsService batchSchedule', () => {
   it('skips the database entirely for an empty batch', async () => {
     const { $transaction, post, service } = makeService();
 
-    const result = await service.batchSchedule([], 'org-1', publishTarget);
+    const result = await service.batchSchedule(
+      [],
+      'org-1',
+      publishTarget,
+      'user-1',
+    );
 
     expect(result).toEqual({ missingPostIds: [], posts: [] });
     expect(post.findMany).not.toHaveBeenCalled();
@@ -506,6 +522,7 @@ describe('PostsService batchSchedule', () => {
       ],
       'org-1',
       publishTarget,
+      'user-1',
     );
 
     expect(post.findMany).toHaveBeenCalledTimes(1);
@@ -543,6 +560,7 @@ describe('PostsService batchSchedule', () => {
       ],
       'org-1',
       publishTarget,
+      'user-1',
     );
 
     expect(result.missingPostIds).toEqual(['post-foreign']);
@@ -572,6 +590,7 @@ describe('PostsService batchSchedule', () => {
       ],
       'org-1',
       publishTarget,
+      'user-1',
     );
 
     expect($transaction).not.toHaveBeenCalled();
@@ -601,6 +620,7 @@ describe('PostsService batchSchedule', () => {
       ],
       'org-1',
       publishTarget,
+      'user-1',
     );
 
     expect(post.updateMany).toHaveBeenCalledTimes(1);
@@ -640,6 +660,7 @@ describe('PostsService batchSchedule', () => {
       ],
       'org-1',
       publishTarget,
+      'user-1',
     );
 
     expect(post.update).toHaveBeenCalledWith(
@@ -676,6 +697,7 @@ describe('PostsService batchSchedule', () => {
       ],
       'org-1',
       publishTarget,
+      'user-1',
     );
 
     expect(cacheService.invalidateByTags).toHaveBeenCalledTimes(1);
@@ -687,7 +709,7 @@ describe('PostsService batchSchedule', () => {
     ]);
   });
 
-  it('asserts mutability before writing and invalidates approvals afterwards', async () => {
+  it('asserts mutability before writing a guarded batch', async () => {
     const { post, publishApprovalsService, service } = makeService();
     post.findMany.mockResolvedValue([
       { id: 'post-1', parentId: 'parent-1', publishApprovalId: 'approval-1' },
@@ -703,6 +725,7 @@ describe('PostsService batchSchedule', () => {
       ],
       'org-1',
       publishTarget,
+      'user-1',
     );
 
     expect(publishApprovalsService.assertPostMutable).toHaveBeenCalledTimes(1);
@@ -710,11 +733,68 @@ describe('PostsService batchSchedule', () => {
       'org-1',
       'post-1',
     );
-    expect(publishApprovalsService.invalidatePost).toHaveBeenCalledTimes(1);
-    expect(publishApprovalsService.invalidatePost).toHaveBeenCalledWith(
-      'org-1',
-      'post-1',
-      expect.any(String),
+  });
+
+  it('mints a version-bound approval when creating a scheduled post', async () => {
+    const { postPublishQueueService, publishApprovalsService, service } =
+      makeService();
+    const scheduledDate = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+    await service.create(
+      {
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
+        description: 'Scheduled from the modal',
+        ingredients: [],
+        label: 'Scheduled',
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TWITTER,
+        scheduledDate,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+        userId: 'user-1',
+      },
+      [],
+    );
+
+    expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith({
+      actorUserId: 'user-1',
+      mode: 'scheduled',
+      organizationId: 'org-1',
+      postId: 'post-created',
+      provenance: { surface: 'posts-service' },
+    });
+    expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('enqueues due-now scheduled creates immediately', async () => {
+    const { postPublishQueueService, publishApprovalsService, service } =
+      makeService();
+
+    await service.create(
+      {
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
+        description: 'Post now',
+        ingredients: [],
+        label: 'Now',
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TWITTER,
+        scheduledDate: new Date().toISOString(),
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+        userId: 'user-1',
+      },
+      [],
+    );
+
+    expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: 'immediate' }),
+    );
+    expect(postPublishQueueService.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        approvalId: 'approval-1',
+        postId: 'post-created',
+        source: 'publish_now',
+      }),
     );
   });
 
@@ -739,6 +819,7 @@ describe('PostsService batchSchedule', () => {
         ],
         'org-1',
         publishTarget,
+        'user-1',
       ),
     ).rejects.toThrow('Post is locked by an approval');
     expect($transaction).not.toHaveBeenCalled();
