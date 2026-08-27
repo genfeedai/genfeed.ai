@@ -16,11 +16,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   compileSchnellAblationCorpus,
-  SCHNELL_ABLATION_MODEL_KEY,
-  SCHNELL_ABLATION_SCENARIOS,
-  type SchnellAblationArmResult,
-  type SchnellAblationScenarioResult,
-  summarizeSchnellAblation,
+  runSchnellLiveAblation,
 } from '@api/services/generation-brief/schnell-live-ablation';
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -29,13 +25,6 @@ const OUTPUT_PATH = join(
   homedir(),
   '.codex/artifacts/schnell-ablation-3470.json',
 );
-
-interface ReplicatePrediction {
-  error?: string | null;
-  output?: unknown;
-  status?: string;
-  urls?: { get?: string };
-}
 
 async function loadRootEnv(): Promise<void> {
   const envPath = join(REPO_ROOT, '.env.local');
@@ -67,83 +56,6 @@ async function loadRootEnv(): Promise<void> {
   }
 }
 
-function firstOutputUrl(output: unknown): string | undefined {
-  if (typeof output === 'string' && output.startsWith('http')) {
-    return output.split('?')[0];
-  }
-  if (Array.isArray(output)) {
-    const first = output[0];
-    return typeof first === 'string' ? first.split('?')[0] : undefined;
-  }
-  return undefined;
-}
-
-async function createSchnellPrediction(
-  token: string,
-  prompt: string,
-  seed: number,
-): Promise<ReplicatePrediction> {
-  const response = await fetch(
-    `https://api.replicate.com/v1/models/${SCHNELL_ABLATION_MODEL_KEY}/predictions`,
-    {
-      body: JSON.stringify({
-        input: {
-          aspect_ratio: '1:1',
-          output_format: 'webp',
-          prompt,
-          seed,
-        },
-      }),
-      headers: {
-        authorization: `Bearer ${token}`,
-        'content-type': 'application/json',
-        prefer: 'wait=60',
-      },
-      method: 'POST',
-    },
-  );
-  return (await response.json()) as ReplicatePrediction;
-}
-
-async function waitForPrediction(
-  token: string,
-  prediction: ReplicatePrediction,
-): Promise<ReplicatePrediction> {
-  let current = prediction;
-  const getUrl = current.urls?.get;
-  const deadline = Date.now() + 120_000;
-  while (
-    getUrl &&
-    (current.status === 'starting' || current.status === 'processing') &&
-    Date.now() < deadline
-  ) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    const response = await fetch(getUrl, {
-      headers: { authorization: `Bearer ${token}` },
-    });
-    current = (await response.json()) as ReplicatePrediction;
-  }
-  return current;
-}
-
-async function dispatchArm(
-  token: string,
-  arm: SchnellAblationArmResult,
-  seed: number,
-): Promise<SchnellAblationArmResult> {
-  const prediction = await waitForPrediction(
-    token,
-    await createSchnellPrediction(token, arm.prompt, seed),
-  );
-  const outputUrl = firstOutputUrl(prediction.output);
-  const visualPassed = Boolean(outputUrl) && arm.contractPassed;
-  return {
-    ...arm,
-    outputUrl,
-    visualPassed,
-  };
-}
-
 async function runLive(): Promise<void> {
   await loadRootEnv();
   const token =
@@ -155,32 +67,7 @@ async function runLive(): Promise<void> {
     );
   }
 
-  const compiled = compileSchnellAblationCorpus();
-  const liveScenarios: SchnellAblationScenarioResult[] = [];
-  for (const scenario of compiled.scenarios) {
-    const definition = SCHNELL_ABLATION_SCENARIOS.find(
-      (entry) => entry.id === scenario.id,
-    );
-    if (!definition) {
-      continue;
-    }
-    const legacy = await dispatchArm(
-      token,
-      scenario.arms.legacy,
-      definition.seed,
-    );
-    const compiledArm = await dispatchArm(
-      token,
-      scenario.arms.compiled,
-      definition.seed,
-    );
-    liveScenarios.push({
-      ...scenario,
-      arms: { compiled: compiledArm, legacy },
-    });
-  }
-
-  const summary = summarizeSchnellAblation(liveScenarios);
+  const summary = await runSchnellLiveAblation(token);
   await mkdir(dirname(OUTPUT_PATH), { recursive: true });
   await writeFile(OUTPUT_PATH, `${JSON.stringify(summary, null, 2)}\n`);
   process.stdout.write(
