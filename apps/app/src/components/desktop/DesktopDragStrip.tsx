@@ -1,11 +1,21 @@
 'use client';
 
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { useSyncExternalStore } from 'react';
+import { usePathname } from 'next/navigation';
+import { Suspense, useSyncExternalStore } from 'react';
 
 type UserAgentDataCapable = Navigator & {
   userAgentData?: { platform?: string };
 };
+
+const AUTH_FULL_BLEED_PREFIXES = [
+  '/login',
+  '/sign-in',
+  '/sign-up',
+  '/forgot-password',
+  '/reset-password',
+  '/oauth',
+] as const;
 
 function detectMac(): boolean {
   if (typeof navigator === 'undefined') {
@@ -24,10 +34,25 @@ function subscribe(): () => void {
   return () => {};
 }
 
-export default function DesktopDragStrip() {
+export function isDesktopAuthFullBleedPath(pathname: string): boolean {
+  return AUTH_FULL_BLEED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+function DesktopDragStripContent() {
+  const pathname = usePathname();
   const isMac = useSyncExternalStore(subscribe, detectMac, () => false);
 
-  return isDesktopClient() && isMac ? (
+  if (
+    !isDesktopClient() ||
+    !isMac ||
+    isDesktopAuthFullBleedPath(pathname ?? '')
+  ) {
+    return null;
+  }
+
+  return (
     <div
       aria-hidden="true"
       data-desktop-drag="true"
@@ -41,5 +66,13 @@ export default function DesktopDragStrip() {
         zIndex: 50,
       }}
     />
-  ) : null;
+  );
+}
+
+export default function DesktopDragStrip() {
+  return (
+    <Suspense fallback={null}>
+      <DesktopDragStripContent />
+    </Suspense>
+  );
 }
