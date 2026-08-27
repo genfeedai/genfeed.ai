@@ -48,8 +48,8 @@ import { FailedGenerationService } from '@server/shared/services/failed-generati
 import { SharedService } from '@server/shared/services/shared/shared.service';
 
 interface RealizedImageDimensions {
-  height: number;
-  width: number;
+  height?: number;
+  width?: number;
 }
 
 /**
@@ -652,11 +652,11 @@ export class ImageGenerationProviderDispatchService {
     await this.mediaGenerationCostService.recordGenerationCost({
       brandId: context.brand.id?.toString() ?? null,
       category: 'image',
-      height: dimensions.height,
+      height: dimensions.height ?? null,
       ingredientId: ingredientId.toString(),
       modelKey: context.model,
       organizationId: context.user.organizationId,
-      width: dimensions.width,
+      width: dimensions.width ?? null,
     });
 
     await this.generationEventWebhookService.emitGenerationCompleted({

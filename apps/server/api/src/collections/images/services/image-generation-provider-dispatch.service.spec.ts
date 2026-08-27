@@ -282,6 +282,34 @@ describe('ImageGenerationProviderDispatchService', () => {
     );
   });
 
+  it('records unknown dimensions when upload metadata omits them', async () => {
+    const imageBuffer = Buffer.from('image');
+    comfyUIService.generateImage.mockResolvedValueOnce({ imageBuffer });
+    filesClientService.uploadToS3.mockResolvedValueOnce({
+      publicUrl: 'https://cdn.example.com/generated.png',
+      s3Key: 'images/generated.png',
+      size: imageBuffer.length,
+    });
+    const context = buildContext({
+      height: 1080,
+      model: MODEL_KEYS.GENFEED_AI_FLUX_DEV,
+      width: 1920,
+    });
+
+    const plan = await service.dispatch(context);
+    await plan?.generationPromise;
+
+    expect(
+      mediaGenerationCostService.recordGenerationCost,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        height: null,
+        ingredientId: 'ingredient-1',
+        width: null,
+      }),
+    );
+  });
+
   it('emits a generation failure webhook when the provider throws', async () => {
     comfyUIService.generateImage.mockRejectedValueOnce(
       new Error('ComfyUI unreachable'),
