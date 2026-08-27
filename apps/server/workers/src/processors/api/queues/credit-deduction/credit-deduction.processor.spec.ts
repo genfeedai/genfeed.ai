@@ -138,22 +138,18 @@ describe('CreditDeductionProcessor', () => {
       }),
     );
 
+    expect(creditsUtilsService.settleReservation).toHaveBeenCalledTimes(1);
+    expect(creditsUtilsService.settleReservation).toHaveBeenCalledWith({
+      actualAmount: 10,
+      actorUserId: 'user-1',
+      description: 'Image generation',
+      idempotencyKey: 'agent-media-action-1',
+      reservationId: undefined,
+      source: ActivitySource.IMAGE_GENERATION,
+    });
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
-    ).toHaveBeenCalledTimes(1);
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).toHaveBeenCalledWith(
-      expect.any(String),
-      expect.any(String),
-      expect.any(Number),
-      expect.any(String),
-      expect.any(String),
-      expect.objectContaining({
-        referenceId: 'action-1',
-        referenceType: 'agent-media:generation',
-      }),
-    );
+    ).not.toHaveBeenCalled();
   });
 
   it('passes completion billing references into the credit utility', async () => {
@@ -180,24 +176,17 @@ describe('CreditDeductionProcessor', () => {
       opts: { attempts: 3 },
     } as Job<CreditDeductionJobData>);
 
+    expect(creditsUtilsService.settleReservation).toHaveBeenCalledWith({
+      actualAmount: 18,
+      actorUserId: 'user-1',
+      description: 'Fleet voice clone compute',
+      idempotencyKey: 'fleet-voice-clone-job-1',
+      reservationId: undefined,
+      source: ActivitySource.VOICE_GENERATION,
+    });
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
-    ).toHaveBeenCalledWith(
-      'org-1',
-      'user-1',
-      18,
-      'Fleet voice clone compute',
-      ActivitySource.VOICE_GENERATION,
-      {
-        maxOverdraftCredits: undefined,
-        metadata: {
-          fleetJobId: 'job-1',
-          processTimeSeconds: 61,
-        },
-        referenceId: 'job-1',
-        referenceType: 'fleet:voice-clone',
-      },
-    );
+    ).not.toHaveBeenCalled();
   });
 
   function buildJob(
