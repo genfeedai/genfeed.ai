@@ -74,6 +74,9 @@
       "unavailableTitle": "Claim unavailable"
     }
   },
+  "desktopAuth": {
+    "pasteCodeHint": "Source checkouts cannot open automatically. Copy the code from that tab and paste it here."
+  },
   "oauth": {
     "platformCallback": {
       "actions": {

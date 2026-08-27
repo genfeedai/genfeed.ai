@@ -14,6 +14,7 @@ import { Input } from '@ui/primitives/input';
 import { KeyRound, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent,
   type FormEvent,
@@ -115,6 +116,7 @@ export default function LoginBetterAuth({
   isDesktopShell = false,
   mode = 'chooser',
 }: LoginBetterAuthProps) {
+  const translate = useTranslations('common');
   const searchParams = useSearchParams();
   const isDesktop = useSyncExternalStore(
     subscribeToClientSurface,
@@ -510,10 +512,7 @@ export default function LoginBetterAuth({
               {isWaitingForDesktopSession ? (
                 <>
                   <p aria-live="polite">Waiting for the browser...</p>
-                  <p>
-                    Source checkouts cannot open automatically. Copy the code
-                    from that tab and paste it here.
-                  </p>
+                  <p>{translate('desktopAuth.pasteCodeHint')}</p>
                 </>
               ) : (
                 <p>

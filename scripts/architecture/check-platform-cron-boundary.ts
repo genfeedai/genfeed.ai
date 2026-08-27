@@ -247,11 +247,25 @@ export const SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST: CronBoundaryEntry[] = [
       'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
   },
   {
+    file: 'apps/server/workers/src/crons/engagement/cron.engagement-triggers.service.ts',
+    id: 'engagement-triggers-sweep',
+    methodName: 'processArmedRules',
+    reason:
+      'System sweep invoked by SystemSweepsProcessor; engagement-trigger follow-ups.',
+  },
+  {
     file: 'apps/server/workers/src/crons/posts/cron.posts.service.ts',
     id: 'scheduled-posts-sweep',
     methodName: 'publishScheduledPosts',
     reason:
       'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/rss/cron.rss-autopost.service.ts',
+    id: 'rss-autopost-sweep',
+    methodName: 'pollEnabledSources',
+    reason:
+      'System sweep invoked by SystemSweepsProcessor; RSS feed import into drafts/releases.',
   },
   {
     file: 'apps/server/workers/src/crons/review-gate/cron.review-gate-timeout.service.ts',

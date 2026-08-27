@@ -89,6 +89,142 @@
       "reason": "missing-organization-id"
     },
     {
+      "delegate": "creditTransaction",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-account-migration.service.ts",
+      "fingerprint": "56da0107b636c8e696bb",
+      "method": "updateMany",
+      "model": "CreditTransaction",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "billingAccountOrganization",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "fingerprint": "76e2c49c8648240a1fe3",
+      "method": "count",
+      "model": "BillingAccountOrganization",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "billingAccountOrganization",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "fingerprint": "c8916652188acefbc19e",
+      "method": "findMany",
+      "model": "BillingAccountOrganization",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditBalance",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "fingerprint": "72e0525e594c240eee5a",
+      "method": "findFirst",
+      "model": "CreditBalance",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditBalance",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "fingerprint": "76889126642b6c1f3545",
+      "method": "findFirst",
+      "model": "CreditBalance",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditBalance",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "fingerprint": "cb67199bc3d3f03a6385",
+      "method": "findFirst",
+      "model": "CreditBalance",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditBalance",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "fingerprint": "0d60624c7bab6e91e5d2",
+      "method": "update",
+      "model": "CreditBalance",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "creditBalance",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "fingerprint": "46d50575cd3a06c9f1e9",
+      "method": "update",
+      "model": "CreditBalance",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "creditBalance",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "fingerprint": "72e86de9633dd83f665b",
+      "method": "update",
+      "model": "CreditBalance",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "creditBalance",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "fingerprint": "f807a0ccac0ddec0188c",
+      "method": "update",
+      "model": "CreditBalance",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "creditBalance",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "fingerprint": "1350d17dd7a8720d0272",
+      "method": "update",
+      "model": "CreditBalance",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditBalance",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "fingerprint": "e01da2a1ad8f2547c2f2",
+      "method": "update",
+      "model": "CreditBalance",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditBalance",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "fingerprint": "e6bb73d717694bfef965",
+      "method": "update",
+      "model": "CreditBalance",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditBalance",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "fingerprint": "ef0bf8e21b9bc5a91bcd",
+      "method": "update",
+      "model": "CreditBalance",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditTransaction",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "fingerprint": "cab27a49d6bbe39655f6",
+      "method": "groupBy",
+      "model": "CreditTransaction",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditTransaction",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "fingerprint": "e1437d96ff18878e2225",
+      "method": "updateMany",
+      "model": "CreditTransaction",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "subscription",
+      "file": "apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts",
+      "fingerprint": "b8e10dbeaa4e636a5e62",
+      "method": "findFirst",
+      "model": "Subscription",
+      "reason": "missing-organization-id"
+    },
+    {
       "delegate": "botActivity",
       "file": "apps/server/api/src/collections/bot-activities/services/bot-activities.service.ts",
       "fingerprint": "9f5a806541980fc5b19d",
@@ -435,7 +571,31 @@
     {
       "delegate": "creditBalance",
       "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
-      "fingerprint": "91c23c48d96d89f12d49",
+      "fingerprint": "1446068cc593cf818eda",
+      "method": "findFirst",
+      "model": "CreditBalance",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditBalance",
+      "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
+      "fingerprint": "c08ddddba8d0f07791f8",
+      "method": "findFirst",
+      "model": "CreditBalance",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditBalance",
+      "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
+      "fingerprint": "e3f9eabfb953280323e1",
+      "method": "findFirst",
+      "model": "CreditBalance",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditBalance",
+      "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
+      "fingerprint": "1b0c14ee812ff12245ce",
       "method": "update",
       "model": "CreditBalance",
       "reason": "missing-is-deleted"
@@ -459,10 +619,74 @@
     {
       "delegate": "creditBalance",
       "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
-      "fingerprint": "f3c84d2406c43930c301",
+      "fingerprint": "be5d58bcc4a7866e9c1b",
       "method": "update",
       "model": "CreditBalance",
       "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditReservation",
+      "file": "apps/server/api/src/collections/credits/services/credit-reservation.service.ts",
+      "fingerprint": "20c8e810aa3bc8fd0483",
+      "method": "findFirst",
+      "model": "CreditReservation",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditReservation",
+      "file": "apps/server/api/src/collections/credits/services/credit-reservation.service.ts",
+      "fingerprint": "d3dcbb7e6ecd72cce22a",
+      "method": "findFirst",
+      "model": "CreditReservation",
+      "reason": "unresolved-where"
+    },
+    {
+      "delegate": "creditReservation",
+      "file": "apps/server/api/src/collections/credits/services/credit-reservation.service.ts",
+      "fingerprint": "c26afa856c9f5fc00320",
+      "method": "findMany",
+      "model": "CreditReservation",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditReservation",
+      "file": "apps/server/api/src/collections/credits/services/credit-reservation.service.ts",
+      "fingerprint": "5ecb253a5177abc902df",
+      "method": "update",
+      "model": "CreditReservation",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "creditReservation",
+      "file": "apps/server/api/src/collections/credits/services/credit-reservation.service.ts",
+      "fingerprint": "8dd05547cdafae39ffcf",
+      "method": "update",
+      "model": "CreditReservation",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "creditReservation",
+      "file": "apps/server/api/src/collections/credits/services/credit-reservation.service.ts",
+      "fingerprint": "8f86c862f033930d6b18",
+      "method": "update",
+      "model": "CreditReservation",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditReservation",
+      "file": "apps/server/api/src/collections/credits/services/credit-reservation.service.ts",
+      "fingerprint": "f36e962494db784b0b14",
+      "method": "update",
+      "model": "CreditReservation",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "creditTransaction",
+      "file": "apps/server/api/src/collections/credits/services/credit-reservation.service.ts",
+      "fingerprint": "0e349d76d8375380525d",
+      "method": "updateMany",
+      "model": "CreditTransaction",
+      "reason": "missing-is-deleted"
     },
     {
       "delegate": "dashboardLayout",
@@ -1246,6 +1470,62 @@
       "fingerprint": "9b887fe1a47111afd8be",
       "method": "update",
       "model": "ReplyBotConfig",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "rssFeedItem",
+      "file": "apps/server/api/src/collections/rss-sources/services/rss-sources.service.ts",
+      "fingerprint": "73120e4a69e787ed1fb5",
+      "method": "findFirst",
+      "model": "RssFeedItem",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "rssFeedItem",
+      "file": "apps/server/api/src/collections/rss-sources/services/rss-sources.service.ts",
+      "fingerprint": "25f3f1ee66e4d5d53605",
+      "method": "update",
+      "model": "RssFeedItem",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "rssFeedItem",
+      "file": "apps/server/api/src/collections/rss-sources/services/rss-sources.service.ts",
+      "fingerprint": "6a3d816c8fe566fcc29d",
+      "method": "update",
+      "model": "RssFeedItem",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "rssFeedItem",
+      "file": "apps/server/api/src/collections/rss-sources/services/rss-sources.service.ts",
+      "fingerprint": "e233605ac9e8bd49a3ba",
+      "method": "update",
+      "model": "RssFeedItem",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "rssFeedItem",
+      "file": "apps/server/api/src/collections/rss-sources/services/rss-sources.service.ts",
+      "fingerprint": "88119d255c1b2a4ba899",
+      "method": "update",
+      "model": "RssFeedItem",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "rssFeedItem",
+      "file": "apps/server/api/src/collections/rss-sources/services/rss-sources.service.ts",
+      "fingerprint": "90bfbfdcba12df7ff6cf",
+      "method": "update",
+      "model": "RssFeedItem",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "rssFeedItem",
+      "file": "apps/server/api/src/collections/rss-sources/services/rss-sources.service.ts",
+      "fingerprint": "e954e6a22e565fffdf81",
+      "method": "update",
+      "model": "RssFeedItem",
       "reason": "missing-organization-id"
     },
     {
