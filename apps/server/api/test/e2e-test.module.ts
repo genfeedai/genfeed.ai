@@ -46,6 +46,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { ActivitiesService } from '@server/collections/activities/services/activities.service';
 import { ArticlesService } from '@server/collections/articles/services/articles.service';
 import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
 import { BrandGenerationService } from '@server/collections/brands/services/brand-generation.service';
 import { BrandKitAssetsService } from '@server/collections/brands/services/brand-kit-assets.service';
 import { BrandKitDraftService } from '@server/collections/brands/services/brand-kit-draft.service';
@@ -54,6 +55,7 @@ import { BrandsService } from '@server/collections/brands/services/brands.servic
 import { DefaultRecurringContentService } from '@server/collections/brands/services/default-recurring-content.service';
 import { CredentialCryptoService } from '@server/collections/credentials/services/credential-crypto.service';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { CreditReservationService } from '@server/collections/credits/services/credit-reservation.service';
 import { ImagesService } from '@server/collections/images/services/images.service';
 import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { LinksService } from '@server/collections/links/services/links.service';
@@ -316,6 +318,15 @@ export const ORGANIZATION_SETTINGS_E2E_MOCK = {
 };
 
 export const COLLECTION_E2E_MOCK_PROVIDERS = [
+  BillingAccountsService,
+  {
+    provide: CreditReservationService,
+    useValue: {
+      release: () => Promise.resolve(null),
+      reserve: () => Promise.resolve(null),
+      settle: () => Promise.resolve(null),
+    },
+  },
   {
     provide: CredentialCryptoService,
     useFactory: () => createMockCryptoService(),
@@ -428,7 +439,11 @@ export class TestDatabaseHelper {
     'orgIntegration',
     'task',
     'creditTransaction',
+    'creditReservation',
     'creditBalance',
+    'billingAccountOrganization',
+    'billingAccountMember',
+    'billingAccount',
     'activity',
     'link',
     'asset',

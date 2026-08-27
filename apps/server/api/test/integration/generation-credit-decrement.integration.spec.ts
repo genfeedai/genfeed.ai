@@ -48,10 +48,6 @@ if (process.env.SKIP_PRISMA_DB === 'true') {
   g.test = g.it;
 }
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
-import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
@@ -64,12 +60,7 @@ import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/s
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
-import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
-import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   createTestOrganization,
   generateIdString,
@@ -94,6 +85,16 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
+import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
+import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
+import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const ORG = 'org-generation-decrement';
 const RESOLVED_BRAND = 'brand-resolved';
@@ -348,6 +349,7 @@ describe('Generation completes with a fake AI provider (zero network, real routi
 
 describe('Credit decrement is real and idempotent (#334 real-backend E2E)', () => {
   let moduleRef: TestingModule;
+  let billingAccountsService: BillingAccountsService;
   let dbHelper: TestDatabaseHelper;
   let creditsUtilsService: CreditsUtilsService;
   let prisma: PrismaService;
@@ -391,12 +393,13 @@ describe('Credit decrement is real and idempotent (#334 real-backend E2E)', () =
     }).compile();
 
     dbHelper = createTestDatabaseHelper(moduleRef);
+    billingAccountsService = moduleRef.get(BillingAccountsService);
     creditsUtilsService = moduleRef.get(CreditsUtilsService);
     prisma = moduleRef.get(PrismaService);
   });
 
   afterAll(async () => {
-    await moduleRef.close();
+    await moduleRef?.close();
   });
 
   beforeEach(async () => {
@@ -405,9 +408,14 @@ describe('Credit decrement is real and idempotent (#334 real-backend E2E)', () =
 
   const seedOrganizationWithBalance = async (): Promise<string> => {
     const organizationId = generateIdString();
+    const userId = generateIdString();
     await dbHelper.seedCollection('organizations', [
-      createTestOrganization({ id: organizationId }),
+      createTestOrganization({ id: organizationId, userId }),
     ]);
+    await billingAccountsService.ensureForOrganization({
+      organizationId,
+      userId,
+    });
 
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     await creditsUtilsService.addOrganizationCreditsWithExpiration(

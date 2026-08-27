@@ -23,7 +23,7 @@ describe('Isolated-DB publish lane (#3837)', () => {
   });
 
   it('refuses to start against a missing or production DATABASE_URL', () => {
-    expect(() => assertIsolatedDatabaseUrl(undefined)).toThrow(
+    expect(() => assertIsolatedDatabaseUrl('')).toThrow(
       /DATABASE_URL is missing/,
     );
     expect(() =>
