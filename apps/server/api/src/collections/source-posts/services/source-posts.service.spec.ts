@@ -271,7 +271,7 @@ describe('SourcePostsService', () => {
         targetIdempotencyKey: expect.stringMatching(/^listening-response:/),
         userId: 'legacyUser42',
       }),
-      update: {},
+      update: { isDeleted: false },
       where: {
         organizationId_targetIdempotencyKey: {
           organizationId: 'org-1',
