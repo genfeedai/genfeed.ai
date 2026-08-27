@@ -43,3 +43,16 @@ export {
 } from '@server/services/generation-brief/run-image-generation-brief';
 export type { RunVideoGenerationBriefInput } from '@server/services/generation-brief/run-video-generation-brief';
 export { runVideoGenerationBrief } from '@server/services/generation-brief/run-video-generation-brief';
+export type {
+  VideoGenerationBriefCompileFn,
+  VideoGenerationBriefCompileInput,
+  VideoGenerationBriefCompileResult,
+  VideoGenerationBriefDispatch,
+  VideoGenerationBriefRegistryEntry,
+} from '@server/services/generation-brief/video-generation-brief-registry';
+export {
+  getVideoGenerationBriefExemptionReason,
+  getVideoGenerationBriefRegistryEntry,
+  VIDEO_GENERATION_BRIEF_EXEMPTIONS,
+  VIDEO_GENERATION_BRIEF_REGISTRY,
+} from '@server/services/generation-brief/video-generation-brief-registry';

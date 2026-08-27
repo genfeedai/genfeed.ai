@@ -1,8 +1,8 @@
+import type { VideoGenerationBriefSupport } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import {
   getVideoGenerationBriefExemptionReason,
   getVideoGenerationBriefRegistryEntry,
-} from '@api/services/generation-brief/video-generation-brief-registry';
-import type { VideoGenerationBriefSupport } from '@api-types/contracts/video-generation-brief-compiler.contract';
+} from '@server/services/generation-brief/video-generation-brief-registry';
 
 export function resolveVideoGenerationBriefSupport(
   model: string,

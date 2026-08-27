@@ -192,7 +192,10 @@ export default defineConfig({
       },
       {
         find: '@credits',
-        replacement: path.resolve(serviceDir, './src/collections/credits'),
+        replacement: path.resolve(
+          serviceDir,
+          '../server/src/collections/credits',
+        ),
       },
       {
         find: '@files',

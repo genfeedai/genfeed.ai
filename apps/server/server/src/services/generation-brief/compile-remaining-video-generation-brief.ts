@@ -1,4 +1,3 @@
-import type { RemainingVideoGenerationBriefFamily } from '@api/services/generation-brief/remaining-video-generation-brief-families';
 import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
 import { generationFidelityPolicies } from '@api-types/contracts/generation-brief.contract';
 import type {
@@ -17,6 +16,7 @@ import {
   recordOmittedGenerationBriefSignal,
 } from '@server/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@server/services/generation-brief/generation-brief-compile.error';
+import type { RemainingVideoGenerationBriefFamily } from '@server/services/generation-brief/remaining-video-generation-brief-families';
 
 export interface CompileRemainingVideoGenerationBriefInput {
   brief: VideoGenerationBrief;

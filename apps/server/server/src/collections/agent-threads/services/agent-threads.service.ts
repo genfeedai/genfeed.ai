@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { resolveLastGeneratedAsset } from '@genfeedai/agent';
+import { resolveLastGeneratedAsset } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
 import {
   AgentExecutionStatus,
   AgentThreadStatus,

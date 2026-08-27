@@ -16,7 +16,8 @@ import { readRepo, readSourceOf } from './launch-path-source.util';
  * whose PATH IS the contract — migrations, the Prisma schema, `.gitignore`,
  * agent memory, tier manifests.
  */
-const API_SRC = 'apps/server/api/src';
+// Declarations may live in api or server after the shared-server extraction.
+const API_SRC = 'apps/server';
 const APP = 'apps/app';
 const SERVER_SRC = 'apps/server/server/src';
 const WORKERS_SRC = 'apps/server/workers/src';

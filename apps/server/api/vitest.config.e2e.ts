@@ -69,11 +69,17 @@ export default defineConfig({
       },
       {
         find: '@credits',
-        replacement: path.resolve(serviceDir, './src/collections/credits'),
+        replacement: path.resolve(
+          serviceDir,
+          '../server/src/collections/credits',
+        ),
       },
       {
         find: /^@credits\/(.*)$/,
-        replacement: path.resolve(serviceDir, './src/collections/credits/$1'),
+        replacement: path.resolve(
+          serviceDir,
+          '../server/src/collections/credits/$1',
+        ),
       },
       {
         find: /^@customers\/(.*)$/,

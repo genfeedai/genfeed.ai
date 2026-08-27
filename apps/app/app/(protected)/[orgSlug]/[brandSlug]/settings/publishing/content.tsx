@@ -334,15 +334,19 @@ export default function BrandSettingsPublishingPage() {
 
         setPublishingContexts(
           results.flatMap((result) =>
-            result.status === 'fulfilled' ? [result.value] : [],
+            result.status === 'fulfilled' && result.value?.account?.id
+              ? [result.value]
+              : [],
           ),
         );
         setFailedCredentialIds(
-          results.flatMap((result, index) =>
-            result.status === 'rejected'
-              ? [connectedCredentials[index].id]
-              : [],
-          ),
+          results.flatMap((result, index) => {
+            if (result.status === 'fulfilled' && result.value?.account?.id) {
+              return [];
+            }
+
+            return [connectedCredentials[index].id];
+          }),
         );
       } catch (error) {
         if (!controller.signal.aborted) {
@@ -642,7 +646,7 @@ export default function BrandSettingsPublishingPage() {
           <div className="space-y-3">
             {connectedCredentials.map((credential) => {
               const context = publishingContexts.find(
-                (candidate) => candidate.account.id === credential.id,
+                (candidate) => candidate.account?.id === credential.id,
               );
               const hasFailed = failedCredentialIds.includes(credential.id);
 

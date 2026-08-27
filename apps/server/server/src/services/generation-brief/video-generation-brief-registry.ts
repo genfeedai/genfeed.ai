@@ -4,8 +4,6 @@
  * `unregistered_model` rather than a catch-all legacy prompt builder.
  */
 
-import { compileRemainingVideoGenerationBrief } from '@api/services/generation-brief/compile-remaining-video-generation-brief';
-import { REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-video-generation-brief-families';
 import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
 import type { GenerationBriefExemptionReason } from '@api-types/contracts/generation-brief-compiler.contract';
 import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
@@ -26,6 +24,8 @@ import {
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { compileMinimaxH3GenerationBrief } from '@server/services/generation-brief/compile-minimax-h3-generation-brief';
 import { compilePrunaaiPVideoGenerationBrief } from '@server/services/generation-brief/compile-prunaai-p-video-generation-brief';
+import { compileRemainingVideoGenerationBrief } from '@server/services/generation-brief/compile-remaining-video-generation-brief';
+import { REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES } from '@server/services/generation-brief/remaining-video-generation-brief-families';
 
 export type VideoGenerationBriefDispatch = Record<string, unknown>;
 
@@ -74,8 +74,8 @@ const VIDEO_GENERATION_BRIEF_REGISTRY_ENTRIES: VideoGenerationBriefRegistryEntry
       profileId: MINIMAX_H3_CAPABILITY_PROFILE_ID,
       profileVersion: MINIMAX_H3_CAPABILITY_PROFILE_VERSION,
     },
-    ...REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES.flatMap((family: any) =>
-      family.profiles.map((profile: any) => ({
+    ...REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES.flatMap((family) =>
+      family.profiles.map((profile) => ({
         compile: ({
           brief,
           modelKey,

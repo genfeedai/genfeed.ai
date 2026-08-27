@@ -1,10 +1,10 @@
-import { compileRemainingImageGenerationBrief } from '@api/services/generation-brief/compile-remaining-image-generation-brief';
-import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
-import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-image-generation-brief-families';
 import { imageGenerationBriefSchema } from '@api-types/contracts/generation-brief.contract';
 import { GPT_IMAGE_IMAGE_COMPILER_ID } from '@api-types/contracts/generation-brief-compiler.contract';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { normalizeAspectRatioForModel } from '@genfeedai/helpers';
+import { compileRemainingImageGenerationBrief } from '@server/services/generation-brief/compile-remaining-image-generation-brief';
+import { GenerationBriefCompileError } from '@server/services/generation-brief/generation-brief-compile.error';
+import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@server/services/generation-brief/remaining-image-generation-brief-families';
 import { describe, expect, it } from 'vitest';
 
 function familyFor(modelKey: string) {
