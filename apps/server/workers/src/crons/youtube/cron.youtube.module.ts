@@ -1,8 +1,4 @@
-import { PostsModule } from '@api/collections/posts/posts.module';
-import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
-import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
-import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
-import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
+import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import { PostLifecycleService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
@@ -12,14 +8,14 @@ import { CronYoutubeMessagesService } from '@workers/crons/youtube/cron.youtube-
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
+import { SocialIntegrationsModule } from '@workers/services/social-integrations.module';
+import { WorkersDomainModule } from '@server/workers-domain.module';
 
 @Module({
   imports: [
-    forwardRef(() => PostsModule),
-    forwardRef(() => WebhookClientModule),
-    forwardRef(() => SocialInboxModule),
+    WorkersDomainModule,
     forwardRef(() => WorkersQueuesModule),
-    forwardRef(() => YoutubeModule),
+    SocialIntegrationsModule,
     PrismaModule,
   ],
   exports: [CronYoutubeStatusService],

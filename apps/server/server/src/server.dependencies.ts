@@ -201,6 +201,7 @@ export interface ServerPrisma {
   brand: PrismaClient['brand'];
   contentVersionPin: PrismaClient['contentVersionPin'];
   credential: PrismaClient['credential'];
+  customerInstance: PrismaClient['customerInstance'];
   contentPerformance: {
     create(args: unknown): Promise<unknown>;
     findFirst(
@@ -244,6 +245,8 @@ export interface ServerPrisma {
   member: PrismaClient['member'];
   newsletter: PrismaClient['newsletter'];
   post: PrismaClient['post'];
+  workflow: PrismaClient['workflow'];
+  workflowExecution: PrismaClient['workflowExecution'];
   publishApproval: PrismaClient['publishApproval'];
   postAnalytics: {
     aggregate(args: unknown): Promise<{

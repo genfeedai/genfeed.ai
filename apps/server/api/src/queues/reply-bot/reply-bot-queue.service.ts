@@ -1,5 +1,5 @@
-import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
-import { readReplyBotCredentialId } from '@api/services/campaign/reply-bot-credential.util';
+import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
+import { readReplyBotCredentialId } from '@server/services/campaign/reply-bot-credential.util';
 import {
   REPLY_BOT_POLLING_QUEUE,
   ReplyBotPollingJobData,
@@ -10,7 +10,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
-export { readReplyBotCredentialId } from '@api/services/campaign/reply-bot-credential.util';
+export { readReplyBotCredentialId } from '@server/services/campaign/reply-bot-credential.util';
 
 export type ReplyBotPollTarget = {
   credentialId: string;

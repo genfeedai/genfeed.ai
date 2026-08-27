@@ -1,6 +1,6 @@
-import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import type { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import type { PersonaDocument } from '@server/collections/personas/schemas/persona.schema';
 import type {
   AdminFleetGenerationJob,
   AdminFleetGenerationJobStatus,

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { ModelsService } from '@api/collections/models/services/models.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
 import { ModelProvider } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import {

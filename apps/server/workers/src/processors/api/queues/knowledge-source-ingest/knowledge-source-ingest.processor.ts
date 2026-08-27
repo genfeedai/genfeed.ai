@@ -1,5 +1,5 @@
-import { KnowledgeSourceIngestService } from '@api/collections/contexts/services/knowledge-source-ingest.service';
-import { KnowledgeSourceIngestQueueService } from '@api/queues/knowledge-source-ingest/knowledge-source-ingest-queue.service';
+import { KnowledgeSourceIngestService } from '@server/collections/contexts/services/knowledge-source-ingest.service';
+import { KnowledgeSourceIngestQueueService } from '@server/queues/knowledge-source-ingest/knowledge-source-ingest-queue.service';
 import {
   KNOWLEDGE_SOURCE_BACKFILL_JOB_NAME,
   KNOWLEDGE_SOURCE_INGEST_JOB_NAME,

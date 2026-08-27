@@ -1,6 +1,6 @@
-import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
-import { PersonasService } from '@api/collections/personas/services/personas.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { type PersonaDocument } from '@server/collections/personas/schemas/persona.schema';
+import { PersonasService } from '@server/collections/personas/services/personas.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

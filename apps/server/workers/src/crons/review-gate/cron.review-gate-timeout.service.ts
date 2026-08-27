@@ -1,8 +1,8 @@
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
-} from '@api/collections/workflows/services/system-workflow-provenance.service';
-import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+} from '@server/collections/workflows/system-workflow-provenance.service';
+import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

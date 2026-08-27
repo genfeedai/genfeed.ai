@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';
-import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
+import { htmlToText } from '@server/shared/utils/html-to-text/html-to-text.util';
 import {
   type ChannelTargetSettings,
   readChannelSettingBoolean,

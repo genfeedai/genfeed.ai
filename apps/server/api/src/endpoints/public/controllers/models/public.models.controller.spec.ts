@@ -1,4 +1,4 @@
-import { ModelsService } from '@api/collections/models/services/models.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
 import { PublicModelsController } from '@api/endpoints/public/controllers/models/public.models.controller';
 import { PublicModelsQueryDto } from '@api/endpoints/public/dto/public-models-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';

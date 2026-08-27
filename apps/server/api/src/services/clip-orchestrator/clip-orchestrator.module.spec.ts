@@ -5,8 +5,8 @@ vi.mock('@genfeedai/workflows', () => ({
 
 import { ClipContinuityFinalizationService } from '@api/services/clip-orchestrator/clip-continuity-finalization.service';
 import { ClipOrchestratorModule } from '@api/services/clip-orchestrator/clip-orchestrator.module';
-import { ClipOrchestratorService } from '@api/services/clip-orchestrator/clip-orchestrator.service';
-import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
+import { ClipOrchestratorService } from '@server/services/clip-orchestrator/clip-orchestrator.service';
+import { ClipOrchestratorStateStore } from '@server/services/clip-orchestrator/clip-orchestrator-state.store';
 import { ClipRunObserverService } from '@api/services/clip-orchestrator/clip-run-observer.service';
 import { PortraitConversionService } from '@api/services/clip-orchestrator/portrait-conversion.service';
 import { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';

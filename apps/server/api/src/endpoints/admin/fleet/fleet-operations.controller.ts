@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import {
   BulkEc2ActionDto,
@@ -8,12 +8,12 @@ import {
 import { AdminFleetService } from '@api/endpoints/admin/fleet/fleet.service';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { FleetService } from '@api/services/integrations/fleet/fleet.service';
+import { FleetService } from '@server/services/integrations/fleet/fleet.service';
 import {
   FleetCloudFrontInvalidationSerializer,
   FleetEc2ActionResultSerializer,

@@ -1,7 +1,7 @@
-import type { SchedulerPostGroup } from '@api/collections/post-groups/services/post-group.types';
-import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
-import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { SchedulerPostGroup } from '@server/collections/post-groups/services/post-group.types';
+import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
+import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   previewRecurrenceOccurrences,
   type RecurrencePreviewInput,

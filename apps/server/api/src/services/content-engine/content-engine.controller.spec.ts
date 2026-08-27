@@ -1,9 +1,9 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
-import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ContentPlanItemsService } from '@server/collections/content-plan-items/services/content-plan-items.service';
+import { ContentPlansService } from '@server/collections/content-plans/services/content-plans.service';
 import { ContentEngineController } from '@api/services/content-engine/content-engine.controller';
-import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
-import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
+import { ContentExecutionService } from '@server/services/content-engine/content-execution.service';
+import { ContentPlannerService } from '@server/services/content-engine/content-planner.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';

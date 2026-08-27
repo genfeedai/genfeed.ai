@@ -5,7 +5,7 @@ import { Platform } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 
 const SPEC_DIR = path.dirname(fileURLToPath(import.meta.url));
-const API_SRC = path.resolve(SPEC_DIR, '../..');
+const API_SRC = path.resolve(SPEC_DIR, '@server/index');
 
 const OAUTH_PROFILE_IMPORT_PROVIDERS = [
   Platform.FACEBOOK,

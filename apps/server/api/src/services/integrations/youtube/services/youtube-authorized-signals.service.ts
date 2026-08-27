@@ -1,14 +1,14 @@
-import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
   SCOPED_CACHE_TAGS,
-} from '@api/common/constants/cache-patterns.constants';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { CacheService } from '@api/services/cache/services/cache.service';
-import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
+} from '@server/common/constants/cache-patterns.constants';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { CacheService } from '@server/services/cache/cache.service';
+import { YoutubeAuthService } from '@server/services/integrations/youtube/services/modules/youtube-auth.service';
 import {
   getYoutubeRetryAfterMs,
   isYoutubeAuthorizationError,
@@ -17,7 +17,7 @@ import {
   isYoutubeScopeError,
   parseYoutubeGrantedScopes,
 } from '@api/services/integrations/youtube/utils/youtube-error.util';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   type YoutubeAuthorizedSignalEvidence,
   type YoutubeAuthorizedSignalReason,

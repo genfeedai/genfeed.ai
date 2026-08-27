@@ -8,15 +8,15 @@ import type {
   SocialSourceDocument,
   SocialSourceSyncDocumentResult,
 } from '@api/collections/social-sources/schemas/social-source.schema';
-import type { SourcePostDocument } from '@api/collections/source-posts/schemas/source-post.schema';
-import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import type { SourcePostDocument } from '@server/collections/source-posts/schemas/source-post.schema';
+import { SourcePostsService } from '@server/collections/source-posts/services/source-posts.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
 import type {
   CollectedSourcePost,
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   parseSocialPostUrl,
   SocialSourcePlatform,

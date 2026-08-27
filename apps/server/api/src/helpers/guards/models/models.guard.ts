@@ -1,9 +1,9 @@
-import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
 import {
   isFalDestination,
   isReplicateDestination,
   isReplicateVersionId,
-} from '@api/collections/models/utils/model-key.util';
+} from '@server/collections/models/utils/model-key.util';
 import { readRequestOrganizationId } from '@api/helpers/utils/request/read-request-organization-id.util';
 import type { ModelCategory } from '@genfeedai/enums';
 import {

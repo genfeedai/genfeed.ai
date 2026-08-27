@@ -6,7 +6,7 @@ import type {
 import {
   getFalEndpointFromModelKey,
   isFalDestination,
-} from '@api/collections/models/utils/model-key.util';
+} from '@server/collections/models/utils/model-key.util';
 import type { ModelProvider } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';

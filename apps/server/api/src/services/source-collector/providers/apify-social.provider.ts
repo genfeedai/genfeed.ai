@@ -1,4 +1,4 @@
-import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { ApifyService } from '@server/services/integrations/apify/services/apify.service';
 import type { SourceTimelineProvider } from '@api/services/source-collector/source-collector.interface';
 import type {
   CollectedSourcePost,

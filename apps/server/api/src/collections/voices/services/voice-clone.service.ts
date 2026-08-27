@@ -1,14 +1,14 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
 import type { CloneVoiceDto } from '@api/collections/voices/dto/clone-voice.dto';
-import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
-import { VoicesService } from '@api/collections/voices/services/voices.service';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
-import { ByokService } from '@api/services/byok/byok.service';
-import { FleetService } from '@api/services/integrations/fleet/fleet.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
-import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import { VoiceCreditsService } from '@server/collections/voices/services/voice-credits.service';
+import { VoicesService } from '@server/collections/voices/services/voices.service';
+import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
+import { ByokService } from '@server/services/byok/byok.service';
+import { FleetService } from '@server/services/integrations/fleet/fleet.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
+import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import {
   ByokProvider,
   IngredientCategory,

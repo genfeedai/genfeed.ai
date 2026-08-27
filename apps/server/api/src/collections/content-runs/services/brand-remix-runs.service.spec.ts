@@ -1,8 +1,8 @@
-import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/services/brand-remix-runs.factory';
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { brandRemixRunConfigSchema } from '@api-types/contracts/brand-remix-run.contract';
 import {
   ContentRunStatus,

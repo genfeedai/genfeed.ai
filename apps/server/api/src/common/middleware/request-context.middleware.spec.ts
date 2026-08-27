@@ -22,7 +22,7 @@ vi.mock('@libs/logger/logger.service', () => ({
 }));
 
 vi.mock(
-  '@api/collections/organization-settings/services/organization-settings.service',
+  '@server/collections/organization-settings/services/organization-settings.service',
   () => ({
     OrganizationSettingsService: vi.fn(),
   }),

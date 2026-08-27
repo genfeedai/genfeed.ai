@@ -1,11 +1,11 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { WorkflowCrudController } from '@api/collections/workflows/controllers/workflow-crud.controller';
-import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
+import { CreateWorkflowDto } from '@server/collections/workflows/dto/create-workflow.dto';
 import { WorkflowQueryDto } from '@api/collections/workflows/dto/query-workflow.dto';
-import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
-import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
-import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { UpdateWorkflowDto } from '@server/collections/workflows/dto/update-workflow.dto';
+import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
+import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
+import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';

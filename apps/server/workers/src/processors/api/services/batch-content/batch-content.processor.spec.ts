@@ -1,7 +1,7 @@
-import type { BatchContentQueueService } from '@api/services/batch-content/batch-content-queue.service';
-import type { BatchContentItemJobData } from '@api/services/batch-content/interfaces/batch-content.interfaces';
-import type { SkillExecutionResult } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
-import type { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
+import type { BatchContentQueueService } from '@server/services/batch-content/batch-content-queue.service';
+import type { BatchContentItemJobData } from '@server/services/batch-content/interfaces/batch-content.interfaces';
+import type { SkillExecutionResult } from '@server/services/skill-executor/interfaces/skill-executor.interfaces';
+import type { SkillExecutorService } from '@server/services/skill-executor/skill-executor.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BatchContentProcessor } from '@workers/processors/api/services/batch-content/batch-content.processor';
 import type { Job } from 'bullmq';

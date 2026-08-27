@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const SRC_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const SRC_ROOT = join(dirname(fileURLToPath(import.meta.url)), '@server/index');
 
 function walkModuleFiles(dir: string): string[] {
   const results: string[] = [];

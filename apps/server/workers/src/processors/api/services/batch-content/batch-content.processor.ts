@@ -1,6 +1,6 @@
-import { BatchContentQueueService } from '@api/services/batch-content/batch-content-queue.service';
-import { BatchContentItemJobData } from '@api/services/batch-content/interfaces/batch-content.interfaces';
-import { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
+import { BatchContentQueueService } from '@server/services/batch-content/batch-content-queue.service';
+import { BatchContentItemJobData } from '@server/services/batch-content/interfaces/batch-content.interfaces';
+import { SkillExecutorService } from '@server/services/skill-executor/skill-executor.service';
 import { BATCH_CONTENT_QUEUE } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';

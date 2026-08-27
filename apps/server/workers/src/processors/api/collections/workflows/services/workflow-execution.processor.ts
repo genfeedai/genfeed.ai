@@ -1,12 +1,12 @@
 import {
   WorkflowExecutionJobData,
   WorkflowExecutionQueueService,
-} from '@api/collections/workflows/services/workflow-execution-queue.service';
+} from '@server/collections/workflows/services/workflow-execution-queue.service';
 import {
   DelayResumeJobData,
   WorkflowExecutorService,
-} from '@api/collections/workflows/services/workflow-executor.service';
-import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
+} from '@server/collections/workflows/services/workflow-executor.service';
+import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
 import { ActionOrigin } from '@genfeedai/enums';
 import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
 import { runWithActionOrigin } from '@genfeedai/server';

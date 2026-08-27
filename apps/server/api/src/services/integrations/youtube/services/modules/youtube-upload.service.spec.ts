@@ -1,6 +1,6 @@
 import fs from 'node:fs';
-import { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { PostEntity } from '@server/collections/posts/entities/post.entity';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
 import { YoutubeUploadService } from '@api/services/integrations/youtube/services/modules/youtube-upload.service';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';
 import { PostStatus, PostVisibility } from '@genfeedai/enums';
@@ -33,7 +33,7 @@ vi.mock('node:fs', () => ({
 }));
 
 // Mock htmlToText
-vi.mock('@api/shared/utils/html-to-text/html-to-text.util', () => ({
+vi.mock('@server/shared/utils/html-to-text/html-to-text.util', () => ({
   htmlToText: vi.fn((html: string) => html || ''),
 }));
 

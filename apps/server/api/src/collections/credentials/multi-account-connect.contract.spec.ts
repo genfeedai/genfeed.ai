@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 const SPEC_DIR = path.dirname(fileURLToPath(import.meta.url));
-const API_SRC = path.resolve(SPEC_DIR, '../..');
+const API_SRC = path.resolve(SPEC_DIR, '@server/index');
 const INTEGRATIONS_DIR = path.join(API_SRC, 'services/integrations');
 
 /** Every integration source file, so a new platform is covered the day it lands. */

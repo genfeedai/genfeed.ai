@@ -1,11 +1,11 @@
-import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import type { ModelsService } from '@api/collections/models/services/models.service';
+import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import type { ModelsService } from '@server/collections/models/services/models.service';
 import {
   CREDITS_DEFER_MODEL_RESOLUTION_KEY,
   CREDITS_KEY,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import type { ByokService } from '@api/services/byok/byok.service';
+import type { ByokService } from '@server/services/byok/byok.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ByokProvider, ModelProvider } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';

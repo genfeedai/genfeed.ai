@@ -1,4 +1,4 @@
-import { ContentOptimizationService } from '@api/services/content-optimization/content-optimization.service';
+import { ContentOptimizationService } from '@server/services/content-optimization/content-optimization.service';
 import {
   CONTENT_OPTIMIZATION_QUEUE,
   ContentOptimizationJobData,

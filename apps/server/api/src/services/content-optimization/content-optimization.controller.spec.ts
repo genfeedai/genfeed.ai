@@ -1,9 +1,9 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { AbTestSuggestionHarnessService } from '@api/services/content-optimization/ab-test-suggestion-harness.service';
+import { AbTestSuggestionHarnessService } from '@server/services/content-optimization/ab-test-suggestion-harness.service';
 import { ContentOptimizationController } from '@api/services/content-optimization/content-optimization.controller';
-import { ContentOptimizationService } from '@api/services/content-optimization/content-optimization.service';
-import { ContentOptimizationQueueService } from '@api/services/content-optimization/content-optimization-queue.service';
+import { ContentOptimizationService } from '@server/services/content-optimization/content-optimization.service';
+import { ContentOptimizationQueueService } from '@server/services/content-optimization/content-optimization-queue.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { vi } from 'vitest';

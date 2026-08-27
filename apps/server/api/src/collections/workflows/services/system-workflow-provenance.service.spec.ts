@@ -2,13 +2,13 @@ import {
   isSweepDrivenSystemWorkflow,
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
-} from '@api/collections/workflows/services/system-workflow-provenance.service';
+} from '@server/collections/workflows/system-workflow-provenance.service';
 import {
   buildSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
-} from '@api/collections/workflows/system-workflow.contract';
+} from '@server/collections/workflows/system-workflow.contract';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

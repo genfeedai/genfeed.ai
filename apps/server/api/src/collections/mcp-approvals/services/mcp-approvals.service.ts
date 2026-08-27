@@ -5,10 +5,10 @@ import {
   type ApiKeyPublishingContext,
   assertApiKeyPublishingScope,
   isPublishingMcpApprovalTool,
-} from '@api/helpers/utils/auth/api-key-publishing-scope.util';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+} from '@server/helpers/utils/auth/api-key-publishing-scope.util';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { BaseService } from '@server/shared/services/base/base.service';
 import { McpApprovalStatus } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';

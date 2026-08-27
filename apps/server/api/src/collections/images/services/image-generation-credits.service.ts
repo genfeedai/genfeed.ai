@@ -1,8 +1,8 @@
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { baseModelKey } from '@api/collections/models/utils/model-key.util';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { baseModelKey } from '@server/collections/models/utils/model-key.util';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import {
   calculateDynamicImageCost,
@@ -16,8 +16,8 @@ import {
   scaleCreditsForFanOut,
 } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
-import { ByokService } from '@api/services/byok/byok.service';
-import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
+import { ByokService } from '@server/services/byok/byok.service';
+import { resolveModelByokProvider } from '@server/services/byok/byok-provider-map.util';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import type { ByokProvider } from '@genfeedai/enums';
 import { buildPricingAuditStamp } from '@genfeedai/pricing';

@@ -1,26 +1,26 @@
 import { createHash } from 'node:crypto';
-import { ArticlesService } from '@api/collections/articles/services/articles.service';
-import { buildBrandVoiceSummary } from '@api/collections/brands/utils/brand-context.util';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { baseModelKey } from '@api/collections/models/utils/model-key.util';
-import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
+import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import { buildBrandVoiceSummary } from '@server/collections/brands/utils/brand-context.util';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { baseModelKey } from '@server/collections/models/utils/model-key.util';
+import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
 import type { BookCalendarSlotDto } from '@api/collections/posting-cadences/dto/calendar-slot-action.dto';
 import type { CreatePostingCadenceDto } from '@api/collections/posting-cadences/dto/create-posting-cadence.dto';
 import type { UpdatePostingCadenceDto } from '@api/collections/posting-cadences/dto/update-posting-cadence.dto';
-import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   type ApiKeyPublishingContext,
   assertApiKeyPublishingScope,
-} from '@api/helpers/utils/auth/api-key-publishing-scope.util';
-import { SecurityUtil } from '@api/helpers/utils/security/security.util';
+} from '@server/helpers/utils/auth/api-key-publishing-scope.util';
+import { SecurityUtil } from '@server/helpers/utils/security/security.util';
 import {
   calculateEstimatedTextCredits,
   getMinimumTextCredits,
-} from '@api/helpers/utils/text-pricing/text-pricing.util';
-import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+} from '@server/helpers/utils/text-pricing/text-pricing.util';
+import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   buildSlotIdentityKey,
   collapseOverlappingCadenceOccurrences,

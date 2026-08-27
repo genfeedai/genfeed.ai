@@ -1,19 +1,19 @@
 import { createHash } from 'node:crypto';
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
 import type { AnalyzeYoutubeDto } from '@api/collections/clip-projects/dto/analyze-youtube.dto';
 import type { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
 import {
   MAX_CLIP_SOURCE_SIZE_BYTES,
   type PrepareClipUploadDto,
 } from '@api/collections/clip-projects/dto/prepare-clip-upload.dto';
-import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
-import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
-import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
+import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
+import { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';

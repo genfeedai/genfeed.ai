@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AuthorReplyLoopService } from './author-reply-loop.service';
+import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
 
 describe('AuthorReplyLoopService.getInbox YouTube path', () => {
   const prisma = {

@@ -1,19 +1,19 @@
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
-import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
 import type { CreateSubscriptionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import type { UpdateSubscriptionDto } from '@api/collections/subscriptions/dto/update-subscription.dto';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
-import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   BaseService,
   type PopulateInput,
-} from '@api/shared/services/base/base.service';
-import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+} from '@server/shared/services/base/base.service';
+import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import {
   SubscriptionPlan,
   SubscriptionStatus,

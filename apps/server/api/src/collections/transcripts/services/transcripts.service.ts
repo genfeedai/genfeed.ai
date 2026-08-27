@@ -1,10 +1,10 @@
 import { CreateTranscriptDto } from '@api/collections/transcripts/dto/create-transcript.dto';
 import { UpdateTranscriptDto } from '@api/collections/transcripts/dto/update-transcript.dto';
 import type { TranscriptDocument } from '@api/collections/transcripts/schemas/transcript.schema';
-import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { BaseService } from '@server/shared/services/base/base.service';
 import { TranscriptStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';

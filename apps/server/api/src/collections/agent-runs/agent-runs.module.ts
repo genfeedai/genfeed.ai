@@ -11,7 +11,7 @@ import { ThreadRunsController } from '@api/collections/agent-runs/controllers/th
 import { AgentRunsOperationsService } from '@api/collections/agent-runs/services/agent-runs-operations.service';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { SERVER_TOKENS } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';

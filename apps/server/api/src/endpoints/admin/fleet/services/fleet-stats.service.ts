@@ -1,4 +1,4 @@
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
 import { FleetReviewStatus as FleetReviewStatusEnum } from '@genfeedai/enums';

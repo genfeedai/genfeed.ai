@@ -9,7 +9,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn((_req, _serializer, data) => data),
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
-vi.mock('@api/collections/videos/services/videos.service', () => ({
+vi.mock('@server/collections/videos/services/videos.service', () => ({
   VideosService: class {},
 }));
 vi.mock(
@@ -20,7 +20,7 @@ vi.mock(
 );
 
 import { Readable } from 'node:stream';
-import { VideosService } from '@api/collections/videos/services/videos.service';
+import { VideosService } from '@server/collections/videos/services/videos.service';
 import { PublicVideosController } from '@api/endpoints/public/controllers/videos/public.videos.controller';
 import { AssetScope, IngredientCategory } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';

@@ -1,5 +1,5 @@
 import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
-import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import { ValidationPipe } from '@server/helpers/pipes/validation.pipe';
 import { BadRequestException } from '@nestjs/common';
 
 describe('PostsQueryDto', () => {

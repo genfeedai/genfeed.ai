@@ -3,9 +3,9 @@
  * Brand knowledge storage and semantic retrieval for direct context injection.
  */
 import { ContextsController } from '@api/collections/contexts/controllers/contexts.controller';
-import { ContextsService } from '@api/collections/contexts/services/contexts.service';
-import { KnowledgeSourceService } from '@api/collections/contexts/services/knowledge-source.service';
-import { KnowledgeSourceIngestService } from '@api/collections/contexts/services/knowledge-source-ingest.service';
+import { ContextsService } from '@server/collections/contexts/services/contexts.service';
+import { KnowledgeSourceService } from '@server/collections/contexts/services/knowledge-source.service';
+import { KnowledgeSourceIngestService } from '@server/collections/contexts/services/knowledge-source-ingest.service';
 import { KnowledgeSourceIngestQueueModule } from '@api/queues/knowledge-source-ingest/knowledge-source-ingest-queue.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';

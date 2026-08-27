@@ -13,7 +13,7 @@
  *   bun run apps/server/api/scripts/seeds/agent-autopilot-workflows.seed.ts --env=production --live
  */
 
-import { AGENT_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/agent-autopilot-workflows.template';
+import { AGENT_AUTOPILOT_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/agent-autopilot-workflows.template';
 import { runWorkflowSeed } from './shared/run-workflow-seed';
 
 void runWorkflowSeed({

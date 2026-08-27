@@ -27,6 +27,7 @@ export {
 export { AnalyticsSocialJobService } from './analytics/services/analytics-social-job.service';
 export { AnalyticsTwitterJobService } from './analytics/services/analytics-twitter-job.service';
 export { AnalyticsYouTubeJobService } from './analytics/services/analytics-youtube-job.service';
+export { ActivityEntity } from './collections/activities/entities/activity.entity';
 export type {
   AdBulkUploadJobDocument,
   BulkUploadError,
@@ -94,10 +95,33 @@ export type {
   ResolveBrandAccountOptions,
 } from './collections/credentials/credential.types';
 export type { ServerCredentialStore } from './collections/credentials/credentials.port';
+export { CustomerInstanceResolverService } from './collections/customer-instances/customer-instance-resolver.service';
+export { IngredientEntity } from './collections/ingredients/entities/ingredient.entity';
+export { MetadataEntity } from './collections/metadata/entities/metadata.entity';
 export type {
   ServerModelDimensions,
   ServerModelRecord,
 } from './collections/models/model-record.types';
+export { PostEntity } from './collections/posts/entities/post.entity';
+export type { Post, PostDocument } from './collections/posts/post.schema';
+export {
+  isSweepDrivenSystemWorkflow,
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowProvenanceService,
+} from './collections/workflows/system-workflow-provenance.service';
+export { BaseEntity } from './entities/base.entity';
+export {
+  BusinessLogicException,
+  InsufficientCreditsException,
+  InvalidOperationException,
+  PlanLimitExceededException,
+  ResourceNotReadyException,
+} from './exceptions/business-logic.exception';
+export { NotFoundException } from './exceptions/not-found.exception';
+export { ValidationException } from './exceptions/validation.exception';
+export type { AggregatePaginateResult } from './helpers/types/aggregate-paginate-result';
+export { JsonParserUtil } from './helpers/utils/json-parser.util';
+export { customLabels } from './helpers/utils/pagination.util';
 export {
   canTransitionPostLifecycle,
   POST_LIFECYCLE_TRANSITIONS,
@@ -150,6 +174,11 @@ export {
   type YoutubeUploadPostInput,
 } from './server.dependencies';
 export { ApiKeyHelperService } from './services/api-key/api-key-helper.service';
+export { CacheModule } from './services/cache/cache.module';
+export {
+  CacheService,
+  type ServiceCacheOptions,
+} from './services/cache/cache.service';
 export { FilesClientService } from './services/files-microservice/client/files-client.service';
 export { ElevenLabsService } from './services/integrations/elevenlabs/services/elevenlabs.service';
 export { FalService } from './services/integrations/fal/services/fal.service';

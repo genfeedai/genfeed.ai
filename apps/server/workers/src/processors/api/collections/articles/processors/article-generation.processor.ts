@@ -1,5 +1,5 @@
-import { ArticlesService } from '@api/collections/articles/services/articles.service';
-import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
+import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import { GenerationEventWebhookService } from '@server/services/webhook-client/generation-event-webhook.service';
 import { ARTICLE_GENERATION_QUEUE } from '@genfeedai/queue-contracts';
 import { BULLMQ_LONG_JOB_WORKER_OPTIONS } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';

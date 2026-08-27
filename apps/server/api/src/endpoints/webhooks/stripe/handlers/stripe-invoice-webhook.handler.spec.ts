@@ -1,6 +1,6 @@
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { UsersService } from '@api/collections/users/services/users.service';
-import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { UsersService } from '@server/collections/users/services/users.service';
+import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';

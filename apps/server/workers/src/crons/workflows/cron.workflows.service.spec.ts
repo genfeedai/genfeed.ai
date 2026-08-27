@@ -1,6 +1,6 @@
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { CacheService } from '@server/services/cache/cache.service';
+import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Test, TestingModule } from '@nestjs/testing';

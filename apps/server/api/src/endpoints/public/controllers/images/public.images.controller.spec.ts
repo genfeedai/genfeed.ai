@@ -1,6 +1,6 @@
-import { ImagesService } from '@api/collections/images/services/images.service';
+import { ImagesService } from '@server/collections/images/services/images.service';
 import { PublicImagesController } from '@api/endpoints/public/controllers/images/public.images.controller';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
 import {
   createIngredientDocumentFixture,
   createPaginatedFixture,

@@ -1,7 +1,7 @@
 import {
   getNodeDefinition,
   validateConnection,
-} from '@api/collections/workflows/registry/node-registry';
+} from '@server/collections/workflows/registry/node-registry';
 
 export interface ValidationError {
   nodeId?: string;

@@ -1,4 +1,4 @@
-import { ContentPerformanceService } from '@api/collections/content-performance/services/content-performance.service';
+import { ContentPerformanceService } from '@server/collections/content-performance/services/content-performance.service';
 import { Module } from '@nestjs/common';
 
 /** Performance persistence only. Sync/HTTP stays on ContentPerformanceModule. */

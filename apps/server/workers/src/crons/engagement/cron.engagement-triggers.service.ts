@@ -1,5 +1,3 @@
-import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
-import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { getChannelCapability } from '@api-types/contracts/channel-capabilities.contract';
 import {
   type EngagementCredentialEligibility,
@@ -24,6 +22,8 @@ import type { IPublisher } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
+import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
+import { PublisherFactoryService } from '@server/services/integrations/publishers/publisher-factory.service';
 
 const REPOST_PLATFORMS = new Set<string>([
   CredentialPlatform.FACEBOOK,

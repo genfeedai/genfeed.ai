@@ -1,0 +1,492 @@
+import { createHash } from 'node:crypto';
+import { TrendEntity } from '@server/collections/trends/entities/trend.entity';
+import type {
+  ApifyTrendItem,
+  TrendData,
+} from '@server/collections/trends/interfaces/trend.interfaces';
+import type { TrendDocument } from '@server/collections/trends/schemas/trend.schema';
+import { CacheService } from '@server/services/cache/cache.service';
+import { ApifyService } from '@server/services/integrations/apify/services/apify.service';
+import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { GrokTrendData } from '@server/services/integrations/xai/dto/grok-trends.dto';
+import { XaiService } from '@server/services/integrations/xai/services/xai.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import type { Prisma } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class TrendFetchService {
+  /**
+   * Apify bills per actor run, so this TTL is a spend control, not a freshness
+   * knob. It must stay comfortably above the 30-minute corpus backfill interval
+   * — a TTL equal to the cron period guarantees a miss on every single run.
+   */
+  private readonly GLOBAL_TRENDS_TTL_SECONDS = 6 * 60 * 60; // 6 hours
+  /**
+   * Personalized results are cached too. Bypassing the cache whenever an
+   * organization or brand is in scope turned every authenticated read into a
+   * fresh multi-platform scrape.
+   */
+  private readonly PERSONALIZED_TRENDS_TTL_SECONDS = 60 * 60; // 1 hour
+  /**
+   * Empty results are cached deliberately: without negative caching a platform
+   * that returns nothing (or is failing) is re-scraped at full rate forever.
+   */
+  private readonly EMPTY_TRENDS_TTL_SECONDS = 15 * 60; // 15 minutes
+  private readonly PERSONALIZED_TWITTER_TRENDS_TTL_SECONDS = 15 * 60; // 15 minutes, matches the inspiration-spec ephemeral cache pattern
+  private readonly CACHE_PREFIX = 'trends';
+  private readonly GLOBAL_TREND_DOCUMENT_TTL_MINUTES = 48 * 60;
+  private readonly PERSONALIZED_TREND_DOCUMENT_TTL_MINUTES = 10;
+  private readonly YEAR_TOKEN_PATTERN = /\b(20\d{2})\b/;
+  private readonly HISTORICAL_CONTEXT_PATTERN =
+    /\b(completed|ended|highlights?\s+from|opening ceremony from|closing ceremony from|recap|throwback|archive|from\s+20\d{2})\b/i;
+  private readonly CURRENT_TRIGGER_PATTERN =
+    /\b(today|tonight|this week|now|currently|new|latest|ongoing|live|breaking|just announced|released|launch|current)\b/i;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly loggerService: LoggerService,
+    private readonly cacheService: CacheService,
+    private readonly apifyService: ApifyService,
+    private readonly linkedinService: LinkedInService,
+    private readonly xaiService: XaiService,
+    private readonly twitterService: TwitterService,
+  ) {}
+
+  /**
+   * Convert Apify trend data to TrendData format
+   */
+  toTrendData(trend: ApifyTrendItem): TrendData {
+    return {
+      growthRate: trend.growthRate,
+      mentions: trend.mentions,
+      metadata: trend.metadata,
+      platform: trend.platform,
+      topic: trend.topic,
+    };
+  }
+
+  /**
+   * Batch convert Apify trends to TrendData format
+   */
+  toTrendDataArray(trends: ApifyTrendItem[]): TrendData[] {
+    return trends.map((t) => this.toTrendData(t));
+  }
+
+  /**
+   * Fetch Twitter/X trends: official X API first (cached org/brand-keyed),
+   * falling back to Grok with Apify fallback when the X API has no signal.
+   */
+  async fetchTwitterTrends(
+    organizationId?: string,
+    brandId?: string,
+  ): Promise<TrendData[]> {
+    const cacheKey = this.buildPersonalizedTwitterTrendsCacheKey(
+      organizationId,
+      brandId,
+    );
+
+    if (cacheKey) {
+      const cached = await this.cacheService.get<TrendData[]>(cacheKey);
+      if (cached) {
+        this.loggerService.debug('Cache hit for personalized X trends', {
+          brandId,
+          organizationId,
+        });
+        return cached;
+      }
+    }
+
+    const trends = await this.resolveTwitterTrends(organizationId, brandId);
+
+    if (cacheKey && trends.length > 0) {
+      await this.cacheService.set(cacheKey, trends, {
+        tags: this.buildPersonalizedTwitterTrendsCacheTags(
+          organizationId,
+          brandId,
+        ),
+        ttl: this.PERSONALIZED_TWITTER_TRENDS_TTL_SECONDS,
+      });
+    }
+
+    return trends;
+  }
+
+  private async resolveTwitterTrends(
+    organizationId?: string,
+    brandId?: string,
+  ): Promise<TrendData[]> {
+    const officialTrends = await this.twitterService.getTrends(
+      organizationId,
+      brandId,
+    );
+
+    if (officialTrends.length > 0) {
+      return officialTrends.map((trend) => ({
+        growthRate: trend.growthRate,
+        mentions: trend.mentions,
+        metadata: {
+          source: 'x-api',
+          url: trend.url,
+        },
+        platform: 'twitter',
+        topic: trend.topic,
+      }));
+    }
+
+    try {
+      const grokTrends = await this.xaiService.getTrends({
+        limit: 10,
+        region: 'US',
+      });
+      const validGrokTrends = grokTrends.filter((trend) => {
+        const rejectionReason = this.getRejectedGrokTrendReason(trend);
+
+        if (!rejectionReason) {
+          return true;
+        }
+
+        this.loggerService.warn(
+          `Rejected Grok Twitter trend "${trend.topic}" (${rejectionReason})`,
+        );
+        return false;
+      });
+
+      if (validGrokTrends.length > 0) {
+        return validGrokTrends.map((trend) => ({
+          growthRate: trend.growthRate,
+          mentions: trend.mentions,
+          metadata: {
+            contentAngle: trend.contentAngle,
+            context: trend.context,
+            hashtags: trend.hashtags,
+            source: 'grok-4',
+          },
+          platform: 'twitter',
+          topic: trend.topic,
+        }));
+      }
+
+      this.loggerService.warn(
+        'All Grok Twitter trends were rejected as stale, falling back to Apify',
+      );
+    } catch {
+      const apifyTrends = await this.apifyService.getTwitterTrends({
+        limit: 20,
+      });
+      return this.toTrendDataArray(apifyTrends);
+    }
+
+    const apifyTrends = await this.apifyService.getTwitterTrends({
+      limit: 20,
+    });
+    return this.toTrendDataArray(apifyTrends);
+  }
+
+  private buildPersonalizedTwitterTrendsCacheKey(
+    organizationId?: string,
+    brandId?: string,
+  ): string | null {
+    if (!organizationId && !brandId) {
+      return null;
+    }
+
+    const fingerprint = createHash('sha256')
+      .update([organizationId ?? '', brandId ?? ''].join('|'))
+      .digest('hex');
+
+    return this.cacheService.generateKey(
+      'trends',
+      'twitter-personalized',
+      fingerprint,
+    );
+  }
+
+  private buildPersonalizedTwitterTrendsCacheTags(
+    organizationId?: string,
+    brandId?: string,
+  ): string[] {
+    const tags = ['trends', 'trends:twitter'];
+
+    if (organizationId) {
+      tags.push(`trends:twitter:${organizationId}`);
+    }
+
+    if (brandId) {
+      tags.push(`trends:twitter:${brandId}`);
+    }
+
+    return tags;
+  }
+
+  private getRejectedGrokTrendReason(
+    trend: GrokTrendData,
+  ): 'historical-context' | 'past-year-token' | null {
+    const currentYear = new Date().getUTCFullYear();
+    const topicYear = this.getPastYearToken(
+      trend.topic,
+      trend.hashtags,
+      currentYear,
+    );
+
+    if (topicYear) {
+      return 'past-year-token';
+    }
+
+    if (
+      this.HISTORICAL_CONTEXT_PATTERN.test(trend.context) &&
+      !this.CURRENT_TRIGGER_PATTERN.test(trend.context)
+    ) {
+      return 'historical-context';
+    }
+
+    return null;
+  }
+
+  private getPastYearToken(
+    topic: string,
+    hashtags: string[],
+    currentYear: number,
+  ): number | null {
+    const values = [topic, ...hashtags];
+
+    for (const value of values) {
+      const match = value.match(this.YEAR_TOKEN_PATTERN);
+      if (!match) {
+        continue;
+      }
+
+      const year = Number(match[1]);
+      if (year < currentYear) {
+        return year;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Fetch LinkedIn trend signals from public LinkedIn pages via LinkedInService.
+   */
+  async fetchLinkedInTrends(
+    organizationId?: string,
+    brandId?: string,
+  ): Promise<TrendData[]> {
+    const linkedinTopics = await this.linkedinService.getTrends(
+      organizationId,
+      brandId,
+    );
+
+    return linkedinTopics.map((topic) => ({
+      growthRate: topic.growthRate,
+      mentions: topic.mentions,
+      metadata: topic.metadata,
+      platform: 'linkedin',
+      topic: topic.topic,
+    }));
+  }
+
+  /**
+   * Fetch trends from a specific platform using Apify or fallback services.
+   *
+   * Every result — global, organization-scoped, and empty — is cached. Apify
+   * charges per actor run, so a cache miss is a bill, and an uncached failure
+   * is a bill repeated on every caller.
+   */
+  async fetchPlatformTrends(
+    platform: string,
+    organizationId?: string,
+    brandId?: string,
+  ): Promise<TrendData[]> {
+    const isGlobalRequest = !organizationId && !brandId;
+    const cacheKey = this.buildPlatformTrendsCacheKey(
+      platform,
+      organizationId,
+      brandId,
+    );
+
+    const cached = await this.cacheService.get<TrendData[]>(cacheKey);
+    if (cached) {
+      this.loggerService.debug(`Cache hit for ${platform} trends`, {
+        brandId,
+        isGlobalRequest,
+        organizationId,
+      });
+      return cached;
+    }
+
+    try {
+      const platformHandlers: Record<string, () => Promise<TrendData[]>> = {
+        instagram: async () =>
+          this.toTrendDataArray(
+            await this.apifyService.getInstagramTrends({ limit: 20 }),
+          ),
+        linkedin: () => this.fetchLinkedInTrends(organizationId, brandId),
+        pinterest: async () =>
+          this.toTrendDataArray(
+            await this.apifyService.getPinterestTrends({ limit: 20 }),
+          ),
+        reddit: async () =>
+          this.toTrendDataArray(
+            await this.apifyService.getRedditTrends({ limit: 20 }),
+          ),
+        tiktok: async () =>
+          this.toTrendDataArray(
+            await this.apifyService.getTikTokTrends({ limit: 20 }),
+          ),
+        twitter: () => this.fetchTwitterTrends(organizationId, brandId),
+        youtube: async () =>
+          this.toTrendDataArray(
+            await this.apifyService.getYouTubeTrends({ limit: 20 }),
+          ),
+      };
+
+      const handler = platformHandlers[platform];
+      if (!handler) {
+        this.loggerService.warn(`Unknown platform: ${platform}`);
+        return [];
+      }
+
+      const trends = await handler();
+
+      await this.cacheService.set(cacheKey, trends, {
+        tags: this.buildPlatformTrendsCacheTags(
+          platform,
+          organizationId,
+          brandId,
+        ),
+        ttl: this.resolvePlatformTrendsTtl(isGlobalRequest, trends.length),
+      });
+
+      return trends;
+    } catch (error: unknown) {
+      this.loggerService.error(`Failed to fetch trends for ${platform}`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Personalized reads get their own key instead of skipping the cache, so an
+   * authenticated dashboard refresh cannot trigger a fresh scrape per platform.
+   */
+  private buildPlatformTrendsCacheKey(
+    platform: string,
+    organizationId?: string,
+    brandId?: string,
+  ): string {
+    if (!organizationId && !brandId) {
+      return `${this.CACHE_PREFIX}:global:${platform}`;
+    }
+
+    return `${this.CACHE_PREFIX}:scoped:${platform}:${organizationId ?? 'none'}:${brandId ?? 'none'}`;
+  }
+
+  private buildPlatformTrendsCacheTags(
+    platform: string,
+    organizationId?: string,
+    brandId?: string,
+  ): string[] {
+    const tags = ['trends', `trends:${platform}`];
+
+    if (organizationId) {
+      tags.push(`trends:org:${organizationId}`);
+    }
+
+    if (brandId) {
+      tags.push(`trends:brand:${brandId}`);
+    }
+
+    return tags;
+  }
+
+  private resolvePlatformTrendsTtl(
+    isGlobalRequest: boolean,
+    trendCount: number,
+  ): number {
+    if (trendCount === 0) {
+      return this.EMPTY_TRENDS_TTL_SECONDS;
+    }
+
+    return isGlobalRequest
+      ? this.GLOBAL_TRENDS_TTL_SECONDS
+      : this.PERSONALIZED_TRENDS_TTL_SECONDS;
+  }
+
+  /**
+   * Fetch and cache trends for all platforms
+   */
+  async fetchAndCacheTrends(
+    organizationId?: string,
+    brandId?: string,
+    calculateViralityScore?: (trend: TrendData) => number,
+  ): Promise<TrendEntity[]> {
+    const platforms = [
+      'tiktok',
+      'instagram',
+      'linkedin',
+      'twitter',
+      'youtube',
+      'reddit',
+      'pinterest',
+    ];
+    const allTrends: TrendEntity[] = [];
+
+    for (const platform of platforms) {
+      try {
+        const trendsData = await this.fetchPlatformTrends(
+          platform,
+          organizationId,
+          brandId,
+        );
+
+        for (const trendData of trendsData) {
+          const viralityScore = calculateViralityScore
+            ? calculateViralityScore(trendData)
+            : 0;
+
+          // Determine if this trend requires authentication
+          const requiresAuth = !!(organizationId && brandId);
+
+          // Set TTL based on whether it's personalized or generic
+          const ttlMinutes = requiresAuth
+            ? this.PERSONALIZED_TREND_DOCUMENT_TTL_MINUTES
+            : this.GLOBAL_TREND_DOCUMENT_TTL_MINUTES;
+          const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+
+          const savedTrend = await this.prisma.trend.create({
+            data: {
+              data: {
+                growthRate: trendData.growthRate,
+                mentions: trendData.mentions,
+                metadata: trendData.metadata,
+              } as Prisma.InputJsonValue,
+              brandId: brandId || null,
+              expiresAt,
+              isCurrent: true,
+              organizationId: organizationId?.trim() || null,
+              platform: trendData.platform,
+              requiresAuth,
+              topic: trendData.topic,
+              viralityScore,
+            },
+          });
+          allTrends.push(
+            new TrendEntity({
+              ...savedTrend,
+              ...(savedTrend.data as Record<string, unknown>),
+            } as unknown as TrendDocument),
+          );
+        }
+      } catch (error: unknown) {
+        this.loggerService.error(
+          `Failed to cache trends for ${platform}`,
+          error,
+        );
+      }
+    }
+
+    return allTrends;
+  }
+}

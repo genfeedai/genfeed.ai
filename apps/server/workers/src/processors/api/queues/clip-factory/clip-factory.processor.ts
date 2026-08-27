@@ -9,9 +9,9 @@
  * 5. Generate clips using the requested avatar or raw-cut mode
  * 6. Update ClipProject status throughout
  */
-import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
-import { WhisperService } from '@api/services/whisper/whisper.service';
+import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
+import { WhisperService } from '@server/services/whisper/whisper.service';
 import { CLIP_AUDIO_EXTRACTION_JOB_TIMEOUT_MS } from '@genfeedai/constants';
 import {
   type ClipSourceArtifact,

@@ -1,5 +1,5 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreateWorkflowDto } from '@server/collections/workflows/dto/create-workflow.dto';
 import {
   GenerateWorkflowDto,
   ImportWorkflowDto,
@@ -7,24 +7,24 @@ import {
 import {
   isWorkflowInputNodeType,
   isWorkflowOutputNodeType,
-} from '@api/collections/workflows/node-type-aliases';
+} from '@server/collections/workflows/node-type-aliases';
 import {
   getNodeDefinition,
   getNodesByCategory,
   UNIFIED_NODE_REGISTRY as NODE_REGISTRY,
   type NodeDefinition,
   validateConnection,
-} from '@api/collections/workflows/registry/node-registry-adapter';
-import type { WorkflowVisualNode } from '@api/collections/workflows/schemas/workflow.schema';
+} from '@server/collections/workflows/registry/node-registry-adapter';
+import type { WorkflowVisualNode } from '@server/collections/workflows/schemas/workflow.schema';
 import {
   type CloudWorkflowFormat,
   type CoreWorkflowFormat,
   WorkflowFormatConverterService,
-} from '@api/collections/workflows/services/workflow-format-converter.service';
-import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+} from '@server/collections/workflows/services/workflow-format-converter.service';
+import { WorkflowGenerationService } from '@server/collections/workflows/services/workflow-generation.service';
+import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import { WorkflowValidator } from '@api/collections/workflows/validators/workflow.validator';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';

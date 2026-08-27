@@ -1,11 +1,11 @@
 import * as crypto from 'node:crypto';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import {
   assertSafeWebhookEndpoint,
   createPinnedWebhookAgent,
   type ValidatedWebhookEndpoint,
   WebhookEndpointValidationError,
-} from '@api/services/webhook-client/webhook-endpoint.validator';
+} from '@server/services/webhook-client/webhook-endpoint.validator';
 import { redactPublishWebhookText } from '@api-types/contracts/publish-webhook-events.contract';
 import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
 import {

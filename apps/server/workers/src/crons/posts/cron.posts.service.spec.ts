@@ -1,5 +1,5 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
 import {
   ActivityKey,
   CredentialPlatform,

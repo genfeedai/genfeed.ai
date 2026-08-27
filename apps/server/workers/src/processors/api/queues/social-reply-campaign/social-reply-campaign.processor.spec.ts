@@ -1,4 +1,4 @@
-import { SocialReplyCampaignDispatchService } from '@api/collections/social-inbox/services/social-reply-campaign-dispatch.service';
+import { SocialReplyCampaignDispatchService } from '@server/collections/social-inbox/services/social-reply-campaign-dispatch.service';
 import type { SocialReplyCampaignJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BrokenCircuitError } from '@libs/utils/circuit-breaker/circuit-breaker.util';

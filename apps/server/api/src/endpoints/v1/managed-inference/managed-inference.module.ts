@@ -2,7 +2,7 @@ import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ManagedInferenceController } from '@api/endpoints/v1/managed-inference/managed-inference.controller';
 import { ManagedInferenceService } from '@api/endpoints/v1/managed-inference/managed-inference.service';
-import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
+import { ManagedInferenceClientService } from '@server/endpoints/v1/managed-inference/managed-inference-client.service';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { FleetModule } from '@api/services/integrations/fleet/fleet.module';
 import { LeonardoAIModule } from '@api/services/integrations/leonardoai/leonardoai.module';

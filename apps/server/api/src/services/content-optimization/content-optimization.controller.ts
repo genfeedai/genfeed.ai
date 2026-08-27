@@ -1,11 +1,11 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { AbTestSuggestionHarnessService } from '@api/services/content-optimization/ab-test-suggestion-harness.service';
+import { AbTestSuggestionHarnessService } from '@server/services/content-optimization/ab-test-suggestion-harness.service';
 import {
   type AnalyzePerformanceOptions,
   ContentOptimizationService,
-} from '@api/services/content-optimization/content-optimization.service';
-import { ContentOptimizationQueueService } from '@api/services/content-optimization/content-optimization-queue.service';
+} from '@server/services/content-optimization/content-optimization.service';
+import { ContentOptimizationQueueService } from '@server/services/content-optimization/content-optimization-queue.service';
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { IsOptional, IsString } from 'class-validator';
 

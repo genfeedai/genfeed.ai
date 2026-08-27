@@ -1,7 +1,7 @@
-import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import { SocialInboxController } from '@api/collections/social-inbox/controllers/social-inbox.controller';
-import type { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
-import type { QueueService } from '@api/queues/core/queue.service';
+import type { SocialInboxService } from '@server/collections/social-inbox/services/social-inbox.service';
+import type { QueueService } from '@server/queues/core/queue.service';
 import { Platform, SocialConversationType } from '@genfeedai/enums';
 import { SOCIAL_INBOX_SYNC_QUEUE } from '@genfeedai/queue-contracts';
 import { UnauthorizedException } from '@nestjs/common';

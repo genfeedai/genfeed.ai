@@ -1,4 +1,4 @@
-import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
+import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
 import { ImageTaskModel } from '@genfeedai/enums';
 import type { ContentPipelineJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';

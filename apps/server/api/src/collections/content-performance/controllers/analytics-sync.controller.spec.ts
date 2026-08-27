@@ -1,9 +1,9 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { AnalyticsSyncController } from '@api/collections/content-performance/controllers/analytics-sync.controller';
-import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
-import { EmailDigestService } from '@api/collections/content-performance/services/email-digest.service';
+import { AnalyticsSyncService } from '@server/collections/content-performance/services/analytics-sync.service';
+import { EmailDigestService } from '@server/collections/content-performance/services/email-digest.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { QueueService } from '@api/queues/core/queue.service';
+import { QueueService } from '@server/queues/core/queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';

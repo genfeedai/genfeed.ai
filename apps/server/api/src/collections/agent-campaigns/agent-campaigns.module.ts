@@ -4,8 +4,8 @@
  * Groups agent strategies under a shared campaign with budget and quota controls.
  */
 import { AgentCampaignsController } from '@api/collections/agent-campaigns/controllers/agent-campaigns.controller';
-import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/services/agent-campaign-execution.service';
-import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
+import { AgentCampaignExecutionService } from '@server/collections/agent-campaigns/services/agent-campaign-execution.service';
+import { AgentCampaignsService } from '@server/collections/agent-campaigns/services/agent-campaigns.service';
 import { AgentRunsCoreModule } from '@api/collections/agent-runs/agent-runs-core.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { UsersModule } from '@api/collections/users/users.module';

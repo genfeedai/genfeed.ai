@@ -2,7 +2,7 @@ vi.mock('@api/helpers/utils/reference/reference.util', () => ({
   buildReferenceImageUrls: vi.fn(),
 }));
 
-vi.mock('@api/helpers/utils/websocket/websocket.util', () => ({
+vi.mock('@server/helpers/utils/websocket/websocket.util', () => ({
   WebSocketPaths: {
     video: vi.fn((id: string) => `/ws/videos/${id}`),
   },
@@ -22,27 +22,27 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { AssetsService } from '@api/collections/assets/services/assets.service';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { PromptsService } from '@server/collections/prompts/services/prompts.service';
 import { BatchInterpolationController } from '@api/collections/videos/controllers/batch-interpolation.controller';
 import type { BatchInterpolationDto } from '@api/collections/videos/dto/batch-interpolation.dto';
-import { VideosService } from '@api/collections/videos/services/videos.service';
+import { VideosService } from '@server/collections/videos/services/videos.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { IngredientFormat } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';

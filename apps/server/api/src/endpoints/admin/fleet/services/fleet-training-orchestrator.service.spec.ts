@@ -1,10 +1,10 @@
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { PersonasService } from '@server/collections/personas/services/personas.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { AdminFleetTrainingOrchestratorService } from '@api/endpoints/admin/fleet/services/fleet-training-orchestrator.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';

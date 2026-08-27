@@ -1,5 +1,5 @@
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
 import {
   computeAgentWorkflowGateStatus,
   getNextAgentWorkflowPhase,

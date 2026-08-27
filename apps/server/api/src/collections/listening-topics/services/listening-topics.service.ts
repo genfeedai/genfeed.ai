@@ -12,10 +12,10 @@ import type {
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
-} from '@api/common/constants/cache-patterns.constants';
-import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+} from '@server/common/constants/cache-patterns.constants';
+import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { ListeningSourcePlatform } from '@genfeedai/enums';
 import {
   type IAuthorizedListeningSource,

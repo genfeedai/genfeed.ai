@@ -1,8 +1,8 @@
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { NewslettersController } from '@api/collections/newsletters/controllers/newsletters.controller';
-import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
+import { NewslettersService } from '@server/collections/newsletters/services/newsletters.service';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   AgentArtifactReferenceService,
   SERVER_TOKENS,

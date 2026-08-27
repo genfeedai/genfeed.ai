@@ -11,13 +11,13 @@ import {
   BRAND_REMIX_RUNTIME,
   type BrandRemixRuntime,
 } from '@api/collections/content-runs/services/brand-remix-runtime';
-import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
+import { TrendReferenceCorpusService } from '@server/collections/trends/services/trend-reference-corpus.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
-} from '@api/collections/workflows/services/system-workflow-provenance.service';
-import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
-import type { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
+} from '@server/collections/workflows/system-workflow-provenance.service';
+import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
+import type { ReviewBatchItemFormat } from '@server/services/batch-generation/constants/review-batch-item-format.constant';
 import {
   BRAND_REMIX_RUN_CONTRACT,
   type BrandRemixExecution,

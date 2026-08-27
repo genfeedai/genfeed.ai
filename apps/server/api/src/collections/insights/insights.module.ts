@@ -6,7 +6,7 @@
 
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { InsightsController } from '@api/collections/insights/controllers/insights.controller';
-import { InsightsService } from '@api/collections/insights/services/insights.service';
+import { InsightsService } from '@server/collections/insights/services/insights.service';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';

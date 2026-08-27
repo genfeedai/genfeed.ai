@@ -1,4 +1,4 @@
-import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
+import { SocialInboxService } from '@server/collections/social-inbox/services/social-inbox.service';
 import { Platform, SocialConversationType } from '@genfeedai/enums';
 import {
   SOCIAL_INBOX_SYNC_QUEUE,

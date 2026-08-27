@@ -1,6 +1,6 @@
 import { ClipContinuityFinalizationService } from '@api/services/clip-orchestrator/clip-continuity-finalization.service';
-import type { ClipRun } from '@api/services/clip-orchestrator/clip-orchestrator.service';
-import { ClipRunState } from '@api/services/clip-orchestrator/clip-run-state.enum';
+import type { ClipRun } from '@server/services/clip-orchestrator/clip-orchestrator.service';
+import { ClipRunState } from '@server/services/clip-orchestrator/clip-run-state.enum';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const run: ClipRun = {

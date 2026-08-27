@@ -1,7 +1,7 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ContentGatewayController } from '@api/services/content-gateway/content-gateway.controller';
-import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
+import { ContentGatewayService } from '@server/services/content-gateway/content-gateway.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';

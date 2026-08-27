@@ -4,59 +4,21 @@
  * CRITICAL: All external services are mocked to prevent real API calls.
  */
 
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { ArticlesService } from '@api/collections/articles/services/articles.service';
-import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
-import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
-import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
-import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
-import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
-import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { ImagesService } from '@api/collections/images/services/images.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { LinksService } from '@api/collections/links/services/links.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { MusicsService } from '@api/collections/musics/services/musics.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 // Controller imports
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
 import { OrganizationsIntegrationsController } from '@api/collections/organizations/controllers/organizations-integrations.controller';
-// Service imports
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
-import { SettingsService } from '@api/collections/settings/services/settings.service';
-import { StreaksService } from '@api/collections/streaks/services/streaks.service';
-import { TagsService } from '@api/collections/tags/services/tags.service';
-import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
 import { TasksController } from '@api/collections/tasks/controllers/tasks.controller';
-import { TaskActionsService } from '@api/collections/tasks/services/task-actions.service';
-import { TaskPlanningService } from '@api/collections/tasks/services/task-planning.service';
-import { TaskRoutingService } from '@api/collections/tasks/services/task-routing.service';
-import { TasksService } from '@api/collections/tasks/services/tasks.service';
-import { UsersService } from '@api/collections/users/services/users.service';
-import { VideosService } from '@api/collections/videos/services/videos.service';
-import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
-import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { InternalIntegrationsController } from '@api/endpoints/integrations/integrations.controller';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
-import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
-import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
-import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 // External service mock imports
 import {
   createMockCacheService,
@@ -81,8 +43,46 @@ import { DynamicModule, ExecutionContext, Module, Type } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { TestingModule } from '@nestjs/testing';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { BrandGenerationService } from '@server/collections/brands/services/brand-generation.service';
+import { BrandKitAssetsService } from '@server/collections/brands/services/brand-kit-assets.service';
+import { BrandKitDraftService } from '@server/collections/brands/services/brand-kit-draft.service';
+import { BrandRelocationService } from '@server/collections/brands/services/brand-relocation.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { DefaultRecurringContentService } from '@server/collections/brands/services/default-recurring-content.service';
+import { CredentialCryptoService } from '@server/collections/credentials/services/credential-crypto.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { ImagesService } from '@server/collections/images/services/images.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { LinksService } from '@server/collections/links/services/links.service';
+import { MusicsService } from '@server/collections/musics/services/musics.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+// Service imports
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { SettingsService } from '@server/collections/settings/services/settings.service';
+import { StreaksService } from '@server/collections/streaks/services/streaks.service';
+import { TagsService } from '@server/collections/tags/services/tags.service';
+import { TaskCountersService } from '@server/collections/task-counters/services/task-counters.service';
+import { TaskActionsService } from '@server/collections/tasks/services/task-actions.service';
+import { TaskPlanningService } from '@server/collections/tasks/services/task-planning.service';
+import { TaskRoutingService } from '@server/collections/tasks/services/task-routing.service';
+import { TasksService } from '@server/collections/tasks/services/tasks.service';
+import { UsersService } from '@server/collections/users/services/users.service';
+import { VideosService } from '@server/collections/videos/services/videos.service';
+import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
+import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
+import { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
+import { BrandScraperService } from '@server/services/brand-scraper/brand-scraper.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
+import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/workspace-task-queue.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 /**
  * Mock Guard that always allows access (bypasses auth for E2E tests)

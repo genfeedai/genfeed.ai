@@ -7,13 +7,13 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
-import { CampaignMemoryQueueService } from '@api/services/agent-campaign/campaign-memory-queue.service';
-import { CampaignWinnerExtractionService } from '@api/services/agent-campaign/campaign-winner-extraction.service';
-import { ContentEngineService } from '@api/services/agent-campaign/content-engine.service';
-import { ContentRotationService } from '@api/services/agent-campaign/content-rotation.service';
-import { OrchestratorQueueService } from '@api/services/agent-campaign/orchestrator-queue.service';
-import { TriggerEvaluatorService } from '@api/services/agent-campaign/trigger-evaluator.service';
-import { TriggerEvaluatorQueueService } from '@api/services/agent-campaign/trigger-evaluator-queue.service';
+import { CampaignMemoryQueueService } from '@server/services/agent-campaign/campaign-memory-queue.service';
+import { CampaignWinnerExtractionService } from '@server/services/agent-campaign/campaign-winner-extraction.service';
+import { ContentEngineService } from '@server/services/agent-campaign/content-engine.service';
+import { ContentRotationService } from '@server/services/agent-campaign/content-rotation.service';
+import { OrchestratorQueueService } from '@server/services/agent-campaign/orchestrator-queue.service';
+import { TriggerEvaluatorService } from '@server/services/agent-campaign/trigger-evaluator.service';
+import { TriggerEvaluatorQueueService } from '@server/services/agent-campaign/trigger-evaluator-queue.service';
 import { AgentRuntimeModule } from '@api/services/agent-runtime/agent-runtime.module';
 import {
   CAMPAIGN_MEMORY_EXTRACTION_QUEUE,

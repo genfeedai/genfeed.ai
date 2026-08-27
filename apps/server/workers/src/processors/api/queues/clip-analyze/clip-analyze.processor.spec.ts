@@ -1,6 +1,6 @@
-import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import type { PublicClipToolStoreService } from '@api/services/public-clip-tool/public-clip-tool-store.service';
-import type { WhisperService } from '@api/services/whisper/whisper.service';
+import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import type { PublicClipToolStoreService } from '@server/services/public-clip-tool/public-clip-tool-store.service';
+import type { WhisperService } from '@server/services/whisper/whisper.service';
 import type { ClipAnalyzeJobData } from '@genfeedai/queue-contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';

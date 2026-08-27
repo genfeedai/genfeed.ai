@@ -1,18 +1,18 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
 import {
   type ClipLibraryLinkResult,
   ClipLibraryLinkService,
-} from '@api/collections/clip-projects/services/clip-library-link.service';
-import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
-import type { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
+} from '@server/collections/clip-projects/services/clip-library-link.service';
+import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
+import type { ClipResultDocument } from '@server/collections/clip-results/schemas/clip-result.schema';
 import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';
 import { EditorTrackType, IngredientFormat } from '@genfeedai/enums';

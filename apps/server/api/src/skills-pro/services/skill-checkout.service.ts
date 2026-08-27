@@ -1,5 +1,5 @@
-import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
+import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import { CreateSkillCheckoutDto } from '@api/skills-pro/dto/create-skill-checkout.dto';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
 import { ConfigService } from '@libs/config/config.service';

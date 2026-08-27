@@ -3,7 +3,7 @@ import {
   type FeatureFlagAttributes,
   FeatureFlagService,
 } from '@api/feature-flag/feature-flag.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   type CanActivate,
   type ExecutionContext,

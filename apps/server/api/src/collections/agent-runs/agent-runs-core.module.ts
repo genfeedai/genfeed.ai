@@ -1,5 +1,5 @@
-import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   AgentArtifactReferenceService,
   SERVER_TOKENS,

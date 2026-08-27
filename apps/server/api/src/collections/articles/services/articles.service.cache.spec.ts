@@ -9,20 +9,20 @@ import { describe, expect, it, vi } from 'vitest';
 // sees genuine field/enum metadata without ever importing the heavy client.
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@api/shared/testing/prisma-mock'
+    '@server/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
 
-import type { CreateArticleDto } from '@api/collections/articles/dto/create-article.dto';
-import { ArticleInsightsService } from '@api/collections/articles/services/article-insights.service';
-import { ArticleRemixService } from '@api/collections/articles/services/article-remix.service';
-import { ArticleTranscriptService } from '@api/collections/articles/services/article-transcript.service';
-import { ArticleVersionService } from '@api/collections/articles/services/article-version.service';
-import { ArticlesService } from '@api/collections/articles/services/articles.service';
-import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { CreateArticleDto } from '@server/collections/articles/dto/create-article.dto';
+import { ArticleInsightsService } from '@server/collections/articles/services/article-insights.service';
+import { ArticleRemixService } from '@server/collections/articles/services/article-remix.service';
+import { ArticleTranscriptService } from '@server/collections/articles/services/article-transcript.service';
+import { ArticleVersionService } from '@server/collections/articles/services/article-version.service';
+import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
+import { CacheService } from '@server/services/cache/cache.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 

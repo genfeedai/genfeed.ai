@@ -1,7 +1,7 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { VoicesOperationsController } from '@api/collections/voices/controllers/voices-operations.controller';
 import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';
-import { VoiceGenerationService } from '@api/collections/voices/services/voice-generation.service';
+import { VoiceGenerationService } from '@server/collections/voices/services/voice-generation.service';
 import {
   CREDITS_DEFER_MODEL_RESOLUTION_KEY,
   CREDITS_KEY,

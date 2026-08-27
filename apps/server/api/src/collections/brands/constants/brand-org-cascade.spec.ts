@@ -6,7 +6,7 @@ import {
   FIRST_ORDER_TARGETS,
   KNOWN_EXCLUDED_MODELS,
   SECOND_ORDER_TARGETS,
-} from './brand-org-cascade.constants';
+} from '@server/collections/brands/constants/brand-org-cascade.constants';
 
 /**
  * Staleness guard: the brand→org relocation cascade hardcodes which tables carry a

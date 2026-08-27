@@ -1,5 +1,5 @@
-import { CLIP_ORCHESTRATOR_EVENTS } from '@api/services/clip-orchestrator/clip-orchestrator.events';
-import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
+import { CLIP_ORCHESTRATOR_EVENTS } from '@server/services/clip-orchestrator/clip-orchestrator.events';
+import { ClipOrchestratorStateStore } from '@server/services/clip-orchestrator/clip-orchestrator-state.store';
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 

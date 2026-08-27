@@ -1,16 +1,16 @@
 import { BETTER_AUTH_USER_CREATED_EVENT } from '@api/auth/better-auth/better-auth.constants';
 import type { IBetterAuthUserCreatedEvent } from '@api/auth/better-auth/better-auth.types';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 import { UserEntity } from '@api/collections/users/entities/user.entity';
-import type { UserDocument } from '@api/collections/users/schemas/user.schema';
+import type { UserDocument } from '@server/collections/users/schemas/user.schema';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
-import { UsersService } from '@api/collections/users/services/users.service';
-import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { UsersService } from '@server/collections/users/services/users.service';
+import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
 import { StripeAttributionTrackerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-attribution-tracker.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import { getEmailLogMetadata } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
@@ -18,13 +18,13 @@ import {
   type ManagedCheckoutResult,
   ManagedStripeCheckoutService,
 } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
-import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
+import type { StripeCheckoutSession } from '@server/services/integrations/stripe/services/stripe.service';
 import {
   MANAGED_API_KEY_LABEL,
   MANAGED_API_KEY_SCOPES,
 } from '@api/services/integrations/stripe/stripe.constants';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import {
   ActivitySource,

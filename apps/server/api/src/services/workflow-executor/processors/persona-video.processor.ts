@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import {
   type GenerationResult,
   PersonaContentService,
-} from '@api/services/persona-content/persona-content.service';
+} from '@server/services/persona-content/persona-content.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

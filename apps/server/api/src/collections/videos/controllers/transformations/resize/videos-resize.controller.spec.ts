@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   IngredientCategory,
@@ -9,10 +9,10 @@ import type { IResizeBodyParams } from '@genfeedai/interfaces';
 import { HttpException } from '@nestjs/common';
 import type { Request } from 'express';
 
-vi.mock('@api/collections/ingredients/services/ingredients.service', () => ({
+vi.mock('@server/collections/ingredients/services/ingredients.service', () => ({
   IngredientsService: class {},
 }));
-vi.mock('@api/collections/metadata/services/metadata.service', () => ({
+vi.mock('@server/collections/metadata/services/metadata.service', () => ({
   MetadataService: class {},
 }));
 vi.mock(
@@ -22,23 +22,23 @@ vi.mock(
   }),
 );
 vi.mock(
-  '@api/services/notifications/publisher/notifications-publisher.service',
+  '@server/services/notifications/publisher/notifications-publisher.service',
   () => ({ NotificationsPublisherService: class {} }),
 );
-vi.mock('@api/shared/services/shared/shared.service', () => ({
+vi.mock('@server/shared/services/shared/shared.service', () => ({
   SharedService: class {},
 }));
-vi.mock('@api/collections/videos/services/videos.service', () => ({
+vi.mock('@server/collections/videos/services/videos.service', () => ({
   VideosService: class {},
 }));
 
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { VideosResizeController } from '@api/collections/videos/controllers/transformations/resize/videos-resize.controller';
-import { VideosService } from '@api/collections/videos/services/videos.service';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import { VideosService } from '@server/collections/videos/services/videos.service';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

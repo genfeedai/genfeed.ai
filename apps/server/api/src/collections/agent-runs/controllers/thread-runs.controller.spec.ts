@@ -6,9 +6,9 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { ThreadRunsController } from '@api/collections/agent-runs/controllers/thread-runs.controller';
-import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
+import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';

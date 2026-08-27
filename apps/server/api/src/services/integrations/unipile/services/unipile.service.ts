@@ -1,5 +1,5 @@
-import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { CredentialCryptoService } from '@server/collections/credentials/services/credential-crypto.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   type UnipileAccount,
   type UnipileConnection,
@@ -14,8 +14,8 @@ import {
   type UnipileSendEmailInput,
   type UnipileSendMessageInput,
 } from '@api/services/integrations/unipile/interfaces/unipile.interface';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { trimTrailingCharacter } from '@api/shared/utils/string/linear-string.util';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { trimTrailingCharacter } from '@server/shared/utils/string/linear-string.util';
 import { IntegrationStatus } from '@genfeedai/enums';
 import {
   getIntegrationProviderDefinition,

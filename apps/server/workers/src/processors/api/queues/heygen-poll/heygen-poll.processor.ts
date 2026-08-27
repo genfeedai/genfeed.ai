@@ -13,12 +13,12 @@
  * cannot reach GENFEEDAI_WEBHOOKS_URL. Cloud deployments receive the
  * completion via webhook and do not enqueue poll jobs.
  */
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { TasksService } from '@api/collections/tasks/services/tasks.service';
-import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
-import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
-import { HeygenAvatarProvider } from '@api/services/avatar-video/providers/heygen-avatar.provider';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { TasksService } from '@server/collections/tasks/services/tasks.service';
+import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
+import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
+import { HeygenAvatarProvider } from '@server/services/avatar-video/providers/heygen-avatar.provider';
 import {
   HEYGEN_POLL_DELAY_MS,
   HEYGEN_POLL_MAX_ATTEMPTS,

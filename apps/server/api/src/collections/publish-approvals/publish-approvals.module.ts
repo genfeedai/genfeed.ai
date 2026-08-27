@@ -1,6 +1,6 @@
 import { PublishApprovalsController } from '@api/collections/publish-approvals/controllers/publish-approvals.controller';
-import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   AgentArtifactReferenceService,
   SERVER_TOKENS,

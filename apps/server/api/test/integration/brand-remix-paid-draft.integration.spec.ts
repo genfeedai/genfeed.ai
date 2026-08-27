@@ -8,9 +8,9 @@ import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/servi
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import type { PausedMetaCampaignDraftResult } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
 import type { PausedXAdsCampaignDraftResult } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
-import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
-import { XAdsAdapter } from '@api/services/ads-gateway/adapters/x-ads.adapter';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
+import { XAdsAdapter } from '@server/services/ads-gateway/adapters/x-ads.adapter';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   createTestBrand,
   createTestCredential,

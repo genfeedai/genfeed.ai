@@ -1,4 +1,4 @@
-import { KnowledgeSourceIngestQueueService } from '@api/queues/knowledge-source-ingest/knowledge-source-ingest-queue.service';
+import { KnowledgeSourceIngestQueueService } from '@server/queues/knowledge-source-ingest/knowledge-source-ingest-queue.service';
 import { KNOWLEDGE_SOURCE_INGEST_QUEUE } from '@genfeedai/queue-contracts';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';

@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import {
   SocialConversationUpdateDto,
   SocialDmDto,
@@ -14,7 +14,7 @@ import {
 import {
   type SocialInboxScope,
   SocialInboxService,
-} from '@api/collections/social-inbox/services/social-inbox.service';
+} from '@server/collections/social-inbox/services/social-inbox.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -24,7 +24,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { QueueService } from '@api/queues/core/queue.service';
+import { QueueService } from '@server/queues/core/queue.service';
 import {
   ApiKeyScope,
   MemberRole,

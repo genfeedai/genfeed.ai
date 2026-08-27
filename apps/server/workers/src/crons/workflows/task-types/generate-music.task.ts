@@ -1,4 +1,4 @@
-import { ByokService } from '@api/services/byok/byok.service';
+import { ByokService } from '@server/services/byok/byok.service';
 import { ByokProvider, MusicTaskModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

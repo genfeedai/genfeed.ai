@@ -1,8 +1,8 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
-import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
+import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
 import { TwitterPipelineService } from '@api/services/twitter-pipeline/twitter-pipeline.service';
 import type {
   ITwitterSearchResult,

@@ -1,14 +1,14 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { UsersService } from '@api/collections/users/services/users.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { UsersService } from '@server/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { assertApiKeyAgentPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { assertApiKeyAgentPublishingScope } from '@server/helpers/utils/auth/api-key-publishing-scope.util';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
 import {
   AgentToolExecutorService,
   type ToolExecutionContext,
-} from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+} from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { getToolByName } from '@genfeedai/tools';
 import { LoggerService } from '@libs/logger/logger.service';

@@ -1,6 +1,6 @@
-import { RssSourcesService } from '@api/collections/rss-sources/services/rss-sources.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { RssSourcesService } from '@server/collections/rss-sources/services/rss-sources.service';
 
 @Injectable()
 export class CronRssAutopostService {

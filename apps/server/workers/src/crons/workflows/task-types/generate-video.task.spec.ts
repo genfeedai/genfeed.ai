@@ -1,5 +1,5 @@
-import { ManagedInferenceProvider } from '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
-import * as generationBrief from '@api/services/generation-brief';
+import { ManagedInferenceProvider } from '@server/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
+import * as generationBrief from '@server/services/generation-brief';
 import { VideoTaskModel } from '@genfeedai/enums';
 import { GenerateVideoTask } from '@workers/crons/workflows/task-types/generate-video.task';
 

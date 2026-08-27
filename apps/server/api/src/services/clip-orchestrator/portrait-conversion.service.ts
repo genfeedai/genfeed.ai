@@ -1,4 +1,4 @@
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

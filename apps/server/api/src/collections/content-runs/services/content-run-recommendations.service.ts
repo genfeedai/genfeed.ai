@@ -1,18 +1,18 @@
 import {
   computeVariantPerformanceScore,
   rankByScoreDesc,
-} from '@api/collections/content-performance/utils/variant-performance-scoring.util';
+} from '@server/collections/content-performance/utils/variant-performance-scoring.util';
 import {
   hydrateContentRun,
   isContentRunRecord,
   toContentRunJsonValue,
-} from '@api/collections/content-runs/utils/content-run-data.util';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+} from '@server/collections/content-runs/utils/content-run-data.util';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   ContentOptimizationService,
   type WinnerContentSignal,
-} from '@api/services/content-optimization/content-optimization.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+} from '@server/services/content-optimization/content-optimization.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type {
   ContentRunAnalyticsSummary,
   ContentRunRecommendation,

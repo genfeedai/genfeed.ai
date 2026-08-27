@@ -1,8 +1,8 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { CreateTranscriptDto } from '@api/collections/transcripts/dto/create-transcript.dto';
 import { UpdateTranscriptDto } from '@api/collections/transcripts/dto/update-transcript.dto';
 import { TranscriptsService } from '@api/collections/transcripts/services/transcripts.service';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {

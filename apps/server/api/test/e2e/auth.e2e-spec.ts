@@ -4,9 +4,9 @@
  */
 
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 // Import services
-import { UsersService } from '@api/collections/users/services/users.service';
+import { UsersService } from '@server/collections/users/services/users.service';
 import {
   createTestCredit,
   createTestMember,

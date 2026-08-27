@@ -1,7 +1,7 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
-import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
+import { ContentGatewayService } from '@server/services/content-gateway/content-gateway.service';
 import {
   ExecuteSkillDto,
   RouteSignalDto,
@@ -9,7 +9,7 @@ import {
 import type {
   ContentGatewayResponse,
   ContentGatewayResult,
-} from '@api/services/content-gateway/interfaces/content-gateway.interfaces';
+} from '@server/services/content-gateway/interfaces/content-gateway.interfaces';
 import { PostSerializer } from '@genfeedai/serializers';
 import { Body, Controller, Post, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';

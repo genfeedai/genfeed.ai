@@ -43,10 +43,4 @@ export interface CacheConfig extends CacheOptions {
   namespace?: string;
 }
 
-/**
- * Simplified cache options for service-level caching
- */
-export interface ServiceCacheOptions {
-  ttl?: number; // Time to live in seconds
-  tags?: string[]; // Cache tags for invalidation
-}
+export type { ServiceCacheOptions } from '@server/services/cache/cache.service';

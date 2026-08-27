@@ -1,4 +1,3 @@
-import { BeehiivProviderError } from '@api/services/integrations/beehiiv/errors/beehiiv-provider.error';
 import {
   ActivityKey,
   CredentialPlatform,
@@ -7,6 +6,7 @@ import {
 } from '@genfeedai/enums';
 import type { IPublishingProviderReadiness } from '@genfeedai/interfaces';
 import { WORKFLOW_APPROVED_SCHEDULE_SETTING } from '@genfeedai/server';
+import { BeehiivProviderError } from '@server/services/integrations/beehiiv/errors/beehiiv-provider.error';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 
 const PUBLISH_CAPABLE_READINESS: IPublishingProviderReadiness & {

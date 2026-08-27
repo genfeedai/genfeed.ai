@@ -1,6 +1,6 @@
-import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
-import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { DefaultRecurringContentService } from '@server/collections/brands/services/default-recurring-content.service';
+import { WorkflowTemplateSeederService } from '@server/collections/workflows/services/workflow-template-seeder.service';
+import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import { WorkflowDeploymentBackfillService } from '@api/seeds/workflow-deployment-backfill.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { ConfigModule } from '@libs/config/config.module';

@@ -4,13 +4,13 @@ import {
   type InvitationView,
 } from '@api/collections/members/services/invitation.service';
 import { CreateWarmupAccountDto } from '@api/endpoints/admin/warmup-accounts/dto/create-warmup-account.dto';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
 import {
   replaceCharacterRuns,
   trimCharacter,
-} from '@api/shared/utils/string/linear-string.util';
+} from '@server/shared/utils/string/linear-string.util';
 import type {
   IWarmupAccount,
   IWarmupAccountAuditEvent,

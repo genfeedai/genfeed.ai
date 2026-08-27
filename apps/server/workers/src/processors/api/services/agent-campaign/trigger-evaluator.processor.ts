@@ -1,4 +1,4 @@
-import { TriggerEvaluatorService } from '@api/services/agent-campaign/trigger-evaluator.service';
+import { TriggerEvaluatorService } from '@server/services/agent-campaign/trigger-evaluator.service';
 import {
   TRIGGER_EVALUATION_QUEUE,
   type TriggerEvaluationJobData,

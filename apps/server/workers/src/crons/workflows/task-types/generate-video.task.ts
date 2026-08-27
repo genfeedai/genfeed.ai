@@ -1,8 +1,8 @@
-import { ManagedInferenceProvider } from '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
-import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
-import { ByokService } from '@api/services/byok/byok.service';
-import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
-import { runVideoGenerationBrief } from '@api/services/generation-brief';
+import { ManagedInferenceProvider } from '@server/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
+import { ManagedInferenceClientService } from '@server/endpoints/v1/managed-inference/managed-inference-client.service';
+import { ByokService } from '@server/services/byok/byok.service';
+import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
+import { runVideoGenerationBrief } from '@server/services/generation-brief';
 import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import {
   ByokProvider,

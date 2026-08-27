@@ -1,13 +1,13 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { MusicsService } from '@api/collections/musics/services/musics.service';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { MusicsService } from '@server/collections/musics/services/musics.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 import {
   AssetScope,
   FileInputType,

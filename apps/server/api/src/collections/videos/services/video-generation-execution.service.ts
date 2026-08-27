@@ -1,7 +1,7 @@
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import type {
   CreateVideoPlaceholderActivityParams,
   VideoGenerationContext,
@@ -13,13 +13,13 @@ import {
   videoGenerationStartDetail,
 } from '@api/collections/videos/services/video-generation-output.util';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
-import { VideosService } from '@api/collections/videos/services/videos.service';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
-import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { toRedactedVideoGenerationBriefProviderData } from '@api/services/generation-brief';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import { VideosService } from '@server/collections/videos/services/videos.service';
+import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
+import { toRedactedVideoGenerationBriefProviderData } from '@server/services/generation-brief';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import {
   ActivityEntityModel,

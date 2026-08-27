@@ -1,11 +1,5 @@
-vi.mock('@api/collections/trends/trends.module', () => ({
-  TrendsModule: class TrendsModule {},
-}));
-vi.mock('@api/services/cache/cache.module', () => ({
+vi.mock('@server/services/cache/cache.module', () => ({
   CacheModule: class CacheModule {},
-}));
-vi.mock('@api/services/notifications/notifications.module', () => ({
-  NotificationsModule: class NotificationsModule {},
 }));
 
 import { CronTrendsModule } from '@workers/crons/trends/cron.trends.module';

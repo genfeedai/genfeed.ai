@@ -1,8 +1,8 @@
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
 import { ClipContinuityFinalizationService } from '@api/services/clip-orchestrator/clip-continuity-finalization.service';
-import { ClipOrchestratorService } from '@api/services/clip-orchestrator/clip-orchestrator.service';
-import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
+import { ClipOrchestratorService } from '@server/services/clip-orchestrator/clip-orchestrator.service';
+import { ClipOrchestratorStateStore } from '@server/services/clip-orchestrator/clip-orchestrator-state.store';
 import { ClipRunObserverService } from '@api/services/clip-orchestrator/clip-run-observer.service';
 import { PortraitConversionService } from '@api/services/clip-orchestrator/portrait-conversion.service';
 import { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';

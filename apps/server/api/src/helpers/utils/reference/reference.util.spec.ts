@@ -1,5 +1,5 @@
-import { AssetsService } from '@api/collections/assets/services/assets.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import {
   buildReferenceImageUrl,
   buildReferenceImageUrls,

@@ -1,4 +1,4 @@
-import type { WorkflowExecutionJobData } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import type { WorkflowExecutionJobData } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { ActionOrigin, WorkflowExecutionStatus } from '@genfeedai/enums';
 import { getActionOriginContext } from '@genfeedai/server';
 import { WorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';

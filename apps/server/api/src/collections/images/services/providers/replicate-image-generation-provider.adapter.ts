@@ -16,8 +16,8 @@ import {
   isFalDestination,
   isGenfeedAiDestination,
   isReplicateDestination,
-} from '@api/collections/models/utils/model-key.util';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+} from '@server/collections/models/utils/model-key.util';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
 import {
   canReceiveProviderWebhooks,
   isCloudDeployment,

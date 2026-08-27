@@ -1,7 +1,7 @@
 import { LeonardoAIWebhookPayloadDto } from '@api/endpoints/webhooks/dto/leonardoai-webhook-payload.dto';
 import { parseAllowedIps } from '@api/endpoints/webhooks/leonardoai/webhooks.leonardoai.constants';
 import { LeonardoaiWebhookService } from '@api/endpoints/webhooks/leonardoai/webhooks.leonardoai.service';
-import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';

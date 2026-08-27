@@ -7,7 +7,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   };
 });
 
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LifecycleEmailService } from './lifecycle-email.service';

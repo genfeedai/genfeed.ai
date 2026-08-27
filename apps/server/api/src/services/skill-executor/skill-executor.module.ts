@@ -9,12 +9,12 @@ import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { LeonardoAIModule } from '@api/services/integrations/leonardoai/leonardoai.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
-import { ContentGeoOptimizerHandler } from '@api/services/skill-executor/handlers/content-geo-optimizer.handler';
-import { ContentWritingHandler } from '@api/services/skill-executor/handlers/content-writing.handler';
-import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
-import { TrendDiscoveryHandler } from '@api/services/skill-executor/handlers/trend-discovery.handler';
-import { TrendRemixHandler } from '@api/services/skill-executor/handlers/trend-remix.handler';
-import { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
+import { ContentGeoOptimizerHandler } from '@server/services/skill-executor/handlers/content-geo-optimizer.handler';
+import { ContentWritingHandler } from '@server/services/skill-executor/handlers/content-writing.handler';
+import { ImageGenerationHandler } from '@server/services/skill-executor/handlers/image-generation.handler';
+import { TrendDiscoveryHandler } from '@server/services/skill-executor/handlers/trend-discovery.handler';
+import { TrendRemixHandler } from '@server/services/skill-executor/handlers/trend-remix.handler';
+import { SkillExecutorService } from '@server/services/skill-executor/skill-executor.service';
 import { Module } from '@nestjs/common';
 
 @Module({

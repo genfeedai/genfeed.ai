@@ -1,8 +1,8 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { testId } from '@helpers/testing/test-id.helper';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@api/helpers/decorators/log/log-method.decorator', () => ({
+vi.mock('@server/helpers/decorators/log/log-method.decorator', () => ({
   LogMethod: () => () => undefined,
 }));
 
@@ -13,7 +13,7 @@ vi.mock(
   }),
 );
 
-vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
+vi.mock('@server/shared/modules/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 
@@ -32,7 +32,7 @@ vi.mock('@genfeedai/enums', () => ({
 // subpath — no heavy PrismaClient/runtime import required.
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@api/shared/testing/prisma-mock'
+    '@server/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });

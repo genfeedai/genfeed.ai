@@ -1,12 +1,12 @@
 import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
 import { UpdateEditorProjectDto } from '@api/collections/editor-projects/dto/update-editor-project.dto';
 import type { EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { BaseService } from '@server/shared/services/base/base.service';
 import {
   findOrThrow,
   findUniqueOrThrow,
-} from '@api/shared/utils/find-or-throw/find-or-throw.util';
+} from '@server/shared/utils/find-or-throw/find-or-throw.util';
 import { EditorProjectStatus } from '@genfeedai/enums';
 import type {
   IEditorRenderCorrelation,

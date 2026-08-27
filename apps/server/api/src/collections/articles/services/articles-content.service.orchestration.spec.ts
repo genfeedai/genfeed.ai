@@ -1,14 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ArticleGenerationType } from '@api/collections/articles/dto/generate-articles.dto';
-import type { ArticleContentPersistenceService } from '@api/collections/articles/services/article-content-persistence.service';
-import type { ArticleReviewService } from '@api/collections/articles/services/article-review.service';
-import type { ArticleTextGenerationService } from '@api/collections/articles/services/article-text-generation.service';
-import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
-import type { PersistGeneratedArticleParams } from '@api/collections/articles/services/articles-content.types';
-import type { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
-import type { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { ArticleGenerationType } from '@server/collections/articles/dto/generate-articles.dto';
+import type { ArticleContentPersistenceService } from '@server/collections/articles/services/article-content-persistence.service';
+import type { ArticleReviewService } from '@server/collections/articles/services/article-review.service';
+import type { ArticleTextGenerationService } from '@server/collections/articles/services/article-text-generation.service';
+import { ArticlesContentService } from '@server/collections/articles/services/articles-content.service';
+import type { PersistGeneratedArticleParams } from '@server/collections/articles/services/articles-content.types';
+import type { AccountPublishingContextService } from '@server/collections/credentials/services/account-publishing-context.service';
+import type { TemplatesService } from '@server/collections/templates/services/templates.service';
 import {
   ArticleCategory,
   ArticleStatus,

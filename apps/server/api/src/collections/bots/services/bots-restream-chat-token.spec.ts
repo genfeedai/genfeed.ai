@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { BotsRestreamChatService } from './bots-restream-chat.service';
+import { BotsRestreamChatService } from '@server/collections/bots/services/bots-restream-chat.service';
 
 describe('BotsRestreamChatService.resolveRestreamAccessToken', () => {
   const livestream = {

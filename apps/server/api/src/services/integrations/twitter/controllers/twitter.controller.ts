@@ -1,14 +1,14 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
 import {
   ConnectCredentialDto,
   CreateCredentialVerifyDto,
-} from '@api/collections/credentials/dto/create-credential.dto';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+} from '@server/collections/credentials/dto/create-credential.dto';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import { TwitterAuthorizedSignalsService } from '@api/services/integrations/twitter/services/twitter-authorized-signals.service';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import {

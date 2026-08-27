@@ -13,7 +13,7 @@
  *   bun run apps/server/api/scripts/seeds/analytics-sync-workflows.seed.ts --env=production --live
  */
 
-import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
+import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/analytics-sync-workflows.template';
 import { runWorkflowSeed } from './shared/run-workflow-seed';
 
 void runWorkflowSeed({

@@ -3,9 +3,9 @@ import {
   ScrapeConfigDto,
 } from '@api/collections/content-intelligence/dto/add-creator.dto';
 import type { CreatorAnalysisDocument } from '@api/collections/content-intelligence/schemas/creator-analysis.schema';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
-import { readRecordOrEmpty } from '@api/shared/utils/object/read-record-or-empty.util';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { BaseService } from '@server/shared/services/base/base.service';
+import { readRecordOrEmpty } from '@server/shared/utils/object/read-record-or-empty.util';
 import { CreatorAnalysisStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';

@@ -1,4 +1,4 @@
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { SkillDownloadController } from '@api/skills-pro/controllers/skill-download.controller';
 import { SkillDownloadService } from '@api/skills-pro/services/skill-download.service';
 import { BadRequestException } from '@nestjs/common';

@@ -1,7 +1,7 @@
-import { TasksService } from '@api/collections/tasks/services/tasks.service';
-import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
-import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
-import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
+import { TasksService } from '@server/collections/tasks/services/tasks.service';
+import { AvatarVideoGenerationService } from '@server/collections/videos/services/avatar-video-generation.service';
+import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
+import { TaskOrchestratorService } from '@server/services/task-orchestration/task-orchestrator.service';
 import {
   WORKSPACE_TASK_QUEUE,
   WorkspaceTaskJobData,

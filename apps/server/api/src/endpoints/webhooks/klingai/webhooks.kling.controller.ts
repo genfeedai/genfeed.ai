@@ -1,6 +1,6 @@
 import { KlingAIWebhookPayloadDto } from '@api/endpoints/webhooks/dto/klingai-webhook-payload.dto';
 import { KlingWebhookService } from '@api/endpoints/webhooks/klingai/webhooks.kling.service';
-import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';

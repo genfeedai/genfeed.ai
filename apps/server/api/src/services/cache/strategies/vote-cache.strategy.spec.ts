@@ -1,4 +1,4 @@
-import { CacheService } from '@api/services/cache/services/cache.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { VoteCacheStrategy } from './vote-cache.strategy';
 

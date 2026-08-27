@@ -1,12 +1,10 @@
-import { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PostEntity } from '@server/collections/posts/entities/post.entity';
+import { PostsService } from '@server/collections/posts/services/posts.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   type SystemWorkflowProvenance,
   SystemWorkflowProvenanceService,
-} from '@api/collections/workflows/services/system-workflow-provenance.service';
-import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
-import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
+} from '@server/collections/workflows/system-workflow-provenance.service';
 import {
   CredentialPlatform,
   PostVisibility,
@@ -19,7 +17,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Inject, Injectable } from '@nestjs/common';
+import { customLabels } from '@server/helpers/utils/pagination.util';
 import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
+import { PublishEventWebhookService } from '@server/services/webhook-client/publish-event-webhook.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 type TiktokError = {

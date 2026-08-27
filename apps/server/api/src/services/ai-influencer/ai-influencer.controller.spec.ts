@@ -1,7 +1,7 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { AiInfluencerController } from '@api/services/ai-influencer/ai-influencer.controller';
-import { AiInfluencerService } from '@api/services/ai-influencer/ai-influencer.service';
+import { AiInfluencerService } from '@server/services/ai-influencer/ai-influencer.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Test, type TestingModule } from '@nestjs/testing';

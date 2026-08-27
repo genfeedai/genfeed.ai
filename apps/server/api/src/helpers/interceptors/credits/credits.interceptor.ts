@@ -1,4 +1,4 @@
-import { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ActivitySource } from '@genfeedai/enums';
 import type { CreditsConfig } from '@genfeedai/interfaces';

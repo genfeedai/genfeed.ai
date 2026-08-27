@@ -1,5 +1,5 @@
-import { PostsService } from '@api/collections/posts/services/posts.service';
-import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import {
   CredentialPlatform,
   PostCategory,

@@ -1,9 +1,9 @@
-import type { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { PostsService } from '@api/collections/posts/services/posts.service';
+import type { PostEntity } from '@server/collections/posts/entities/post.entity';
+import { PostsService } from '@server/collections/posts/services/posts.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
-} from '@api/collections/workflows/services/system-workflow-provenance.service';
+} from '@server/collections/workflows/system-workflow-provenance.service';
 import { resolvePostVisibility } from '@api-types/contracts/scheduler.contract';
 import {
   PostCategory,

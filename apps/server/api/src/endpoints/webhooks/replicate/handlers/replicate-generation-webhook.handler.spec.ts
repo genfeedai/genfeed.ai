@@ -1,9 +1,9 @@
-import type { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
-import { AssetsService } from '@api/collections/assets/services/assets.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
+import type { AssetDocument } from '@server/collections/assets/schemas/asset.schema';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
 import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
-import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { ModelCategory } from '@genfeedai/enums';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';

@@ -1,8 +1,8 @@
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BillingAccountStatus } from '@genfeedai/enums';
 import type { IBillingAccountMigrationReport } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 @Injectable()
 export class BillingAccountMigrationService {

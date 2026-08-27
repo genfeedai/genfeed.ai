@@ -1,4 +1,4 @@
-import type { ArticlesService } from '@api/collections/articles/services/articles.service';
+import type { ArticlesService } from '@server/collections/articles/services/articles.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { ArticleGenerationProcessor } from '@workers/processors/api/collections/articles/processors/article-generation.processor';
 import type { Job } from 'bullmq';

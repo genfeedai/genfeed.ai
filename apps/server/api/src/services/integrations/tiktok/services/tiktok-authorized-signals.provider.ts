@@ -3,7 +3,7 @@ import {
   isTikTokAuthorizationError,
   isTikTokRateLimitError,
   isTikTokScopeError,
-} from '@api/services/integrations/tiktok/utils/tiktok-error.util';
+} from '@server/services/integrations/tiktok/utils/tiktok-error.util';
 import type { TikTokOwnedVideoSignal } from '@api-types/contracts/tiktok-authorized-signals.contract';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';

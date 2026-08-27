@@ -1,5 +1,5 @@
-import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
-import { ClipRunState } from '@api/services/clip-orchestrator/clip-run-state.enum';
+import { ClipOrchestratorStateStore } from '@server/services/clip-orchestrator/clip-orchestrator-state.store';
+import { ClipRunState } from '@server/services/clip-orchestrator/clip-run-state.enum';
 import {
   MergeJobStatus,
   type VideoMergeQueue,

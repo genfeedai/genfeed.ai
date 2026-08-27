@@ -230,6 +230,8 @@ jobs:
             bun run lint
           fi
       - name: Run typecheck
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: |
           if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
             TURBO_SCM_BASE="$CI_BASE_SHA" bunx turbo run type-check --affected
