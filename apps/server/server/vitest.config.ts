@@ -31,6 +31,10 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/helpers/src'),
       },
       {
+        find: '@files',
+        replacement: path.resolve(serviceDir, '../files/src'),
+      },
+      {
         find: /^@helpers\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
@@ -104,6 +108,7 @@ export default defineConfig({
     globals: true,
     include: ['src/**/*.spec.ts'],
     passWithNoTests: false,
+    setupFiles: ['./test/setup-unit.ts'],
     testTimeout: 30000,
   },
 });

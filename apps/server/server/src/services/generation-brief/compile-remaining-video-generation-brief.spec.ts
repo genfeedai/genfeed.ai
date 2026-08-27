@@ -62,7 +62,7 @@ describe('compileRemainingVideoGenerationBrief', () => {
     });
 
     expect(result.dispatch.prompt).toBe(
-      'the product turns to camera, a daylight studio, dolly, wide, natural, handheld, slow, editorial',
+      'the product turns to camera. a daylight studio, dolly, wide, natural, handheld, slow, editorial',
     );
     expect(result.evidence.appliedFields).toEqual(
       expect.arrayContaining([
