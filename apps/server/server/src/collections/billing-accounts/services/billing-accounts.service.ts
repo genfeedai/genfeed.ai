@@ -19,7 +19,6 @@ import {
   getOrganizationLimitForTier,
   getUpgradeTierForLimit,
 } from '@genfeedai/pricing';
-import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   ConflictException,
@@ -247,103 +246,198 @@ export class BillingAccountsService {
 
     await this.requireRole(account.id, input.actorUserId, MUTATING_ROLE);
 
-    const linkedCount = await this.countLinkedOrganizations(account.id);
-    const alreadyLinked =
-      await this.prisma.billingAccountOrganization.findFirst({
-        where: {
-          billingAccountId: account.id,
-          isDeleted: false,
-          organizationId: input.organizationId,
-          status: BillingAccountOrganizationStatus.LINKED,
-        },
-      });
-    if (!alreadyLinked) {
-      const limit = this.organizationLimitForTier(account.planTier);
-      if (limit !== null && linkedCount >= limit) {
-        throw new PlanLimitExceededException({
-          currentCount: linkedCount,
-          limit,
-          resource: 'organizations',
-          upgradeTier: getUpgradeTierForLimit(
-            'organizations',
-            this.parseTier(account.planTier),
-          ),
+    const linkedAccount = await this.prisma.$transaction(
+      async (tx) => {
+        const currentAccount = await tx.billingAccount.findFirst({
+          where: { id: account.id, isDeleted: false },
         });
-      }
-    }
+        if (!currentAccount) {
+          throw new NotFoundException('BillingAccount');
+        }
 
-    if (!alreadyLinked) {
-      await this.prisma.billingAccountOrganization.create({
-        data: {
-          billingAccountId: account.id,
-          organizationId: input.organizationId,
-          status: BillingAccountOrganizationStatus.LINKED,
-        },
-      });
-    }
+        const organization = await tx.organization.findFirst({
+          select: { billingAccountId: true, id: true },
+          where: { id: input.organizationId, isDeleted: false },
+        });
+        if (!organization) {
+          throw new NotFoundException('Organization');
+        }
+        if (
+          organization.billingAccountId &&
+          organization.billingAccountId !== currentAccount.id
+        ) {
+          throw new ConflictException(
+            'Organization already belongs to another billing account',
+          );
+        }
 
-    await this.prisma.organization.update({
-      data: { billingAccountId: account.id },
-      where: { id: input.organizationId },
-    });
+        const conflictingLink = await tx.billingAccountOrganization.findFirst({
+          where: {
+            billingAccountId: { not: currentAccount.id },
+            isDeleted: false,
+            organizationId: input.organizationId,
+            status: BillingAccountOrganizationStatus.LINKED,
+          },
+        });
+        if (conflictingLink) {
+          throw new ConflictException(
+            'Organization already belongs to another billing account',
+          );
+        }
 
-    const orgBalance = await this.prisma.creditBalance.findFirst({
-      where: { isDeleted: false, organizationId: input.organizationId },
-    });
-    const accountBalance = await this.prisma.creditBalance.findFirst({
-      where: { billingAccountId: account.id, isDeleted: false },
-    });
+        const alreadyLinked = await tx.billingAccountOrganization.findFirst({
+          where: {
+            billingAccountId: currentAccount.id,
+            isDeleted: false,
+            organizationId: input.organizationId,
+            status: BillingAccountOrganizationStatus.LINKED,
+          },
+        });
+        if (!alreadyLinked) {
+          const linkedCount = await tx.billingAccountOrganization.count({
+            where: {
+              billingAccountId: currentAccount.id,
+              isDeleted: false,
+              status: BillingAccountOrganizationStatus.LINKED,
+            },
+          });
+          const limit = this.organizationLimitForTier(currentAccount.planTier);
+          if (limit !== null && linkedCount >= limit) {
+            throw new PlanLimitExceededException({
+              currentCount: linkedCount,
+              limit,
+              resource: 'organizations',
+              upgradeTier: getUpgradeTierForLimit(
+                'organizations',
+                this.parseTier(currentAccount.planTier),
+              ),
+            });
+          }
 
-    if (orgBalance && accountBalance && orgBalance.id !== accountBalance.id) {
-      await this.prisma.creditBalance.updateMany({
-        data: {
-          balance: accountBalance.balance + orgBalance.balance,
-        },
-        where: scopedWhere(input.organizationId, { id: accountBalance.id }),
-      });
-      await this.prisma.creditBalance.updateMany({
-        data: { isDeleted: true },
-        where: scopedWhere(input.organizationId, { id: orgBalance.id }),
-      });
-    } else if (orgBalance && !orgBalance.billingAccountId) {
-      await this.prisma.creditBalance.updateMany({
-        data: { billingAccountId: account.id },
-        where: scopedWhere(input.organizationId, { id: orgBalance.id }),
-      });
-    } else if (!orgBalance && !accountBalance) {
-      await this.prisma.creditBalance.create({
-        data: {
-          balance: 0,
-          billingAccountId: account.id,
-          heldAmount: 0,
-          organizationId: input.organizationId,
-          version: 0,
-        },
-      });
-    }
+          await tx.billingAccountOrganization.create({
+            data: {
+              billingAccountId: currentAccount.id,
+              organizationId: input.organizationId,
+              status: BillingAccountOrganizationStatus.LINKED,
+            },
+          });
+        }
 
-    await this.prisma.customer.updateMany({
-      data: { billingAccountId: account.id },
-      where: { isDeleted: false, organizationId: input.organizationId },
-    });
-    await this.prisma.subscription.updateMany({
-      data: { billingAccountId: account.id },
-      where: { isDeleted: false, organizationId: input.organizationId },
-    });
-    await this.prisma.creditTransaction.updateMany({
-      data: { billingAccountId: account.id },
-      where: {
-        billingAccountId: null,
-        organizationId: input.organizationId,
+        await tx.organization.update({
+          data: { billingAccountId: currentAccount.id },
+          where: { id: input.organizationId },
+        });
+
+        const orgBalance = await tx.creditBalance.findFirst({
+          where: { isDeleted: false, organizationId: input.organizationId },
+        });
+        const accountBalance = await tx.creditBalance.findFirst({
+          where: { billingAccountId: currentAccount.id, isDeleted: false },
+        });
+
+        if (
+          orgBalance?.billingAccountId &&
+          orgBalance.billingAccountId !== currentAccount.id
+        ) {
+          throw new ConflictException(
+            'Organization credit balance belongs to another billing account',
+          );
+        }
+
+        if (
+          orgBalance &&
+          accountBalance &&
+          orgBalance.id !== accountBalance.id
+        ) {
+          const mergedBalance = await tx.creditBalance.updateMany({
+            data: {
+              balance: { increment: orgBalance.balance },
+              heldAmount: { increment: orgBalance.heldAmount },
+              version: { increment: 1 },
+            },
+            where: {
+              billingAccountId: currentAccount.id,
+              id: accountBalance.id,
+              isDeleted: false,
+            },
+          });
+          if (mergedBalance.count !== 1) {
+            throw new ConflictException(
+              'Billing account credit balance changed during organization link',
+            );
+          }
+
+          const retiredBalance = await tx.creditBalance.updateMany({
+            data: { isDeleted: true },
+            where: {
+              id: orgBalance.id,
+              isDeleted: false,
+              organizationId: input.organizationId,
+              OR: [
+                { billingAccountId: null },
+                { billingAccountId: currentAccount.id },
+              ],
+            },
+          });
+          if (retiredBalance.count !== 1) {
+            throw new ConflictException(
+              'Organization credit balance changed during billing account link',
+            );
+          }
+        } else if (orgBalance && !orgBalance.billingAccountId) {
+          const attachedBalance = await tx.creditBalance.updateMany({
+            data: { billingAccountId: currentAccount.id },
+            where: {
+              billingAccountId: null,
+              id: orgBalance.id,
+              isDeleted: false,
+              organizationId: input.organizationId,
+            },
+          });
+          if (attachedBalance.count !== 1) {
+            throw new ConflictException(
+              'Organization credit balance changed during billing account link',
+            );
+          }
+        } else if (!orgBalance && !accountBalance) {
+          await tx.creditBalance.create({
+            data: {
+              balance: 0,
+              billingAccountId: currentAccount.id,
+              heldAmount: 0,
+              organizationId: input.organizationId,
+              version: 0,
+            },
+          });
+        }
+
+        await tx.customer.updateMany({
+          data: { billingAccountId: currentAccount.id },
+          where: { isDeleted: false, organizationId: input.organizationId },
+        });
+        await tx.subscription.updateMany({
+          data: { billingAccountId: currentAccount.id },
+          where: { isDeleted: false, organizationId: input.organizationId },
+        });
+        await tx.creditTransaction.updateMany({
+          data: { billingAccountId: currentAccount.id },
+          where: {
+            billingAccountId: null,
+            organizationId: input.organizationId,
+          },
+        });
+
+        return currentAccount;
       },
-    });
+      { isolationLevel: 'Serializable' },
+    );
 
     this.logger.log('Linked organization to billing account', {
-      billingAccountId: account.id,
+      billingAccountId: linkedAccount.id,
       organizationId: input.organizationId,
     });
 
-    return account;
+    return linkedAccount;
   }
 
   async detachOrganization(input: {
