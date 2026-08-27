@@ -234,7 +234,7 @@ export class AgentPublishToolHandler {
       };
     }
 
-    const policy = evaluateAgentAutoPublishPolicies({
+    const autoPublishPolicy = evaluateAgentAutoPublishPolicies({
       autonomyMode: ctx.autonomyMode,
       brandAutoPublishEnabled: ctx.confirmationOrigin === 'thread-ui-action',
       channels: createdPlatforms,
@@ -251,7 +251,7 @@ export class AgentPublishToolHandler {
         settings: {
           ...(targetsWithCaptions[order]?.settings ?? {}),
           ...(postingSetId ? { postingSetId } : {}),
-          autoPublishPolicyId: policy.policyId,
+          autoPublishPolicyId: autoPublishPolicy.policyId,
         },
         timezone: targetsWithCaptions[order]?.timezone ?? timezone,
         visibility: targetsWithCaptions[order]?.visibility ?? visibility,
