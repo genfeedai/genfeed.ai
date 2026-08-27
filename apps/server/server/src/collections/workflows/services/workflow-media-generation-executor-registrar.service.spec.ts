@@ -1,13 +1,14 @@
-import type { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
-import { WorkflowMediaGenerationExecutorRegistrarService } from '@server/collections/workflows/services/workflow-media-generation-executor-registrar.service';
-import * as imageGenerationBriefRegistry from '@server/services/generation-brief/image-generation-brief-registry';
 import { QWEN_IMAGE_MODEL_KEY } from '@api-types/contracts/generation-capability-profile.contract';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   type INodeExecutor,
   type NodeExecutor,
   WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import { ServiceUnavailableException } from '@nestjs/common';
+import type { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
+import { WorkflowMediaGenerationExecutorRegistrarService } from '@server/collections/workflows/services/workflow-media-generation-executor-registrar.service';
+import * as imageGenerationBriefRegistry from '@server/services/generation-brief/image-generation-brief-registry';
 import { describe, expect, it, vi } from 'vitest';
 
 const wrapEngineExecutor =
@@ -171,5 +172,69 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
 
     expect(createAndLinkProcessingOutput).not.toHaveBeenCalled();
     expect(replicateService.runModel).not.toHaveBeenCalled();
+  });
+
+  it('registers video generation without a prompt builder and forwards the last frame', async () => {
+    const createAndLinkProcessingOutput = vi.fn(
+      async (
+        args: Parameters<
+          WorkflowEngineExecutorHelperService['createAndLinkProcessingOutput']
+        >[0],
+      ) => {
+        await args.runProvider('ingredient-1');
+        return { ingredientId: 'ingredient-1', metadataId: 'metadata-1' };
+      },
+    );
+    const helper = {
+      buildVideoIngredientUrl: (ingredientId: string) =>
+        `https://api.test/videos/${ingredientId}`,
+      createAndLinkProcessingOutput,
+      requireBrandId: (brandId: unknown) => String(brandId),
+      wrapEngineExecutor,
+    } as unknown as WorkflowEngineExecutorHelperService;
+    const replicateService = {
+      runModel: vi.fn().mockResolvedValue('prediction-1'),
+    };
+    const engine = new WorkflowEngine();
+
+    new WorkflowMediaGenerationExecutorRegistrarService(
+      helper,
+      { log: vi.fn() } as never,
+      undefined,
+      undefined,
+      undefined,
+      replicateService as never,
+    ).register(engine);
+
+    await engine.getExecutor('videoGen')?.(
+      {
+        config: {
+          brandId: 'brand-1',
+          image: 'first-frame-1',
+          lastFrame: 'last-frame-1',
+          model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+          prompt: 'A product rotates toward camera',
+        },
+        id: 'video-gen-1',
+        inputs: [],
+        label: 'Generate video',
+        type: 'videoGen',
+      },
+      new Map(),
+      {
+        organizationId: 'org-1',
+        runId: 'run-1',
+        userId: 'user-1',
+        workflowId: 'workflow-1',
+      },
+    );
+
+    expect(replicateService.runModel).toHaveBeenCalledWith(
+      MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+      expect.objectContaining({
+        end_image: 'last-frame-1',
+        start_image: 'first-frame-1',
+      }),
+    );
   });
 });

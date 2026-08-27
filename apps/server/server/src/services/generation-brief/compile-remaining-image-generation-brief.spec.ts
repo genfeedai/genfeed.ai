@@ -67,6 +67,26 @@ describe('compileRemainingImageGenerationBrief', () => {
     expect(result.evidence.omittedSignals).toEqual([]);
   });
 
+  it('omits seeds for GPT Image profiles that do not expose a seed field', () => {
+    const brief = imageGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'a sunset over the ocean' },
+      mediaKind: 'image',
+      output: { aspectRatio: '1:1' },
+      version: 1,
+    });
+
+    const result = compileRemainingImageGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5),
+      modelKey: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5,
+      seed: 42,
+    });
+
+    expect(result.dispatch).not.toHaveProperty('seed');
+  });
+
   it('rejects PuLID compilation when the required identity reference is missing', () => {
     const brief = imageGenerationBriefSchema.parse({
       constraints: [],

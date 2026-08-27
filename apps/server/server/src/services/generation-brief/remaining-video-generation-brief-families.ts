@@ -50,6 +50,7 @@ function profile(
     nativeFields?: string[];
     negativePromptSupported?: boolean;
     requireImageToVideo?: boolean;
+    seedSupported?: boolean;
   },
 ): RemainingVideoCapabilityProfile {
   return buildRemainingVideoCapabilityProfile({
@@ -63,6 +64,7 @@ function profile(
     nativeFields: extras?.nativeFields,
     negativePromptSupported: extras?.negativePromptSupported,
     requireImageToVideo: extras?.requireImageToVideo,
+    seedSupported: extras?.seedSupported,
   });
 }
 
@@ -133,6 +135,7 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
           defaultSeconds: 8,
           maxSeconds: 12,
           nativeFields: ['input_reference'],
+          seedSupported: false,
         }),
         profile(
           'sora-2-pro-capability',
@@ -141,6 +144,7 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
             defaultSeconds: 8,
             maxSeconds: 12,
             nativeFields: ['input_reference'],
+            seedSupported: false,
           },
         ),
       ],

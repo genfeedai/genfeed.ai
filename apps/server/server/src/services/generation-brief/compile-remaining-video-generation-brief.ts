@@ -85,10 +85,23 @@ export function compileRemainingVideoGenerationBrief(
   let firstFrameAssetId: string | undefined;
   let lastFrameAssetId: string | undefined;
   const extraReferenceAssetIds: string[] = [];
+  const supportsFirstFrame = profile.references.roles.includes('first_frame');
 
   for (const reference of brief.references) {
+    if (!profile.references.roles.includes(reference.role)) {
+      recordOmittedGenerationBriefSignal(
+        omitted,
+        `references.${reference.role}`,
+        `${spec.modelLabel} does not support ${reference.role} references for ${profile.modelKey}.`,
+        policy,
+        required,
+        spec.modelLabel,
+      );
+      continue;
+    }
     if (
-      (reference.role === 'first_frame' || reference.role === 'subject') &&
+      (reference.role === 'first_frame' ||
+        (reference.role === 'subject' && supportsFirstFrame)) &&
       firstFrameAssetId === undefined
     ) {
       firstFrameAssetId = reference.assetId;

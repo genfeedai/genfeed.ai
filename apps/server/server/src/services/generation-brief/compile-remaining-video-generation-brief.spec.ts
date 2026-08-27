@@ -114,4 +114,46 @@ describe('compileRemainingVideoGenerationBrief', () => {
 
     expect(result.dispatch.start_image).toBe('frame-1');
   });
+
+  it('omits seeds for Sora profiles that do not expose a seed field', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'waves hitting a cliff at dusk' },
+      mediaKind: 'video',
+      output: { aspectRatio: '16:9', durationSeconds: 8 },
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_OPENAI_SORA_2),
+      modelKey: MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
+      seed: 42,
+    });
+
+    expect(result.dispatch).not.toHaveProperty('seed');
+  });
+
+  it('rejects a last frame when the selected profile exposes only a start image', () => {
+    const modelKey = MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO;
+    const family = familyFor(modelKey);
+    const profile = family.profiles.find(
+      (candidate) => candidate.modelKey === modelKey,
+    );
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'strict',
+      intent: { objective: 'the product turns to camera' },
+      mediaKind: 'video',
+      output: { aspectRatio: '9:16', durationSeconds: 5 },
+      references: [{ assetId: 'last-frame-1', role: 'last_frame' }],
+      version: 1,
+    });
+
+    expect(profile?.references.roles).toEqual(['subject', 'first_frame']);
+    expect(() =>
+      compileRemainingVideoGenerationBrief({ brief, family, modelKey }),
+    ).toThrow(GenerationBriefCompileError);
+  });
 });

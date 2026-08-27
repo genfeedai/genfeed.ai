@@ -110,6 +110,25 @@ describe('BrandRemixRunPlanningService', () => {
     );
   });
 
+  it('blocks strict fidelity when it has only a style reference', () => {
+    const draft = {
+      fidelityMode: 'strict',
+      identity: {},
+      intent: { objective: 'Create an original brand execution.' },
+      output: { aspectRatio: '1:1', count: 1, kind: 'image' },
+      references: [{ assetId: 'style-1', role: 'style' }],
+      reviewRequired: true,
+      target: { kind: 'organic', platform: 'instagram' },
+    } as BrandRemixDraft;
+
+    const readiness = planning.buildReadiness(brandContext, draft);
+
+    expect(readiness.state).toBe('blocked');
+    expect(readiness.issues.map((issue) => issue.code)).toContain(
+      'missing_required_reference',
+    );
+  });
+
   it('maps persisted reference categories into immutable semantic defaults', () => {
     const draft = planning.defaultDraft(
       {

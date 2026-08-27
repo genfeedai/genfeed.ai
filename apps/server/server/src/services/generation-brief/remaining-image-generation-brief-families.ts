@@ -49,6 +49,7 @@ function profile(
     defaultAspectRatio?: string;
     nativeFields?: string[];
     negativePromptSupported?: boolean;
+    seedSupported?: boolean;
   },
 ): RemainingImageCapabilityProfile {
   return buildRemainingImageCapabilityProfile({
@@ -58,6 +59,7 @@ function profile(
     modelKey,
     nativeFields: extras?.nativeFields,
     negativePromptSupported: extras?.negativePromptSupported,
+    seedSupported: extras?.seedSupported,
   });
 }
 
@@ -73,6 +75,7 @@ export const REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES: readonly RemainingImageG
           4,
           {
             nativeFields: ['input_images'],
+            seedSupported: false,
           },
         ),
         profile(
@@ -81,10 +84,12 @@ export const REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES: readonly RemainingImageG
           10,
           {
             nativeFields: ['input_images'],
+            seedSupported: false,
           },
         ),
         profile('fal-gpt-image-2-capability', MODEL_KEYS.FAL_GPT_IMAGE_2, 10, {
           nativeFields: ['input_images'],
+          seedSupported: false,
         }),
       ],
       spec: {

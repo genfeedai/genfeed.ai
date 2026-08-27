@@ -60,6 +60,42 @@ const REMAINING_VIDEO_ASPECT_RATIOS = [
   '1:1',
 ] as const;
 
+const FIRST_FRAME_NATIVE_FIELDS = new Set([
+  'image',
+  'input_reference',
+  'start_image',
+]);
+const LAST_FRAME_NATIVE_FIELDS = new Set([
+  'end_image',
+  'last_frame',
+  'last_image',
+]);
+
+export function deriveRemainingVideoReferenceRoles(
+  nativeFields: readonly string[],
+): (typeof generationReferenceRoleValues)[number][] {
+  const roles = new Set<(typeof generationReferenceRoleValues)[number]>();
+  if (nativeFields.some((field) => FIRST_FRAME_NATIVE_FIELDS.has(field))) {
+    roles.add('first_frame');
+    roles.add('subject');
+  }
+  if (nativeFields.some((field) => LAST_FRAME_NATIVE_FIELDS.has(field))) {
+    roles.add('last_frame');
+  }
+  if (nativeFields.includes('reference_images')) {
+    for (const role of [
+      'subject',
+      'character',
+      'product',
+      'style',
+      'composition',
+    ] as const) {
+      roles.add(role);
+    }
+  }
+  return generationReferenceRoleValues.filter((role) => roles.has(role));
+}
+
 export function buildRemainingVideoCapabilityProfile(input: {
   audioSupported?: boolean;
   defaultAspectRatio?: string;
@@ -75,6 +111,7 @@ export function buildRemainingVideoCapabilityProfile(input: {
   seedSupported?: boolean;
 }): RemainingVideoCapabilityProfile {
   const maxReferences = input.maxReferences;
+  const nativeFields = input.nativeFields ?? [];
   return remainingVideoCapabilityProfileSchema.parse({
     aspectRatios: [...REMAINING_VIDEO_ASPECT_RATIOS],
     audio: { supported: input.audioSupported === true },
@@ -102,8 +139,11 @@ export function buildRemainingVideoCapabilityProfile(input: {
     },
     references: {
       max: maxReferences,
-      nativeFields: input.nativeFields ?? [],
-      roles: maxReferences > 0 ? [...generationReferenceRoleValues] : [],
+      nativeFields,
+      roles:
+        maxReferences > 0
+          ? deriveRemainingVideoReferenceRoles(nativeFields)
+          : [],
     },
     resolution: { supported: false },
     seed: { supported: input.seedSupported !== false },
