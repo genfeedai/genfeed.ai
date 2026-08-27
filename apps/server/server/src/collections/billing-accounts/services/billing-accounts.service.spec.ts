@@ -1,6 +1,3 @@
-import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
-import { PlanLimitExceededException } from '@api/helpers/exceptions/business/business-logic.exception';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BillingAccountMemberRole,
   BillingAccountOrganizationStatus,
@@ -8,6 +5,9 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
+import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
+import { PlanLimitExceededException } from '@server/exceptions/business-logic.exception';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 describe('BillingAccountsService', () => {
   const prisma = {

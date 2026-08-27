@@ -7,7 +7,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   };
 });
 
-import type { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
+import type { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import type { BrandsService } from '@server/collections/brands/services/brands.service';
 import type { MembersService } from '@api/collections/members/services/members.service';

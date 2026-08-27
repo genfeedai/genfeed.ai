@@ -1,9 +1,3 @@
-import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
-import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
-import { BusinessLogicException } from '@api/helpers/exceptions/business/business-logic.exception';
-import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
-import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
   CreditReservationStatus,
@@ -15,6 +9,12 @@ import type {
 } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
+import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
+import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
+import type { PrismaTransactionClient } from '@server/helpers/utils/transaction/transaction.util';
+import { TransactionUtil } from '@server/helpers/utils/transaction/transaction.util';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const DEFAULT_RESERVATION_TTL_MS = 2 * 60 * 60 * 1000;
 

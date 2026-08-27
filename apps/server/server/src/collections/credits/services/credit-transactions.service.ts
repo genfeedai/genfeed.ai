@@ -1,3 +1,7 @@
+import { CreditTransactionCategory } from '@genfeedai/enums';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import type { CreditTransactionsDocument } from '@server/collections/credits/schemas/credit-transactions.schema';
 import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
 import { CACHE_PATTERNS } from '@server/common/constants/cache-patterns.constants';
@@ -6,10 +10,6 @@ import { BusinessLogicException } from '@server/exceptions/business-logic.except
 import type { PrismaTransactionClient } from '@server/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BaseService } from '@server/shared/services/base/base.service';
-import { CreditTransactionCategory } from '@genfeedai/enums';
-import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 type CreateTransactionEntryOptions = {
   actorUserId?: string;

@@ -1,7 +1,7 @@
-import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { TargetExecutionState } from '@genfeedai/enums';
 import type { PostPublishQueueService } from '@genfeedai/server';
 import { BadRequestException } from '@nestjs/common';
+import type { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
 
 const PUBLISHABLE_EXECUTION_STATES = new Set<string>([
   TargetExecutionState.SCHEDULED,

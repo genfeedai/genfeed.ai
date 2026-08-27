@@ -1,6 +1,8 @@
-import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
-import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import type { EventEmitter2 } from '@nestjs/event-emitter';
+import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
 import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
+import { CreditReservationService } from '@server/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
@@ -10,8 +12,6 @@ import type { PrismaTransactionClient } from '@server/helpers/utils/transaction/
 import { TransactionUtil } from '@server/helpers/utils/transaction/transaction.util';
 import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import type { EventEmitter2 } from '@nestjs/event-emitter';
 
 describe('CreditsUtilsService', () => {
   const loggerService = { error: vi.fn(), log: vi.fn() };

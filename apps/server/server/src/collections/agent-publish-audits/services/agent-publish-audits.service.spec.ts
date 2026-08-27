@@ -1,14 +1,14 @@
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@api/shared/testing/prisma-mock'
+    '@server/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
 
-import { AgentPublishAuditsService } from '@api/collections/agent-publish-audits/services/agent-publish-audits.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AgentPublishDecision } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
+import { AgentPublishAuditsService } from '@server/collections/agent-publish-audits/services/agent-publish-audits.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeRow(overrides: Record<string, unknown> = {}) {

@@ -18,6 +18,7 @@ import { AdOptimizationRecommendationsService } from '@server/collections/ad-opt
 import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
 import { AgentCampaignExecutionService } from '@server/collections/agent-campaigns/services/agent-campaign-execution.service';
 import { AgentCampaignsService } from '@server/collections/agent-campaigns/services/agent-campaigns.service';
+import { AgentPublishAuditsService } from '@server/collections/agent-publish-audits/services/agent-publish-audits.service';
 import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { AgentStrategiesService } from '@server/collections/agent-strategies/services/agent-strategies.service';
 import { AgentStrategyAutopilotService } from '@server/collections/agent-strategies/services/agent-strategy-autopilot.service';
@@ -27,6 +28,7 @@ import { AgentStrategyWorkflowRunService } from '@server/collections/agent-strat
 import { ArticleAnalyticsService } from '@server/collections/articles/services/article-analytics.service';
 import { ArticlesService } from '@server/collections/articles/services/articles.service';
 import { ArticlesContentService } from '@server/collections/articles/services/articles-content.service';
+import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
 import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
 import { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
 import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
@@ -50,6 +52,7 @@ import { CreativePatternsService } from '@server/collections/creative-patterns/c
 import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
+import { CreditReservationService } from '@server/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { VideoGenerationLineageService } from '@server/collections/credits/services/video-generation-lineage.service';
@@ -234,6 +237,7 @@ const WORKER_DOMAIN_SERVICES = [
   AgentCampaignsService,
   AgentOrchestratorService,
   AgentRunQueueService,
+  AgentPublishAuditsService,
   AgentRunsService,
   AgentStrategiesService,
   AgentStrategyAutopilotService,
@@ -261,6 +265,7 @@ const WORKER_DOMAIN_SERVICES = [
   BatchGenerationQueueService,
   BatchGenerationReconcileService,
   BatchGenerationService,
+  BillingAccountsService,
   BatchGenerationStreamService,
   BatchWorkflowQueueService,
   BatchWorkflowService,
@@ -290,6 +295,7 @@ const WORKER_DOMAIN_SERVICES = [
   CreativePatternsService,
   CredentialPublishingReadinessService,
   CreditBalanceService,
+  CreditReservationService,
   CreditTransactionsService,
   CreditsUtilsService,
   CustomerInstanceResolverService,

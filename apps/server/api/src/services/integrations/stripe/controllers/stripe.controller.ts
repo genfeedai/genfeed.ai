@@ -1,8 +1,4 @@
-import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 import { CreateCheckoutSessionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
-import { UsersService } from '@server/collections/users/services/users.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -15,7 +11,6 @@ import {
   BillingAccountResolutionError,
   OrganizationBillingAccountService,
 } from '@api/services/integrations/stripe/services/organization-billing-account.service';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { isEEEnabled } from '@genfeedai/config';
 import { BillingAccountMemberRole } from '@genfeedai/enums';
@@ -38,6 +33,11 @@ import {
   ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { UsersService } from '@server/collections/users/services/users.service';
+import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import type { Request } from 'express';
 
 @AutoSwagger()

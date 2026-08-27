@@ -1,5 +1,3 @@
-import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
-import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import {
   ActivityKey,
   ActivitySource,
@@ -16,7 +14,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
 import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
+import { CreditReservationService } from '@server/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';

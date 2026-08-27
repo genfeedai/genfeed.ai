@@ -1,6 +1,6 @@
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@api/shared/testing/prisma-mock'
+    '@server/shared/testing/prisma-mock'
   );
   return {
     ...canonicalPrismaMock(),
@@ -9,7 +9,7 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { EngagementRulesService } from '@api/collections/engagement-rules/services/engagement-rules.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   EngagementMetric,
   EngagementRuleAction,

@@ -1,6 +1,3 @@
-import { PlanLimitExceededException } from '@api/helpers/exceptions/business/business-logic.exception';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BillingAccountBudgetPolicy,
   BillingAccountMemberRole,
@@ -25,6 +22,9 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
+import { PlanLimitExceededException } from '@server/exceptions/business-logic.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const MUTATING_ROLE = BillingAccountMemberRole.ADMINISTRATOR;
 const OWNER_ROLE = BillingAccountMemberRole.OWNER;

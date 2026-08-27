@@ -146,7 +146,7 @@ function createSignupProvisioningHarness() {
     settingsService as unknown as SettingsService,
     {
       ensureForOrganization: vi.fn().mockResolvedValue({ id: 'ba_1' }),
-    } as unknown as import('@api/collections/billing-accounts/services/billing-accounts.service').BillingAccountsService,
+    } as unknown as import('@server/collections/billing-accounts/services/billing-accounts.service').BillingAccountsService,
     creditBalanceService as unknown as CreditBalanceService,
     creditsUtilsService as unknown as CreditsUtilsService,
     logger as unknown as LoggerService,

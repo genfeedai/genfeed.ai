@@ -1,4 +1,4 @@
-import type { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
+import type { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';

@@ -1,5 +1,4 @@
 import process from 'node:process';
-import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
 import { getSupportedPostVisibilities } from '@api-types/contracts/channel-capabilities.contract';
 import {
   projectLegacyPostStatus,
@@ -39,6 +38,7 @@ import {
   type PostBatchScheduleResult,
   type PostBatchScheduleTarget,
 } from '@server/collections/posts/services/post-batch-schedule.util';
+import { bindScheduledPublishApproval } from '@server/collections/posts/services/post-schedule-approval.util';
 import { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
 import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 import { CacheService } from '@server/services/cache/cache.service';

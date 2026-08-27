@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import { AgentPublishAuditsService } from '@api/collections/agent-publish-audits/services/agent-publish-audits.service';
 import { evaluateAgentAutoPublishPolicies } from '@api-types/contracts/agent-auto-publish.contract';
 import {
   type AgentPublishPolicyResult,
@@ -35,6 +34,7 @@ import {
   Injectable,
   Optional,
 } from '@nestjs/common';
+import { AgentPublishAuditsService } from '@server/collections/agent-publish-audits/services/agent-publish-audits.service';
 import { AgentStrategiesService } from '@server/collections/agent-strategies/services/agent-strategies.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';

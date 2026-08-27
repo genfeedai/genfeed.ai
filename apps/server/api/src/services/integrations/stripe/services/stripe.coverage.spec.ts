@@ -7,10 +7,10 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   };
 });
 
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import Stripe from 'stripe';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

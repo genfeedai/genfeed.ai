@@ -1,5 +1,5 @@
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {

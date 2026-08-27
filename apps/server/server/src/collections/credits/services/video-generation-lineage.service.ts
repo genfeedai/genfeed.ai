@@ -1,4 +1,3 @@
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { type Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import type {
@@ -7,6 +6,7 @@ import type {
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 export const VIDEO_GENERATION_LINEAGE_REFERENCE_TYPE =
   'video-generation-lineage';
