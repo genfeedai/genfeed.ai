@@ -5,13 +5,13 @@
  * - Get video posts (published instances)
  */
 
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { type IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
 import { type PostDocument } from '@server/collections/posts/post.schema';
-import { PostsService } from '@api/collections/posts/services/posts.service';
-import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
-import { VideosService } from '@api/collections/videos/services/videos.service';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { VideosQueryDto } from '@server/collections/videos/dto/videos-query.dto';
+import { VideosService } from '@server/collections/videos/services/videos.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -19,7 +19,7 @@ import { customLabels } from '@server/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { PostSerializer, VideoSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

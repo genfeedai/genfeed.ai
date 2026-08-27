@@ -4,9 +4,9 @@ import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   AgentTurnAcceptanceService,
   buildAgentTurnRunId,
-} from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
-import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+} from '@server/services/agent-orchestrator/agent-turn-acceptance.service';
+import type { AgentChatContext } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   AgentExecutionStatus,
   AgentMessageRole,

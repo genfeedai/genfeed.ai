@@ -2,7 +2,7 @@ import {
   type BatchPipelineConfig,
   ContentOrchestrationService,
   type PipelineConfig,
-} from '@api/services/content-orchestration/content-orchestration.service';
+} from '@server/services/content-orchestration/content-orchestration.service';
 import {
   CONTENT_PIPELINE_QUEUE,
   type ContentPipelineJobData,

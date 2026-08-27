@@ -18,7 +18,11 @@ import {
 } from '@workers/maintenance/fal-model-sync';
 
 @Module({
-  imports: [ConfigModule, LoggerModule, CronFalModelWatcherModule],
+  imports: [
+    ConfigModule,
+    LoggerModule,
+    CronFalModelWatcherModule,
+  ],
 })
 class FalModelSyncMaintenanceModule {}
 

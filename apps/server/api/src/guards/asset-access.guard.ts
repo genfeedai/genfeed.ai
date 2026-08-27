@@ -1,5 +1,5 @@
-import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { AssetScope } from '@genfeedai/enums';
 import {

@@ -1,6 +1,6 @@
 import { type AnnouncementDocument } from '@api/collections/announcements/schemas/announcement.schema';
 import { AnnouncementsService as AnnouncementsCollectionService } from '@api/collections/announcements/services/announcements.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { REDIS_EVENTS } from '@genfeedai/integrations';

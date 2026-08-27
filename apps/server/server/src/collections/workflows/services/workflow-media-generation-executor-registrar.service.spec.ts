@@ -1,0 +1,175 @@
+import type { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
+import { WorkflowMediaGenerationExecutorRegistrarService } from '@server/collections/workflows/services/workflow-media-generation-executor-registrar.service';
+import * as imageGenerationBriefRegistry from '@server/services/generation-brief/image-generation-brief-registry';
+import { QWEN_IMAGE_MODEL_KEY } from '@api-types/contracts/generation-capability-profile.contract';
+import {
+  type INodeExecutor,
+  type NodeExecutor,
+  WorkflowEngine,
+} from '@genfeedai/workflows/engine';
+import { ServiceUnavailableException } from '@nestjs/common';
+import { describe, expect, it, vi } from 'vitest';
+
+const wrapEngineExecutor =
+  (executor: INodeExecutor) =>
+  async (...args: Parameters<NodeExecutor>) =>
+    (
+      await executor.execute({
+        context: args[2],
+        inputs: args[1],
+        node: args[0],
+      })
+    ).data;
+
+describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
+  it('preserves compiled negative prompts and canonical provenance in the workflow result and persisted output', async () => {
+    const createAndLinkProcessingOutput = vi.fn(
+      async (
+        args: Parameters<
+          WorkflowEngineExecutorHelperService['createAndLinkProcessingOutput']
+        >[0],
+      ) => {
+        await args.runProvider('ingredient-1');
+        return { ingredientId: 'ingredient-1', metadataId: 'metadata-1' };
+      },
+    );
+    const helper = {
+      buildImageIngredientUrl: (ingredientId: string) =>
+        `https://api.test/images/${ingredientId}`,
+      createAndLinkProcessingOutput,
+      requireBrandId: (brandId: unknown) => String(brandId),
+      wrapEngineExecutor,
+    } as unknown as WorkflowEngineExecutorHelperService;
+    const promptBuilderService = { buildPrompt: vi.fn() };
+    const replicateService = {
+      runModel: vi.fn().mockResolvedValue('prediction-1'),
+    };
+    const engine = new WorkflowEngine();
+
+    new WorkflowMediaGenerationExecutorRegistrarService(
+      helper,
+      { log: vi.fn() } as never,
+      promptBuilderService as never,
+      undefined,
+      undefined,
+      replicateService as never,
+    ).register(engine);
+
+    const result = await engine.getExecutor('imageGen')?.(
+      {
+        config: {
+          brandId: 'brand-1',
+          height: 1024,
+          model: QWEN_IMAGE_MODEL_KEY,
+          negativePrompt: 'watermark, blurry text',
+          prompt: 'A launch poster',
+          width: 1024,
+        },
+        id: 'image-gen-1',
+        inputs: [],
+        label: 'Generate image',
+        type: 'imageGen',
+      },
+      new Map(),
+      {
+        organizationId: 'org-1',
+        runId: 'run-1',
+        userId: 'user-1',
+        workflowId: 'workflow-1',
+      },
+    );
+
+    expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
+    expect(replicateService.runModel).toHaveBeenCalledWith(
+      QWEN_IMAGE_MODEL_KEY,
+      expect.objectContaining({ negative_prompt: 'watermark, blurry text' }),
+    );
+    expect(createAndLinkProcessingOutput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        output: expect.objectContaining({
+          generationPrompt: 'A launch poster',
+          generationSource: expect.stringContaining('generation-brief:v1:'),
+          negativePrompt: 'watermark, blurry text',
+          providerData: expect.objectContaining({
+            compilerId: 'qwen-image-image-compiler',
+            status: 'compiled',
+            surface: 'workflow',
+          }),
+        }),
+      }),
+    );
+    expect(result).toMatchObject({
+      generationBriefEvidence: {
+        compilerId: 'qwen-image-image-compiler',
+        status: 'compiled',
+        surface: 'workflow',
+      },
+      generationSource: expect.stringContaining('generation-brief:v1:'),
+    });
+  });
+
+  it('does not create an output or dispatch a provider request when the required compiler is unavailable', async () => {
+    const registryEntry =
+      imageGenerationBriefRegistry.getImageGenerationBriefRegistryEntry(
+        QWEN_IMAGE_MODEL_KEY,
+      );
+    if (!registryEntry) {
+      throw new Error('Qwen Image registry fixture is missing');
+    }
+    const registryLookup = vi
+      .spyOn(
+        imageGenerationBriefRegistry,
+        'getImageGenerationBriefRegistryEntry',
+      )
+      .mockReturnValueOnce(registryEntry)
+      .mockReturnValueOnce(undefined);
+    const createAndLinkProcessingOutput = vi.fn();
+    const replicateService = { runModel: vi.fn() };
+    const helper = {
+      buildImageIngredientUrl: vi.fn(),
+      createAndLinkProcessingOutput,
+      requireBrandId: (brandId: unknown) => String(brandId),
+      wrapEngineExecutor,
+    } as unknown as WorkflowEngineExecutorHelperService;
+    const engine = new WorkflowEngine();
+
+    new WorkflowMediaGenerationExecutorRegistrarService(
+      helper,
+      { log: vi.fn() } as never,
+      { buildPrompt: vi.fn() } as never,
+      undefined,
+      undefined,
+      replicateService as never,
+    ).register(engine);
+
+    try {
+      await expect(
+        engine.getExecutor('imageGen')?.(
+          {
+            config: {
+              brandId: 'brand-1',
+              model: QWEN_IMAGE_MODEL_KEY,
+              prompt: 'A launch poster',
+            },
+            id: 'image-gen-1',
+            inputs: [],
+            label: 'Generate image',
+            type: 'imageGen',
+          },
+          new Map(),
+          {
+            organizationId: 'org-1',
+            runId: 'run-1',
+            userId: 'user-1',
+            workflowId: 'workflow-1',
+          },
+        ),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    } finally {
+      registryLookup.mockRestore();
+    }
+
+    expect(createAndLinkProcessingOutput).not.toHaveBeenCalled();
+    expect(replicateService.runModel).not.toHaveBeenCalled();
+  });
+});

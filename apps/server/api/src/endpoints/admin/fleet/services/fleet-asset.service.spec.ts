@@ -1,4 +1,4 @@
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { AdminFleetAssetService } from '@api/endpoints/admin/fleet/services/fleet-asset.service';
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';

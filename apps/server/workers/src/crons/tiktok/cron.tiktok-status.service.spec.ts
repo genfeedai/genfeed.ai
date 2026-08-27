@@ -1,15 +1,15 @@
-import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@server/collections/workflows/system-workflow-provenance.service';
-import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import { PostVisibility, TargetExecutionState } from '@genfeedai/enums';
 import { SERVER_TOKENS } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
+import { PublishEventWebhookService } from '@server/services/webhook-client/publish-event-webhook.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 describe('CronTiktokStatusService', () => {

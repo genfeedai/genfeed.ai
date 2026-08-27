@@ -1,10 +1,10 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { AdminFleetPublishingService } from '@api/endpoints/admin/fleet/services/fleet-publishing.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
-import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
-import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { FacebookService } from '@server/services/integrations/facebook/services/facebook.service';
+import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import { FleetReviewStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';

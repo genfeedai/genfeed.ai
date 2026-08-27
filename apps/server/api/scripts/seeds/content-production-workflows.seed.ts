@@ -14,7 +14,7 @@
  *   bun run apps/server/api/scripts/seeds/content-production-workflows.seed.ts --env=production --live
  */
 
-import { CONTENT_PRODUCTION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-production-workflows.template';
+import { CONTENT_PRODUCTION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/content-production-workflows.template';
 import {
   findMissingTemplateIds,
   runWorkflowSeed,

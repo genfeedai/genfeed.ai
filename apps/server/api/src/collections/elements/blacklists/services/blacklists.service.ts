@@ -2,8 +2,8 @@ import { CreateElementBlacklistDto } from '@api/collections/elements/blacklists/
 import { UpdateElementBlacklistDto } from '@api/collections/elements/blacklists/dto/update-blacklist.dto';
 import type { ElementBlacklistDocument } from '@api/collections/elements/blacklists/schemas/blacklist.schema';
 import { CacheService } from '@server/services/cache/cache.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { BaseService } from '@server/shared/services/base/base.service';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

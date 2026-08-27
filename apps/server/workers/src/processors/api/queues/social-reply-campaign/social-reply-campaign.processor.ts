@@ -1,4 +1,4 @@
-import { SocialReplyCampaignDispatchService } from '@api/collections/social-inbox/services/social-reply-campaign-dispatch.service';
+import { SocialReplyCampaignDispatchService } from '@server/collections/social-inbox/services/social-reply-campaign-dispatch.service';
 import {
   SOCIAL_REPLY_CAMPAIGN_QUEUE,
   SocialReplyCampaignJobData,

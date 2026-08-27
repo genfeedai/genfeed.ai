@@ -1,12 +1,12 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import {
   AgentRunStatsQueryDto,
   AgentRunsQueryDto,
 } from '@api/collections/agent-runs/dto/agent-runs-query.dto';
-import { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
-import { UpdateAgentRunDto } from '@api/collections/agent-runs/dto/update-agent-run.dto';
-import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
-import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
+import { CreateAgentRunDto } from '@server/collections/agent-runs/dto/create-agent-run.dto';
+import { UpdateAgentRunDto } from '@server/collections/agent-runs/dto/update-agent-run.dto';
+import type { AgentRunDocument } from '@server/collections/agent-runs/schemas/agent-run.schema';
+import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { AgentRunsOperationsService } from '@api/collections/agent-runs/services/agent-runs-operations.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';

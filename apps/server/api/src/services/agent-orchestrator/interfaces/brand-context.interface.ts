@@ -1,1 +1,1 @@
-export type { AssembledBrandContext as BrandContext } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
+export type { AssembledBrandContext as BrandContext } from '@server/services/agent-context-assembly/interfaces/context-assembly.interface';

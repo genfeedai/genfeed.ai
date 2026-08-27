@@ -1,8 +1,8 @@
-import { ImagesService } from '@api/collections/images/services/images.service';
+import { ImagesService } from '@server/collections/images/services/images.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
 import { customLabels } from '@server/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -10,8 +10,8 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import {
   AssetScope,
   IngredientCategory,

@@ -1,4 +1,4 @@
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -169,7 +169,7 @@ export class WorkflowDeploymentBackfillService {
     organizationId: string,
   ): Promise<void> {
     const { WorkflowTemplateSeederService } = await import(
-      '@api/collections/workflows/services/workflow-template-seeder.service'
+      '@server/collections/workflows/services/workflow-template-seeder.service'
     );
     const workflowSeeder = this.moduleRef.get(WorkflowTemplateSeederService, {
       strict: false,

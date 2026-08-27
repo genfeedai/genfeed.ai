@@ -1,10 +1,10 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import {
   resolveEffectiveSeatsLimit,
   UNLIMITED_SEATS_FAIR_USE_CEILING,
-} from '@api/collections/organization-settings/utils/seat-policy.util';
+} from '@server/collections/organization-settings/utils/seat-policy.util';
 import { PlanLimitExceededException } from '@server/exceptions/business-logic.exception';
 import {
   getIsSuperAdmin,

@@ -2,7 +2,7 @@ import {
   SKILL_CHANNELS,
   SKILL_MODALITIES,
   SKILL_WORKFLOW_STAGES,
-} from '@api/collections/skills/schemas/skill.schema';
+} from '@server/collections/skills/schemas/skill.schema';
 import { ContentSkillCategory } from '@genfeedai/enums';
 
 import type { FirstPartySkillMetadata } from './first-party-skill.types';

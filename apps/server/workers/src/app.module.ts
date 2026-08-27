@@ -1,4 +1,3 @@
-import { SharedModule } from '@api/shared/shared.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { RedisModule } from '@libs/redis/redis.module';
@@ -6,6 +5,7 @@ import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SentryModule } from '@sentry/nestjs/setup';
+import { WorkersDomainModule } from '@server/workers-domain.module';
 import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
 import { CronByokBillingModule } from '@workers/crons/byok-billing/cron.byok-billing.module';
@@ -29,7 +29,6 @@ import { SystemSweepsModule } from '@workers/scheduling/system-sweeps.module';
 
 @Module({
   imports: [
-    // Core Infrastructure
     ConfigModule,
     LoggerModule,
     SentryModule.forRoot(),
@@ -38,35 +37,18 @@ import { SystemSweepsModule } from '@workers/scheduling/system-sweeps.module';
       configModule: ConfigModule,
       configService: ConfigService,
     }),
-
-    // Shared Services (global in API, must be explicitly imported here)
-    SharedModule,
+    WorkersDomainModule,
     EventEmitterModule.forRoot({
-      // Delimiter for nested events (e.g., 'video.created')
       delimiter: '.',
-      // Ignore errors thrown by listeners
       ignoreErrors: false,
-      // Maximum number of listeners per event
       maxListeners: 20,
-      // Enable verbose error logging
       verboseMemoryLeak: true,
-      // Use wildcards for event matching
       wildcard: true,
     }),
-
-    // Database (Prisma — replaces the legacy document-store connections)
     PrismaModule,
-
-    // BullMQ Processor Modules (moved from API — issue #84)
     ProcessorsModule,
-
-    // System sweep schedulers (tenant-product automation, issue #1092)
     SystemSweepsModule,
-
-    // Aggregate queue telemetry with fixed, low-cardinality CloudWatch metrics.
     QueueMetricsModule,
-
-    // Cron Modules (moved from API)
     CronPatternExtractionModule,
     CronLlmIdleModule,
     CronByokBillingModule,

@@ -1,12 +1,12 @@
-import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { VoicesService } from '@api/collections/voices/services/voices.service';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import { VoicesService } from '@server/collections/voices/services/voices.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import {
   calculateFleetComputeCredits,
   FLEET_COMPUTE_CREDIT_RATES,
 } from '@api/services/integrations/fleet/fleet-compute-billing.util';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import {
   ActivitySource,
   IngredientCategory,

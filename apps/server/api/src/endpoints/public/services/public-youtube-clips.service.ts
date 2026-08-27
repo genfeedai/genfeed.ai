@@ -1,11 +1,11 @@
-import { hashToken } from '@api/auth/shared/pkce.util';
+import { hashToken } from '@server/auth/shared/pkce.util';
 import { generateClipSrt } from '@api/collections/clip-projects/services/clip-srt.util';
 import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
 import {
   PublicClipToolStoreService,
   type StoredPublicYoutubeClipSession,
-} from '@api/services/public-clip-tool/public-clip-tool-store.service';
+} from '@server/services/public-clip-tool/public-clip-tool-store.service';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import { JobState } from '@genfeedai/enums';
 import type {

@@ -13,7 +13,7 @@ vi.mock('@server/services/integrations/fal/services/fal.service', () => ({
   FalService: class {},
 }));
 
-vi.mock('@api/services/integrations/higgsfield/higgsfield.service', () => ({
+vi.mock('@server/services/integrations/higgsfield/higgsfield.service', () => ({
   HiggsFieldService: class {},
 }));
 
@@ -34,16 +34,16 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
 }));
 
-vi.mock('@api/collections/templates/services/templates.service', () => ({
+vi.mock('@server/collections/templates/services/templates.service', () => ({
   TemplatesService: class {},
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { AssetsService } from '@api/collections/assets/services/assets.service';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { ImagesOperationsController } from '@api/collections/images/controllers/operations/images-operations.controller';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
@@ -51,7 +51,7 @@ import { ImageGenerationService } from '@api/collections/images/services/image-g
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
-import { ImagesService } from '@api/collections/images/services/images.service';
+import { ImagesService } from '@server/collections/images/services/images.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
 import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
 import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
@@ -60,34 +60,34 @@ import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import type { IngredientEntity } from '@server/collections/ingredients/entities/ingredient.entity';
-import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { IngredientGenerationCancellationService } from '@server/collections/ingredients/services/ingredient-generation-cancellation.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { PromptsService } from '@server/collections/prompts/services/prompts.service';
 import type { TagEntity } from '@api/collections/tags/entities/tag.entity';
-import { TagsService } from '@api/collections/tags/services/tags.service';
+import { TagsService } from '@server/collections/tags/services/tags.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { ByokService } from '@api/services/byok/byok.service';
+import { ByokService } from '@server/services/byok/byok.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
-import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
-import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@api/services/router/router.service';
-import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
-import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
-import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
+import { MediaGenerationCostService } from '@server/services/media-vendor-cost/media-generation-cost.service';
+import { NotificationsService } from '@server/services/notifications/notifications.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { RouterService } from '@server/services/router/router.service';
+import { GenerationEventWebhookService } from '@server/services/webhook-client/generation-event-webhook.service';
+import { WebhookClientService } from '@server/services/webhook-client/webhook-client.service';
+import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
+import { IngredientCompletionService } from '@server/shared/services/poll-until/ingredient-completion.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   FileInputType,

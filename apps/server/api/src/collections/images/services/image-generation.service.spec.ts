@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';

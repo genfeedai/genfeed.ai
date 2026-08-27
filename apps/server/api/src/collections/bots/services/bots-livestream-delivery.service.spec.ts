@@ -1,9 +1,9 @@
 import {
   type BotDocument,
   type BotTarget,
-} from '@api/collections/bots/schemas/bot.schema';
+} from '@server/collections/bots/schemas/bot.schema';
 import { BotsLivestreamDeliveryService } from '@api/collections/bots/services/bots-livestream-delivery.service';
-import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
 import type { ConfigService } from '@libs/config/config.service';
 import axios from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

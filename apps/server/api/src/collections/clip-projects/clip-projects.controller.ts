@@ -1,24 +1,24 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import { CreateClipProjectDto } from '@server/collections/clip-projects/dto/create-clip-project.dto';
 import {
   GenerateClipsDto,
   SubmitHookClipDecisionDto,
-} from '@api/collections/clip-projects/dto/generate-clips.dto';
-import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
-import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
-import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
-import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
-import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
-import type { ResolvedClipReference } from '@api/collections/clip-projects/services/clip-reference-generation.util';
+} from '@server/collections/clip-projects/dto/generate-clips.dto';
+import { UpdateClipProjectDto } from '@server/collections/clip-projects/dto/update-clip-project.dto';
+import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
+import { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
+import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
+import { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
+import type { ResolvedClipReference } from '@server/collections/clip-projects/services/clip-reference-generation.util';
 import { isTranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
-import { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
-import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { HookClipApprovalService } from '@server/collections/clip-projects/services/hook-clip-approval.service';
+import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
 import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -30,7 +30,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import type {
   ClipReferenceApplication,
   HookClipApprovalStatus,

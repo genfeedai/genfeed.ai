@@ -1,4 +1,4 @@
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { PAID_CREATIVE_RESEARCH_SOURCES } from '@genfeedai/integrations/ads';
 import type { AdPerformance } from '@server/collections/ad-performance/schemas/ad-performance.schema';
 import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';

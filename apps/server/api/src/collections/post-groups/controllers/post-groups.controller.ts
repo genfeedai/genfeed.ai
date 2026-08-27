@@ -1,8 +1,8 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { PostGroupsQueryDto } from '@server/collections/post-groups/dto/post-groups-query.dto';
 import { PostGroupRecurrenceService } from '@api/collections/post-groups/services/post-group-recurrence.service';
-import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';

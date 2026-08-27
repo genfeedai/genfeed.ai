@@ -1,10 +1,10 @@
-import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
-import type { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
-import type { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
+import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
+import type { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
+import type { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
 import { ClipProjectIngestionService } from '@api/collections/clip-projects/services/clip-project-ingestion.service';
-import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import type { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
 import type { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import type { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';

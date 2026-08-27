@@ -5,8 +5,8 @@ import type {
   CustomerInstanceDocument,
   CustomerInstanceRole,
 } from '@api/collections/customer-instances/schemas/customer-instance.schema';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { BaseService } from '@server/shared/services/base/base.service';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

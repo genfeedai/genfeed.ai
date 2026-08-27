@@ -1,9 +1,9 @@
 import type {
   BotDocument,
   BotTarget,
-} from '@api/collections/bots/schemas/bot.schema';
-import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+} from '@server/collections/bots/schemas/bot.schema';
+import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { Platform } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';

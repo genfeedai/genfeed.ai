@@ -3,7 +3,7 @@ import type {
   BotLivestreamMessageTemplate,
   BotLivestreamMessageType,
   BotTarget,
-} from '@api/collections/bots/schemas/bot.schema';
+} from '@server/collections/bots/schemas/bot.schema';
 import type {
   LivestreamBotSessionData,
   LivestreamBotSessionDocument,
@@ -11,7 +11,7 @@ import type {
   LivestreamPlatformState,
   LivestreamSessionContext,
   LivestreamTranscriptChunk,
-} from '@api/collections/bots/schemas/livestream-bot-session.schema';
+} from '@server/collections/bots/schemas/livestream-bot-session.schema';
 import { Prisma } from '@genfeedai/prisma';
 
 function isLivestreamMessageType(

@@ -3,7 +3,7 @@ import type {
   SourcePostVariationRequest,
 } from '@api/collections/posts/services/source-post-variation.types';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@genfeedai/server';
 import {
   BadRequestException,

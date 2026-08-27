@@ -1,20 +1,20 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { VideosService } from '@api/collections/videos/services/videos.service';
-import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { VideosService } from '@server/collections/videos/services/videos.service';
+import { requireVideoOutputPath } from '@server/collections/videos/utils/video-processing-result.util';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 import {
   AssetScope,
   FileInputType,

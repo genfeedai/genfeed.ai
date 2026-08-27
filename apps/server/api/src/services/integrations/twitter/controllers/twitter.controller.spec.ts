@@ -18,12 +18,12 @@ vi.mock('twitter-api-v2', () => ({
   }),
 }));
 
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TwitterController } from '@api/services/integrations/twitter/controllers/twitter.controller';
-import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import { TwitterAuthorizedSignalsService } from '@api/services/integrations/twitter/services/twitter-authorized-signals.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -142,7 +142,7 @@ describe('TwitterController', () => {
 
       const result = await controller.connect(
         mockRequest,
-        mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+        mockUser as unknown as import('@server/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
         { brandId },
       );
 
@@ -172,7 +172,7 @@ describe('TwitterController', () => {
       await expect(
         controller.connect(
           mockRequest,
-          mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+          mockUser as unknown as import('@server/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
           { brandId },
         ),
       ).rejects.toBeInstanceOf(ServiceUnavailableException);
@@ -186,7 +186,7 @@ describe('TwitterController', () => {
       await expect(
         controller.connect(
           mockRequest,
-          mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+          mockUser as unknown as import('@server/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
           { brandId },
         ),
       ).rejects.toThrow(HttpException);
@@ -205,7 +205,7 @@ describe('TwitterController', () => {
       await expect(
         controller.connect(
           mockRequest,
-          mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+          mockUser as unknown as import('@server/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
           { brandId },
         ),
       ).rejects.toThrow(HttpException);

@@ -1,4 +1,4 @@
-import { StreaksService } from '@api/collections/streaks/services/streaks.service';
+import { StreaksService } from '@server/collections/streaks/services/streaks.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,

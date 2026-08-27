@@ -29,7 +29,7 @@ import {
   PaymentServiceException,
   SocialMediaException,
   StorageServiceException,
-} from '@api/helpers/exceptions/external/external-service.exception';
+} from '@server/helpers/exceptions/external/external-service.exception';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { ValidationException } from '@server/exceptions/validation.exception';
 import { CredentialPlatform } from '@genfeedai/enums';

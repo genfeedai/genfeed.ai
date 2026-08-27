@@ -8,16 +8,16 @@
  */
 
 import { OutreachCampaignsCoreModule } from '@api/collections/outreach-campaigns/outreach-campaigns-core.module';
-import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
-import { BatchGenerationQueueService } from '@api/queues/batch-generation/batch-generation-queue.service';
-import { CampaignQueueService } from '@api/queues/campaign/campaign-queue.service';
-import { QueueService } from '@api/queues/core/queue.service';
+import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
+import { BatchGenerationQueueService } from '@server/queues/batch-generation/batch-generation-queue.service';
+import { CampaignQueueService } from '@server/queues/campaign/campaign-queue.service';
+import { QueueService } from '@server/queues/core/queue.service';
 import { QueueDiagnosticsController } from '@api/queues/core/queue-diagnostics.controller';
-import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
+import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
-import { ReplyInboundQueueService } from '@api/queues/reply-bot/reply-inbound-queue.service';
-import { SocialReplyCampaignQueueService } from '@api/queues/social-reply-campaign/social-reply-campaign-queue.service';
-import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
+import { ReplyInboundQueueService } from '@server/queues/reply-bot/reply-inbound-queue.service';
+import { SocialReplyCampaignQueueService } from '@server/queues/social-reply-campaign/social-reply-campaign-queue.service';
+import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/workspace-task-queue.service';
 import {
   AD_BULK_UPLOAD_QUEUE,
   AD_OPTIMIZATION_QUEUE,

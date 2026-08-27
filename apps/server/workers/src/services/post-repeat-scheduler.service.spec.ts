@@ -1,4 +1,4 @@
-import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
 import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import {
   CredentialPlatform,

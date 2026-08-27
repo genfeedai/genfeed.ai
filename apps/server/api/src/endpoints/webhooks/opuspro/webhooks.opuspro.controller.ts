@@ -1,6 +1,6 @@
 import { OpusProWebhookPayloadDto } from '@api/endpoints/webhooks/dto/opuspro-webhook-payload.dto';
 import { OpusProWebhookService } from '@api/endpoints/webhooks/opuspro/webhooks.opuspro.service';
-import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';

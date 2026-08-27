@@ -1,8 +1,8 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
 import type { IngredientEntity } from '@server/collections/ingredients/entities/ingredient.entity';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import type { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { CacheService } from '@server/services/cache/cache.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';

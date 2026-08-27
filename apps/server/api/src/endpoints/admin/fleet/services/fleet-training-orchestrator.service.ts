@@ -1,6 +1,6 @@
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { PersonasService } from '@api/collections/personas/services/personas.service';
-import { type TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { PersonasService } from '@server/collections/personas/services/personas.service';
+import { type TrainingDocument } from '@server/collections/trainings/schemas/training.schema';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';

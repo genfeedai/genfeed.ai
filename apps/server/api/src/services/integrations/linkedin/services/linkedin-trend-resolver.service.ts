@@ -1,4 +1,4 @@
-import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import { BrandScraperService } from '@server/services/brand-scraper/brand-scraper.service';
 import {
   buildLinkedInLiveTrendTopics,
   buildLinkedInPublicReferenceTopics,

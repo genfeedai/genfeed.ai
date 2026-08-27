@@ -1,5 +1,5 @@
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { getProviderModelKey } from '@api/collections/models/utils/model-key.util';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { getProviderModelKey } from '@server/collections/models/utils/model-key.util';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';

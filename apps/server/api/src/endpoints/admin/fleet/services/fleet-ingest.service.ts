@@ -1,9 +1,9 @@
-import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { CreatorScraperService } from '@api/collections/content-intelligence/services/creator-scraper.service';
-import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
-import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { type IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { type PersonaDocument } from '@server/collections/personas/schemas/persona.schema';
+import { PersonasService } from '@server/collections/personas/services/personas.service';
 import type {
   AdminFleetIngest,
   AdminFleetIngestFailure,
@@ -11,7 +11,7 @@ import type {
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
-import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
+import { EntityIdUtil } from '@server/helpers/utils/entity-id/entity-id.util';
 import {
   ContentIntelligencePlatform,
   FileInputType,

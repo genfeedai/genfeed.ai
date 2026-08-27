@@ -1,18 +1,18 @@
-import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
-import type { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
-import { isTerminalClipStatus } from '@api/collections/clip-shared/clip-terminal-contract.util';
+import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
+import type { ClipResultDocument } from '@server/collections/clip-results/schemas/clip-result.schema';
+import { isTerminalClipStatus } from '@server/collections/clip-shared/clip-terminal-contract.util';
 import {
   CLIP_ORCHESTRATOR_EVENTS,
   type ClipContinuityQaRequestedEvent,
-} from '@api/services/clip-orchestrator/clip-orchestrator.events';
+} from '@server/services/clip-orchestrator/clip-orchestrator.events';
 import {
   ClipOrchestratorService,
   type ClipRun,
-} from '@api/services/clip-orchestrator/clip-orchestrator.service';
-import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
+} from '@server/services/clip-orchestrator/clip-orchestrator.service';
+import { ClipOrchestratorStateStore } from '@server/services/clip-orchestrator/clip-orchestrator-state.store';
 import { ClipRunObserverService } from '@api/services/clip-orchestrator/clip-run-observer.service';
-import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   createNotAssessedContinuityDimension,
   VIDEO_CONTINUITY_QA_SCHEMA_VERSION,

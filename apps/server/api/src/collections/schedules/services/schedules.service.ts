@@ -1,18 +1,18 @@
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { baseModelKey } from '@api/collections/models/utils/model-key.util';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { baseModelKey } from '@server/collections/models/utils/model-key.util';
 import {
   BulkScheduleDto,
   MAX_BULK_SCHEDULE_CONTENT_IDS,
 } from '@api/collections/schedules/dto/bulk-schedule.dto';
 import { GetOptimalTimeDto } from '@api/collections/schedules/dto/optimal-time.dto';
 import type { ScheduleDocument } from '@api/collections/schedules/schemas/schedule.schema';
-import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
-import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { ValidationException } from '@server/exceptions/validation.exception';
 import { JsonParserUtil } from '@server/helpers/utils/json-parser.util';
-import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { calculateEstimatedTextCredits } from '@server/helpers/utils/text-pricing/text-pricing.util';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type {
   ChannelCapability,
   ChannelCapabilityListOptions,

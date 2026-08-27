@@ -1,4 +1,4 @@
-import { QueueService } from '@api/queues/core/queue.service';
+import { QueueService } from '@server/queues/core/queue.service';
 import {
   AdBulkUploadService,
   CreateBulkUploadInput,

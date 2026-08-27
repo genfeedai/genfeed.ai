@@ -1,6 +1,6 @@
-import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
-import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
-import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-executor.service';
+import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { CampaignExecutorService } from '@server/services/campaign/campaign-executor.service';
+import { DmCampaignExecutorService } from '@server/services/campaign/dm-campaign-executor.service';
 import {
   CampaignPlatform,
   CampaignStatus,

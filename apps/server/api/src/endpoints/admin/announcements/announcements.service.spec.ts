@@ -1,5 +1,5 @@
 import { AnnouncementsService as AnnouncementsCollectionService } from '@api/collections/announcements/services/announcements.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { AdminAnnouncementsService } from '@api/endpoints/admin/announcements/announcements.service';
 import type { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
 import { CredentialPlatform } from '@genfeedai/enums';

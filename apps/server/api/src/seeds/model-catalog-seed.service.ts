@@ -6,7 +6,7 @@
  * list. Idempotent by design: operator toggles and prices discovered from a
  * provider survive every subsequent boot.
  */
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
 import {
   getModelCatalogForDeployment,

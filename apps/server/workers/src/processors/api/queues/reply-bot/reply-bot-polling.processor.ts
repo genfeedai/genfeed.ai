@@ -1,6 +1,6 @@
-import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
-import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
-import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
+import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
+import { toReplyBotCredentialData } from '@server/services/campaign/reply-bot-credential.util';
+import { ReplyBotOrchestratorService } from '@server/services/reply-bot/reply-bot-orchestrator.service';
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import {
   REPLY_BOT_POLLING_QUEUE,

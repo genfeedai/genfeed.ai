@@ -1,5 +1,5 @@
 import { PostEntity } from '@server/collections/posts/entities/post.entity';
-import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
 import { postExecutionStateReadFilter } from '@api-types/contracts';
 import { TargetExecutionState } from '@genfeedai/enums';
 import type { PostPublishJobData } from '@genfeedai/queue-contracts';

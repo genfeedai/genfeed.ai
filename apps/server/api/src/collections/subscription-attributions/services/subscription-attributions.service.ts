@@ -1,6 +1,6 @@
 import type { TrackSubscriptionDto } from '@api/collections/subscription-attributions/dto/track-subscription.dto';
 import type { SubscriptionAttributionDocument } from '@api/collections/subscription-attributions/schemas/subscription-attribution.schema';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
 import type { ISubscriptionAttributionsService } from '@genfeedai/interfaces/billing';
 import type { Prisma } from '@genfeedai/prisma';

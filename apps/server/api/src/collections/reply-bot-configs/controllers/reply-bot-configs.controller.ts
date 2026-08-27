@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import {
   AuthorReplyDraftDto,
   AuthorReplyInboxQueryDto,
@@ -6,11 +6,11 @@ import {
   EnsureAuthorResponderDto,
   SchedulePostWatchDto,
 } from '@api/collections/reply-bot-configs/dto/author-reply-loop.dto';
-import { CreateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/create-reply-bot-config.dto';
+import { CreateReplyBotConfigDto } from '@server/collections/reply-bot-configs/dto/create-reply-bot-config.dto';
 import { ReplyBotConfigsQueryDto } from '@api/collections/reply-bot-configs/dto/reply-bot-configs-query.dto';
-import { UpdateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/update-reply-bot-config.dto';
-import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
-import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
+import { UpdateReplyBotConfigDto } from '@server/collections/reply-bot-configs/dto/update-reply-bot-config.dto';
+import type { ReplyBotConfigDocument } from '@server/collections/reply-bot-configs/schemas/reply-bot-config.schema';
+import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -18,9 +18,9 @@ import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/colle
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
-import { ReplyInboundQueueService } from '@api/queues/reply-bot/reply-inbound-queue.service';
-import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
-import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
+import { ReplyInboundQueueService } from '@server/queues/reply-bot/reply-inbound-queue.service';
+import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
+import { ReplyBotOrchestratorService } from '@server/services/reply-bot/reply-bot-orchestrator.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/constants';
 import { ReplyBotConfigSerializer } from '@genfeedai/serializers';

@@ -1,0 +1,505 @@
+import { GenerateContentDto } from '@server/collections/content-intelligence/dto/generate-content.dto';
+import { type ContentPatternDocument } from '@server/collections/content-intelligence/schemas/content-pattern.schema';
+import { PatternStoreService } from '@server/collections/content-intelligence/services/pattern-store.service';
+import { PlaybookBuilderService } from '@server/collections/content-intelligence/services/playbook-builder.service';
+import { TopPerformerPromptContextService } from '@server/collections/content-intelligence/services/top-performer-prompt-context.service';
+import { PersonasService } from '@server/collections/personas/services/personas.service';
+import { SecurityUtil } from '@server/helpers/utils/security/security.util';
+import { AgentContextAssemblyService } from '@server/services/agent-context-assembly/agent-context-assembly.service';
+import {
+  BRAND_CONTEXT_CHARACTER_BUDGET,
+  fitBrandContextToBudget,
+} from '@server/services/agent-context-assembly/brand-context-budget.util';
+import { HarnessGenerationService } from '@server/services/harness/harness-generation.service';
+import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { extractHashtags } from '@genfeedai/utils/data/extract.util';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
+
+export interface GeneratedContent {
+  content: string;
+  patternUsed: string;
+  patternId?: string;
+  hook?: string;
+  body?: string;
+  cta?: string;
+  hashtags: string[];
+}
+
+type PlaybookInsightsView = {
+  contentMix?: Record<string, number>;
+  postingSchedule?: {
+    bestTimes?: string[];
+  };
+  hashtagStrategy?: {
+    optimalCount?: number;
+  };
+};
+
+@Injectable()
+export class ContentGeneratorService {
+  private readonly constructorName = this.constructor.name;
+  private readonly defaultModel: string;
+
+  constructor(
+    private readonly contextAssemblyService: AgentContextAssemblyService,
+    private readonly logger: LoggerService,
+    private readonly openRouterService: OpenRouterService,
+    private readonly patternStoreService: PatternStoreService,
+    private readonly playbookBuilderService: PlaybookBuilderService,
+    @Optional()
+    private readonly topPerformerPromptContextService?: TopPerformerPromptContextService,
+    @Optional() private readonly personasService?: PersonasService,
+    @Optional()
+    private readonly harnessGenerationService?: HarnessGenerationService,
+  ) {
+    this.defaultModel = LLM_DEFAULTS.background;
+  }
+
+  async generateContent(
+    organizationId: string,
+    dto: GenerateContentDto,
+  ): Promise<GeneratedContent[]> {
+    const variationsCount = dto.variationsCount ?? 3;
+    const results: GeneratedContent[] = [];
+
+    // Assemble brand context (all 6 layers) for LLM system prompt
+    const brandContext = await this.contextAssemblyService.assembleContext({
+      brandId: dto.brandId?.toString?.(),
+      layers: {
+        brandGuidance: true,
+        brandIdentity: true,
+        brandMemory: true,
+        performancePatterns: true,
+        ragContext: true,
+        recentPosts: true,
+      },
+      organizationId: organizationId.toString(),
+      platform: dto.platform,
+      query: dto.topic,
+    });
+
+    const baseSystemPrompt = brandContext
+      ? this.contextAssemblyService.buildSystemPrompt('', brandContext, {
+          maxBrandContextLength: Number.POSITIVE_INFINITY,
+        })
+      : undefined;
+    const harnessSystemPrompt = await this.buildHarnessSystemPrompt(
+      organizationId,
+      dto,
+    );
+    const topPerformerSystemPrompt = await this.buildTopPerformerSystemPrompt(
+      organizationId,
+      dto,
+    );
+    const systemPrompt =
+      fitBrandContextToBudget(
+        [baseSystemPrompt, topPerformerSystemPrompt, harnessSystemPrompt],
+        BRAND_CONTEXT_CHARACTER_BUDGET,
+      ) || undefined;
+
+    // Get patterns to use
+    const patterns = await this.selectPatterns(organizationId, dto);
+
+    if (patterns.length === 0) {
+      // Generate without specific patterns
+      const generated = await this.generateWithoutPatterns(
+        dto,
+        variationsCount,
+        systemPrompt,
+      );
+      return generated;
+    }
+
+    // Get playbook insights if available
+    let playbookInsights: PlaybookInsightsView | undefined;
+    if (dto.playbookId) {
+      const playbook = await this.playbookBuilderService.findOne({
+        id: dto.playbookId,
+        organizationId: organizationId,
+      });
+      if (playbook) {
+        playbookInsights = playbook.insights as unknown as PlaybookInsightsView;
+      }
+    }
+
+    // Generate content using each pattern
+    for (let i = 0; i < Math.min(patterns.length, variationsCount); i++) {
+      const pattern = patterns[i];
+      const generated = await this.generateFromPattern(
+        dto,
+        pattern,
+        playbookInsights,
+        systemPrompt,
+      );
+      results.push(generated);
+
+      // Track pattern usage
+      if (pattern.id) {
+        await this.patternStoreService.incrementUsage(pattern.id);
+      }
+    }
+
+    // Fill remaining slots with variations
+    while (results.length < variationsCount) {
+      const randomPattern =
+        patterns[Math.floor(Math.random() * patterns.length)];
+      const generated = await this.generateFromPattern(
+        dto,
+        randomPattern,
+        playbookInsights,
+        systemPrompt,
+      );
+      results.push(generated);
+    }
+
+    return results;
+  }
+
+  private async selectPatterns(
+    organizationId: string,
+    dto: GenerateContentDto,
+  ): Promise<ContentPatternDocument[]> {
+    // If specific pattern is requested
+    if (dto.patternId) {
+      const pattern = await this.patternStoreService.findOne({
+        id: dto.patternId,
+        organizationId: organizationId,
+      });
+      return pattern ? [pattern] : [];
+    }
+
+    // Filter patterns by criteria
+    return this.patternStoreService.findByOrganization(organizationId, {
+      patternType: dto.patternType,
+      platform: dto.platform,
+      templateCategory: dto.templateCategory,
+    });
+  }
+
+  private async buildHarnessSystemPrompt(
+    organizationId: string,
+    dto: GenerateContentDto,
+  ): Promise<string | undefined> {
+    if (
+      !dto.brandId ||
+      !this.personasService ||
+      !this.harnessGenerationService
+    ) {
+      return undefined;
+    }
+
+    try {
+      const persona = await this.personasService.findOne({
+        brandId: dto.brandId,
+        organizationId: organizationId,
+      });
+
+      // Single seam: HarnessGenerationService.resolveBrief is the only place
+      // that folds pgvector brand content memory into the brief (#3020).
+      // `includeContentMemory` is intentionally left unset so resolveBrief's
+      // own gate (`includeContentMemory ?? Boolean(topic?.trim())`) decides —
+      // passing `topic` through is what drives that gate here.
+      const brief = await this.harnessGenerationService.resolveBrief({
+        additionalSources:
+          dto.additionalContext?.map((content, index) => ({
+            content,
+            id: `content-context-${index}`,
+            kind: 'audience_signal',
+          })) ?? [],
+        brandId: dto.brandId,
+        contentType: 'post',
+        objective: 'engagement',
+        organizationId,
+        persona,
+        platform: dto.platform,
+        topic: dto.topic,
+      });
+
+      const formattedBrief = this.harnessGenerationService.formatBrief(brief);
+      return formattedBrief || undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private async buildTopPerformerSystemPrompt(
+    organizationId: string,
+    dto: GenerateContentDto,
+  ): Promise<string | undefined> {
+    if (!this.topPerformerPromptContextService || !dto.brandId) {
+      return undefined;
+    }
+
+    try {
+      return await this.topPerformerPromptContextService.assembleContext({
+        brandId: dto.brandId,
+        organizationId: organizationId.toString(),
+        platform: dto.platform,
+        query: dto.topic,
+      });
+    } catch (error: unknown) {
+      this.logger.warn(
+        `${this.constructorName}: Top performer context assembly failed`,
+        error,
+      );
+      return undefined;
+    }
+  }
+
+  private async generateFromPattern(
+    dto: GenerateContentDto,
+    pattern: ContentPatternDocument,
+    playbookInsights?: PlaybookInsightsView,
+    systemPrompt?: string,
+  ): Promise<GeneratedContent> {
+    const prompt = this.buildGenerationPrompt(dto, pattern, playbookInsights);
+
+    try {
+      const response = await this.callLLM(prompt, systemPrompt);
+      const parsed = this.parseGeneratedContent(response);
+
+      return {
+        body: parsed.body,
+        content: parsed.content,
+        cta: parsed.cta,
+        hashtags: dto.hashtags ?? extractHashtags(parsed.content),
+        hook: parsed.hook,
+        patternId: pattern.id?.toString(),
+        patternUsed: pattern.extractedFormula ?? 'pattern',
+      };
+    } catch (error: unknown) {
+      this.logger.error(`${this.constructorName}: Generation failed`, error);
+
+      // Fallback: simple template fill
+      return this.fillPatternTemplate(dto, pattern);
+    }
+  }
+
+  private async generateWithoutPatterns(
+    dto: GenerateContentDto,
+    count: number,
+    systemPrompt?: string,
+  ): Promise<GeneratedContent[]> {
+    const results: GeneratedContent[] = [];
+    const prompt = this.buildFreeformPrompt(dto, count);
+
+    try {
+      const response = await this.callLLM(prompt, systemPrompt);
+      const variations = this.parseFreeformResponse(response);
+
+      for (const variation of variations.slice(0, count)) {
+        results.push({
+          content: variation,
+          hashtags: dto.hashtags ?? extractHashtags(variation),
+          patternUsed: 'freeform',
+        });
+      }
+    } catch (error: unknown) {
+      this.logger.error(
+        `${this.constructorName}: Freeform generation failed`,
+        error,
+      );
+    }
+
+    return results;
+  }
+
+  private buildGenerationPrompt(
+    dto: GenerateContentDto,
+    pattern: ContentPatternDocument,
+    playbookInsights?: PlaybookInsightsView,
+  ): string {
+    // Sanitize user-provided inputs to prevent prompt injection
+    const safeTopic = SecurityUtil.sanitizePromptInput(dto.topic, 500);
+    const safeFormula = SecurityUtil.sanitizePromptInput(
+      pattern.extractedFormula ?? '',
+      1000,
+    );
+    const safeExample = SecurityUtil.sanitizePromptInput(
+      pattern.rawExample?.slice(0, 500) ?? '',
+      500,
+    );
+    const placeholders = pattern.placeholders ?? [];
+
+    let prompt = `Generate a ${dto.platform} post about: "${safeTopic}"
+
+Use this proven pattern:
+FORMULA: ${safeFormula}
+EXAMPLE: ${safeExample}
+
+PLACEHOLDERS TO FILL: ${placeholders.join(', ')}`;
+
+    if (playbookInsights) {
+      prompt += `
+
+BEST PRACTICES FROM TOP PERFORMERS:
+- Content mix suggests focusing on: ${Object.entries(
+        playbookInsights.contentMix || {},
+      )
+        .filter(([, v]) => (v as number) > 0.1)
+        .map(([k]) => k)
+        .join(', ')}
+- Best posting times: ${(playbookInsights.postingSchedule?.bestTimes || []).join(', ')}
+- Optimal hashtag count: ${playbookInsights.hashtagStrategy?.optimalCount || 5}`;
+    }
+
+    if (dto.additionalContext && dto.additionalContext.length > 0) {
+      const safeContext = SecurityUtil.sanitizePromptInputArray(
+        dto.additionalContext,
+        500,
+      );
+      prompt += `
+
+ADDITIONAL CONTEXT:
+${safeContext.join('\n')}`;
+    }
+
+    prompt += `
+
+RESPOND WITH JSON:
+{
+  "content": "The complete post",
+  "hook": "The opening hook",
+  "body": "The main body",
+  "cta": "Call to action if any"
+}`;
+
+    return prompt;
+  }
+
+  private buildFreeformPrompt(dto: GenerateContentDto, count: number): string {
+    // Sanitize user-provided inputs to prevent prompt injection
+    const safeTopic = SecurityUtil.sanitizePromptInput(dto.topic, 500);
+    // 500 matches the pattern-path cap so batch diversity captions (≤280 for X)
+    // survive as individual additionalContext lines.
+    const safeContext = dto.additionalContext
+      ? SecurityUtil.sanitizePromptInputArray(dto.additionalContext, 500)
+      : [];
+
+    return `Generate ${count} ${dto.platform} post variations about: "${safeTopic}"
+
+Requirements:
+1. Each post should have an engaging hook
+2. Platform-appropriate length (${this.getPlatformLength(dto.platform)})
+3. Include a subtle call to action
+4. Natural, conversational tone
+5. When generating multiple posts, each must use a different angle, opener, and structure — not a light rewrite of the same line
+
+${safeContext.length > 0 ? `Context:\n${safeContext.join('\n')}` : ''}
+
+Respond with JSON array:
+[
+  { "content": "Post 1" },
+  { "content": "Post 2" },
+  ...
+]`;
+  }
+
+  private getPlatformLength(platform: string): string {
+    switch (platform) {
+      case 'twitter':
+        return '280 characters max';
+      case 'linkedin':
+        return '1500-3000 characters';
+      case 'instagram':
+        return '300-500 characters';
+      case 'tiktok':
+        return '150-300 characters';
+      default:
+        return '500-1000 characters';
+    }
+  }
+
+  private async callLLM(
+    prompt: string,
+    systemPrompt?: string,
+  ): Promise<string> {
+    const response = await this.openRouterService.chatCompletion({
+      max_tokens: 2000,
+      messages: [
+        ...(systemPrompt
+          ? [{ content: systemPrompt, role: 'system' as const }]
+          : []),
+        { content: prompt, role: 'user' as const },
+      ],
+      model: this.defaultModel,
+      temperature: 0.8,
+    });
+
+    return response.choices[0]?.message?.content || '';
+  }
+
+  private parseGeneratedContent(response: string): {
+    content: string;
+    hook?: string;
+    body?: string;
+    cta?: string;
+  } {
+    try {
+      let jsonStr = response.trim();
+      if (jsonStr.startsWith('```json')) {
+        jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      } else if (jsonStr.startsWith('```')) {
+        jsonStr = jsonStr.replace(/```\n?/g, '');
+      }
+
+      const parsed = JSON.parse(jsonStr);
+      return {
+        body: parsed.body,
+        content: parsed.content || response,
+        cta: parsed.cta,
+        hook: parsed.hook,
+      };
+    } catch {
+      return { content: response };
+    }
+  }
+
+  private parseFreeformResponse(response: string): string[] {
+    try {
+      let jsonStr = response.trim();
+      if (jsonStr.startsWith('```json')) {
+        jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      } else if (jsonStr.startsWith('```')) {
+        jsonStr = jsonStr.replace(/```\n?/g, '');
+      }
+
+      const parsed = JSON.parse(jsonStr);
+      if (Array.isArray(parsed)) {
+        return parsed.map((p: unknown) =>
+          typeof p === 'object' && p !== null && 'content' in p
+            ? String((p as { content?: string }).content || '')
+            : String(p),
+        );
+      }
+      return [response];
+    } catch {
+      return [response];
+    }
+  }
+
+  private fillPatternTemplate(
+    dto: GenerateContentDto,
+    pattern: ContentPatternDocument,
+  ): GeneratedContent {
+    let content = pattern.extractedFormula ?? dto.topic;
+    const placeholders = pattern.placeholders ?? [];
+
+    // Simple placeholder replacement
+    for (const placeholder of placeholders) {
+      content = content.replace(
+        new RegExp(`\\[${placeholder}\\]`, 'gi'),
+        dto.topic,
+      );
+    }
+
+    return {
+      content,
+      hashtags: dto.hashtags ?? [],
+      patternId: pattern.id?.toString(),
+      patternUsed: pattern.extractedFormula ?? 'pattern',
+    };
+  }
+}

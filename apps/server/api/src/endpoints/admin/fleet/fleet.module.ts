@@ -3,7 +3,7 @@ import { ContentIntelligenceModule } from '@api/collections/content-intelligence
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { ModelsModule } from '@api/collections/models/models.module';
-import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PersonasModule } from '@api/collections/personas/personas.module';
 import { TrainingsModule } from '@api/collections/trainings/trainings.module';

@@ -4,8 +4,8 @@ vi.mock('@libs/security/destination-guard', () => ({
   safeFetch: safeFetchMock,
 }));
 
-import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
-import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
+import { PersonasService } from '@server/collections/personas/services/personas.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { LoraStatus, TrainingStage, TrainingStatus } from '@genfeedai/enums';

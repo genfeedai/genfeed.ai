@@ -1,5 +1,5 @@
-import { BatchGenerationQueueService } from '@api/queues/batch-generation/batch-generation-queue.service';
-import { BatchGenerationReconcileService } from '@api/services/batch-generation/batch-generation-reconcile.service';
+import { BatchGenerationQueueService } from '@server/queues/batch-generation/batch-generation-queue.service';
+import { BatchGenerationReconcileService } from '@server/services/batch-generation/batch-generation-reconcile.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

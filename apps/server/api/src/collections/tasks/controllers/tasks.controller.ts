@@ -1,12 +1,12 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
-import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { TaskCountersService } from '@server/collections/task-counters/services/task-counters.service';
+import { CreateTaskDto } from '@server/collections/tasks/dto/create-task.dto';
 import { TaskQueryDto } from '@api/collections/tasks/dto/task-query.dto';
-import { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
+import { UpdateTaskDto } from '@server/collections/tasks/dto/update-task.dto';
 import { UpdateTaskOutputDto } from '@api/collections/tasks/dto/update-task-output.dto';
-import { type TaskDocument } from '@api/collections/tasks/schemas/task.schema';
-import { TasksService } from '@api/collections/tasks/services/tasks.service';
+import { type TaskDocument } from '@server/collections/tasks/schemas/task.schema';
+import { TasksService } from '@server/collections/tasks/services/tasks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
@@ -15,7 +15,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
+import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/workspace-task-queue.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type {
   JsonApiCollectionResponse,

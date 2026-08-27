@@ -7,7 +7,7 @@ import type {
   ListeningThemeDocument,
 } from '@api/collections/listening-topics/schemas/listening-topic.schema';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   type IListeningScope,
   LISTENING_ANALYSIS_METHODOLOGY_VERSION,

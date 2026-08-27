@@ -8,16 +8,16 @@
  * 4. Update strategy state (recordRun, failures) after execution
  * 5. Publish stream events for real-time UI updates
  */
-import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/services/agent-campaign-execution.service';
-import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
-import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
-import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.service';
-import { VoiceGenerationService } from '@api/collections/voices/services/voice-generation.service';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
-import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
-import type { AgentChatRequest } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
+import { AgentCampaignExecutionService } from '@server/collections/agent-campaigns/services/agent-campaign-execution.service';
+import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
+import { AgentStrategiesService } from '@server/collections/agent-strategies/services/agent-strategies.service';
+import { AgentStrategyAutopilotService } from '@server/collections/agent-strategies/services/agent-strategy-autopilot.service';
+import { VoiceGenerationService } from '@server/collections/voices/services/voice-generation.service';
+import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
+import { AgentStreamPublisherService } from '@server/services/agent-orchestrator/agent-stream-publisher.service';
+import type { AgentChatRequest } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { TaskOrchestratorService } from '@server/services/task-orchestration/task-orchestrator.service';
 import { ActionOrigin, AgentRunStatus } from '@genfeedai/enums';
 import { AGENT_RUN_QUEUE, AgentRunJobData } from '@genfeedai/queue-contracts';
 import { runWithActionOrigin } from '@genfeedai/server';

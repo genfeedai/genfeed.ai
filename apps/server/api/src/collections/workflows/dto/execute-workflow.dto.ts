@@ -1,4 +1,4 @@
-import { WorkflowActionContextDto } from '@api/collections/workflows/dto/workflow-action-context.dto';
+import { WorkflowActionContextDto } from '@server/collections/workflows/dto/workflow-action-context.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

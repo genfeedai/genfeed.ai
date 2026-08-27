@@ -7,12 +7,7 @@
  * `@genfeedai/queue-contracts`, pure infra moves to `packages/libs`, and
  * entangled domain/integration services move to `@genfeedai/server`.
  *
- * Until extraction completes, this guard is a ratchet:
- * - any `@api/*` specifier NOT in the baseline fails the build, and
- * - any baseline entry no longer in use fails the build until pruned,
- * so the baseline can only ever shrink. Once it is empty, delete
- * `workers-api-imports.baseline.ts` contents and this guard becomes a
- * plain ban.
+ * The baseline is empty: any `@api/*` specifier in workers fails the build.
  *
  * Unlike sibling guards, spec/test files are scanned too: test-only
  * `@api/*` imports still couple workers to API source.

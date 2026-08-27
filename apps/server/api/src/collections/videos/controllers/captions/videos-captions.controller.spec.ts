@@ -7,16 +7,16 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CaptionsService } from '@api/collections/captions/services/captions.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CaptionsService } from '@server/collections/captions/services/captions.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { VideosCaptionsController } from '@api/collections/videos/controllers/captions/videos-captions.controller';
-import { VideosService } from '@api/collections/videos/services/videos.service';
+import { VideosService } from '@server/collections/videos/services/videos.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

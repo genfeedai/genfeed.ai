@@ -48,10 +48,10 @@ if (process.env.SKIP_PRISMA_DB === 'true') {
   g.test = g.it;
 }
 
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
-import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
+import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
@@ -64,12 +64,12 @@ import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/s
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
-import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
+import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   createTestOrganization,
   generateIdString,

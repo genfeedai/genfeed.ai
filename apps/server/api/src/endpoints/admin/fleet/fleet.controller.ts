@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import {
   CreateCharacterDto,
@@ -8,8 +8,8 @@ import {
 import { AdminFleetService } from '@api/endpoints/admin/fleet/fleet.service';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
-import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { EntityIdUtil } from '@server/helpers/utils/entity-id/entity-id.util';
+import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
   serializeSingle,

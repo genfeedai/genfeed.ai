@@ -1,7 +1,7 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { BrandDataMapper } from '@server/collections/brands/services/brand-data.mapper';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
 import { withOnboardingErrorHandling } from '@api/endpoints/onboarding/services/onboarding-error.util';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';

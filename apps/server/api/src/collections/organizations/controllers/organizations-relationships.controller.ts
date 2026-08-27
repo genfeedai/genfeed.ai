@@ -12,13 +12,13 @@
  * - GET /tags?organization=
  */
 
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
-import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { IngredientsQueryDto } from '@server/collections/ingredients/dto/ingredients-query.dto';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 import {
   AnalyticsQueryDto,
   TimeSeriesQueryDto,
@@ -26,7 +26,7 @@ import {
 } from '@api/collections/posts/dto/analytics-query.dto';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -40,8 +40,8 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import { MemberRole } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,

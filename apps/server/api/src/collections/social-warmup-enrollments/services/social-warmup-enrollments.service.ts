@@ -18,9 +18,9 @@ import {
   socialWarmupEnrollmentStateFromStorage,
   socialWarmupEventRecordFromStorage,
   socialWarmupSignalRecordFromStorage,
-} from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
+} from '@server/collections/social-warmup-enrollments/services/social-warmup-enrollment.helpers';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type { InstagramAuthorizedSignalsSnapshot } from '@api-types/contracts/instagram-authorized-signals.contract';
 import type { LinkedinAuthorizedSignalsSnapshot } from '@api-types/contracts/linkedin-authorized-signals.contract';
 import {

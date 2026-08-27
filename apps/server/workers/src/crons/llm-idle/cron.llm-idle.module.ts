@@ -3,7 +3,9 @@ import { Module } from '@nestjs/common';
 import { CronLlmIdleService } from '@workers/crons/llm-idle/cron.llm-idle.service';
 
 @Module({
-  imports: [LoggerModule],
+  imports: [
+    LoggerModule,
+  ],
   providers: [CronLlmIdleService],
 })
 export class CronLlmIdleModule {}

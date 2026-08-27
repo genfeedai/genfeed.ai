@@ -13,7 +13,7 @@
  *   bun run apps/server/api/scripts/seeds/ad-automation-workflows.seed.ts --env=production --live
  */
 
-import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/ad-automation-workflows.template';
+import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/ad-automation-workflows.template';
 import { runWorkflowSeed } from './shared/run-workflow-seed';
 
 void runWorkflowSeed({

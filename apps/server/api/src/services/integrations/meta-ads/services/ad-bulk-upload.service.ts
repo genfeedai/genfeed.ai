@@ -1,4 +1,4 @@
-import { QueueService } from '@api/queues/core/queue.service';
+import { QueueService } from '@server/queues/core/queue.service';
 import type { AdBulkUploadJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

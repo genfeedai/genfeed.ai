@@ -1,4 +1,4 @@
-import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { PersonasService } from '@server/collections/personas/services/personas.service';
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { LoggerService } from '@libs/logger/logger.service';

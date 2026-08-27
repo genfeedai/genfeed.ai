@@ -1,7 +1,7 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
-import { SignupPrefillService } from '@api/services/signup-prefill/signup-prefill.service';
+import { SignupPrefillService } from '@server/services/signup-prefill/signup-prefill.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';

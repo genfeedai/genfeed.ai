@@ -1,5 +1,5 @@
 import { isIP } from 'node:net';
-import { assertHostNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
+import { assertHostNotPrivate } from '@server/helpers/utils/ssrf/ssrf.util';
 
 const LOGO_DEV_IMAGE_ORIGIN = 'https://img.logo.dev';
 const LOGO_DEV_IMAGE_SIZE = '128';

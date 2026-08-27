@@ -676,7 +676,7 @@ describe('TwitterService (coverage)', () => {
   describe('sendCommentReplyDm (error path)', () => {
     it('propagates error when DM send fails', async () => {
       vi.spyOn(service, 'refreshToken').mockResolvedValue(
-        makeCredential() as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
+        makeCredential() as unknown as import('@server/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
       mockV2SendDmInConversation.mockRejectedValue(new Error('DM failed'));
 
@@ -692,7 +692,7 @@ describe('TwitterService (coverage)', () => {
   describe('uploadMedia', () => {
     beforeEach(() => {
       vi.spyOn(service, 'refreshToken').mockResolvedValue(
-        makeCredential() as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
+        makeCredential() as unknown as import('@server/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
     });
 
@@ -795,7 +795,7 @@ describe('TwitterService (coverage)', () => {
   describe('postTweet', () => {
     beforeEach(() => {
       vi.spyOn(service, 'refreshToken').mockResolvedValue(
-        makeCredential() as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
+        makeCredential() as unknown as import('@server/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
     });
 
@@ -1180,7 +1180,7 @@ describe('TwitterService (coverage)', () => {
   describe('repostTweet', () => {
     beforeEach(() => {
       vi.spyOn(service, 'refreshToken').mockResolvedValue(
-        makeCredential() as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
+        makeCredential() as unknown as import('@server/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
     });
 
@@ -1248,7 +1248,7 @@ describe('TwitterService (coverage)', () => {
         makeCredential({
           accessToken: 'enc-access-token',
           externalId: 'brand-user-id',
-        }) as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
+        }) as unknown as import('@server/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
     });
 
@@ -1312,7 +1312,7 @@ describe('TwitterService (coverage)', () => {
         makeCredential({
           accessToken: 'enc-access-token',
           externalId: 'brand-user-id',
-        }) as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
+        }) as unknown as import('@server/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
     });
 
@@ -1408,7 +1408,7 @@ describe('TwitterService (coverage)', () => {
         makeCredential({
           accessToken: 'enc-access-token',
           externalId: 'brand-user-id',
-        }) as unknown as import('@api/collections/credentials/schemas/credential.schema').CredentialDocument,
+        }) as unknown as import('@server/collections/credentials/schemas/credential.schema').CredentialDocument,
       );
     });
 

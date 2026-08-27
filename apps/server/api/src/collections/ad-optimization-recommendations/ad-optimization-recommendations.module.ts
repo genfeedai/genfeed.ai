@@ -1,4 +1,4 @@
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';
 import { AdOptimizationRecommendationsService } from '@server/collections/ad-optimization-recommendations/services/ad-optimization-recommendations.service';

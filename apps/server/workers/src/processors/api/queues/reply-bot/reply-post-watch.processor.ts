@@ -1,4 +1,4 @@
-import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
+import { ReplyPostWatchService } from '@server/services/reply-bot/reply-post-watch.service';
 import {
   REPLY_POST_WATCH_QUEUE,
   type ReplyPostWatchJobData,

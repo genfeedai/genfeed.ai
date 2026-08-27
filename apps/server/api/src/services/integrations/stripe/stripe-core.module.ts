@@ -1,4 +1,4 @@
-import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';

@@ -1,7 +1,7 @@
-import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
+import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
 import type { PostDocument } from '@server/collections/posts/post.schema';
-import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PostAnalyticsService } from '@server/collections/posts/services/post-analytics.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type { PostAnalytics } from '@genfeedai/prisma';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';

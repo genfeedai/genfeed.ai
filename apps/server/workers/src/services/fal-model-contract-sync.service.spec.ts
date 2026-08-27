@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { ModelsService } from '@api/collections/models/services/models.service';
+import type { ModelsService } from '@server/collections/models/services/models.service';
 import { ModelProvider } from '@genfeedai/enums';
 import type { IFalModel } from '@workers/interfaces/model-discovery.interface';
 import {

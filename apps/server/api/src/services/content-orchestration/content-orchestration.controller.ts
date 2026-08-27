@@ -1,10 +1,10 @@
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
-import { ContentqueryQueueService } from '@api/services/content-orchestration/content-pipeline-queue.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
+import { ContentqueryQueueService } from '@server/services/content-orchestration/content-pipeline-queue.service';
 import type {
   PipelineStep,
   PublishMode,
-} from '@api/services/content-orchestration/pipeline.interfaces';
+} from '@server/services/content-orchestration/pipeline.interfaces';
 import {
   BadRequestException,
   Body,

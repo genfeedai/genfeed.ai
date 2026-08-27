@@ -1,13 +1,13 @@
 import { randomBytes } from 'node:crypto';
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import {
   buildCodeChallenge,
   hashToken,
   safeEqual,
   toBase64Url,
-} from '@api/auth/shared/pkce.util';
+} from '@server/auth/shared/pkce.util';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
 import { ActionOrigin, ApiKeyCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';

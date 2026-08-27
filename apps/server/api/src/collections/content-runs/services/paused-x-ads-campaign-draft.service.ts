@@ -2,9 +2,9 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@server/collections/workflows/system-workflow-provenance.service';
-import type { XAdsRequestCredentials } from '@api/services/integrations/x-ads/interfaces/x-ads.interface';
-import { XAdsService } from '@api/services/integrations/x-ads/services/x-ads.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { XAdsRequestCredentials } from '@server/services/integrations/x-ads/interfaces/x-ads.interface';
+import { XAdsService } from '@server/services/integrations/x-ads/services/x-ads.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type {
   BrandRemixExecution,
   BrandRemixRunConfig,

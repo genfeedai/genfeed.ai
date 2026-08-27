@@ -6,15 +6,15 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { AgentRunsController } from '@api/collections/agent-runs/controllers/agent-runs.controller';
 import type {
   AgentRunStatsQueryDto,
   AgentRunsQueryDto,
 } from '@api/collections/agent-runs/dto/agent-runs-query.dto';
-import type { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
-import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
-import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
+import type { CreateAgentRunDto } from '@server/collections/agent-runs/dto/create-agent-run.dto';
+import type { AgentRunDocument } from '@server/collections/agent-runs/schemas/agent-run.schema';
+import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { AgentRunsOperationsService } from '@api/collections/agent-runs/services/agent-runs-operations.service';
 import { AgentExecutionStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';

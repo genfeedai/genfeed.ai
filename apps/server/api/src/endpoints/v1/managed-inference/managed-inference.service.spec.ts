@@ -1,10 +1,10 @@
-vi.mock('@api/collections/credits/services/credits.utils.service', () => ({
+vi.mock('@server/collections/credits/services/credits.utils.service', () => ({
   CreditsUtilsService: class CreditsUtilsService {},
 }));
 vi.mock('@server/services/integrations/fal/services/fal.service', () => ({
   FalService: class FalService {},
 }));
-vi.mock('@api/services/integrations/fleet/fleet.service', () => ({
+vi.mock('@server/services/integrations/fleet/fleet.service', () => ({
   FleetService: class FleetService {},
 }));
 vi.mock(
@@ -23,14 +23,14 @@ vi.mock('@libs/logger/logger.service', () => ({
   LoggerService: class LoggerService {},
 }));
 
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import {
   ManagedInferenceOperation,
   ManagedInferenceProvider,
-} from '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
-import type { ManagedInferenceAuthenticatedRequest } from '@api/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
+} from '@server/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
+import type { ManagedInferenceAuthenticatedRequest } from '@server/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
 import { ManagedInferenceService } from '@api/endpoints/v1/managed-inference/managed-inference.service';
-import { FleetService } from '@api/services/integrations/fleet/fleet.service';
+import { FleetService } from '@server/services/integrations/fleet/fleet.service';
 import { ActivitySource } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';

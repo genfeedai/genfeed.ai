@@ -1,7 +1,7 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { BatchContentController } from '@api/services/batch-content/batch-content.controller';
-import { BatchContentService } from '@api/services/batch-content/batch-content.service';
-import { BatchContentQueueService } from '@api/services/batch-content/batch-content-queue.service';
+import { BatchContentService } from '@server/services/batch-content/batch-content.service';
+import { BatchContentQueueService } from '@server/services/batch-content/batch-content-queue.service';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor.module';
 import { LoggerModule } from '@libs/logger/logger.module';

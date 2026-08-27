@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { ClipOrchestratorStateStore } from '@api/services/clip-orchestrator/clip-orchestrator-state.store';
-import { ClipRunState } from '@api/services/clip-orchestrator/clip-run-state.enum';
-import { ClipRunStepDto } from '@api/services/clip-orchestrator/dto/clip-run-step.dto';
+import { ClipOrchestratorStateStore } from '@server/services/clip-orchestrator/clip-orchestrator-state.store';
+import { ClipRunState } from '@server/services/clip-orchestrator/clip-run-state.enum';
+import { ClipRunStepDto } from '@server/services/clip-orchestrator/dto/clip-run-step.dto';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

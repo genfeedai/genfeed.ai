@@ -1,4 +1,4 @@
-import { InsightGenerationQueueService } from '@api/queues/insight-generation/insight-generation-queue.service';
+import { InsightGenerationQueueService } from '@server/queues/insight-generation/insight-generation-queue.service';
 import { INSIGHT_GENERATION_QUEUE } from '@genfeedai/queue-contracts';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';

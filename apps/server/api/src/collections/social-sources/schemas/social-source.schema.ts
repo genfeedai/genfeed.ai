@@ -1,4 +1,4 @@
-import type { SourcePostDocument } from '@api/collections/source-posts/schemas/source-post.schema';
+import type { SourcePostDocument } from '@server/collections/source-posts/schemas/source-post.schema';
 import type { SocialSource } from '@genfeedai/prisma';
 
 export type SocialSourceDocument = SocialSource;

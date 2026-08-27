@@ -1,6 +1,6 @@
-import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import type { PostDocument } from '@server/collections/posts/post.schema';
@@ -8,13 +8,13 @@ import {
   extractPostGenerationLabel,
   parsePostGenerationSlots,
 } from '@api/collections/posts/services/post-generation-text.util';
-import { PostsService } from '@api/collections/posts/services/posts.service';
-import { TemplatesService } from '@api/collections/templates/services/templates.service';
-import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
-import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
-import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { TemplatesService } from '@server/collections/templates/services/templates.service';
+import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
+import { TEXT_GENERATION_LIMITS } from '@server/constants/text-generation-limits.constant';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
 import {
   ActivityEntityModel,
   ActivityKey,

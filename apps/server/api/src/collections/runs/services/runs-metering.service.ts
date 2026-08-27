@@ -1,4 +1,4 @@
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import {
   RunActionType,
   RunAuthType,

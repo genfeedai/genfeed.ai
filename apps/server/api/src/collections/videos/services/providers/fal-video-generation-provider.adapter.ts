@@ -1,7 +1,7 @@
 import {
   getFalEndpointFromModelKey,
   isFalDestination,
-} from '@api/collections/models/utils/model-key.util';
+} from '@server/collections/models/utils/model-key.util';
 import type {
   DispatchVideoGenerationParams,
   VideoGenerationProviderAdapter,

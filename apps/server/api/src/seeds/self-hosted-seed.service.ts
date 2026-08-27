@@ -7,7 +7,7 @@
  * for workspaces created before Member became the authorization source of truth.
  */
 
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
@@ -252,7 +252,7 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
   ): Promise<void> {
     try {
       const { WorkflowTemplateSeederService } = await import(
-        '@api/collections/workflows/services/workflow-template-seeder.service'
+        '@server/collections/workflows/services/workflow-template-seeder.service'
       );
       const workflowSeeder = this.moduleRef.get(WorkflowTemplateSeederService, {
         strict: false,

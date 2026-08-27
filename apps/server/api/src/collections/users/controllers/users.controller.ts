@@ -1,15 +1,15 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { UpdateAssetGateDto } from '@api/collections/users/dto/update-asset-gate.dto';
-import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
+import { UpdateUserDto } from '@server/collections/users/dto/update-user.dto';
 import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-onboarding.dto';
-import { UsersService } from '@api/collections/users/services/users.service';
+import { UsersService } from '@server/collections/users/services/users.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   getIsSuperAdmin,

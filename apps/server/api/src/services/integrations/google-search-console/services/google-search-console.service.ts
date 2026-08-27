@@ -1,4 +1,4 @@
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type {
   GoogleSearchConsoleSearchAnalyticsResponse,

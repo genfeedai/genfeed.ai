@@ -1,5 +1,5 @@
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { NewslettersService } from '@server/collections/newsletters/services/newsletters.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { sanitizeHtml } from '@genfeedai/helpers';
 import type {

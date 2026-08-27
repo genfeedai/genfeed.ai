@@ -1,6 +1,6 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { CacheService } from '@server/services/cache/cache.service';
 import {
   ActivityKey,

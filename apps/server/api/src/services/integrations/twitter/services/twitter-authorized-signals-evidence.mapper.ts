@@ -1,7 +1,7 @@
 import {
   isTwitterRateLimitError,
   isTwitterScopeOrTierError,
-} from '@api/services/integrations/twitter/utils/twitter-api-error.util';
+} from '@server/services/integrations/twitter/utils/twitter-api-error.util';
 import {
   type TwitterAuthorizedSignalEvidence,
   type TwitterAuthorizedSignalReason,

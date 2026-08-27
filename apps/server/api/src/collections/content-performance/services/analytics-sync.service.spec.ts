@@ -1,6 +1,6 @@
-import { PerformanceSource } from '@api/collections/content-performance/schemas/content-performance.schema';
-import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
-import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
+import { PerformanceSource } from '@server/collections/content-performance/schemas/content-performance.schema';
+import { AnalyticsSyncService } from '@server/collections/content-performance/services/analytics-sync.service';
+import { BrandMemorySyncService } from '@server/services/brand-memory/brand-memory-sync.service';
 import { ContentType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { ServerPrisma } from '@server/server.dependencies';

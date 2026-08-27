@@ -1,13 +1,13 @@
-import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
-import type { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
-import type { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
-import type { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
-import type { AvatarVideoProvider } from '@api/services/avatar-video/avatar-video-provider.interface';
+import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import type { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
+import type { CreateClipResultDto } from '@server/collections/clip-results/dto/create-clip-result.dto';
+import type { ClipResultDocument } from '@server/collections/clip-results/schemas/clip-result.schema';
+import type { AvatarVideoService } from '@server/services/avatar-video/avatar-video.service';
+import type { AvatarVideoProvider } from '@server/services/avatar-video/avatar-video-provider.interface';
 import type {
   FileProcessingJob,
   FileQueueService,
-} from '@api/services/files-microservice/queue/file-queue.service';
+} from '@server/services/files-microservice/queue/file-queue.service';
 import { Status } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';

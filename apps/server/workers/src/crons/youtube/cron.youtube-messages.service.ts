@@ -1,4 +1,4 @@
-import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
+import { SocialInboxService } from '@server/collections/social-inbox/services/social-inbox.service';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';

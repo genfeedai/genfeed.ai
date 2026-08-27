@@ -1,4 +1,4 @@
-import { ContentEngineService } from '@api/services/agent-campaign/content-engine.service';
+import { ContentEngineService } from '@server/services/agent-campaign/content-engine.service';
 import {
   CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
   CampaignMemoryExtractionJobData,

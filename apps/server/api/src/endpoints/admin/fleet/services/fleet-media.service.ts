@@ -1,7 +1,7 @@
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
-import { FleetService } from '@api/services/integrations/fleet/fleet.service';
-import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { FleetService } from '@server/services/integrations/fleet/fleet.service';
+import { HeyGenService } from '@server/services/integrations/heygen/services/heygen.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { BadRequestException, Injectable } from '@nestjs/common';

@@ -1,4 +1,4 @@
-import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
+import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
 import {
   ReplyBotQueueService,
   readReplyBotCredentialId,

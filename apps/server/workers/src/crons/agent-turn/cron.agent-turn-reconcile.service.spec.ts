@@ -1,4 +1,4 @@
-import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
+import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
 import { AgentRunStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';

@@ -5,8 +5,8 @@ import type {
   CustomerDocument,
 } from '@api/collections/customers/schemas/customer.schema';
 import { CacheService } from '@server/services/cache/cache.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { BaseService } from '@server/shared/services/base/base.service';
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';

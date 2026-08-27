@@ -25,7 +25,11 @@ const ADS_SERVICES = [
 
 @Module({
   exports: [...ADS_SERVICES],
-  imports: [HttpModule, LoggerModule, PrismaModule],
+  imports: [
+    HttpModule,
+    LoggerModule,
+    PrismaModule,
+  ],
   providers: [
     ...ADS_SERVICES,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },

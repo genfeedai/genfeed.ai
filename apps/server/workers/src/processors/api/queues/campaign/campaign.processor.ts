@@ -10,11 +10,11 @@ import {
   DEFAULT_CAMPAIGN_SCHEDULE_VERSION,
   isScheduledBlastDueForDispatch,
   readCampaignScheduleVersion,
-} from '@api/collections/outreach-campaigns/services/outreach-campaign-schedule.util';
-import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
-import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
-import { DmCampaignExecutorService } from '@api/services/campaign/dm-campaign-executor.service';
-import { isCampaignOutreachPairExecutable } from '@api/services/campaign/outreach-capability.util';
+} from '@server/collections/outreach-campaigns/services/outreach-campaign-schedule.util';
+import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { CampaignExecutorService } from '@server/services/campaign/campaign-executor.service';
+import { DmCampaignExecutorService } from '@server/services/campaign/dm-campaign-executor.service';
+import { isCampaignOutreachPairExecutable } from '@server/services/campaign/outreach-capability.util';
 import { CampaignStatus, CampaignType } from '@genfeedai/enums';
 import {
   CAMPAIGN_PROCESSING_QUEUE,

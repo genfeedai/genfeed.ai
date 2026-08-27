@@ -1,4 +1,4 @@
-import { ReplyInboundProcessorService } from '@api/services/reply-bot/reply-inbound-processor.service';
+import { ReplyInboundProcessorService } from '@server/services/reply-bot/reply-inbound-processor.service';
 import {
   REPLY_INBOUND_QUEUE,
   type ReplyInboundJobData,

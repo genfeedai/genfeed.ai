@@ -1,8 +1,8 @@
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { DiscordBotAdapter } from '@api/services/bot-gateway/adapters/discord-bot.adapter';
-import { SlackBotAdapter } from '@api/services/bot-gateway/adapters/slack-bot.adapter';
-import { TelegramBotAdapter } from '@api/services/bot-gateway/adapters/telegram-bot.adapter';
-import { BotGatewayService } from '@api/services/bot-gateway/bot-gateway.service';
+import { DiscordBotAdapter } from '@server/services/bot-gateway/adapters/discord-bot.adapter';
+import { SlackBotAdapter } from '@server/services/bot-gateway/adapters/slack-bot.adapter';
+import { TelegramBotAdapter } from '@server/services/bot-gateway/adapters/telegram-bot.adapter';
+import { BotGatewayService } from '@server/services/bot-gateway/bot-gateway.service';
 import {
   BotInteractionType,
   BotResponseType,

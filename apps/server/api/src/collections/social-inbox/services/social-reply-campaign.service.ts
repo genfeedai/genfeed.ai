@@ -3,11 +3,11 @@ import {
   boundPage,
   sanitizeBody,
   toPage,
-} from '@api/collections/social-inbox/services/social-inbox.helpers';
+} from '@server/collections/social-inbox/services/social-inbox.helpers';
 import type {
   SocialInboxPage,
   SocialInboxScope,
-} from '@api/collections/social-inbox/services/social-inbox.types';
+} from '@server/collections/social-inbox/services/social-inbox.types';
 import type {
   SocialReplyCampaignCreateInput,
   SocialReplyCampaignDocument,
@@ -15,10 +15,10 @@ import type {
   SocialReplyCampaignRecipientDocument,
   SocialReplyCampaignRecipientListQuery,
   SocialReplyCampaignUpdateInput,
-} from '@api/collections/social-inbox/services/social-reply-campaign.types';
-import { SocialReplyCampaignQueueService } from '@api/queues/social-reply-campaign/social-reply-campaign-queue.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+} from '@server/collections/social-inbox/services/social-reply-campaign.types';
+import { SocialReplyCampaignQueueService } from '@server/queues/social-reply-campaign/social-reply-campaign-queue.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
 import {
   SocialMessageType,
   SocialReplyCampaignRecipientStatus,

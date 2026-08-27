@@ -1,15 +1,15 @@
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import {
   ManagedInferenceOperation,
   ManagedInferenceProvider,
   type ManagedInferenceRequestDto,
   type ManagedInferenceVideoInput,
-} from '@api/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
+} from '@server/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
 import type {
   ManagedInferenceAuthenticatedRequest,
   ManagedInferenceResponse,
-} from '@api/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
-import { FleetService } from '@api/services/integrations/fleet/fleet.service';
+} from '@server/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
+import { FleetService } from '@server/services/integrations/fleet/fleet.service';
 import { ActivitySource } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

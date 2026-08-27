@@ -1,8 +1,8 @@
-import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ContentOrchestrationController } from '@api/services/content-orchestration/content-orchestration.controller';
-import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
-import { ContentPipelineQueueService } from '@api/services/content-orchestration/content-pipeline-queue.service';
+import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
+import { ContentPipelineQueueService } from '@server/services/content-orchestration/content-pipeline-queue.service';
 import { ImageTaskModel, VideoTaskModel } from '@genfeedai/enums';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

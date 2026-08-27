@@ -1,12 +1,12 @@
-import { RawCutClipCompletionService } from '@api/collections/clip-projects/services/raw-cut-clip-completion.service';
+import { RawCutClipCompletionService } from '@server/collections/clip-projects/services/raw-cut-clip-completion.service';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
 import { CacheService } from '@server/services/cache/cache.service';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { GenerationEventWebhookService } from '@server/services/webhook-client/generation-event-webhook.service';
 import {
   IngredientStatus,
   JobState,

@@ -2,8 +2,8 @@ import type { CreateMoodBoardDto } from '@api/collections/mood-boards/dto/create
 import type { UpdateMoodBoardDto } from '@api/collections/mood-boards/dto/update-mood-board.dto';
 import type { MoodBoardDocument } from '@api/collections/mood-boards/schemas/mood-board.schema';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { BaseService } from '@server/shared/services/base/base.service';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

@@ -1,17 +1,16 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
-import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
+import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 import { PostEntity } from '@server/collections/posts/entities/post.entity';
 import type { PostDocument } from '@server/collections/posts/post.schema';
-import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@server/collections/workflows/system-workflow-provenance.service';
-import { ReplyInboundQueueService } from '@api/queues/reply-bot/reply-inbound-queue.service';
-import { QuotaService } from '@api/services/quota/quota.service';
-import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
+import { ReplyInboundQueueService } from '@server/queues/reply-bot/reply-inbound-queue.service';
+import { QuotaService } from '@server/services/quota/quota.service';
 import {
   resolveChannelTargetSettings,
   validateChannelTargetSettings,
@@ -51,6 +50,7 @@ import {
 } from '@workers/crons/posts/post-publish-error.util';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
+import { PublishEventWebhookService } from '@server/services/webhook-client/publish-event-webhook.service';
 import {
   SchedulerPublishStateService,
   type SchedulerPublishTargetUpdate,

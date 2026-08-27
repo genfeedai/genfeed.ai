@@ -2,7 +2,7 @@ import { MembersService } from '@api/collections/members/services/members.servic
 
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@api/shared/testing/prisma-mock'
+    '@server/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });

@@ -55,15 +55,15 @@ if (process.env.SKIP_PRISMA_DB === 'true') {
   g.test = g.it;
 }
 
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
-import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { UsersService } from '@api/collections/users/services/users.service';
-import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
+import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { UsersService } from '@server/collections/users/services/users.service';
+import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
+import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
@@ -75,9 +75,9 @@ import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/hand
 import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks.stripe.controller';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
-import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   createTestOrganization,
   generateIdString,

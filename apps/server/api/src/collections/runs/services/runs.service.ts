@@ -11,9 +11,9 @@ import {
   type RunEvent,
 } from '@api/collections/runs/schemas/run.schema';
 import { RunsMeteringService } from '@api/collections/runs/services/runs-metering.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { BaseService } from '@server/shared/services/base/base.service';
 import {
   RunActionType,
   RunAuthType,

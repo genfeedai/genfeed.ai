@@ -3,7 +3,7 @@
 // import required for BaseService's getModelMeta('fontFamilyRecord') call.
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@api/shared/testing/prisma-mock'
+    '@server/shared/testing/prisma-mock'
   );
   return canonicalPrismaMock();
 });
@@ -12,7 +12,7 @@ import { CreateFontFamilyDto } from '@api/collections/font-families/dto/create-f
 import { UpdateFontFamilyDto } from '@api/collections/font-families/dto/update-font-family.dto';
 import { FontFamiliesService } from '@api/collections/font-families/services/font-families.service';
 import { ValidationException } from '@server/exceptions/validation.exception';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

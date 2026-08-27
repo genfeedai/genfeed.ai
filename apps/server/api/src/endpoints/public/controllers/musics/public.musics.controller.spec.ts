@@ -1,7 +1,7 @@
 import { Readable } from 'node:stream';
-import { MusicsService } from '@api/collections/musics/services/musics.service';
+import { MusicsService } from '@server/collections/musics/services/musics.service';
 import { PublicMusicsController } from '@api/endpoints/public/controllers/musics/public.musics.controller';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   createIngredientDocumentFixture,

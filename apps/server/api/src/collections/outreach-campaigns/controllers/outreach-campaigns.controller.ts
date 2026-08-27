@@ -1,10 +1,10 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CampaignTargetsService } from '@api/collections/campaign-targets/services/campaign-targets.service';
-import { CreateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CampaignTargetsService } from '@server/collections/campaign-targets/services/campaign-targets.service';
+import { CreateOutreachCampaignDto } from '@server/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
 import type { OutreachCampaignsQueryDto } from '@api/collections/outreach-campaigns/dto/outreach-campaigns-query.dto';
-import { UpdateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/update-outreach-campaign.dto';
-import type { OutreachCampaignDocument } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
-import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { UpdateOutreachCampaignDto } from '@server/collections/outreach-campaigns/dto/update-outreach-campaign.dto';
+import type { OutreachCampaignDocument } from '@server/collections/outreach-campaigns/schemas/outreach-campaign.schema';
+import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
@@ -12,7 +12,7 @@ import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/colle
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { BaseService } from '@api/shared/services/base/base.service';
+import type { BaseService } from '@server/shared/services/base/base.service';
 import { CampaignStatus } from '@genfeedai/enums';
 import { OutreachCampaignSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

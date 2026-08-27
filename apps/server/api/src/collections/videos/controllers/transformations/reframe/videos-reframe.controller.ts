@@ -1,14 +1,14 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
 import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
-import { VideosService } from '@api/collections/videos/services/videos.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
+import { PromptsService } from '@server/collections/prompts/services/prompts.service';
+import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
+import { VideosService } from '@server/collections/videos/services/videos.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -19,12 +19,12 @@ import {
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
-import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
+import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivityEntityModel,

@@ -1,4 +1,4 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { AttachMcpApprovalResultDto } from '@api/collections/mcp-approvals/dto/attach-mcp-approval-result.dto';
 import { CreateMcpApprovalDto } from '@api/collections/mcp-approvals/dto/create-mcp-approval.dto';
 import { ResolveMcpApprovalDto } from '@api/collections/mcp-approvals/dto/resolve-mcp-approval.dto';

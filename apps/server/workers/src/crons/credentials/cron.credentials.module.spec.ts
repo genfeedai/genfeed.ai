@@ -1,6 +1,3 @@
-vi.mock('@api/collections/credentials/credentials.module', () => ({
-  CredentialsModule: class CredentialsModule {},
-}));
 vi.mock('@workers/services/social-integrations.module', () => ({
   SocialIntegrationsModule: class SocialIntegrationsModule {},
 }));

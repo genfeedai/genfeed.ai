@@ -14,7 +14,7 @@
  *   bun run apps/server/api/scripts/seeds/reply-polling-workflows.seed.ts --env=production --live
  */
 
-import { REPLY_POLLING_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/reply-polling-workflows.template';
+import { REPLY_POLLING_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/reply-polling-workflows.template';
 import { runWorkflowSeed } from './shared/run-workflow-seed';
 
 void runWorkflowSeed({

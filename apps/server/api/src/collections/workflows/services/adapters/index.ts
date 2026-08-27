@@ -1,7 +1,7 @@
-export { InstagramSocialAdapter } from '@api/collections/workflows/services/adapters/instagram-social.adapter';
+export { InstagramSocialAdapter } from '@server/collections/workflows/services/adapters/instagram-social.adapter';
 export {
   SocialAdapterFactory,
   type SocialAdapterInterface,
   type SocialPlatformKey,
-} from '@api/collections/workflows/services/adapters/social-adapter.factory';
-export { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
+} from '@server/collections/workflows/services/adapters/social-adapter.factory';
+export { TwitterSocialAdapter } from '@server/collections/workflows/services/adapters/twitter-social.adapter';

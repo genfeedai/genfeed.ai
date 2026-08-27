@@ -1,4 +1,4 @@
-import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { HeyGenService } from '@server/services/integrations/heygen/services/heygen.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';

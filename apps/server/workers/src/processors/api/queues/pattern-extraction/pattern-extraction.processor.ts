@@ -1,4 +1,4 @@
-import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
+import { CreativePatternsService } from '@server/collections/creative-patterns/creative-patterns.service';
 import { Prisma } from '@genfeedai/prisma';
 import {
   PATTERN_EXTRACTION_QUEUE,

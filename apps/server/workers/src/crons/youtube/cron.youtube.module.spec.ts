@@ -1,9 +1,3 @@
-vi.mock('@api/collections/posts/posts.module', () => ({
-  PostsModule: class PostsModule {},
-}));
-vi.mock('@api/collections/social-inbox/social-inbox.module', () => ({
-  SocialInboxModule: class SocialInboxModule {},
-}));
 vi.mock('@workers/services/social-integrations.module', () => ({
   SocialIntegrationsModule: class SocialIntegrationsModule {},
 }));

@@ -1,10 +1,10 @@
-import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
-import { WorkflowNotificationDeliveryService } from '@api/services/notifications/workflow-notifications/workflow-notification-delivery.service';
-import { WorkflowNotificationOutboxService } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
-import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
+import { NotificationsService } from '@server/services/notifications/notifications.service';
+import { NotificationPreferenceService } from '@server/services/notifications/workflow-notifications/notification-preference.service';
+import { WorkflowNotificationDeliveryService } from '@server/services/notifications/workflow-notifications/workflow-notification-delivery.service';
+import { WorkflowNotificationOutboxService } from '@server/services/notifications/workflow-notifications/workflow-notification-outbox.service';
+import { WorkflowNotificationQueueService } from '@server/services/notifications/workflow-notifications/workflow-notification-queue.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { NOTIFICATION_DELIVERY_QUEUE } from '@genfeedai/queue-contracts';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';

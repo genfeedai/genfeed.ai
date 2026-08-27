@@ -1,4 +1,4 @@
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';
 import { AdCreativeMappingsService } from '@server/collections/ad-creative-mappings/services/ad-creative-mappings.service';

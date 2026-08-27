@@ -12,7 +12,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
-import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
@@ -34,7 +34,7 @@ import { VideoGenerationExecutionService } from '@api/collections/videos/service
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { VideoMergeOrchestrationService } from '@api/collections/videos/services/video-merge-orchestration.service';
-import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
+import { VideoMusicOrchestrationService } from '@server/collections/videos/services/video-music-orchestration.service';
 import { VideoProvenanceService } from '@api/collections/videos/services/video-provenance.service';
 import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { VotesModule } from '@api/collections/votes/votes.module';
@@ -48,7 +48,7 @@ import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenla
 import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
-import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
+import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
 import { KlingAIModule } from '@api/services/integrations/klingai/klingai.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';

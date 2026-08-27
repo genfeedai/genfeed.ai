@@ -1,4 +1,4 @@
-import type { Organization } from '@api/collections/organizations/schemas/organization.schema';
+import type { Organization } from '@server/collections/organizations/schemas/organization.schema';
 import { BaseEntity } from '@server/entities/base.entity';
 
 export class OrganizationEntity extends BaseEntity implements Organization {

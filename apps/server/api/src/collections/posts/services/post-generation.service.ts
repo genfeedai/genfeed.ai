@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { AccountPublishingContextService } from '@server/collections/credentials/services/account-publishing-context.service';
 import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
 import { GenerateAccountPostDto } from '@api/collections/posts/dto/generate-account-post.dto';
@@ -17,14 +17,14 @@ import {
   parsePostGenerationContent,
 } from '@api/collections/posts/services/post-generation-text.util';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
-import { TemplatesService } from '@api/collections/templates/services/templates.service';
-import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
-import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
-import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
-import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { TemplatesService } from '@server/collections/templates/services/templates.service';
+import { TrendReferenceCorpusService } from '@server/collections/trends/services/trend-reference-corpus.service';
+import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
+import { TEXT_GENERATION_LIMITS } from '@server/constants/text-generation-limits.constant';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
 import {
   ActivityEntityModel,
   ActivityKey,

@@ -14,7 +14,7 @@
  *   bun run apps/server/api/scripts/seeds/campaign-orchestration-workflows.seed.ts --env=production --live
  */
 
-import { CAMPAIGN_ORCHESTRATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/campaign-orchestration-workflows.template';
+import { CAMPAIGN_ORCHESTRATION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/campaign-orchestration-workflows.template';
 import { runWorkflowSeed } from './shared/run-workflow-seed';
 
 void runWorkflowSeed({

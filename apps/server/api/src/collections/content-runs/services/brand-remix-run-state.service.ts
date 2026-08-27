@@ -8,7 +8,7 @@ import {
   type ReconciledBrandRemixRun,
   type ResolvedBrandContext,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   type BrandRemixExecution,
   type BrandRemixRunConfig,

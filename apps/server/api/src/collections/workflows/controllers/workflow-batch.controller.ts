@@ -1,8 +1,8 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { BatchWorkflowService } from '@api/collections/workflows/services/batch-workflow.service';
-import { BatchWorkflowQueueService } from '@api/collections/workflows/services/batch-workflow-queue.service';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { BatchWorkflowService } from '@server/collections/workflows/services/batch-workflow.service';
+import { BatchWorkflowQueueService } from '@server/collections/workflows/services/batch-workflow-queue.service';
+import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import type {

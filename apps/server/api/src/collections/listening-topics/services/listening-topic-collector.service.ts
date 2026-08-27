@@ -1,10 +1,10 @@
 import type { CollectListeningTopicDto } from '@api/collections/listening-topics/dto/collect-listening-topic.dto';
 import type { ListeningTopicDocument } from '@api/collections/listening-topics/schemas/listening-topic.schema';
-import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
+import { SourcePostsService } from '@server/collections/source-posts/services/source-posts.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
 import type { CollectedSourcePost } from '@api/services/source-collector/source-collector.types';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { ListeningEvidenceType, SocialSourcePlatform } from '@genfeedai/enums';
 import type {
   IListeningScope,

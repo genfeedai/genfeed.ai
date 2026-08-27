@@ -1,15 +1,15 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
-import { GenerateContentPlanDto } from '@api/collections/content-plans/dto/generate-content-plan.dto';
-import { UpdateContentPlanDto } from '@api/collections/content-plans/dto/update-content-plan.dto';
-import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ContentPlanItemsService } from '@server/collections/content-plan-items/services/content-plan-items.service';
+import { GenerateContentPlanDto } from '@server/collections/content-plans/dto/generate-content-plan.dto';
+import { UpdateContentPlanDto } from '@server/collections/content-plans/dto/update-content-plan.dto';
+import { ContentPlansService } from '@server/collections/content-plans/services/content-plans.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
-import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
+import { ContentExecutionService } from '@server/services/content-engine/content-execution.service';
+import { ContentPlannerService } from '@server/services/content-engine/content-planner.service';
 import {
   ContentPlanItemSerializer,
   ContentPlanSerializer,

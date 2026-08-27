@@ -1,13 +1,13 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
 import { TrainingsQueryDto } from '@api/collections/trainings/dto/trainings-query.dto';
 import type { UpdateTrainingDto } from '@api/collections/trainings/dto/update-training.dto';
 import type { TrainingEntity } from '@api/collections/trainings/entities/training.entity';
-import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
+import type { TrainingDocument } from '@server/collections/trainings/schemas/training.schema';
 import type { TrainingSourceImage } from '@api/collections/trainings/services/trainings.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -23,10 +23,10 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,

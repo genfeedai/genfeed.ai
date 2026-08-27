@@ -1,7 +1,7 @@
-import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { CreditTransactionCategory } from '@genfeedai/enums';
 import {
   CREDIT_DEDUCTION_QUEUE,

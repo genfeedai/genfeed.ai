@@ -1,4 +1,4 @@
-import { BatchAlreadyOwnedException } from '@api/services/batch-generation/batch-already-owned.exception';
+import { BatchAlreadyOwnedException } from '@server/services/batch-generation/batch-already-owned.exception';
 import type { BatchGenerationJobData } from '@genfeedai/queue-contracts';
 import { BadRequestException } from '@nestjs/common';
 import { BatchGenerationProcessor } from '@workers/processors/api/queues/batch-generation/batch-generation.processor';

@@ -1,4 +1,4 @@
-import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
   CLIP_PROCESSING_FLOWS,
   CLIP_RESULT_MODES,

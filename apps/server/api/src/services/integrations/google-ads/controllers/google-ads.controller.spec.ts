@@ -1,5 +1,5 @@
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';

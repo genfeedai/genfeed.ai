@@ -1,12 +1,12 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { HttpException } from '@nestjs/common';
 import type { Request } from 'express';
 
-vi.mock('@api/collections/ingredients/services/ingredients.service', () => ({
+vi.mock('@server/collections/ingredients/services/ingredients.service', () => ({
   IngredientsService: class {},
 }));
-vi.mock('@api/collections/metadata/services/metadata.service', () => ({
+vi.mock('@server/collections/metadata/services/metadata.service', () => ({
   MetadataService: class {},
 }));
 vi.mock(
@@ -15,19 +15,19 @@ vi.mock(
     FilesClientService: class {},
   }),
 );
-vi.mock('@api/shared/services/shared/shared.service', () => ({
+vi.mock('@server/shared/services/shared/shared.service', () => ({
   SharedService: class {},
 }));
-vi.mock('@api/collections/videos/services/videos.service', () => ({
+vi.mock('@server/collections/videos/services/videos.service', () => ({
   VideosService: class {},
 }));
 
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { VideosGifController } from '@api/collections/videos/controllers/transformations/gif/videos-gif.controller';
-import { VideosService } from '@api/collections/videos/services/videos.service';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import { VideosService } from '@server/collections/videos/services/videos.service';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 import {
   IngredientCategory,
   IngredientStatus,

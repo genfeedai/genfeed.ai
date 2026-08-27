@@ -10,10 +10,10 @@
  * processing service's resume path picks up where the dead run stopped instead
  * of regenerating drafts that already landed.
  */
-import { BatchAlreadyOwnedException } from '@api/services/batch-generation/batch-already-owned.exception';
-import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
-import { BatchGenerationCreditsService } from '@api/services/batch-generation/batch-generation-credits.service';
-import { BatchGenerationStreamService } from '@api/services/batch-generation/batch-generation-stream.service';
+import { BatchAlreadyOwnedException } from '@server/services/batch-generation/batch-already-owned.exception';
+import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
+import { BatchGenerationCreditsService } from '@server/services/batch-generation/batch-generation-credits.service';
+import { BatchGenerationStreamService } from '@server/services/batch-generation/batch-generation-stream.service';
 import { ActionOrigin } from '@genfeedai/enums';
 import {
   BATCH_GENERATION_QUEUE,

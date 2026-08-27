@@ -9,7 +9,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 
 import { CacheService } from '@server/services/cache/cache.service';
 import { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
-import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ServiceUnavailableException } from '@nestjs/common';

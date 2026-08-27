@@ -1,9 +1,9 @@
-import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
-import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import { ClipLibraryLinkService } from '@server/collections/clip-projects/services/clip-library-link.service';
+import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
 import { HeygenWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';

@@ -1,13 +1,13 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { AssetsService } from '@api/collections/assets/services/assets.service';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { buildPromptBrandingFromBrand } from '@server/collections/brands/utils/brand-context.util';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
+import { PromptsService } from '@server/collections/prompts/services/prompts.service';
+import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
 import type {
   PromptInput,
   ResolvedVideoGenerationRequest,
@@ -25,14 +25,14 @@ import {
   resolveInlinePromptText,
   resolveStoredPromptText,
 } from '@api/collections/videos/services/video-generation-prompt.util';
-import type { GenerationPlaceholderScope } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
+import type { GenerationPlaceholderScope } from '@server/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
 import { resolveGenerationDimensions } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import {
   isImageToVideoRequest,
   resolveGenerationDefaultModel,
-} from '@api/helpers/utils/generation-defaults/generation-defaults.util';
+} from '@server/helpers/utils/generation-defaults/generation-defaults.util';
 import {
   buildReferenceImageUrl,
   buildReferenceImageUrls,
@@ -42,10 +42,10 @@ import {
   GenerationBriefCompileError,
   runVideoGenerationBrief,
   toRedactedVideoGenerationBriefProviderData,
-} from '@api/services/generation-brief';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@api/services/router/router.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+} from '@server/services/generation-brief';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { RouterService } from '@server/services/router/router.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 import type {
   GenerationBriefReference,
   VideoGenerationBrief,

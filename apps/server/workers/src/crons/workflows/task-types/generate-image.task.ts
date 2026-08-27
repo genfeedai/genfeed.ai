@@ -1,5 +1,5 @@
-import { ByokService } from '@api/services/byok/byok.service';
-import { runImageGenerationBrief } from '@api/services/generation-brief';
+import { ByokService } from '@server/services/byok/byok.service';
+import { runImageGenerationBrief } from '@server/services/generation-brief';
 import { ByokProvider, ImageTaskModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

@@ -8,7 +8,7 @@ import type {
   StripeCustomer,
   StripeInvoice,
   StripeSubscription,
-} from '@api/services/integrations/stripe/services/stripe.service';
+} from '@server/services/integrations/stripe/services/stripe.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

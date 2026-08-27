@@ -13,10 +13,10 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import type { IHighlight } from '@api/collections/clip-projects/schemas/clip-project.schema';
-import { PublicClipToolStoreService } from '@api/services/public-clip-tool/public-clip-tool-store.service';
-import { WhisperService } from '@api/services/whisper/whisper.service';
+import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import type { IHighlight } from '@server/collections/clip-projects/schemas/clip-project.schema';
+import { PublicClipToolStoreService } from '@server/services/public-clip-tool/public-clip-tool-store.service';
+import { WhisperService } from '@server/services/whisper/whisper.service';
 import {
   CLIP_AUDIO_EXTRACTION_JOB_TIMEOUT_MS,
   CLIP_REFERENCE_FRAME_JOB_TIMEOUT_MS,

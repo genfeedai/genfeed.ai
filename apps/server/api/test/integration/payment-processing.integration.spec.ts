@@ -1,5 +1,5 @@
 import process from 'node:process';
-import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import { CreditTransactionsService } from '@credits/services/credit-transactions.service';
 import { CustomersService } from '@customers/services/customers.service';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';

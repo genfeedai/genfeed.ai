@@ -1,5 +1,5 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
@@ -11,7 +11,7 @@ import { VideoGenerationExecutionService } from '@api/collections/videos/service
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
-import { assertRedactedVideoGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
+import { assertRedactedVideoGenerationBriefEvidence } from '@server/services/generation-brief/redact-generation-brief-evidence';
 import {
   buildMinimaxH3GenerationSource,
   buildPrunaaiPVideoGenerationSource,

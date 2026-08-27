@@ -1,4 +1,4 @@
-import { SignupPrefillService } from '@api/services/signup-prefill/signup-prefill.service';
+import { SignupPrefillService } from '@server/services/signup-prefill/signup-prefill.service';
 import {
   SIGNUP_PREFILL_QUEUE,
   type SignupPrefillJobData,

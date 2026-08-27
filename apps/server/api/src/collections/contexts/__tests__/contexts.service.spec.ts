@@ -1,6 +1,6 @@
-import { ContextsService } from '@api/collections/contexts/services/contexts.service';
-import { RouterService } from '@api/services/router/router.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ContextsService } from '@server/collections/contexts/services/contexts.service';
+import { RouterService } from '@server/services/router/router.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

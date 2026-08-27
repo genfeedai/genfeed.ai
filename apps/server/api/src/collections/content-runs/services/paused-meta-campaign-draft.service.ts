@@ -2,8 +2,8 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@server/collections/workflows/system-workflow-provenance.service';
-import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { assertUrlNotPrivate } from '@server/helpers/utils/ssrf/ssrf.util';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type {
   BrandRemixExecution,
   BrandRemixRunConfig,

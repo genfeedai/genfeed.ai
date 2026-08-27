@@ -10,15 +10,15 @@
 
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
-import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
-import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
-import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
-import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
-import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
-import { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
-import { RawCutClipService } from '@api/collections/clip-projects/services/raw-cut-clip.service';
-import { RawCutClipCompletionService } from '@api/collections/clip-projects/services/raw-cut-clip-completion.service';
+import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
+import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
+import { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
+import { ClipLibraryLinkService } from '@server/collections/clip-projects/services/clip-library-link.service';
+import { HighlightRewriteService } from '@server/collections/clip-projects/services/highlight-rewrite.service';
+import { HookClipApprovalService } from '@server/collections/clip-projects/services/hook-clip-approval.service';
+import { RawCutClipService } from '@server/collections/clip-projects/services/raw-cut-clip.service';
+import { RawCutClipCompletionService } from '@server/collections/clip-projects/services/raw-cut-clip-completion.service';
 import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';

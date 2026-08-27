@@ -5,29 +5,29 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 
-vi.mock('@api/collections/templates/services/templates.service', () => ({
+vi.mock('@server/collections/templates/services/templates.service', () => ({
   TemplatesService: class {},
 }));
 
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { AssetsService } from '@api/collections/assets/services/assets.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
 import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
-import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import { IngredientGenerationCancellationService } from '@server/collections/ingredients/services/ingredient-generation-cancellation.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { PromptsService } from '@server/collections/prompts/services/prompts.service';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
-import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
-import type { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
+import type { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
+import type { VideosQueryDto } from '@server/collections/videos/dto/videos-query.dto';
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
@@ -38,21 +38,21 @@ import { VideoGenerationCreditsService } from '@api/collections/videos/services/
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
-import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
-import { VideosService } from '@api/collections/videos/services/videos.service';
-import type { VoteDocument } from '@api/collections/votes/schemas/vote.schema';
-import { VotesService } from '@api/collections/votes/services/votes.service';
+import { VideoMusicOrchestrationService } from '@server/collections/videos/services/video-music-orchestration.service';
+import { VideosService } from '@server/collections/videos/services/videos.service';
+import type { VoteDocument } from '@server/collections/votes/schemas/vote.schema';
+import { VotesService } from '@server/collections/votes/services/votes.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
-import { ByokService } from '@api/services/byok/byok.service';
+import { ByokService } from '@server/services/byok/byok.service';
 import { CacheService } from '@server/services/cache/cache.service';
-import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@api/services/router/router.service';
-import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
-import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { RouterService } from '@server/services/router/router.service';
+import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
+import { IngredientCompletionService } from '@server/shared/services/poll-until/ingredient-completion.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
+import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   IngredientCategory,

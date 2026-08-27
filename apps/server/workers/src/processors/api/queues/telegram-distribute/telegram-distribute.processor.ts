@@ -1,4 +1,4 @@
-import { TelegramDistributionService } from '@api/services/distribution/telegram/telegram-distribution.service';
+import { TelegramDistributionService } from '@server/services/distribution/telegram/telegram-distribution.service';
 import {
   TELEGRAM_DISTRIBUTE_QUEUE,
   TelegramDistributeJobData,

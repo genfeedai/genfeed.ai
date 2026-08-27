@@ -22,7 +22,7 @@ import {
   ThreadsContainerStatus,
   ThreadsMediaType,
   ThreadsService,
-} from '@api/services/integrations/threads/services/threads.service';
+} from '@server/services/integrations/threads/services/threads.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';

@@ -2,7 +2,7 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@server/collections/workflows/system-workflow-provenance.service';
-import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronReviewGateTimeoutService } from '@workers/crons/review-gate/cron.review-gate-timeout.service';

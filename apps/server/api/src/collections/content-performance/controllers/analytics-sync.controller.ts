@@ -1,9 +1,9 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { QueueService } from '@api/queues/core/queue.service';
+import { QueueService } from '@server/queues/core/queue.service';
 import {
   ANALYTICS_SYNC_QUEUE,
   EMAIL_DIGEST_QUEUE,

@@ -1,10 +1,10 @@
 import {
   CreateWorkflowExecutionDto,
   UpdateWorkflowExecutionDto,
-} from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
-import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
-import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+} from '@server/collections/workflow-executions/dto/create-workflow-execution.dto';
+import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
+import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
+import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';

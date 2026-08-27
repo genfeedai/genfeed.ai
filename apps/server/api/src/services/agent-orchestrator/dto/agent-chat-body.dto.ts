@@ -1,7 +1,7 @@
 import type {
   AgentChatAttachment,
   AgentPageContext,
-} from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+} from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import {

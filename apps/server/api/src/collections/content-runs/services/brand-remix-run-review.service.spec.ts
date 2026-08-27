@@ -1,6 +1,6 @@
 import { BrandRemixRunReviewService } from '@api/collections/content-runs/services/brand-remix-run-review.service';
 import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/services/brand-remix-runs.factory';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { brandRemixRunConfigSchema } from '@api-types/contracts/brand-remix-run.contract';
 import { ContentRunStatus, IngredientStatus } from '@genfeedai/enums';
 import { ConflictException } from '@nestjs/common';

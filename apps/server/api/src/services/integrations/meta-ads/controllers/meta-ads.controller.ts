@@ -1,6 +1,6 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -12,7 +12,7 @@ import {
   isAcceptedCampaignStatus,
   resolveProviderCampaignStatus,
   resolveProviderPausedStatus,
-} from '@api/services/ads-gateway/ads-campaign-status.util';
+} from '@server/services/ads-gateway/ads-campaign-status.util';
 import { ApiKeyScope, CredentialPlatform, MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

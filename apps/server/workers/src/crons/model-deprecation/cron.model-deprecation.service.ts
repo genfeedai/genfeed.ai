@@ -1,4 +1,4 @@
-import { ModelsService } from '@api/collections/models/services/models.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
 import { WorkflowStatus } from '@genfeedai/enums';
 import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';

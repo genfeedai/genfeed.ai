@@ -1,4 +1,4 @@
-import { InsightsService } from '@api/collections/insights/services/insights.service';
+import { InsightsService } from '@server/collections/insights/services/insights.service';
 import {
   INSIGHT_GENERATION_QUEUE,
   type InsightGenerationJobData,

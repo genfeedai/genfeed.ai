@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import type {
   CreateBatchHookRemixDto,
   CreateHookRemixDto,

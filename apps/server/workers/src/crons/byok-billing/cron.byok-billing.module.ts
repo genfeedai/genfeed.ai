@@ -1,12 +1,10 @@
-import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
-import { ByokBillingModule } from '@api/services/byok-billing/byok-billing.module';
 import { forwardRef, Module } from '@nestjs/common';
 import { CronByokBillingService } from '@workers/crons/byok-billing/cron.byok-billing.service';
+import { WorkersDomainModule } from '@server/workers-domain.module';
 
 @Module({
   imports: [
-    forwardRef(() => ByokBillingModule),
-    forwardRef(() => OrganizationSettingsModule),
+    WorkersDomainModule,
   ],
   providers: [CronByokBillingService],
 })

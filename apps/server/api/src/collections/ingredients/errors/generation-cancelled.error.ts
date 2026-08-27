@@ -1,4 +1,4 @@
-import { GENERATION_CANCELLED_BY_USER } from '@api/collections/ingredients/constants/generation-cancellation.constants';
+import { GENERATION_CANCELLED_BY_USER } from '@server/collections/ingredients/constants/generation-cancellation.constants';
 import { PollAbortException } from '@server/shared/services/poll-until/poll-until.exception';
 
 /**

@@ -1,5 +1,5 @@
 import type { PostEntity } from '@server/collections/posts/entities/post.entity';
-import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,

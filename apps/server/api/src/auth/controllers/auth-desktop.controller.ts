@@ -3,9 +3,9 @@ import {
   CreateDesktopAuthCodeDto,
   ExchangeDesktopAuthCodeDto,
 } from '@api/auth/dto/desktop-auth.dto';
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { AuthDesktopService } from '@api/auth/services/auth-desktop.service';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import {

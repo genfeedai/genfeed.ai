@@ -1,8 +1,8 @@
-import { MusicsService } from '@api/collections/musics/services/musics.service';
+import { MusicsService } from '@server/collections/musics/services/musics.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
 import { customLabels } from '@server/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -10,7 +10,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { isEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
   AssetScope,
   IngredientCategory,

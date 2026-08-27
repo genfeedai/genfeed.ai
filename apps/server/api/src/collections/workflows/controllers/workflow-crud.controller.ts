@@ -1,17 +1,17 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreateWorkflowDto } from '@server/collections/workflows/dto/create-workflow.dto';
 import { WorkflowQueryDto } from '@api/collections/workflows/dto/query-workflow.dto';
-import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
-import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import { UpdateWorkflowDto } from '@server/collections/workflows/dto/update-workflow.dto';
+import type { WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
 import {
   type SystemWorkflowCatalogListItem,
   SystemWorkflowCatalogService,
-} from '@api/collections/workflows/services/system-workflow-catalog.service';
-import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+} from '@server/collections/workflows/services/system-workflow-catalog.service';
+import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
+import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import { buildWorkflowListWhere } from '@api/collections/workflows/utils/workflow-list-where.util';
 import { withNextRunAt } from '@api/collections/workflows/utils/workflow-next-run.util';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -25,7 +25,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import { MemberRole } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,

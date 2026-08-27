@@ -4,14 +4,14 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { ReplyBotConfigsController } from '@api/collections/reply-bot-configs/controllers/reply-bot-configs.controller';
-import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
+import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { FeatureFlagGuard } from '@api/feature-flag/feature-flag.guard';
 import { FeatureFlagService } from '@api/feature-flag/feature-flag.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
-import { ReplyInboundQueueService } from '@api/queues/reply-bot/reply-inbound-queue.service';
-import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
-import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
+import { ReplyInboundQueueService } from '@server/queues/reply-bot/reply-inbound-queue.service';
+import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
+import { ReplyBotOrchestratorService } from '@server/services/reply-bot/reply-bot-orchestrator.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 

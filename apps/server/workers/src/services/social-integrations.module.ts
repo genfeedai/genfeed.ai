@@ -1,5 +1,3 @@
-import { ActivitiesModule } from '@api/collections/activities/activities.module';
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
@@ -26,6 +24,7 @@ import { YoutubeAuthService } from '@server/services/integrations/youtube/servic
 import { YoutubeCommentsService } from '@server/services/integrations/youtube/services/modules/youtube-comments.service';
 import { YoutubeMetadataService } from '@server/services/integrations/youtube/services/modules/youtube-metadata.service';
 import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
+import { WorkersDomainModule } from '@server/workers-domain.module';
 
 @Injectable()
 class WorkerLinkedInTrendResolver implements ServerLinkedInTrendResolver {
@@ -60,9 +59,8 @@ const SOCIAL_SERVICES = [
 @Module({
   exports: [...SOCIAL_SERVICES],
   imports: [
-    ActivitiesModule,
+    WorkersDomainModule,
     ConfigModule,
-    CredentialsModule,
     HttpModule,
     LoggerModule,
   ],

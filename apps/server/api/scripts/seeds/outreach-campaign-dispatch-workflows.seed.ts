@@ -14,7 +14,7 @@
  *   bun run apps/server/api/scripts/seeds/outreach-campaign-dispatch-workflows.seed.ts --env=production --live
  */
 
-import { OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/outreach-campaign-dispatch-workflows.template';
+import { OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/outreach-campaign-dispatch-workflows.template';
 import { runWorkflowSeed } from './shared/run-workflow-seed';
 
 void runWorkflowSeed({

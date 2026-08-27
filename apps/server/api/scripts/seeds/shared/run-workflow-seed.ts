@@ -21,8 +21,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import type { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { WorkflowTemplateSeederService } from '@server/collections/workflows/services/workflow-template-seeder.service';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { Logger } from '@nestjs/common';
 
 /** Minimal template shape the harness relies on (templates carry much more). */
@@ -271,10 +271,10 @@ export async function runWorkflowSeed(
     const { NestFactory } = await import('@nestjs/core');
     const { AppModule } = await import('@api/app.module');
     const { WorkflowTemplateSeederService } = await import(
-      '@api/collections/workflows/services/workflow-template-seeder.service'
+      '@server/collections/workflows/services/workflow-template-seeder.service'
     );
     const { PrismaService } = await import(
-      '@api/shared/modules/prisma/prisma.service'
+      '@server/shared/modules/prisma/prisma.service'
     );
 
     const app = await NestFactory.createApplicationContext(AppModule, {

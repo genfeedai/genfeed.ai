@@ -6,7 +6,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   ),
 }));
 
-vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
+vi.mock('@server/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
     handle: vi.fn((error: unknown) => {
       throw error;
@@ -14,14 +14,14 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   },
 }));
 
-vi.mock('@api/helpers/utils/entity-id/entity-id.util', () => ({
+vi.mock('@server/helpers/utils/entity-id/entity-id.util', () => ({
   EntityIdUtil: {
     validate: vi.fn((s: unknown) => s),
     toValidId: vi.fn((s: unknown) => s),
   },
 }));
 
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import {
   BulkEc2ActionDto,
@@ -42,7 +42,7 @@ import { AdminFleetOperationsController } from '@api/endpoints/admin/fleet/fleet
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { FleetService } from '@api/services/integrations/fleet/fleet.service';
+import { FleetService } from '@server/services/integrations/fleet/fleet.service';
 import { FleetReviewStatus } from '@genfeedai/enums';
 import { FleetPublishResultSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

@@ -1,17 +1,17 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { CreateAssetDto } from '@server/collections/assets/dto/create-asset.dto';
 import type { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
-import type { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
-import { AssetsService } from '@api/collections/assets/services/assets.service';
-import { getAssetParentId } from '@api/collections/assets/utils/asset-parent.util';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { AssetDocument } from '@server/collections/assets/schemas/asset.schema';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { getAssetParentId } from '@server/collections/assets/utils/asset-parent.util';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { ValidationException } from '@server/exceptions/validation.exception';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { isEntityId } from '@server/helpers/validation/entity-id.validator';
 import { CacheService } from '@server/services/cache/cache.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import {
   AssetCategory,
   AssetParent,

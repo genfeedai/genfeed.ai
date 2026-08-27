@@ -1,4 +1,4 @@
-import { ContentOptimizationService } from '@api/services/content-optimization/content-optimization.service';
+import { ContentOptimizationService } from '@server/services/content-optimization/content-optimization.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ContentOptimizationProcessor } from '@workers/processors/api/services/content-optimization/content-optimization.processor';

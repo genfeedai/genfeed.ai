@@ -4,8 +4,8 @@
  * - Get image children (derived images)
  */
 import { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
-import { ImagesService } from '@api/collections/images/services/images.service';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { ImagesService } from '@server/collections/images/services/images.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { customLabels } from '@server/helpers/utils/pagination.util';

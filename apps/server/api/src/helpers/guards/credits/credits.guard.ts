@@ -1,7 +1,7 @@
-import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
-import { ModelsService } from '@api/collections/models/services/models.service';
+import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import type { ModelDocument } from '@server/collections/models/schemas/model.schema';
+import { ModelsService } from '@server/collections/models/services/models.service';
 import {
   baseModelKey,
   isFalDestination,
@@ -9,15 +9,15 @@ import {
   isReplicateVersionId,
   isTrainerKey,
   isTrainingKey,
-} from '@api/collections/models/utils/model-key.util';
+} from '@server/collections/models/utils/model-key.util';
 import {
   CREDITS_DEFER_MODEL_RESOLUTION_KEY,
   CREDITS_KEY,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
-import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
-import { ByokService } from '@api/services/byok/byok.service';
-import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
+import { getMinimumTextCredits } from '@server/helpers/utils/text-pricing/text-pricing.util';
+import { ByokService } from '@server/services/byok/byok.service';
+import { resolveModelByokProvider } from '@server/services/byok/byok-provider-map.util';
 import { type ByokProvider, PricingType } from '@genfeedai/enums';
 import { getDeserializer } from '@genfeedai/helpers';
 import type { CreditsConfig } from '@genfeedai/interfaces';

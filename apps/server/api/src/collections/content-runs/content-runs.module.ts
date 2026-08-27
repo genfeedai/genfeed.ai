@@ -16,7 +16,7 @@ import {
 } from '@api/collections/content-runs/services/brand-remix-runtime';
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
-import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
+import { ContentRunsService } from '@server/collections/content-runs/services/content-runs.service';
 import { PausedMetaCampaignDraftService } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
 import { PausedXAdsCampaignDraftService } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
 import { CreditsModule } from '@api/collections/credits/credits.module';

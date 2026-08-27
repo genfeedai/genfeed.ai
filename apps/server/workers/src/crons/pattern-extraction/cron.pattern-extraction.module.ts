@@ -3,7 +3,9 @@ import { CronPatternExtractionService } from '@workers/crons/pattern-extraction/
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 
 @Module({
-  imports: [forwardRef(() => WorkersQueuesModule)],
+  imports: [
+    forwardRef(() => WorkersQueuesModule),
+  ],
   providers: [CronPatternExtractionService],
 })
 export class CronPatternExtractionModule {}

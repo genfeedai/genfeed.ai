@@ -1,5 +1,5 @@
-import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
-import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
+import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
+import { ReplyBotOrchestratorService } from '@server/services/reply-bot/reply-bot-orchestrator.service';
 import { SERVER_TOKENS, type ServerCredentialStore } from '@genfeedai/server';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';

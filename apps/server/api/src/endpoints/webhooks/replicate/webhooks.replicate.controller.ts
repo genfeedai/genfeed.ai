@@ -1,5 +1,5 @@
-import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
-import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
+import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
+import type { TrainingDocument } from '@server/collections/trainings/schemas/training.schema';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { ReplicateWebhookPayloadDto } from '@api/endpoints/webhooks/dto/replicate-webhook-payload.dto';
 import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
@@ -7,7 +7,7 @@ import { ReplicateWebhookService } from '@api/endpoints/webhooks/replicate/webho
 import { ReplicateWebhookVerificationService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.verification.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { ReplicateStatus } from '@api/services/integrations/replicate/helpers/replicate.enum';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { IngredientStatus, TrainingStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';

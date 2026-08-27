@@ -1,4 +1,4 @@
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import { Module } from '@nestjs/common';
 
 /** Workflow persistence only. Run/marketplace HTTP stays on WorkflowsModule. */

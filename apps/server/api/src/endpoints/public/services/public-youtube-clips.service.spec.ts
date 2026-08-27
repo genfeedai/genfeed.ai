@@ -1,10 +1,10 @@
 import { PublicYoutubeClipsService } from '@api/endpoints/public/services/public-youtube-clips.service';
 import type { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
-import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import type { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
 import type {
   PublicClipToolStoreService,
   StoredPublicYoutubeClipSession,
-} from '@api/services/public-clip-tool/public-clip-tool-store.service';
+} from '@server/services/public-clip-tool/public-clip-tool-store.service';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';

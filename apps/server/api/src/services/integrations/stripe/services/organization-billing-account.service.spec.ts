@@ -4,7 +4,7 @@ import {
   BillingAccountResolutionError,
   OrganizationBillingAccountService,
 } from '@api/services/integrations/stripe/services/organization-billing-account.service';
-import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 

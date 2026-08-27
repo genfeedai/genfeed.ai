@@ -1,6 +1,6 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { AgentRunsController } from '@api/collections/agent-runs/controllers/agent-runs.controller';
-import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
+import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { AgentRunsOperationsService } from '@api/collections/agent-runs/services/agent-runs-operations.service';
 import { RunsController } from '@api/collections/runs/controllers/runs.controller';
 import { RunsService } from '@api/collections/runs/services/runs.service';

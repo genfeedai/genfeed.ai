@@ -1,19 +1,19 @@
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { baseModelKey } from '@api/collections/models/utils/model-key.util';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { SettingsService } from '@api/collections/settings/services/settings.service';
-import { type TrendingHashtagDocument } from '@api/collections/trends/schemas/trending-hashtag.schema';
-import { type TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
-import { type TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
-import { TrendsService } from '@api/collections/trends/services/trends.service';
-import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { baseModelKey } from '@server/collections/models/utils/model-key.util';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { SettingsService } from '@server/collections/settings/services/settings.service';
+import { type TrendingHashtagDocument } from '@server/collections/trends/schemas/trending-hashtag.schema';
+import { type TrendingSoundDocument } from '@server/collections/trends/schemas/trending-sound.schema';
+import { type TrendingVideoDocument } from '@server/collections/trends/schemas/trending-video.schema';
+import { TrendsService } from '@server/collections/trends/services/trends.service';
+import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
 import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
 import {
   calculateEstimatedTextCredits,
   getMinimumTextCredits,
-} from '@api/helpers/utils/text-pricing/text-pricing.util';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
+} from '@server/helpers/utils/text-pricing/text-pricing.util';
+import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { ActivitySource } from '@genfeedai/enums';
 import {
   buildSystemEmailHtml,

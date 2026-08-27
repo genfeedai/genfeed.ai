@@ -1,4 +1,4 @@
-import type { PersonaContentService } from '@api/services/persona-content/persona-content.service';
+import type { PersonaContentService } from '@server/services/persona-content/persona-content.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PersonaVideoProcessorInput } from './persona-video.processor';

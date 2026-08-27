@@ -1,4 +1,4 @@
-import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
+import { DateRangeUtil } from '@server/helpers/utils/date-range/date-range.util';
 
 describe('DateRangeUtil', () => {
   beforeEach(() => {

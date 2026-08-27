@@ -3,13 +3,13 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { TranscriptsController } from '@api/collections/transcripts/controllers/transcripts.controller';
 import { CreateTranscriptDto } from '@api/collections/transcripts/dto/create-transcript.dto';
 import type { TranscriptEntity } from '@api/collections/transcripts/entities/transcript.entity';
 import { TranscriptsService } from '@api/collections/transcripts/services/transcripts.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import { TranscriptStatus } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { BadRequestException } from '@nestjs/common';

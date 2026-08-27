@@ -1,5 +1,5 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import {

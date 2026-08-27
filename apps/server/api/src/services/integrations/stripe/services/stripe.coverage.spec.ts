@@ -7,7 +7,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   };
 });
 
-import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -1272,7 +1272,7 @@ describe('StripeService — coverage spec', () => {
 
       // Dynamically re-import the service to get the IS_SELF_HOSTED=true variant
       const { StripeService: SelfHostedStripeService } = await import(
-        '@api/services/integrations/stripe/services/stripe.service'
+        '@server/services/integrations/stripe/services/stripe.service'
       );
 
       const configGetMock = buildConfigGet();

@@ -28,7 +28,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 
 // ── Imports ───────────────────────────────────────────────────────────────────
 
-import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
+import { RedditService } from '@server/services/integrations/reddit/services/reddit.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';

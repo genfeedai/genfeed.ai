@@ -1,5 +1,5 @@
-import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PostAnalyticsService } from '@server/collections/posts/services/post-analytics.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
   AnalyticsCollectionAttemptRef,

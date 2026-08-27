@@ -1,8 +1,8 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { WorkflowBatchController } from '@api/collections/workflows/controllers/workflow-batch.controller';
-import { BatchWorkflowService } from '@api/collections/workflows/services/batch-workflow.service';
-import { BatchWorkflowQueueService } from '@api/collections/workflows/services/batch-workflow-queue.service';
-import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { BatchWorkflowService } from '@server/collections/workflows/services/batch-workflow.service';
+import { BatchWorkflowQueueService } from '@server/collections/workflows/services/batch-workflow-queue.service';
+import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

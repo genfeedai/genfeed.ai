@@ -1,4 +1,3 @@
-import { ByokModule } from '@api/services/byok/byok.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -17,6 +16,7 @@ import { LeonardoAIService } from '@server/services/integrations/leonardoai/serv
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
 import { FileServicesModule } from '@workers/services/file-services.module';
+import { WorkersDomainModule } from '@server/workers-domain.module';
 
 const GENERATION_SERVICES = [
   ElevenLabsService,
@@ -31,7 +31,7 @@ const GENERATION_SERVICES = [
 @Module({
   exports: [...GENERATION_SERVICES],
   imports: [
-    ByokModule,
+    WorkersDomainModule,
     ConfigModule,
     FileServicesModule,
     HttpModule,

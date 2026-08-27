@@ -1,21 +1,21 @@
-import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { SocialWarmupEnrollmentsService } from '@api/collections/social-warmup-enrollments/services/social-warmup-enrollments.service';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
   SCOPED_CACHE_TAGS,
-} from '@api/common/constants/cache-patterns.constants';
+} from '@server/common/constants/cache-patterns.constants';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { CacheService } from '@server/services/cache/cache.service';
-import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
 import {
   isInstagramProfessionalAccountError,
   isInstagramRateLimitError,
   isInstagramScopeError,
   parseInstagramGrantedScopes,
-} from '@api/services/integrations/instagram/utils/instagram-error.util';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+} from '@server/services/integrations/instagram/utils/instagram-error.util';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   type InstagramAuthorizedSignalEvidence,
   type InstagramAuthorizedSignalReason,

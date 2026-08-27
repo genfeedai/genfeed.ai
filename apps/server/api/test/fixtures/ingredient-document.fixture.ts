@@ -1,8 +1,8 @@
 import { IngredientEntity } from '@server/collections/ingredients/entities/ingredient.entity';
-import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
 import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import type { MetadataDocument } from '@api/collections/metadata/schemas/metadata.schema';
-import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import type { MetadataDocument } from '@server/collections/metadata/schemas/metadata.schema';
+import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 
 export function createIngredientDocumentFixture(
   partial: Partial<IngredientDocument> = {},

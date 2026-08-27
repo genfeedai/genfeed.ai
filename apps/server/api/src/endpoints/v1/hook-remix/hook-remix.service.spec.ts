@@ -2,7 +2,7 @@ vi.mock('node:crypto', () => ({
   randomUUID: vi.fn(() => 'mock-uuid-1234'),
 }));
 
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import type {
   CreateBatchHookRemixDto,
   CreateHookRemixDto,

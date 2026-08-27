@@ -1,4 +1,4 @@
-import type { BuiltInSkillIdentity } from '@api/collections/skills/constants/skill-catalog-identity';
+import type { BuiltInSkillIdentity } from '@server/collections/skills/constants/skill-catalog-identity';
 
 export interface FirstPartySkillDefinition extends BuiltInSkillIdentity {
   category: string;

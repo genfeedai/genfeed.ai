@@ -1,4 +1,4 @@
-import { ModelsService } from '@api/collections/models/services/models.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
 import { PublicModelsQueryDto } from '@api/endpoints/public/dto/public-models-query.dto';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';

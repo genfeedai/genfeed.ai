@@ -1,4 +1,4 @@
-import { ContentEngineService } from '@api/services/agent-campaign/content-engine.service';
+import { ContentEngineService } from '@server/services/agent-campaign/content-engine.service';
 import {
   ORCHESTRATOR_RUN_QUEUE,
   OrchestratorRunJobData,

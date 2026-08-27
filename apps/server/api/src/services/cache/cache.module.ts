@@ -1,5 +1,5 @@
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
-import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
 import { CacheStrategies } from '@api/services/cache/cache-strategies';
 import { CacheService } from '@server/services/cache/cache.service';
 import { CacheClientService } from '@server/services/cache/cache-client.service';

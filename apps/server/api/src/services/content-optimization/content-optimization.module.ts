@@ -2,10 +2,10 @@ import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.mo
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
-import { AbTestSuggestionHarnessService } from '@api/services/content-optimization/ab-test-suggestion-harness.service';
+import { AbTestSuggestionHarnessService } from '@server/services/content-optimization/ab-test-suggestion-harness.service';
 import { ContentOptimizationController } from '@api/services/content-optimization/content-optimization.controller';
-import { ContentOptimizationService } from '@api/services/content-optimization/content-optimization.service';
-import { ContentOptimizationQueueService } from '@api/services/content-optimization/content-optimization-queue.service';
+import { ContentOptimizationService } from '@server/services/content-optimization/content-optimization.service';
+import { ContentOptimizationQueueService } from '@server/services/content-optimization/content-optimization-queue.service';
 import { OpenAiLlmModule } from '@api/services/integrations/openai-llm/openai-llm.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';

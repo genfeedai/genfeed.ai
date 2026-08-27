@@ -1,4 +1,4 @@
-import { ModelsService } from '@api/collections/models/services/models.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
 import { ModelCategory, WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';

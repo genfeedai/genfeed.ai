@@ -1,4 +1,4 @@
-import { TrendsService } from '@api/collections/trends/services/trends.service';
+import { TrendsService } from '@server/collections/trends/services/trends.service';
 import { CacheService } from '@server/services/cache/cache.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

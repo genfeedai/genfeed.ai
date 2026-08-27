@@ -28,8 +28,8 @@ if (process.env.SKIP_PRISMA_DB === 'true') {
   g.test = g.it;
 }
 
-import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   createTestOrganization,
   generateIdString,

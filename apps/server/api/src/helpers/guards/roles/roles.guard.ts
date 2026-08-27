@@ -1,5 +1,5 @@
-import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RoleEntity } from '@api/collections/roles/entities/role.entity';
 import {
@@ -7,8 +7,8 @@ import {
   SKIP_ROLES_KEY,
 } from '@api/helpers/decorators/roles/roles.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
+import { isEntityId } from '@server/helpers/validation/entity-id.validator';
+import { PopulateBuilder } from '@server/shared/utils/populate/populate.util';
 import { MemberRole } from '@genfeedai/enums';
 import {
   CanActivate,
