@@ -1,10 +1,10 @@
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, type TestingModule } from '@nestjs/testing';
 import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
 } from '@server/services/integrations/openrouter/dto/openrouter.dto';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, type TestingModule } from '@nestjs/testing';
 
 const mockCreate = vi.fn();
 
@@ -35,7 +35,7 @@ const makeParams = (
 
 const makeOpenAIResponse = (
   content: string | null = 'Hello back',
-  toolCalls?: OpenAI.Chat.Completions.ChatCompletionMessageToolCall[],
+  toolCalls?: OpenAI['Chat']['Completions']['ChatCompletionMessageToolCall'][],
 ) => ({
   choices: [
     {

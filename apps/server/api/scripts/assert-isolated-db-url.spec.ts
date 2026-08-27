@@ -27,6 +27,12 @@ describe('assertIsolatedDatabaseUrl', () => {
     );
   });
 
+  it('fails closed when DATABASE_URL is not a valid URL', () => {
+    expect(() => assertIsolatedDatabaseUrl('not-a-url')).toThrow(
+      /DATABASE_URL is not a valid URL/,
+    );
+  });
+
   it('refuses a production-shaped host instead of falling back', () => {
     expect(() =>
       assertIsolatedDatabaseUrl(

@@ -19,6 +19,7 @@ import {
   getOrganizationLimitForTier,
   getUpgradeTierForLimit,
 } from '@genfeedai/pricing';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   ConflictException,
@@ -294,20 +295,20 @@ export class BillingAccountsService {
     });
 
     if (orgBalance && accountBalance && orgBalance.id !== accountBalance.id) {
-      await this.prisma.creditBalance.update({
+      await this.prisma.creditBalance.updateMany({
         data: {
           balance: accountBalance.balance + orgBalance.balance,
         },
-        where: { id: accountBalance.id },
+        where: scopedWhere(input.organizationId, { id: accountBalance.id }),
       });
-      await this.prisma.creditBalance.update({
+      await this.prisma.creditBalance.updateMany({
         data: { isDeleted: true },
-        where: { id: orgBalance.id },
+        where: scopedWhere(input.organizationId, { id: orgBalance.id }),
       });
     } else if (orgBalance && !orgBalance.billingAccountId) {
-      await this.prisma.creditBalance.update({
+      await this.prisma.creditBalance.updateMany({
         data: { billingAccountId: account.id },
-        where: { id: orgBalance.id },
+        where: scopedWhere(input.organizationId, { id: orgBalance.id }),
       });
     } else if (!orgBalance && !accountBalance) {
       await this.prisma.creditBalance.create({

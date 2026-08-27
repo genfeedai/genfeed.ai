@@ -35,6 +35,14 @@ type PaymentSubscriptionsServiceMock = {
   updateStatus: vi.Mock;
 };
 
+type CreditTransactionsServiceMock = {
+  addCredits: ReturnType<typeof vi.fn>;
+  calculateBalance: ReturnType<typeof vi.fn>;
+  create: ReturnType<typeof vi.fn>;
+  deductCredits: ReturnType<typeof vi.fn>;
+  findByUser: ReturnType<typeof vi.fn>;
+};
+
 describe('Payment Processing Integration Tests (Stripe)', () => {
   // Increase timeout for MongoDB memory server operations
   // vi timeout configured in vitest.config(30000);
@@ -45,7 +53,7 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
   let stripeService: StripeService;
   let subscriptionsService: PaymentSubscriptionsServiceMock;
   let customersService: CustomersService;
-  let creditTransactionsService: CreditTransactionsService;
+  let creditTransactionsService: CreditTransactionsServiceMock;
   let mockStripe: any;
 
   beforeAll(async () => {
@@ -189,9 +197,9 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
       SUBSCRIPTIONS_SERVICE,
     );
     customersService = moduleRef.get<CustomersService>(CustomersService);
-    creditTransactionsService = moduleRef.get<CreditTransactionsService>(
+    creditTransactionsService = moduleRef.get(
       CreditTransactionsService,
-    );
+    ) as CreditTransactionsServiceMock;
   });
 
   afterEach(() => {

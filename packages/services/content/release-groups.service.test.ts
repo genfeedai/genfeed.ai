@@ -137,13 +137,15 @@ describe('ReleaseGroupsService', () => {
     const document = { data: { id: 'release-1' } };
     const release = { id: 'release-1', targets: [] };
     mockGet.mockResolvedValue({ data: document });
-    mockExtractResource.mockReturnValue(release);
+    mockDeserializeResource.mockReturnValue(release);
 
     await expect(
       new ReleaseGroupsService('token').findOne('release-1'),
     ).resolves.toEqual(release);
-    expect(mockGet).toHaveBeenCalledWith('/release-1');
-    expect(mockExtractResource).toHaveBeenCalledWith(document);
+    expect(mockGet).toHaveBeenCalledWith('/release-1', {
+      signal: undefined,
+    });
+    expect(mockDeserializeResource).toHaveBeenCalledWith(document);
   });
 
   it('moves calendar placement through the calendar-move action', async () => {

@@ -706,13 +706,17 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
  * listed here — so a new one can't slip through unreviewed.
  */
 export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
+  'AgentPublishAudit',
   'AgentTransfer',
   'ContentVersionPin',
+  'EngagementRule',
   'ListeningThemeEvidence',
   'LlmVendorCost',
   'MediaVendorCost',
   'Member',
   'PublishApproval',
+  'RssFeedItem',
+  'RssSource',
 ];
 
 /**
@@ -726,11 +730,15 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
  * via SECOND_ORDER_TARGETS.
  */
 export const AUDITOR_IGNORED_TABLES: readonly string[] = [
+  'agent_publish_audits',
   'agent_transfers',
   'content_version_pins',
+  'engagement_rules',
   'listening_theme_evidence',
   'llm_vendor_costs',
   'media_vendor_costs',
   'members',
   'publish_approvals',
+  'rss_feed_items',
+  'rss_sources',
 ];
