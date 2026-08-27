@@ -1,16 +1,16 @@
-import type { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
-import { SettingsService } from '@server/collections/settings/services/settings.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { OrganizationCategory } from '@genfeedai/enums';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
+import type { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { SettingsService } from '@server/collections/settings/services/settings.service';
 
 describe('UserSetupService', () => {
   let service: UserSetupService;
@@ -66,6 +66,10 @@ describe('UserSetupService', () => {
     getOrCreateBalance: vi.fn(),
   };
 
+  const mockBillingAccountsService = {
+    ensureForOrganization: vi.fn(),
+  };
+
   const mockCreditsUtilsService = {
     addOrganizationCreditsWithExpiration: vi.fn(),
     getOrganizationCreditsWithExpiration: vi.fn(),
@@ -86,9 +90,7 @@ describe('UserSetupService', () => {
       mockMembersService as unknown as MembersService,
       mockRolesService as unknown as RolesService,
       mockSettingsService as unknown as SettingsService,
-      {
-        ensureForOrganization: vi.fn().mockResolvedValue({ id: 'ba_1' }),
-      } as unknown as BillingAccountsService,
+      mockBillingAccountsService as unknown as BillingAccountsService,
       mockCreditBalanceService as unknown as CreditBalanceService,
       mockCreditsUtilsService as unknown as CreditsUtilsService,
       mockLogger as unknown as LoggerService,
@@ -127,6 +129,9 @@ describe('UserSetupService', () => {
 
       mockCreditBalanceService.getOrCreateBalance.mockResolvedValue({
         balance: 0,
+      });
+      mockBillingAccountsService.ensureForOrganization.mockResolvedValue({
+        id: 'ba_1',
       });
       mockCreditsUtilsService.getOrganizationCreditsWithExpiration.mockResolvedValue(
         {
@@ -254,6 +259,26 @@ describe('UserSetupService', () => {
           userId,
         }),
       );
+    });
+
+    it('creates the membership before billing-account provisioning', async () => {
+      mockBillingAccountsService.ensureForOrganization.mockImplementation(
+        async () => {
+          expect(mockMembersService.create).toHaveBeenCalledOnce();
+          return { id: 'ba_1' };
+        },
+      );
+
+      await service.initializeUserResources(userId);
+
+      expect(
+        mockBillingAccountsService.ensureForOrganization,
+      ).toHaveBeenCalledWith({
+        label: mockOrg.label,
+        organizationId: orgId,
+        planTier: null,
+        userId,
+      });
     });
 
     it('should fallback to user role if admin role not found', async () => {

@@ -111,6 +111,11 @@ export class UserSetupService {
       // auto-provisioned. Operators create schedules from Automate when they
       // want them.
 
+      // Billing-account linking verifies that the caller administers the
+      // organization. Establish the canonical membership before invoking that
+      // authorization boundary so first-time signup can finish provisioning.
+      member = await this.getOrCreateMember(organization.id, userId);
+
       await this.billingAccountsService.ensureForOrganization({
         label: organization.label,
         organizationId: organization.id.toString(),
@@ -118,7 +123,7 @@ export class UserSetupService {
         userId,
       });
 
-      // Step 6: Create credit balance (REQUIRED - cascading failure)
+      // Create credit balance (REQUIRED - cascading failure)
       await this.creditBalanceService.getOrCreateBalance(
         organization.id.toString(),
       );
@@ -130,9 +135,6 @@ export class UserSetupService {
       if (organizationResult.wasCreated) {
         await this.awardSignupGiftCredits(organization.id);
       }
-
-      // Step 7: Create member (REQUIRED - cascading failure)
-      member = await this.getOrCreateMember(organization.id, userId);
 
       // Log success summary
       this.logger.log(
