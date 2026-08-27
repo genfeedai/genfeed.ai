@@ -13,6 +13,7 @@ import {
   getPlanLabel,
 } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useBillingAccount } from '@hooks/data/billing/use-billing-account/use-billing-account';
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
 import { CreditsService } from '@services/billing/credits.service';
 import { useQuery } from '@tanstack/react-query';
@@ -172,6 +173,7 @@ export default function SettingsSubscriptionPage() {
   const { isReady, settings } = useBrand();
   const { subscription, isLoading, isSubscriptionActive, openBillingPortal } =
     useSubscription();
+  const { account: billingAccount } = useBillingAccount();
 
   const isByokTier =
     subscription?.category?.toLowerCase() === 'byok' || !subscription;
@@ -280,6 +282,71 @@ export default function SettingsSubscriptionPage() {
         </div>
       </SectionCard>
 
+      {billingAccount ? (
+        <SectionCard title="Billing account">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <Text size="sm" color="muted">
+                Status
+              </Text>
+              <Badge
+                variant={billingAccount.isIdentityStale ? 'warning' : 'success'}
+              >
+                {formatEnumLabel(billingAccount.status)}
+              </Badge>
+            </div>
+            {billingAccount.isIdentityStale ? (
+              <Text size="sm" color="destructive">
+                Billing identity is stale. Checkout is blocked until the mapping
+                is repaired.
+              </Text>
+            ) : null}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 bg-muted/50 rounded">
+                <Text size="sm" color="muted">
+                  Available
+                </Text>
+                <Text as="p" size="lg" weight="bold">
+                  {billingAccount.wallet.available.toLocaleString()}
+                </Text>
+              </div>
+              <div className="p-3 bg-muted/50 rounded">
+                <Text size="sm" color="muted">
+                  Held
+                </Text>
+                <Text as="p" size="lg" weight="bold">
+                  {billingAccount.wallet.held.toLocaleString()}
+                </Text>
+              </div>
+              <div className="p-3 bg-muted/50 rounded">
+                <Text size="sm" color="muted">
+                  Settled
+                </Text>
+                <Text as="p" size="lg" weight="bold">
+                  {billingAccount.wallet.settled.toLocaleString()}
+                </Text>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Text size="sm" color="muted">
+                Funded organizations
+              </Text>
+              {billingAccount.linkedOrganizations.map((link) => (
+                <div
+                  className="flex items-center justify-between"
+                  key={link.organizationId}
+                >
+                  <Text weight="medium">{link.label}</Text>
+                  <Text size="sm" color="muted">
+                    {link.usage.toLocaleString()} used
+                  </Text>
+                </div>
+              ))}
+            </div>
+          </div>
+        </SectionCard>
+      ) : null}
+
       <PlansCard />
 
       {isByokTier ? (
@@ -294,6 +361,7 @@ export default function SettingsSubscriptionPage() {
         <Button
           variant={ButtonVariant.DEFAULT}
           onClick={openBillingPortal}
+          disabled={billingAccount?.capabilities.canOpenPortal === false}
           icon={<ExternalLink className="size-4" />}
         >
           Open Billing Portal

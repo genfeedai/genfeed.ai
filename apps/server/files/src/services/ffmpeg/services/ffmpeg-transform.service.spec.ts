@@ -287,6 +287,22 @@ describe('FFmpegTransformService', () => {
       expect(vf).toContain('pad=1080:1920');
     });
 
+    it('should preserve the complete source frame in the raw-cut safe framing mode', async () => {
+      await service.convertToPortrait(
+        '/in/video.mp4',
+        '/out/portrait.mp4',
+        undefined,
+        undefined,
+        'contain-blur',
+      );
+
+      const args = mockCore.executeFFmpeg.mock.calls[0][0] as string[];
+      const filter = args[args.indexOf('-filter_complex') + 1];
+      expect(filter).toContain('force_original_aspect_ratio=increase');
+      expect(filter).toContain('force_original_aspect_ratio=decrease');
+      expect(filter).toContain('overlay=(W-w)/2:(H-h)/2');
+    });
+
     it('should pass progress callback to executeFFmpeg', async () => {
       const onProgress = vi.fn();
       await service.convertToPortrait(

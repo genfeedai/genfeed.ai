@@ -1,3 +1,4 @@
+import type { ClipSourceContract } from '@genfeedai/interfaces';
 import {
   DEFAULT_CLIP_RESULT_MODE,
   isClipResultMode,
@@ -31,12 +32,6 @@ export class ClipFactoryQueueService {
     }
 
     if (mode === 'avatar') {
-      if (!data.avatarId || !data.voiceId) {
-        throw new BadRequestException(
-          'Avatar clip generation requires avatarId and voiceId.',
-        );
-      }
-
       if (
         !data.avatarProvider ||
         !isSupportedAvatarVideoProviderName(data.avatarProvider)
@@ -45,6 +40,28 @@ export class ClipFactoryQueueService {
           `Avatar video provider "${data.avatarProvider ?? 'unknown'}" is not available. Supported providers: ${SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES.join(
             ', ',
           )}.`,
+        );
+      }
+
+      if (
+        data.avatarProvider !== 'genfeedai' &&
+        (!data.avatarId || !data.voiceId)
+      ) {
+        throw new BadRequestException(
+          'Avatar clip generation requires avatarId and voiceId.',
+        );
+      }
+
+      if (
+        data.avatarProvider === 'genfeedai' &&
+        !data.referenceImageUrl &&
+        !data.runReferences?.some(
+          (reference) =>
+            reference.role === 'character' && reference.url.length > 0,
+        )
+      ) {
+        throw new BadRequestException(
+          'GenfeedAI managed clip generation requires a brand character reference.',
         );
       }
     }
@@ -61,9 +78,27 @@ export class ClipFactoryQueueService {
     this.logger.log(`${this.logContext} enqueued`, {
       jobId: job.id,
       projectId: data.projectId,
-      youtubeUrl: data.youtubeUrl,
     });
 
     return job.id ?? data.projectId;
+  }
+
+  async retry(projectId: string, source: ClipSourceContract): Promise<string> {
+    const jobId = `clip-factory-${projectId}`;
+    const job = await this.clipFactoryQueue.getJob(jobId);
+    if (!job || (await job.getState()) !== 'failed') {
+      throw new BadRequestException(
+        `Failed clip factory job ${jobId} was not found`,
+      );
+    }
+
+    const sourceUrl = source.artifact?.mediaUrl;
+    await job.updateData({
+      ...job.data,
+      ...(sourceUrl ? { youtubeUrl: sourceUrl } : {}),
+      source,
+    });
+    await job.retry();
+    return job.id ?? jobId;
   }
 }

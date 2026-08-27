@@ -25,6 +25,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { AvatarVideoModule } from '@api/services/avatar-video/avatar-video.module';
 import { ClipOrchestratorModule } from '@api/services/clip-orchestrator/clip-orchestrator.module';
+import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { Module } from '@nestjs/common';
@@ -52,6 +53,7 @@ import { Module } from '@nestjs/common';
     AvatarVideoModule,
     OpenRouterModule,
     FileQueueModule,
+    FilesClientModule,
   ],
   providers: [
     ClipProjectsService,

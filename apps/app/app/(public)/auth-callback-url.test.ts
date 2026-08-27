@@ -4,6 +4,7 @@ import {
   getAuthCallbackURL,
   getAuthFlowHref,
   parseBrandOsPreviewToken,
+  parsePublicYoutubeClipToken,
   toAbsoluteAuthCallbackURL,
   toAbsolutePasswordResetURL,
 } from './auth-callback-url';
@@ -169,5 +170,17 @@ describe('auth callback URL helpers', () => {
         }),
       ),
     ).toBe(`/onboarding/post-signup?brandOsToken=${token}`);
+  });
+
+  it('preserves only a bounded opaque clip-tool token through post-signup', () => {
+    const token = 'b'.repeat(43);
+    expect(
+      getAuthCallbackURL(new URLSearchParams({ clipToolToken: token })),
+    ).toBe(`/onboarding/post-signup?clipToolToken=${token}`);
+    expect(parsePublicYoutubeClipToken(token)).toBe(token);
+    expect(
+      parsePublicYoutubeClipToken('https://youtube.com/watch?v=x'),
+    ).toBeNull();
+    expect(parsePublicYoutubeClipToken('b'.repeat(44))).toBeNull();
   });
 });

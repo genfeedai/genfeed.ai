@@ -6,23 +6,37 @@ export const CLIP_PROJECT_STATUSES = [
   'clipping',
   'captioning',
   'generating',
+  'partially-completed',
   'completed',
   'failed',
 ] as const;
 
 export type ClipProjectStatus = (typeof CLIP_PROJECT_STATUSES)[number];
 
+export const CLIP_PROJECT_TERMINAL_STATUSES = [
+  'partially-completed',
+  'completed',
+  'failed',
+] as const;
+
 export const CLIP_RESULT_STATUSES = [
   'pending',
   'extracting',
+  'reframing',
   'captioning',
+  'validating',
   'completed',
+  'degraded',
   'failed',
 ] as const;
 
 export type ClipResultStatus = (typeof CLIP_RESULT_STATUSES)[number];
 
-export const CLIP_TERMINAL_STATUSES = ['completed', 'failed'] as const;
+export const CLIP_TERMINAL_STATUSES = [
+  'completed',
+  'degraded',
+  'failed',
+] as const;
 
 export type ClipTerminalStatus = (typeof CLIP_TERMINAL_STATUSES)[number];
 
@@ -87,6 +101,33 @@ export interface ClipResultTerminalContract {
   readiness: ClipReadinessContract;
   isSelected: boolean;
   terminalAt?: Date | string | null;
+}
+
+export interface ClipRawCutFramingContract {
+  aspectRatio: '9:16';
+  height: 1920;
+  /**
+   * `contain-blur` keeps the complete source frame visible over a blurred
+   * portrait background. It is the deterministic safe fallback when no
+   * subject-tracking decision is available.
+   */
+  strategy: 'contain-blur';
+  subjectSafety: 'full-source-visible';
+  version: 1;
+  width: 1080;
+}
+
+export interface ClipRawCutMediaValidationContract {
+  checkedAt: string;
+  decodeOk: boolean;
+  durationSeconds: number | null;
+  expectedDurationSeconds: number;
+  hasAudio: boolean;
+  height: number | null;
+  issues: string[];
+  status: 'failed' | 'passed';
+  videoCodec: string | null;
+  width: number | null;
 }
 
 /**

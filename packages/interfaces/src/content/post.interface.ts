@@ -145,4 +145,6 @@ export interface IPostPlatformConfig {
   isCredentialValid?: boolean;
   category?: PostCategory;
   isShareToFeedSelected?: boolean;
+  referenceState?: string;
+  signatureIds?: string[];
 }

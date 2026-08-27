@@ -1,4 +1,6 @@
+import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
@@ -14,7 +16,9 @@ import {
 } from '@genfeedai/enums';
 import type {
   IAddCreditsOptions,
+  ICreditReservation,
   ICreditsUtilsService,
+  ICreditWalletSnapshot,
 } from '@genfeedai/interfaces/billing';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -36,7 +40,9 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     private readonly loggerService: LoggerService,
     private readonly eventEmitter: EventEmitter2,
     private readonly prisma: PrismaService,
+    private readonly billingAccountsService: BillingAccountsService,
     private readonly creditBalanceService: CreditBalanceService,
+    private readonly creditReservationService: CreditReservationService,
     private readonly creditTransactionsService: CreditTransactionsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly websocketService: NotificationsPublisherService,
@@ -140,63 +146,46 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           organizationId,
           tx,
         );
-
         const maxOverdraftCredits = Math.max(
           0,
           options?.maxOverdraftCredits || 0,
         );
-        const newBalance = currentBalance - creditsToDeduct;
-
-        if (newBalance < -maxOverdraftCredits) {
-          throw new BusinessLogicException(
-            `Insufficient organization credits. Available: ${currentBalance}, Required: ${creditsToDeduct}, Max overdraft: ${maxOverdraftCredits}`,
+        const account =
+          await this.billingAccountsService.resolveForOrganization(
+            organizationId,
           );
-        }
-
-        await this.creditBalanceService.updateBalance(
+        const snapshot = await this.creditBalanceService.applyDelta(
           organizationId,
-          newBalance,
+          {
+            balanceDelta: -creditsToDeduct,
+            billingAccountId: account.id,
+            maxOverdraftCredits,
+          },
           tx,
         );
-        const transactionOptions =
-          options?.referenceId || options?.referenceType || options?.metadata
-            ? {
-                ...(options.metadata ? { metadata: options.metadata } : {}),
-                ...(options.referenceId
-                  ? { referenceId: options.referenceId }
-                  : {}),
-                ...(options.referenceType
-                  ? { referenceType: options.referenceType }
-                  : {}),
-              }
-            : undefined;
-
-        if (transactionOptions) {
-          await this.creditTransactionsService.createTransactionEntry(
-            organizationId,
-            CreditTransactionCategory.DEDUCT,
-            creditsToDeduct,
-            currentBalance,
-            newBalance,
-            source,
-            description,
-            undefined,
-            tx,
-            transactionOptions,
-          );
-        } else {
-          await this.creditTransactionsService.createTransactionEntry(
-            organizationId,
-            CreditTransactionCategory.DEDUCT,
-            creditsToDeduct,
-            currentBalance,
-            newBalance,
-            source,
-            description,
-            undefined,
-            tx,
-          );
-        }
+        const newBalance = snapshot.available;
+        await this.creditTransactionsService.createTransactionEntry(
+          organizationId,
+          CreditTransactionCategory.DEDUCT,
+          creditsToDeduct,
+          currentBalance,
+          newBalance,
+          source,
+          description,
+          undefined,
+          tx,
+          {
+            actorUserId: userId,
+            billingAccountId: account.id,
+            ...(options?.metadata ? { metadata: options.metadata } : {}),
+            ...(options?.referenceId
+              ? { referenceId: options.referenceId }
+              : {}),
+            ...(options?.referenceType
+              ? { referenceType: options.referenceType }
+              : {}),
+          },
+        );
 
         return newBalance;
       };
@@ -264,11 +253,68 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     organizationId: string,
     tx?: PrismaTransactionClient,
   ): Promise<number> {
-    const balance = await this.creditBalanceService.findByOrganization(
+    const snapshot = await this.getWalletSnapshot(organizationId, tx);
+    return snapshot.available;
+  }
+
+  async getWalletSnapshot(
+    organizationId: string,
+    tx?: PrismaTransactionClient,
+  ): Promise<ICreditWalletSnapshot> {
+    let billingAccountId: string | null = null;
+    try {
+      const account =
+        await this.billingAccountsService.resolveForOrganization(
+          organizationId,
+        );
+      billingAccountId = account.id;
+    } catch {
+      billingAccountId = null;
+    }
+
+    const balance = await this.creditBalanceService.getOrCreateBalance(
       organizationId,
       tx,
+      billingAccountId,
     );
-    return typeof balance?.balance === 'number' ? balance.balance : 0;
+    return this.creditBalanceService.toSnapshot(balance);
+  }
+
+  async reserveCredits(input: {
+    organizationId: string;
+    actorUserId: string;
+    amount: number;
+    idempotencyKey: string;
+    workloadType?: string;
+    workloadId?: string;
+    expiresAt?: Date;
+  }): Promise<ICreditReservation> {
+    const account = await this.billingAccountsService.resolveForOrganization(
+      input.organizationId,
+    );
+    return this.creditReservationService.reserve({
+      ...input,
+      billingAccountId: account.id,
+    });
+  }
+
+  async settleReservation(input: {
+    reservationId?: string;
+    idempotencyKey?: string;
+    actualAmount: number;
+    actorUserId: string;
+    description: string;
+    source?: ActivitySource;
+  }): Promise<ICreditWalletSnapshot> {
+    return this.creditReservationService.settle(input);
+  }
+
+  async releaseReservation(input: {
+    reservationId?: string;
+    idempotencyKey?: string;
+    reason?: 'release' | 'expiry';
+  }): Promise<ICreditWalletSnapshot> {
+    return this.creditReservationService.release(input);
   }
 
   async addOrganizationCreditsWithExpiration(

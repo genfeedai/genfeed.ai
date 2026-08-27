@@ -11,6 +11,7 @@ import type {
 import { Status } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
+import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import {
   type ClipGenerationInput,
   ClipGenerationService,
@@ -195,12 +196,31 @@ describe('raw-cut clip pipeline integration', () => {
       clipProjectsService as unknown as ClipProjectsService,
       clipResultsService as unknown as ClipResultsService,
       fileQueueService as unknown as FileQueueService,
+      {
+        inspectVideoQa: vi.fn().mockResolvedValue({
+          decodeOk: true,
+          detectLog: '',
+          loudnessLog: '-16 LUFS',
+          probeJson: JSON.stringify({
+            format: { duration: '14' },
+            streams: [
+              {
+                codec_name: 'h264',
+                codec_type: 'video',
+                height: 1920,
+                width: 1080,
+              },
+              { codec_name: 'aac', codec_type: 'audio' },
+            ],
+          }),
+        }),
+      } as unknown as FilesClientService,
       rawCutClipService,
       logger,
     );
   });
 
-  it('persists completed raw-cut outputs after trim and caption jobs', async () => {
+  it('persists completed raw-cut outputs after trim, framing, caption, and QA', async () => {
     const result = await generationService.generateClips(makeRawCutInput());
     const [clipResultId] = result.clipResultIds;
 
@@ -214,7 +234,7 @@ describe('raw-cut clip pipeline integration', () => {
       ingredientId: 'clip-result-1',
       organizationId: ORGANIZATION_ID,
       params: {
-        captionContent: '1\n00:00:02,000 --> 00:00:06,000\nKeep this caption',
+        captionContent: '1\n00:00:01,960 --> 00:00:06,120\nKeep this caption',
         duration: 14,
         endTime: 24,
         inputPath: undefined,
@@ -227,7 +247,7 @@ describe('raw-cut clip pipeline integration', () => {
       websocketUrl: '/clips/clip-result-1',
     });
     expect(clipResultsService.records.get(clipResultId)).toMatchObject({
-      captionSrt: '1\n00:00:02,000 --> 00:00:06,000\nKeep this caption',
+      captionSrt: '1\n00:00:01,960 --> 00:00:06,120\nKeep this caption',
       mode: 'raw-cut',
       providerJobId: 'raw-cut-trim-clip-result-1',
       providerName: 'raw-cut',
@@ -249,12 +269,45 @@ describe('raw-cut clip pipeline integration', () => {
     });
 
     expect(fileQueueService.processVideo).toHaveBeenNthCalledWith(2, {
+      id: 'raw-cut-frame-clip-result-1',
+      ingredientId: 'clip-result-1',
+      organizationId: ORGANIZATION_ID,
+      params: {
+        framingMode: 'contain-blur',
+        height: 1920,
+        s3Key: 'videos/clip-result-1.mp4',
+        width: 1080,
+      },
+      room: undefined,
+      type: 'convert-to-portrait',
+      userId: USER_ID,
+      websocketUrl: '/clips/clip-result-1',
+    });
+    expect(clipResultsService.records.get(clipResultId)).toMatchObject({
+      providerJobId: 'raw-cut-frame-clip-result-1',
+      status: 'reframing',
+    });
+
+    await completionService.handleCompletion({
+      ingredientId: clipResultId,
+      organizationId: ORGANIZATION_ID,
+      result: {
+        jobId: 'raw-cut-frame-clip-result-1',
+        jobType: 'convert-to-portrait',
+        s3Key: 'videos/clip-result-1-portrait.mp4',
+        url: 'https://cdn.test/clip-result-1-portrait.mp4',
+      },
+      status: Status.COMPLETED,
+      userId: USER_ID,
+    });
+
+    expect(fileQueueService.processVideo).toHaveBeenNthCalledWith(3, {
       id: 'raw-cut-caption-clip-result-1',
       ingredientId: 'clip-result-1',
       organizationId: ORGANIZATION_ID,
       params: {
-        captionContent: '1\n00:00:02,000 --> 00:00:06,000\nKeep this caption',
-        s3Key: 'videos/clip-result-1.mp4',
+        captionContent: '1\n00:00:01,960 --> 00:00:06,120\nKeep this caption',
+        s3Key: 'videos/clip-result-1-portrait.mp4',
       },
       room: undefined,
       type: 'add-captions',
@@ -264,8 +317,8 @@ describe('raw-cut clip pipeline integration', () => {
     expect(clipResultsService.records.get(clipResultId)).toMatchObject({
       providerJobId: 'raw-cut-caption-clip-result-1',
       status: 'captioning',
-      videoS3Key: 'videos/clip-result-1.mp4',
-      videoUrl: 'https://cdn.test/clip-result-1.mp4',
+      videoS3Key: 'videos/clip-result-1-portrait.mp4',
+      videoUrl: 'https://cdn.test/clip-result-1-portrait.mp4',
     });
 
     await completionService.handleCompletion({
@@ -286,8 +339,13 @@ describe('raw-cut clip pipeline integration', () => {
       captionedVideoUrl: 'https://cdn.test/clip-result-1-captioned.mp4',
       isProjectReconciliationPending: false,
       status: 'completed',
-      videoS3Key: 'videos/clip-result-1.mp4',
-      videoUrl: 'https://cdn.test/clip-result-1.mp4',
+      framing: expect.objectContaining({
+        strategy: 'contain-blur',
+        subjectSafety: 'full-source-visible',
+      }),
+      mediaValidation: expect.objectContaining({ status: 'passed' }),
+      videoS3Key: 'videos/clip-result-1-portrait.mp4',
+      videoUrl: 'https://cdn.test/clip-result-1-portrait.mp4',
     });
     expect(clipProjectsService.reconcileTerminalState).toHaveBeenCalledWith(
       PROJECT_ID,

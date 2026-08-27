@@ -12,6 +12,7 @@ import {
   IngredientCategory,
   PostVisibility,
   parsePlatform,
+  ReleaseAttachmentKind,
 } from '@genfeedai/enums';
 import type {
   AgentPublishSettingField,
@@ -331,13 +332,27 @@ export function parseAgentPublishTargetPayloads(
       typeof record.caption === 'string' && record.caption.trim().length > 0
         ? record.caption.trim()
         : undefined;
+    const scheduledAt =
+      readCredentialId(record.scheduledAt) ??
+      readCredentialId(record.scheduledDate);
+    const timezone = readCredentialId(record.timezone);
+    const signatureIds = Array.isArray(record.signatureIds)
+      ? record.signatureIds.filter(
+          (signatureId): signatureId is string =>
+            typeof signatureId === 'string' && signatureId.trim().length > 0,
+        )
+      : undefined;
     payloads.push({
+      ...readAttachments(record.attachments),
       ...(caption ? { caption } : {}),
       credentialId,
       platform,
+      ...(scheduledAt ? { scheduledAt } : {}),
       ...(readSettings(record.settings)
         ? { settings: readSettings(record.settings) }
         : {}),
+      ...(signatureIds && signatureIds.length > 0 ? { signatureIds } : {}),
+      ...(timezone ? { timezone } : {}),
       visibility: readPostVisibility(record.visibility),
     });
   }
@@ -355,25 +370,88 @@ export function formatTargetBlockersError(
 }
 
 export function toCanonicalChannelTarget(params: {
+  attachments?: AgentPublishTargetPayload['attachments'];
   caption?: string;
   credentialId: string;
   order: number;
   platform: CredentialPlatform;
   scheduledAt?: string;
   settings?: Record<string, unknown>;
+  timezone?: string;
   visibility: PostVisibility;
 }): ChannelTargetInput {
   const settings = defaultTargetSettings(params.platform, params.settings);
+  const attachments = toChannelTargetAttachments(params.attachments);
 
   return {
+    ...(attachments ? { attachments } : {}),
     ...(params.caption ? { caption: params.caption } : {}),
     credentialId: params.credentialId,
     order: params.order,
     platform: params.platform,
     ...(params.scheduledAt ? { scheduledDate: params.scheduledAt } : {}),
     settings,
+    ...(params.timezone ? { timezone: params.timezone } : {}),
     visibility: params.visibility,
   };
+}
+
+function readAttachments(
+  value: unknown,
+): Pick<AgentPublishTargetPayload, 'attachments'> {
+  if (!Array.isArray(value)) {
+    return {};
+  }
+
+  const attachments = value.flatMap((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      return [];
+    }
+    const record = item as Record<string, unknown>;
+    const body = readCredentialId(record.body);
+    if (!body) {
+      return [];
+    }
+    const kind =
+      record.kind === ReleaseAttachmentKind.SIGNATURE ||
+      record.kind === ReleaseAttachmentKind.COMMENT ||
+      record.kind === ReleaseAttachmentKind.THREAD
+        ? record.kind
+        : ReleaseAttachmentKind.SIGNATURE;
+    return [
+      {
+        body,
+        kind,
+        ...(typeof record.order === 'number' ? { order: record.order } : {}),
+        ...(readCredentialId(record.platform)
+          ? { platform: readCredentialId(record.platform) }
+          : {}),
+      },
+    ];
+  });
+
+  return attachments.length > 0 ? { attachments } : {};
+}
+
+function toChannelTargetAttachments(
+  attachments: AgentPublishTargetPayload['attachments'],
+): ChannelTargetInput['attachments'] {
+  if (!attachments || attachments.length === 0) {
+    return undefined;
+  }
+
+  return attachments.map((attachment, order) => ({
+    body: attachment.body,
+    kind:
+      attachment.kind === ReleaseAttachmentKind.COMMENT ||
+      attachment.kind === ReleaseAttachmentKind.THREAD
+        ? attachment.kind
+        : ReleaseAttachmentKind.SIGNATURE,
+    order: attachment.order ?? order,
+    ...(parsePlatform(attachment.platform)
+      ? { platform: parsePlatform(attachment.platform) }
+      : {}),
+  }));
 }
 
 export function collectInvalidTargetBlockers(params: {

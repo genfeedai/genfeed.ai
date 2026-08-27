@@ -26,6 +26,7 @@ import { Repeat2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import ReleaseAnalyticsTable from './release-analytics-table';
+import ReleaseEngagementRules from './release-engagement-rules';
 import {
   badgeVariantForTone,
   isReleaseReschedulable,
@@ -321,6 +322,14 @@ export default function ReleaseDetailDrawer({
                     ) : null}
 
                     <TargetHistory target={target} />
+
+                    {release ? (
+                      <ReleaseEngagementRules
+                        postGroupId={release.id}
+                        reconnectHref={reconnectHref}
+                        target={target}
+                      />
+                    ) : null}
 
                     <div className="flex flex-wrap items-end gap-3">
                       <Input

@@ -2,6 +2,7 @@ import { MAX_PAGE_SIZE } from '@genfeedai/constants';
 import type {
   IBrandOsPreview,
   IBrandOsPreviewRequest,
+  IPublicYoutubeClipToolSession,
   IQueryParams,
 } from '@genfeedai/interfaces';
 import { Article } from '@genfeedai/models/content/article.model';
@@ -101,6 +102,44 @@ export class PublicService extends HTTPBaseService {
     return await this.instance
       .post<JsonApiResponseDocument>('brand-os/preview', data)
       .then((res) => deserializeResource<IBrandOsPreview>(res.data));
+  }
+
+  public async createPublicYoutubeClip(
+    youtubeUrl: string,
+    idempotencyKey: string,
+  ): Promise<IPublicYoutubeClipToolSession> {
+    return await this.instance
+      .post<JsonApiResponseDocument>(
+        'youtube-clips',
+        { youtubeUrl },
+        { headers: { 'Idempotency-Key': idempotencyKey } },
+      )
+      .then((res) =>
+        deserializeResource<IPublicYoutubeClipToolSession>(res.data),
+      );
+  }
+
+  public async getPublicYoutubeClip(
+    previewToken: string,
+  ): Promise<IPublicYoutubeClipToolSession> {
+    return await this.instance
+      .get<JsonApiResponseDocument>(`youtube-clips/${previewToken}`)
+      .then((res) =>
+        deserializeResource<IPublicYoutubeClipToolSession>(res.data),
+      );
+  }
+
+  public async requestPublicYoutubeClipPreview(
+    previewToken: string,
+    recommendationId?: string,
+  ): Promise<IPublicYoutubeClipToolSession> {
+    return await this.instance
+      .post<JsonApiResponseDocument>(`youtube-clips/${previewToken}/preview`, {
+        ...(recommendationId ? { recommendationId } : {}),
+      })
+      .then((res) =>
+        deserializeResource<IPublicYoutubeClipToolSession>(res.data),
+      );
   }
 
   public async findPublicAccountLinks(brandId: string): Promise<Link[]> {

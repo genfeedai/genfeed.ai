@@ -15,6 +15,10 @@ import {
   getConnectedInputsForNode,
   getUpstreamNodeIds,
 } from '../../../lib';
+import {
+  hasRecordEdgeStyle,
+  resolveGraphEdgeStyle,
+} from '../../edgeStyleMirror';
 import { useExecutionStore } from '../../execution/executionStore';
 import { propagateExistingOutputs } from '../helpers/propagation';
 import type { WorkflowData, WorkflowStore, WorkflowSummary } from '../types';
@@ -193,10 +197,18 @@ export const createPersistenceSlice: StateCreator<
   listWorkflows: (signal) => getWorkflowPersistence().getAll(undefined, signal),
   loadWorkflow: (workflow) => {
     const hydratedNodes = hydrateWorkflowNodes(workflow.nodes);
+    const resolvedEdgeStyle = resolveGraphEdgeStyle(workflow.edgeStyle);
+    const normalizedEdges = normalizeEdgeTypes(workflow.edges);
+    const edges = hasRecordEdgeStyle(workflow.edgeStyle)
+      ? normalizedEdges
+      : normalizedEdges.map((edge) => ({
+          ...edge,
+          type: resolvedEdgeStyle,
+        }));
 
     set({
-      edgeStyle: workflow.edgeStyle,
-      edges: normalizeEdgeTypes(workflow.edges),
+      edgeStyle: resolvedEdgeStyle,
+      edges,
       groups: workflow.groups ?? [],
       isDirty: true,
       nodes: hydratedNodes,

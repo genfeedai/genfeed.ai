@@ -3,6 +3,7 @@
  * Multi-tenant organization management: org profiles, settings, billing,
 and member access control.
  */
+import { BillingAccountsModule } from '@api/collections/billing-accounts/billing-accounts.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
@@ -44,6 +45,7 @@ import { Module } from '@nestjs/common';
   exports: [OrganizationsCoreModule],
   imports: [
     OrganizationsCoreModule,
+    BillingAccountsModule,
     BrandsCoreModule,
     ByokModule,
     CommonModule,

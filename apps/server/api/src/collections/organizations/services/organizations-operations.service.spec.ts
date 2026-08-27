@@ -8,6 +8,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 });
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { MembersService } from '@api/collections/members/services/members.service';
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -47,6 +48,9 @@ describe('OrganizationsOperationsService', () => {
     findOne: vi.fn(),
     patch: vi.fn(),
   };
+  const billingAccountsService = {
+    ensureForOrganization: vi.fn().mockResolvedValue({ id: 'ba_new' }),
+  };
   const userAccessCacheService = { invalidateAll: vi.fn() };
   const user = {
     brandId: 'brand_active',
@@ -56,6 +60,7 @@ describe('OrganizationsOperationsService', () => {
     userId: 'user_1',
   } as User;
   const service = new OrganizationsOperationsService(
+    billingAccountsService as unknown as BillingAccountsService,
     brandsService as unknown as BrandsService,
     membersService as unknown as MembersService,
     organizationSettingsService as unknown as OrganizationSettingsService,

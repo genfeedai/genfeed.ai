@@ -1,6 +1,7 @@
 import { ClipProjectIngestionController } from '@api/collections/clip-projects/clip-project-ingestion.controller';
 import { AnalyzeYoutubeDto } from '@api/collections/clip-projects/dto/analyze-youtube.dto';
 import { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
+import { PrepareClipUploadDto } from '@api/collections/clip-projects/dto/prepare-clip-upload.dto';
 import type { ClipProjectIngestionService } from '@api/collections/clip-projects/services/clip-project-ingestion.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { plainToInstance } from 'class-transformer';
@@ -15,6 +16,9 @@ describe('ClipProjectIngestionController', () => {
   let ingestionService: {
     analyzeYoutube: ReturnType<typeof vi.fn>;
     createFromYoutube: ReturnType<typeof vi.fn>;
+    finalizeUpload: ReturnType<typeof vi.fn>;
+    prepareUpload: ReturnType<typeof vi.fn>;
+    retrySource: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -29,6 +33,25 @@ describe('ClipProjectIngestionController', () => {
         estimatedClips: 10,
         projectId: 'project-1',
         status: 'processing',
+      }),
+      finalizeUpload: vi.fn().mockResolvedValue({
+        batchJobId: 'clip-analyze-project-1',
+        estimatedClips: 10,
+        projectId: 'project-1',
+        status: 'analyzing',
+      }),
+      prepareUpload: vi.fn().mockResolvedValue({
+        expiresIn: 3600,
+        ingredientId: 'ingredient-1',
+        projectId: 'project-1',
+        publicUrl: 'https://cdn.test/videos/ingredient-1',
+        uploadUrl: 'https://uploads.test/ingredient-1',
+      }),
+      retrySource: vi.fn().mockResolvedValue({
+        batchJobId: 'clip-analyze-project-1',
+        estimatedClips: 10,
+        projectId: 'project-1',
+        status: 'queued',
       }),
     };
     controller = new ClipProjectIngestionController(
@@ -89,6 +112,56 @@ describe('ClipProjectIngestionController', () => {
     ).rejects.toBe(error);
   });
 
+  it('delegates authenticated upload preparation and finalization', async () => {
+    const dto: PrepareClipUploadDto = {
+      contentType: 'video/mp4',
+      filename: 'podcast.mp4',
+      sizeBytes: 4_000_000_000,
+    };
+
+    await controller.prepareUpload(currentUser as never, dto);
+    await controller.finalizeUpload(currentUser as never, 'project-1');
+
+    expect(ingestionService.prepareUpload).toHaveBeenCalledWith(
+      currentUser,
+      dto,
+    );
+    expect(ingestionService.finalizeUpload).toHaveBeenCalledWith(
+      currentUser,
+      'project-1',
+    );
+  });
+
+  describe('PrepareClipUploadDto validation', () => {
+    it('accepts multi-gigabyte audio and video sources', () => {
+      const video = plainToInstance(PrepareClipUploadDto, {
+        contentType: 'video/mp4',
+        filename: 'three-hour-podcast.mp4',
+        sizeBytes: 4_000_000_000,
+      });
+      const audio = plainToInstance(PrepareClipUploadDto, {
+        contentType: 'audio/mpeg',
+        filename: 'three-hour-podcast.mp3',
+        sizeBytes: 1_000_000_000,
+      });
+
+      expect(validateSync(video)).toEqual([]);
+      expect(validateSync(audio)).toEqual([]);
+    });
+
+    it('rejects non-media MIME types and files above the upload ceiling', () => {
+      const dto = plainToInstance(PrepareClipUploadDto, {
+        contentType: 'application/zip',
+        filename: 'archive.zip',
+        sizeBytes: 11 * 1024 * 1024 * 1024,
+      });
+
+      expect(validateSync(dto).map((error) => error.property)).toEqual(
+        expect.arrayContaining(['contentType', 'sizeBytes']),
+      );
+    });
+  });
+
   describe('CreateClipProjectFromYoutubeDto validation', () => {
     it('allows saved avatar defaults and raw-cut requests to omit credentials', () => {
       const avatar = plainToInstance(CreateClipProjectFromYoutubeDto, {
@@ -141,7 +214,7 @@ describe('ClipProjectIngestionController', () => {
         );
 
         expect(messages).toContain(
-          'avatarProvider must be one of the following values: heygen, argil',
+          'avatarProvider must be one of the following values: heygen, argil, genfeedai',
         );
       },
     );

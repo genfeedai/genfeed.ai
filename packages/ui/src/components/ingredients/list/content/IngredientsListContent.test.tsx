@@ -154,11 +154,11 @@ describe('IngredientsListContent', () => {
     ).toHaveAttribute('src', 'https://cdn.genfeed.ai/mock/clip-poster.jpg');
     expect(screen.queryByAltText('Ingredient URL')).not.toBeInTheDocument();
     expect(
-      screen.getByText('Video').closest('[class*="bg-purple-500/20"]'),
+      screen.getByText('Video').closest('[class*="bg-primary/15"]'),
     ).not.toBeNull();
     expect(screen.queryByText('VIDEO')).not.toBeInTheDocument();
     expect(
-      screen.getByText('Landscape').closest('[class*="bg-slate-500/15"]'),
+      screen.getByText('Landscape').closest('[class*="bg-tertiary"]'),
     ).not.toBeNull();
   });
 

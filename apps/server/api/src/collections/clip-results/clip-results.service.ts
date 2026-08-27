@@ -132,13 +132,21 @@ export class ClipResultsService extends BaseService<
     id: string,
     updateDto: Partial<UpdateClipResultDto> | Record<string, unknown>,
     populate: PopulateInput = [],
+    organizationId?: string,
   ): Promise<ClipResultDocument> {
-    const existing = await this.findOne({ id: id });
+    const existing = await this.findOne({
+      id: id,
+      isDeleted: false,
+      ...(organizationId !== undefined ? { organizationId } : {}),
+    });
+    if (!existing) {
+      throw new NotFoundException('ClipResult', id);
+    }
     const existingData = this.readRecord(
-      (existing as Record<string, unknown> | null)?.data,
+      (existing as Record<string, unknown>).data,
     );
     const canonicalId =
-      typeof existing?.id === 'string' && existing.id.length > 0
+      typeof existing.id === 'string' && existing.id.length > 0
         ? existing.id
         : id;
 
@@ -248,7 +256,7 @@ export class ClipResultsService extends BaseService<
       where: {
         isDeleted: false,
         mode: 'raw-cut',
-        status: { in: ['extracting', 'captioning'] },
+        status: { in: ['extracting', 'reframing', 'captioning', 'validating'] },
       },
     });
   }
@@ -264,7 +272,7 @@ export class ClipResultsService extends BaseService<
       where: {
         isDeleted: false,
         mode: 'raw-cut',
-        status: { in: ['extracting', 'captioning'] },
+        status: { in: ['extracting', 'reframing', 'captioning', 'validating'] },
       },
     });
 
@@ -280,7 +288,7 @@ export class ClipResultsService extends BaseService<
         },
         isDeleted: false,
         mode: 'raw-cut',
-        status: { in: ['completed', 'failed'] },
+        status: { in: ['completed', 'degraded', 'failed'] },
       },
     });
   }
@@ -300,7 +308,7 @@ export class ClipResultsService extends BaseService<
         },
         isDeleted: false,
         mode: 'raw-cut',
-        status: { in: ['completed', 'failed'] },
+        status: { in: ['completed', 'degraded', 'failed'] },
       },
     });
 

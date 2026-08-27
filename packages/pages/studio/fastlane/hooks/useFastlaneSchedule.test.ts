@@ -1,4 +1,3 @@
-import { PostCategory, TargetExecutionState } from '@genfeedai/enums';
 import type {
   FastlaneAssetItem,
   FastlaneScheduleTarget,
@@ -10,16 +9,22 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Mocks
 // ────────────────────────────────────────────────────────────
 
-const mockPost = vi.fn();
+const mockCreate = vi.fn();
+const mockPublishTargetNow = vi.fn();
+const mockScheduleTarget = vi.fn();
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => async () =>
     factory('stub-token'),
 }));
 
-vi.mock('@services/content/posts.service', () => ({
-  PostsService: {
-    getInstance: () => ({ post: mockPost }),
+vi.mock('@services/content/release-groups.service', () => ({
+  ReleaseGroupsService: {
+    getInstance: () => ({
+      create: mockCreate,
+      publishTargetNow: mockPublishTargetNow,
+      scheduleTarget: mockScheduleTarget,
+    }),
   },
 }));
 
@@ -34,12 +39,6 @@ vi.mock('@services/core/notifications.service', () => ({
     getInstance: () => ({ error: mockError, success: mockSuccess }),
   },
 }));
-
-// Stable crypto.randomUUID shim
-Object.defineProperty(globalThis, 'crypto', {
-  value: { randomUUID: () => 'test-group-id' },
-  writable: true,
-});
 
 import { useFastlaneSchedule } from './useFastlaneSchedule';
 
@@ -79,14 +78,24 @@ function makeTarget(
 describe('useFastlaneSchedule', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockPost.mockResolvedValue({ id: 'post-1' });
+    mockCreate.mockImplementation(
+      async (input: { targets: Array<{ credentialId: string }> }) => ({
+        id: 'release-1',
+        targets: input.targets.map((target, index) => ({
+          id: `target-${index + 1}`,
+          credentialId: target.credentialId,
+        })),
+      }),
+    );
+    mockPublishTargetNow.mockResolvedValue({ id: 'release-1' });
+    mockScheduleTarget.mockResolvedValue({ id: 'release-1' });
   });
 
-  it('creates one post per asset × credential (2 × 2 = 4 posts)', async () => {
+  it('creates one release per asset, not one post per credential', async () => {
     const assets = [makeAsset('asset-1'), makeAsset('asset-2')];
     const targets = [makeTarget('cred-a'), makeTarget('cred-b')];
 
-    const { result } = renderHook(() => useFastlaneSchedule());
+    const { result } = renderHook(() => useFastlaneSchedule('brand-1'));
 
     await act(async () => {
       await result.current.scheduleApproved({
@@ -97,35 +106,16 @@ describe('useFastlaneSchedule', () => {
       });
     });
 
-    expect(mockPost).toHaveBeenCalledTimes(4);
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(mockPublishTargetNow).toHaveBeenCalledTimes(4);
+    expect(mockScheduleTarget).not.toHaveBeenCalled();
   });
 
-  it('uses the same groupId for all posts in the batch', async () => {
-    const assets = [makeAsset('asset-1'), makeAsset('asset-2')];
-    const targets = [makeTarget('cred-a'), makeTarget('cred-b')];
-
-    const { result } = renderHook(() => useFastlaneSchedule());
-
-    await act(async () => {
-      await result.current.scheduleApproved({
-        assets,
-        targets,
-        captions: {},
-        timezone: 'UTC',
-      });
-    });
-
-    const calls = mockPost.mock.calls;
-    const groupIds = calls.map((c) => (c[0] as { groupId?: string }).groupId);
-    expect(new Set(groupIds).size).toBe(1);
-    expect(groupIds[0]).toBe('test-group-id');
-  });
-
-  it('sets source to "fastlane" on every post', async () => {
+  it('publishes immediately when no scheduledDate is set', async () => {
     const assets = [makeAsset('asset-1')];
     const targets = [makeTarget('cred-a')];
 
-    const { result } = renderHook(() => useFastlaneSchedule());
+    const { result } = renderHook(() => useFastlaneSchedule('brand-1'));
 
     await act(async () => {
       await result.current.scheduleApproved({
@@ -136,15 +126,15 @@ describe('useFastlaneSchedule', () => {
       });
     });
 
-    const payload = mockPost.mock.calls[0][0] as { source?: string };
-    expect(payload.source).toBe('fastlane');
+    expect(mockPublishTargetNow).toHaveBeenCalledWith('release-1', 'target-1');
+    expect(mockScheduleTarget).not.toHaveBeenCalled();
   });
 
-  it('uses SCHEDULED status when scheduledDate is provided', async () => {
+  it('schedules through the release target path when a date is set', async () => {
     const assets = [makeAsset('asset-1')];
     const targets = [makeTarget('cred-a', '2026-12-01T10:00:00Z')];
 
-    const { result } = renderHook(() => useFastlaneSchedule());
+    const { result } = renderHook(() => useFastlaneSchedule('brand-1'));
 
     await act(async () => {
       await result.current.scheduleApproved({
@@ -155,50 +145,26 @@ describe('useFastlaneSchedule', () => {
       });
     });
 
-    const payload = mockPost.mock.calls[0][0] as {
-      scheduledDate?: string;
-      targetExecutionState: string;
-    };
-    expect(payload.targetExecutionState).toBe(TargetExecutionState.SCHEDULED);
-    expect(payload.scheduledDate).toBe('2026-12-01T10:00:00Z');
-  });
-
-  it('uses SCHEDULED with an immediate scheduledDate for "post now"', async () => {
-    const assets = [makeAsset('asset-1')];
-    const targets = [makeTarget('cred-a')]; // no scheduledDate → post now
-
-    const { result } = renderHook(() => useFastlaneSchedule());
-
-    await act(async () => {
-      await result.current.scheduleApproved({
-        assets,
-        targets,
-        captions: {},
-        timezone: 'UTC',
-      });
-    });
-
-    // "Post now" must still be SCHEDULED (the publisher cron ignores PENDING for
-    // Instagram/YouTube) with scheduledDate set to now so it publishes immediately.
-    const payload = mockPost.mock.calls[0][0] as {
-      scheduledDate?: string;
-      targetExecutionState: string;
-    };
-    expect(payload.targetExecutionState).toBe(TargetExecutionState.SCHEDULED);
-    expect(typeof payload.scheduledDate).toBe('string');
-    expect((payload.scheduledDate ?? '').length).toBeGreaterThan(0);
+    expect(mockScheduleTarget).toHaveBeenCalledWith(
+      'release-1',
+      'target-1',
+      '2026-12-01T10:00:00Z',
+    );
+    expect(mockPublishTargetNow).not.toHaveBeenCalled();
   });
 
   it('surfaces partial failures without throwing', async () => {
     const assets = [makeAsset('asset-1'), makeAsset('asset-2')];
     const targets = [makeTarget('cred-a')];
 
-    // First succeeds, second fails
-    mockPost
-      .mockResolvedValueOnce({ id: 'post-1' })
+    mockCreate
+      .mockResolvedValueOnce({
+        id: 'release-1',
+        targets: [{ id: 'target-1', credentialId: 'cred-a' }],
+      })
       .mockRejectedValueOnce(new Error('Network error'));
 
-    const { result } = renderHook(() => useFastlaneSchedule());
+    const { result } = renderHook(() => useFastlaneSchedule('brand-1'));
 
     await act(async () => {
       await result.current.scheduleApproved({
@@ -209,7 +175,6 @@ describe('useFastlaneSchedule', () => {
       });
     });
 
-    // Should surface error notification, not throw
     expect(mockError).toHaveBeenCalledTimes(1);
     expect(result.current.isScheduling).toBe(false);
   });
@@ -218,7 +183,7 @@ describe('useFastlaneSchedule', () => {
     const assets = [makeAsset('asset-1')];
     const targets = [makeTarget('cred-a')];
 
-    const { result } = renderHook(() => useFastlaneSchedule());
+    const { result } = renderHook(() => useFastlaneSchedule('brand-1'));
 
     await act(async () => {
       await result.current.scheduleApproved({
@@ -229,15 +194,15 @@ describe('useFastlaneSchedule', () => {
       });
     });
 
-    const payload = mockPost.mock.calls[0][0] as { description: string };
-    expect(payload.description).toBe('My custom caption');
+    const payload = mockCreate.mock.calls[0][0] as { baseContent: string };
+    expect(payload.baseContent).toBe('My custom caption');
   });
 
-  it('sets correct category for image format', async () => {
-    const assets = [makeAsset('asset-1', 'image')];
+  it('passes brandId into the release create payload', async () => {
+    const assets = [makeAsset('asset-1')];
     const targets = [makeTarget('cred-a')];
 
-    const { result } = renderHook(() => useFastlaneSchedule());
+    const { result } = renderHook(() => useFastlaneSchedule('brand-9'));
 
     await act(async () => {
       await result.current.scheduleApproved({
@@ -248,7 +213,31 @@ describe('useFastlaneSchedule', () => {
       });
     });
 
-    const payload = mockPost.mock.calls[0][0] as { category: string };
-    expect(payload.category).toBe(PostCategory.IMAGE);
+    const payload = mockCreate.mock.calls[0][0] as { brandId?: string };
+    expect(payload.brandId).toBe('brand-9');
+  });
+
+  it('passes postingSetId into the release create payload', async () => {
+    const assets = [makeAsset('asset-1')];
+    const targets = [makeTarget('cred-a')];
+
+    const { result } = renderHook(() => useFastlaneSchedule('brand-1'));
+
+    await act(async () => {
+      await result.current.scheduleApproved({
+        assets,
+        targets,
+        captions: {},
+        postingSetId: 'set-1',
+        timezone: 'UTC',
+      });
+    });
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        postingSetId: 'set-1',
+      }),
+    );
   });
 });

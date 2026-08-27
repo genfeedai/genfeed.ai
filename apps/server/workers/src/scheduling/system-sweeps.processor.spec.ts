@@ -3,8 +3,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@workers/config/config.service';
 import { CronAgentTurnReconcileService } from '@workers/crons/agent-turn/cron.agent-turn-reconcile.service';
 import { CronBatchGenerationReconcileService } from '@workers/crons/batch-generation/cron.batch-generation-reconcile.service';
+import { CronEngagementTriggersService } from '@workers/crons/engagement/cron.engagement-triggers.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { CronReviewGateTimeoutService } from '@workers/crons/review-gate/cron.review-gate-timeout.service';
+import { CronRssAutopostService } from '@workers/crons/rss/cron.rss-autopost.service';
 import { CronStreaksService } from '@workers/crons/streaks/cron.streaks.service';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
 import { CronTranscriptPurgeService } from '@workers/crons/transcript-purge/cron.transcript-purge.service';
@@ -23,7 +25,9 @@ describe('SystemSweepsProcessor', () => {
     reconcileSettlementShortfalls: ReturnType<typeof vi.fn>;
     resumeStrandedBatches: ReturnType<typeof vi.fn>;
   };
+  let engagementService: { processArmedRules: ReturnType<typeof vi.fn> };
   let postsService: { publishScheduledPosts: ReturnType<typeof vi.fn> };
+  let rssService: { pollEnabledSources: ReturnType<typeof vi.fn> };
   let reviewGateService: {
     resolveTimedOutReviewGates: ReturnType<typeof vi.fn>;
   };
@@ -49,7 +53,9 @@ describe('SystemSweepsProcessor', () => {
       reconcileSettlementShortfalls: vi.fn(),
       resumeStrandedBatches: vi.fn(),
     };
+    engagementService = { processArmedRules: vi.fn() };
     postsService = { publishScheduledPosts: vi.fn() };
+    rssService = { pollEnabledSources: vi.fn() };
     reviewGateService = { resolveTimedOutReviewGates: vi.fn() };
     streaksService = { processStreaks: vi.fn() };
     tiktokService = { checkPendingTiktokPosts: vi.fn() };
@@ -70,7 +76,12 @@ describe('SystemSweepsProcessor', () => {
           provide: CronBatchGenerationReconcileService,
           useValue: batchGenerationService,
         },
+        {
+          provide: CronEngagementTriggersService,
+          useValue: engagementService,
+        },
         { provide: CronPostsService, useValue: postsService },
+        { provide: CronRssAutopostService, useValue: rssService },
         {
           provide: CronReviewGateTimeoutService,
           useValue: reviewGateService,
@@ -93,6 +104,18 @@ describe('SystemSweepsProcessor', () => {
     await processor.process(jobNamed(SYSTEM_SWEEP_JOBS.POSTS_PUBLISH));
 
     expect(postsService.publishScheduledPosts).toHaveBeenCalledOnce();
+  });
+
+  it('dispatches the RSS autopost sweep', async () => {
+    await processor.process(jobNamed(SYSTEM_SWEEP_JOBS.RSS_AUTOPOST));
+
+    expect(rssService.pollEnabledSources).toHaveBeenCalledOnce();
+  });
+
+  it('dispatches the engagement triggers sweep', async () => {
+    await processor.process(jobNamed(SYSTEM_SWEEP_JOBS.ENGAGEMENT_TRIGGERS));
+
+    expect(engagementService.processArmedRules).toHaveBeenCalledOnce();
   });
 
   it('dispatches the TikTok status sweep', async () => {

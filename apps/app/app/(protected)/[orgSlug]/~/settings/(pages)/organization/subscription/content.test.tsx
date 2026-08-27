@@ -27,6 +27,15 @@ vi.mock('@hooks/data/subscription/use-subscription/use-subscription', () => ({
   useSubscription: () => useSubscriptionMock(),
 }));
 
+vi.mock('@hooks/data/billing/use-billing-account/use-billing-account', () => ({
+  useBillingAccount: () => ({
+    account: null,
+    error: null,
+    isLoading: false,
+    refresh: vi.fn(),
+  }),
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
 }));

@@ -63,13 +63,12 @@ describe('generateClipSrt', () => {
     expect(srt).toContain('\n\n2\n');
   });
 
-  it('excludes segments that straddle the window boundaries', () => {
-    // A segment ending after clipEnd must be dropped, not clamped.
+  it('clamps phrases that straddle the window boundaries', () => {
     const srt = generateClipSrt(SEGMENTS, 15, 22);
 
-    expect(srt).toBe(
-      '1\n00:00:00,000 --> 00:00:05,000\nFirst highlight sentence',
-    );
+    expect(srt).toContain('First highlight sentence');
+    expect(srt).toContain('Second');
+    expect(srt).not.toContain('00:00:08,');
   });
 
   it('returns an empty string when no segment falls inside the window', () => {
@@ -82,5 +81,34 @@ describe('generateClipSrt', () => {
     expect(srt).toBe(
       '1\n00:00:00,000 --> 00:00:05,000\nFirst highlight sentence',
     );
+  });
+
+  it('uses exact word timestamps and splits captions into short phrases', () => {
+    const srt = generateClipSrt(
+      [
+        {
+          end: 4,
+          start: 0,
+          text: 'One important phrase, then another useful phrase here',
+          words: [
+            { end: 0.4, start: 0.1, word: 'One' },
+            { end: 0.8, start: 0.4, word: 'important' },
+            { end: 1.2, start: 0.8, word: 'phrase,' },
+            { end: 1.6, start: 1.3, word: 'then' },
+            { end: 2, start: 1.6, word: 'another' },
+            { end: 2.5, start: 2, word: 'useful' },
+            { end: 3, start: 2.5, word: 'phrase' },
+            { end: 3.5, start: 3, word: 'here' },
+          ],
+        },
+      ],
+      0,
+      4,
+    );
+
+    expect(srt).toContain('One important phrase,');
+    expect(srt).toContain('then another useful phrase here');
+    expect(srt).toContain('00:00:00,060 -->');
+    expect(srt).toContain('--> 00:00:01,300');
   });
 });

@@ -65,7 +65,7 @@ export default function FastlaneLayout() {
   const { assets, isGenerating, startGeneration, failedCount } =
     useFastlaneGeneration({ brandId, avatarIngredientId, voiceId, references });
 
-  const { isScheduling, scheduleApproved } = useFastlaneSchedule();
+  const { isScheduling, scheduleApproved } = useFastlaneSchedule(brandId);
 
   const handleGenerate = useCallback(
     async (formats: FastlaneFormat[], count: number, angle?: string) => {
@@ -185,6 +185,7 @@ export default function FastlaneLayout() {
         {step === 'schedule' && (
           <FastlaneSchedulePanel
             assets={enrichedAssets}
+            brandId={brandId ?? ''}
             credentials={credentials}
             isScheduling={isScheduling}
             timezone={Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC'}

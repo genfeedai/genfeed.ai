@@ -1,4 +1,5 @@
 import type {
+  CreateReleaseGroupInput,
   RecurrencePreviewInput,
   RecurrencePreviewResult,
   UpdateChannelTargetInput,
@@ -112,12 +113,32 @@ export class ReleaseGroupsService extends HTTPBaseService {
     };
   }
 
+  async create(input: CreateReleaseGroupInput): Promise<IReleaseGroup> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      '',
+      input,
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
+  }
+
   async findOne(releaseId: string): Promise<IReleaseGroup> {
     const response = await this.instance.get<JsonApiResponseDocument>(
       `/${releaseId}`,
     );
 
     return extractResource<IReleaseGroup>(response.data);
+  }
+
+  async create(
+    input: CreateReleaseGroupInput,
+    signal?: AbortSignal,
+  ): Promise<IReleaseGroup> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      '',
+      input,
+      { signal },
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
   }
 
   async getOne(groupId: string, signal?: AbortSignal): Promise<IReleaseGroup> {

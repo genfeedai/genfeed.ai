@@ -1,3 +1,4 @@
+import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
 import {
   BillingAccountResolutionError,
@@ -21,9 +22,14 @@ describe('OrganizationBillingAccountService', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    const billingAccounts = {
+      attachStripeCustomer: vi.fn().mockResolvedValue(undefined),
+      ensureForOrganization: vi.fn().mockResolvedValue({ id: 'ba_1' }),
+    };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OrganizationBillingAccountService,
+        { provide: BillingAccountsService, useValue: billingAccounts },
         { provide: CustomersService, useValue: customers },
         { provide: StripeService, useValue: stripe },
         {

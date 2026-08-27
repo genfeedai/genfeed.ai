@@ -10,6 +10,10 @@ export function getRawCutCaptionJobId(clipResultId: string): string {
   return `${RAW_CUT_JOB_PREFIX}caption-${clipResultId}`;
 }
 
+export function getRawCutFramingJobId(clipResultId: string): string {
+  return `${RAW_CUT_JOB_PREFIX}frame-${clipResultId}`;
+}
+
 export function getRawCutTrimJobId(clipResultId: string): string {
   return `${RAW_CUT_JOB_PREFIX}trim-${clipResultId}`;
 }

@@ -266,7 +266,12 @@ export class WhisperService {
     srt: string;
     language: string;
     duration: number;
-    segments: Array<{ start: number; end: number; text: string }>;
+    segments: Array<{
+      start: number;
+      end: number;
+      text: string;
+      words?: Array<{ start: number; end: number; word: string }>;
+    }>;
   }> {
     const methodName = `${this.constructorName}.transcribeUrl`;
     this.loggerService.log(`${methodName} Transcribing from URL`);

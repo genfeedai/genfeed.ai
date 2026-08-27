@@ -90,6 +90,8 @@ export interface PostGroupCreateProvenance {
   agentRunId?: string;
   agentStrategyId?: string;
   agentThreadId?: string;
+  autoPublishPolicyId?: string;
+  postingSetId?: string;
   source?: string;
   sourceActionId?: string;
 }
@@ -126,6 +128,11 @@ export interface IReleaseGroup extends IBaseEntity {
   publishedAt?: string | null;
   /** Recurrence rule for evergreen/repeating releases, when applicable. */
   recurrence?: IRecurrenceRule | null;
+  /** Posting set that expanded into this release, when created from a saved set. */
+  postingSetId?: string | null;
+  /** RSS source that produced this release, when created from a feed item. */
+  rssSourceId?: string | null;
+  rssFeedItemId?: string | null;
   /**
    * Idempotency key for release creation, so a retried create request resolves
    * to the same release instead of a duplicate.

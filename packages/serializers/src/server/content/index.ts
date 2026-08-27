@@ -1,4 +1,5 @@
 // Auto-generated barrel file
+export * from '@serializers/server/content/agent-publish-audit.serializer';
 export * from '@serializers/server/content/article.serializer';
 export * from '@serializers/server/content/batch.serializer';
 export * from '@serializers/server/content/batch-interpolation.serializer';
@@ -21,6 +22,7 @@ export * from '@serializers/server/content/creator-analysis.serializer';
 export * from '@serializers/server/content/dashboard-layout.serializer';
 export * from '@serializers/server/content/distribution.serializer';
 export * from '@serializers/server/content/editor-project.serializer';
+export * from '@serializers/server/content/engagement-rule.serializer';
 export * from '@serializers/server/content/fanvue-content.serializer';
 export * from '@serializers/server/content/fanvue-earnings.serializer';
 export * from '@serializers/server/content/fanvue-schedule.serializer';
@@ -40,10 +42,12 @@ export * from '@serializers/server/content/post.serializer';
 export * from '@serializers/server/content/posting-cadence.serializer';
 export * from '@serializers/server/content/posting-set.serializer';
 export * from '@serializers/server/content/presigned-upload.serializer';
+export * from '@serializers/server/content/public-youtube-clip-tool.serializer';
 export * from '@serializers/server/content/publish-approval.serializer';
 export * from '@serializers/server/content/recurrence-rule.serializer';
 export * from '@serializers/server/content/release-attachment.serializer';
 export * from '@serializers/server/content/release-group.serializer';
+export * from '@serializers/server/content/rss-source.serializer';
 export * from '@serializers/server/content/schedule.serializer';
 export * from '@serializers/server/content/speech-transcription.serializer';
 export * from '@serializers/server/content/studio-look.serializer';

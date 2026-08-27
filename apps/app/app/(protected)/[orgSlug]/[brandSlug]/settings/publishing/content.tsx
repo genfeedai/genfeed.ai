@@ -38,6 +38,8 @@ import {
   useReducer,
   useState,
 } from 'react';
+import PublishingPostingSetsSection from './publishing-posting-sets-section';
+import PublishingRssSourcesSection from './publishing-rss-sources-section';
 
 const CUSTOM_SCHEDULE_VALUE = 'custom';
 
@@ -614,6 +616,18 @@ export default function BrandSettingsPublishingPage() {
           </div>
         </div>
       </Card>
+
+      {brandId ? (
+        <PublishingPostingSetsSection brandId={brandId} timezone={timezone} />
+      ) : null}
+
+      {brandId ? (
+        <PublishingRssSourcesSection
+          brandId={brandId}
+          credentials={connectedCredentials}
+          timezone={timezone}
+        />
+      ) : null}
 
       <Card
         label="Connected account readiness"

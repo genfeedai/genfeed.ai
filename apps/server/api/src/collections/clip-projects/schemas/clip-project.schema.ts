@@ -1,11 +1,14 @@
 import {
   CLIP_PROJECT_STATUSES,
+  type ClipProcessingFlow,
   type ClipReadinessContract,
   type ClipReferenceFrameSet,
   type ClipResultMode,
+  type ClipSourceContract,
   type ClipProjectStatus as SharedClipProjectStatus,
 } from '@genfeedai/interfaces';
 import type { ClipProject as PrismaClipProject } from '@genfeedai/prisma';
+import type { SupportedAvatarVideoProviderName } from '@genfeedai/queue-contracts';
 
 export type ClipProject = PrismaClipProject;
 
@@ -36,6 +39,12 @@ export interface ClipProjectSettings {
   maxDuration?: number;
   minDuration?: number;
   mode?: ClipResultMode;
+  flow?: ClipProcessingFlow;
+  avatarId?: string;
+  avatarProvider?: SupportedAvatarVideoProviderName;
+  language?: string;
+  minViralityScore?: number;
+  voiceId?: string;
   [key: string]: unknown;
 }
 
@@ -63,6 +72,7 @@ export interface ClipProjectDocument extends ClipProjectRecord {
   readiness: ClipReadinessContract | Record<string, unknown>;
   readyClipCount: number;
   settings?: ClipProjectSettings;
+  source?: ClipSourceContract;
   sourceVideoS3Key?: string;
   sourceVideoUrl?: string;
   status: SharedClipProjectStatus | string;

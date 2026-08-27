@@ -165,6 +165,16 @@ describe('ClipResultsService', () => {
     expect(createArgs.data.data.mode).toBeUndefined();
   });
 
+  it('rejects a scoped patch when the clip result does not exist', async () => {
+    prisma.clipResult.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.patch('missing-clip', { status: 'failed' }, [], 'org-1'),
+    ).rejects.toThrow('ClipResult');
+
+    expect(prisma.clipResult.update).not.toHaveBeenCalled();
+  });
+
   it('persists selected-reference provenance in the result data without URLs or provider responses', async () => {
     prisma.clipResult.create.mockResolvedValue({
       data: {},
@@ -355,7 +365,7 @@ describe('ClipResultsService', () => {
         isDeleted: false,
         organizationId: 'org-1',
         providerJobId: 'video-1',
-        status: { notIn: ['completed', 'failed'] },
+        status: { notIn: ['completed', 'degraded', 'failed'] },
       },
     });
   });
@@ -463,7 +473,9 @@ describe('ClipResultsService', () => {
       where: {
         isDeleted: false,
         mode: 'raw-cut',
-        status: { in: ['extracting', 'captioning'] },
+        status: {
+          in: ['extracting', 'reframing', 'captioning', 'validating'],
+        },
       },
     });
   });

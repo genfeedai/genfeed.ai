@@ -2,6 +2,7 @@ import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.serv
 import type { AvatarVideoProvider } from '@api/services/avatar-video/avatar-video-provider.interface';
 import { ArgilAvatarProvider } from '@api/services/avatar-video/providers/argil-avatar.provider';
 import { DidAvatarProvider } from '@api/services/avatar-video/providers/did-avatar.provider';
+import { GenfeedaiAvatarProvider } from '@api/services/avatar-video/providers/genfeedai-avatar.provider';
 import { HeygenAvatarProvider } from '@api/services/avatar-video/providers/heygen-avatar.provider';
 import { MusetalkAvatarProvider } from '@api/services/avatar-video/providers/musetalk-avatar.provider';
 import { TavusAvatarProvider } from '@api/services/avatar-video/providers/tavus-avatar.provider';
@@ -22,6 +23,7 @@ describe('AvatarVideoService', () => {
   let service: AvatarVideoService;
   let argilProvider: vi.Mocked<AvatarVideoProvider>;
   let heygenProvider: vi.Mocked<AvatarVideoProvider>;
+  let genfeedaiProvider: vi.Mocked<AvatarVideoProvider>;
   let didProvider: vi.Mocked<AvatarVideoProvider>;
   let tavusProvider: vi.Mocked<AvatarVideoProvider>;
   let musetalkProvider: vi.Mocked<AvatarVideoProvider>;
@@ -35,6 +37,7 @@ describe('AvatarVideoService', () => {
   beforeEach(async () => {
     argilProvider = makeProvider('argil');
     heygenProvider = makeProvider();
+    genfeedaiProvider = makeProvider('genfeedai');
     didProvider = makeProvider();
     tavusProvider = makeProvider();
     musetalkProvider = makeProvider();
@@ -45,6 +48,7 @@ describe('AvatarVideoService', () => {
         AvatarVideoService,
         { provide: ArgilAvatarProvider, useValue: argilProvider },
         { provide: HeygenAvatarProvider, useValue: heygenProvider },
+        { provide: GenfeedaiAvatarProvider, useValue: genfeedaiProvider },
         { provide: DidAvatarProvider, useValue: didProvider },
         { provide: TavusAvatarProvider, useValue: tavusProvider },
         { provide: MusetalkAvatarProvider, useValue: musetalkProvider },
@@ -70,6 +74,10 @@ describe('AvatarVideoService', () => {
 
     it('should return argil provider when name is argil', () => {
       expect(service.getProvider('argil')).toBe(argilProvider);
+    });
+
+    it('should return genfeedai provider when name is genfeedai', () => {
+      expect(service.getProvider('genfeedai')).toBe(genfeedaiProvider);
     });
 
     it('should default to heygen when no name supplied', () => {
@@ -101,6 +109,7 @@ describe('AvatarVideoService', () => {
     it('should not log a warning for known providers', () => {
       service.getProvider('heygen');
       service.getProvider('argil');
+      service.getProvider('genfeedai');
       expect(logger.warn).not.toHaveBeenCalled();
     });
   });
@@ -108,7 +117,7 @@ describe('AvatarVideoService', () => {
   describe('getSupportedProviders', () => {
     it('should return only production-ready provider names', () => {
       const providers = service.getSupportedProviders();
-      expect(providers).toEqual(['heygen', 'argil']);
+      expect(providers).toEqual(['heygen', 'argil', 'genfeedai']);
     });
 
     it('should return an array of strings', () => {

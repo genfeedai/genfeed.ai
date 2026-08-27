@@ -16,6 +16,37 @@ import ModalPostPlatformsTab, {
 import type { UseFormReturn } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
+vi.mock(
+  '@genfeedai/hooks/data/content/use-posting-sets/use-posting-sets',
+  () => ({
+    usePostingSets: () => ({
+      createSet: vi.fn(),
+      expandError: null,
+      expandSet: vi.fn(),
+      isExpanding: false,
+      isLoading: false,
+      isSaving: false,
+      saveError: null,
+      sets: [],
+    }),
+  }),
+);
+
+vi.mock(
+  '@genfeedai/hooks/data/content/use-posting-signatures/use-posting-signatures',
+  () => ({
+    usePostingSignatures: () => ({
+      isLoading: false,
+      signatures: [],
+    }),
+  }),
+);
+
 const TEST_MIN_DATE = new Date('2025-01-01T00:00:00.000Z');
 
 const createFormStub = (): UseFormReturn<MultiPostSchema> =>
@@ -71,6 +102,7 @@ describe('ModalPostPlatformsTab', () => {
 
     expect(togglePlatform).toHaveBeenCalledOnce();
     expect(togglePlatform).toHaveBeenCalledWith('cred-instagram');
+    expect(screen.getByLabelText('Saved posting set')).toBeInTheDocument();
   });
 
   it('previews every selected channel and switches between their overrides', () => {

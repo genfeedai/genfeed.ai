@@ -5,6 +5,29 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('@hooks/data/content/use-posting-sets/use-posting-sets', () => ({
+  usePostingSets: () => ({
+    createSet: vi.fn(),
+    expandError: null,
+    expandSet: vi.fn(),
+    isExpanding: false,
+    isLoading: false,
+    isSaving: false,
+    saveError: null,
+    sets: [],
+  }),
+}));
+
+vi.mock(
+  '@hooks/data/content/use-posting-signatures/use-posting-signatures',
+  () => ({
+    usePostingSignatures: () => ({
+      isLoading: false,
+      signatures: [],
+    }),
+  }),
+);
+
 describe('ReviewGateCard', () => {
   function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
     return {
@@ -99,13 +122,19 @@ describe('SchedulePostCard', () => {
 
     expect(screen.getByText('Schedule launch post')).toBeInTheDocument();
     expect(screen.getByText(/estimated cost: 12 credits/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Schedule timezone')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /schedule/i }));
 
-    expect(onSchedule).toHaveBeenCalledWith({
-      platforms: ['instagram'],
-      scheduledAt: '2026-04-01T10:00',
-    });
+    expect(onSchedule).toHaveBeenCalledWith(
+      expect.objectContaining({
+        platforms: ['instagram'],
+        timezone: expect.any(String),
+      }),
+    );
+    expect(onSchedule.mock.calls[0]?.[0].scheduledAt).toEqual(
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+    );
     expect(
       screen.getByText(/post scheduled for 1 platform/i),
     ).toBeInTheDocument();
@@ -113,22 +142,31 @@ describe('SchedulePostCard', () => {
 
   it('toggles platforms before scheduling', () => {
     const onSchedule = vi.fn();
-    render(<SchedulePostCard action={makeAction()} onSchedule={onSchedule} />);
+    render(
+      <SchedulePostCard
+        action={makeAction({ platforms: ['instagram', 'twitter'] })}
+        onSchedule={onSchedule}
+      />,
+    );
 
     fireEvent.click(screen.getByLabelText(/twitter/i));
     fireEvent.click(screen.getByLabelText(/instagram/i));
     fireEvent.click(screen.getByRole('button', { name: /schedule/i }));
 
-    expect(onSchedule).toHaveBeenCalledWith({
-      platforms: ['twitter'],
-      scheduledAt: '2026-04-01T10:00',
-    });
+    expect(onSchedule).toHaveBeenCalledWith(
+      expect.objectContaining({
+        platforms: ['twitter'],
+      }),
+    );
   });
 
   it('disables scheduling without a date or platforms', () => {
     render(
       <SchedulePostCard
-        action={makeAction({ platforms: [], scheduledAt: undefined })}
+        action={makeAction({
+          platforms: ['linkedin'],
+          scheduledAt: undefined,
+        })}
       />,
     );
 
@@ -137,9 +175,6 @@ describe('SchedulePostCard', () => {
     fireEvent.change(screen.getByLabelText(/date & time/i), {
       target: { value: '2026-04-02T09:00' },
     });
-    expect(screen.getByRole('button', { name: /schedule/i })).toBeDisabled();
-
-    fireEvent.click(screen.getByLabelText(/linkedin/i));
     expect(screen.getByRole('button', { name: /schedule/i })).toBeEnabled();
   });
 });

@@ -207,7 +207,7 @@ export function UiActionRenderer({
       card = <NextStepsCard action={action} onUiAction={liveOnUiAction} />;
       break;
     case 'schedule_post_card':
-      card = <SchedulePostCard action={action} />;
+      card = <SchedulePostCard action={action} onUiAction={liveOnUiAction} />;
       break;
     case 'engagement_opportunity_card':
       card = <EngagementOpportunityCard action={action} />;

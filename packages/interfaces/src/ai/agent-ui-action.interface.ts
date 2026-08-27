@@ -122,8 +122,12 @@ export interface AgentPublishTargetProposal {
   label: string;
   media?: AgentPublishTargetMedia[];
   platform: string;
+  referenceState?: string;
+  scheduledAt?: string;
   settingFields?: AgentPublishSettingField[];
   settings: Record<string, unknown>;
+  signatureIds?: string[];
+  timezone?: string;
   visibility: PostVisibility;
   warnings?: AgentPublishValidationIssue[];
 }

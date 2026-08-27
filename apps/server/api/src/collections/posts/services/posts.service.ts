@@ -12,6 +12,7 @@ import {
   type PostBatchScheduleResult,
   type PostBatchScheduleTarget,
 } from '@api/collections/posts/services/post-batch-schedule.util';
+import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -46,7 +47,7 @@ import type {
   PopulateOption,
 } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
+import { PostPublishQueueService, scopedWhere } from '@genfeedai/server';
 import type { IOnboardingJourneyMissionState } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
@@ -233,11 +234,13 @@ export class PostsService extends BaseService<
     @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
     @Optional()
     private readonly publishApprovalsService?: PublishApprovalsService,
+    @Optional()
+    private readonly postPublishQueueService?: PostPublishQueueService,
   ) {
     super(prisma, 'post', logger, undefined, cacheService);
   }
 
-  create(
+  async create(
     dto: PostCreateInput,
     populate: PopulateInput = [
       PopulatePatterns.ingredientsMinimal,
@@ -290,7 +293,12 @@ export class PostsService extends BaseService<
       prismaWriteData.scheduledDate = convertedDate;
     }
 
-    return super.create(prismaWriteData as unknown as CreatePostDto, populate);
+    const created = await super.create(
+      prismaWriteData as unknown as CreatePostDto,
+      populate,
+    );
+    await this.bindScheduledPublish(created, dto.userId);
+    return created;
   }
 
   findOne(
@@ -565,6 +573,7 @@ export class PostsService extends BaseService<
       await this.completePublishFirstPostMission(updatedPost);
     }
 
+    await this.bindScheduledPublish(updatedPost, dto.userId);
     return updatedPost;
   }
 
@@ -576,6 +585,7 @@ export class PostsService extends BaseService<
     const normalizedStatus = status?.toLowerCase();
     if (
       normalizedStatus !== TargetExecutionState.SCHEDULED &&
+      normalizedStatus !== TargetExecutionState.PUBLISHING &&
       normalizedStatus !== TargetExecutionState.PUBLISHED
     ) {
       return;
@@ -632,9 +642,11 @@ export class PostsService extends BaseService<
     items: readonly PostBatchScheduleItem[],
     organizationId: string,
     target: PostBatchScheduleTarget,
+    actorUserId: string,
   ): Promise<PostBatchScheduleResult> {
     return batchSchedulePosts(
       {
+        actorUserId,
         cacheService: this.cacheService,
         cacheTags: [
           this.collectionName,
@@ -646,6 +658,7 @@ export class PostsService extends BaseService<
         normalizeData: (data) =>
           this.normalizeData(data) as Record<string, unknown>,
         normalizeDocument: (document) => this.normalizeDocument(document),
+        postPublishQueueService: this.postPublishQueueService,
         prisma: this.prisma,
         publishApprovalsService: this.publishApprovalsService,
       },
@@ -653,6 +666,21 @@ export class PostsService extends BaseService<
       organizationId,
       target,
     );
+  }
+
+  private async bindScheduledPublish(
+    post: PostDocument | null | undefined,
+    actorUserId?: string | null,
+  ): Promise<void> {
+    if (!post) {
+      return;
+    }
+    await bindScheduledPublishApproval({
+      actorUserId,
+      post,
+      postPublishQueueService: this.postPublishQueueService,
+      publishApprovalsService: this.publishApprovalsService,
+    });
   }
 
   private async completePublishFirstPostMission(

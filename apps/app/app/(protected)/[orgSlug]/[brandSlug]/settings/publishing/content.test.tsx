@@ -24,12 +24,27 @@ const mocks = vi.hoisted(() => ({
   },
   brandsService: {},
   copyToClipboard: vi.fn(),
+  createRss: vi.fn(),
   credentialsService: {},
   error: vi.fn(),
+  expandSet: vi.fn(),
+  findAllSets: vi.fn(),
   getBrandsService: vi.fn(),
   getCredentialsService: vi.fn(),
+  getPostingSetsService: vi.fn(),
   getPublishingContext: vi.fn(),
   loggerError: vi.fn(),
+  postingSetsService: {},
+  rssSources: [] as Array<{
+    failedCount: number;
+    feedUrl: string;
+    id: string;
+    importedCount: number;
+    isEnabled: boolean;
+    label: string;
+    lastError?: string | null;
+    skippedCount: number;
+  }>,
   success: vi.fn(),
   updateAgentConfig: vi.fn(),
 }));
@@ -42,10 +57,31 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => {
     const service = factory('test-token');
 
-    return service === mocks.credentialsService
-      ? mocks.getCredentialsService
-      : mocks.getBrandsService;
+    if (service === mocks.credentialsService) {
+      return mocks.getCredentialsService;
+    }
+    if (service === mocks.postingSetsService) {
+      return mocks.getPostingSetsService;
+    }
+    return mocks.getBrandsService;
   },
+}));
+
+vi.mock('@services/content/posting-sets.service', () => ({
+  PostingSetsService: {
+    getInstance: () => mocks.postingSetsService,
+  },
+}));
+
+vi.mock('@hooks/data/content/use-rss-sources', () => ({
+  useRssSources: () => ({
+    create: mocks.createRss,
+    isLoading: false,
+    pollNow: vi.fn(),
+    remove: vi.fn(),
+    sources: mocks.rssSources,
+    update: vi.fn(),
+  }),
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -152,6 +188,25 @@ vi.mock('@ui/primitives/select', () => ({
   ),
 }));
 
+vi.mock('@ui/primitives/checkbox', () => ({
+  Checkbox: ({
+    id,
+    isChecked,
+    onChange,
+  }: {
+    id?: string;
+    isChecked?: boolean;
+    onChange?: () => void;
+  }) => (
+    <input
+      checked={Boolean(isChecked)}
+      id={id}
+      type="checkbox"
+      onChange={onChange}
+    />
+  ),
+}));
+
 vi.mock('@ui/primitives/switch', () => ({
   Switch: ({
     'aria-label': ariaLabel,
@@ -212,6 +267,17 @@ describe('BrandSettingsPublishingPage', () => {
       updateAgentConfig: mocks.updateAgentConfig,
     });
     mocks.getCredentialsService.mockResolvedValue(mocks.credentialsService);
+    mocks.findAllSets.mockResolvedValue([]);
+    mocks.expandSet.mockResolvedValue({ targets: [] });
+    Object.assign(mocks.postingSetsService, {
+      expand: mocks.expandSet,
+      findAll: mocks.findAllSets,
+      post: vi.fn(),
+      delete: vi.fn(),
+    });
+    mocks.getPostingSetsService.mockResolvedValue(mocks.postingSetsService);
+    mocks.createRss.mockResolvedValue({ id: 'rss-1' });
+    mocks.rssSources = [];
   });
 
   it('loads publishing defaults and saves schedule/autopublish settings', async () => {
@@ -400,6 +466,107 @@ describe('BrandSettingsPublishingPage', () => {
     expect(mocks.copyToClipboard.mock.calls.at(-1)?.[0]).toContain(
       'Token: Pass',
     );
+  });
+
+  it('creates an RSS source through the service', async () => {
+    mocks.brandDetail = {
+      ...mocks.brandDetail,
+      brand: {
+        agentConfig: {},
+        credentials: [
+          {
+            externalHandle: 'ready-account',
+            id: 'credential-ready',
+            isConnected: true,
+            platform: 'twitter',
+          },
+        ],
+      },
+    };
+
+    render(<BrandSettingsPublishingPage />);
+
+    fireEvent.change(screen.getByLabelText('RSS feed URL'), {
+      target: { value: 'https://example.com/feed.xml' },
+    });
+    fireEvent.change(screen.getByLabelText('RSS source label'), {
+      target: { value: 'Industry news' },
+    });
+    fireEvent.click(screen.getByLabelText('@ready-account'));
+    fireEvent.click(screen.getByText('Save RSS source'));
+
+    await waitFor(() => {
+      expect(mocks.createRss).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: 'brand-1',
+          feedUrl: 'https://example.com/feed.xml',
+          label: 'Industry news',
+          targetChannels: [
+            {
+              credentialId: 'credential-ready',
+              platform: 'twitter',
+            },
+          ],
+        }),
+      );
+    });
+  });
+
+  it('renders RSS unhealthy counts and lastError without crashing', () => {
+    mocks.rssSources = [
+      {
+        failedCount: 3,
+        feedUrl: 'https://broken.example/feed.xml',
+        id: 'rss-broken',
+        importedCount: 1,
+        isEnabled: true,
+        label: 'Broken feed',
+        lastError: 'HTTP 500 from origin',
+        skippedCount: 2,
+      },
+    ];
+
+    render(<BrandSettingsPublishingPage />);
+
+    expect(screen.getByText('Broken feed')).toBeVisible();
+    expect(screen.getByText('HTTP 500 from origin')).toBeVisible();
+    expect(screen.getByText('3')).toBeVisible();
+  });
+
+  it('lists posting sets and expands a preview', async () => {
+    mocks.findAllSets.mockResolvedValue([
+      {
+        id: 'set-1',
+        label: 'Evening accounts',
+        targets: [{ credentialId: 'credential-ready', platform: 'twitter' }],
+        validation: {
+          signatures: [],
+          state: 'WARNING',
+          targets: [
+            {
+              credentialId: 'credential-ready',
+              issues: ['Referenced credential is disconnected.'],
+              state: 'disconnected',
+              targetKey: 'twitter:credential-ready',
+            },
+          ],
+        },
+      },
+    ]);
+    mocks.expandSet.mockResolvedValue({
+      targets: [{ credentialId: 'credential-ready', platform: 'twitter' }],
+    });
+
+    render(<BrandSettingsPublishingPage />);
+
+    expect(await screen.findByText('Evening accounts')).toBeVisible();
+    expect(screen.getByText('disconnected')).toBeVisible();
+    fireEvent.click(screen.getByText('Expand preview'));
+    await waitFor(() => {
+      expect(mocks.expandSet).toHaveBeenCalledWith('set-1', {
+        timezone: 'Europe/Malta',
+      });
+    });
   });
 
   it('renders the no-connected-account state', () => {

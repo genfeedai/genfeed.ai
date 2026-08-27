@@ -888,6 +888,7 @@ Tweet 3: Tech innovation is changing the world.`,
           credentialId,
           platform: CredentialPlatform.TWITTER,
         },
+        mockUser.id,
       );
       expect(mockPostsService.patch).not.toHaveBeenCalled();
       expect(result).toBeDefined();

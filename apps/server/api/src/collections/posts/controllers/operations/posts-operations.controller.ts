@@ -164,6 +164,7 @@ export class PostsOperationsController {
             credentialId: dto.credentialId,
             platform: String(credential.platform),
           },
+          user.id,
         );
 
       if (missingPostIds.length > 0) {

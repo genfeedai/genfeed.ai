@@ -8,6 +8,7 @@
  * - Inferred form data types (e.g., CreatePostFormData)
  */
 
+export * from './agent-auto-publish.contract';
 export * from './brand-remix-run.contract';
 export * from './cadence-expansion.contract';
 export * from './cadence-slot-generate.contract';
@@ -22,7 +23,10 @@ export * from './ingredients.contract';
 export * from './instagram-authorized-signals.contract';
 export * from './linkedin-authorized-signals.contract';
 export * from './outreach-capabilities.contract';
+export * from './agent-publish-policy.contract';
+export * from './engagement-rules.contract';
 export * from './posting-sets.contract';
+export * from './rss-sources.contract';
 export * from './posts.contract';
 export * from './publish-approval.contract';
 export * from './publish-webhook-events.contract';

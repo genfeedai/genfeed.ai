@@ -186,6 +186,106 @@ describe('ClipsApiService', () => {
     );
   });
 
+  it('prepares and finalizes a durable uploaded source', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            expiresIn: 3600,
+            ingredientId: 'ingredient-1',
+            projectId: 'clip-project-upload',
+            publicUrl: 'https://cdn.test/ingredient-1',
+            uploadUrl: 'https://uploads.test/ingredient-1',
+          }),
+          { status: 201 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            batchJobId: 'clip-analyze-clip-project-upload',
+            estimatedClips: 6,
+            projectId: 'clip-project-upload',
+            status: 'analyzing',
+          }),
+          { status: 202 },
+        ),
+      );
+    const service = new ClipsApiService(
+      vi.fn().mockResolvedValue('token-upload'),
+    );
+    const payload = {
+      contentType: 'video/mp4',
+      filename: 'podcast.mp4',
+      flow: 'review' as const,
+      language: 'en',
+      maxClips: 6,
+      minViralityScore: 50,
+      mode: 'raw-cut' as const,
+      sizeBytes: 4_000_000_000,
+    };
+
+    await expect(service.prepareUpload(payload)).resolves.toMatchObject({
+      projectId: 'clip-project-upload',
+      uploadUrl: 'https://uploads.test/ingredient-1',
+    });
+    await expect(
+      service.finalizeUpload('clip-project-upload'),
+    ).resolves.toMatchObject({ status: 'analyzing' });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://api.test/v1/clip-projects/from-upload',
+      expect.objectContaining({
+        body: JSON.stringify(payload),
+        method: 'POST',
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://api.test/v1/clip-projects/clip-project-upload/source/finalize',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('retries a source after the server marks its lifecycle as failed', async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          batchJobId: 'clip-analyze-clip-project-upload',
+          estimatedClips: 6,
+          projectId: 'clip-project-upload',
+          status: 'queued',
+        }),
+        { status: 202 },
+      ),
+    );
+    const service = new ClipsApiService(
+      vi.fn().mockResolvedValue('token-upload-retry'),
+    );
+
+    await expect(
+      service.retrySource('clip-project-upload'),
+    ).resolves.toMatchObject({ status: 'queued' });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/v1/clip-projects/clip-project-upload/source/retry',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('retries only failed project results through the recovery endpoint', async () => {
+    const service = new ClipsApiService(
+      vi.fn().mockResolvedValue('token-retry-results'),
+    );
+
+    await service.retryFailedClips('clip-project-1');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/v1/clip-projects/clip-project-1/retry-failed',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
   it('generates selected raw cuts without avatar identity fields', async () => {
     const service = new ClipsApiService(
       vi.fn().mockResolvedValue('token-raw-cut'),

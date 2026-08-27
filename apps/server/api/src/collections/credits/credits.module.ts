@@ -3,8 +3,10 @@
  * Usage credits system: track AI generation credits, manage credit packages,
 and enforce usage limits.
  */
+import { BillingAccountsModule } from '@api/collections/billing-accounts/billing-accounts.module';
 import { CreditsController } from '@api/collections/credits/controllers/credits.controller';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
@@ -25,11 +27,13 @@ import { Module } from '@nestjs/common';
   exports: [
     CreditBalanceService,
     CreditDeductionModule,
+    CreditReservationService,
     CreditTransactionsService,
     CreditsUtilsService,
     VideoGenerationLineageService,
   ],
   imports: [
+    BillingAccountsModule,
     ByokModule,
     CommonModule,
     CreditDeductionModule,
@@ -41,6 +45,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     CreditBalanceService,
+    CreditReservationService,
     CreditTransactionsService,
     VideoGenerationLineageService,
     {

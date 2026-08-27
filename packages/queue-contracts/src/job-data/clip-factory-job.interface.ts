@@ -4,10 +4,11 @@
  * Isolated queue so the clip-factory workload can be moved to a dedicated
  * worker instance without code changes.
  */
-import type { ClipResultMode } from '@genfeedai/interfaces';
+import type { ClipResultMode, ClipSourceContract } from '@genfeedai/interfaces';
 
 export const AVATAR_VIDEO_PROVIDER_NAMES = [
   'argil',
+  'genfeedai',
   'heygen',
   'did',
   'tavus',
@@ -20,6 +21,7 @@ export type AvatarVideoProviderName =
 export const SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES = [
   'heygen',
   'argil',
+  'genfeedai',
 ] as const;
 
 export type SupportedAvatarVideoProviderName =
@@ -70,4 +72,8 @@ export interface ClipFactoryJobData {
   userId: string;
   /** Immutable tenant-authorized references resolved before credit checks. */
   runReferences?: readonly ClipFactoryRunReference[];
+  /** Tenant-authorized project frame selected before the job is queued. */
+  referenceImageUrl?: string;
+  /** Durable source lifecycle for authenticated Studio projects. */
+  source?: ClipSourceContract;
 }

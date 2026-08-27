@@ -153,6 +153,8 @@ describe('loadMessages', () => {
     const english = loadMessages(DEFAULT_LOCALE);
 
     expect(english.agent.publishPostCard.caption).toBe('Caption');
+    expect(english.agent.postingSets.label).toBe('Posting set');
+    expect(english.agent.schedulePostCard.timezone).toBe('Timezone');
     expect(english.agent.publishPostCard.scheduleForLater).toBe(
       'Schedule for later',
     );

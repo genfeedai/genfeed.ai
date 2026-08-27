@@ -13,6 +13,7 @@ import { ActivitiesModule } from '@api/collections/activities/activities.module'
 import { AdWatchedAdvertisersModule } from '@api/collections/ad-watched-advertisers/ad-watched-advertisers.module';
 import { AgentCampaignsModule } from '@api/collections/agent-campaigns/agent-campaigns.module';
 import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memories.module';
+import { AgentPublishAuditsModule } from '@api/collections/agent-publish-audits/agent-publish-audits.module';
 import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
@@ -21,6 +22,7 @@ import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { AssetsModule } from '@api/collections/assets/assets.module';
 import { AvatarsModule } from '@api/collections/avatars/avatars.module';
+import { BillingAccountsModule } from '@api/collections/billing-accounts/billing-accounts.module';
 import { BookmarksModule } from '@api/collections/bookmarks/bookmarks.module';
 import { BotsModule } from '@api/collections/bots/bots.module';
 import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.module';
@@ -52,6 +54,7 @@ import { ElementsMoodsModule } from '@api/collections/elements/moods/moods.modul
 import { ElementsScenesModule } from '@api/collections/elements/scenes/scenes.module';
 import { ElementsSoundsModule } from '@api/collections/elements/sounds/sounds.module';
 import { ElementsStylesModule } from '@api/collections/elements/styles/styles.module';
+import { EngagementRulesModule } from '@api/collections/engagement-rules/engagement-rules.module';
 import { EvaluationsModule } from '@api/collections/evaluations/evaluations.module';
 import { FanvueDataModule } from '@api/collections/fanvue-data/fanvue-data.module';
 import { FoldersModule } from '@api/collections/folders/folders.module';
@@ -88,6 +91,7 @@ import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { PublishingSetupModule } from '@api/collections/publishing-setup/publishing-setup.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
+import { RssSourcesModule } from '@api/collections/rss-sources/rss-sources.module';
 import { RunsModule } from '@api/collections/runs/runs.module';
 import { SchedulesModule } from '@api/collections/schedules/schedules.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
@@ -267,6 +271,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     AgentThreadsModule,
     AgentTransfersModule,
     AgentMemoriesModule,
+    AgentPublishAuditsModule,
     AgentRunsModule,
     AgentThreadingModule,
     AgentStrategiesModule,
@@ -299,6 +304,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ContextsModule,
     CreativePatternsModule,
     CredentialsModule,
+    BillingAccountsModule,
     CreditsModule,
     DashboardLayoutsModule,
     DistributionsModule,
@@ -314,6 +320,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ElementsSoundsModule,
     ElementsStylesModule,
     EvaluationsModule,
+    EngagementRulesModule,
     FanvueDataModule,
     FoldersModule,
     FontFamiliesModule,
@@ -350,6 +357,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ProjectsModule,
     PromptsModule,
     RolesModule,
+    RssSourcesModule,
     RunsModule,
     SchedulesModule,
     SettingsModule,

@@ -4,8 +4,10 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
 import { CronAgentTurnReconcileService } from '@workers/crons/agent-turn/cron.agent-turn-reconcile.service';
 import { CronBatchGenerationReconcileService } from '@workers/crons/batch-generation/cron.batch-generation-reconcile.service';
+import { CronEngagementTriggersService } from '@workers/crons/engagement/cron.engagement-triggers.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { CronReviewGateTimeoutService } from '@workers/crons/review-gate/cron.review-gate-timeout.service';
+import { CronRssAutopostService } from '@workers/crons/rss/cron.rss-autopost.service';
 import { CronStreaksService } from '@workers/crons/streaks/cron.streaks.service';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
 import { CronTranscriptPurgeService } from '@workers/crons/transcript-purge/cron.transcript-purge.service';
@@ -30,7 +32,9 @@ export class SystemSweepsProcessor extends WorkerHost {
     private readonly configService: ConfigService,
     private readonly cronAgentTurnReconcileService: CronAgentTurnReconcileService,
     private readonly cronBatchGenerationReconcileService: CronBatchGenerationReconcileService,
+    private readonly cronEngagementTriggersService: CronEngagementTriggersService,
     private readonly cronPostsService: CronPostsService,
+    private readonly cronRssAutopostService: CronRssAutopostService,
     private readonly cronReviewGateTimeoutService: CronReviewGateTimeoutService,
     private readonly cronStreaksService: CronStreaksService,
     private readonly cronTiktokStatusService: CronTiktokStatusService,
@@ -57,6 +61,14 @@ export class SystemSweepsProcessor extends WorkerHost {
 
       case SYSTEM_SWEEP_JOBS.POSTS_PUBLISH:
         await this.cronPostsService.publishScheduledPosts();
+        return;
+
+      case SYSTEM_SWEEP_JOBS.RSS_AUTOPOST:
+        await this.cronRssAutopostService.pollEnabledSources();
+        return;
+
+      case SYSTEM_SWEEP_JOBS.ENGAGEMENT_TRIGGERS:
+        await this.cronEngagementTriggersService.processArmedRules();
         return;
 
       case SYSTEM_SWEEP_JOBS.TIKTOK_STATUS:

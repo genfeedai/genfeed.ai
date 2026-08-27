@@ -44,7 +44,10 @@ const SCHEDULER_POST_GROUP_SELECT = {
   media: true,
   organizationId: true,
   ownerId: true,
+  postingSetId: true,
   publishedAt: true,
+  rssFeedItemId: true,
+  rssSourceId: true,
   recurrence: true,
   scheduledAt: true,
   status: true,
@@ -180,6 +183,9 @@ export class PostGroupPersistenceService {
         media: this.contractService.toJson(params.input.media ?? []),
         organizationId: params.organizationId,
         ownerId: params.userId,
+        postingSetId: params.input.postingSetId ?? null,
+        rssFeedItemId: params.input.rssFeedItemId ?? null,
+        rssSourceId: params.input.rssSourceId ?? null,
         recurrence: params.input.recurrence
           ? this.contractService.toJson(params.input.recurrence)
           : Prisma.JsonNull,
@@ -257,7 +263,18 @@ export class PostGroupPersistenceService {
             readinessByCredential.get(target.credentialId) ??
               validation.readiness,
           ),
-          targetSettings: this.contractService.toJson(target.settings ?? {}),
+          targetSettings: this.contractService.toJson({
+            ...(target.settings ?? {}),
+            ...(params.input.postingSetId
+              ? { postingSetId: params.input.postingSetId }
+              : {}),
+            ...(params.provenance?.autoPublishPolicyId
+              ? { autoPublishPolicyId: params.provenance.autoPublishPolicyId }
+              : {}),
+            ...(params.provenance?.postingSetId
+              ? { postingSetId: params.provenance.postingSetId }
+              : {}),
+          }),
           visibility: target.visibility,
           targetValidationIssues:
             this.contractService.validationIssues(validation),

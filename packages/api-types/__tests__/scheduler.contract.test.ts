@@ -45,6 +45,18 @@ describe('createReleaseGroupSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  test('accepts a posting set provenance id', () => {
+    const result = createReleaseGroupSchema.safeParse({
+      baseContent: 'Launch day is here.',
+      postingSetId: 'set_launch',
+      targets: [validTarget],
+      timezone: 'Europe/Amsterdam',
+      title: 'Launch',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   test('accepts recurrence, media, and attachments', () => {
     const result = createReleaseGroupSchema.safeParse({
       attachments: [

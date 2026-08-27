@@ -41,6 +41,7 @@ describe('clip reference generation policy', () => {
     expect(CLIP_REFERENCE_CAPABILITIES).toEqual({
       avatar: {
         argil: expect.objectContaining({ supported: false }),
+        genfeedai: { nativeField: 'imageUrl', supported: true },
         did: expect.objectContaining({ supported: false }),
         heygen: { nativeField: 'photo_url', supported: true },
         musetalk: expect.objectContaining({ supported: false }),

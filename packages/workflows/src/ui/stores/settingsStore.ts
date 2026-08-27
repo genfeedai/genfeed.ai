@@ -2,7 +2,7 @@ import type { EdgeStyle, ProviderType } from '@genfeedai/types';
 import { ProviderTypeEnum } from '@genfeedai/types';
 import { create } from 'zustand';
 import type { SettingsSyncService } from '../provider/types';
-import { getEdgeStyleMirror } from './edgeStyleMirror';
+import { getEdgeStyleMirror, setEdgeStylePreference } from './edgeStyleMirror';
 import { getWorkflowLogger } from './executionLogger';
 
 // =============================================================================
@@ -279,6 +279,7 @@ function saveToStorage(state: {
 // =============================================================================
 
 const initialState = { ...DEFAULT_SETTINGS, ...loadFromStorage() };
+setEdgeStylePreference(initialState.edgeStyle);
 
 export const useSettingsStore = create<SettingsStore>((set, get) => {
   // Helper to set state and persist in one call
@@ -380,6 +381,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
 
     setEdgeStyle: (style) => {
       setAndPersist(() => ({ edgeStyle: style }));
+      setEdgeStylePreference(style);
       // Synchronous through the mirror registry. The previous dynamic import of
       // './workflow' dodged the store cycle but left a floating promise: it
       // force-loaded the whole graph just to restyle edges, and could resolve
@@ -444,6 +446,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
             recentModels: server.recentModels ?? state.recentModels,
             showMinimap: server.showMinimap ?? state.showMinimap,
           };
+          setEdgeStylePreference(merged.edgeStyle);
           saveToStorage({ ...state, ...merged });
           return { ...merged, isSyncing: false };
         });
