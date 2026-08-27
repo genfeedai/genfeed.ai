@@ -2,6 +2,8 @@ import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type { CreateReleaseGroupInput } from '@api-types/contracts/scheduler.contract';
 import {
+  AgentAutonomyMode,
+  AgentPublishDecision,
   CredentialPlatform,
   IngredientCategory,
   PostVisibility,
@@ -13,6 +15,8 @@ function scopedContext(brandId: string): ToolExecutionContext {
   return {
     brandId,
     organizationId: 'org-1',
+    runId: 'run-1',
+    strategyId: 'strategy-1',
     threadId: 'thread-1',
     userId: 'user-1',
     validatedScope: {
@@ -69,6 +73,15 @@ function createHandler() {
     assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
     assertResourceBrand: vi.fn(),
   };
+  const agentStrategiesService = {
+    findOne: vi.fn().mockResolvedValue({
+      autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
+      publishPolicy: { autoPublishEnabled: true },
+    }),
+  };
+  const agentPublishAuditsService = {
+    createAudit: vi.fn().mockResolvedValue({ id: 'audit-1' }),
+  };
   const handler = new AgentPublishToolHandler(
     postGroupsService as never,
     { create: vi.fn(), findOne: vi.fn() } as never,
@@ -76,10 +89,16 @@ function createHandler() {
     ingredientsService,
     credentialsService,
     agentScopeContextService as never,
+    undefined,
+    undefined,
+    agentStrategiesService as never,
+    agentPublishAuditsService as never,
   );
 
   return {
+    agentPublishAuditsService,
     agentScopeContextService,
+    agentStrategiesService,
     credentialsService,
     handler,
     ingredientsService,
@@ -397,5 +416,113 @@ describe('AgentPublishToolHandler per-channel review', () => {
     expect(
       postGroupsService.create.mock.calls[0]?.[2].targets[0].platform,
     ).toBe('twitter');
+  });
+
+  it('writes a permitted audit and publishes when autonomy, brand, and channel allow it', async () => {
+    const {
+      agentPublishAuditsService,
+      credentialsService,
+      handler,
+      ingredientsService,
+      postGroupsService,
+    } = createHandler();
+    ingredientsService.findOne.mockResolvedValue({
+      brandId: 'brand-1',
+      category: IngredientCategory.IMAGE,
+      id: 'ingredient-1',
+    });
+    credentialsService.find.mockResolvedValue([
+      { id: 'cred-1', isConnected: true, platform: 'TWITTER' },
+    ]);
+
+    const result = await handler.createPost(
+      {
+        caption: 'Launch post',
+        confirmed: true,
+        contentId: 'ingredient-1',
+        sourceActionId: 'action-1',
+        targets: [
+          {
+            credentialId: 'cred-1',
+            platform: 'twitter',
+            visibility: PostVisibility.PUBLIC,
+          },
+        ],
+      },
+      scopedContext('brand-1'),
+    );
+
+    expect(result.success).toBe(true);
+    expect(postGroupsService.publishNow).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      'release-1',
+    );
+    expect(agentPublishAuditsService.createAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
+        decision: AgentPublishDecision.PERMITTED,
+        postGroupId: 'release-1',
+      }),
+    );
+  });
+
+  it('does not publish when policy denies auto-publish and returns an approval next action', async () => {
+    const {
+      agentPublishAuditsService,
+      agentStrategiesService,
+      credentialsService,
+      handler,
+      ingredientsService,
+      postGroupsService,
+    } = createHandler();
+    agentStrategiesService.findOne.mockResolvedValue({
+      autonomyMode: AgentAutonomyMode.SUPERVISED,
+      publishPolicy: { autoPublishEnabled: true },
+    });
+    ingredientsService.findOne.mockResolvedValue({
+      brandId: 'brand-1',
+      category: IngredientCategory.IMAGE,
+      id: 'ingredient-1',
+    });
+    credentialsService.find.mockResolvedValue([
+      { id: 'cred-1', isConnected: true, platform: 'TWITTER' },
+    ]);
+
+    const result = await handler.createPost(
+      {
+        caption: 'Launch post',
+        confirmed: true,
+        contentId: 'ingredient-1',
+        sourceActionId: 'action-1',
+        targets: [
+          {
+            credentialId: 'cred-1',
+            platform: 'twitter',
+            visibility: PostVisibility.PUBLIC,
+          },
+        ],
+      },
+      scopedContext('brand-1'),
+    );
+
+    expect(result.success).toBe(true);
+    expect(postGroupsService.publishNow).not.toHaveBeenCalled();
+    expect(result.data).toEqual(
+      expect.objectContaining({ requiredAction: 'approval' }),
+    );
+    expect(result.nextActions?.[0]).toEqual(
+      expect.objectContaining({
+        requiresConfirmation: true,
+        title: 'Publish requires approval',
+        type: 'publish_post_card',
+      }),
+    );
+    expect(agentPublishAuditsService.createAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        autonomyMode: AgentAutonomyMode.SUPERVISED,
+        decision: AgentPublishDecision.DENIED,
+      }),
+    );
   });
 });

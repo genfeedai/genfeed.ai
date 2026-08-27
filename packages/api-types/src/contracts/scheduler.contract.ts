@@ -167,6 +167,8 @@ export const createReleaseGroupSchema = z.object({
   media: z.array(releaseMediaReferenceSchema).optional(),
   postingSetId: idSchema.optional(),
   recurrence: recurrenceInputSchema.optional(),
+  rssFeedItemId: idSchema.optional(),
+  rssSourceId: idSchema.optional(),
   scheduledDate: dateStringSchema.optional(),
   status: z.nativeEnum(ReleaseStatus).optional(),
   targets: z.array(channelTargetInputSchema).min(1),

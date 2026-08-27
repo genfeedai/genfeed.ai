@@ -39,8 +39,11 @@ export type SchedulerPostGroup = {
   media: Prisma.JsonValue;
   organizationId: string;
   ownerId: string;
+  postingSetId: string | null;
   publishedAt: Date | null;
   recurrence: Prisma.JsonValue | null;
+  rssFeedItemId: string | null;
+  rssSourceId: string | null;
   scheduledAt: Date | null;
   status: string;
   statusTransitions: Prisma.JsonValue;
