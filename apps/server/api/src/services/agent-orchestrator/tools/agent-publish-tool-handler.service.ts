@@ -310,7 +310,7 @@ export class AgentPublishToolHandler {
         agentRunId: ctx.runId,
         agentStrategyId: ctx.strategyId,
         agentThreadId: ctx.validatedScope?.threadId,
-        autoPublishPolicyId: policy.policyId,
+        autoPublishPolicyId: autoPublishPolicy.policyId,
         ...(postingSetId ? { postingSetId } : {}),
         source: 'agent',
         sourceActionId,
@@ -346,7 +346,7 @@ export class AgentPublishToolHandler {
     return {
       creditsUsed: 0,
       data: {
-        autoPublishPolicyId: policy.policyId,
+        autoPublishPolicyId: autoPublishPolicy.policyId,
         contentId,
         createdPlatforms,
         missingPlatforms,

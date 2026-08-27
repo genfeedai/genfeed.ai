@@ -14,6 +14,7 @@ import {
   EngagementRuleAction,
   EngagementRuleMode,
   EngagementRuleState,
+  PostVisibility,
   parsePlatform,
   ReleaseAttachmentKind,
   ReleaseStatus,
@@ -348,6 +349,7 @@ export class CronEngagementTriggersService {
         {
           credentialId: channel.credentialId,
           platform,
+          visibility: PostVisibility.PUBLIC,
         },
       ];
     });

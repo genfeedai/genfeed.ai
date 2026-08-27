@@ -8,24 +8,19 @@ import {
   rssTargetChannelSchema,
   updateRssSourceInputSchema,
 } from '@api-types/contracts/rss-sources.contract';
-import {
-  CredentialPlatform,
-  parsePlatform,
-  RssApprovalMode,
-  RssImportPolicy,
-} from '@genfeedai/enums';
+import { CredentialPlatform, parsePlatform } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
 import type { ZodError, ZodType } from 'zod';
 
 export type StoredRssSourceRow = {
-  approvalMode: RssApprovalMode;
+  approvalMode: string;
   brandId: string | null;
   createdAt: Date;
   failedCount: number;
   feedUrl: string;
   id: string;
   importedCount: number;
-  importPolicy: RssImportPolicy;
+  importPolicy: string;
   isDeleted: boolean;
   isEnabled: boolean;
   label: string;

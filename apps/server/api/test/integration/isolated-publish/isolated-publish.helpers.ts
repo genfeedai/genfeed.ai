@@ -170,7 +170,7 @@ export async function seedIsolatedPublishFixture(
       id: credentialId,
       isConnected: true,
       organizationId,
-      platform: CredentialPlatform.TWITTER,
+      platform: 'TWITTER',
       userId,
     }),
   ]);

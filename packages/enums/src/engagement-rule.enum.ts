@@ -28,3 +28,16 @@ export enum EngagementRuleState {
   EXPIRED = 'EXPIRED',
   DISABLED = 'DISABLED',
 }
+
+export function parseEngagementRuleAction(
+  value: string | null | undefined,
+): EngagementRuleAction {
+  switch (value) {
+    case EngagementRuleAction.REPOST:
+      return EngagementRuleAction.REPOST;
+    case EngagementRuleAction.FOLLOW_UP_COMMENT:
+      return EngagementRuleAction.FOLLOW_UP_COMMENT;
+    default:
+      return EngagementRuleAction.REPOST;
+  }
+}

@@ -20,7 +20,6 @@ import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
   deserializeResource,
   extractCollection,
-  extractResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 
@@ -113,20 +112,8 @@ export class ReleaseGroupsService extends HTTPBaseService {
     };
   }
 
-  async create(input: CreateReleaseGroupInput): Promise<IReleaseGroup> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      '',
-      input,
-    );
-    return deserializeResource<IReleaseGroup>(response.data);
-  }
-
   async findOne(releaseId: string): Promise<IReleaseGroup> {
-    const response = await this.instance.get<JsonApiResponseDocument>(
-      `/${releaseId}`,
-    );
-
-    return extractResource<IReleaseGroup>(response.data);
+    return this.getOne(releaseId);
   }
 
   async create(
