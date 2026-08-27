@@ -274,6 +274,49 @@ const failedCallback = (
   isOk: false,
 });
 
+const parseApiErrorDetail = (value: unknown): string | null => {
+  if (!isRecord(value) || !Array.isArray(value.errors)) {
+    return null;
+  }
+
+  const [first] = value.errors;
+
+  if (!isRecord(first) || typeof first.detail !== 'string') {
+    return null;
+  }
+
+  const detail = first.detail.trim();
+  return detail.length > 0 ? detail : null;
+};
+
+const formatExchangeFailureMessage = (
+  status: number,
+  rawBody: string,
+): string => {
+  if (status === 401) {
+    return 'The Genfeed API blocked desktop sign-in as unauthorized. POST /auth/desktop/exchange must be public.';
+  }
+
+  let detail: string | null = null;
+
+  try {
+    detail = parseApiErrorDetail(JSON.parse(rawBody) as unknown);
+  } catch {
+    detail = null;
+  }
+
+  if (
+    detail &&
+    (detail.startsWith('Invalid desktop') ||
+      detail.startsWith('Expired desktop') ||
+      detail.includes('Better Auth is required'))
+  ) {
+    return detail;
+  }
+
+  return `Genfeed could not finish desktop sign-in (HTTP ${status}). Try again.`;
+};
+
 export class DesktopSessionService {
   private pendingAuth: PendingDesktopAuth | null = null;
 
@@ -596,8 +639,6 @@ export class DesktopSessionService {
       );
     }
 
-    this.clearPendingAuth();
-
     try {
       const response = await fetch(
         `${this.environment.apiEndpoint}/auth/desktop/exchange`,
@@ -615,11 +656,17 @@ export class DesktopSessionService {
       );
 
       if (!response.ok) {
+        const errorBody = await response.text().catch(() => '');
+        process.stderr.write(
+          `[desktop] auth exchange failed: ${response.status} ${errorBody.slice(0, 500)}\n`,
+        );
         return failedCallback(
           'exchange-failed',
-          'Genfeed could not finish desktop sign-in. Try again.',
+          formatExchangeFailureMessage(response.status, errorBody),
         );
       }
+
+      this.clearPendingAuth();
 
       const payload = parseDesktopAuthExchangeResponse(await response.json());
       const sessionCookie = parseSessionCookie(payload?.session);

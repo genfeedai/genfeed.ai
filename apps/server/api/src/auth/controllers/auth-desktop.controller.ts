@@ -8,6 +8,7 @@ import { AuthDesktopService } from '@api/auth/services/auth-desktop.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { Public } from '@libs/decorators/public.decorator';
 import {
   Body,
   Controller,
@@ -50,6 +51,7 @@ export class AuthDesktopController {
   }
 
   @Post('exchange')
+  @Public()
   @RateLimit({ limit: 10, scope: 'ip', windowMs: 60000 })
   @ApiOperation({
     summary: 'Exchange a one-time desktop code for a desktop session',

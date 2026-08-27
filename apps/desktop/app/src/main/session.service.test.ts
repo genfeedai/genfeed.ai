@@ -411,5 +411,80 @@ describe('DesktopSessionService', () => {
       isOk: true,
       session: createSession(),
     });
+    expect(service.buildCallbackUrlFromPaste('desktop-code')).toBe(null);
+  });
+
+  it('keeps pending PKCE after a 401 exchange so the same code can be retried', async () => {
+    const service = createSessionService(kvService, cookieMock);
+    service.getLoginUrl();
+
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          errors: [
+            {
+              code: '401',
+              detail: 'No token provided',
+              title: 'Unauthorized',
+            },
+          ],
+        }),
+        {
+          headers: { 'content-type': 'application/json' },
+          status: 401,
+        },
+      )) as typeof fetch;
+
+    const callbackUrl = service.buildCallbackUrlFromPaste('desktop-code');
+
+    if (!callbackUrl) {
+      throw new Error('Expected a callback URL from the pasted code');
+    }
+
+    await expect(service.handleCallback(callbackUrl)).resolves.toMatchObject({
+      error: {
+        code: 'exchange-failed',
+        message:
+          'The Genfeed API blocked desktop sign-in as unauthorized. POST /auth/desktop/exchange must be public.',
+      },
+      isOk: false,
+    });
+    expect(service.buildCallbackUrlFromPaste('desktop-code')).toBe(callbackUrl);
+  });
+
+  it('surfaces expired-code details from a failed exchange', async () => {
+    const service = createSessionService(kvService, cookieMock);
+    service.getLoginUrl();
+
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          errors: [
+            {
+              code: '400',
+              detail: 'Expired desktop authorization code',
+              title: 'Bad Request',
+            },
+          ],
+        }),
+        {
+          headers: { 'content-type': 'application/json' },
+          status: 400,
+        },
+      )) as typeof fetch;
+
+    const callbackUrl = service.buildCallbackUrlFromPaste('desktop-code');
+
+    if (!callbackUrl) {
+      throw new Error('Expected a callback URL from the pasted code');
+    }
+
+    await expect(service.handleCallback(callbackUrl)).resolves.toMatchObject({
+      error: {
+        code: 'exchange-failed',
+        message: 'Expired desktop authorization code',
+      },
+      isOk: false,
+    });
   });
 });
