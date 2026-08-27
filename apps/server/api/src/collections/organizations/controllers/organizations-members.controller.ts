@@ -23,7 +23,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
+import { customLabels } from '@server/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,

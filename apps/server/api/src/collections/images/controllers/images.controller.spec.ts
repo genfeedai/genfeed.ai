@@ -17,7 +17,7 @@ vi.mock('@api/helpers/utils/sort/sort.util', () => ({
   handleQuerySort: vi.fn(() => ({ createdAt: -1 })),
 }));
 
-vi.mock('@api/helpers/utils/pagination/pagination.util', () => ({
+vi.mock('@server/helpers/utils/pagination.util', () => ({
   customLabels: {},
 }));
 

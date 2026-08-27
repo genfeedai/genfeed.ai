@@ -99,6 +99,9 @@ export type {
   ServerModelDimensions,
   ServerModelRecord,
 } from './collections/models/model-record.types';
+export type { AggregatePaginateResult } from './helpers/types/aggregate-paginate-result';
+export { JsonParserUtil } from './helpers/utils/json-parser.util';
+export { customLabels } from './helpers/utils/pagination.util';
 export {
   canTransitionPostLifecycle,
   POST_LIFECYCLE_TRANSITIONS,

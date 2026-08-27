@@ -19,7 +19,7 @@ vi.mock('@api/helpers/utils/sort/sort.util', () => ({
   ),
 }));
 
-vi.mock('@api/helpers/utils/pagination/pagination.util', () => ({
+vi.mock('@server/helpers/utils/pagination.util', () => ({
   customLabels: {},
 }));
 

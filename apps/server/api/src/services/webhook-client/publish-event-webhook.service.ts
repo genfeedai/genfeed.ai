@@ -1,5 +1,5 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
+import { customLabels } from '@server/helpers/utils/pagination.util';
 import {
   PUBLISH_WEBHOOK_JOB_ID_PREFIX,
   WebhookDispatchService,

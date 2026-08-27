@@ -4,10 +4,10 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import type { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
-import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { AggregatePaginateResult } from '@server/helpers/types/aggregate-paginate-result';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { ConfigService } from '@workers/config/config.service';
 import { CronIngredientsService } from '@workers/crons/ingredients/cron.ingredients.service';

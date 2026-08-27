@@ -1,6 +1,5 @@
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { postExecutionStateReadFilter } from '@api-types/contracts';
 import { TargetExecutionState } from '@genfeedai/enums';
 import type { PostPublishJobData } from '@genfeedai/queue-contracts';
@@ -10,6 +9,7 @@ import {
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { customLabels } from '@server/helpers/utils/pagination.util';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
 

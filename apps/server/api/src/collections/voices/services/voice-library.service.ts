@@ -8,7 +8,7 @@ import {
   toLibraryVoiceDocument,
 } from '@api/collections/voices/utils/voice-provider.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
-import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
+import { customLabels } from '@server/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';

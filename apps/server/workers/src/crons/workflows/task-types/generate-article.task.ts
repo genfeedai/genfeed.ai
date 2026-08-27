@@ -1,9 +1,9 @@
-import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
-import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import { PersistedArticleStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
+import { JsonParserUtil } from '@server/helpers/utils/json-parser.util';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export interface GenerateArticleConfig {
@@ -137,7 +137,7 @@ export class GenerateArticleTask {
     const systemPrompt = this.getSystemPrompt(config);
 
     const result = await this.replicateService.generateTextCompletionSync(
-      DEFAULT_TEXT_MODEL,
+      MODEL_KEYS.REPLICATE_ANTHROPIC_CLAUDE_4_5_SONNET,
       {
         max_completion_tokens: this.getMaxTokens(config.length),
         prompt: `${systemPrompt}\n\n${prompt}`,
@@ -240,7 +240,7 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
 }`;
 
     const response = await this.replicateService.generateTextCompletionSync(
-      DEFAULT_TEXT_MODEL,
+      MODEL_KEYS.REPLICATE_ANTHROPIC_CLAUDE_4_5_SONNET,
       {
         max_completion_tokens: 512,
         prompt,

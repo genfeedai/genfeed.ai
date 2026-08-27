@@ -16,7 +16,7 @@ import {
   getStripeSubscriptionStatus,
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
-import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
+import { customLabels } from '@server/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   returnNotFound,

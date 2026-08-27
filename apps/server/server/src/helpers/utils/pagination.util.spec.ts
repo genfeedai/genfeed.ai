@@ -1,4 +1,4 @@
-import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
+import { customLabels } from './pagination.util';
 
 describe('pagination util', () => {
   it('defines custom labels', () => {

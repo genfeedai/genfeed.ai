@@ -31,7 +31,7 @@ vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({
   AutoSwagger: () => () => undefined,
 }));
 
-vi.mock('@api/helpers/utils/pagination/pagination.util', () => ({
+vi.mock('@server/helpers/utils/pagination.util', () => ({
   customLabels: {},
 }));
 

@@ -16,7 +16,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { TrainingAccessGuard } from '@api/helpers/guards/training-access/training-access.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
+import { customLabels } from '@server/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
   serializeCollection,

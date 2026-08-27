@@ -6,7 +6,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
+import { JsonParserUtil } from '@server/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { InsightGenerationQueueService } from '@api/queues/insight-generation/insight-generation-queue.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
