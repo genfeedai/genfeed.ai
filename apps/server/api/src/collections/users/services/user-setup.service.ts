@@ -409,15 +409,16 @@ export class UserSetupService {
   }
 
   /**
-   * Prefer admin, then user, then owner (the role self-hosted seed always
-   * creates). If the catalog is empty, create admin so first-time signup can
-   * still attach a membership row.
+   * Prefer admin, then owner (the role self-hosted seed always creates). Both
+   * roles satisfy the organization-administration boundary required while
+   * linking the signup workspace to its billing account. If the catalog is
+   * empty, create admin so first-time signup can still attach a membership row.
    */
   private async resolveSignupMemberRole(): Promise<{
     id: string;
     key: string;
   }> {
-    const roleKeys = [MemberRole.ADMIN, MemberRole.USER, MemberRole.OWNER];
+    const roleKeys = [MemberRole.ADMIN, MemberRole.OWNER];
 
     for (const key of roleKeys) {
       const role = await this.rolesService.findOne({ key });

@@ -50,6 +50,7 @@ describe('UserSetupService', () => {
   const mockMembersService = {
     create: vi.fn(),
     findOne: vi.fn(),
+    patch: vi.fn(),
   };
 
   const mockRolesService = {
@@ -262,15 +263,22 @@ describe('UserSetupService', () => {
     });
 
     it('creates the membership before billing-account provisioning', async () => {
+      const events: string[] = [];
+      mockMembersService.create.mockImplementation(async () => {
+        await Promise.resolve();
+        events.push('member-complete');
+        return mockMember;
+      });
       mockBillingAccountsService.ensureForOrganization.mockImplementation(
         async () => {
-          expect(mockMembersService.create).toHaveBeenCalledOnce();
+          events.push('billing');
           return { id: 'ba_1' };
         },
       );
 
       await service.initializeUserResources(userId);
 
+      expect(events).toEqual(['member-complete', 'billing']);
       expect(
         mockBillingAccountsService.ensureForOrganization,
       ).toHaveBeenCalledWith({
@@ -281,35 +289,51 @@ describe('UserSetupService', () => {
       });
     });
 
-    it('should fallback to user role if admin role not found', async () => {
-      const userRole = { id: 'test-object-id', key: 'user' };
-      mockRolesService.findOne
-        .mockResolvedValueOnce(null) // admin not found
-        .mockResolvedValueOnce(userRole); // user role found
-
-      await service.initializeUserResources(userId);
-
-      // Both role lookups should have been attempted
-      expect(mockRolesService.findOne).toHaveBeenCalledTimes(2);
-      expect(mockMembersService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ roleKey: 'user' }),
-      );
-    });
-
-    it('should fall back to owner when admin and user roles are missing', async () => {
+    it('falls back to owner when the admin role is missing', async () => {
       const ownerRole = { id: 'role_owner', key: 'owner' };
       mockRolesService.findOne
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null) // admin not found
         .mockResolvedValueOnce(ownerRole);
 
       await service.initializeUserResources(userId);
 
-      expect(mockRolesService.findOne).toHaveBeenCalledTimes(3);
-      expect(mockRolesService.create).not.toHaveBeenCalled();
+      expect(mockRolesService.findOne).toHaveBeenCalledTimes(2);
+      expect(mockRolesService.findOne).toHaveBeenNthCalledWith(1, {
+        key: 'admin',
+      });
+      expect(mockRolesService.findOne).toHaveBeenNthCalledWith(2, {
+        key: 'owner',
+      });
       expect(mockMembersService.create).toHaveBeenCalledWith(
         expect.objectContaining({ roleKey: 'owner' }),
       );
+    });
+
+    it('reactivates membership before billing-account provisioning', async () => {
+      const events: string[] = [];
+      const inactiveMember = { ...mockMember, isActive: false };
+      const reactivatedMember = { ...mockMember, isActive: true };
+      mockMembersService.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(inactiveMember);
+      mockMembersService.patch.mockImplementation(async () => {
+        await Promise.resolve();
+        events.push('member-reactivated');
+        return reactivatedMember;
+      });
+      mockBillingAccountsService.ensureForOrganization.mockImplementation(
+        async () => {
+          events.push('billing');
+          return { id: 'ba_1' };
+        },
+      );
+
+      await service.initializeUserResources(userId);
+
+      expect(mockMembersService.patch).toHaveBeenCalledWith(memberId, {
+        isActive: true,
+      });
+      expect(events).toEqual(['member-reactivated', 'billing']);
     });
 
     it('should create an admin role when the catalog is empty', async () => {
