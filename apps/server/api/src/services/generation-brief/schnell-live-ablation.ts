@@ -89,7 +89,7 @@ export const SCHNELL_ABLATION_SCENARIOS: readonly SchnellAblationScenario[] = [
     cohort: 'guided',
     fidelityMode: 'guided',
     id: 'schnell-guided-portrait',
-    objective: 'an editorial portrait of a founder',
+    objective: 'a portrait of a founder',
     seed: 16502,
   },
   {
@@ -335,4 +335,114 @@ export function compileSchnellAblationCorpus(): SchnellAblationSummary {
   return summarizeSchnellAblation(
     SCHNELL_ABLATION_SCENARIOS.map(compileSchnellAblationScenario),
   );
+}
+
+interface ReplicatePrediction {
+  error?: string | null;
+  output?: unknown;
+  status?: string;
+  urls?: { get?: string };
+}
+
+function firstOutputUrl(output: unknown): string | undefined {
+  if (typeof output === 'string' && output.startsWith('http')) {
+    return output.split('?')[0];
+  }
+  if (Array.isArray(output)) {
+    const first = output[0];
+    return typeof first === 'string' ? first.split('?')[0] : undefined;
+  }
+  return undefined;
+}
+
+async function createSchnellPrediction(
+  token: string,
+  prompt: string,
+  seed: number,
+): Promise<ReplicatePrediction> {
+  const response = await fetch(
+    `https://api.replicate.com/v1/models/${SCHNELL_ABLATION_MODEL_KEY}/predictions`,
+    {
+      body: JSON.stringify({
+        input: {
+          aspect_ratio: '1:1',
+          output_format: 'webp',
+          prompt,
+          seed,
+        },
+      }),
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+        prefer: 'wait=60',
+      },
+      method: 'POST',
+    },
+  );
+  return (await response.json()) as ReplicatePrediction;
+}
+
+async function waitForPrediction(
+  token: string,
+  prediction: ReplicatePrediction,
+): Promise<ReplicatePrediction> {
+  let current = prediction;
+  const getUrl = current.urls?.get;
+  const deadline = Date.now() + 120_000;
+  while (
+    getUrl &&
+    (current.status === 'starting' || current.status === 'processing') &&
+    Date.now() < deadline
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const response = await fetch(getUrl, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    current = (await response.json()) as ReplicatePrediction;
+  }
+  return current;
+}
+
+async function dispatchArm(
+  token: string,
+  arm: SchnellAblationArmResult,
+  seed: number,
+): Promise<SchnellAblationArmResult> {
+  const prediction = await waitForPrediction(
+    token,
+    await createSchnellPrediction(token, arm.prompt, seed),
+  );
+  const outputUrl = firstOutputUrl(prediction.output);
+  return {
+    ...arm,
+    outputUrl,
+    visualPassed: Boolean(outputUrl) && arm.contractPassed,
+  };
+}
+
+export async function runSchnellLiveAblation(
+  token: string,
+): Promise<SchnellAblationSummary> {
+  const compiled = compileSchnellAblationCorpus();
+  const liveScenarios: SchnellAblationScenarioResult[] = [];
+  for (const scenario of compiled.scenarios) {
+    const definition = SCHNELL_ABLATION_SCENARIOS.find(
+      (entry) => entry.id === scenario.id,
+    );
+    if (!definition) {
+      continue;
+    }
+    liveScenarios.push({
+      ...scenario,
+      arms: {
+        compiled: await dispatchArm(
+          token,
+          scenario.arms.compiled,
+          definition.seed,
+        ),
+        legacy: await dispatchArm(token, scenario.arms.legacy, definition.seed),
+      },
+    });
+  }
+  return summarizeSchnellAblation(liveScenarios);
 }

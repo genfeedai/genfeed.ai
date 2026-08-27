@@ -1,6 +1,11 @@
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   compileSchnellAblationCorpus,
   countBrandTokens,
+  runSchnellLiveAblation,
   SCHNELL_ABLATION_BRAND_KIT,
   SCHNELL_ABLATION_SCENARIOS,
   SCHNELL_GUIDED_LIFT_THRESHOLD,
@@ -67,3 +72,32 @@ describe('Schnell live ablation corpus (#3470)', () => {
     expect(summary.meetsUnbrandedRegression).toBe(true);
   });
 });
+
+describe.skipIf(process.env.GENERATION_BRIEF_LIVE_EVAL !== '1')(
+  'Schnell live ablation dispatch (#3470)',
+  () => {
+    it('meets +15 Guided / −5 unbranded on live FLUX Schnell outputs', async () => {
+      const envPath = join(
+        dirname(fileURLToPath(import.meta.url)),
+        '../../../../../../.env.local',
+      );
+      const raw = await readFile(envPath, 'utf8');
+      const tokenLine = raw
+        .split('\n')
+        .find((line) => line.startsWith('REPLICATE_KEY='));
+      const token = tokenLine
+        ?.slice('REPLICATE_KEY='.length)
+        .replace(/^['"]|['"]$/g, '');
+      expect(token).toBeTruthy();
+      const summary = await runSchnellLiveAblation(token ?? '');
+      const outputPath = join(
+        homedir(),
+        '.codex/artifacts/schnell-ablation-3470.json',
+      );
+      await mkdir(dirname(outputPath), { recursive: true });
+      await writeFile(outputPath, `${JSON.stringify(summary, null, 2)}\n`);
+      expect(summary.meetsGuidedLift).toBe(true);
+      expect(summary.meetsUnbrandedRegression).toBe(true);
+    }, 900_000);
+  },
+);

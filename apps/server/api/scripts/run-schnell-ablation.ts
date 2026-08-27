@@ -6,8 +6,8 @@
  *   bun run apps/server/api/scripts/run-schnell-ablation.ts
  *   GENERATION_BRIEF_LIVE_EVAL=1 bun run apps/server/api/scripts/run-schnell-ablation.ts
  *
- * Live mode reads REPLICATE_API_TOKEN from the environment or repo-root
- * `.env.local`. It never prints the token.
+ * Live mode reads REPLICATE_KEY (or REPLICATE_API_TOKEN) from the
+ * environment or repo-root `.env.local`. It never prints the token.
  */
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -146,10 +146,12 @@ async function dispatchArm(
 
 async function runLive(): Promise<void> {
   await loadRootEnv();
-  const token = process.env.REPLICATE_API_TOKEN?.trim();
+  const token =
+    process.env.REPLICATE_KEY?.trim() ||
+    process.env.REPLICATE_API_TOKEN?.trim();
   if (!token) {
     throw new Error(
-      'REPLICATE_API_TOKEN is missing. Live eval reads root .env.local.',
+      'REPLICATE_KEY is missing. Live eval reads root .env.local.',
     );
   }
 
