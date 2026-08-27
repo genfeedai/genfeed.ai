@@ -70,6 +70,7 @@ import {
   unwindFailedLocalRuntimeAfterClose,
 } from './main/runtime-mode.util';
 import {
+  type DesktopAuthCallbackResult,
   DesktopSessionService,
   type IDesktopSession,
 } from './main/session.service';
@@ -1193,7 +1194,9 @@ const captureVisualQa = async (): Promise<void> => {
   );
 };
 
-const handleAuthCallback = async (rawUrl: string): Promise<void> => {
+const handleAuthCallback = async (
+  rawUrl: string,
+): Promise<DesktopAuthCallbackResult> => {
   const result = await sessionService.handleCallback(rawUrl);
 
   if (!result.isOk) {
@@ -1209,7 +1212,7 @@ const handleAuthCallback = async (rawUrl: string): Promise<void> => {
         title: 'Desktop authentication failed',
       }).show();
     }
-    return;
+    return result;
   }
 
   const { session } = result;
@@ -1227,6 +1230,7 @@ const handleAuthCallback = async (rawUrl: string): Promise<void> => {
     body: session.userEmail || 'Authenticated successfully.',
     title: 'GenFeed',
   }).show();
+  return result;
 };
 
 const registerProtocolHandling = (): void => {
@@ -1307,6 +1311,28 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.authLogin, async () => {
     await openValidatedExternalUrl(sessionService.getLoginUrl());
   });
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.authCompleteWithCode,
+    async (_event: unknown, raw: unknown) => {
+      if (typeof raw !== 'string') {
+        throw new Error('Paste the sign-in code from the browser.');
+      }
+
+      const callbackUrl = sessionService.buildCallbackUrlFromPaste(raw);
+
+      if (!callbackUrl) {
+        throw new Error(
+          'Paste the sign-in code from the browser. Start sign-in from this app first.',
+        );
+      }
+
+      const result = await handleAuthCallback(callbackUrl);
+
+      if (!result.isOk) {
+        throw new Error(result.error.message);
+      }
+    },
+  );
   registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.authLogout, async () => {
     await sessionService.clearSession();
     await persistDeviceIdentity(null);

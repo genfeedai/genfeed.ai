@@ -63,6 +63,8 @@ const desktopBridge: IGenfeedDesktopBridge = {
     },
   },
   auth: {
+    completeWithCode: async (code) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.authCompleteWithCode, code),
     getSession: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.authGetSession),
     login: async () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.authLogin),

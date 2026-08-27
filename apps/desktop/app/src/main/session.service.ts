@@ -461,6 +461,42 @@ export class DesktopSessionService {
     return url.toString();
   }
 
+  /**
+   * Unpackaged/source Electron builds often cannot receive `genfeedai-desktop://`.
+   * The browser then shows a one-time authorize code; paste it here (or paste
+   * the full callback URL) to finish the same PKCE exchange.
+   */
+  buildCallbackUrlFromPaste(raw: string): string | null {
+    const trimmed = raw.trim();
+
+    if (!trimmed) {
+      return null;
+    }
+
+    if (trimmed.startsWith(`${DESKTOP_AUTH_SCHEME}:`)) {
+      return trimmed;
+    }
+
+    if (trimmed.includes('://') || /\s/.test(trimmed)) {
+      return null;
+    }
+
+    if (trimmed.length < 8 || trimmed.length > 2048) {
+      return null;
+    }
+
+    const pendingState = this.pendingAuth?.state;
+
+    if (!pendingState) {
+      return null;
+    }
+
+    const url = new URL(`${DESKTOP_AUTH_SCHEME}://${DESKTOP_AUTH_PATH}`);
+    url.searchParams.set('code', trimmed);
+    url.searchParams.set('state', pendingState);
+    return url.toString();
+  }
+
   private async resolveUserFromToken(
     token: string,
   ): Promise<ResolvedDesktopUser | null> {

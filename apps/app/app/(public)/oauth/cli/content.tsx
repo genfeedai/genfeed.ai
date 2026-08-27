@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import { Code } from '@genfeedai/ui';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
@@ -9,6 +8,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import {
   CircleCheck,
   CircleX,
@@ -34,6 +34,15 @@ const MAX_PORT = 65535;
 const DESKTOP_CALLBACK_TARGET = 'genfeedai-desktop://auth';
 const DESKTOP_CALLBACK_PROTOCOL = 'genfeedai-desktop:';
 const DESKTOP_CALLBACK_TIMEOUT_MS = 1500;
+const AUTH_CODE_PREVIEW_LENGTH = 8;
+
+function previewAuthCode(value: string): string {
+  if (value.length <= AUTH_CODE_PREVIEW_LENGTH) {
+    return value;
+  }
+
+  return `${value.slice(0, AUTH_CODE_PREVIEW_LENGTH)}…`;
+}
 
 type FlowStep =
   | 'validating'
@@ -342,7 +351,7 @@ function CliAuthPageContent() {
             setFlowState({
               apiKey: data.code,
               error:
-                'Genfeed Desktop did not open automatically. Make sure the app is installed, then try again or copy the code below.',
+                'The desktop app did not open automatically. Source checkouts and unpackaged builds cannot. Copy the code and paste it in the desktop app.',
               step: 'error',
             });
           }, DESKTOP_CALLBACK_TIMEOUT_MS);
@@ -643,7 +652,7 @@ function CliAuthPageContent() {
 
         <p className="mt-5 text-center text-2xs text-muted-foreground/50 leading-relaxed">
           {isDesktopMode
-            ? 'Desktop mode uses a server-minted API key and redirects back to the installed app.'
+            ? 'Installed desktop builds open automatically. Source checkouts cannot — copy the code and paste it in the app.'
             : 'This page redirects credentials to 127.0.0.1 (localhost) only.'}
           {!isDesktopMode && (
             <>
@@ -671,17 +680,18 @@ function CopyKeyFallback({
   return (
     <div className="border-t border-border pt-5 mt-2">
       <p className="text-xs text-muted-foreground text-center mb-3">
-        If the {isDesktopMode ? 'desktop app' : 'CLI'} doesn&apos;t receive it
-        automatically, copy and paste the key:
+        {isDesktopMode
+          ? 'Copy this code and paste it in the desktop app:'
+          : 'If the CLI does not receive it automatically, copy and paste the code:'}
       </p>
       <div className="flex items-center gap-2">
-        <Code
-          display="block"
-          size="sm"
-          className="flex-1 border border-border text-muted-foreground truncate select-all"
-        >
-          {apiKey}
-        </Code>
+        <Input
+          aria-label="Sign-in code"
+          className="flex-1 font-mono text-muted-foreground"
+          isReadOnly
+          value={previewAuthCode(apiKey)}
+          onChange={() => undefined}
+        />
         <Button
           variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}

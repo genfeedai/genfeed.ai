@@ -335,4 +335,65 @@ describe('DesktopSessionService', () => {
     expect(kvService.values.has(SESSION_STORAGE_KEY)).toBe(false);
     expect(cookieMock.setCalls).toEqual([]);
   });
+
+  it('builds a PKCE callback URL from a pasted authorize code', () => {
+    const service = createSessionService(kvService, cookieMock);
+    const loginUrl = new URL(service.getLoginUrl());
+    const state = loginUrl.searchParams.get('state');
+
+    if (!state) {
+      throw new Error('Expected login URL state');
+    }
+
+    expect(service.buildCallbackUrlFromPaste('desktop-code')).toBe(
+      `genfeedai-desktop://auth?code=desktop-code&state=${state}`,
+    );
+    expect(
+      service.buildCallbackUrlFromPaste(
+        `genfeedai-desktop://auth?code=desktop-code&state=${state}`,
+      ),
+    ).toBe(`genfeedai-desktop://auth?code=desktop-code&state=${state}`);
+    expect(service.buildCallbackUrlFromPaste('https://evil.example/x')).toBe(
+      null,
+    );
+    expect(service.buildCallbackUrlFromPaste('')).toBe(null);
+  });
+
+  it('does not accept a pasted code before sign-in starts', () => {
+    const service = createSessionService(kvService, cookieMock);
+
+    expect(service.buildCallbackUrlFromPaste('desktop-code')).toBe(null);
+  });
+
+  it('exchanges a pasted authorize code', async () => {
+    const service = createSessionService(kvService, cookieMock);
+    service.getLoginUrl();
+
+    globalThis.fetch = (async (_input: RequestInfo | URL, init?: RequestInit) =>
+      new Response(
+        JSON.stringify({
+          issuedAt: '2026-08-05T12:00:00.000Z',
+          session: VALID_COOKIE,
+          token: 'gf_desktop_key',
+          userEmail: 'desktop@example.com',
+          userId: 'user-123',
+          userName: 'Desktop User',
+        }),
+        {
+          headers: { 'content-type': 'application/json' },
+          status: init?.method === 'POST' ? 200 : 500,
+        },
+      )) as typeof fetch;
+
+    const callbackUrl = service.buildCallbackUrlFromPaste('desktop-code');
+
+    if (!callbackUrl) {
+      throw new Error('Expected a callback URL from the pasted code');
+    }
+
+    await expect(service.handleCallback(callbackUrl)).resolves.toEqual({
+      isOk: true,
+      session: createSession(),
+    });
+  });
 });

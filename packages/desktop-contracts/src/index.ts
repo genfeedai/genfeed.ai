@@ -56,6 +56,7 @@ export const DESKTOP_IPC_CHANNELS = {
   appRevealLogs: 'desktop:app:revealLogs',
   appUseCloudMode: 'desktop:app:useCloudMode',
   authChanged: 'desktop:auth:changed',
+  authCompleteWithCode: 'desktop:auth:completeWithCode',
   authGetSession: 'desktop:auth:getSession',
   authLogin: 'desktop:auth:login',
   authLogout: 'desktop:auth:logout',
@@ -890,6 +891,7 @@ export interface IGenfeedDesktopBridge {
     switchToCloudMode: () => Promise<void>;
   };
   auth: {
+    completeWithCode: (code: string) => Promise<void>;
     getSession: () => Promise<IDesktopSession | null>;
     login: () => Promise<void>;
     logout: () => Promise<void>;
