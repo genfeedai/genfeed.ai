@@ -303,10 +303,17 @@ describe('VideoMergeOrchestrationService', () => {
     );
     expect(whisperService.generateCaptions).toHaveBeenCalledWith(ingredientId);
     expect(captionsService.create).toHaveBeenCalledWith({
+      content: null,
       format: CaptionFormat.SRT,
       ingredientId,
+      isDeleted: false,
       language: CaptionLanguage.EN,
+      organizationId: user.organizationId,
+      userId: user.userId,
     });
+    expect(captionsService.create.mock.invocationCallOrder[0]).toBeLessThan(
+      captionsService.patch.mock.invocationCallOrder[0],
+    );
     expect(fileQueueService.processVideo).toHaveBeenNthCalledWith(3, {
       ingredientId,
       organizationId: user.organizationId,

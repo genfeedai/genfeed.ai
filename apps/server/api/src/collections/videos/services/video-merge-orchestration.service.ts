@@ -184,11 +184,16 @@ export class VideoMergeOrchestrationService {
             const captionContent = await this.whisperService.generateCaptions(
               ingredientData.id,
             );
-            const caption = await this.captionsService.create({
+            const captionInput = {
+              content: null,
               format: CaptionFormat.SRT,
               ingredientId: ingredientData.id,
+              isDeleted: false,
               language: CaptionLanguage.EN,
-            });
+              organizationId: user.organizationId,
+              userId: user.userId ?? user.id,
+            };
+            const caption = await this.captionsService.create(captionInput);
             const captionId = caption?.id;
             if (captionId) {
               await this.captionsService.patch(captionId, {
