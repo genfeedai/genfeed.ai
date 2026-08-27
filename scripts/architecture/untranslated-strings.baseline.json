@@ -97,7 +97,6 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/clips/ClipsWorkspace.tsx": 8,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipModeSelector.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipReferenceFrameSelector.tsx": 9,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipsInputForm.tsx": 3,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/HighlightReviewCard.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/edit/[id]/EditorEffectsPanel.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/edit/[id]/EditorNotFound.tsx": 2,
