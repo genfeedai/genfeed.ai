@@ -185,19 +185,21 @@ export class VideoMergeOrchestrationService {
               ingredientData.id,
             );
             const caption = await this.captionsService.create({
-              content: captionContent,
               format: CaptionFormat.SRT,
               ingredientId: ingredientData.id,
-              isDeleted: false,
               language: CaptionLanguage.EN,
-              organizationId: user.organizationId,
-              userId: user.userId ?? user.id,
             });
+            const captionId = caption?.id;
+            if (captionId) {
+              await this.captionsService.patch(captionId, {
+                content: captionContent,
+              });
+            }
             const captionsJob = await this.fileQueueService.processVideo({
               ingredientId,
               organizationId: user.organizationId,
               params: {
-                captionContent: caption.content,
+                captionContent,
                 inputPath: `${this.configService.ingredientsEndpoint}/videos/${ingredientId}`,
               },
               room: getUserRoomName(user.id),

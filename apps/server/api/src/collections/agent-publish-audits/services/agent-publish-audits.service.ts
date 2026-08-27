@@ -17,7 +17,7 @@ type StoredAgentPublishAuditRow = {
   brandId: string | null;
   channel: string | null;
   createdAt: Date;
-  decision: AgentPublishDecision;
+  decision: string;
   id: string;
   isDeleted: boolean;
   organizationId: string;
@@ -27,6 +27,12 @@ type StoredAgentPublishAuditRow = {
   updatedAt: Date;
   userId: string;
 };
+
+function parseStoredAgentPublishDecision(value: string): AgentPublishDecision {
+  return value === AgentPublishDecision.PERMITTED
+    ? AgentPublishDecision.PERMITTED
+    : AgentPublishDecision.DENIED;
+}
 
 @Injectable()
 export class AgentPublishAuditsService {
@@ -98,7 +104,7 @@ export class AgentPublishAuditsService {
       brandId: row.brandId,
       channel: row.channel,
       createdAt: row.createdAt,
-      decision: row.decision,
+      decision: parseStoredAgentPublishDecision(row.decision),
       id: row.id,
       isDeleted: row.isDeleted,
       organizationId: row.organizationId,

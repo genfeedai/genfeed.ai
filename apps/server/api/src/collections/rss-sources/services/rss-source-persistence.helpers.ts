@@ -18,14 +18,14 @@ import { BadRequestException } from '@nestjs/common';
 import type { ZodError, ZodType } from 'zod';
 
 export type StoredRssSourceRow = {
-  approvalMode: RssApprovalMode;
+  approvalMode: string;
   brandId: string | null;
   createdAt: Date;
   failedCount: number;
   feedUrl: string;
   id: string;
   importedCount: number;
-  importPolicy: RssImportPolicy;
+  importPolicy: string;
   isDeleted: boolean;
   isEnabled: boolean;
   label: string;
@@ -38,6 +38,23 @@ export type StoredRssSourceRow = {
   updatedAt: Date;
   userId: string;
 };
+
+export function parseStoredRssApprovalMode(value: string): RssApprovalMode {
+  return value === RssApprovalMode.AUTO
+    ? RssApprovalMode.AUTO
+    : RssApprovalMode.APPROVAL;
+}
+
+export function parseStoredRssImportPolicy(value: string): RssImportPolicy {
+  switch (value) {
+    case RssImportPolicy.SCHEDULED:
+      return RssImportPolicy.SCHEDULED;
+    case RssImportPolicy.PUBLISH_NOW:
+      return RssImportPolicy.PUBLISH_NOW;
+    default:
+      return RssImportPolicy.DRAFT;
+  }
+}
 
 export type StoredPostingSignatureRow = {
   body: string;
