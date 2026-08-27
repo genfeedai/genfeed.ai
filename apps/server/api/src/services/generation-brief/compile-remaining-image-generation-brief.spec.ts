@@ -4,6 +4,7 @@ import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@api/services/generat
 import { imageGenerationBriefSchema } from '@api-types/contracts/generation-brief.contract';
 import { GPT_IMAGE_IMAGE_COMPILER_ID } from '@api-types/contracts/generation-brief-compiler.contract';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import { normalizeAspectRatioForModel } from '@genfeedai/helpers';
 import { describe, expect, it } from 'vitest';
 
 function familyFor(modelKey: string) {
@@ -34,7 +35,12 @@ describe('compileRemainingImageGenerationBrief', () => {
     });
 
     expect(result.dispatch.prompt).toBe('a sunset over the ocean');
-    expect(result.dispatch.aspect_ratio).toBe('16:9');
+    expect(result.dispatch.aspect_ratio).toBe(
+      normalizeAspectRatioForModel(
+        MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2,
+        '16:9',
+      ),
+    );
     expect(result.evidence.compilerId).toBe(GPT_IMAGE_IMAGE_COMPILER_ID);
     expect(result.evidence.omittedSignals).toEqual([]);
   });

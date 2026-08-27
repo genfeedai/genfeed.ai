@@ -1143,6 +1143,7 @@ describe('BrandRemixRunsService', () => {
         draft: {
           fidelityMode: 'strict',
           output: { aspectRatio: '1:1', count: 1, kind: 'image' },
+          references: [],
         },
       });
       contentRun.findFirst.mockResolvedValue(created);

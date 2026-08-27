@@ -10,6 +10,7 @@ import { compileRemainingVideoGenerationBrief } from '@api/services/generation-b
 import { REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-video-generation-brief-families';
 import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
 import type { GenerationBriefExemptionReason } from '@api-types/contracts/generation-brief-compiler.contract';
+import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import {
   MINIMAX_H3_COMPILER_ID,
   MINIMAX_H3_COMPILER_VERSION,
@@ -31,7 +32,7 @@ export type VideoGenerationBriefDispatch = Record<string, unknown>;
 export interface VideoGenerationBriefCompileResult {
   brief: VideoGenerationBrief;
   dispatch: VideoGenerationBriefDispatch;
-  evidence: Record<string, unknown>;
+  evidence: VideoGenerationBriefPersistedEvidence;
 }
 
 export interface VideoGenerationBriefCompileInput {

@@ -43,6 +43,7 @@ function profile(
   modelKey: string,
   extras?: {
     audioSupported?: boolean;
+    defaultAspectRatio?: string;
     defaultSeconds?: number;
     maxReferences?: number;
     maxSeconds?: number;
@@ -53,6 +54,7 @@ function profile(
 ): RemainingVideoCapabilityProfile {
   return buildRemainingVideoCapabilityProfile({
     audioSupported: extras?.audioSupported,
+    defaultAspectRatio: extras?.defaultAspectRatio,
     defaultSeconds: extras?.defaultSeconds,
     id,
     maxReferences: extras?.maxReferences ?? 1,
