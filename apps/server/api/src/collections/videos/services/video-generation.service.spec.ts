@@ -1,5 +1,3 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
@@ -11,7 +9,6 @@ import { VideoGenerationExecutionService } from '@api/collections/videos/service
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
-import { assertRedactedVideoGenerationBriefEvidence } from '@server/services/generation-brief/redact-generation-brief-evidence';
 import {
   buildMinimaxH3GenerationSource,
   buildPrunaaiPVideoGenerationSource,
@@ -25,6 +22,9 @@ import {
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
+import { assertRedactedVideoGenerationBriefEvidence } from '@server/services/generation-brief/redact-generation-brief-evidence';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -766,16 +766,20 @@ describe('VideoGenerationService', () => {
     it('bypasses brief compilation for a model without a registered compiler', async () => {
       const { service, sharedService } = createService();
 
-      await service.generateVideo(buildUser(), baseDto(), buildRequest());
+      await service.generateVideo(
+        buildUser(),
+        baseDto({ model: 'unknown-provider/unknown-video' }),
+        buildRequest(),
+      );
 
       const [, payload] = sharedService.createMediaDocuments.mock.calls[0];
       expect(payload.generationSource).toBe(
-        'generation-brief-exemption:legacy_prompt_builder',
+        'generation-brief-exemption:unregistered_model',
       );
       expect(payload.providerData).toMatchObject({
         compilerId: null,
         profileId: null,
-        reason: 'legacy_prompt_builder',
+        reason: 'unregistered_model',
         status: 'exempted',
         surface: 'studio',
       });

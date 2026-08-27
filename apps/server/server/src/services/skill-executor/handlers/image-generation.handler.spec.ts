@@ -1,11 +1,11 @@
-import { ManagedInferenceClientService } from '@server/endpoints/v1/managed-inference/managed-inference-client.service';
-import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
-import { ImageGenerationHandler } from '@server/services/skill-executor/handlers/image-generation.handler';
 import { ImageTaskModel } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ManagedInferenceClientService } from '@server/endpoints/v1/managed-inference/managed-inference-client.service';
+import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
 import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { ImageGenerationHandler } from '@server/services/skill-executor/handlers/image-generation.handler';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('ImageGenerationHandler', () => {
@@ -81,11 +81,10 @@ describe('ImageGenerationHandler', () => {
     expect(result.metadata).toMatchObject({
       generationBriefEvidence: {
         modelKey: expect.any(String),
-        reason: 'legacy_prompt_builder',
-        status: 'exempted',
+        status: 'compiled',
         surface: 'agent_skill',
       },
-      generationSource: 'generation-brief-exemption:legacy_prompt_builder',
+      generationSource: expect.stringContaining('generation-brief:'),
     });
   });
 

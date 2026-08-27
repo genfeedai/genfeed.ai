@@ -1,4 +1,3 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
@@ -21,6 +20,7 @@ import {
 } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -46,11 +46,11 @@ const REFERENCE_INGREDIENTS_ENDPOINT = `${REFERENCE_CDN}/ingredients`;
 // non-batch. Use the `seedream-5-lite` key (no dot) so the provider registry's
 // owner/model matcher resolves it to the Replicate adapter.
 const BATCH_MODEL = MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_LITE;
-// Recraft V4 stays on the #3467 `legacy_prompt_builder` exemption list, so
-// these credit/fan-out/output-arithmetic tests keep exercising the
-// promptBuilderService legacy path they were written to prove — unlike
-// Imagen, which #3467 onboarded onto model-aware brief compilation.
+// Recraft V4 now compiles through the remaining-family brief. Fan-out
+// arithmetic still uses this non-batch Replicate key; exemption coverage
+// uses an enumerated non-generative transform.
 const NON_BATCH_REPLICATE_MODEL = MODEL_KEYS.REPLICATE_RECRAFT_AI_RECRAFT_V4;
+const NON_GENERATIVE_EXEMPT_MODEL = MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE;
 const FAL_MODEL = MODEL_KEYS.FAL_NANO_BANANA_2;
 const SINGLE_OUTPUT_MODEL = MODEL_KEYS.LEONARDOAI;
 
@@ -679,8 +679,7 @@ describe('ImageGenerationService', () => {
 
   describe('non-batch Replicate outputs (F3)', () => {
     it('requests exactly one output per call for non-batch models', async () => {
-      const { service, promptBuilderService, replicateService } =
-        createService();
+      const { service, replicateService } = createService();
 
       await service.generateImage(
         buildUser(),
@@ -692,12 +691,6 @@ describe('ImageGenerationService', () => {
         buildRequest(),
       );
 
-      // The dispatch-time buildPrompt (last call) must request a single output;
-      // the N images come from N separate provider calls.
-      const dispatchCall = promptBuilderService.buildPrompt.mock.calls.at(-1);
-      expect(
-        (dispatchCall?.[1] as { outputs?: number } | undefined)?.outputs,
-      ).toBe(1);
       expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(3);
     });
 
@@ -889,7 +882,7 @@ describe('ImageGenerationService', () => {
       ).toHaveBeenCalledWith(ORG, 20);
     });
 
-    it('exempts other image models and keeps the legacy prompt-builder path', async () => {
+    it('compiles Recraft V4 from the remaining-family brief', async () => {
       const { service, promptBuilderService, sharedService } = createService();
 
       await service.generateImage(
@@ -898,15 +891,39 @@ describe('ImageGenerationService', () => {
         buildRequest(),
       );
 
+      expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          generationSource: expect.stringMatching(/^generation-brief:/),
+          providerData: expect.objectContaining({
+            modelKey: NON_BATCH_REPLICATE_MODEL,
+            status: 'compiled',
+            surface: 'studio',
+          }),
+        }),
+      );
+    });
+
+    it('exempts enumerated non-generative image transforms', async () => {
+      const { service, promptBuilderService, sharedService } = createService();
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({ model: NON_GENERATIVE_EXEMPT_MODEL }),
+        buildRequest(),
+      );
+
       expect(promptBuilderService.buildPrompt).toHaveBeenCalled();
       expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          generationSource: 'generation-brief-exemption:legacy_prompt_builder',
+          generationSource:
+            'generation-brief-exemption:non_generative_transform',
           providerData: expect.objectContaining({
             compilerId: null,
-            modelKey: NON_BATCH_REPLICATE_MODEL,
-            reason: 'legacy_prompt_builder',
+            modelKey: NON_GENERATIVE_EXEMPT_MODEL,
+            reason: 'non_generative_transform',
             status: 'exempted',
             surface: 'studio',
           }),

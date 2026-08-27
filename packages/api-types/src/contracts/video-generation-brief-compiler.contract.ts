@@ -87,9 +87,21 @@ export const videoGenerationBriefExemptSupportSchema = z
   })
   .strict();
 
+export const remainingVideoCompileSupportSchema = z
+  .object({
+    compilerId: z.string().trim().min(1).max(255),
+    compilerVersion: z.number().int().positive(),
+    kind: z.literal('compile'),
+    modelKey: z.string().trim().min(1).max(255),
+    profileId: z.string().trim().min(1).max(255),
+    profileVersion: z.number().int().positive(),
+  })
+  .strict();
+
 export const videoGenerationBriefSupportSchema = z.union([
   prunaaiPVideoCompileSupportSchema,
   minimaxH3CompileSupportSchema,
+  remainingVideoCompileSupportSchema,
   videoGenerationBriefExemptSupportSchema,
 ]);
 
@@ -156,11 +168,61 @@ export const videoGenerationBriefExemptionEvidenceSchema = z
   })
   .strict();
 
+export const remainingVideoCompileEvidenceSchema = z
+  .object({
+    appliedFields: z.array(z.string().trim().min(1).max(255)).max(50),
+    briefVersion: z.literal(VIDEO_GENERATION_BRIEF_CONTRACT_VERSION),
+    compilerId: z.string().trim().min(1).max(255),
+    compilerVersion: z.number().int().positive(),
+    fidelityMode: generationFidelityModeSchema,
+    mediaKind: z.literal('video'),
+    modelKey: z.string().trim().min(1).max(255),
+    omittedSignals: z.array(generationBriefOmittedSignalSchema).max(50),
+    output: videoGenerationBriefCompileEvidenceOutputSchema,
+    profileId: z.string().trim().min(1).max(255),
+    profileVersion: z.number().int().positive(),
+    referenceAssetIds: z.array(z.string().trim().min(1).max(255)).max(20),
+    status: z.literal('compiled'),
+    surface: generationBriefSurfaceSchema.optional(),
+  })
+  .strict();
+
 export const videoGenerationBriefPersistedEvidenceSchema = z.union([
   prunaaiPVideoCompileEvidenceSchema,
   minimaxH3CompileEvidenceSchema,
+  remainingVideoCompileEvidenceSchema,
   videoGenerationBriefExemptionEvidenceSchema,
 ]);
+
+export const remainingVideoDispatchSchema = z
+  .object({
+    prompt: z.string().trim().min(1).max(10_000),
+  })
+  .catchall(
+    z.union([
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.array(z.string().trim().min(1).max(2_048)),
+    ]),
+  );
+export type RemainingVideoDispatch = z.infer<
+  typeof remainingVideoDispatchSchema
+>;
+
+export const REMAINING_VIDEO_COMPILER_VERSION = 1;
+export const VEO_VIDEO_COMPILER_ID = 'veo-video-compiler';
+export const SORA_VIDEO_COMPILER_ID = 'sora-video-compiler';
+export const KLING_VIDEO_COMPILER_ID = 'kling-video-compiler';
+export const WAN_VIDEO_COMPILER_ID = 'wan-video-compiler';
+export const SEEDANCE_VIDEO_COMPILER_ID = 'seedance-video-compiler';
+export const HAILUO_VIDEO_COMPILER_ID = 'hailuo-video-compiler';
+export const VIDU_VIDEO_COMPILER_ID = 'vidu-video-compiler';
+export const PIXVERSE_VIDEO_COMPILER_ID = 'pixverse-video-compiler';
+export const GROK_IMAGINE_VIDEO_COMPILER_ID = 'grok-imagine-video-compiler';
+export const RUNWAY_VIDEO_COMPILER_ID = 'runway-video-compiler';
+export const LUMA_VIDEO_COMPILER_ID = 'luma-video-compiler';
+export const FAL_STABLE_VIDEO_COMPILER_ID = 'fal-stable-video-compiler';
 
 // ---------------------------------------------------------------------------
 // Dispatch shapes

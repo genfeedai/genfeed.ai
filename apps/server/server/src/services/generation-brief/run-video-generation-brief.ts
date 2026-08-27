@@ -1,31 +1,25 @@
-import { assembleVideoGenerationBrief } from '@server/services/generation-brief/assemble-video-generation-brief';
-import { compileMinimaxH3GenerationBrief } from '@server/services/generation-brief/compile-minimax-h3-generation-brief';
-import { compilePrunaaiPVideoGenerationBrief } from '@server/services/generation-brief/compile-prunaai-p-video-generation-brief';
-import { assertRedactedVideoGenerationBriefEvidence } from '@server/services/generation-brief/redact-generation-brief-evidence';
-import { resolveVideoGenerationBriefSupport } from '@server/services/generation-brief/resolve-video-generation-brief-support';
-import { resolveVideoGenerationFidelityMode } from '@server/services/generation-brief/resolve-video-generation-fidelity-mode';
+import { assembleVideoGenerationBrief } from '@api/services/generation-brief/assemble-video-generation-brief';
+import { assertRedactedVideoGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
+import { resolveVideoGenerationBriefSupport } from '@api/services/generation-brief/resolve-video-generation-brief-support';
+import { resolveVideoGenerationFidelityMode } from '@api/services/generation-brief/resolve-video-generation-fidelity-mode';
+import { getVideoGenerationBriefRegistryEntry } from '@api/services/generation-brief/video-generation-brief-registry';
 import type {
   GenerationBriefReference,
+  GenerationFidelityMode,
   VideoGenerationBrief,
 } from '@api-types/contracts/generation-brief.contract';
 import type { GenerationBriefSurface } from '@api-types/contracts/generation-brief-compiler.contract';
-import type {
-  MinimaxH3Dispatch,
-  PrunaaiPVideoDispatch,
-  VideoGenerationBriefPersistedEvidence,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
-import {
-  buildMinimaxH3GenerationSource,
-  buildPrunaaiPVideoGenerationSource,
-  buildVideoGenerationBriefExemptionSource,
-  PRUNAAI_P_VIDEO_COMPILER_ID,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
+import { buildGenerationBriefCompileSource } from '@api-types/contracts/generation-brief-compiler.contract';
+import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
+import { buildVideoGenerationBriefExemptionSource } from '@api-types/contracts/video-generation-brief-compiler.contract';
+import { ServiceUnavailableException } from '@nestjs/common';
 
 export interface RunVideoGenerationBriefInput {
   audioDirection?: string;
   avoid?: string[];
   brandingMode?: 'off' | 'brand';
   cameraMovement?: string;
+  fidelityMode?: GenerationFidelityMode;
   composition?: string;
   durationSeconds?: number;
   endFrameId?: string;
@@ -46,7 +40,7 @@ export interface RunVideoGenerationBriefInput {
 
 export interface RunVideoGenerationBriefResult {
   brief?: VideoGenerationBrief;
-  dispatch?: MinimaxH3Dispatch | PrunaaiPVideoDispatch;
+  dispatch?: Record<string, unknown>;
   evidence: VideoGenerationBriefPersistedEvidence;
   generationSource: string;
 }
@@ -78,8 +72,16 @@ export function runVideoGenerationBrief(
     };
   }
 
+  const entry = getVideoGenerationBriefRegistryEntry(support.modelKey);
+  if (!entry) {
+    throw new ServiceUnavailableException(
+      `Generation brief compiler configuration is unavailable for model "${support.modelKey}".`,
+    );
+  }
+
   const fidelityMode = resolveVideoGenerationFidelityMode({
     brandingMode: input.brandingMode,
+    fidelityMode: input.fidelityMode,
     isBrandingEnabled: input.isBrandingEnabled,
   });
   const brief = assembleVideoGenerationBrief({
@@ -100,16 +102,11 @@ export function runVideoGenerationBrief(
     visualDirectionSource: 'user',
     width: input.width,
   });
-  const isPrunaaiPVideo = support.compilerId === PRUNAAI_P_VIDEO_COMPILER_ID;
-  const compiled = isPrunaaiPVideo
-    ? compilePrunaaiPVideoGenerationBrief({
-        brief,
-        seed: input.seed,
-      })
-    : compileMinimaxH3GenerationBrief({
-        brief,
-        seed: input.seed,
-      });
+  const compiled = entry.compile({
+    brief,
+    modelKey: support.modelKey,
+    seed: input.seed,
+  });
 
   return {
     brief: compiled.brief,
@@ -118,8 +115,11 @@ export function runVideoGenerationBrief(
       ...compiled.evidence,
       surface: input.surface,
     }),
-    generationSource: isPrunaaiPVideo
-      ? buildPrunaaiPVideoGenerationSource()
-      : buildMinimaxH3GenerationSource(),
+    generationSource: buildGenerationBriefCompileSource({
+      compilerId: entry.compilerId,
+      compilerVersion: entry.compilerVersion,
+      profileId: entry.profileId,
+      profileVersion: entry.profileVersion,
+    }),
   };
 }

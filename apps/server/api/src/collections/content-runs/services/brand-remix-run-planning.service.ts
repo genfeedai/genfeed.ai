@@ -1,7 +1,3 @@
-import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { resolveEffectiveBrandAgentConfig } from '@server/collections/brands/utils/brand-agent-config-resolution.util';
-import { toBrandGenerationReferences } from '@server/collections/brands/utils/brand-kit-generation-references.util';
 import {
   remixOrganicPlatform,
   remixRecord,
@@ -15,10 +11,6 @@ import {
   SUPPORTED_ASPECT_RATIOS,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { isMaterializableSavedVoice } from '@server/collections/videos/services/saved-voice-materialization';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   type BrandRemixDraft,
   type BrandRemixDraftEdits,
@@ -37,6 +29,14 @@ import {
 import type { IBrandKitResolvedAssets } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { resolveEffectiveBrandAgentConfig } from '@server/collections/brands/utils/brand-agent-config-resolution.util';
+import { toBrandGenerationReferences } from '@server/collections/brands/utils/brand-kit-generation-references.util';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { isMaterializableSavedVoice } from '@server/collections/videos/services/saved-voice-materialization';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 @Injectable()
 export class BrandRemixRunPlanningService {
@@ -217,12 +217,12 @@ export class BrandRemixRunPlanningService {
     draft: BrandRemixDraft,
   ): BrandRemixReadiness {
     const issues: BrandRemixReadiness['issues'] = [];
-    if (draft.fidelityMode === 'strict') {
+    if (draft.fidelityMode === 'strict' && draft.references.length === 0) {
       issues.push({
-        code: 'unsupported_fidelity',
-        field: 'fidelityMode',
+        code: 'missing_required_reference',
+        field: 'references',
         message:
-          'Strict fidelity is not supported by the current remix providers. Switch to Guided to generate an original brand execution.',
+          'Strict fidelity requires at least one identity, product, or frame reference.',
         severity: 'blocked',
       });
     }

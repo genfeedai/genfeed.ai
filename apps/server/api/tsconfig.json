@@ -46,6 +46,8 @@
       "@genfeedai/constants/*": ["../../../packages/constants/src/*"],
       "@genfeedai/enums": ["../../../packages/enums/src/index.ts"],
       "@genfeedai/enums/*": ["../../../packages/enums/src/*"],
+      "@genfeedai/helpers": ["../../../packages/helpers/src/index.ts"],
+      "@genfeedai/helpers/*": ["../../../packages/helpers/src/*"],
       "@helpers/*": ["../../../packages/helpers/src/*"],
       "@libs/*": ["../../../packages/libs/*"],
       "@serializers/*": ["../../../packages/serializers/src/*"],

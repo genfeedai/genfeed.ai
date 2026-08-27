@@ -1,8 +1,6 @@
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/services/brand-remix-runs.factory';
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { brandRemixRunConfigSchema } from '@api-types/contracts/brand-remix-run.contract';
 import {
   ContentRunStatus,
@@ -12,6 +10,8 @@ import {
   ReferenceImageCategory,
 } from '@genfeedai/enums';
 import { BadRequestException, ConflictException } from '@nestjs/common';
+import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createdAt = new Date('2026-08-20T10:00:00.000Z');
@@ -1143,6 +1143,7 @@ describe('BrandRemixRunsService', () => {
         draft: {
           fidelityMode: 'strict',
           output: { aspectRatio: '1:1', count: 1, kind: 'image' },
+          references: [],
         },
       });
       contentRun.findFirst.mockResolvedValue(created);

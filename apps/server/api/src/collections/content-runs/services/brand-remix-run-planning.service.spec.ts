@@ -1,10 +1,10 @@
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
 import type { ResolvedBrandContext } from '@api/collections/content-runs/services/brand-remix-runs.types';
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type { BrandRemixDraft } from '@api-types/contracts/brand-remix-run.contract';
 import { IngredientStatus } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const brandContext = {
@@ -70,7 +70,7 @@ describe('BrandRemixRunPlanningService', () => {
     );
   });
 
-  it('blocks strict fidelity before any generation dispatch', () => {
+  it('blocks strict fidelity when no identity or product reference is present', () => {
     const draft = {
       fidelityMode: 'strict',
       identity: {},
@@ -85,6 +85,27 @@ describe('BrandRemixRunPlanningService', () => {
 
     expect(readiness.state).toBe('blocked');
     expect(readiness.issues.map((issue) => issue.code)).toContain(
+      'missing_required_reference',
+    );
+  });
+
+  it('allows strict fidelity when a required reference is present', () => {
+    const draft = {
+      fidelityMode: 'strict',
+      identity: {},
+      intent: { objective: 'Create an original brand execution.' },
+      output: { aspectRatio: '1:1', count: 1, kind: 'image' },
+      references: [{ assetId: 'product-1', role: 'product' }],
+      reviewRequired: true,
+      target: { kind: 'organic', platform: 'instagram' },
+    } as BrandRemixDraft;
+
+    const readiness = planning.buildReadiness(brandContext, draft);
+
+    expect(readiness.issues.map((issue) => issue.code)).not.toContain(
+      'missing_required_reference',
+    );
+    expect(readiness.issues.map((issue) => issue.code)).not.toContain(
       'unsupported_fidelity',
     );
   });

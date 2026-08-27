@@ -77,7 +77,7 @@ export interface ResolvedVideoGenerationRequest {
 export interface VideoGenerationContext extends ResolvedVideoGenerationRequest {
   abortSignal: AbortSignal;
   briefEvidence?: VideoGenerationBriefPersistedEvidence;
-  compiledDispatch?: MinimaxH3Dispatch | PrunaaiPVideoDispatch;
+  compiledDispatch?: Record<string, unknown>;
   generationBrief?: VideoGenerationBrief;
   generationSource?: string;
   height: number;
@@ -91,16 +91,12 @@ export interface VideoGenerationContext extends ResolvedVideoGenerationRequest {
   width: number;
 }
 
+import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
+import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
+import type { ModelProvider } from '@genfeedai/enums';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import type { BrandsService } from '@server/collections/brands/services/brands.service';
 import type { PromptsService } from '@server/collections/prompts/services/prompts.service';
 import type { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
-import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { SharedService } from '@server/shared/services/shared/shared.service';
-import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
-import type {
-  MinimaxH3Dispatch,
-  PrunaaiPVideoDispatch,
-  VideoGenerationBriefPersistedEvidence,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
-import type { ModelProvider } from '@genfeedai/enums';

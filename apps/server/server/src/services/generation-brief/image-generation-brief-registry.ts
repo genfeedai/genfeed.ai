@@ -7,22 +7,24 @@
  * key that is missing from both.
  */
 
-import { compileFlux11ProGenerationBrief } from '@server/services/generation-brief/compile-flux-1-1-pro-generation-brief';
-import { compileFlux2DevGenerationBrief } from '@server/services/generation-brief/compile-flux-2-dev-generation-brief';
-import { compileFlux2FlexGenerationBrief } from '@server/services/generation-brief/compile-flux-2-flex-generation-brief';
-import { compileFlux2ProGenerationBrief } from '@server/services/generation-brief/compile-flux-2-pro-generation-brief';
-import { compileFluxKontextProGenerationBrief } from '@server/services/generation-brief/compile-flux-kontext-pro-generation-brief';
-import { compileFluxSchnellGenerationBrief } from '@server/services/generation-brief/compile-flux-schnell-generation-brief';
-import { compileIdeogramCharacterGenerationBrief } from '@server/services/generation-brief/compile-ideogram-character-generation-brief';
-import { compileIdeogramV3GenerationBrief } from '@server/services/generation-brief/compile-ideogram-v3-generation-brief';
-import { compileImagenGenerationBrief } from '@server/services/generation-brief/compile-imagen-generation-brief';
-import { compileNanoBanana2GenerationBrief } from '@server/services/generation-brief/compile-nano-banana-2-generation-brief';
-import { compileNanoBananaGenerationBrief } from '@server/services/generation-brief/compile-nano-banana-generation-brief';
-import { compileQwenImageGenerationBrief } from '@server/services/generation-brief/compile-qwen-image-generation-brief';
-import { compileRunwayGen4ImageTurboGenerationBrief } from '@server/services/generation-brief/compile-runwayml-gen4-image-turbo-generation-brief';
-import { compileSeedream45GenerationBrief } from '@server/services/generation-brief/compile-seedream-4-5-generation-brief';
-import { compileSeedream4GenerationBrief } from '@server/services/generation-brief/compile-seedream-4-generation-brief';
-import { compileSeedream5ProGenerationBrief } from '@server/services/generation-brief/compile-seedream-5-pro-generation-brief';
+import { compileFlux11ProGenerationBrief } from '@api/services/generation-brief/compile-flux-1-1-pro-generation-brief';
+import { compileFlux2DevGenerationBrief } from '@api/services/generation-brief/compile-flux-2-dev-generation-brief';
+import { compileFlux2FlexGenerationBrief } from '@api/services/generation-brief/compile-flux-2-flex-generation-brief';
+import { compileFlux2ProGenerationBrief } from '@api/services/generation-brief/compile-flux-2-pro-generation-brief';
+import { compileFluxKontextProGenerationBrief } from '@api/services/generation-brief/compile-flux-kontext-pro-generation-brief';
+import { compileFluxSchnellGenerationBrief } from '@api/services/generation-brief/compile-flux-schnell-generation-brief';
+import { compileIdeogramCharacterGenerationBrief } from '@api/services/generation-brief/compile-ideogram-character-generation-brief';
+import { compileIdeogramV3GenerationBrief } from '@api/services/generation-brief/compile-ideogram-v3-generation-brief';
+import { compileImagenGenerationBrief } from '@api/services/generation-brief/compile-imagen-generation-brief';
+import { compileNanoBanana2GenerationBrief } from '@api/services/generation-brief/compile-nano-banana-2-generation-brief';
+import { compileNanoBananaGenerationBrief } from '@api/services/generation-brief/compile-nano-banana-generation-brief';
+import { compileQwenImageGenerationBrief } from '@api/services/generation-brief/compile-qwen-image-generation-brief';
+import { compileRemainingImageGenerationBrief } from '@api/services/generation-brief/compile-remaining-image-generation-brief';
+import { compileRunwayGen4ImageTurboGenerationBrief } from '@api/services/generation-brief/compile-runwayml-gen4-image-turbo-generation-brief';
+import { compileSeedream45GenerationBrief } from '@api/services/generation-brief/compile-seedream-4-5-generation-brief';
+import { compileSeedream4GenerationBrief } from '@api/services/generation-brief/compile-seedream-4-generation-brief';
+import { compileSeedream5ProGenerationBrief } from '@api/services/generation-brief/compile-seedream-5-pro-generation-brief';
+import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-image-generation-brief-families';
 import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
 import type {
   GenerationBriefCompileEvidence,
@@ -411,6 +413,26 @@ const IMAGE_GENERATION_BRIEF_REGISTRY_ENTRIES: ImageGenerationBriefRegistryEntry
       profileId: RUNWAY_GEN4_IMAGE_TURBO_CAPABILITY_PROFILE_ID,
       profileVersion: RUNWAY_GEN4_IMAGE_TURBO_CAPABILITY_PROFILE_VERSION,
     },
+    ...REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES.flatMap((family) =>
+      family.profiles.map((profile) => ({
+        compile: ({
+          brief,
+          modelKey,
+          seed,
+        }: ImageGenerationBriefCompileInput) =>
+          compileRemainingImageGenerationBrief({
+            brief,
+            family,
+            modelKey,
+            seed,
+          }),
+        compilerId: family.compilerId,
+        compilerVersion: family.compilerVersion,
+        modelKey: profile.modelKey,
+        profileId: profile.id,
+        profileVersion: profile.version,
+      })),
+    ),
   ];
 
 export const IMAGE_GENERATION_BRIEF_REGISTRY: ReadonlyMap<
@@ -448,32 +470,6 @@ const IMAGE_GENERATION_BRIEF_EXEMPTION_ENTRIES: ReadonlyArray<
   // Model training operations: these train a model rather than generate
   // an image.
   [MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER, 'model_training_operation'],
-  // Legacy prompt builder: generative image models not yet migrated to a
-  // versioned capability profile + compiler.
-  [MODEL_KEYS.FAL_FLUX_2_PRO, 'legacy_prompt_builder'],
-  [MODEL_KEYS.FAL_FLUX_DEV, 'legacy_prompt_builder'],
-  [MODEL_KEYS.FAL_FLUX_PRO, 'legacy_prompt_builder'],
-  [MODEL_KEYS.FAL_FLUX_SCHNELL, 'legacy_prompt_builder'],
-  [MODEL_KEYS.FAL_GPT_IMAGE_2, 'legacy_prompt_builder'],
-  [MODEL_KEYS.FAL_NANO_BANANA_2, 'legacy_prompt_builder'],
-  [MODEL_KEYS.FAL_RECRAFT_V4_PRO, 'legacy_prompt_builder'],
-  [MODEL_KEYS.GENFEED_AI_FLUX2_DEV, 'legacy_prompt_builder'],
-  [MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID, 'legacy_prompt_builder'],
-  [MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA, 'legacy_prompt_builder'],
-  [MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_UPSCALE, 'legacy_prompt_builder'],
-  [MODEL_KEYS.GENFEED_AI_FLUX2_KLEIN, 'legacy_prompt_builder'],
-  [MODEL_KEYS.GENFEED_AI_FLUX_DEV, 'legacy_prompt_builder'],
-  [MODEL_KEYS.GENFEED_AI_FLUX_DEV_PULID, 'legacy_prompt_builder'],
-  [MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO, 'legacy_prompt_builder'],
-  [MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA, 'legacy_prompt_builder'],
-  [MODEL_KEYS.HIGGSFIELD_SOUL, 'legacy_prompt_builder'],
-  [MODEL_KEYS.LEONARDOAI, 'legacy_prompt_builder'],
-  [MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5, 'legacy_prompt_builder'],
-  [MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2, 'legacy_prompt_builder'],
-  [MODEL_KEYS.REPLICATE_RECRAFT_AI_RECRAFT_V4, 'legacy_prompt_builder'],
-  [MODEL_KEYS.REPLICATE_RECRAFT_AI_RECRAFT_V4_PRO, 'legacy_prompt_builder'],
-  [MODEL_KEYS.REPLICATE_XAI_GROK_IMAGINE_IMAGE, 'legacy_prompt_builder'],
-  [MODEL_KEYS.SDXL, 'legacy_prompt_builder'],
 ];
 
 export const IMAGE_GENERATION_BRIEF_EXEMPTIONS: ReadonlyMap<

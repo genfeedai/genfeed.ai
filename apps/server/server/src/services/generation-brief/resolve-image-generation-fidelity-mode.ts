@@ -2,8 +2,13 @@ import type { GenerationFidelityMode } from '@api-types/contracts/generation-bri
 
 export function resolveImageGenerationFidelityMode(input: {
   brandingMode?: 'off' | 'brand';
+  fidelityMode?: GenerationFidelityMode;
   isBrandingEnabled?: boolean;
 }): GenerationFidelityMode {
+  if (input.fidelityMode) {
+    return input.fidelityMode;
+  }
+
   if (input.brandingMode === 'off') {
     return 'off';
   }

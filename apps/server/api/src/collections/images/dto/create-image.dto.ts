@@ -1,9 +1,9 @@
-import { CreateIngredientDto } from '@server/collections/ingredients/dto/create-ingredient.dto';
-import { CreateMetadataDto } from '@server/collections/metadata/dto/create-metadata.dto';
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { RouterPriority } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
+import { CreateIngredientDto } from '@server/collections/ingredients/dto/create-ingredient.dto';
+import { CreateMetadataDto } from '@server/collections/metadata/dto/create-metadata.dto';
+import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -192,6 +192,16 @@ export class CreateImageDto extends CreateIngredientDto {
     required: false,
   })
   readonly brandingMode?: 'off' | 'brand';
+
+  @IsOptional()
+  @IsIn(['off', 'guided', 'strict'])
+  @ApiProperty({
+    description:
+      'Generation-brief fidelity. When set, overrides brandingMode for brief compilation.',
+    enum: ['off', 'guided', 'strict'],
+    required: false,
+  })
+  readonly fidelityMode?: 'off' | 'guided' | 'strict';
 
   @IsBoolean()
   @IsOptional()

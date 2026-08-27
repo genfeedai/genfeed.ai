@@ -1,5 +1,3 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
 import {
   remixAvatarAspectRatio,
   remixDimensions,
@@ -7,16 +5,9 @@ import {
 } from '@api/collections/content-runs/services/brand-remix-run-helpers';
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
 import { BrandRemixRunStateService } from '@api/collections/content-runs/services/brand-remix-run-state.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
-import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
-import { AvatarVideoGenerationService } from '@server/collections/videos/services/avatar-video-generation.service';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
-import type {
-  GenerationPlaceholderCreatedCallback,
-  GenerationPlaceholderScope,
-} from '@server/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { finalizeOutputCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
@@ -34,6 +25,15 @@ import {
 } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { ConflictException, Injectable } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
+import { AvatarVideoGenerationService } from '@server/collections/videos/services/avatar-video-generation.service';
+import type {
+  GenerationPlaceholderCreatedCallback,
+  GenerationPlaceholderScope,
+} from '@server/common/interfaces/generation-placeholder-lifecycle.interface';
 
 @Injectable()
 export class BrandRemixRunProviderDispatchService {
@@ -84,6 +84,7 @@ export class BrandRemixRunProviderDispatchService {
         {
           brandId: params.brandId,
           brandingMode: 'brand',
+          fidelityMode: draft.fidelityMode,
           height: dimensions.height,
           isBrandingEnabled: true,
           outputs: 1,
@@ -112,6 +113,7 @@ export class BrandRemixRunProviderDispatchService {
             ('durationSeconds' in draft.output &&
               draft.output.durationSeconds) ||
             8,
+          fidelityMode: draft.fidelityMode,
           height: dimensions.height,
           isBrandingEnabled: true,
           outputs: 1,

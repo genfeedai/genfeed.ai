@@ -1,12 +1,10 @@
-import * as imageGenerationBriefRegistry from '@server/services/generation-brief/image-generation-brief-registry';
-import { runImageGenerationBrief } from '@server/services/generation-brief/run-image-generation-brief';
 import {
   FLUX_SCHNELL_MODEL_KEY,
   QWEN_IMAGE_MODEL_KEY,
 } from '@api-types/contracts/generation-capability-profile.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ImageTaskModel } from '@genfeedai/enums';
 import { ServiceUnavailableException } from '@nestjs/common';
+import * as imageGenerationBriefRegistry from '@server/services/generation-brief/image-generation-brief-registry';
+import { runImageGenerationBrief } from '@server/services/generation-brief/run-image-generation-brief';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('runImageGenerationBrief', () => {
@@ -73,7 +71,7 @@ describe('runImageGenerationBrief', () => {
   it('records an explicit exemption instead of compiling unregistered skill models', () => {
     const result = runImageGenerationBrief({
       height: 1024,
-      model: ImageTaskModel.FAL,
+      model: 'unknown-provider/unknown-model',
       objective: 'cyberpunk city',
       surface: 'agent_skill',
       width: 1024,
@@ -82,8 +80,8 @@ describe('runImageGenerationBrief', () => {
     expect(result.brief).toBeUndefined();
     expect(result.dispatch).toBeUndefined();
     expect(result.evidence).toMatchObject({
-      modelKey: MODEL_KEYS.FAL_FLUX_DEV,
-      reason: 'legacy_prompt_builder',
+      modelKey: 'unknown-provider/unknown-model',
+      reason: 'unregistered_model',
       status: 'exempted',
       surface: 'agent_skill',
     });

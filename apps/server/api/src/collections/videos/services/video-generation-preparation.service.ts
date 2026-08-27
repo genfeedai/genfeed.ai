@@ -1,13 +1,3 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { buildPromptBrandingFromBrand } from '@server/collections/brands/utils/brand-context.util';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
-import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
 import type {
   PromptInput,
   ResolvedVideoGenerationRequest,
@@ -25,36 +15,18 @@ import {
   resolveInlinePromptText,
   resolveStoredPromptText,
 } from '@api/collections/videos/services/video-generation-prompt.util';
-import type { GenerationPlaceholderScope } from '@server/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
 import { resolveGenerationDimensions } from '@api/helpers/utils/credits/generation-credit-cost.util';
-import {
-  isImageToVideoRequest,
-  resolveGenerationDefaultModel,
-} from '@server/helpers/utils/generation-defaults/generation-defaults.util';
 import {
   buildReferenceImageUrl,
   buildReferenceImageUrls,
 } from '@api/helpers/utils/reference/reference.util';
 import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abort-signal.util';
-import {
-  GenerationBriefCompileError,
-  runVideoGenerationBrief,
-  toRedactedVideoGenerationBriefProviderData,
-} from '@server/services/generation-brief';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@server/services/router/router.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
 import type {
   GenerationBriefReference,
   VideoGenerationBrief,
 } from '@api-types/contracts/generation-brief.contract';
-import type {
-  MinimaxH3Dispatch,
-  PrunaaiPVideoDispatch,
-  VideoGenerationBriefPersistedEvidence,
-} from '@api-types/contracts/video-generation-brief-compiler.contract';
+import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import {
   IngredientCategory,
   IngredientStatus,
@@ -66,6 +38,30 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { buildPromptBrandingFromBrand } from '@server/collections/brands/utils/brand-context.util';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
+import { PromptsService } from '@server/collections/prompts/services/prompts.service';
+import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
+import type { GenerationPlaceholderScope } from '@server/common/interfaces/generation-placeholder-lifecycle.interface';
+import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
+import {
+  isImageToVideoRequest,
+  resolveGenerationDefaultModel,
+} from '@server/helpers/utils/generation-defaults/generation-defaults.util';
+import {
+  GenerationBriefCompileError,
+  runVideoGenerationBrief,
+  toRedactedVideoGenerationBriefProviderData,
+} from '@server/services/generation-brief';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { RouterService } from '@server/services/router/router.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 
 export const MISSING_PROMPT_ID_DETAIL =
   'Prompt resolution requires a prompt ID';
@@ -344,7 +340,7 @@ export class VideoGenerationPreparationService {
     width: number;
   }): {
     brief?: VideoGenerationBrief;
-    dispatch?: MinimaxH3Dispatch | PrunaaiPVideoDispatch;
+    dispatch?: Record<string, unknown>;
     evidence: VideoGenerationBriefPersistedEvidence;
     generationSource: string;
   } {
@@ -368,6 +364,7 @@ export class VideoGenerationPreparationService {
         brandingMode: params.createVideoDto.brandingMode,
         composition,
         durationSeconds: params.createVideoDto.duration,
+        fidelityMode: params.createVideoDto.fidelityMode,
         endFrameId: params.createVideoDto.endFrame,
         height: params.height,
         isBrandingEnabled: params.createVideoDto.isBrandingEnabled,
@@ -399,9 +396,9 @@ export class VideoGenerationPreparationService {
   }
 
   private async resolveCompiledDispatchReferenceUrls(
-    dispatch: MinimaxH3Dispatch | PrunaaiPVideoDispatch,
+    dispatch: Record<string, unknown>,
     organizationId: string,
-  ): Promise<MinimaxH3Dispatch | PrunaaiPVideoDispatch> {
+  ): Promise<Record<string, unknown>> {
     const resolveUrl = async (
       referenceId: string,
       role: string,
@@ -426,38 +423,39 @@ export class VideoGenerationPreparationService {
       return url;
     };
 
-    if ('ratio' in dispatch) {
-      const [firstFrameImage, lastFrameImage, referenceImageUrls] =
-        await Promise.all([
-          dispatch.first_frame_image
-            ? resolveUrl(dispatch.first_frame_image, 'first frame')
-            : Promise.resolve(undefined),
-          dispatch.last_frame_image
-            ? resolveUrl(dispatch.last_frame_image, 'last frame')
-            : Promise.resolve(undefined),
-          Promise.all(
-            (dispatch.reference_image_urls ?? []).map((assetId) =>
-              resolveUrl(assetId, 'reference'),
-            ),
-          ),
-        ]);
-      return {
-        ...dispatch,
-        ...(firstFrameImage !== undefined
-          ? { first_frame_image: firstFrameImage }
-          : {}),
-        ...(lastFrameImage !== undefined
-          ? { last_frame_image: lastFrameImage }
-          : {}),
-        reference_image_urls: referenceImageUrls,
-      };
+    const stringFields = [
+      'first_frame_image',
+      'last_frame_image',
+      'image',
+      'start_image',
+      'input_reference',
+      'last_frame',
+      'end_image',
+      'last_image',
+    ] as const;
+    const arrayFields = ['reference_image_urls', 'reference_images'] as const;
+
+    const resolved: Record<string, unknown> = { ...dispatch };
+
+    for (const field of stringFields) {
+      const value = dispatch[field];
+      if (typeof value === 'string' && value.length > 0) {
+        resolved[field] = await resolveUrl(value, field);
+      }
     }
 
-    if (!dispatch.image) {
-      return dispatch;
+    for (const field of arrayFields) {
+      const value = dispatch[field];
+      if (Array.isArray(value)) {
+        resolved[field] = await Promise.all(
+          value
+            .filter((entry): entry is string => typeof entry === 'string')
+            .map((entry) => resolveUrl(entry, field)),
+        );
+      }
     }
-    const image = await resolveUrl(dispatch.image, 'first frame');
-    return { ...dispatch, image };
+
+    return resolved;
   }
 
   private async resolveReferenceUrls(
