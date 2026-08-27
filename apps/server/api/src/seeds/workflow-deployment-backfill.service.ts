@@ -175,10 +175,6 @@ export class WorkflowDeploymentBackfillService {
       strict: false,
     });
 
-    await workflowSeeder.ensureDailyTrendsDigestWorkflow(
-      userId,
-      organizationId,
-    );
     await workflowSeeder.ensureAdAutomationWorkflows(userId, organizationId);
     await workflowSeeder.ensureCampaignOrchestrationWorkflows(
       userId,

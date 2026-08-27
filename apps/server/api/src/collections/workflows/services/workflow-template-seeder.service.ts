@@ -19,7 +19,6 @@ import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@api/collections/workflows/te
 import { CAMPAIGN_ORCHESTRATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/campaign-orchestration-workflows.template';
 import { CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-loop-autopilot-workflows.template';
 import { CONTENT_PRODUCTION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-production-workflows.template';
-import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
 import { LIVESTREAM_BOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/livestream-bot-workflows.template';
 import { OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/outreach-campaign-dispatch-workflows.template';
 import { REPLY_POLLING_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/reply-polling-workflows.template';
@@ -31,9 +30,6 @@ import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
-
-/** Template id for the predetermined per-org Daily Trends Digest workflow. */
-const DAILY_TRENDS_DIGEST_TEMPLATE_ID = 'daily-trends-digest';
 
 const WORKFLOW_SCHEDULER_SYNC_SELECT = {
   id: true,
@@ -392,138 +388,6 @@ export class WorkflowTemplateSeederService {
         sourceTemplateId: template.id,
       });
     }
-  }
-
-  /**
-   * Idempotently seeds the predetermined "Daily Trends Digest" workflow for an
-   * organization. Kept for operator backfill / self-host scripts only —
-   * organization creation no longer auto-seeds (#2176 catalog install).
-   * Unlike the template seeders below, an existing row that was toggled off is
-   * repaired back to enabled.
-   */
-  async ensureDailyTrendsDigestWorkflow(
-    userId: string,
-    organizationId: string,
-  ): Promise<void> {
-    const where = scopedWhere(organizationId, {
-      metadata: {
-        equals: DAILY_TRENDS_DIGEST_TEMPLATE_ID,
-        path: ['sourceTemplateId'],
-      },
-    });
-
-    const createData = this.buildDailyTrendsDigestCreateData(
-      userId,
-      organizationId,
-    );
-
-    // Fast path: most calls hit an already-seeded org.
-    const preCheck = await this.prisma.workflow.findFirst({
-      select: { id: true, isScheduleEnabled: true, metadata: true },
-      where,
-    });
-
-    if (preCheck) {
-      const metadataPatch = this.buildSeededWorkflowMetadataPatch({
-        desiredMetadata: createData.metadata,
-        existingMetadata: preCheck.metadata,
-      });
-      if (!preCheck.isScheduleEnabled || metadataPatch) {
-        await this.prisma.workflow.update({
-          data: {
-            ...(metadataPatch
-              ? { metadata: metadataPatch as Prisma.InputJsonValue }
-              : {}),
-            ...(!preCheck.isScheduleEnabled ? { isScheduleEnabled: true } : {}),
-          },
-          where: scopedWhere(organizationId, { id: preCheck.id }),
-        });
-      }
-      await this.reconcileDesiredSystemWorkflowDuplicates(
-        organizationId,
-        createData.metadata,
-      );
-      return;
-    }
-
-    try {
-      await this.prisma.$transaction(
-        async (tx) => {
-          const existing = await tx.workflow.findFirst({
-            select: { id: true, isScheduleEnabled: true, metadata: true },
-            where,
-          });
-
-          if (existing) {
-            const metadataPatch = this.buildSeededWorkflowMetadataPatch({
-              desiredMetadata: createData.metadata,
-              existingMetadata: existing.metadata,
-            });
-            if (!existing.isScheduleEnabled || metadataPatch) {
-              await tx.workflow.update({
-                data: {
-                  ...(metadataPatch
-                    ? { metadata: metadataPatch as Prisma.InputJsonValue }
-                    : {}),
-                  ...(!existing.isScheduleEnabled
-                    ? { isScheduleEnabled: true }
-                    : {}),
-                },
-                where: scopedWhere(organizationId, { id: existing.id }),
-              });
-            }
-            return;
-          }
-
-          await tx.workflow.create({
-            data: createData as Prisma.WorkflowCreateInput,
-          });
-        },
-        { isolationLevel: 'Serializable' },
-      );
-    } catch (error) {
-      const errorCode = (error as { code?: string }).code;
-      if (errorCode === 'P2034') {
-        this.logger?.debug(
-          'ensureDailyTrendsDigestWorkflow: serialization conflict - workflow already seeded by concurrent request',
-          { organizationId },
-        );
-      } else {
-        throw error;
-      }
-    }
-
-    await this.reconcileDesiredSystemWorkflowDuplicates(
-      organizationId,
-      createData.metadata,
-    );
-  }
-
-  private buildDailyTrendsDigestCreateData(
-    userId: string,
-    organizationId: string,
-  ): Record<string, unknown> {
-    return {
-      edges: DAILY_TRENDS_DIGEST_TEMPLATE.edges as Prisma.InputJsonValue,
-      executionCount: 0,
-      isDeleted: false,
-      isScheduleEnabled: true,
-      label: 'Daily Trends Digest',
-      metadata: this.buildSeededSystemWorkflowMetadata({
-        changeSummary: DAILY_TRENDS_DIGEST_TEMPLATE.changeSummary,
-        sourceIssue: 1011,
-        sourceTemplateId: DAILY_TRENDS_DIGEST_TEMPLATE_ID,
-        version: DAILY_TRENDS_DIGEST_TEMPLATE.version,
-      }),
-      nodes: DAILY_TRENDS_DIGEST_TEMPLATE.nodes as Prisma.InputJsonValue,
-      organizationId,
-      progress: 0,
-      schedule: DAILY_TRENDS_DIGEST_TEMPLATE.schedule ?? '0 7 * * *',
-      status: WorkflowStatus.ACTIVE,
-      steps: [],
-      timezone: DAILY_TRENDS_DIGEST_TEMPLATE.timezone ?? 'UTC',
-      userId,
-    };
   }
 
   /**

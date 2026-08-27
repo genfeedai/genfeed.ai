@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
@@ -90,6 +92,15 @@ describe('SelfHostedSeedService', () => {
       logger as unknown as LoggerService,
       {} as ModuleRef,
     );
+  });
+
+  it('does not auto-provision Daily Trends Digest on self-host bootstrap', () => {
+    const source = readFileSync(
+      resolve(__dirname, 'self-hosted-seed.service.ts'),
+      'utf8',
+    );
+
+    expect(source).not.toContain('ensureDailyTrendsDigestWorkflow');
   });
 
   it('backfills an active owner member when the default workspace already exists', async () => {

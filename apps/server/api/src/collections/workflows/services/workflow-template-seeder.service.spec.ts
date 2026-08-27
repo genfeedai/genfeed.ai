@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   SYSTEM_WORKFLOW_ACTION_DEFINITIONS,
   SYSTEM_WORKFLOW_ACTION_IDS,
@@ -236,40 +238,14 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
     expect(tx.workflow.create).not.toHaveBeenCalled();
   });
 
-  it('repairs legacy daily trends metadata while preserving the enabled repair', async () => {
-    prisma.workflow.findFirst.mockResolvedValue({
-      id: 'workflow-1',
-      isScheduleEnabled: false,
-      metadata: {
-        sourceTemplateId: 'daily-trends-digest',
-      },
-    });
+  it('does not auto-provision or unpause Daily Trends Digest clones', () => {
+    const source = readFileSync(
+      resolve(__dirname, 'workflow-template-seeder.service.ts'),
+      'utf8',
+    );
 
-    await service.ensureDailyTrendsDigestWorkflow('user-1', 'org-1');
-
-    expect(prisma.$transaction).not.toHaveBeenCalled();
-    expect(prisma.workflow.update).toHaveBeenCalledWith({
-      data: {
-        isScheduleEnabled: true,
-        metadata: expect.objectContaining({
-          sourceIssue: 1011,
-          sourceTemplateChangeSummary:
-            'Initial daily trend digest system workflow with trend assembly and owner email delivery.',
-          sourceTemplateId: 'daily-trends-digest',
-          sourceTemplateVersion: 1,
-          sourceType: 'seeded-template',
-          systemWorkflow: expect.objectContaining({
-            canonicalId: 'daily-trends-digest',
-            immutable: true,
-            owner: 'genfeed',
-            version: 1,
-            visibility: 'organization',
-          }),
-        }),
-      },
-      where: { id: 'workflow-1', isDeleted: false, organizationId: 'org-1' },
-    });
-    expect(tx.workflow.create).not.toHaveBeenCalled();
+    expect(source).not.toContain('ensureDailyTrendsDigestWorkflow');
+    expect(source).not.toContain('DAILY_TRENDS_DIGEST_TEMPLATE');
   });
 
   it('marks stale system workflow duplicates as upgrade available', async () => {
