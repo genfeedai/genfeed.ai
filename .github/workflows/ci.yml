@@ -234,9 +234,9 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=6144
         run: |
           if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
-            TURBO_SCM_BASE="$CI_BASE_SHA" bunx turbo run type-check --affected
+            TURBO_SCM_BASE="$CI_BASE_SHA" bunx turbo run type-check --affected --concurrency=1
           else
-            bun run type-check
+            bunx turbo run type-check --concurrency=1
           fi
       - name: Run executable contracts
         run: bun run test:executable-contracts

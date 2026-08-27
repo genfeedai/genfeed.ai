@@ -27,12 +27,12 @@ if (process.env.SKIP_DB_INTEGRATION === 'true') {
 }
 
 type PaymentSubscriptionsServiceMock = {
-  cancel: vi.Mock;
-  create: vi.Mock;
-  findByCustomer: vi.Mock;
-  findOne: vi.Mock;
-  update: vi.Mock;
-  updateStatus: vi.Mock;
+  cancel: ReturnType<typeof vi.fn>;
+  create: ReturnType<typeof vi.fn>;
+  findByCustomer: ReturnType<typeof vi.fn>;
+  findOne: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
+  updateStatus: ReturnType<typeof vi.fn>;
 };
 
 type CreditTransactionsServiceMock = {

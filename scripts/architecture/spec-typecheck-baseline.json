@@ -969,14 +969,6 @@
       "workspace": "api"
     },
     {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/api/src/collections/rss-sources/controllers/rss-sources.controller.spec.ts",
-      "fingerprint": "bffe4ed434fe7d8835d6",
-      "message": "Cannot find module '@server/collections/rss-sources/controllers/rss-sources.controller' or its corresponding type declarations.",
-      "workspace": "api"
-    },
-    {
       "code": 2353,
       "count": 1,
       "file": "apps/server/api/src/collections/schedules/controllers/schedules.controller.spec.ts",

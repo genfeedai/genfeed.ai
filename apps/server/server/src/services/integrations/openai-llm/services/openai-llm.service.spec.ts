@@ -33,9 +33,18 @@ const makeParams = (
   ...overrides,
 });
 
+type ChatCompletionMessageToolCall = {
+  function: {
+    arguments: string;
+    name: string;
+  };
+  id: string;
+  type: 'function';
+};
+
 const makeOpenAIResponse = (
   content: string | null = 'Hello back',
-  toolCalls?: OpenAI['Chat']['Completions']['ChatCompletionMessageToolCall'][],
+  toolCalls?: ChatCompletionMessageToolCall[],
 ) => ({
   choices: [
     {
@@ -50,9 +59,6 @@ const makeOpenAIResponse = (
   id: 'chatcmpl-test-001',
   usage: { completion_tokens: 10, prompt_tokens: 5, total_tokens: 15 },
 });
-
-// Avoid importing OpenAI types directly; use inline shape
-type OpenAI = typeof import('openai').default;
 
 describe('OpenAiLlmService', () => {
   let service: OpenAiLlmService;
