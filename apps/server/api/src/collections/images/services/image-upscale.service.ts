@@ -1,30 +1,12 @@
-/**
- * Images Transformations Controller
- * Handles all image transformation operations:
- * - Upscale: Enhance image resolution and quality
- */
-
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
+import type { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
-import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import {
-  ModelsGuard,
-  ValidateModel,
-} from '@api/helpers/guards/models/models.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
-import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
@@ -42,37 +24,18 @@ import {
   ModelCategory,
   TransformationCategory,
 } from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
-import { IngredientSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import {
-  Body,
-  Controller,
-  HttpException,
-  HttpStatus,
-  Param,
-  Post,
-  Req,
-  UseGuards,
-  UseInterceptors,
-} from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
-/**
- * ImagesTransformationsController
- * Handles image transformation operations
- * All transformations create new image ingredients with appropriate metadata
- */
-@AutoSwagger()
-@Controller('images')
-@UseInterceptors(CreditsInterceptor)
-export class ImagesTransformationsController {
-  private readonly constructorName: string = String(this.constructor.name);
+const LEGACY_CONTROLLER_NAME = 'ImagesTransformationsController';
 
+@Injectable()
+export class ImageUpscaleService {
   constructor(
     private readonly activitiesService: ActivitiesService,
     private readonly configService: ConfigService,
@@ -80,7 +43,6 @@ export class ImagesTransformationsController {
     private readonly imagesService: ImagesService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
-    readonly _modelsService: ModelsService,
     private readonly promptBuilderService: PromptBuilderService,
     private readonly replicateService: ReplicateService,
     private readonly routerService: RouterService,
@@ -88,22 +50,13 @@ export class ImagesTransformationsController {
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
-  @Post(':imageId/upscale')
-  @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  @Credits({
-    description: 'Image upscaling',
-    modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-    source: ActivitySource.IMAGE_UPSCALE,
-  })
-  @ValidateModel({ category: ModelCategory.IMAGE_EDIT })
   async upscaleImage(
-    @Req() request: Request,
-    @Param('imageId') imageId: string,
-    @CurrentUser() user: User,
-    @Body() imageEditDto: ImageEditDto,
-  ): Promise<JsonApiSingleResponse> {
-    let url = `${this.constructorName} upscaleImage`;
+    request: Request,
+    imageId: string,
+    user: User,
+    imageEditDto: ImageEditDto,
+  ): Promise<IngredientDocument> {
+    let url = `${LEGACY_CONTROLLER_NAME} upscaleImage`;
     this.loggerService.log(url, { body: imageEditDto, params: { imageId } });
 
     const parent = await this.imagesService.findOne(
@@ -132,7 +85,6 @@ export class ImagesTransformationsController {
 
     const imageUrl = `${this.configService.ingredientsEndpoint}/images/${imageId}`;
 
-    // Model selection: user-provided > system default
     const model =
       imageEditDto.model ||
       ((await this.routerService.getDefaultModel(
@@ -155,7 +107,6 @@ export class ImagesTransformationsController {
 
     const websocketUrl = `/images/${ingredientData.id}`;
 
-    // Create activity for image upscale start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
         brandId: parent.brandId ?? user.brandId,
@@ -174,7 +125,6 @@ export class ImagesTransformationsController {
       }),
     );
 
-    // Emit background-task-update WebSocket event for activities dropdown
     await this.websocketService.publishBackgroundTaskUpdate({
       activityId: activity.id.toString(),
       label: 'Image Upscale',
@@ -185,11 +135,9 @@ export class ImagesTransformationsController {
       userId: user.id,
     });
 
-    url = `${this.constructorName} upscaleImage`;
+    url = `${LEGACY_CONTROLLER_NAME} upscaleImage`;
 
     try {
-      // Build provider-specific input using universal prompt builder
-      // Note: Topaz Image Upscale doesn't use a prompt, but we pass empty string for consistency
       const promptResult = await this.promptBuilderService.buildPrompt(
         MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
         {
@@ -197,9 +145,8 @@ export class ImagesTransformationsController {
             ((request as unknown as { selectedModel?: { category?: string } })
               .selectedModel?.category as ModelCategory) ||
             ModelCategory.IMAGE_UPSCALE,
-          prompt: '', // Topaz Image Upscale doesn't use prompts
+          prompt: '',
           references: [imageUrl],
-          // Pass Topaz-specific fields through params
           ...({
             enhance_model: imageEditDto.enhanceModel || 'Low Resolution V2',
             face_enhancement: imageEditDto.faceEnhancement !== false,
@@ -250,6 +197,6 @@ export class ImagesTransformationsController {
       );
     }
 
-    return serializeSingle(request, IngredientSerializer, ingredientData);
+    return ingredientData;
   }
 }
