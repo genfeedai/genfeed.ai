@@ -2,7 +2,7 @@ import {
   type BotDocument,
   type BotTarget,
 } from '@server/collections/bots/schemas/bot.schema';
-import { BotsLivestreamDeliveryService } from '@api/collections/bots/services/bots-livestream-delivery.service';
+import { BotsLivestreamDeliveryService } from '@server/collections/bots/services/bots-livestream-delivery.service';
 import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
 import type { ConfigService } from '@libs/config/config.service';
 import axios from 'axios';

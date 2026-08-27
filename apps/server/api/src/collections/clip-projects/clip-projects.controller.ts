@@ -11,7 +11,7 @@ import { ClipGenerationService } from '@server/collections/clip-projects/service
 import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
 import { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
 import type { ResolvedClipReference } from '@server/collections/clip-projects/services/clip-reference-generation.util';
-import { isTranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
+import { isTranscriptSegment } from '@server/collections/clip-projects/services/clip-srt.util';
 import { HookClipApprovalService } from '@server/collections/clip-projects/services/hook-clip-approval.service';
 import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';

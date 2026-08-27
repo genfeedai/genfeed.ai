@@ -1,5 +1,5 @@
 import { hashToken } from '@server/auth/shared/pkce.util';
-import { generateClipSrt } from '@api/collections/clip-projects/services/clip-srt.util';
+import { generateClipSrt } from '@server/collections/clip-projects/services/clip-srt.util';
 import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
 import {

@@ -6,7 +6,7 @@
  * customized forks are never overwritten.
  */
 
-import type { FirstPartySkillDefinition } from '@api/collections/skills/catalog/first-party-skill.types';
+import type { FirstPartySkillDefinition } from '@server/collections/skills/catalog/first-party-skill.types';
 import { loadFirstPartySkillDefinitions } from '@server/collections/skills/catalog/first-party-skill-loader';
 import { isBuiltInSkillIdentity } from '@server/collections/skills/constants/skill-validation.constant';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
