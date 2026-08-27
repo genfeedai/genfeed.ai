@@ -234,7 +234,7 @@ export class AgentPublishToolHandler {
       };
     }
 
-    const policy = evaluateAgentAutoPublishPolicies({
+    const autoPublishPolicy = evaluateAgentAutoPublishPolicies({
       autonomyMode: ctx.autonomyMode,
       brandAutoPublishEnabled: ctx.confirmationOrigin === 'thread-ui-action',
       channels: createdPlatforms,
@@ -251,7 +251,7 @@ export class AgentPublishToolHandler {
         settings: {
           ...(targetsWithCaptions[order]?.settings ?? {}),
           ...(postingSetId ? { postingSetId } : {}),
-          autoPublishPolicyId: policy.policyId,
+          autoPublishPolicyId: autoPublishPolicy.policyId,
         },
         timezone: targetsWithCaptions[order]?.timezone ?? timezone,
         visibility: targetsWithCaptions[order]?.visibility ?? visibility,
@@ -271,14 +271,15 @@ export class AgentPublishToolHandler {
       visibility,
     });
     const mediaKind = resolvePublishMediaKind(ingredient.category);
-    const policy = await this.resolvePublishPolicy({
+    const publishPolicy = await this.resolvePublishPolicy({
       channelAllowsAutoPublish: resolvedTargets.targets.every((target) =>
         this.isCredentialConnected(credentialsById.get(target.credentialId)),
       ),
       ctx,
     });
     const shouldPublishNow =
-      !scheduledAt && policy.result.decision === AgentPublishDecision.PERMITTED;
+      !scheduledAt &&
+      publishPolicy.result.decision === AgentPublishDecision.PERMITTED;
     const release = await this.postGroupsService.create(
       ctx.organizationId,
       ctx.userId,
@@ -310,7 +311,7 @@ export class AgentPublishToolHandler {
         agentRunId: ctx.runId,
         agentStrategyId: ctx.strategyId,
         agentThreadId: ctx.validatedScope?.threadId,
-        autoPublishPolicyId: policy.policyId,
+        autoPublishPolicyId: autoPublishPolicy.policyId,
         ...(postingSetId ? { postingSetId } : {}),
         source: 'agent',
         sourceActionId,
@@ -321,7 +322,7 @@ export class AgentPublishToolHandler {
         typeof ingredient.brandId === 'string' ? ingredient.brandId : null,
       channels: createdPlatforms,
       ctx,
-      policy,
+      policy: publishPolicy,
       postGroupId: release.id,
     });
     const canonicalRelease = shouldPublishNow
@@ -336,17 +337,18 @@ export class AgentPublishToolHandler {
       String(target.id),
     );
     const requiresApproval =
-      !scheduledAt && policy.result.decision === AgentPublishDecision.DENIED;
+      !scheduledAt &&
+      publishPolicy.result.decision === AgentPublishDecision.DENIED;
     const description = scheduledAt
       ? `Scheduled ${postIds.length} post${postIds.length === 1 ? '' : 's'} for ${createdPlatforms.join(', ')}.`
       : requiresApproval
-        ? policy.result.reason
+        ? publishPolicy.result.reason
         : `Queued ${postIds.length} post${postIds.length === 1 ? '' : 's'} for publishing on ${createdPlatforms.join(', ')}.`;
 
     return {
       creditsUsed: 0,
       data: {
-        autoPublishPolicyId: policy.policyId,
+        autoPublishPolicyId: autoPublishPolicy.policyId,
         contentId,
         createdPlatforms,
         missingPlatforms,
