@@ -11,13 +11,17 @@ import * as ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const EXECUTOR_PATH = resolve(HERE, 'agent-tool-executor.service.ts');
-const INSTAGRAM_HANDLER_PATH = resolve(
+const SERVER_TOOLS = resolve(
   HERE,
+  '../../../../../server/src/services/agent-orchestrator/tools',
+);
+const EXECUTOR_PATH = resolve(SERVER_TOOLS, 'agent-tool-executor.service.ts');
+const INSTAGRAM_HANDLER_PATH = resolve(
+  SERVER_TOOLS,
   'agent-instagram-inspiration-tool-handler.service.ts',
 );
 const X_ACTIONS_HANDLER_PATH = resolve(
-  HERE,
+  SERVER_TOOLS,
   'agent-x-actions-tool-handler.service.ts',
 );
 
