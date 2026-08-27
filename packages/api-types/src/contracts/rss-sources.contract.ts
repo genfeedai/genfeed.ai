@@ -1,7 +1,4 @@
-import {
-  RssApprovalMode,
-  RssImportPolicy,
-} from '@genfeedai/enums';
+import { RssApprovalMode, RssImportPolicy } from '@genfeedai/enums';
 import { z } from 'zod';
 
 export const rssTargetChannelSchema = z.object({
@@ -54,7 +51,11 @@ function firstTag(xml: string, tag: string): string | null {
   return match?.[1] ? decodeXmlEntities(match[1]) : null;
 }
 
-function firstAttribute(xml: string, tag: string, attribute: string): string | null {
+function firstAttribute(
+  xml: string,
+  tag: string,
+  attribute: string,
+): string | null {
   const match = xml.match(
     new RegExp(`<${tag}[^>]*\\s${attribute}=["']([^"']+)["'][^>]*\\/?>`, 'i'),
   );
@@ -63,7 +64,10 @@ function firstAttribute(xml: string, tag: string, attribute: string): string | n
 
 function collectBlocks(xml: string, tag: string): string[] {
   const blocks: string[] = [];
-  const pattern = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, 'gi');
+  const pattern = new RegExp(
+    `<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`,
+    'gi',
+  );
   let match = pattern.exec(xml);
   while (match) {
     blocks.push(match[1] ?? '');
@@ -107,8 +111,7 @@ function parseRss20Items(xml: string): ParsedRssFeedItem[] {
 
 function parseAtomItems(xml: string): ParsedRssFeedItem[] {
   return collectBlocks(xml, 'entry').flatMap((block) => {
-    const url =
-      firstAttribute(block, 'link', 'href') ?? firstTag(block, 'id');
+    const url = firstAttribute(block, 'link', 'href') ?? firstTag(block, 'id');
     const title = firstTag(block, 'title');
     if (!url || !title) {
       return [];
@@ -139,6 +142,9 @@ export function parseRssFeed(xml: string): ParsedRssFeedItem[] {
   return parseRss20Items(xml);
 }
 
-export function rssItemDedupeKey(sourceId: string, item: ParsedRssFeedItem): string {
+export function rssItemDedupeKey(
+  sourceId: string,
+  item: ParsedRssFeedItem,
+): string {
   return `${sourceId}:${item.guid}`;
 }

@@ -1,0 +1,338 @@
+import { runImageGenerationBrief } from '@api/services/generation-brief/run-image-generation-brief';
+import type { GenerationFidelityMode } from '@api-types/contracts/generation-brief.contract';
+import {
+  FLUX_SCHNELL_IMAGE_COMPILER_ID,
+  FLUX_SCHNELL_IMAGE_COMPILER_VERSION,
+} from '@api-types/contracts/generation-brief-compiler.contract';
+import {
+  FLUX_SCHNELL_CAPABILITY_PROFILE_ID,
+  FLUX_SCHNELL_CAPABILITY_PROFILE_VERSION,
+  FLUX_SCHNELL_MODEL_KEY,
+} from '@api-types/contracts/generation-capability-profile.contract';
+
+/**
+ * Public synthetic brand kit for #3470. Not a private harness pack.
+ */
+export const SCHNELL_ABLATION_BRAND_KIT =
+  'Aurora Bottle Co visual identity: matte obsidian glass, brushed gold foil cap, warm cream linen backdrop, soft editorial product lighting, generous negative space';
+
+export const SCHNELL_ABLATION_BRAND_TOKENS = [
+  'obsidian',
+  'gold foil',
+  'cream linen',
+  'editorial',
+] as const;
+
+export const SCHNELL_ABLATION_MODEL_KEY = FLUX_SCHNELL_MODEL_KEY;
+export const SCHNELL_GUIDED_LIFT_THRESHOLD = 15;
+export const SCHNELL_UNBRANDED_REGRESSION_LIMIT = 5;
+
+export type SchnellAblationCohort = 'guided' | 'unbranded';
+export type SchnellAblationArm = 'legacy' | 'compiled';
+
+export interface SchnellAblationScenario {
+  cohort: SchnellAblationCohort;
+  fidelityMode: GenerationFidelityMode;
+  id: string;
+  objective: string;
+  seed: number;
+}
+
+export interface SchnellAblationArmResult {
+  arm: SchnellAblationArm;
+  compilerId: string | null;
+  compilerVersion: number | null;
+  contractPassed: boolean;
+  outputUrl?: string;
+  profileId: string | null;
+  profileVersion: number | null;
+  prompt: string;
+  promptEnhancementEnabled: false;
+  visualPassed?: boolean;
+}
+
+export interface SchnellAblationScenarioResult {
+  arms: Record<SchnellAblationArm, SchnellAblationArmResult>;
+  cohort: SchnellAblationCohort;
+  id: string;
+  objective: string;
+  seed: number;
+}
+
+export interface SchnellAblationSummary {
+  compilerId: string;
+  compilerVersion: number;
+  guidedLegacyPassRate: number;
+  guidedLiftPercentagePoints: number;
+  guidedPassRate: number;
+  meetsGuidedLift: boolean;
+  meetsUnbrandedRegression: boolean;
+  modelKey: string;
+  profileId: string;
+  profileVersion: number;
+  promptEnhancementEnabled: false;
+  scenarios: SchnellAblationScenarioResult[];
+  unbrandedLegacyPassRate: number;
+  unbrandedPassRate: number;
+  unbrandedRegressionPercentagePoints: number;
+}
+
+export const SCHNELL_ABLATION_SCENARIOS: readonly SchnellAblationScenario[] = [
+  {
+    cohort: 'guided',
+    fidelityMode: 'guided',
+    id: 'schnell-guided-bottle',
+    objective: 'a launch still of a bottle on marble',
+    seed: 16501,
+  },
+  {
+    cohort: 'guided',
+    fidelityMode: 'guided',
+    id: 'schnell-guided-portrait',
+    objective: 'an editorial portrait of a founder',
+    seed: 16502,
+  },
+  {
+    cohort: 'guided',
+    fidelityMode: 'guided',
+    id: 'schnell-guided-poster',
+    objective: 'a poster that reads GENFEED',
+    seed: 16503,
+  },
+  {
+    cohort: 'guided',
+    fidelityMode: 'guided',
+    id: 'schnell-guided-lookbook',
+    objective: 'a fashion lookbook still',
+    seed: 16504,
+  },
+  {
+    cohort: 'guided',
+    fidelityMode: 'guided',
+    id: 'schnell-guided-interior',
+    objective: 'a soft daylight interior with a product on a table',
+    seed: 16505,
+  },
+  {
+    cohort: 'guided',
+    fidelityMode: 'guided',
+    id: 'schnell-guided-market',
+    objective: 'a cinematic night market stall',
+    seed: 16506,
+  },
+  {
+    cohort: 'unbranded',
+    fidelityMode: 'off',
+    id: 'schnell-unbranded-sunset',
+    objective: 'a sunset over the ocean',
+    seed: 16507,
+  },
+  {
+    cohort: 'unbranded',
+    fidelityMode: 'off',
+    id: 'schnell-unbranded-cup',
+    objective: 'a ceramic cup on linen',
+    seed: 16508,
+  },
+  {
+    cohort: 'unbranded',
+    fidelityMode: 'off',
+    id: 'schnell-unbranded-fox',
+    objective: 'a flat vector icon of a fox',
+    seed: 16509,
+  },
+  {
+    cohort: 'unbranded',
+    fidelityMode: 'off',
+    id: 'schnell-unbranded-hero',
+    objective: 'a product hero on black',
+    seed: 16510,
+  },
+  {
+    cohort: 'unbranded',
+    fidelityMode: 'off',
+    id: 'schnell-unbranded-interior',
+    objective: 'a soft daylight interior',
+    seed: 16511,
+  },
+  {
+    cohort: 'unbranded',
+    fidelityMode: 'off',
+    id: 'schnell-unbranded-market',
+    objective: 'a cinematic night market',
+    seed: 16512,
+  },
+];
+
+export function countBrandTokens(prompt: string): number {
+  const haystack = prompt.toLowerCase();
+  return SCHNELL_ABLATION_BRAND_TOKENS.filter((token) =>
+    haystack.includes(token),
+  ).length;
+}
+
+export function scoreSchnellContract(input: {
+  cohort: SchnellAblationCohort;
+  objective: string;
+  prompt: string;
+}): boolean {
+  const tokenCount = countBrandTokens(input.prompt);
+  const hasObjective = input.prompt
+    .toLowerCase()
+    .includes(input.objective.toLowerCase());
+
+  if (input.cohort === 'guided') {
+    return hasObjective && tokenCount >= 2;
+  }
+
+  return hasObjective && tokenCount === 0;
+}
+
+export function compileSchnellAblationArm(
+  scenario: SchnellAblationScenario,
+  arm: SchnellAblationArm,
+): SchnellAblationArmResult {
+  if (arm === 'legacy') {
+    return {
+      arm,
+      compilerId: null,
+      compilerVersion: null,
+      contractPassed: scoreSchnellContract({
+        cohort: scenario.cohort,
+        objective: scenario.objective,
+        prompt: scenario.objective,
+      }),
+      profileId: null,
+      profileVersion: null,
+      prompt: scenario.objective,
+      promptEnhancementEnabled: false,
+    };
+  }
+
+  const compiled = runImageGenerationBrief({
+    fidelityMode: scenario.fidelityMode,
+    height: 1024,
+    model: SCHNELL_ABLATION_MODEL_KEY,
+    objective: scenario.objective,
+    seed: scenario.seed,
+    surface: 'studio',
+    visualDirection:
+      scenario.cohort === 'guided' ? SCHNELL_ABLATION_BRAND_KIT : undefined,
+    width: 1024,
+  });
+  const prompt =
+    typeof compiled.dispatch?.prompt === 'string'
+      ? compiled.dispatch.prompt
+      : '';
+
+  return {
+    arm,
+    compilerId: compiled.evidence.compilerId,
+    compilerVersion: compiled.evidence.compilerVersion,
+    contractPassed: scoreSchnellContract({
+      cohort: scenario.cohort,
+      objective: scenario.objective,
+      prompt,
+    }),
+    profileId: compiled.evidence.profileId,
+    profileVersion: compiled.evidence.profileVersion,
+    prompt,
+    promptEnhancementEnabled: false,
+  };
+}
+
+export function compileSchnellAblationScenario(
+  scenario: SchnellAblationScenario,
+): SchnellAblationScenarioResult {
+  return {
+    arms: {
+      compiled: compileSchnellAblationArm(scenario, 'compiled'),
+      legacy: compileSchnellAblationArm(scenario, 'legacy'),
+    },
+    cohort: scenario.cohort,
+    id: scenario.id,
+    objective: scenario.objective,
+    seed: scenario.seed,
+  };
+}
+
+function passRate(
+  results: readonly SchnellAblationScenarioResult[],
+  cohort: SchnellAblationCohort,
+  arm: SchnellAblationArm,
+  field: 'contractPassed' | 'visualPassed',
+): number {
+  const rows = results.filter((result) => result.cohort === cohort);
+  if (rows.length === 0) {
+    return 0;
+  }
+  const passed = rows.filter((result) => {
+    if (field === 'contractPassed') {
+      return result.arms[arm].contractPassed;
+    }
+    const visual = result.arms[arm].visualPassed;
+    return visual === undefined
+      ? result.arms[arm].contractPassed
+      : visual === true;
+  }).length;
+  return (passed / rows.length) * 100;
+}
+
+export function summarizeSchnellAblation(
+  scenarios: readonly SchnellAblationScenarioResult[],
+): SchnellAblationSummary {
+  const guidedPassRate = passRate(
+    scenarios,
+    'guided',
+    'compiled',
+    'visualPassed',
+  );
+  const guidedLegacyPassRate = passRate(
+    scenarios,
+    'guided',
+    'legacy',
+    'visualPassed',
+  );
+  const unbrandedPassRate = passRate(
+    scenarios,
+    'unbranded',
+    'compiled',
+    'visualPassed',
+  );
+  const unbrandedLegacyPassRate = passRate(
+    scenarios,
+    'unbranded',
+    'legacy',
+    'visualPassed',
+  );
+  const guidedLiftPercentagePoints = guidedPassRate - guidedLegacyPassRate;
+  const unbrandedRegressionPercentagePoints =
+    unbrandedPassRate - unbrandedLegacyPassRate;
+
+  return {
+    compilerId: FLUX_SCHNELL_IMAGE_COMPILER_ID,
+    compilerVersion: FLUX_SCHNELL_IMAGE_COMPILER_VERSION,
+    guidedLegacyPassRate,
+    guidedLiftPercentagePoints,
+    guidedPassRate,
+    meetsGuidedLift:
+      guidedLiftPercentagePoints >= SCHNELL_GUIDED_LIFT_THRESHOLD,
+    meetsUnbrandedRegression:
+      unbrandedRegressionPercentagePoints >=
+      -SCHNELL_UNBRANDED_REGRESSION_LIMIT,
+    modelKey: SCHNELL_ABLATION_MODEL_KEY,
+    profileId: FLUX_SCHNELL_CAPABILITY_PROFILE_ID,
+    profileVersion: FLUX_SCHNELL_CAPABILITY_PROFILE_VERSION,
+    promptEnhancementEnabled: false,
+    scenarios: [...scenarios],
+    unbrandedLegacyPassRate,
+    unbrandedPassRate,
+    unbrandedRegressionPercentagePoints,
+  };
+}
+
+export function compileSchnellAblationCorpus(): SchnellAblationSummary {
+  return summarizeSchnellAblation(
+    SCHNELL_ABLATION_SCENARIOS.map(compileSchnellAblationScenario),
+  );
+}
