@@ -1,8 +1,3 @@
-import {
-  joinGenerationBriefPromptParts,
-  recordOmittedGenerationBriefSignal,
-} from '@api/services/generation-brief/compile-image-generation-brief.util';
-import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import type { RemainingVideoGenerationBriefFamily } from '@api/services/generation-brief/remaining-video-generation-brief-families';
 import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
 import { generationFidelityPolicies } from '@api-types/contracts/generation-brief.contract';
@@ -17,6 +12,11 @@ import {
 } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import type { RemainingVideoCapabilityProfile } from '@api-types/contracts/video-generation-capability-profile-remaining.contract';
 import { normalizeAspectRatioForModel } from '@genfeedai/helpers';
+import {
+  joinGenerationBriefPromptParts,
+  recordOmittedGenerationBriefSignal,
+} from '@server/services/generation-brief/compile-image-generation-brief.util';
+import { GenerationBriefCompileError } from '@server/services/generation-brief/generation-brief-compile.error';
 
 export interface CompileRemainingVideoGenerationBriefInput {
   brief: VideoGenerationBrief;
@@ -29,7 +29,9 @@ function profileForModelKey(
   family: RemainingVideoGenerationBriefFamily,
   modelKey: string,
 ): RemainingVideoCapabilityProfile | undefined {
-  return family.profiles.find((profile) => profile.modelKey === modelKey);
+  return family.profiles.find(
+    (profile: RemainingVideoCapabilityProfile) => profile.modelKey === modelKey,
+  );
 }
 
 function resolveDuration(

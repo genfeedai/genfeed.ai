@@ -1,4 +1,4 @@
-import type { AgentPublishDecision } from '@genfeedai/enums';
+import { parseAgentPublishDecision } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { AgentPublishAuditsQueryDto } from '@server/collections/agent-publish-audits/dto/agent-publish-audits-query.dto';
@@ -17,7 +17,7 @@ type StoredAgentPublishAuditRow = {
   brandId: string | null;
   channel: string | null;
   createdAt: Date;
-  decision: AgentPublishDecision;
+  decision: string;
   id: string;
   isDeleted: boolean;
   organizationId: string;
@@ -98,7 +98,7 @@ export class AgentPublishAuditsService {
       brandId: row.brandId,
       channel: row.channel,
       createdAt: row.createdAt,
-      decision: row.decision,
+      decision: parseAgentPublishDecision(row.decision),
       id: row.id,
       isDeleted: row.isDeleted,
       organizationId: row.organizationId,

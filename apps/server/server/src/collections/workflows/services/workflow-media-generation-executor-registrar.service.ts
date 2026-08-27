@@ -1,13 +1,3 @@
-import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
-import {
-  runImageGenerationBrief,
-  runVideoGenerationBrief,
-  toRedactedGenerationBriefProviderData,
-  toRedactedVideoGenerationBriefProviderData,
-} from '@api/services/generation-brief';
-import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   IngredientCategory,
@@ -26,8 +16,18 @@ import {
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
+import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
+import {
+  runImageGenerationBrief,
+  runVideoGenerationBrief,
+  toRedactedGenerationBriefProviderData,
+  toRedactedVideoGenerationBriefProviderData,
+} from '@server/services/generation-brief';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
+import { HeyGenService } from '@server/services/integrations/heygen/services/heygen.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
 
 export class WorkflowMediaGenerationExecutorRegistrarService {
   constructor(

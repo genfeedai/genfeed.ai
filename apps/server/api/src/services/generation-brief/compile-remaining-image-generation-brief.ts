@@ -1,14 +1,3 @@
-import {
-  assertRequiredImageGenerationBriefReference,
-  buildImageGenerationBriefAppliedFields,
-  buildImageGenerationBriefEvidence,
-  buildImageGenerationBriefPrompt,
-  recordExcessImageGenerationBriefReferences,
-  recordUnsupportedImageGenerationBriefReferences,
-  resolveImageGenerationBriefAspectRatio,
-  selectImageGenerationBriefReferences,
-} from '@api/services/generation-brief/compile-image-generation-brief.util';
-import { GenerationBriefCompileError } from '@api/services/generation-brief/generation-brief-compile.error';
 import type {
   RemainingImageFamilyDispatchSpec,
   RemainingImageGenerationBriefFamily,
@@ -22,6 +11,17 @@ import type {
 } from '@api-types/contracts/generation-brief-compiler.contract';
 import { remainingImageDispatchSchema } from '@api-types/contracts/generation-brief-compiler.contract';
 import type { RemainingImageCapabilityProfile } from '@api-types/contracts/generation-capability-profile-remaining.contract';
+import {
+  assertRequiredImageGenerationBriefReference,
+  buildImageGenerationBriefAppliedFields,
+  buildImageGenerationBriefEvidence,
+  buildImageGenerationBriefPrompt,
+  recordExcessImageGenerationBriefReferences,
+  recordUnsupportedImageGenerationBriefReferences,
+  resolveImageGenerationBriefAspectRatio,
+  selectImageGenerationBriefReferences,
+} from '@server/services/generation-brief/compile-image-generation-brief.util';
+import { GenerationBriefCompileError } from '@server/services/generation-brief/generation-brief-compile.error';
 
 export interface CompileRemainingImageGenerationBriefInput {
   brief: ImageGenerationBrief;
@@ -40,7 +40,9 @@ function profileForModelKey(
   family: RemainingImageGenerationBriefFamily,
   modelKey: string,
 ): RemainingImageCapabilityProfile | undefined {
-  return family.profiles.find((profile) => profile.modelKey === modelKey);
+  return family.profiles.find(
+    (profile: RemainingImageCapabilityProfile) => profile.modelKey === modelKey,
+  );
 }
 
 function assignReferenceField(

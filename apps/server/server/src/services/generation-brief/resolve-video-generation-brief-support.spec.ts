@@ -1,5 +1,3 @@
-import { REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-video-generation-brief-families';
-import { resolveVideoGenerationBriefSupport } from '@api/services/generation-brief/resolve-video-generation-brief-support';
 import {
   MINIMAX_H3_COMPILER_ID,
   MINIMAX_H3_COMPILER_VERSION,
@@ -14,6 +12,8 @@ import {
 } from '@api-types/contracts/video-generation-capability-profile.contract';
 import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
+import { REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES } from '@server/services/generation-brief/remaining-video-generation-brief-families';
+import { resolveVideoGenerationBriefSupport } from '@server/services/generation-brief/resolve-video-generation-brief-support';
 import { describe, expect, it } from 'vitest';
 
 const VIDEO_MODEL_KEYS = Object.entries(MODEL_OUTPUT_CAPABILITIES)

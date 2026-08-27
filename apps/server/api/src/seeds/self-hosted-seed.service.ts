@@ -7,7 +7,6 @@
  * for workspaces created before Member became the authorization source of truth.
  */
 
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   LOWEST_COST_AGENT_CHAT_MODEL_KEY,
@@ -18,6 +17,7 @@ import { MemberRole } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 @Injectable()
 export class SelfHostedSeedService implements OnApplicationBootstrap {

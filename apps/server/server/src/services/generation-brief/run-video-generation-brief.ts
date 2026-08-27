@@ -1,7 +1,3 @@
-import { assembleVideoGenerationBrief } from '@api/services/generation-brief/assemble-video-generation-brief';
-import { assertRedactedVideoGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
-import { resolveVideoGenerationBriefSupport } from '@api/services/generation-brief/resolve-video-generation-brief-support';
-import { resolveVideoGenerationFidelityMode } from '@api/services/generation-brief/resolve-video-generation-fidelity-mode';
 import { getVideoGenerationBriefRegistryEntry } from '@api/services/generation-brief/video-generation-brief-registry';
 import type {
   GenerationBriefReference,
@@ -13,6 +9,10 @@ import { buildGenerationBriefCompileSource } from '@api-types/contracts/generati
 import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import { buildVideoGenerationBriefExemptionSource } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import { ServiceUnavailableException } from '@nestjs/common';
+import { assembleVideoGenerationBrief } from '@server/services/generation-brief/assemble-video-generation-brief';
+import { assertRedactedVideoGenerationBriefEvidence } from '@server/services/generation-brief/redact-generation-brief-evidence';
+import { resolveVideoGenerationBriefSupport } from '@server/services/generation-brief/resolve-video-generation-brief-support';
+import { resolveVideoGenerationFidelityMode } from '@server/services/generation-brief/resolve-video-generation-fidelity-mode';
 
 export interface RunVideoGenerationBriefInput {
   audioDirection?: string;

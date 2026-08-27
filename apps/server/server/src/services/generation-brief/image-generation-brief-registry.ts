@@ -7,23 +7,7 @@
  * key that is missing from both.
  */
 
-import { compileFlux11ProGenerationBrief } from '@api/services/generation-brief/compile-flux-1-1-pro-generation-brief';
-import { compileFlux2DevGenerationBrief } from '@api/services/generation-brief/compile-flux-2-dev-generation-brief';
-import { compileFlux2FlexGenerationBrief } from '@api/services/generation-brief/compile-flux-2-flex-generation-brief';
-import { compileFlux2ProGenerationBrief } from '@api/services/generation-brief/compile-flux-2-pro-generation-brief';
-import { compileFluxKontextProGenerationBrief } from '@api/services/generation-brief/compile-flux-kontext-pro-generation-brief';
-import { compileFluxSchnellGenerationBrief } from '@api/services/generation-brief/compile-flux-schnell-generation-brief';
-import { compileIdeogramCharacterGenerationBrief } from '@api/services/generation-brief/compile-ideogram-character-generation-brief';
-import { compileIdeogramV3GenerationBrief } from '@api/services/generation-brief/compile-ideogram-v3-generation-brief';
-import { compileImagenGenerationBrief } from '@api/services/generation-brief/compile-imagen-generation-brief';
-import { compileNanoBanana2GenerationBrief } from '@api/services/generation-brief/compile-nano-banana-2-generation-brief';
-import { compileNanoBananaGenerationBrief } from '@api/services/generation-brief/compile-nano-banana-generation-brief';
-import { compileQwenImageGenerationBrief } from '@api/services/generation-brief/compile-qwen-image-generation-brief';
 import { compileRemainingImageGenerationBrief } from '@api/services/generation-brief/compile-remaining-image-generation-brief';
-import { compileRunwayGen4ImageTurboGenerationBrief } from '@api/services/generation-brief/compile-runwayml-gen4-image-turbo-generation-brief';
-import { compileSeedream45GenerationBrief } from '@api/services/generation-brief/compile-seedream-4-5-generation-brief';
-import { compileSeedream4GenerationBrief } from '@api/services/generation-brief/compile-seedream-4-generation-brief';
-import { compileSeedream5ProGenerationBrief } from '@api/services/generation-brief/compile-seedream-5-pro-generation-brief';
 import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-image-generation-brief-families';
 import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
 import type {
@@ -137,6 +121,22 @@ import {
   SEEDREAM_5_PRO_MODEL_KEY,
 } from '@api-types/contracts/generation-capability-profile.contract';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import { compileFlux11ProGenerationBrief } from '@server/services/generation-brief/compile-flux-1-1-pro-generation-brief';
+import { compileFlux2DevGenerationBrief } from '@server/services/generation-brief/compile-flux-2-dev-generation-brief';
+import { compileFlux2FlexGenerationBrief } from '@server/services/generation-brief/compile-flux-2-flex-generation-brief';
+import { compileFlux2ProGenerationBrief } from '@server/services/generation-brief/compile-flux-2-pro-generation-brief';
+import { compileFluxKontextProGenerationBrief } from '@server/services/generation-brief/compile-flux-kontext-pro-generation-brief';
+import { compileFluxSchnellGenerationBrief } from '@server/services/generation-brief/compile-flux-schnell-generation-brief';
+import { compileIdeogramCharacterGenerationBrief } from '@server/services/generation-brief/compile-ideogram-character-generation-brief';
+import { compileIdeogramV3GenerationBrief } from '@server/services/generation-brief/compile-ideogram-v3-generation-brief';
+import { compileImagenGenerationBrief } from '@server/services/generation-brief/compile-imagen-generation-brief';
+import { compileNanoBanana2GenerationBrief } from '@server/services/generation-brief/compile-nano-banana-2-generation-brief';
+import { compileNanoBananaGenerationBrief } from '@server/services/generation-brief/compile-nano-banana-generation-brief';
+import { compileQwenImageGenerationBrief } from '@server/services/generation-brief/compile-qwen-image-generation-brief';
+import { compileRunwayGen4ImageTurboGenerationBrief } from '@server/services/generation-brief/compile-runwayml-gen4-image-turbo-generation-brief';
+import { compileSeedream45GenerationBrief } from '@server/services/generation-brief/compile-seedream-4-5-generation-brief';
+import { compileSeedream4GenerationBrief } from '@server/services/generation-brief/compile-seedream-4-generation-brief';
+import { compileSeedream5ProGenerationBrief } from '@server/services/generation-brief/compile-seedream-5-pro-generation-brief';
 
 /** Structural dispatch payload — each family's compiler returns its own
  * strict, provider-shaped dispatch type; this widens it for registry-level

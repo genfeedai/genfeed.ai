@@ -8,7 +8,12 @@ import {
   rssTargetChannelSchema,
   updateRssSourceInputSchema,
 } from '@api-types/contracts/rss-sources.contract';
-import { CredentialPlatform, parsePlatform } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  parsePlatform,
+  RssApprovalMode,
+  RssImportPolicy,
+} from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
 import type { ZodError, ZodType } from 'zod';
 

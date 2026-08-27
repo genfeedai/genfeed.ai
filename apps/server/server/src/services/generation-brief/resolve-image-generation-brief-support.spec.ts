@@ -1,5 +1,3 @@
-import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-image-generation-brief-families';
-import { resolveImageGenerationBriefSupport } from '@api/services/generation-brief/resolve-image-generation-brief-support';
 import type { GenerationBriefExemptionReason } from '@api-types/contracts/generation-brief-compiler.contract';
 import {
   FLUX_1_1_PRO_IMAGE_COMPILER_ID,
@@ -109,6 +107,8 @@ import {
 } from '@api-types/contracts/generation-capability-profile.contract';
 import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
+import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@server/services/generation-brief/remaining-image-generation-brief-families';
+import { resolveImageGenerationBriefSupport } from '@server/services/generation-brief/resolve-image-generation-brief-support';
 import { describe, expect, it } from 'vitest';
 
 const IMAGE_MODEL_KEYS = Object.entries(MODEL_OUTPUT_CAPABILITIES)

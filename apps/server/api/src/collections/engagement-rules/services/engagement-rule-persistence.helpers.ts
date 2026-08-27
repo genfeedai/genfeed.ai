@@ -10,6 +10,7 @@ import {
 } from '@api-types/contracts/engagement-rules.contract';
 import {
   EngagementMetric,
+  EngagementRuleAction,
   EngagementRuleMode,
   EngagementRuleState,
 } from '@genfeedai/enums';

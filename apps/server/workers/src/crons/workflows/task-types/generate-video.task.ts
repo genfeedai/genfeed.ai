@@ -1,8 +1,3 @@
-import { ManagedInferenceProvider } from '@server/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
-import { ManagedInferenceClientService } from '@server/endpoints/v1/managed-inference/managed-inference-client.service';
-import { ByokService } from '@server/services/byok/byok.service';
-import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
-import { runVideoGenerationBrief } from '@server/services/generation-brief';
 import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import {
   ByokProvider,
@@ -11,6 +6,11 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { ManagedInferenceProvider } from '@server/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
+import { ManagedInferenceClientService } from '@server/endpoints/v1/managed-inference/managed-inference-client.service';
+import { ByokService } from '@server/services/byok/byok.service';
+import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
+import { runVideoGenerationBrief } from '@server/services/generation-brief';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
 import { FleetService } from '@server/services/integrations/fleet/fleet.service';
 import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
@@ -136,7 +136,8 @@ export class GenerateVideoTask {
       // An exempt model has no compiler, so it keeps the operator's raw prompt.
       const compiledConfig: GenerateVideoConfig = {
         ...config,
-        prompt: compiled.dispatch?.prompt ?? config.prompt,
+        prompt:
+          (compiled.dispatch?.prompt as string | undefined) ?? config.prompt,
       };
 
       let generatedUrl: string;

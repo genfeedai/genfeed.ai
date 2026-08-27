@@ -1,6 +1,10 @@
-import { SYSTEM_WORKFLOW_ACTION_DEFINITIONS } from '@api/collections/workflows/services/system-workflow-provenance.service';
-import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
-import { areWorkflowMetadataValuesEqual } from '@api/collections/workflows/services/workflow-template-seeder-metadata.util';
+import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import { areWorkflowMetadataValuesEqual } from '@server/collections/workflows/services/workflow-template-seeder-metadata.util';
 import {
   buildSystemWorkflowMetadata,
   buildSystemWorkflowUpgradeMetadata,
@@ -12,24 +16,20 @@ import {
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
   type SystemWorkflowMetadata,
-} from '@api/collections/workflows/system-workflow.contract';
-import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/ad-automation-workflows.template';
-import { AGENT_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/agent-autopilot-workflows.template';
-import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
-import { CAMPAIGN_ORCHESTRATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/campaign-orchestration-workflows.template';
-import { CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-loop-autopilot-workflows.template';
-import { CONTENT_PRODUCTION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-production-workflows.template';
-import { LIVESTREAM_BOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/livestream-bot-workflows.template';
-import { OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/outreach-campaign-dispatch-workflows.template';
-import { REPLY_POLLING_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/reply-polling-workflows.template';
-import { TREND_NOTIFICATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/trend-notification-workflows.template';
-import { type WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+} from '@server/collections/workflows/system-workflow.contract';
+import { SYSTEM_WORKFLOW_ACTION_DEFINITIONS } from '@server/collections/workflows/system-workflow-provenance.service';
+import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/ad-automation-workflows.template';
+import { AGENT_AUTOPILOT_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/agent-autopilot-workflows.template';
+import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/analytics-sync-workflows.template';
+import { CAMPAIGN_ORCHESTRATION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/campaign-orchestration-workflows.template';
+import { CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/content-loop-autopilot-workflows.template';
+import { CONTENT_PRODUCTION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/content-production-workflows.template';
+import { LIVESTREAM_BOT_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/livestream-bot-workflows.template';
+import { OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/outreach-campaign-dispatch-workflows.template';
+import { REPLY_POLLING_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/reply-polling-workflows.template';
+import { TREND_NOTIFICATION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/trend-notification-workflows.template';
+import { type WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const WORKFLOW_SCHEDULER_SYNC_SELECT = {
   id: true,
