@@ -1,7 +1,10 @@
 import { temporal } from 'zundo';
 import type { StateCreator } from 'zustand';
 import { create } from 'zustand';
-import { configureEdgeStyleMirror } from '../edgeStyleMirror';
+import {
+  configureEdgeStyleMirror,
+  getEdgeStylePreference,
+} from '../edgeStyleMirror';
 import { temporalStateEquals } from './helpers/equality';
 import { createChatSlice } from './slices/chatSlice';
 import { createEdgeSlice } from './slices/edgeSlice';
@@ -34,7 +37,7 @@ import type { WorkflowStore } from './types';
 // createChatSlice return types are lost through the `as unknown` casts needed
 // to unify their signatures. The runtime correctly composes all slices.
 const storeCreator = ((...args: Parameters<StateCreator<WorkflowStore>>) => ({
-  edgeStyle: 'default',
+  edgeStyle: getEdgeStylePreference(),
   edges: [],
   globalImageHistory: [],
   groups: [],
