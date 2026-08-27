@@ -21,6 +21,7 @@ import {
   getOrganizationLimitForTier,
   getUpgradeTierForLimit,
 } from '@genfeedai/pricing';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   ConflictException,
@@ -561,7 +562,9 @@ export class BillingAccountsService {
         });
 
         const wallet = await tx.creditBalance.findFirst({
-          where: { billingAccountId: input.billingAccountId, isDeleted: false },
+          where: scopedWhere(input.organizationId, {
+            billingAccountId: input.billingAccountId,
+          }),
         });
         if (wallet?.organizationId === input.organizationId) {
           const remaining = await tx.billingAccountOrganization.findFirst({
@@ -574,7 +577,7 @@ export class BillingAccountsService {
           });
           await tx.creditBalance.update({
             data: { organizationId: remaining?.organizationId ?? null },
-            where: { id: wallet.id },
+            where: scopedWhere(input.organizationId, { id: wallet.id }),
           });
         }
 

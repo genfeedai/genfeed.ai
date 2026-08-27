@@ -9,14 +9,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "creditTransaction",
-      "file": "apps/server/api/src/collections/billing-accounts/services/billing-account-migration.service.ts",
-      "fingerprint": "56da0107b636c8e696bb",
-      "method": "updateMany",
-      "model": "CreditTransaction",
-      "reason": "missing-is-deleted"
-    },
-    {
       "delegate": "contentRun",
       "file": "apps/server/api/src/collections/content-runs/services/content-run-recommendations.service.ts",
       "fingerprint": "11c2f2532188262f26c9",
@@ -729,30 +721,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "creditBalance",
-      "file": "apps/server/server/src/collections/billing-accounts/services/billing-accounts.service.ts",
-      "fingerprint": "d15dbee0f20ced4f0f08",
-      "method": "findFirst",
-      "model": "CreditBalance",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "creditBalance",
-      "file": "apps/server/server/src/collections/billing-accounts/services/billing-accounts.service.ts",
-      "fingerprint": "4500112b8847033b61eb",
-      "method": "update",
-      "model": "CreditBalance",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "creditBalance",
-      "file": "apps/server/server/src/collections/billing-accounts/services/billing-accounts.service.ts",
-      "fingerprint": "639acc3808ad33b4f590",
-      "method": "update",
-      "model": "CreditBalance",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "creditTransaction",
       "file": "apps/server/server/src/collections/billing-accounts/services/billing-accounts.service.ts",
       "fingerprint": "0f438d1f8618b4186a21",
@@ -1159,22 +1127,6 @@
       "method": "update",
       "model": "CreditBalance",
       "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "creditReservation",
-      "file": "apps/server/server/src/collections/credits/services/credit-reservation.service.ts",
-      "fingerprint": "9e09ba300412bb06b373",
-      "method": "findFirst",
-      "model": "CreditReservation",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "creditReservation",
-      "file": "apps/server/server/src/collections/credits/services/credit-reservation.service.ts",
-      "fingerprint": "067e0a9a7fd6c87dbf01",
-      "method": "findFirst",
-      "model": "CreditReservation",
-      "reason": "unresolved-where"
     },
     {
       "delegate": "creditReservation",

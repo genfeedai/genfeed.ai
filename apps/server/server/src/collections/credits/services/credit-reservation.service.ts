@@ -11,6 +11,7 @@ import type {
   IReserveCreditsInput,
   ISettleCreditReservationInput,
 } from '@genfeedai/interfaces/billing';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
@@ -261,14 +262,12 @@ export class CreditReservationService {
     }
 
     const reservation = await this.prisma.creditReservation.findFirst({
-      where: {
-        isDeleted: false,
-        organizationId: input.organizationId,
+      where: scopedWhere(input.organizationId, {
         ...(input.reservationId ? { id: input.reservationId } : {}),
         ...(input.idempotencyKey
           ? { idempotencyKey: input.idempotencyKey }
           : {}),
-      },
+      }),
     });
 
     if (!reservation) {
