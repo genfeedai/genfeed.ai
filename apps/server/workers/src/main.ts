@@ -7,6 +7,7 @@ bootstrap({ app: 'workers' });
 import type { Server } from 'node:http';
 import process from 'node:process';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '@workers/app.module';
 import { ConfigService } from '@workers/config/config.service';
@@ -140,4 +141,8 @@ async function main() {
   }
 }
 
-void main();
+void main().catch((error: unknown) => {
+  const bootstrapLogger = new Logger('WorkersBootstrap');
+  bootstrapLogger.error('Failed to start workers service:', error);
+  process.exit(1);
+});
