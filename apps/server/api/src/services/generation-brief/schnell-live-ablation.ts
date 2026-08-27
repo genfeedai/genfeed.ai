@@ -374,12 +374,18 @@ async function createSchnellPrediction(
       headers: {
         authorization: `Bearer ${token}`,
         'content-type': 'application/json',
-        prefer: 'wait=60',
       },
       method: 'POST',
+      signal: AbortSignal.timeout(30_000),
     },
   );
-  return (await response.json()) as ReplicatePrediction;
+  const payload = (await response.json()) as ReplicatePrediction;
+  if (!response.ok) {
+    throw new Error(
+      `Replicate prediction failed (${response.status}): ${payload.error ?? 'unknown error'}`,
+    );
+  }
+  return payload;
 }
 
 async function waitForPrediction(
@@ -397,6 +403,7 @@ async function waitForPrediction(
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const response = await fetch(getUrl, {
       headers: { authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(30_000),
     });
     current = (await response.json()) as ReplicatePrediction;
   }
@@ -432,17 +439,25 @@ export async function runSchnellLiveAblation(
     if (!definition) {
       continue;
     }
+    const dispatchSafe = async (
+      arm: SchnellAblationArmResult,
+    ): Promise<SchnellAblationArmResult> => {
+      try {
+        return await dispatchArm(token, arm, definition.seed);
+      } catch {
+        return { ...arm, visualPassed: false };
+      }
+    };
     liveScenarios.push({
       ...scenario,
       arms: {
-        compiled: await dispatchArm(
-          token,
-          scenario.arms.compiled,
-          definition.seed,
-        ),
-        legacy: await dispatchArm(token, scenario.arms.legacy, definition.seed),
+        compiled: await dispatchSafe(scenario.arms.compiled),
+        legacy: await dispatchSafe(scenario.arms.legacy),
       },
     });
+    process.stdout.write(
+      `scored ${scenario.id} (${liveScenarios.length}/${compiled.scenarios.length})\n`,
+    );
   }
   return summarizeSchnellAblation(liveScenarios);
 }
