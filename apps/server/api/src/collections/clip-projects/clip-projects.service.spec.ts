@@ -56,6 +56,7 @@ function createPrisma() {
       create: vi.fn(),
       findFirst: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     },
   };
 }
@@ -522,6 +523,42 @@ describe('ClipProjectsService', () => {
     });
   });
 
+  it('counts a media-degraded clip as a settled retryable failure', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue({
+      config: {},
+      failedClipCount: 0,
+      id: 'project-1',
+      organizationId: 'org-1',
+      pendingClipCount: 1,
+      progress: 80,
+      readyClipCount: 1,
+      readiness: {},
+      status: 'generating',
+    });
+    prisma.clipProject.update.mockImplementation(async ({ data }) => ({
+      config: {},
+      id: 'project-1',
+      organizationId: 'org-1',
+      ...data,
+    }));
+    clipResultsService.findByProject.mockResolvedValue([
+      { status: 'completed' },
+      { status: 'degraded' },
+    ]);
+
+    await service.reconcileTerminalState('project-1', 'org-1');
+
+    expect(prisma.clipProject.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        failedClipCount: 1,
+        pendingClipCount: 0,
+        readyClipCount: 1,
+        status: 'partially-completed',
+      }),
+      where: { id: 'project-1' },
+    });
+  });
+
   it('reconciles project terminal state from completed and failed clip results', async () => {
     prisma.clipProject.findFirst.mockResolvedValue({
       config: {},
@@ -543,7 +580,7 @@ describe('ClipProjectsService', () => {
       progress: 100,
       readyClipCount: 1,
       readiness: {},
-      status: 'completed',
+      status: 'partially-completed',
     });
     clipResultsService.findByProject.mockResolvedValue([
       { status: 'completed' },
@@ -565,16 +602,16 @@ describe('ClipProjectsService', () => {
     });
     expect(prisma.clipProject.update).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        error: null,
+        error: '1 clip requires retry or review.',
         failedClipCount: 1,
         pendingClipCount: 0,
         progress: 100,
         readyClipCount: 1,
         readiness: expect.objectContaining({
-          readyActions: ['download', 'edit', 'publish'],
-          state: 'ready',
+          readyActions: ['download', 'edit', 'publish', 'retry'],
+          state: 'blocked',
         }),
-        status: 'completed',
+        status: 'partially-completed',
       }),
       where: { id: 'project-1' },
     });
@@ -613,6 +650,29 @@ describe('ClipProjectsService', () => {
         readyClipCount: 1,
       }),
       where: { id: 'project-1' },
+    });
+  });
+
+  it('atomically claims a failed-result retry inside the tenant boundary', async () => {
+    prisma.clipProject.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      service.claimFailedResultRetry('project-1', 'org-1', 2),
+    ).resolves.toBe(true);
+
+    expect(prisma.clipProject.updateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        failedClipCount: 0,
+        pendingClipCount: 2,
+        status: 'generating',
+        terminalAt: null,
+      }),
+      where: {
+        id: 'project-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        status: { in: ['failed', 'partially-completed'] },
+      },
     });
   });
 });

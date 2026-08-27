@@ -64,6 +64,7 @@ const WEBSITE_SECTIONS: FooterSection[] = [
   },
   {
     links: [
+      { href: '/tools', label: 'Free Tools' },
       { href: '/articles', label: 'Blog' },
       { href: '/posts', label: 'Posts' },
       { href: '/faq', label: 'FAQ' },

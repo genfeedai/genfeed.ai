@@ -226,12 +226,14 @@ export class FFmpegService {
     outputPath: string,
     dimensions?: { width: number; height: number },
     onProgress?: (progress: FFmpegProgress) => void,
+    framingMode?: 'center-crop' | 'contain-blur',
   ): Promise<void> {
     return this.transform.convertToPortrait(
       inputPath,
       outputPath,
       dimensions,
       onProgress,
+      framingMode,
     );
   }
 

@@ -1,3 +1,5 @@
+import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import { ClipLibraryLinkService } from '@api/collections/clip-projects/services/clip-library-link.service';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import type { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
 import { type ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
@@ -76,7 +78,9 @@ export type ClipRunGenerationReference = GenerationBriefReference & {
 };
 
 export interface ClipGenerationResult {
+  awaitingHookApproval?: boolean;
   clipResultIds: string[];
+  completedClipCount?: number;
   providerJobIds: string[];
   queuedClipCount: number;
 }
@@ -99,6 +103,10 @@ export interface HookClipApprovalPlan {
 interface ClipDispatchOutcome {
   jobId: string;
   patch?: Record<string, unknown>;
+  terminal?: {
+    status: 'completed';
+    videoUrl: string;
+  };
 }
 
 /**
@@ -134,6 +142,10 @@ export class ClipGenerationService {
     private readonly logger: LoggerService,
     @Optional()
     private readonly clipOrchestrator?: ClipOrchestratorService,
+    @Optional()
+    private readonly clipLibraryLinkService?: ClipLibraryLinkService,
+    @Optional()
+    private readonly clipProjectsService?: ClipProjectsService,
   ) {}
 
   /**
@@ -229,7 +241,15 @@ export class ClipGenerationService {
       remainingInput,
     };
     await this.clipOrchestrator.updateMetadata(run.id, { hookApproval });
-    return result;
+    if (result.completedClipCount) {
+      await this.clipProjectsService?.patch(
+        input.projectId,
+        { error: null, status: 'generating' },
+        [],
+        input.orgId,
+      );
+    }
+    return { ...result, awaitingHookApproval: true };
   }
 
   /**
@@ -274,13 +294,18 @@ export class ClipGenerationService {
         let providerMetadataPersisted = false;
 
         const result = await avatarProvider.generateVideo({
-          avatarId: avatarId as string,
+          avatarId: avatarId ?? '',
           callbackId: clipResultId,
           onJobCreated: async (job) => {
-            await this.clipResultsService.patch(clipResultId, {
-              providerJobId: job.jobId,
-              providerName: job.providerName,
-            });
+            await this.clipResultsService.patch(
+              clipResultId,
+              {
+                providerJobId: job.jobId,
+                providerName: job.providerName,
+              },
+              [],
+              orgId,
+            );
             providerMetadataPersisted = true;
           },
           organizationId: orgId,
@@ -289,7 +314,7 @@ export class ClipGenerationService {
             : {}),
           script: scriptText,
           userId,
-          voiceId: voiceId as string,
+          voiceId: voiceId ?? '',
         });
 
         if (result.status === 'failed') {
@@ -304,6 +329,14 @@ export class ClipGenerationService {
                 providerJobId: result.jobId,
                 providerName: result.providerName,
               },
+          ...(result.status === 'completed' && result.videoUrl
+            ? {
+                terminal: {
+                  status: 'completed' as const,
+                  videoUrl: result.videoUrl,
+                },
+              }
+            : {}),
         };
       },
       failureProviderName: provider,
@@ -352,15 +385,20 @@ export class ClipGenerationService {
         );
         const providerJobId = getRawCutTrimJobId(clipResultId);
 
-        await this.clipResultsService.patch(clipResultId, {
-          captionSrt,
-          providerJobId,
-          providerName: RAW_CUT_PROVIDER_NAME,
-          room,
-          sourceVideoS3Key,
-          sourceVideoUrl,
-          userId,
-        });
+        await this.clipResultsService.patch(
+          clipResultId,
+          {
+            captionSrt,
+            providerJobId,
+            providerName: RAW_CUT_PROVIDER_NAME,
+            room,
+            sourceVideoS3Key,
+            sourceVideoUrl,
+            userId,
+          },
+          [],
+          orgId,
+        );
 
         const dispatch = await this.rawCutClipService.dispatchClip({
           captionSrt,
@@ -414,6 +452,7 @@ export class ClipGenerationService {
     const clipResultIds: string[] = [];
     const providerJobIds: string[] = [];
     let queuedClipCount = 0;
+    let completedClipCount = 0;
 
     for (let i = 0; i < highlights.length; i++) {
       const highlight = highlights[i];
@@ -433,19 +472,38 @@ export class ClipGenerationService {
 
       // 2. Dispatch generation for this highlight via the mode-specific path
       try {
-        await this.clipResultsService.patch(clipResultId, {
-          providerName: failureProviderName,
-          status: 'extracting',
-        });
+        await this.clipResultsService.patch(
+          clipResultId,
+          {
+            providerName: failureProviderName,
+            status: 'extracting',
+          },
+          [],
+          orgId,
+        );
 
-        const { jobId, patch } = await dispatch({
+        const { jobId, patch, terminal } = await dispatch({
           clipResultId,
           highlight,
           index: i,
         });
 
         if (patch) {
-          await this.clipResultsService.patch(clipResultId, patch);
+          await this.clipResultsService.patch(clipResultId, patch, [], orgId);
+        }
+
+        if (terminal) {
+          const completed = await this.completeInlineProviderResult({
+            clipResultId,
+            organizationId: orgId,
+            projectId,
+            providerJobId: jobId,
+            providerName: failureProviderName,
+            videoUrl: terminal.videoUrl,
+          });
+          if (completed) {
+            completedClipCount += 1;
+          }
         }
 
         providerJobIds.push(jobId);
@@ -461,10 +519,15 @@ export class ClipGenerationService {
           error,
         );
 
-        await this.clipResultsService.patch(clipResultId, {
-          providerName: failureProviderName,
-          status: 'failed',
-        });
+        await this.clipResultsService.patch(
+          clipResultId,
+          {
+            providerName: failureProviderName,
+            status: 'failed',
+          },
+          [],
+          orgId,
+        );
 
         providerJobIds.push('');
       }
@@ -477,7 +540,43 @@ export class ClipGenerationService {
       successfulJobs: providerJobIds.filter(Boolean).length,
     });
 
-    return { clipResultIds, providerJobIds, queuedClipCount };
+    return {
+      clipResultIds,
+      ...(completedClipCount > 0 ? { completedClipCount } : {}),
+      providerJobIds,
+      queuedClipCount,
+    };
+  }
+
+  private async completeInlineProviderResult(input: {
+    clipResultId: string;
+    organizationId: string;
+    projectId: string;
+    providerJobId: string;
+    providerName: string;
+    videoUrl: string;
+  }): Promise<boolean> {
+    const transitioned =
+      await this.clipResultsService.transitionProviderTerminal({
+        clipResultId: input.clipResultId,
+        providerJobId: input.providerJobId,
+        providerName: input.providerName,
+        status: 'completed',
+        videoUrl: input.videoUrl,
+      });
+    if (!transitioned) {
+      return false;
+    }
+
+    await this.clipLibraryLinkService?.linkReadyClip({
+      clipResultId: input.clipResultId,
+      organizationId: input.organizationId,
+    });
+    await this.clipProjectsService?.reconcileTerminalState(
+      input.projectId,
+      input.organizationId,
+    );
+    return true;
   }
 
   /**

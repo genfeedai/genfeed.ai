@@ -1,6 +1,7 @@
 import type { AvatarVideoProvider } from '@api/services/avatar-video/avatar-video-provider.interface';
 import { ArgilAvatarProvider } from '@api/services/avatar-video/providers/argil-avatar.provider';
 import { DidAvatarProvider } from '@api/services/avatar-video/providers/did-avatar.provider';
+import { GenfeedaiAvatarProvider } from '@api/services/avatar-video/providers/genfeedai-avatar.provider';
 import { HeygenAvatarProvider } from '@api/services/avatar-video/providers/heygen-avatar.provider';
 import { MusetalkAvatarProvider } from '@api/services/avatar-video/providers/musetalk-avatar.provider';
 import { TavusAvatarProvider } from '@api/services/avatar-video/providers/tavus-avatar.provider';
@@ -28,6 +29,7 @@ export class AvatarVideoService {
 
   constructor(
     private readonly argilProvider: ArgilAvatarProvider,
+    private readonly genfeedaiProvider: GenfeedaiAvatarProvider,
     private readonly heygenProvider: HeygenAvatarProvider,
     private readonly didProvider: DidAvatarProvider,
     private readonly tavusProvider: TavusAvatarProvider,
@@ -36,6 +38,7 @@ export class AvatarVideoService {
   ) {
     this.providers = {
       argil: this.argilProvider,
+      genfeedai: this.genfeedaiProvider,
       did: this.didProvider,
       heygen: this.heygenProvider,
       musetalk: this.musetalkProvider,

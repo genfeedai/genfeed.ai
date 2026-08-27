@@ -11,6 +11,7 @@ const {
   captureAnalyticsEventMock,
   captureBrandOsFunnelStageMock,
   claimBrandOsPreviewMock,
+  claimPublicYoutubeClipMock,
   createCheckoutSessionMock,
   currentUserState,
   getTokenMock,
@@ -27,6 +28,7 @@ const {
   captureAnalyticsEventMock: vi.fn(),
   captureBrandOsFunnelStageMock: vi.fn(),
   claimBrandOsPreviewMock: vi.fn(),
+  claimPublicYoutubeClipMock: vi.fn(),
   createCheckoutSessionMock: vi.fn(),
   currentUserState: {
     currentUser: {
@@ -55,6 +57,7 @@ const {
 vi.mock('@/lib/analytics', () => ({
   ANALYTICS_EVENTS: {
     CHECKOUT_STARTED: 'checkout_started',
+    PUBLIC_YOUTUBE_CLIP_PROJECT_CLAIMED: 'public_youtube_clip_project_claimed',
     SIGNUP_COMPLETED: 'signup_completed',
   },
   captureAnalyticsEvent: captureAnalyticsEventMock,
@@ -149,6 +152,14 @@ vi.mock('@services/social/brands.service', () => ({
   },
 }));
 
+vi.mock('@services/content/clip-projects.service', () => ({
+  ClipProjectsService: {
+    getInstance: vi.fn(() => ({
+      claimPublicYoutubeClip: claimPublicYoutubeClipMock,
+    })),
+  },
+}));
+
 vi.mock('@ui/loading/page/PageLoadingState', () => ({
   default: ({
     children,
@@ -207,6 +218,7 @@ describe('PostSignupPage behavior', () => {
     captureAnalyticsEventMock.mockReset();
     captureBrandOsFunnelStageMock.mockReset();
     claimBrandOsPreviewMock.mockReset();
+    claimPublicYoutubeClipMock.mockReset();
     managedCreateCheckoutSessionMock.mockReset();
     getTokenMock.mockReset();
     getMyOrganizationsMock.mockReset();
@@ -248,6 +260,10 @@ describe('PostSignupPage behavior', () => {
     ]);
     claimBrandOsPreviewMock.mockResolvedValue({
       id: 'brand-1',
+      status: 'claimed',
+    });
+    claimPublicYoutubeClipMock.mockResolvedValue({
+      projectId: 'clip-project-1',
       status: 'claimed',
     });
     createCheckoutSessionMock.mockResolvedValue({
@@ -317,7 +333,7 @@ describe('PostSignupPage behavior', () => {
 
     render(<PostSignupPage />);
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Retry saving Brand OS' }),
+      await screen.findByRole('button', { name: 'Retry saving preview' }),
     );
 
     await waitFor(() =>
@@ -327,6 +343,27 @@ describe('PostSignupPage behavior', () => {
       previewToken: token,
     });
     expect(locationState.href).toBe('/acme/acme-brand/settings/kit');
+  });
+
+  it('claims an opaque clip-tool token and routes into the Studio project', async () => {
+    const token = 'b'.repeat(43);
+    searchParamsState.value = new URLSearchParams({ clipToolToken: token });
+
+    render(<PostSignupPage />);
+
+    await waitFor(() => {
+      expect(claimPublicYoutubeClipMock).toHaveBeenCalledWith({
+        brandId: 'brand-1',
+        previewToken: token,
+      });
+    });
+    expect(locationState.href).toBe(
+      '/acme/acme-brand/studio/clips/clip-project-1',
+    );
+    expect(captureAnalyticsEventMock).toHaveBeenCalledWith(
+      'public_youtube_clip_project_claimed',
+      { source: 'public_preview' },
+    );
   });
 
   it('uses URL payg handoff to bypass stale stored paid plan checkout', async () => {

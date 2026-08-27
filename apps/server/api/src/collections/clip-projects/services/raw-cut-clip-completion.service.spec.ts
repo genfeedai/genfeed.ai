@@ -7,6 +7,7 @@ import type { ClipResultDocument } from '@api/collections/clip-results/schemas/c
 import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { JobState, Status } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
+import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 function makeClip(
   overrides: Partial<ClipResultDocument> = {},
@@ -59,6 +60,9 @@ describe('RawCutClipCompletionService', () => {
   let rawCutClipService: {
     dispatchClip: ReturnType<typeof vi.fn>;
   };
+  let filesClientService: {
+    inspectVideoQa: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     clipLibraryLinkService = {
@@ -82,7 +86,7 @@ describe('RawCutClipCompletionService', () => {
     fileQueueService = {
       getJobStatus: vi.fn(),
       processVideo: vi.fn().mockResolvedValue({
-        jobId: 'raw-cut-caption-clip-1',
+        jobId: 'raw-cut-frame-clip-1',
         status: 'waiting',
       }),
     };
@@ -93,12 +97,32 @@ describe('RawCutClipCompletionService', () => {
         status: 'waiting',
       }),
     };
+    filesClientService = {
+      inspectVideoQa: vi.fn().mockResolvedValue({
+        decodeOk: true,
+        detectLog: '',
+        loudnessLog: '-16 LUFS',
+        probeJson: JSON.stringify({
+          format: { duration: '10' },
+          streams: [
+            {
+              codec_name: 'h264',
+              codec_type: 'video',
+              height: 1920,
+              width: 1080,
+            },
+            { codec_name: 'aac', codec_type: 'audio' },
+          ],
+        }),
+      }),
+    };
 
     service = new RawCutClipCompletionService(
       clipLibraryLinkService as unknown as ClipLibraryLinkService,
       clipProjectsService as unknown as ClipProjectsService,
       clipResultsService as unknown as ClipResultsService,
       fileQueueService as unknown as FileQueueService,
+      filesClientService as unknown as FilesClientService,
       rawCutClipService as unknown as RawCutClipService,
       {
         debug: vi.fn(),
@@ -110,7 +134,7 @@ describe('RawCutClipCompletionService', () => {
     );
   });
 
-  it('persists the trim output and queues deterministic caption burning', async () => {
+  it('persists the trim output and queues subject-safe portrait framing', async () => {
     clipResultsService.findOne.mockResolvedValue(makeClip());
 
     const handled = await service.handleCompletion({
@@ -128,24 +152,80 @@ describe('RawCutClipCompletionService', () => {
 
     expect(handled).toBe(true);
     expect(fileQueueService.processVideo).toHaveBeenCalledWith({
-      id: 'raw-cut-caption-clip-1',
+      id: 'raw-cut-frame-clip-1',
       ingredientId: 'clip-1',
       organizationId: 'org-1',
       params: {
-        captionContent: '1\n00:00:00,000 --> 00:00:03,000\nLaunch',
+        framingMode: 'contain-blur',
+        height: 1920,
         s3Key: 'videos/clip-1.mp4',
+        width: 1080,
       },
       room: 'room-1',
-      type: 'add-captions',
+      type: 'convert-to-portrait',
       userId: 'user-1',
       websocketUrl: '/clips/clip-1',
     });
-    expect(clipResultsService.patch).toHaveBeenCalledWith('clip-1', {
-      providerJobId: 'raw-cut-caption-clip-1',
-      status: 'captioning',
-      videoS3Key: 'videos/clip-1.mp4',
-      videoUrl: 'https://cdn.genfeed.ai/videos/clip-1.mp4',
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'clip-1',
+      {
+        providerJobId: 'raw-cut-frame-clip-1',
+        status: 'reframing',
+        videoS3Key: 'videos/clip-1.mp4',
+        videoUrl: 'https://cdn.genfeed.ai/videos/clip-1.mp4',
+      },
+      [],
+      'org-1',
+    );
+  });
+
+  it('queues caption burning after deterministic portrait framing', async () => {
+    fileQueueService.processVideo.mockResolvedValueOnce({
+      jobId: 'raw-cut-caption-clip-1',
+      status: 'waiting',
     });
+    clipResultsService.findOne.mockResolvedValue(
+      makeClip({
+        providerJobId: 'raw-cut-frame-clip-1',
+        status: 'reframing',
+      }),
+    );
+
+    await service.handleCompletion({
+      ingredientId: 'clip-1',
+      organizationId: 'org-1',
+      result: {
+        jobId: 'raw-cut-frame-clip-1',
+        jobType: 'convert-to-portrait',
+        s3Key: 'videos/clip-1-portrait.mp4',
+        url: 'https://cdn.genfeed.ai/videos/clip-1-portrait.mp4',
+      },
+      status: Status.COMPLETED,
+      userId: 'user-1',
+    });
+
+    expect(fileQueueService.processVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'raw-cut-caption-clip-1',
+        params: expect.objectContaining({
+          captionContent: expect.stringContaining('Launch'),
+          s3Key: 'videos/clip-1-portrait.mp4',
+        }),
+        type: 'add-captions',
+      }),
+    );
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'clip-1',
+      expect.objectContaining({
+        framing: expect.objectContaining({
+          strategy: 'contain-blur',
+          subjectSafety: 'full-source-visible',
+        }),
+        status: 'captioning',
+      }),
+      [],
+      'org-1',
+    );
   });
 
   it('persists the captioned output and reconciles the parent project', async () => {
@@ -168,15 +248,35 @@ describe('RawCutClipCompletionService', () => {
       status: Status.COMPLETED,
     });
 
-    expect(clipResultsService.patch).toHaveBeenNthCalledWith(1, 'clip-1', {
-      captionedVideoS3Key: 'videos/clip-1.mp4',
-      captionedVideoUrl: 'https://cdn.genfeed.ai/videos/clip-1.mp4',
-      isProjectReconciliationPending: true,
-      status: 'completed',
-    });
-    expect(clipResultsService.patch).toHaveBeenNthCalledWith(2, 'clip-1', {
-      isProjectReconciliationPending: false,
-    });
+    expect(clipResultsService.patch).toHaveBeenNthCalledWith(
+      1,
+      'clip-1',
+      {
+        captionedVideoS3Key: 'videos/clip-1.mp4',
+        captionedVideoUrl: 'https://cdn.genfeed.ai/videos/clip-1.mp4',
+        status: 'validating',
+      },
+      [],
+      'org-1',
+    );
+    expect(clipResultsService.patch).toHaveBeenNthCalledWith(
+      2,
+      'clip-1',
+      expect.objectContaining({
+        isProjectReconciliationPending: true,
+        mediaValidation: expect.objectContaining({ status: 'passed' }),
+        status: 'completed',
+      }),
+      [],
+      'org-1',
+    );
+    expect(clipResultsService.patch).toHaveBeenNthCalledWith(
+      3,
+      'clip-1',
+      { isProjectReconciliationPending: false },
+      [],
+      'org-1',
+    );
     expect(clipLibraryLinkService.linkReadyClip).toHaveBeenCalledWith({
       clipResultId: 'clip-1',
       organizationId: 'org-1',
@@ -212,16 +312,110 @@ describe('RawCutClipCompletionService', () => {
       status: Status.COMPLETED,
     });
 
-    expect(clipResultsService.patch).toHaveBeenCalledWith('clip-1', {
-      captionedVideoS3Key: 'videos/clip-1.mp4',
-      captionedVideoUrl: 'https://cdn.genfeed.ai/videos/clip-1.mp4',
-      isProjectReconciliationPending: true,
-      status: 'completed',
-    });
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'clip-1',
+      expect.objectContaining({ status: 'completed' }),
+      [],
+      'org-1',
+    );
     expect(clipProjectsService.reconcileTerminalState).toHaveBeenCalledWith(
       'project-1',
       'org-1',
     );
+  });
+
+  it('marks media that fails preflight as degraded and does not link it', async () => {
+    clipResultsService.findOne.mockResolvedValue(
+      makeClip({
+        providerJobId: 'raw-cut-caption-clip-1',
+        status: 'captioning',
+      }),
+    );
+    filesClientService.inspectVideoQa.mockResolvedValue({
+      decodeOk: true,
+      detectLog: '',
+      loudnessLog: null,
+      probeJson: JSON.stringify({
+        format: { duration: '10' },
+        streams: [
+          {
+            codec_name: 'h264',
+            codec_type: 'video',
+            height: 1080,
+            width: 1920,
+          },
+        ],
+      }),
+    });
+
+    await service.handleCompletion({
+      ingredientId: 'clip-1',
+      organizationId: 'org-1',
+      result: {
+        jobId: 'raw-cut-caption-clip-1',
+        jobType: 'add-captions',
+        s3Key: 'videos/clip-1.mp4',
+        url: 'https://cdn.genfeed.ai/videos/clip-1.mp4',
+      },
+      status: Status.COMPLETED,
+    });
+
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'clip-1',
+      expect.objectContaining({
+        mediaValidation: expect.objectContaining({
+          issues: expect.arrayContaining([
+            'Rendered video is not 1080x1920 portrait media.',
+            'Rendered video is missing its source audio.',
+          ]),
+          status: 'failed',
+        }),
+        status: 'degraded',
+      }),
+      [],
+      'org-1',
+    );
+    expect(clipLibraryLinkService.linkReadyClip).not.toHaveBeenCalled();
+  });
+
+  it('keeps media validation retryable when inspection is unavailable', async () => {
+    clipResultsService.findOne.mockResolvedValue(
+      makeClip({
+        providerJobId: 'raw-cut-caption-clip-1',
+        status: 'captioning',
+      }),
+    );
+    filesClientService.inspectVideoQa.mockRejectedValue(
+      new Error('Files service unavailable'),
+    );
+
+    await expect(
+      service.handleCompletion({
+        ingredientId: 'clip-1',
+        organizationId: 'org-1',
+        result: {
+          jobId: 'raw-cut-caption-clip-1',
+          jobType: 'add-captions',
+          s3Key: 'videos/clip-1.mp4',
+          url: 'https://cdn.genfeed.ai/videos/clip-1.mp4',
+        },
+        status: Status.COMPLETED,
+      }),
+    ).rejects.toThrow('Files service unavailable');
+
+    expect(clipResultsService.patch).toHaveBeenCalledTimes(1);
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'clip-1',
+      {
+        captionedVideoS3Key: 'videos/clip-1.mp4',
+        captionedVideoUrl: 'https://cdn.genfeed.ai/videos/clip-1.mp4',
+        status: 'validating',
+      },
+      [],
+      'org-1',
+    );
+    expect(clipLibraryLinkService.linkReadyClip).not.toHaveBeenCalled();
+    expect(clipProjectsService.reconcileTerminalState).not.toHaveBeenCalled();
   });
 
   it('isolates a failed media job to its clip result', async () => {
@@ -238,14 +432,24 @@ describe('RawCutClipCompletionService', () => {
       status: Status.FAILED,
     });
 
-    expect(clipResultsService.patch).toHaveBeenNthCalledWith(1, 'clip-1', {
-      error: 'ffmpeg failed',
-      isProjectReconciliationPending: true,
-      status: 'failed',
-    });
-    expect(clipResultsService.patch).toHaveBeenNthCalledWith(2, 'clip-1', {
-      isProjectReconciliationPending: false,
-    });
+    expect(clipResultsService.patch).toHaveBeenNthCalledWith(
+      1,
+      'clip-1',
+      {
+        error: 'ffmpeg failed',
+        isProjectReconciliationPending: true,
+        status: 'failed',
+      },
+      [],
+      'org-1',
+    );
+    expect(clipResultsService.patch).toHaveBeenNthCalledWith(
+      2,
+      'clip-1',
+      { isProjectReconciliationPending: false },
+      [],
+      'org-1',
+    );
     expect(clipProjectsService.reconcileTerminalState).toHaveBeenCalledWith(
       'project-1',
       'org-1',
@@ -296,9 +500,12 @@ describe('RawCutClipCompletionService', () => {
       startTime: 10,
       userId: 'user-1',
     });
-    expect(clipResultsService.patch).toHaveBeenCalledWith('clip-1', {
-      providerJobId: 'raw-cut-trim-clip-1',
-    });
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'clip-1',
+      { providerJobId: 'raw-cut-trim-clip-1' },
+      [],
+      'org-1',
+    );
   });
 
   it('keeps a stale but active queue job alive', async () => {
@@ -341,7 +548,7 @@ describe('RawCutClipCompletionService', () => {
     expect(clipProjectsService.reconcileTerminalState).not.toHaveBeenCalled();
   });
 
-  it('leaves the trim stage retryable when caption queueing fails', async () => {
+  it('leaves the trim stage retryable when framing queueing fails', async () => {
     clipResultsService.findOne.mockResolvedValue(makeClip());
     fileQueueService.processVideo.mockRejectedValueOnce(
       new Error('queue unavailable'),
@@ -395,9 +602,12 @@ describe('RawCutClipCompletionService', () => {
       'project-1',
       'org-1',
     );
-    expect(clipResultsService.patch).toHaveBeenCalledWith('clip-1', {
-      isProjectReconciliationPending: false,
-    });
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'clip-1',
+      { isProjectReconciliationPending: false },
+      [],
+      'org-1',
+    );
   });
 
   it('ignores a duplicated trim event after the caption stage starts', async () => {

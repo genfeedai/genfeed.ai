@@ -32,7 +32,7 @@ interface ClipResultCardProps {
   projectId: string;
 }
 
-const STATUS_CONFIG: Record<ClipStatus, { label: string; color: string }> = {
+const STATUS_CONFIG: Record<ClipStatus, { label?: string; color: string }> = {
   captioning: {
     color: 'bg-info/10 text-info border-transparent',
     label: 'Captioning',
@@ -40,6 +40,9 @@ const STATUS_CONFIG: Record<ClipStatus, { label: string; color: string }> = {
   completed: {
     color: 'bg-success/10 text-success border-transparent',
     label: 'Ready',
+  },
+  degraded: {
+    color: 'bg-warning/10 text-warning border-transparent',
   },
   extracting: {
     color: 'bg-warning/10 text-warning border-transparent',
@@ -52,6 +55,14 @@ const STATUS_CONFIG: Record<ClipStatus, { label: string; color: string }> = {
   pending: {
     color: 'bg-secondary text-muted-foreground border-transparent',
     label: 'Queued',
+  },
+  reframing: {
+    color: 'bg-info/10 text-info border-transparent',
+    label: 'Framing',
+  },
+  validating: {
+    color: 'bg-info/10 text-info border-transparent',
+    label: 'Validating',
   },
 };
 
@@ -194,7 +205,7 @@ export default function ClipResultCard({
             variant="outline"
             className={`rounded-full px-2 py-0.5 text-2xs font-medium uppercase tracking-wider ${statusConfig.color}`}
           >
-            {statusConfig.label}
+            {statusConfig.label ?? t('reviewRequired')}
           </Badge>
           {clip.clipType && (
             <Badge
@@ -322,11 +333,13 @@ export default function ClipResultCard({
       )}
 
       {/* Processing indicator */}
-      {!hasReadyAction && clip.status !== 'failed' && (
-        <div className="mt-auto flex items-center justify-center pt-3">
-          <Spinner size={ComponentSize.SM} className="text-primary/50" />
-        </div>
-      )}
+      {!hasReadyAction &&
+        clip.status !== 'failed' &&
+        clip.status !== 'degraded' && (
+          <div className="mt-auto flex items-center justify-center pt-3">
+            <Spinner size={ComponentSize.SM} className="text-primary/50" />
+          </div>
+        )}
 
       {canRetryLibraryLink && (
         <div className="mt-2">
@@ -351,6 +364,17 @@ export default function ClipResultCard({
       {clip.status === 'failed' && (
         <div className="mt-auto pt-2">
           <p className="text-xs text-destructive/70">{t('generationFailed')}</p>
+        </div>
+      )}
+      {clip.status === 'degraded' && (
+        <div className="mt-auto pt-2">
+          <p className="text-xs font-medium text-warning">
+            {t('reviewRequired')}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {clip.mediaValidation?.issues.join(' ') ??
+              t('mediaReadinessFailed')}
+          </p>
         </div>
       )}
     </Card>

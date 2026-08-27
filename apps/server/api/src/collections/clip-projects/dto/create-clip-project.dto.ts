@@ -2,11 +2,17 @@ import { ClipProjectStatus } from '@api/collections/clip-projects/schemas/clip-p
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { OrganizationalCreateDto } from '@api/shared/dto/base/base.dto';
 import {
+  CLIP_PROCESSING_FLOWS,
   CLIP_RESULT_MODES,
+  type ClipProcessingFlow,
   type ClipReferenceFrameSet,
   type ClipResultMode,
   DEFAULT_CLIP_RESULT_MODE,
 } from '@genfeedai/interfaces';
+import {
+  SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
+  type SupportedAvatarVideoProviderName,
+} from '@genfeedai/queue-contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -33,6 +39,63 @@ export class ClipProjectSettingsDto {
     required: false,
   })
   readonly mode?: ClipResultMode;
+
+  @IsOptional()
+  @IsIn(CLIP_PROCESSING_FLOWS)
+  @ApiProperty({
+    default: 'quick',
+    description: 'Clip processing workflow',
+    enum: CLIP_PROCESSING_FLOWS,
+    enumName: 'ClipProcessingFlow',
+    required: false,
+  })
+  readonly flow?: ClipProcessingFlow;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description: 'Avatar ID for avatar-mode clip generation',
+    required: false,
+  })
+  readonly avatarId?: string;
+
+  @IsOptional()
+  @IsIn(SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES)
+  @ApiProperty({
+    default: 'heygen',
+    description: 'Avatar video provider to use',
+    enum: SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
+    required: false,
+  })
+  readonly avatarProvider?: SupportedAvatarVideoProviderName;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description: 'Voice ID for avatar-mode clip generation',
+    required: false,
+  })
+  readonly voiceId?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    default: 'en',
+    description: 'Source transcription language',
+    required: false,
+  })
+  readonly language?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  @ApiProperty({
+    default: 50,
+    description: 'Minimum highlight virality score',
+    required: false,
+  })
+  readonly minViralityScore?: number;
 
   @IsOptional()
   @IsBoolean()

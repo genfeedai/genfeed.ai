@@ -1,11 +1,6 @@
 import type { BaseApiClient } from './base-api-client';
 
-/**
- * Generation mode for {@link ClipsClient.generateClips}. `avatar` is the only
- * mode the live API honors today; `raw-cut` is forwarded verbatim and starts
- * working once the API's generate contract accepts it (#1238) — until then the
- * API's ValidationPipe strips the unknown field, so sending it is inert.
- */
+/** Generation modes supported by {@link ClipsClient.generateClips}. */
 export type ClipGenerationMode = 'avatar' | 'raw-cut';
 
 export interface AnalyzeClipProjectParams {
@@ -18,9 +13,10 @@ export interface AnalyzeClipProjectParams {
 
 export interface CreateClipProjectFromYoutubeParams {
   youtubeUrl: string;
-  avatarId: string;
-  voiceId: string;
+  avatarId?: string;
+  voiceId?: string;
   avatarProvider?: string;
+  brandId?: string;
   language?: string;
   maxClips?: number;
   minViralityScore?: number;
@@ -90,6 +86,7 @@ export class ClipsClient {
         const response = await http.post('/clip-projects/from-youtube', {
           avatarId: params.avatarId,
           avatarProvider: params.avatarProvider,
+          brandId: params.brandId,
           language: params.language,
           maxClips: params.maxClips,
           minViralityScore: params.minViralityScore,

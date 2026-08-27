@@ -91,14 +91,33 @@ describe('handleClipProjectsTool', () => {
   });
 
   describe('create_clip_project_from_youtube', () => {
-    it('requires avatarId and voiceId', async () => {
+    it('requires avatarId and voiceId for vendor-backed factories', async () => {
       const client = buildClient();
       await expect(
         call(client, 'create_clip_project_from_youtube', {
           youtubeUrl: 'https://youtu.be/abc',
         }),
-      ).rejects.toThrow(/avatarId is required/);
+      ).rejects.toThrow(/avatarId and voiceId, or a brandId/);
       expect(client.createClipProjectFromYoutube).not.toHaveBeenCalled();
+    });
+
+    it('allows managed GenfeedAI factories without vendor identity IDs', async () => {
+      const client = buildClient();
+
+      await call(client, 'create_clip_project_from_youtube', {
+        avatarProvider: 'genfeedai',
+        brandId: 'brand-1',
+        youtubeUrl: 'https://youtu.be/abc',
+      });
+
+      expect(client.createClipProjectFromYoutube).toHaveBeenCalledWith(
+        expect.objectContaining({
+          avatarId: undefined,
+          avatarProvider: 'genfeedai',
+          brandId: 'brand-1',
+          voiceId: undefined,
+        }),
+      );
     });
 
     it('forwards the full factory payload', async () => {

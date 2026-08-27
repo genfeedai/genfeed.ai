@@ -30,12 +30,14 @@ describe('ClipFactoryQueueService', () => {
   let service: ClipFactoryQueueService;
   let queue: {
     add: ReturnType<typeof vi.fn>;
+    getJob: ReturnType<typeof vi.fn>;
   };
   let logger: Record<string, ReturnType<typeof vi.fn>>;
 
   beforeEach(async () => {
     queue = {
       add: vi.fn().mockResolvedValue({ id: 'clip-factory-project-xyz' }),
+      getJob: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -115,7 +117,7 @@ describe('ClipFactoryQueueService', () => {
       );
     });
 
-    it('should log enqueue details including projectId and youtubeUrl', async () => {
+    it('should log enqueue details without the private source URL', async () => {
       const jobData = makeJobData();
 
       await service.enqueue(jobData);
@@ -124,9 +126,9 @@ describe('ClipFactoryQueueService', () => {
         expect.stringContaining('enqueued'),
         expect.objectContaining({
           projectId: 'project-xyz',
-          youtubeUrl: 'https://youtube.com/watch?v=factory-test',
         }),
       );
+      expect(logger.log.mock.calls[0]?.[1]).not.toHaveProperty('youtubeUrl');
     });
 
     it('should propagate queue errors', async () => {
@@ -186,6 +188,62 @@ describe('ClipFactoryQueueService', () => {
       expect(queue.add).not.toHaveBeenCalled();
     });
 
+    it('queues GenfeedAI jobs without vendor avatar credentials when a character reference exists', async () => {
+      const jobData = makeJobData({
+        avatarId: undefined,
+        avatarProvider: 'genfeedai',
+        runReferences: [
+          {
+            assetId: 'character-1',
+            role: 'character',
+            url: 'https://cdn.example.com/character.png',
+          },
+        ],
+        voiceId: undefined,
+      });
+
+      await service.enqueue(jobData);
+
+      expect(queue.add).toHaveBeenCalledWith(
+        'clip-factory-run',
+        jobData,
+        expect.any(Object),
+      );
+    });
+
+    it('queues GenfeedAI jobs with a selected project reference', async () => {
+      const jobData = makeJobData({
+        avatarId: undefined,
+        avatarProvider: 'genfeedai',
+        referenceImageUrl: 'https://cdn.example.com/reference.jpg',
+        runReferences: [],
+        voiceId: undefined,
+      });
+
+      await service.enqueue(jobData);
+
+      expect(queue.add).toHaveBeenCalledWith(
+        'clip-factory-run',
+        jobData,
+        expect.any(Object),
+      );
+    });
+
+    it('rejects a GenfeedAI job without a character reference', async () => {
+      await expect(
+        service.enqueue(
+          makeJobData({
+            avatarId: undefined,
+            avatarProvider: 'genfeedai',
+            runReferences: [],
+            voiceId: undefined,
+          }),
+        ),
+      ).rejects.toThrow(/character reference/);
+
+      expect(queue.add).not.toHaveBeenCalled();
+    });
+
     it('should reject unknown generation modes before queueing', async () => {
       await expect(
         service.enqueue(makeJobData({ mode: 'unknown' as never })),
@@ -206,5 +264,46 @@ describe('ClipFactoryQueueService', () => {
         expect(queue.add).not.toHaveBeenCalled();
       },
     );
+  });
+
+  describe('retry', () => {
+    it('refreshes the job with the current durable source artifact', async () => {
+      const retry = vi.fn().mockResolvedValue(undefined);
+      const updateData = vi.fn().mockResolvedValue(undefined);
+      queue.getJob.mockResolvedValue({
+        data: makeJobData({ youtubeUrl: 'https://cdn.test/source-old.mp4' }),
+        getState: vi.fn().mockResolvedValue('failed'),
+        id: 'clip-factory-project-xyz',
+        retry,
+        updateData,
+      });
+      const source = {
+        artifact: {
+          contentType: 'video/mp4',
+          mediaUrl: 'https://cdn.test/source-replacement.mp4',
+          storageKey: 'videos/source-replacement.mp4',
+        },
+        fingerprint: 'sha256:replacement',
+        flow: 'quick' as const,
+        kind: 'upload' as const,
+        maxRetries: 3,
+        retryCount: 1,
+        schemaVersion: 1 as const,
+        status: 'queued' as const,
+        updatedAt: '2026-08-27T00:00:00.000Z',
+      };
+
+      await expect(service.retry('project-xyz', source)).resolves.toBe(
+        'clip-factory-project-xyz',
+      );
+
+      expect(updateData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          source,
+          youtubeUrl: 'https://cdn.test/source-replacement.mp4',
+        }),
+      );
+      expect(retry).toHaveBeenCalledOnce();
+    });
   });
 });

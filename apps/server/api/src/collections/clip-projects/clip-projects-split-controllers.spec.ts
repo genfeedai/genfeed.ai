@@ -1,6 +1,7 @@
 import { ClipProjectHandoffsController } from '@api/collections/clip-projects/clip-project-handoffs.controller';
 import { ClipProjectHighlightsController } from '@api/collections/clip-projects/clip-project-highlights.controller';
 import { ClipProjectIngestionController } from '@api/collections/clip-projects/clip-project-ingestion.controller';
+import { ClipProjectPublicToolController } from '@api/collections/clip-projects/clip-project-public-tool.controller';
 import { ClipProjectReferenceFramesController } from '@api/collections/clip-projects/clip-project-reference-frames.controller';
 import { ClipProjectsController } from '@api/collections/clip-projects/clip-projects.controller';
 import { ClipProjectsModule } from '@api/collections/clip-projects/clip-projects.module';
@@ -138,6 +139,7 @@ describe('Clip Projects split controllers', () => {
       ClipProjectIngestionController,
       ClipProjectHighlightsController,
       ClipProjectHandoffsController,
+      ClipProjectPublicToolController,
       ClipProjectReferenceFramesController,
       ClipProjectsController,
     ]);

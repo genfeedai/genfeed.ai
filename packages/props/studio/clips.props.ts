@@ -1,16 +1,20 @@
 import type {
   ClipLibraryLinkStatus,
+  ClipRawCutFramingContract,
+  ClipRawCutMediaValidationContract,
   ClipReadinessContract,
   ClipReadyAction,
   ClipReferenceFrameSet,
   ClipResultMode,
   ClipResultStatus,
+  ClipSourceContract,
+  ClipSourceKind,
   HookClipApprovalStatus,
 } from '@genfeedai/interfaces';
 
 // ─── Shared Types ─────────────────────────────────────────────────
 
-export type AvatarProvider = 'argil' | 'heygen';
+export type AvatarProvider = 'argil' | 'genfeedai' | 'heygen';
 
 export type ClipStatus = ClipResultStatus;
 
@@ -26,6 +30,8 @@ export interface ClipProjectSummary {
   failedClipCount: number;
   id: string;
   mode?: ClipResultMode;
+  framing?: ClipRawCutFramingContract;
+  mediaValidation?: ClipRawCutMediaValidationContract;
   name: string;
   pendingClipCount: number;
   progress: number;
@@ -69,6 +75,7 @@ export interface ClipResult {
   ingredientId?: string | null;
   libraryLinkStatus?: ClipLibraryLinkStatus;
   libraryLinkError?: string | null;
+  mediaValidation?: ClipRawCutMediaValidationContract;
   mode?: ClipResultMode;
   duration: number;
   startTime: number;
@@ -84,6 +91,7 @@ export interface ProjectState {
   estimatedClips?: number;
   mode: ClipResultMode;
   referenceFrames?: ClipReferenceFrameSet;
+  source?: ClipSourceContract;
   hookApproval?: HookClipApprovalStatus;
 }
 
@@ -119,7 +127,12 @@ export interface ClipsInputFormProps {
   onSetMaxClips: (value: number) => void;
   onSetMinViralityScore: (value: number) => void;
   onSetYoutubeUrl: (value: string) => void;
+  onSetSourceFile: (file: File | null) => void;
+  onSetSourceKind: (kind: ClipSourceKind) => void;
   quickStartHint: string;
+  sourceFile: File | null;
+  sourceKind: ClipSourceKind;
+  uploadProgress: number;
   youtubeUrl: string;
 }
 

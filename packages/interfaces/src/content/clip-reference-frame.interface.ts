@@ -78,11 +78,13 @@ export interface ClipProjectReadResponse {
   progress?: number;
   readyClipCount?: number;
   referenceFrames?: ClipReferenceFrameSet;
+  source?: import('./clip-source.interface').ClipSourceContract;
   settings?: {
     maxClips?: number;
     mode?: string;
   };
   sourceVideoUrl?: string;
+  sourceVideoS3Key?: string;
   status?: string;
 }
 

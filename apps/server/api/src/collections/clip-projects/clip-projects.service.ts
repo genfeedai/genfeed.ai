@@ -4,7 +4,7 @@ import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import {
   buildClipProjectReadiness,
-  isTerminalClipStatus,
+  isTerminalClipProjectStatus,
 } from '@api/collections/clip-shared/clip-terminal-contract.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
@@ -17,7 +17,11 @@ import {
   ClipReferenceFrameValidationError,
   normalizeClipReferenceFrameSet,
 } from '@genfeedai/helpers';
-import type { ClipReferenceFrameSet } from '@genfeedai/interfaces';
+import type {
+  ClipReferenceFrameSet,
+  ClipSourceContract,
+} from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -25,6 +29,10 @@ type ClipProjectWriteDto = Partial<
   CreateClipProjectDto & UpdateClipProjectDto
 > &
   Record<string, unknown>;
+
+type ClipProjectCreateInput = CreateClipProjectDto & {
+  readonly source?: ClipSourceContract;
+};
 
 const PROJECT_SCALAR_KEYS = new Set([
   'brandId',
@@ -64,7 +72,7 @@ export class ClipProjectsService extends BaseService<
   }
 
   override async create(
-    createDto: CreateClipProjectDto,
+    createDto: ClipProjectCreateInput,
     populate: PopulateInput = [],
   ): Promise<ClipProjectDocument> {
     return await super.create(
@@ -192,7 +200,9 @@ export class ClipProjectsService extends BaseService<
       (result) => this.readString(result.status) === 'completed',
     ).length;
     const failedClipCount = results.filter(
-      (result) => this.readString(result.status) === 'failed',
+      (result) =>
+        this.readString(result.status) === 'failed' ||
+        this.readString(result.status) === 'degraded',
     ).length;
     const pendingClipCount = results.length - readyClipCount - failedClipCount;
 
@@ -207,8 +217,12 @@ export class ClipProjectsService extends BaseService<
       update.progress = 100;
 
       if (readyClipCount > 0) {
-        update.error = null;
-        update.status = 'completed';
+        update.error =
+          failedClipCount > 0
+            ? `${failedClipCount} clip${failedClipCount === 1 ? '' : 's'} require${failedClipCount === 1 ? 's' : ''} retry or review.`
+            : null;
+        update.status =
+          failedClipCount > 0 ? 'partially-completed' : 'completed';
       } else {
         update.error = 'All clip generations failed.';
         update.status = 'failed';
@@ -227,6 +241,33 @@ export class ClipProjectsService extends BaseService<
     }
 
     return this.patch(canonicalProjectId, update, [], organizationId);
+  }
+
+  async claimFailedResultRetry(
+    projectId: string,
+    organizationId: string,
+    pendingClipCount: number,
+  ): Promise<boolean> {
+    const result = await this.prisma.clipProject.updateMany({
+      data: {
+        error: null,
+        failedClipCount: 0,
+        pendingClipCount,
+        readiness: buildClipProjectReadiness({
+          status: 'generating',
+        }) as unknown as Prisma.InputJsonValue,
+        status: 'generating',
+        terminalAt: null,
+      },
+      where: {
+        id: projectId,
+        isDeleted: false,
+        organizationId,
+        status: { in: ['failed', 'partially-completed'] },
+      },
+    });
+
+    return result.count === 1;
   }
 
   private toPrismaWriteData(
@@ -296,7 +337,7 @@ export class ClipProjectsService extends BaseService<
     }
 
     if (
-      isTerminalClipStatus(data.status) &&
+      isTerminalClipProjectStatus(data.status) &&
       !Object.hasOwn(data, 'terminalAt')
     ) {
       data.terminalAt = new Date();

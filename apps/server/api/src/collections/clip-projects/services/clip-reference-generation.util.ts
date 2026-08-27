@@ -54,6 +54,10 @@ export const CLIP_REFERENCE_CAPABILITIES = {
       reason: UNSUPPORTED_AVATAR_REFERENCE_REASON,
       supported: false,
     },
+    genfeedai: {
+      nativeField: 'imageUrl',
+      supported: true,
+    },
     heygen: {
       nativeField: 'photo_url',
       supported: true,

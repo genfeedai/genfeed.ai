@@ -52,6 +52,7 @@ import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
+import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { SignupPrefillModule } from '@api/services/signup-prefill/signup-prefill.module';
 import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor.module';
@@ -156,6 +157,7 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => OutreachCampaignsModule),
     forwardRef(() => PostsModule),
+    PublicClipToolStoreModule,
     forwardRef(() => ReplyBotConfigsModule),
     forwardRef(() => SocialInboxModule),
     forwardRef(() => VoicesModule),

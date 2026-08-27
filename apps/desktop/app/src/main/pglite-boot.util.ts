@@ -1,7 +1,7 @@
 import { PGlite, type PGliteOptions } from '@electric-sql/pglite';
 
 /**
- * PGlite 0.5.5's Emscripten runtime records an internal proc_exit(99) while
+ * PGlite's Emscripten runtime records an internal proc_exit(99) while
  * the WASM module boots, which assigns `process.exitCode = 99` even though
  * the database comes up healthy. Left alone, every process that merely
  * opened a database — the packaged Electron main process and `bun test`

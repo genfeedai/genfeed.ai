@@ -4,7 +4,9 @@ import { GenerationType } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import {
   type AgentClipRunIdentity,
+  type ClipProcessingFlow,
   type ClipProjectReadResponse,
+  type ClipSourceKind,
   type IBrand,
   type IOrganizationSetting,
   isClipResultMode,
@@ -25,7 +27,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { ClipsApiService } from './services/clips-api.service';
 
-const TERMINAL_PROJECT_STATUSES = new Set(['completed', 'failed']);
+const TERMINAL_PROJECT_STATUSES = new Set([
+  'completed',
+  'failed',
+  'partially-completed',
+]);
 
 type StudioClipIdentityField = 'avatar' | 'voice';
 type StudioClipIdentitySource =
@@ -192,6 +198,7 @@ const PROGRESS_STATUSES = new Set([
   'completed',
   'failed',
   'generating',
+  'partially-completed',
 ]);
 
 export function resolveClipsStepFromStatus(status?: string): ClipsStep {
@@ -236,6 +243,9 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
 
   // Form state
   const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [sourceKind, setSourceKind] = useState<ClipSourceKind>('youtube');
+  const [sourceFile, setSourceFileState] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [avatarId, setAvatarId] = useState('');
   const [voiceId, setVoiceId] = useState('');
   const [avatarProvider, setAvatarProvider] =
@@ -377,6 +387,7 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
           mode,
           projectId: projectIdFromRoute,
           referenceFrames: data.referenceFrames,
+          source: data.source,
           status,
         });
         setGenerationMode(mode);
@@ -408,10 +419,104 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     };
   }, [clipsService, projectIdFromRoute]);
 
+  const setSourceFile = useCallback((file: File | null) => {
+    setSourceFileState(file);
+    setUploadProgress(0);
+    if (file?.type.startsWith('audio/')) {
+      setGenerationMode('avatar');
+    }
+  }, []);
+
+  const startUploadedSource = useCallback(
+    async (flow: ClipProcessingFlow) => {
+      if (!sourceFile) {
+        throw new Error('Choose an audio or video file.');
+      }
+
+      const { avatarId: quickAvatarId, voiceId: quickVoiceId } =
+        resolveQuickAvatarIdentity({
+          avatarId,
+          avatarProvider,
+          identityDefaults,
+          voiceId,
+        });
+
+      if (
+        flow === 'quick' &&
+        generationMode === 'avatar' &&
+        (!quickAvatarId || !quickVoiceId)
+      ) {
+        throw new Error(
+          'Saved HeyGen avatar and voice defaults are required for one-click generation. Review highlights first to enter IDs manually.',
+        );
+      }
+
+      const prepared = await clipsService.prepareUpload({
+        ...(generationMode === 'avatar'
+          ? {
+              avatarId: quickAvatarId,
+              avatarProvider,
+              voiceId: quickVoiceId,
+            }
+          : {}),
+        brandId: selectedBrand?.id,
+        contentType: sourceFile.type || 'video/mp4',
+        filename: sourceFile.name,
+        flow,
+        language: 'en',
+        maxClips,
+        minViralityScore,
+        mode: generationMode,
+        sizeBytes: sourceFile.size,
+      });
+
+      await clipsService.uploadSource(
+        prepared.uploadUrl,
+        sourceFile,
+        setUploadProgress,
+      );
+      const started = await clipsService.finalizeUpload(prepared.projectId);
+      const persistedProject = await clipsService.getProject(
+        prepared.projectId,
+      );
+
+      setProject({
+        clips: [],
+        estimatedClips: started.estimatedClips,
+        highlights: [],
+        mode: generationMode,
+        projectId: prepared.projectId,
+        source: persistedProject.source,
+        status: flow === 'review' ? 'analyzing' : started.status,
+      });
+      setSelectedIds(new Set());
+      setEditedHighlights([]);
+      setStep(flow === 'review' ? 'review' : 'progress');
+      goToProject(prepared.projectId);
+    },
+    [
+      avatarId,
+      avatarProvider,
+      clipsService,
+      generationMode,
+      goToProject,
+      identityDefaults,
+      maxClips,
+      minViralityScore,
+      selectedBrand?.id,
+      sourceFile,
+      voiceId,
+    ],
+  );
+
   // ─── Step 1: Analyze ─────────────────────────────────────────
   const handleAnalyze = useCallback(async () => {
-    if (!youtubeUrl) {
+    if (sourceKind === 'youtube' && !youtubeUrl) {
       setError('YouTube URL is required.');
+      return;
+    }
+    if (sourceKind === 'upload' && !sourceFile) {
+      setError('Choose an audio or video file.');
       return;
     }
 
@@ -419,6 +524,10 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     setError(null);
 
     try {
+      if (sourceKind === 'upload') {
+        await startUploadedSource('review');
+        return;
+      }
       const data = await clipsService.analyzeVideo({
         brandId: selectedBrand?.id,
         language: 'en',
@@ -444,18 +553,25 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     }
   }, [
     youtubeUrl,
+    sourceFile,
+    sourceKind,
     selectedBrand?.id,
     maxClips,
     minViralityScore,
     generationMode,
     clipsService,
     goToProject,
+    startUploadedSource,
   ]);
 
   // ─── Step 1: One-click YouTube clip factory ───────────────────
   const handleStartFromYoutube = useCallback(async () => {
-    if (!youtubeUrl) {
+    if (sourceKind === 'youtube' && !youtubeUrl) {
       setError('YouTube URL is required.');
+      return;
+    }
+    if (sourceKind === 'upload' && !sourceFile) {
+      setError('Choose an audio or video file.');
       return;
     }
 
@@ -478,10 +594,17 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     setError(null);
     clipCompletionReportedRef.current = null;
     captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_STARTED, {
+      clipFlow: 'quick',
+      clipMode: generationMode,
+      clipSourceKind: sourceKind,
       generationType: GenerationType.CLIP,
     });
 
     try {
+      if (sourceKind === 'upload') {
+        await startUploadedSource('quick');
+        return;
+      }
       const data = await clipsService.createFromYoutube({
         ...(generationMode === 'avatar'
           ? {
@@ -516,6 +639,9 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
       goToProject(data.projectId);
     } catch (err: unknown) {
       captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
+        clipFlow: 'quick',
+        clipMode: generationMode,
+        clipSourceKind: sourceKind,
         generationType: GenerationType.CLIP,
         outcome: 'failure',
       });
@@ -525,6 +651,8 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     }
   }, [
     youtubeUrl,
+    sourceFile,
+    sourceKind,
     avatarId,
     voiceId,
     identityDefaults,
@@ -535,6 +663,7 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     minViralityScore,
     clipsService,
     goToProject,
+    startUploadedSource,
   ]);
 
   // ─── Poll for analysis completion ─────────────────────────────
@@ -702,6 +831,66 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     }
   }, [failedReferenceFrameId, handleSelectReferenceFrame]);
 
+  const handleRetrySource = useCallback(async () => {
+    if (!project?.projectId) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      await clipsService.retrySource(project.projectId);
+      setProject((previous) =>
+        previous
+          ? {
+              ...previous,
+              source: previous.source
+                ? {
+                    ...previous.source,
+                    failure: null,
+                    retryCount: previous.source.retryCount + 1,
+                    status: 'queued',
+                    updatedAt: new Date().toISOString(),
+                  }
+                : undefined,
+              status: 'pending',
+            }
+          : previous,
+      );
+    } catch (retryError: unknown) {
+      setError(
+        retryError instanceof Error
+          ? retryError.message
+          : 'The source could not be retried.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [clipsService, project?.projectId]);
+
+  const handleRetryFailedClips = useCallback(async () => {
+    if (!project?.projectId) {
+      return;
+    }
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      await clipsService.retryFailedClips(project.projectId);
+      clipCompletionReportedRef.current = null;
+      setProject((previous) =>
+        previous ? { ...previous, status: 'generating' } : previous,
+      );
+    } catch (retryError: unknown) {
+      setError(
+        retryError instanceof Error
+          ? retryError.message
+          : 'Failed clips could not be retried.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [clipsService, project?.projectId]);
+
   // ─── Step 2: Generate selected highlights ─────────────────────
   const handleGenerate = useCallback(async () => {
     if (!project?.projectId) {
@@ -709,8 +898,21 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
       return;
     }
 
-    if (generationMode === 'avatar' && (!avatarId || !voiceId)) {
+    if (
+      generationMode === 'avatar' &&
+      avatarProvider !== 'genfeedai' &&
+      (!avatarId || !voiceId)
+    ) {
       setError('Avatar ID and Voice ID are required to generate clips.');
+      return;
+    }
+
+    if (
+      generationMode === 'avatar' &&
+      avatarProvider === 'genfeedai' &&
+      !project.referenceFrames?.selectedCandidateId
+    ) {
+      setError('Select a reference frame for managed GenfeedAI generation.');
       return;
     }
 
@@ -728,13 +930,19 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     setError(null);
     clipCompletionReportedRef.current = null;
     captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_STARTED, {
+      clipFlow: 'review',
+      clipMode: generationMode,
+      clipSourceKind: project.source?.kind ?? 'youtube',
       generationType: GenerationType.CLIP,
     });
 
     try {
       await clipsService.generateClips(project.projectId, {
         ...(generationMode === 'avatar'
-          ? { avatarId, avatarProvider, voiceId }
+          ? {
+              avatarProvider,
+              ...(avatarProvider === 'genfeedai' ? {} : { avatarId, voiceId }),
+            }
           : {}),
         editedHighlights: selectedEditedHighlights.map((highlight) => ({
           id: highlight.id,
@@ -752,6 +960,9 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     } catch (err: unknown) {
       clipCompletionReportedRef.current = project.projectId;
       captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
+        clipFlow: 'review',
+        clipMode: generationMode,
+        clipSourceKind: project.source?.kind ?? 'youtube',
         generationType: GenerationType.CLIP,
         outcome: 'failure',
       });
@@ -761,6 +972,8 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     }
   }, [
     project?.projectId,
+    project?.source?.kind,
+    project?.referenceFrames?.selectedCandidateId,
     avatarId,
     voiceId,
     avatarProvider,
@@ -820,7 +1033,15 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
         const projectStatus = projectData.status ?? 'generating';
 
         setProject((prev) =>
-          prev ? { ...prev, clips, hookApproval, status: projectStatus } : prev,
+          prev
+            ? {
+                ...prev,
+                clips,
+                hookApproval,
+                source: projectData.source ?? prev.source,
+                status: projectStatus,
+              }
+            : prev,
         );
 
         if (TERMINAL_PROJECT_STATUSES.has(projectStatus)) {
@@ -828,6 +1049,9 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
           if (clipCompletionReportedRef.current !== project.projectId) {
             clipCompletionReportedRef.current = project.projectId;
             captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
+              clipFlow: project.source?.flow ?? 'quick',
+              clipMode: project.mode,
+              clipSourceKind: project.source?.kind ?? 'youtube',
               generationType: GenerationType.CLIP,
               outcome: projectStatus === 'failed' ? 'failure' : 'success',
             });
@@ -857,7 +1081,15 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
         clipsPollTimeoutRef.current = null;
       }
     };
-  }, [step, project?.projectId, clipsService, isDocumentVisible]);
+  }, [
+    step,
+    project?.projectId,
+    project?.mode,
+    project?.source?.flow,
+    project?.source?.kind,
+    clipsService,
+    isDocumentVisible,
+  ]);
 
   // ─── Highlight edit helpers ────────────────────────────────────
   const toggleHighlight = useCallback((id: string) => {
@@ -891,6 +1123,8 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     setFailedReferenceFrameId(null);
     setReferenceFrameError(null);
     setResolvedIdentity(null);
+    setSourceFileState(null);
+    setUploadProgress(0);
     router.push(href(APP_ROUTES.STUDIO.CLIPS));
   }, [href, router]);
 
@@ -905,6 +1139,8 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     generationMode,
     handleAnalyze,
     handleGenerate,
+    handleRetryFailedClips,
+    handleRetrySource,
     handleSelectReferenceFrame,
     handleStartFromYoutube,
     identityDefaults,
@@ -924,13 +1160,18 @@ export function useStudioClipsPage(options?: { projectId?: string }) {
     setGenerationMode,
     setMaxClips,
     setMinViralityScore,
+    setSourceFile,
+    setSourceKind,
     setVoiceId,
     setYoutubeUrl,
     step,
+    sourceFile,
+    sourceKind,
     toggleHighlight,
     updateHighlightScript,
     updateHighlightTitle,
     voiceId,
     youtubeUrl,
+    uploadProgress,
   };
 }

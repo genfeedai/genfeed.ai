@@ -19,10 +19,16 @@ import { PublicNewslettersController } from '@api/endpoints/public/controllers/n
 import { PublicPostsController } from '@api/endpoints/public/controllers/posts/public.posts.controller';
 import { PublicRSSController } from '@api/endpoints/public/controllers/rss/rss.controller';
 import { PublicVideosController } from '@api/endpoints/public/controllers/videos/public.videos.controller';
+import { PublicYoutubeClipsController } from '@api/endpoints/public/controllers/youtube-clips/public-youtube-clips.controller';
 import { NewsletterImportFeedService } from '@api/endpoints/public/services/newsletter-import-feed.service';
 import { PublicMediaService } from '@api/endpoints/public/services/public-media.service';
+import { PublicYoutubeClipsService } from '@api/endpoints/public/services/public-youtube-clips.service';
 import { RssService } from '@api/endpoints/public/services/rss.service';
+import { ClipAnalyzeModule } from '@api/queues/clip-analyze/clip-analyze.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
+import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
+import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
+import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -38,12 +44,16 @@ import { Module } from '@nestjs/common';
     PublicPostsController,
     PublicRSSController,
     PublicVideosController,
+    PublicYoutubeClipsController,
   ],
   exports: [],
   imports: [
     ArticlesModule,
     BrandsCoreModule,
+    ClipAnalyzeModule,
     FilesClientModule,
+    FileQueueModule,
+    HttpModule,
     ImagesModule,
     IngredientsModule,
     LinksModule,
@@ -51,8 +61,14 @@ import { Module } from '@nestjs/common';
     MusicsModule,
     NewslettersModule,
     PostsModule,
+    PublicClipToolStoreModule,
     VideosModule,
   ],
-  providers: [NewsletterImportFeedService, PublicMediaService, RssService],
+  providers: [
+    NewsletterImportFeedService,
+    PublicMediaService,
+    PublicYoutubeClipsService,
+    RssService,
+  ],
 })
 export class PublicModule {}

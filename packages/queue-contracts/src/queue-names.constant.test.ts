@@ -67,17 +67,23 @@ describe('clip avatar provider contracts', () => {
   it('keeps future provider names known while only advertising implemented providers', () => {
     expect(AVATAR_VIDEO_PROVIDER_NAMES).toEqual([
       'argil',
+      'genfeedai',
       'heygen',
       'did',
       'tavus',
       'musetalk',
     ]);
-    expect(SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES).toEqual(['heygen', 'argil']);
+    expect(SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES).toEqual([
+      'heygen',
+      'argil',
+      'genfeedai',
+    ]);
   });
 
   it('recognizes only production-ready avatar providers as supported', () => {
     expect(isSupportedAvatarVideoProviderName('heygen')).toBe(true);
     expect(isSupportedAvatarVideoProviderName('argil')).toBe(true);
+    expect(isSupportedAvatarVideoProviderName('genfeedai')).toBe(true);
     expect(isSupportedAvatarVideoProviderName('did')).toBe(false);
     expect(isSupportedAvatarVideoProviderName('tavus')).toBe(false);
     expect(isSupportedAvatarVideoProviderName('musetalk')).toBe(false);

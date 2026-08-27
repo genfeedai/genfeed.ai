@@ -41,4 +41,27 @@ describe('ClipProjectSerializer reference-frame contract', () => {
 
     expect('referenceFrames' in output.data.attributes).toBe(false);
   });
+
+  it('exposes the durable source lifecycle without upload credentials', () => {
+    const source = {
+      fingerprint: 'sha256:source-1',
+      flow: 'quick',
+      ingredientId: 'ingredient-1',
+      kind: 'upload',
+      maxRetries: 3,
+      retryCount: 0,
+      schemaVersion: 1,
+      status: 'queued',
+      updatedAt: '2026-08-26T12:00:00.000Z',
+    };
+
+    const output = ClipProjectSerializer.serialize({
+      id: 'project-upload',
+      source,
+      status: 'pending',
+    }) as SerializedResource;
+
+    expect(output.data.attributes.source).toEqual(source);
+    expect(JSON.stringify(output)).not.toContain('uploadUrl');
+  });
 });

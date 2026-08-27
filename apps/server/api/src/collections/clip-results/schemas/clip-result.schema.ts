@@ -2,6 +2,8 @@ import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief
 import {
   CLIP_RESULT_STATUSES,
   type ClipLibraryLinkStatus,
+  type ClipRawCutFramingContract,
+  type ClipRawCutMediaValidationContract,
   type ClipReadinessContract,
   type ClipReferenceProvenance,
   type ClipResultMode,
@@ -46,6 +48,8 @@ export interface ClipResultDocument extends ClipResultRecord {
   ingredientId?: string | null;
   libraryLinkStatus?: ClipLibraryLinkStatus | string | null;
   libraryLinkError?: string | null;
+  framing?: ClipRawCutFramingContract;
+  mediaValidation?: ClipRawCutMediaValidationContract;
   [key: string]: unknown;
 }
 
