@@ -5,6 +5,7 @@ import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
 } from '@server/services/integrations/openrouter/dto/openrouter.dto';
+import type { ChatCompletionMessageToolCall } from 'openai/resources/chat/completions';
 
 const mockCreate = vi.fn();
 
@@ -32,15 +33,6 @@ const makeParams = (
   temperature: 0.7,
   ...overrides,
 });
-
-type ChatCompletionMessageToolCall = {
-  function: {
-    arguments: string;
-    name: string;
-  };
-  id: string;
-  type: 'function';
-};
 
 const makeOpenAIResponse = (
   content: string | null = 'Hello back',

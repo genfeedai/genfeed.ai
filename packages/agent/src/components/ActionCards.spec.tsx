@@ -28,12 +28,20 @@ vi.mock(
   }),
 );
 
+function MockPostingSetPicker() {
+  return null;
+}
+
 vi.mock('@ui/publisher/PostingSetPicker', () => ({
-  default: () => null,
+  default: MockPostingSetPicker,
 }));
 
+function MockPostingSignaturePicker() {
+  return null;
+}
+
 vi.mock('@ui/publisher/PostingSignaturePicker', () => ({
-  default: () => null,
+  default: MockPostingSignaturePicker,
 }));
 
 describe('ReviewGateCard', () => {

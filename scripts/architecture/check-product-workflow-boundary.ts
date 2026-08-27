@@ -181,7 +181,8 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
   {
     id: 'social-inbox-direct-platform-action',
     matches: (file, source) =>
-      file.startsWith('apps/server/api/src/collections/social-inbox/') &&
+      (file.startsWith('apps/server/api/src/collections/social-inbox/') ||
+        file.startsWith('apps/server/server/src/collections/social-inbox/')) &&
       (/\byoutubeService\s*\.\s*postCommentReply\s*\(/.test(source) ||
         /\binstagramService\s*\.\s*(?:replyToComment|sendCommentReplyDm)\s*\(/.test(
           source,

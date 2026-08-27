@@ -108,6 +108,37 @@ describe('check-product-workflow-boundary', () => {
     );
   });
 
+  it('flags direct social inbox platform actions from the server source root', () => {
+    writeFixture(
+      'apps/server/server/src/collections/social-inbox/services/social-inbox.service.ts',
+      `
+        export class SocialInboxService {
+          async postReply(): Promise<void> {
+            await this.youtubeService.postCommentReply('org-1', 'brand-1', 'comment-1', 'hello');
+          }
+        }
+      `,
+    );
+
+    const result = runCheckProductWorkflowBoundary({ exceptions: [] });
+
+    expect(result.violations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'undocumented-product-workflow-boundary',
+        }),
+      ]),
+    );
+    expect(result.detections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          file: 'apps/server/server/src/collections/social-inbox/services/social-inbox.service.ts',
+          ruleId: 'social-inbox-direct-platform-action',
+        }),
+      ]),
+    );
+  });
+
   it('allows documented social inbox action migration exceptions', () => {
     writeFixture(
       'apps/server/api/src/collections/social-inbox/services/social-inbox.service.ts',
