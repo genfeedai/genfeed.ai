@@ -19,7 +19,7 @@ const DISCOVERY_ROOTS = ['test/e2e', 'test/integration'];
 const REPORT_DIRECTORY = 'test-results/api-e2e';
 const VITEST_CONFIG = 'vitest.config.e2e.ts';
 
-export type ApiE2eTier = 'core' | 'full';
+export type ApiE2eTier = 'core' | 'full' | 'isolated-publish';
 
 export type ApiE2eTierPlan = {
   discoveredFiles: string[];
@@ -108,14 +108,29 @@ export function validateApiE2eTierManifest(
   const coreDuplicates = duplicateValues(manifest.coreFiles);
   const excludedPaths = manifest.exclusions.map(({ file }) => file);
   const exclusionDuplicates = duplicateValues(excludedPaths);
+  const isolatedPublishFiles = manifest.isolatedPublishFiles ?? [];
+  const isolatedDuplicates = duplicateValues(isolatedPublishFiles);
   const errors: string[] = [];
 
   if (coreDuplicates.length > 0) {
     errors.push(`Duplicate core files: ${coreDuplicates.join(', ')}`);
   }
+  if (isolatedDuplicates.length > 0) {
+    errors.push(
+      `Duplicate isolated-publish files: ${isolatedDuplicates.join(', ')}`,
+    );
+  }
   for (const file of manifest.coreFiles) {
     if (!discovered.has(file)) {
       errors.push(`Core file is not discoverable: ${file}`);
+    }
+  }
+  for (const file of isolatedPublishFiles) {
+    if (!discovered.has(file)) {
+      errors.push(`Isolated-publish file is not discoverable: ${file}`);
+    }
+    if (manifest.coreFiles.includes(file)) {
+      errors.push(`Core file cannot also be isolated-publish: ${file}`);
     }
   }
 
@@ -139,6 +154,11 @@ export function validateApiE2eTierManifest(
       }
       if (manifest.coreFiles.includes(exclusion.file)) {
         errors.push(`Core file cannot also be excluded: ${exclusion.file}`);
+      }
+      if (isolatedPublishFiles.includes(exclusion.file)) {
+        errors.push(
+          `Isolated-publish file cannot also be excluded: ${exclusion.file}`,
+        );
       }
     }
   }
@@ -168,14 +188,30 @@ export function buildApiE2eTierPlan(options: {
   }
 
   const excludedPaths = new Set(manifest.exclusions.map(({ file }) => file));
+  const isolatedPaths = new Set(manifest.isolatedPublishFiles ?? []);
   const selectedFiles =
     options.tier === 'core'
       ? [...manifest.coreFiles]
-      : discoveredFiles.filter((file) => !excludedPaths.has(file));
+      : options.tier === 'isolated-publish'
+        ? [...(manifest.isolatedPublishFiles ?? [])]
+        : discoveredFiles.filter(
+            (file) => !excludedPaths.has(file) && !isolatedPaths.has(file),
+          );
+
+  const isolatedExclusions: ApiE2eExclusion[] = [
+    ...(manifest.isolatedPublishFiles ?? []),
+  ].map((file) => ({
+    file,
+    reason: 'Owned by the isolated-publish lane; not attached to core or full.',
+    trackingIssue: 3836,
+  }));
 
   return {
     discoveredFiles,
-    excludedFiles: options.tier === 'full' ? [...manifest.exclusions] : [],
+    excludedFiles:
+      options.tier === 'full'
+        ? [...manifest.exclusions, ...isolatedExclusions]
+        : [],
     selectedFiles,
     tier: options.tier,
   };
@@ -183,9 +219,13 @@ export function buildApiE2eTierPlan(options: {
 
 function parseCliOptions(args: string[]): CliOptions {
   const [tierValue, ...rest] = args;
-  if (tierValue !== 'core' && tierValue !== 'full') {
+  if (
+    tierValue !== 'core' &&
+    tierValue !== 'full' &&
+    tierValue !== 'isolated-publish'
+  ) {
     throw new Error(
-      'Usage: bun run scripts/api-e2e-tiers.ts <core|full> [--list] [vitest args...]',
+      'Usage: bun run scripts/api-e2e-tiers.ts <core|full|isolated-publish> [--list] [vitest args...]',
     );
   }
 

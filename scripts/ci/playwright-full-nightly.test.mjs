@@ -124,6 +124,11 @@ test('e2e.yml core and authed jobs remain the production deploy gates', () => {
 
   assert.match(gate, /needs: \[e2e-route-coverage, e2e-frontend, e2e-api\]/);
   assert.doesNotMatch(gate, /playwright-full|e2e-frontend-full|test:e2e:full/);
+  assert.doesNotMatch(
+    gate,
+    /e2e-isolated-publish|test:e2e:isolated-publish/,
+    'isolated-publish must not attach to the production e2e-gate',
+  );
   assert.match(frontend, /bun run test:e2e:sharded -- --reporter=blob/);
   assert.doesNotMatch(frontend, /test:e2e:full|playwright-e2e-tiers/);
   assert.match(authed, /bun run test:e2e:authed/);
@@ -134,7 +139,20 @@ test('e2e.yml core and authed jobs remain the production deploy gates', () => {
   );
 });
 
-test('canonical e2e tier contract documents core, authed, and full', () => {
+test('isolated-publish lane is nightly-only and off the production gate', () => {
+  const workflow = readWorkflow('e2e.yml');
+  const isolated = jobBlock(workflow, 'e2e-isolated-publish', 'e2e.yml');
+  const gate = jobBlock(workflow, 'e2e-gate', 'e2e.yml');
+
+  assert.match(isolated, /test:e2e:isolated-publish/);
+  assert.match(
+    isolated,
+    /github\.event_name == 'schedule' \|\| github\.event_name == 'workflow_dispatch'/,
+  );
+  assert.doesNotMatch(gate, /e2e-isolated-publish/);
+});
+
+test('canonical e2e tier contract documents core, authed, full, and isolated-publish', () => {
   const doc = readFileSync(
     path.join(REPOSITORY_ROOT, 'docs', 'e2e-tiers.md'),
     'utf8',
@@ -149,12 +167,13 @@ test('canonical e2e tier contract documents core, authed, and full', () => {
     ),
   );
 
-  for (const tier of ['core', 'authed', 'full']) {
+  for (const tier of ['core', 'authed', 'full', 'isolated-publish']) {
     assert.match(doc, new RegExp(`\`${tier}\``));
   }
   assert.match(doc, /test:e2e:core/);
   assert.match(doc, /test:e2e:authed/);
   assert.match(doc, /test:e2e:full/);
+  assert.match(doc, /test:e2e:isolated-publish/);
   assert.match(doc, /apps\/server\/api/);
   assert.equal(
     packageJson.scripts['test:e2e:core'].includes('--project=app-core'),
@@ -170,6 +189,10 @@ test('canonical e2e tier contract documents core, authed, and full', () => {
   );
   assert.equal(apiPackageJson.scripts['test:e2e:core'] !== undefined, true);
   assert.equal(apiPackageJson.scripts['test:e2e:full'] !== undefined, true);
+  assert.equal(
+    apiPackageJson.scripts['test:e2e:isolated-publish'] !== undefined,
+    true,
+  );
 });
 
 test('the existing executable-contract aggregate includes focused scheduled reporter tests', () => {

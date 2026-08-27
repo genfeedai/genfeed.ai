@@ -1,6 +1,6 @@
 # E2E Architecture — Genfeed.ai
 
-> **Last verified:** 2026-08-14 (Playwright `full` nightly is reporting-only; core/authed deploy gates unchanged)
+> **Last verified:** 2026-08-27 (isolated-publish lane is nightly/`workflow_dispatch` only; core/authed deploy gates unchanged)
 > **Source of truth:** `.github/workflows/e2e.yml`, `playwright/`, `apps/server/api/test/`, `packages/prisma/`
 >
 > **Tier contract (`core` / `authed` / `full`):** [`docs/e2e-tiers.md`](../../../docs/e2e-tiers.md).
@@ -44,13 +44,14 @@ Top-level env: `TURBO_TOKEN` (secret) + `TURBO_TEAM` (var) enable Turborepo remo
 
 ---
 
-## 2. Jobs (7 — the frontend suite is sharded 4-way, with separate API core/full tiers)
+## 2. Jobs (8 — the frontend suite is sharded 4-way, with separate API core/full/isolated-publish tiers)
 
 | Job id | Display name | Runner / timeout | Blocking? | What it runs |
 |---|---|---|---|---|
 | `e2e-route-coverage` | E2E Route Coverage Gate | ubuntu / 5m | **yes** (via gate) | `node scripts/e2e-route-coverage.mjs` |
 | `e2e-api` | API E2E Tests | ubuntu / 20m | **yes** (via gate) | Postgres + Redis service containers, package build, Prisma migrate deploy, `test:e2e:core` |
 | `e2e-api-full` | API E2E Full | ubuntu / 30m | **manual/nightly only** | Discovery-based compatible E2E/integration suite; skipped on production `workflow_call` |
+| `e2e-isolated-publish` | Isolated Publish E2E | ubuntu / 20m | **nightly + workflow_dispatch only** | Disposable Postgres/Redis publish journey (`test:e2e:isolated-publish`). Fake publishers. Never attached to `e2e-gate` or production `workflow_call`. #3836 |
 | `e2e-frontend` | Frontend E2E (Shard N/4) | ubuntu / 45m | **yes** (via gate) | matrix 4 shards, `fail-fast:false`, `bun run test:e2e:sharded -- --reporter=blob` |
 | `e2e-merge-reports` | Merge E2E Reports | ubuntu / 10m | no (`if: always()`) | `playwright merge-reports` → single HTML report |
 | `e2e-gate` | E2E Gate (all shards) | ubuntu / 5m | **yes — the aggregator** | bash check of `e2e-route-coverage` + `e2e-frontend` + `e2e-api` results (fails on any required job failure OR cancellation) |

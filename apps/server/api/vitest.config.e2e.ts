@@ -53,6 +53,14 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../server/src/$1'),
       },
       {
+        find: '@workers',
+        replacement: path.resolve(serviceDir, '../workers/src'),
+      },
+      {
+        find: /^@workers\/(.*)$/,
+        replacement: path.resolve(serviceDir, '../workers/src/$1'),
+      },
+      {
         find: /^@api-types\/(.*)$/,
         replacement: path.resolve(
           serviceDir,

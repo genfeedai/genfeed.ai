@@ -36,9 +36,11 @@ function createFixture(files: string[]): string {
 const manifest = (
   coreFiles: string[],
   exclusions: ApiE2eTierManifest['exclusions'] = [],
+  isolatedPublishFiles: string[] = [],
 ): ApiE2eTierManifest => ({
   coreFiles,
   exclusions,
+  isolatedPublishFiles,
 });
 
 describe('API E2E tiers', () => {
@@ -92,6 +94,40 @@ describe('API E2E tiers', () => {
         tier: 'core',
       }).selectedFiles,
     ).toEqual(['test/e2e/core.e2e-spec.ts']);
+    expect(
+      buildApiE2eTierPlan({
+        manifest: tierManifest,
+        rootDir,
+        tier: 'full',
+      }).selectedFiles,
+    ).toEqual([
+      'test/e2e/core.e2e-spec.ts',
+      'test/integration/new.integration.spec.ts',
+    ]);
+  });
+
+  it('keeps isolated-publish specs off core and full', () => {
+    const isolatedFile =
+      'test/integration/isolated-publish/lane.integration.spec.ts';
+    const files = [
+      'test/e2e/core.e2e-spec.ts',
+      isolatedFile,
+      'test/integration/new.integration.spec.ts',
+    ];
+    const rootDir = createFixture(files);
+    const tierManifest = manifest(
+      ['test/e2e/core.e2e-spec.ts'],
+      [],
+      [isolatedFile],
+    );
+
+    expect(
+      buildApiE2eTierPlan({
+        manifest: tierManifest,
+        rootDir,
+        tier: 'isolated-publish',
+      }).selectedFiles,
+    ).toEqual([isolatedFile]);
     expect(
       buildApiE2eTierPlan({
         manifest: tierManifest,

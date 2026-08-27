@@ -6,10 +6,16 @@ export type ApiE2eExclusion = {
 
 export type ApiE2eTierManifest = {
   coreFiles: string[];
+  isolatedPublishFiles: string[];
   exclusions: ApiE2eExclusion[];
 };
 
 export const API_E2E_TIER_MANIFEST: ApiE2eTierManifest = {
+  isolatedPublishFiles: [
+    'test/integration/isolated-publish/isolated-db-lane.integration.spec.ts',
+    'test/integration/isolated-publish/approval-mint-enqueue.integration.spec.ts',
+    'test/integration/isolated-publish/worker-publish-refusal.integration.spec.ts',
+  ],
   coreFiles: [
     'test/e2e/integrations.e2e-spec.ts',
     'test/integration/brand-remix-paid-draft.integration.spec.ts',
