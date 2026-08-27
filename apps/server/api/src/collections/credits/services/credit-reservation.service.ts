@@ -8,6 +8,7 @@ import {
   ActivitySource,
   CreditReservationStatus,
   CreditTransactionCategory,
+  parseCreditReservationStatus,
 } from '@genfeedai/enums';
 import type {
   ICreditReservation,
@@ -300,7 +301,7 @@ export class CreditReservationService {
     actorUserId: string | null;
     amount: number;
     settledAmount: number | null;
-    status: CreditReservationStatus;
+    status: string;
     workloadType: string | null;
     workloadId: string | null;
     idempotencyKey: string;
@@ -320,7 +321,7 @@ export class CreditReservationService {
       isDeleted: row.isDeleted,
       organizationId: row.organizationId,
       settledAmount: row.settledAmount,
-      status: row.status,
+      status: parseCreditReservationStatus(row.status),
       updatedAt: row.updatedAt.toISOString(),
       workloadId: row.workloadId,
       workloadType: row.workloadType,
