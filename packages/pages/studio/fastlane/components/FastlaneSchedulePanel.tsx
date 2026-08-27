@@ -20,6 +20,7 @@ const SHORT_FORM_PLATFORMS = ['tiktok', 'instagram', 'youtube'];
 
 interface FastlaneSchedulePanelProps {
   assets: FastlaneAssetItem[];
+  brandId: string;
   credentials: ICredential[];
   isScheduling: boolean;
   timezone: string;
@@ -35,6 +36,7 @@ interface CredentialTarget {
 
 export default function FastlaneSchedulePanel({
   assets,
+  brandId,
   credentials,
   isScheduling,
   timezone,
@@ -142,6 +144,7 @@ export default function FastlaneSchedulePanel({
             return;
           }
           void createSet({
+            brandId: brandId || undefined,
             label,
             targets: selected.flatMap((target, order) => {
               const platform = parsePlatform(target.platform);
