@@ -495,7 +495,9 @@ test.describe('Clip Factory', () => {
     await expect(
       authenticatedPage.getByText('Edited Hook Title'),
     ).toBeVisible();
-    await expect(authenticatedPage.getByText(/review required/i)).toBeVisible();
+    await expect(
+      authenticatedPage.getByText(/review required/i).first(),
+    ).toBeVisible();
     await authenticatedPage
       .getByRole('button', { name: /retry failed clips/i })
       .click();
