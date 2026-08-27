@@ -1,4 +1,5 @@
 import type {
+  CreateReleaseGroupInput,
   RecurrencePreviewInput,
   RecurrencePreviewResult,
   UpdateChannelTargetInput,
@@ -118,6 +119,18 @@ export class ReleaseGroupsService extends HTTPBaseService {
     );
 
     return extractResource<IReleaseGroup>(response.data);
+  }
+
+  async create(
+    input: CreateReleaseGroupInput,
+    signal?: AbortSignal,
+  ): Promise<IReleaseGroup> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      '',
+      input,
+      { signal },
+    );
+    return deserializeResource<IReleaseGroup>(response.data);
   }
 
   async getOne(groupId: string, signal?: AbortSignal): Promise<IReleaseGroup> {

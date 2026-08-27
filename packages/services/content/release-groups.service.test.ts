@@ -1,5 +1,6 @@
 import {
   CredentialPlatform,
+  PostVisibility,
   ReleaseStatus,
   ReleaseTargetSource,
   TargetExecutionState,
@@ -12,12 +13,14 @@ const {
   mockExtractResource,
   mockGet,
   mockPatch,
+  mockPost,
 } = vi.hoisted(() => ({
   mockDeserializeResource: vi.fn(),
   mockExtractCollection: vi.fn(),
   mockExtractResource: vi.fn(),
   mockGet: vi.fn(),
   mockPatch: vi.fn(),
+  mockPost: vi.fn(),
 }));
 
 vi.mock('@services/core/environment.service', () => ({
@@ -27,7 +30,7 @@ vi.mock('@services/core/environment.service', () => ({
 vi.mock('@services/core/interceptor.service', () => ({
   HTTPBaseService: class MockHTTPBaseService {
     public baseURL: string;
-    public instance = { get: mockGet, patch: mockPatch };
+    public instance = { get: mockGet, patch: mockPatch, post: mockPost };
 
     constructor(baseURL: string) {
       this.baseURL = baseURL;
@@ -234,5 +237,32 @@ describe('ReleaseGroupsService', () => {
     expect(mockPatch).toHaveBeenCalledWith('/release-1/targets/target-9', {
       executionState: TargetExecutionState.SCHEDULED,
     });
+  });
+
+  it('creates a release group through POST /', async () => {
+    const document = { data: { id: 'release-1' } };
+    const release = { id: 'release-1', title: 'Hook' };
+    mockPost.mockResolvedValue({ data: document });
+    mockDeserializeResource.mockReturnValue(release);
+    const input = {
+      baseContent: 'Caption',
+      status: ReleaseStatus.DRAFT,
+      targets: [
+        {
+          credentialId: 'cred-1',
+          order: 0,
+          platform: CredentialPlatform.TIKTOK,
+          visibility: PostVisibility.PUBLIC,
+        },
+      ],
+      timezone: 'UTC',
+      title: 'Hook',
+    };
+
+    await expect(
+      new ReleaseGroupsService('token').create(input),
+    ).resolves.toEqual(release);
+    expect(mockPost).toHaveBeenCalledWith('', input, { signal: undefined });
+    expect(mockDeserializeResource).toHaveBeenCalledWith(document);
   });
 });
