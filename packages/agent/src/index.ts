@@ -218,6 +218,11 @@ export {
   deriveHistoricalTimeline,
   deriveTimeline,
 } from '@genfeedai/agent/utils/derive-timeline';
+export {
+  extractLastGeneratedAssetFromMessages,
+  extractLastGeneratedAssetFromMetadata,
+  resolveLastGeneratedAsset,
+} from '@genfeedai/agent/utils/extract-last-generated-asset.util';
 export { formatDuration } from '@genfeedai/agent/utils/format-duration';
 export { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 export type {

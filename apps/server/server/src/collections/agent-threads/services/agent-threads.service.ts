@@ -1,12 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
-import type { AgentRunDocument } from '@server/collections/agent-runs/schemas/agent-run.schema';
-import type { AgentRoomDocument } from '@server/collections/agent-threads/schemas/agent-thread.schema';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import type { AgentThreadSnapshotDocument } from '@server/services/agent-threading/schemas/agent-thread-snapshot.schema';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BaseService } from '@server/shared/services/base/base.service';
-import { resolveLastGeneratedAsset } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
+import { resolveLastGeneratedAsset } from '@genfeedai/agent';
 import {
   AgentExecutionStatus,
   AgentThreadStatus,
@@ -16,6 +9,13 @@ import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
+import type { AgentRunDocument } from '@server/collections/agent-runs/schemas/agent-run.schema';
+import type { AgentRoomDocument } from '@server/collections/agent-threads/schemas/agent-thread.schema';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import type { AgentThreadSnapshotDocument } from '@server/services/agent-threading/schemas/agent-thread-snapshot.schema';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { BaseService } from '@server/shared/services/base/base.service';
 
 type ThreadRunStatus =
   | 'queued'

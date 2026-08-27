@@ -1,13 +1,3 @@
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
-import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
-import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
-import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
-import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
-import { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { PostsService } from '@api/collections/posts/services/posts.service';
-import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   createTestBrand,
   createTestCredential,
@@ -38,6 +28,16 @@ import {
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
+import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
+import { PostGroupPersistenceService } from '@server/collections/post-groups/services/post-group-persistence.service';
+import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
+import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
+import { PostEntity } from '@server/collections/posts/entities/post.entity';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
