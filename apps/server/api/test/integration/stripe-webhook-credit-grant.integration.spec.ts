@@ -67,6 +67,7 @@ import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
 import {
+  createTestMember,
   createTestOrganization,
   generateIdString,
 } from '@api-test/e2e/e2e-test.utils';
@@ -373,6 +374,9 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
     });
 
     await dbHelper.seedCollection('organizations', [organization]);
+    await dbHelper.seedCollection('members', [
+      createTestMember({ organizationId, roleId: 'owner', userId }),
+    ]);
     await billingAccountsService.ensureForOrganization({
       organizationId,
       userId,

@@ -62,6 +62,7 @@ import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import {
+  createTestMember,
   createTestOrganization,
   generateIdString,
 } from '@api-test/e2e/e2e-test.utils';
@@ -411,6 +412,9 @@ describe('Credit decrement is real and idempotent (#334 real-backend E2E)', () =
     const userId = generateIdString();
     await dbHelper.seedCollection('organizations', [
       createTestOrganization({ id: organizationId, userId }),
+    ]);
+    await dbHelper.seedCollection('members', [
+      createTestMember({ organizationId, roleId: 'owner', userId }),
     ]);
     await billingAccountsService.ensureForOrganization({
       organizationId,
