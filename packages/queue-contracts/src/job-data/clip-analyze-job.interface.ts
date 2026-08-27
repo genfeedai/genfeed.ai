@@ -14,6 +14,8 @@ export const CLIP_ANALYZE_JOB_NAME = 'clip-analyze-run';
 export const CLIP_ANALYZE_CONCURRENCY = 3;
 
 export interface ClipAnalyzeJobData {
+  highlightFallback?: 'deterministic';
+  highlightModel?: string;
   projectId: string;
   youtubeUrl: string;
   maxClips: number;

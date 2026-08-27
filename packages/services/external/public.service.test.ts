@@ -75,6 +75,51 @@ describe('PublicService', () => {
     expect(result).toMatchObject(preview);
   });
 
+  it('creates, polls, and previews a public YouTube clip session by opaque token', async () => {
+    const session = {
+      expiresAt: '2026-08-26T12:30:00.000Z',
+      id: 'session-1',
+      preview: { status: 'available' },
+      previewToken: 'a'.repeat(43),
+      progress: 0,
+      recommendations: [],
+      status: 'queued',
+      transcript: [],
+    };
+    http.post.mockResolvedValue(
+      axiosResponse(resourceDocument(session, { id: session.id })),
+    );
+    http.get.mockResolvedValue(
+      axiosResponse(resourceDocument(session, { id: session.id })),
+    );
+
+    await expect(
+      service.createPublicYoutubeClip(
+        'https://www.youtube.com/watch?v=abc12345',
+        'request-key-1',
+      ),
+    ).resolves.toMatchObject(session);
+    expect(http.post).toHaveBeenCalledWith(
+      'youtube-clips',
+      { youtubeUrl: 'https://www.youtube.com/watch?v=abc12345' },
+      { headers: { 'Idempotency-Key': 'request-key-1' } },
+    );
+
+    await service.getPublicYoutubeClip(session.previewToken);
+    expect(http.get).toHaveBeenCalledWith(
+      `youtube-clips/${session.previewToken}`,
+    );
+
+    await service.requestPublicYoutubeClipPreview(
+      session.previewToken,
+      'recommendation-1',
+    );
+    expect(http.post).toHaveBeenLastCalledWith(
+      `youtube-clips/${session.previewToken}/preview`,
+      { recommendationId: 'recommendation-1' },
+    );
+  });
+
   it('findPublicAccountLinks maps links for the brand', async () => {
     http.get.mockResolvedValue(
       axiosResponse(collectionDocument([{ id: 'link_1', url: 'https://x' }])),

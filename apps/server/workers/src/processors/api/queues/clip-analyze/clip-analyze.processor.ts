@@ -15,6 +15,7 @@
 import { randomUUID } from 'node:crypto';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { IHighlight } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import { PublicClipToolStoreService } from '@api/services/public-clip-tool/public-clip-tool-store.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import {
   CLIP_AUDIO_EXTRACTION_JOB_TIMEOUT_MS,
@@ -93,6 +94,8 @@ interface AudioExtractionResult {
   sourceArtifact?: ClipSourceArtifact;
 }
 
+const PUBLIC_YOUTUBE_CLIP_PROJECT_PREFIX = 'public-youtube-clip-session-';
+
 @Processor(
   CLIP_ANALYZE_QUEUE,
   withLongJobWorkerOptions({
@@ -110,6 +113,7 @@ export class ClipAnalyzeProcessor extends WorkerHost {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     private readonly highlightDetector: ClipHighlightDetector,
+    private readonly publicClipToolStore: PublicClipToolStoreService,
   ) {
     super();
   }
@@ -194,6 +198,10 @@ export class ClipAnalyzeProcessor extends WorkerHost {
         transcription.text,
         transcription.segments,
         data.maxClips,
+        {
+          fallback: data.highlightFallback,
+          model: data.highlightModel,
+        },
       );
 
       // Stage 4: Filter by virality score and assign IDs
@@ -492,6 +500,19 @@ export class ClipAnalyzeProcessor extends WorkerHost {
     update: Record<string, unknown>,
     organizationId: string,
   ): Promise<void> {
+    if (projectId.startsWith(PUBLIC_YOUTUBE_CLIP_PROJECT_PREFIX)) {
+      const publicUpdate = { ...update };
+      if (publicUpdate.status === 'analyzed') {
+        publicUpdate.status = 'ready';
+      } else if (publicUpdate.status === 'pending') {
+        publicUpdate.status = 'queued';
+      }
+      await this.publicClipToolStore.patchByWorkerProjectId(
+        projectId,
+        publicUpdate,
+      );
+      return;
+    }
     await this.clipProjectsService.patch(projectId, update, [], organizationId);
   }
 
@@ -542,6 +563,9 @@ export class ClipAnalyzeProcessor extends WorkerHost {
     await this.updateProject(
       data.projectId,
       {
+        ...(data.projectId.startsWith(PUBLIC_YOUTUBE_CLIP_PROJECT_PREFIX)
+          ? { sourceArtifact: artifact }
+          : {}),
         ...(data.source ? { source: data.source } : {}),
         sourceVideoS3Key: artifact.storageKey,
         sourceVideoUrl: artifact.mediaUrl,

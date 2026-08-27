@@ -872,6 +872,7 @@ describe('event taxonomy', () => {
         'generation_started',
         'onboarding_completed',
         'post_published',
+        'public_youtube_clip_project_claimed',
         'signup_completed',
         'signup_started',
         'studio_editor_opened',

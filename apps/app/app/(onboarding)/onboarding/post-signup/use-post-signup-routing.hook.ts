@@ -5,7 +5,10 @@ import {
   isFreePlanHandoff,
   parseSelectedCredits,
 } from '@app/(onboarding)/onboarding/post-signup/post-signup-routing.util';
-import { parseBrandOsPreviewToken } from '@app/(public)/auth-callback-url';
+import {
+  parseBrandOsPreviewToken,
+  parsePublicYoutubeClipToken,
+} from '@app/(public)/auth-callback-url';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
   hasAgentFirstOnboarding,
@@ -23,6 +26,7 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { ManagedCreditsService } from '@services/billing/managed-credits.service';
 import { StripeService } from '@services/billing/stripe.service';
+import { ClipProjectsService } from '@services/content/clip-projects.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
@@ -57,6 +61,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const requestedBrandDomainParam = searchParams.get('brandDomain');
   const requestedBrandNameParam = searchParams.get('brandName');
   const requestedBrandOsTokenParam = searchParams.get('brandOsToken');
+  const requestedClipToolTokenParam = searchParams.get('clipToolToken');
   const calledRef = useRef(false);
   const [routingAttempt, setRoutingAttempt] = useState(0);
   const [showFallback, setShowFallback] = useState(false);
@@ -67,7 +72,8 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const authPrimaryEmail = authUser?.primaryEmailAddress?.emailAddress ?? '';
   const checkoutEmail = currentUser?.email || authPrimaryEmail || '';
   const hasBrandOsHandoff = Boolean(
-    parseBrandOsPreviewToken(requestedBrandOsTokenParam),
+    parseBrandOsPreviewToken(requestedBrandOsTokenParam) ||
+      parsePublicYoutubeClipToken(requestedClipToolTokenParam),
   );
   const retryBrandOsHandoff = useCallback(() => {
     calledRef.current = false;
@@ -156,7 +162,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
 
     calledRef.current = true;
     if (routingAttempt > 0) {
-      setStatusMessage('Retrying your Brand OS handoff...');
+      setStatusMessage('Retrying your saved preview handoff...');
     }
     const abortController = new AbortController();
     const { signal } = abortController;
@@ -281,6 +287,67 @@ export function usePostSignupRouting(): PostSignupRoutingState {
           logger.error('Failed to claim Brand OS preview after auth', error);
           setStatusMessage(
             'Your preview is still available. Retry to save it to your workspace.',
+          );
+          setShowFallback(true);
+          return;
+        }
+      }
+
+      const clipToolToken = parsePublicYoutubeClipToken(
+        requestedClipToolTokenParam,
+      );
+      if (clipToolToken) {
+        if (!signal.aborted) {
+          setStatusMessage('Saving your clip project...');
+        }
+        const token = await resolveAuthToken(getToken);
+        if (!token) {
+          setShowFallback(true);
+          return;
+        }
+
+        try {
+          const organizationsService = OrganizationsService.getInstance(token);
+          const organizations = await organizationsService.getMyOrganizations();
+          const organization =
+            organizations.find((candidate) => candidate.isActive) ??
+            organizations[0];
+          if (!organization) {
+            setShowFallback(true);
+            return;
+          }
+
+          const brands = await organizationsService.findOrganizationBrands(
+            organization.id,
+          );
+          const brand = brands[0];
+          if (!brand?.id || !brand.slug) {
+            setShowFallback(true);
+            return;
+          }
+
+          const claimed = await ClipProjectsService.getInstance(
+            token,
+          ).claimPublicYoutubeClip({
+            brandId: brand.id,
+            previewToken: clipToolToken,
+          });
+          captureAnalyticsEvent(
+            ANALYTICS_EVENTS.PUBLIC_YOUTUBE_CLIP_PROJECT_CLAIMED,
+            { source: 'public_preview' },
+          );
+          redirectTo(
+            createBrandAppRoute(
+              organization.slug,
+              brand.slug,
+              `/studio/clips/${claimed.projectId}`,
+            ),
+          );
+          return;
+        } catch (error) {
+          logger.error('Failed to claim public clip project after auth', error);
+          setStatusMessage(
+            'Your clip preview is still available. Retry to save it to your workspace.',
           );
           setShowFallback(true);
           return;
@@ -488,6 +555,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     requestedBrandDomainParam,
     requestedBrandNameParam,
     requestedBrandOsTokenParam,
+    requestedClipToolTokenParam,
     requestedCreditsParam,
     requestedPlanParam,
     routingAttempt,

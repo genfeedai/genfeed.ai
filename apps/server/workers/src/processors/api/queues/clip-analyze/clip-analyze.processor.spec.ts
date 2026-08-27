@@ -1,4 +1,5 @@
 import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import type { PublicClipToolStoreService } from '@api/services/public-clip-tool/public-clip-tool-store.service';
 import type { WhisperService } from '@api/services/whisper/whisper.service';
 import type { ClipAnalyzeJobData } from '@genfeedai/queue-contracts';
 import type { ConfigService } from '@libs/config/config.service';
@@ -16,6 +17,7 @@ describe('ClipAnalyzeProcessor', () => {
   let httpService: vi.Mocked<HttpService>;
   let configService: vi.Mocked<ConfigService>;
   let logger: vi.Mocked<LoggerService>;
+  let publicClipToolStore: vi.Mocked<PublicClipToolStoreService>;
 
   const mockJobData: ClipAnalyzeJobData = {
     language: 'en',
@@ -101,6 +103,10 @@ describe('ClipAnalyzeProcessor', () => {
       get: vi.fn().mockReturnValue('mock-api-key'),
     } as unknown as vi.Mocked<ConfigService>;
 
+    publicClipToolStore = {
+      patchByWorkerProjectId: vi.fn().mockResolvedValue(undefined),
+    } as unknown as vi.Mocked<PublicClipToolStoreService>;
+
     processor = new ClipAnalyzeProcessor(
       logger,
       clipProjectsService,
@@ -108,6 +114,7 @@ describe('ClipAnalyzeProcessor', () => {
       httpService,
       configService,
       new ClipHighlightDetector(logger, httpService, configService),
+      publicClipToolStore,
     );
   });
 
@@ -179,6 +186,38 @@ describe('ClipAnalyzeProcessor', () => {
       status: 'analyzed',
     });
     expect(lastPatchCall?.[1]).toHaveProperty('highlights');
+  });
+
+  it('routes the durable source artifact and ready state to the public session', async () => {
+    setupHttpMocks();
+    const projectId = `public-youtube-clip-session-${'f'.repeat(64)}`;
+
+    await processor.process(
+      createMockJob({
+        ...mockJobData,
+        highlightFallback: 'deterministic',
+        highlightModel: 'openrouter/free',
+        projectId,
+      }),
+    );
+
+    expect(clipProjectsService.patch).not.toHaveBeenCalled();
+    expect(publicClipToolStore.patchByWorkerProjectId).toHaveBeenCalledWith(
+      projectId,
+      expect.objectContaining({
+        sourceArtifact: expect.objectContaining({
+          contentType: 'video/mp4',
+          mediaUrl: 'https://cdn.test/source.mp4',
+          storageKey: 'clips/sources/proj-123.mp4',
+        }),
+        sourceVideoS3Key: 'clips/sources/proj-123.mp4',
+        sourceVideoUrl: 'https://cdn.test/source.mp4',
+      }),
+    );
+    expect(publicClipToolStore.patchByWorkerProjectId).toHaveBeenLastCalledWith(
+      projectId,
+      expect.objectContaining({ status: 'ready' }),
+    );
   });
 
   it('should assign UUIDs to each highlight', async () => {
