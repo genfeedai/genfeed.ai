@@ -14,9 +14,7 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
 describe('AdsServicesModule', () => {
   it('composes every extracted ads service without API domain modules', async () => {
     const module = await Test.createTestingModule({
-      imports: [
-    AdsServicesModule,
-  ],
+      imports: [AdsServicesModule],
     })
       .overrideProvider(HttpService)
       .useValue({})

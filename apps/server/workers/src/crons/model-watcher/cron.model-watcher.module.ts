@@ -7,10 +7,7 @@ import { PlatformMarginService } from '@workers/services/platform-margin.service
 import { WorkersDomainModule } from '@server/workers-domain.module';
 
 @Module({
-  imports: [
-    WorkersDomainModule,
-    ConfigModule,
-  ],
+  imports: [WorkersDomainModule, ConfigModule],
   providers: [
     CronModelWatcherService,
     ModelDiscoveryService,

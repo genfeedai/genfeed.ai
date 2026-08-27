@@ -10,11 +10,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
 import { WorkersDomainModule } from '@server/workers-domain.module';
 
 @Module({
-  imports: [
-    WorkersDomainModule,
-    SocialIntegrationsModule,
-    PrismaModule,
-  ],
+  imports: [WorkersDomainModule, SocialIntegrationsModule, PrismaModule],
   exports: [CronTiktokStatusService],
   providers: [
     CronTiktokStatusService,

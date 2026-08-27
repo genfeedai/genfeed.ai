@@ -5,10 +5,7 @@ import { CronStreaksService } from '@workers/crons/streaks/cron.streaks.service'
 import { WorkersDomainModule } from '@server/workers-domain.module';
 
 @Module({
-  imports: [
-    PrismaModule,
-    WorkersDomainModule,
-  ],
+  imports: [PrismaModule, WorkersDomainModule],
   exports: [CronStreaksService],
   providers: [CronStreaksService, SystemWorkflowProvenanceService],
 })

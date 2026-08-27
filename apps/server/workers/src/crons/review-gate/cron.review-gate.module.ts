@@ -6,10 +6,7 @@ import { WorkersDomainModule } from '@server/workers-domain.module';
 
 @Module({
   exports: [CronReviewGateTimeoutService],
-  imports: [
-    PrismaModule,
-    WorkersDomainModule,
-  ],
+  imports: [PrismaModule, WorkersDomainModule],
   providers: [CronReviewGateTimeoutService, SystemWorkflowProvenanceService],
 })
 export class CronReviewGateModule {}

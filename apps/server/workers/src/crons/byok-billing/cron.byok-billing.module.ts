@@ -3,9 +3,7 @@ import { CronByokBillingService } from '@workers/crons/byok-billing/cron.byok-bi
 import { WorkersDomainModule } from '@server/workers-domain.module';
 
 @Module({
-  imports: [
-    WorkersDomainModule,
-  ],
+  imports: [WorkersDomainModule],
   providers: [CronByokBillingService],
 })
 export class CronByokBillingModule {}

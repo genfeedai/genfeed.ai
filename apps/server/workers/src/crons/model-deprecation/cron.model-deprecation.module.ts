@@ -3,9 +3,7 @@ import { CronModelDeprecationService } from '@workers/crons/model-deprecation/cr
 import { WorkersDomainModule } from '@server/workers-domain.module';
 
 @Module({
-  imports: [
-    WorkersDomainModule,
-  ],
+  imports: [WorkersDomainModule],
   providers: [CronModelDeprecationService],
 })
 export class CronModelDeprecationModule {}

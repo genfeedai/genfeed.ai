@@ -1,7 +1,4 @@
-import {
-  AgentAutonomyMode,
-  AgentPublishDecision,
-} from '@genfeedai/enums';
+import { AgentAutonomyMode, AgentPublishDecision } from '@genfeedai/enums';
 import { z } from 'zod';
 
 export const AGENT_PUBLISH_POLICY_NAME = 'autonomy-brand-channel';

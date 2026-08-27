@@ -4,10 +4,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
 import { WorkersDomainModule } from '@server/workers-domain.module';
 
 @Module({
-  imports: [
-    WorkersDomainModule,
-    SocialIntegrationsModule,
-  ],
+  imports: [WorkersDomainModule, SocialIntegrationsModule],
   providers: [CronCredentialsService],
 })
 export class CronCredentialsModule {}

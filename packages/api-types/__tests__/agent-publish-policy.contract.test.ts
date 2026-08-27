@@ -1,8 +1,5 @@
 import { evaluateAgentPublishPolicy } from '@api-types/contracts/agent-publish-policy.contract';
-import {
-  AgentAutonomyMode,
-  AgentPublishDecision,
-} from '@genfeedai/enums';
+import { AgentAutonomyMode, AgentPublishDecision } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 
 describe('evaluateAgentPublishPolicy', () => {

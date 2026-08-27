@@ -5,9 +5,7 @@ import { QueueHealthMonitorService } from '@workers/monitoring/queue-health-moni
 import { QueueMetricsService } from '@workers/monitoring/queue-metrics.service';
 
 @Module({
-  imports: [
-    LoggerModule,
-  ],
+  imports: [LoggerModule],
   providers: [
     QueueHealthAlertNotifierService,
     QueueHealthMonitorService,

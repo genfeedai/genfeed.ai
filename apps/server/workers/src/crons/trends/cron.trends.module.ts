@@ -4,10 +4,7 @@ import { CronTrendsService } from '@workers/crons/trends/cron.trends.service';
 import { WorkersDomainModule } from '@server/workers-domain.module';
 
 @Module({
-  imports: [
-    CacheModule,
-    WorkersDomainModule,
-  ],
+  imports: [CacheModule, WorkersDomainModule],
   providers: [CronTrendsService],
 })
 export class CronTrendsModule {}

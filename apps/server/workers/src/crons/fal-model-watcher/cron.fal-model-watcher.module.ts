@@ -8,10 +8,7 @@ import { ModelPricingService } from '@workers/services/model-pricing.service';
 import { WorkersDomainModule } from '@server/workers-domain.module';
 
 @Module({
-  imports: [
-    WorkersDomainModule,
-    ConfigModule,
-  ],
+  imports: [WorkersDomainModule, ConfigModule],
   providers: [
     CronFalModelWatcherService,
     FalModelContractSyncService,

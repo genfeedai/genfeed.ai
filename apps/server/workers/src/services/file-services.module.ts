@@ -16,8 +16,7 @@ const FILE_SERVICES = [ApiKeyHelperService, FilesClientService] as const;
   exports: [...FILE_SERVICES],
   imports: [
     ConfigModule,
-    HttpModule.register({ maxRedirects: 5,
-    timeout: 30000 }),
+    HttpModule.register({ maxRedirects: 5, timeout: 30000 }),
     LoggerModule,
   ],
   providers: [...FILE_SERVICES],

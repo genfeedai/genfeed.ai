@@ -6,11 +6,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
 
 @Module({
   exports: [CronAgentTurnReconcileService],
-  imports: [
-    LoggerModule,
-    PrismaModule,
-    WorkersQueuesModule,
-  ],
+  imports: [LoggerModule, PrismaModule, WorkersQueuesModule],
   providers: [CronAgentTurnReconcileService],
 })
 export class CronAgentTurnModule {}

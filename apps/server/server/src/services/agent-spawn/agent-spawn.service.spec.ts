@@ -9,9 +9,12 @@ const { mockedAgentOrchestratorToken } = vi.hoisted(() => ({
   mockedAgentOrchestratorToken: Symbol('AgentOrchestratorService'),
 }));
 
-vi.mock('@server/services/agent-orchestrator/agent-orchestrator.service', () => ({
-  AgentOrchestratorService: mockedAgentOrchestratorToken,
-}));
+vi.mock(
+  '@server/services/agent-orchestrator/agent-orchestrator.service',
+  () => ({
+    AgentOrchestratorService: mockedAgentOrchestratorToken,
+  }),
+);
 
 describe('AgentSpawnService', () => {
   it('hydrates the orchestrator from ModuleRef on module init', async () => {

@@ -9,7 +9,6 @@ vi.hoisted(() => {
   process.env.REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
 });
 
-
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 
 describe('CronPostsModule', () => {

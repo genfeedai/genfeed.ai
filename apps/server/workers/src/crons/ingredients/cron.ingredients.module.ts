@@ -6,11 +6,7 @@ import { WorkersDomainModule } from '@server/workers-domain.module';
 
 @Module({
   exports: [CronIngredientsService],
-  imports: [
-    WorkersDomainModule,
-    CacheModule,
-    FileServicesModule,
-  ],
+  imports: [WorkersDomainModule, CacheModule, FileServicesModule],
   providers: [CronIngredientsService],
 })
 export class CronIngredientsModule {}
