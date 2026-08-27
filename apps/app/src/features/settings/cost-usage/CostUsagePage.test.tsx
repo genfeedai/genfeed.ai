@@ -17,6 +17,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
     brandId: 'brand-1',
     brands: [{ id: 'brand-1', label: 'Demo', slug: 'demo' }],
     isReady: true,
+    organizationId: 'organization-1',
     selectedBrand: { id: 'brand-1', label: 'Demo', slug: 'demo' },
   }),
 }));
@@ -124,7 +125,28 @@ describe('CostUsagePage', () => {
     expect(
       screen.getByRole('heading', { name: 'Generation ledger' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText('Showing up to the newest 100 entries.'),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('Brand')).toBeInTheDocument();
+    expect(mockUseQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: [
+          'settings-cost-summary',
+          'organization-1',
+          expect.any(Object),
+        ],
+      }),
+    );
+    expect(mockUseQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: [
+          'settings-cost-entries',
+          'organization-1',
+          expect.any(Object),
+        ],
+      }),
+    );
   });
 
   it('locks brand settings to the route brand and downloads the scoped CSV', async () => {

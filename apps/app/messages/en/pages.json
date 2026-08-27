@@ -683,7 +683,8 @@
       },
       "ledger": {
         "emptyDescription": "Provider cost and credit events in this scope will appear here.",
-        "label": "Generation ledger"
+        "label": "Generation ledger",
+        "limitNotice": "Showing up to the newest {limit} entries."
       }
     },
     "title": "Cost & Usage",
