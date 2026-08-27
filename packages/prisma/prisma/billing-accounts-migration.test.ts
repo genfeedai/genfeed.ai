@@ -19,6 +19,13 @@ const onlineIndexSource = readFileSync(
   ),
   'utf8',
 );
+const indexCleanupSource = readFileSync(
+  join(
+    prismaDir,
+    'migrations/20260827150100_drop_credit_balances_organization_unique/migration.sql',
+  ),
+  'utf8',
+);
 const validationSource = readFileSync(
   join(
     prismaDir,
@@ -26,6 +33,12 @@ const validationSource = readFileSync(
   ),
   'utf8',
 );
+
+const stripSqlComments = (sql: string): string =>
+  sql
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('--'))
+    .join('\n');
 
 describe('billing accounts migration (#3612)', () => {
   it('creates the billing account tables and enums', () => {
@@ -56,6 +69,9 @@ describe('billing accounts migration (#3612)', () => {
   });
 
   it('builds indexes online and validates initially unvalidated foreign keys later', () => {
+    const onlineIndexSql = stripSqlComments(onlineIndexSource);
+    const indexCleanupSql = stripSqlComments(indexCleanupSource);
+
     expect(migrationSource).toContain('ON UPDATE CASCADE NOT VALID');
     expect(migrationSource).not.toContain('CREATE INDEX IF NOT EXISTS');
     expect(onlineIndexSource).toContain('INDEX CONCURRENTLY');
@@ -71,6 +87,12 @@ describe('billing accounts migration (#3612)', () => {
     expect(onlineIndexSource).not.toContain(
       'credit_reservations_idempotencyKey_key',
     );
+    expect(onlineIndexSql).not.toContain('DROP INDEX');
+    expect(indexCleanupSql).toContain(
+      'DROP INDEX IF EXISTS "credit_balances_organizationId_key"',
+    );
+    expect(indexCleanupSql).not.toContain('CONCURRENTLY');
+    expect(indexCleanupSql).not.toContain('CREATE INDEX');
     expect(validationSource).toContain('VALIDATE CONSTRAINT');
   });
 });

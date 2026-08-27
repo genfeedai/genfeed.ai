@@ -207,7 +207,6 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
       PostGroupReadinessService,
       PostGroupsService,
       PostLifecycleService,
-      PublishApprovalsService,
       AgentArtifactReferenceService,
       CronPostsService,
       ScheduledPostExecutionGuardService,
@@ -246,6 +245,20 @@ export async function createIsolatedPublishHarness(): Promise<IsolatedPublishHar
       {
         provide: PostPublishQueueService,
         useValue: queue,
+      },
+      {
+        inject: [PrismaService, AgentArtifactReferenceService, LoggerService],
+        provide: PublishApprovalsService,
+        useFactory: (
+          prisma: PrismaService,
+          artifactReferenceService: AgentArtifactReferenceService,
+          loggerService: LoggerService,
+        ) =>
+          new PublishApprovalsService(
+            prisma,
+            artifactReferenceService,
+            loggerService,
+          ),
       },
       {
         provide: ScheduledPostDeliveryService,

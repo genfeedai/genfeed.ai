@@ -31,7 +31,6 @@ CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "credit_balances_billingAccountId
   WHERE "billingAccountId" IS NOT NULL AND "isDeleted" = false;
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "credit_balances_billingAccountId_isDeleted_idx"
   ON "credit_balances" ("billingAccountId", "isDeleted");
-DROP INDEX CONCURRENTLY IF EXISTS "credit_balances_organizationId_key";
 CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "credit_balances_organizationId_active_key"
   ON "credit_balances" ("organizationId")
   WHERE "organizationId" IS NOT NULL AND "isDeleted" = false;
