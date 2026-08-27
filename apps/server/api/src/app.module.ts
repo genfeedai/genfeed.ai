@@ -21,6 +21,7 @@ import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { AssetsModule } from '@api/collections/assets/assets.module';
 import { AvatarsModule } from '@api/collections/avatars/avatars.module';
+import { BillingAccountsModule } from '@api/collections/billing-accounts/billing-accounts.module';
 import { BookmarksModule } from '@api/collections/bookmarks/bookmarks.module';
 import { BotsModule } from '@api/collections/bots/bots.module';
 import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.module';
@@ -299,6 +300,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ContextsModule,
     CreativePatternsModule,
     CredentialsModule,
+    BillingAccountsModule,
     CreditsModule,
     DashboardLayoutsModule,
     DistributionsModule,

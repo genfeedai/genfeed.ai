@@ -19,5 +19,24 @@ export interface ICreditsBreakdown {
   remainingPercent?: number;
   cycleStartAt?: string;
   cycleEndAt?: string;
+  held?: number;
+  available?: number;
   credits: ICreditEntry[];
+}
+
+export interface ICreditWalletSnapshot {
+  id: string;
+  organizationId: string;
+  billingAccountId: string | null;
+  settled: number;
+  held: number;
+  available: number;
+  version: number;
+}
+
+export interface IApplyCreditDeltaInput {
+  balanceDelta?: number;
+  heldDelta?: number;
+  maxOverdraftCredits?: number;
+  billingAccountId?: string | null;
 }

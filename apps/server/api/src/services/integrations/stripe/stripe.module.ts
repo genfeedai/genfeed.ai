@@ -1,3 +1,4 @@
+import { BillingAccountsModule } from '@api/collections/billing-accounts/billing-accounts.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { CustomersModule } from '@api/collections/customers/customers.module';
 import { MembersModule } from '@api/collections/members/members.module';
@@ -27,6 +28,7 @@ import { Module } from '@nestjs/common';
   ],
   imports: [
     StripeCoreModule,
+    BillingAccountsModule,
     CreditsModule,
     CustomersModule,
     MembersModule,

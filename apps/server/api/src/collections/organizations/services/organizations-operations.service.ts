@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -22,6 +23,7 @@ import {
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 export interface CreateOrganizationOperationInput {
+  billingAccountId?: string;
   description?: string;
   label: string;
 }
@@ -34,6 +36,7 @@ export interface OrganizationSelectionResult {
 @Injectable()
 export class OrganizationsOperationsService {
   constructor(
+    private readonly billingAccountsService: BillingAccountsService,
     private readonly brandsService: BrandsService,
     private readonly membersService: MembersService,
     private readonly organizationSettingsService: OrganizationSettingsService,
@@ -179,6 +182,17 @@ export class OrganizationsOperationsService {
       roleId: String(role.id),
       userId,
     } as unknown as Parameters<MembersService['create']>[0]);
+
+    const settings = await this.organizationSettingsService.findOne({
+      organizationId: organization.id,
+    });
+    await this.billingAccountsService.ensureForOrganization({
+      billingAccountId: input.billingAccountId,
+      label,
+      organizationId,
+      planTier: settings?.subscriptionTier ?? null,
+      userId,
+    });
 
     await this.usersService.patch(userId, {
       lastUsedOrganizationId: organizationId,

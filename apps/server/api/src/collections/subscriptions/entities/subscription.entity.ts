@@ -7,6 +7,7 @@ export class SubscriptionEntity
 {
   declare readonly id: string;
   declare readonly organizationId: string;
+  declare readonly billingAccountId: string | null;
   declare readonly userId: string;
   declare readonly customerId: SubscriptionDocument['customerId'];
 

@@ -1,4 +1,6 @@
+import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -20,8 +22,19 @@ describe('CreditsUtilsService', () => {
     subscription: { findFirst: vi.fn() },
     user: { findFirst: vi.fn() },
   };
+  const billingAccountsService = {
+    resolveForOrganization: vi.fn(),
+  };
+  const creditReservationService = {
+    release: vi.fn(),
+    reserve: vi.fn(),
+    settle: vi.fn(),
+  };
   const creditBalanceService = {
+    applyDelta: vi.fn(),
     findByOrganization: vi.fn(),
+    getOrCreateBalance: vi.fn(),
+    toSnapshot: vi.fn(),
     updateBalance: vi.fn(),
   };
   const creditTransactionsService = {
@@ -50,7 +63,9 @@ describe('CreditsUtilsService', () => {
       loggerService as unknown as LoggerService,
       eventEmitter as unknown as EventEmitter2,
       prisma as unknown as PrismaService,
+      billingAccountsService as unknown as BillingAccountsService,
       creditBalanceService as unknown as CreditBalanceService,
+      creditReservationService as unknown as CreditReservationService,
       creditTransactionsService as unknown as CreditTransactionsService,
       organizationSettingsService as unknown as OrganizationSettingsService,
       websocketService as unknown as NotificationsPublisherService,
@@ -67,7 +82,48 @@ describe('CreditsUtilsService', () => {
     prisma.user.findFirst.mockResolvedValue(null);
     prisma.brand.findFirst.mockResolvedValue(null);
     prisma.subscription.findFirst.mockResolvedValue(null);
-    creditBalanceService.findByOrganization.mockResolvedValue({ balance: 100 });
+    billingAccountsService.resolveForOrganization.mockResolvedValue({
+      id: 'ba_1',
+    });
+    creditBalanceService.findByOrganization.mockResolvedValue({
+      balance: 100,
+      heldAmount: 0,
+    });
+    creditBalanceService.getOrCreateBalance.mockResolvedValue({
+      balance: 100,
+      billingAccountId: 'ba_1',
+      heldAmount: 0,
+      id: 'bal_1',
+      organizationId: 'org_1',
+      version: 1,
+    });
+    creditBalanceService.toSnapshot.mockImplementation(
+      (row: {
+        balance: number;
+        billingAccountId?: string;
+        heldAmount?: number;
+        id: string;
+        organizationId: string;
+        version?: number;
+      }) => ({
+        available: row.balance - (row.heldAmount ?? 0),
+        billingAccountId: row.billingAccountId ?? null,
+        held: row.heldAmount ?? 0,
+        id: row.id,
+        organizationId: row.organizationId,
+        settled: row.balance,
+        version: row.version ?? 0,
+      }),
+    );
+    creditBalanceService.applyDelta.mockResolvedValue({
+      available: 60,
+      billingAccountId: 'ba_1',
+      held: 0,
+      id: 'bal_1',
+      organizationId: 'org_1',
+      settled: 60,
+      version: 2,
+    });
     creditBalanceService.updateBalance.mockResolvedValue({ balance: 60 });
     creditTransactionsService.createTransactionEntry.mockResolvedValue({});
     creditTransactionsService.findOne.mockResolvedValue(null);
@@ -91,13 +147,13 @@ describe('CreditsUtilsService', () => {
         expect.any(Function),
         expect.objectContaining({ isolationLevel: 'Serializable' }),
       );
-      expect(creditBalanceService.findByOrganization).toHaveBeenCalledWith(
+      expect(creditBalanceService.applyDelta).toHaveBeenCalledWith(
         'org_1',
-        txClient,
-      );
-      expect(creditBalanceService.updateBalance).toHaveBeenCalledWith(
-        'org_1',
-        60,
+        {
+          balanceDelta: -40,
+          billingAccountId: 'ba_1',
+          maxOverdraftCredits: 0,
+        },
         txClient,
       );
       expect(
@@ -112,11 +168,18 @@ describe('CreditsUtilsService', () => {
         'test deduct',
         undefined,
         txClient,
+        expect.objectContaining({
+          actorUserId: 'user_1',
+          billingAccountId: 'ba_1',
+        }),
       );
     });
 
     it('throws on insufficient credits without writing', async () => {
       const service = buildService();
+      creditBalanceService.applyDelta.mockRejectedValue(
+        new BusinessLogicException('Insufficient organization credits'),
+      );
 
       await expect(
         service.deductCreditsFromOrganization(
@@ -127,7 +190,6 @@ describe('CreditsUtilsService', () => {
         ),
       ).rejects.toThrow(BusinessLogicException);
 
-      expect(creditBalanceService.updateBalance).not.toHaveBeenCalled();
       expect(
         creditTransactionsService.createTransactionEntry,
       ).not.toHaveBeenCalled();
@@ -144,9 +206,13 @@ describe('CreditsUtilsService', () => {
       );
 
       expect(transactionUtil.runInTransaction).not.toHaveBeenCalled();
-      expect(creditBalanceService.updateBalance).toHaveBeenCalledWith(
+      expect(creditBalanceService.applyDelta).toHaveBeenCalledWith(
         'org_1',
-        60,
+        {
+          balanceDelta: -40,
+          billingAccountId: 'ba_1',
+          maxOverdraftCredits: 0,
+        },
         undefined,
       );
     });

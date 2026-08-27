@@ -12,8 +12,12 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 type CreateTransactionEntryOptions = {
+  actorUserId?: string;
+  billingAccountId?: string;
+  idempotencyKey?: string;
   metadata?: Record<string, unknown>;
   referenceId?: string;
+  reservationId?: string;
   referenceType?: string;
 };
 
@@ -119,7 +123,17 @@ export class CreditTransactionsService extends BaseService<
         ...(expiresAt ? { expiresAt: expiresAt.toISOString() } : {}),
       }),
       organizationId,
+      ...(options?.actorUserId ? { actorUserId: options.actorUserId } : {}),
+      ...(options?.billingAccountId
+        ? { billingAccountId: options.billingAccountId }
+        : {}),
+      ...(options?.idempotencyKey
+        ? { idempotencyKey: options.idempotencyKey }
+        : {}),
       ...(options?.referenceId ? { referenceId: options.referenceId } : {}),
+      ...(options?.reservationId
+        ? { reservationId: options.reservationId }
+        : {}),
       ...(options?.referenceType
         ? { referenceType: options.referenceType }
         : {}),

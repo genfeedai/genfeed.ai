@@ -3,6 +3,7 @@
  * Provides the UserSetupService for initializing user resources.
  * This module is separate from UsersModule to avoid circular dependencies.
  */
+import { BillingAccountsModule } from '@api/collections/billing-accounts/billing-accounts.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { MembersModule } from '@api/collections/members/members.module';
@@ -16,6 +17,7 @@ import { Module } from '@nestjs/common';
 @Module({
   exports: [UserSetupService],
   imports: [
+    BillingAccountsModule,
     BrandsModule,
     CreditsModule,
     MembersModule,
