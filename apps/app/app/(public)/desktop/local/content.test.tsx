@@ -87,6 +87,17 @@ describe('LocalDesktopContent', () => {
     });
   });
 
+  it('shows a starting state until local mode is ready', () => {
+    mocks.enableOfflineMode.mockImplementation(
+      () => new Promise<typeof bootstrap>(() => undefined),
+    );
+    render(<LocalDesktopContent />);
+
+    expect(screen.getByText('Starting local workspace…')).toBeVisible();
+    expect(screen.queryByText('Local provider settings')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Choose folder' })).toBeNull();
+  });
+
   it('activates local mode explicitly and shows the selected workspace', async () => {
     render(<LocalDesktopContent />);
 

@@ -337,6 +337,7 @@
         "title": "Local mode needs attention"
       },
       "eyebrow": "Local mode",
+      "loading": "Starting local workspace…",
       "generation": {
         "description": "Uses the provider configured on this device.",
         "generate": "Generate",

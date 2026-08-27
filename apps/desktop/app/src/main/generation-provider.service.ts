@@ -10,6 +10,43 @@ import { sleep } from '@genfeedai/helpers';
 
 const PROVIDER_CONFIG_KEY = 'desktop.generation.provider';
 const MAX_GENERATED_ASSET_BYTES = 50 * 1024 * 1024;
+const DEFAULT_LOCAL_PROVIDER_TIMEOUT_MS = 8_000;
+const LOCAL_PROVIDER_TIMEOUT_ERROR =
+  'The local provider did not respond. Start Ollama or LM Studio, or pick a reachable endpoint.';
+
+function getLocalProviderTimeoutMs(): number {
+  const configured = Number(process.env.GENFEED_DESKTOP_PROVIDER_TIMEOUT_MS);
+
+  return Number.isFinite(configured) && configured > 0
+    ? configured
+    : DEFAULT_LOCAL_PROVIDER_TIMEOUT_MS;
+}
+
+async function fetchWithTimeout(
+  url: string,
+  init?: RequestInit,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    getLocalProviderTimeoutMs(),
+  );
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: init?.signal ?? controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(LOCAL_PROVIDER_TIMEOUT_ERROR);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 type ChatCompletionMessage = {
   content?: unknown;
@@ -498,15 +535,18 @@ export class DesktopGenerationProviderService {
       return this.requestFalCompletion(config, messages);
     }
 
-    const response = await fetch(buildCompletionUrl(config.baseUrl), {
-      body: JSON.stringify({
-        messages,
-        model: config.model,
-        temperature: 0.7,
-      }),
-      headers: buildProviderHeaders(config),
-      method: 'POST',
-    });
+    const response = await fetchWithTimeout(
+      buildCompletionUrl(config.baseUrl),
+      {
+        body: JSON.stringify({
+          messages,
+          model: config.model,
+          temperature: 0.7,
+        }),
+        headers: buildProviderHeaders(config),
+        method: 'POST',
+      },
+    );
 
     const responseText = await response.text();
     if (!response.ok) {
