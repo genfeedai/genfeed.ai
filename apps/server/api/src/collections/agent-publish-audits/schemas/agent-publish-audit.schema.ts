@@ -1,4 +1,6 @@
-export type { IAgentPublishAuditDocument as AgentPublishAuditDocument } from '@genfeedai/interfaces';
+import type { IAgentPublishAuditDocument } from '@genfeedai/interfaces';
+
+export type AgentPublishAuditDocument = IAgentPublishAuditDocument;
 
 export type AgentPublishAuditScope = {
   brandId?: string;

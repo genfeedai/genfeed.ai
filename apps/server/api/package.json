@@ -110,6 +110,7 @@
     "test:e2e:core": "bun run scripts/api-e2e-tiers.ts core",
     "test:e2e:cov": "vitest run --coverage --config vitest.config.e2e.ts",
     "test:e2e:full": "bun run scripts/api-e2e-tiers.ts full",
+    "test:e2e:isolated-publish": "bun run scripts/api-e2e-tiers.ts isolated-publish",
     "test:file": "vitest run --config vitest.config.ts",
     "test:file:cov": "vitest run --coverage --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",

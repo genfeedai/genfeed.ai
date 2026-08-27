@@ -25,6 +25,9 @@ import {
 } from '@api-types/contracts/rss-sources.contract';
 import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
 import {
+  PostVisibility,
+  parseRssApprovalMode,
+  parseRssImportPolicy,
   ReleaseAttachmentKind,
   ReleaseStatus,
   RssApprovalMode,
@@ -410,6 +413,7 @@ export class RssSourcesService {
           platform,
           ...(scheduledDate ? { scheduledDate } : {}),
           timezone,
+          visibility: PostVisibility.PUBLIC,
         },
       ];
     });
@@ -484,14 +488,14 @@ export class RssSourcesService {
 
   private toDocument(row: StoredRssSourceRow): RssSourceDocument {
     return {
-      approvalMode: row.approvalMode,
+      approvalMode: parseRssApprovalMode(row.approvalMode),
       brandId: row.brandId,
       createdAt: row.createdAt,
       failedCount: row.failedCount,
       feedUrl: row.feedUrl,
       id: row.id,
       importedCount: row.importedCount,
-      importPolicy: row.importPolicy,
+      importPolicy: parseRssImportPolicy(row.importPolicy),
       isDeleted: row.isDeleted,
       isEnabled: row.isEnabled,
       label: row.label,

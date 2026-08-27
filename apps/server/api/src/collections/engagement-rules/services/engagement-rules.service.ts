@@ -14,7 +14,10 @@ import {
 } from '@api/collections/engagement-rules/services/engagement-rule-persistence.helpers';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { EngagementRuleState } from '@genfeedai/enums';
+import {
+  EngagementRuleState,
+  parseEngagementRuleAction,
+} from '@genfeedai/enums';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -178,7 +181,7 @@ export class EngagementRulesService {
   private toDocument(row: StoredEngagementRuleRow): EngagementRuleDocument {
     return {
       actionPayload: parseActionPayload(row.actionPayload),
-      actionType: row.actionType,
+      actionType: parseEngagementRuleAction(row.actionType),
       brandId: row.brandId,
       createdAt: row.createdAt,
       id: row.id,

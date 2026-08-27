@@ -200,6 +200,72 @@ jobs:
           path: apps/server/api/test-results/api-e2e/
           retention-days: 7
 
+  # Isolated-DB publish lane — mint, enqueue, fake publish, fail-closed.
+  # Nightly + workflow_dispatch only. Never attached to mocked Playwright core
+  # or the production workflow_call path (#3836).
+  e2e-isolated-publish:
+    name: Isolated Publish E2E
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: genfeed
+          POSTGRES_PASSWORD: genfeed_local
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      PORT: "3000"
+      DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      REDIS_URL: redis://localhost:6379
+      REPLICATE_API_TOKEN: test-mock-key
+      STRIPE_SECRET_KEY: test-mock-key
+      BETTER_AUTH_SECRET: test-better-auth-secret
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: "1.3.14"
+          install-command: "bun install"
+
+      - name: Build packages
+        run: bunx turbo run build --filter="./packages/*"
+
+      - name: Apply Prisma migrations to test DB
+        run: bun x prisma migrate deploy
+        working-directory: packages/prisma
+
+      - name: Run isolated publish suite
+        run: bun run --cwd apps/server/api test:e2e:isolated-publish
+
+      - name: Upload isolated publish report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: api-e2e-isolated-publish-report
+          path: apps/server/api/test-results/api-e2e/
+          retention-days: 7
+
   # Frontend Core E2E — sharded 4-way. The CI "core" scope is only ~7 spec files
   # (smoke/ + core/ + one shell contract; see scripts/e2e-sharded.mjs), whose
   # actual test time is ~1 min. 12 shards spun up 12 VMs — 12 installs, 12 app
@@ -513,7 +579,7 @@ jobs:
   # 2026-08-01 the full tier failed and this job was skipped.
   nightly-failure-report:
     name: Report nightly E2E failure
-    needs: [e2e-gate, e2e-frontend-authed, e2e-api-full]
+    needs: [e2e-gate, e2e-frontend-authed, e2e-api-full, e2e-isolated-publish]
     # `!cancelled()` rather than `always()`: both keep the reporter eligible when
     # an upstream job goes red, but `always()` also fires when the whole run is
     # cancelled — which marks every job 'cancelled' and would file a phantom
@@ -525,7 +591,9 @@ jobs:
       && (needs.e2e-gate.result == 'failure'
         || needs.e2e-frontend-authed.result == 'failure'
         || needs.e2e-api-full.result == 'failure'
-        || needs.e2e-api-full.result == 'cancelled')
+        || needs.e2e-api-full.result == 'cancelled'
+        || needs.e2e-isolated-publish.result == 'failure'
+        || needs.e2e-isolated-publish.result == 'cancelled')
     # Serialize the complete label lookup + issue lookup/mutation path across
     # scheduled runs and rerun attempts. Keep all pending reporters queued.
     concurrency:
@@ -549,6 +617,7 @@ jobs:
           GATE_RESULT: ${{ needs.e2e-gate.result }}
           AUTHED_RESULT: ${{ needs.e2e-frontend-authed.result }}
           API_FULL_RESULT: ${{ needs.e2e-api-full.result }}
+          ISOLATED_PUBLISH_RESULT: ${{ needs.e2e-isolated-publish.result }}
           SOURCE_SHA: ${{ github.sha }}
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
@@ -591,6 +660,18 @@ jobs:
                 excerpt: 'Timed out: API E2E full tier was cancelled after hanging or exceeding its job limit.',
               });
             }
+            if (process.env.ISOLATED_PUBLISH_RESULT === 'failure') {
+              failures.push({
+                failedJob: 'e2e-isolated-publish',
+                excerpt: 'Test suite failed: isolated-DB publish path.',
+              });
+            }
+            if (process.env.ISOLATED_PUBLISH_RESULT === 'cancelled') {
+              failures.push({
+                failedJob: 'e2e-isolated-publish',
+                excerpt: 'Timed out: isolated-DB publish path was cancelled after hanging or exceeding its job limit.',
+              });
+            }
             const { owner, repo } = context.repo;
             await reportNightlyE2eFailure({
               github,
@@ -606,7 +687,7 @@ jobs:
 
   nightly-recovery-report:
     name: Record nightly E2E recovery
-    needs: [e2e-gate, e2e-frontend-authed, e2e-api-full]
+    needs: [e2e-gate, e2e-frontend-authed, e2e-api-full, e2e-isolated-publish]
     if: >-
       !cancelled()
       && github.event_name == 'schedule'
@@ -614,6 +695,7 @@ jobs:
       && (needs.e2e-frontend-authed.result == 'success'
         || needs.e2e-frontend-authed.result == 'skipped')
       && needs.e2e-api-full.result == 'success'
+      && needs.e2e-isolated-publish.result == 'success'
     concurrency:
       group: nightly-e2e-failure-reporter
       cancel-in-progress: false

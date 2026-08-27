@@ -10,7 +10,6 @@ import {
 } from '@api-types/contracts/engagement-rules.contract';
 import type {
   EngagementMetric,
-  EngagementRuleAction,
   EngagementRuleMode,
   EngagementRuleState,
 } from '@genfeedai/enums';
@@ -20,7 +19,7 @@ import type { ZodError, ZodType } from 'zod';
 
 export type StoredEngagementRuleRow = {
   actionPayload: unknown;
-  actionType: EngagementRuleAction;
+  actionType: string;
   brandId: string | null;
   createdAt: Date;
   id: string;
