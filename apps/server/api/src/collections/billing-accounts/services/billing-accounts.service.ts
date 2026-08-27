@@ -8,6 +8,9 @@ import {
   BillingAccountStatus,
   billingAccountRoleSatisfies,
   CreditTransactionCategory,
+  parseBillingAccountMemberRole,
+  parseBillingAccountOrganizationStatus,
+  parseBillingAccountStatus,
   SubscriptionTier,
 } from '@genfeedai/enums';
 import type {
@@ -182,17 +185,18 @@ export class BillingAccountsService {
     const subscription = await this.prisma.subscription.findFirst({
       where: { billingAccountId: account.id, isDeleted: false },
     });
+    const status = parseBillingAccountStatus(account.status);
     const linkedOrganizations: IBillingAccountOrganizationLink[] = links.map(
       (link) => ({
         budgetPolicy: this.parseBudgetPolicy(link.budgetPolicy),
         label: link.organization.label,
         monthlyBudgetCredits: link.monthlyBudgetCredits,
         organizationId: link.organizationId,
-        status: link.status,
+        status: parseBillingAccountOrganizationStatus(link.status),
         usage: usageByOrg.get(link.organizationId) ?? 0,
       }),
     );
-    const capabilities = this.capabilitiesFor(callerRole, account.status);
+    const capabilities = this.capabilitiesFor(callerRole, status);
 
     return {
       callerRole,
@@ -201,11 +205,11 @@ export class BillingAccountsService {
       currentPeriodEnd: subscription?.currentPeriodEnd?.toISOString() ?? null,
       id: account.id,
       isDeleted: account.isDeleted,
-      isIdentityStale: account.status === BillingAccountStatus.STALE,
+      isIdentityStale: status === BillingAccountStatus.STALE,
       label: account.label,
       linkedOrganizations,
       planTier: account.planTier,
-      status: account.status,
+      status,
       subscriptionStatus: subscription?.status ?? null,
       updatedAt: account.updatedAt.toISOString(),
       wallet: {
@@ -222,7 +226,7 @@ export class BillingAccountsService {
     required: BillingAccountMemberRole,
   ): Promise<BillingAccountMemberRole> {
     const role = await this.findRole(billingAccountId, userId);
-    if (!billingAccountRoleSatisfies(role, required)) {
+    if (!role || !billingAccountRoleSatisfies(role, required)) {
       throw new ForbiddenException('Billing permission required');
     }
     return role;
@@ -500,7 +504,7 @@ export class BillingAccountsService {
     const member = await this.prisma.billingAccountMember.findFirst({
       where: { billingAccountId, isDeleted: false, userId },
     });
-    return member?.role ?? null;
+    return parseBillingAccountMemberRole(member?.role);
   }
 
   private capabilitiesFor(

@@ -35,6 +35,70 @@ const ROLE_RANK: Record<BillingAccountMemberRole, number> = {
   [BillingAccountMemberRole.OWNER]: 3,
 };
 
+export function parseBillingAccountStatus(
+  value: string | null | undefined,
+): BillingAccountStatus {
+  switch (value) {
+    case BillingAccountStatus.UNPROVISIONED:
+      return BillingAccountStatus.UNPROVISIONED;
+    case BillingAccountStatus.ACTIVE:
+      return BillingAccountStatus.ACTIVE;
+    case BillingAccountStatus.PAST_DUE:
+      return BillingAccountStatus.PAST_DUE;
+    case BillingAccountStatus.CANCELLED:
+      return BillingAccountStatus.CANCELLED;
+    case BillingAccountStatus.STALE:
+      return BillingAccountStatus.STALE;
+    default:
+      return BillingAccountStatus.UNPROVISIONED;
+  }
+}
+
+export function parseBillingAccountMemberRole(
+  value: string | null | undefined,
+): BillingAccountMemberRole | null {
+  switch (value) {
+    case BillingAccountMemberRole.OWNER:
+      return BillingAccountMemberRole.OWNER;
+    case BillingAccountMemberRole.ADMINISTRATOR:
+      return BillingAccountMemberRole.ADMINISTRATOR;
+    case BillingAccountMemberRole.VIEWER:
+      return BillingAccountMemberRole.VIEWER;
+    default:
+      return null;
+  }
+}
+
+export function parseBillingAccountOrganizationStatus(
+  value: string | null | undefined,
+): BillingAccountOrganizationStatus {
+  switch (value) {
+    case BillingAccountOrganizationStatus.LINKED:
+      return BillingAccountOrganizationStatus.LINKED;
+    case BillingAccountOrganizationStatus.DETACHED:
+      return BillingAccountOrganizationStatus.DETACHED;
+    default:
+      return BillingAccountOrganizationStatus.DETACHED;
+  }
+}
+
+export function parseCreditReservationStatus(
+  value: string | null | undefined,
+): CreditReservationStatus {
+  switch (value) {
+    case CreditReservationStatus.RESERVED:
+      return CreditReservationStatus.RESERVED;
+    case CreditReservationStatus.SETTLED:
+      return CreditReservationStatus.SETTLED;
+    case CreditReservationStatus.RELEASED:
+      return CreditReservationStatus.RELEASED;
+    case CreditReservationStatus.EXPIRED:
+      return CreditReservationStatus.EXPIRED;
+    default:
+      return CreditReservationStatus.RESERVED;
+  }
+}
+
 export function billingAccountRoleSatisfies(
   actual: BillingAccountMemberRole | null | undefined,
   required: BillingAccountMemberRole,

@@ -5,6 +5,10 @@ import {
   BillingAccountStatus,
   billingAccountRoleSatisfies,
   CreditReservationStatus,
+  parseBillingAccountMemberRole,
+  parseBillingAccountOrganizationStatus,
+  parseBillingAccountStatus,
+  parseCreditReservationStatus,
 } from '../src/billing-account.enum';
 
 describe('billing-account.enum', () => {
@@ -55,5 +59,24 @@ describe('billing-account.enum', () => {
     expect(
       billingAccountRoleSatisfies(null, BillingAccountMemberRole.VIEWER),
     ).toBe(false);
+  });
+
+  it('parses Prisma billing labels into domain enums', () => {
+    expect(parseBillingAccountStatus('CANCELLED')).toBe(
+      BillingAccountStatus.CANCELLED,
+    );
+    expect(parseBillingAccountStatus('nope')).toBe(
+      BillingAccountStatus.UNPROVISIONED,
+    );
+    expect(parseBillingAccountMemberRole('OWNER')).toBe(
+      BillingAccountMemberRole.OWNER,
+    );
+    expect(parseBillingAccountMemberRole(null)).toBeNull();
+    expect(parseBillingAccountOrganizationStatus('LINKED')).toBe(
+      BillingAccountOrganizationStatus.LINKED,
+    );
+    expect(parseCreditReservationStatus('SETTLED')).toBe(
+      CreditReservationStatus.SETTLED,
+    );
   });
 });
