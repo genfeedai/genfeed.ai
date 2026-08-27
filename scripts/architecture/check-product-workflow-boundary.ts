@@ -150,15 +150,6 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
         'Outreach campaign DMs are wrapped by campaign-dm-automation system workflow executions.',
       systemWorkflowIds: ['campaign-dm-automation'],
     },
-    {
-      classification: 'pending-system-workflow-migration',
-      file: 'apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts',
-      id: 'social-inbox-manual-actions',
-      issue: 1032,
-      reason:
-        'Manual social inbox reply/DM endpoints still dispatch directly while reply and DM actions move behind workflow execution.',
-      systemWorkflowIds: ['reply-dm-automation'],
-    },
   ];
 
 const PRODUCT_CRON_PATH_SEGMENTS = ['/content-pipeline/', '/posts/'];
