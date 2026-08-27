@@ -320,7 +320,7 @@ describe('ClipProjectIngestionService', () => {
     expect(clipIdentityResolutionService.resolve).not.toHaveBeenCalled();
     expect(
       clipGenerationRequestService.assertCompleteAvatarIdentity,
-    ).toHaveBeenCalledWith(undefined);
+    ).not.toHaveBeenCalled();
     expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
         avatarId: undefined,

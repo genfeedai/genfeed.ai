@@ -158,7 +158,7 @@ describe('IngredientsListContent', () => {
     ).not.toBeNull();
     expect(screen.queryByText('VIDEO')).not.toBeInTheDocument();
     expect(
-      screen.getByText('Landscape').closest('[class*="bg-slate-500/15"]'),
+      screen.getByText('Landscape').closest('[class*="bg-tertiary"]'),
     ).not.toBeNull();
   });
 
