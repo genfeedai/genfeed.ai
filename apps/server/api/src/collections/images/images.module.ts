@@ -12,7 +12,7 @@ import { ImagesOperationsController } from '@api/collections/images/controllers/
 import { ImagesRelationshipsController } from '@api/collections/images/controllers/relationships/images-relationships.controller';
 import { ImagesReframeController } from '@api/collections/images/controllers/transformations/images-reframe.controller';
 import { ImagesResizeController } from '@api/collections/images/controllers/transformations/images-resize.controller';
-import { ImagesTransformationsController } from '@api/collections/images/controllers/transformations/images-transformations.controller';
+import { ImagesUpscaleController } from '@api/collections/images/controllers/transformations/images-upscale.controller';
 import { ImagesUploadsController } from '@api/collections/images/controllers/upload/images-uploads.controller';
 import { ImagesCoreModule } from '@api/collections/images/images-core.module';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
@@ -21,6 +21,7 @@ import { ImageGenerationProviderDispatchService } from '@api/collections/images/
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { ImageReframeService } from '@api/collections/images/services/image-reframe.service';
 import { ImageResizeService } from '@api/collections/images/services/image-resize.service';
+import { ImageUpscaleService } from '@api/collections/images/services/image-upscale.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
 import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
 import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
@@ -70,7 +71,7 @@ import { Module } from '@nestjs/common';
     ImagesRelationshipsController,
     ImagesResizeController,
     ImagesReframeController,
-    ImagesTransformationsController,
+    ImagesUpscaleController,
     ImagesUploadsController,
   ],
   exports: [ImageGenerationService, ImagesCoreModule],
@@ -125,6 +126,7 @@ import { Module } from '@nestjs/common';
     ImageGenerationService,
     ImageResizeService,
     ImageReframeService,
+    ImageUpscaleService,
     KlingAiImageGenerationProviderAdapter,
     LeonardoImageGenerationProviderAdapter,
     ModelRegistrationService,
