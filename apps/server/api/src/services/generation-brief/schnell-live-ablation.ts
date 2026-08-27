@@ -415,15 +415,28 @@ async function dispatchArm(
   arm: SchnellAblationArmResult,
   seed: number,
 ): Promise<SchnellAblationArmResult> {
-  const prediction = await waitForPrediction(
-    token,
-    await createSchnellPrediction(token, arm.prompt, seed),
-  );
-  const outputUrl = firstOutputUrl(prediction.output);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const prediction = await waitForPrediction(
+        token,
+        await createSchnellPrediction(token, arm.prompt, seed + attempt),
+      );
+      const outputUrl = firstOutputUrl(prediction.output);
+      if (outputUrl) {
+        return {
+          ...arm,
+          outputUrl,
+          visualPassed: arm.contractPassed,
+        };
+      }
+    } catch {
+      // Retry provider flakes; the last attempt falls through.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
   return {
     ...arm,
-    outputUrl,
-    visualPassed: Boolean(outputUrl) && arm.contractPassed,
+    visualPassed: false,
   };
 }
 
