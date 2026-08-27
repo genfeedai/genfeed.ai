@@ -4273,30 +4273,6 @@
       "workspace": "workers"
     },
     {
-      "code": 2503,
-      "count": 10,
-      "file": "apps/server/workers/src/processors/api/queues/clip-analyze/clip-analyze.processor.spec.ts",
-      "fingerprint": "e013120aea6b879d294a",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "apps/server/workers/src/processors/api/queues/clip-analyze/clip-analyze.processor.spec.ts",
-      "fingerprint": "4bb3f30715682790fa77",
-      "message": "Parameter 'candidate' implicitly has an 'any' type.",
-      "workspace": "workers"
-    },
-    {
-      "code": 7006,
-      "count": 4,
-      "file": "apps/server/workers/src/processors/api/queues/clip-analyze/clip-analyze.processor.spec.ts",
-      "fingerprint": "db4422d3a7f89d2123bc",
-      "message": "Parameter 'call' implicitly has an 'any' type.",
-      "workspace": "workers"
-    },
-    {
       "code": 2459,
       "count": 1,
       "file": "apps/server/workers/src/processors/api/queues/reply-bot/reply-bot-polling.processor.spec.ts",

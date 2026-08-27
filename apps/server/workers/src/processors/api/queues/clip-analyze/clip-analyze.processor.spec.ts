@@ -10,14 +10,33 @@ import { ClipHighlightDetector } from '@workers/processors/api/queues/shared/cli
 import type { Job } from 'bullmq';
 import { of } from 'rxjs';
 
+type ClipProjectPatchPayload = {
+  highlights?: Array<{ id: string; virality_score: number }>;
+  progress?: number;
+  referenceFrames?: {
+    candidates: Array<{ id: string }>;
+    status?: string;
+  };
+  status?: string;
+  transcriptSrt?: string;
+  transcriptText?: string;
+};
+
+type ClipProjectPatchCall = [string, ClipProjectPatchPayload, ...unknown[]];
+
 describe('ClipAnalyzeProcessor', () => {
   let processor: ClipAnalyzeProcessor;
-  let clipProjectsService: vi.Mocked<ClipProjectsService>;
-  let whisperService: vi.Mocked<WhisperService>;
-  let httpService: vi.Mocked<HttpService>;
-  let configService: vi.Mocked<ConfigService>;
-  let logger: vi.Mocked<LoggerService>;
-  let publicClipToolStore: vi.Mocked<PublicClipToolStoreService>;
+  let clipProjectsService: { patch: ReturnType<typeof vi.fn> };
+  let whisperService: { transcribeUrl: ReturnType<typeof vi.fn> };
+  let httpService: {
+    get: ReturnType<typeof vi.fn>;
+    post: ReturnType<typeof vi.fn>;
+  };
+  let configService: { get: ReturnType<typeof vi.fn> };
+  let logger: LoggerService;
+  let publicClipToolStore: {
+    patchByWorkerProjectId: ReturnType<typeof vi.fn>;
+  };
 
   const mockJobData: ClipAnalyzeJobData = {
     language: 'en',
@@ -84,37 +103,41 @@ describe('ClipAnalyzeProcessor', () => {
       error: vi.fn(),
       log: vi.fn(),
       warn: vi.fn(),
-    } as unknown as vi.Mocked<LoggerService>;
+    } as unknown as LoggerService;
 
     clipProjectsService = {
       patch: vi.fn().mockResolvedValue({}),
-    } as unknown as vi.Mocked<ClipProjectsService>;
+    };
 
     whisperService = {
       transcribeUrl: vi.fn().mockResolvedValue(mockTranscription),
-    } as unknown as vi.Mocked<WhisperService>;
+    };
 
     httpService = {
       get: vi.fn(),
       post: vi.fn(),
-    } as unknown as vi.Mocked<HttpService>;
+    };
 
     configService = {
       get: vi.fn().mockReturnValue('mock-api-key'),
-    } as unknown as vi.Mocked<ConfigService>;
+    };
 
     publicClipToolStore = {
       patchByWorkerProjectId: vi.fn().mockResolvedValue(undefined),
-    } as unknown as vi.Mocked<PublicClipToolStoreService>;
+    };
 
     processor = new ClipAnalyzeProcessor(
       logger,
-      clipProjectsService,
-      whisperService,
-      httpService,
-      configService,
-      new ClipHighlightDetector(logger, httpService, configService),
-      publicClipToolStore,
+      clipProjectsService as unknown as ClipProjectsService,
+      whisperService as unknown as WhisperService,
+      httpService as unknown as HttpService,
+      configService as unknown as ConfigService,
+      new ClipHighlightDetector(
+        logger,
+        httpService as unknown as HttpService,
+        configService as unknown as ConfigService,
+      ),
+      publicClipToolStore as unknown as PublicClipToolStoreService,
     );
   });
 
@@ -178,7 +201,9 @@ describe('ClipAnalyzeProcessor', () => {
     setupHttpMocks();
     await processor.process(createMockJob());
 
-    const lastPatchCall = clipProjectsService.patch.mock.calls.at(-1);
+    const lastPatchCall = clipProjectsService.patch.mock.calls.at(-1) as
+      | ClipProjectPatchCall
+      | undefined;
     expect(lastPatchCall?.[0]).toBe('proj-123');
     expect(lastPatchCall?.[1]).toMatchObject({
       progress: 100,
@@ -224,9 +249,11 @@ describe('ClipAnalyzeProcessor', () => {
     setupHttpMocks();
     await processor.process(createMockJob());
 
-    const lastPatchCall = clipProjectsService.patch.mock.calls.at(-1);
-    const highlights = lastPatchCall?.[1]?.highlights as Array<{ id: string }>;
-    expect(highlights).toBeDefined();
+    const lastPatchCall = clipProjectsService.patch.mock.calls.at(-1) as
+      | ClipProjectPatchCall
+      | undefined;
+    const highlights = lastPatchCall?.[1]?.highlights ?? [];
+    expect(highlights.length).toBeGreaterThan(0);
     for (const h of highlights) {
       expect(h.id).toBeDefined();
       expect(typeof h.id).toBe('string');
@@ -238,10 +265,10 @@ describe('ClipAnalyzeProcessor', () => {
     setupHttpMocks();
     await processor.process(createMockJob());
 
-    const lastPatchCall = clipProjectsService.patch.mock.calls.at(-1);
-    const highlights = lastPatchCall?.[1]?.highlights as Array<{
-      virality_score: number;
-    }>;
+    const lastPatchCall = clipProjectsService.patch.mock.calls.at(-1) as
+      | ClipProjectPatchCall
+      | undefined;
+    const highlights = lastPatchCall?.[1]?.highlights ?? [];
     // minViralityScore = 50, so the one scoring 30 should be filtered out
     expect(highlights.length).toBe(2);
     for (const h of highlights) {
@@ -253,9 +280,9 @@ describe('ClipAnalyzeProcessor', () => {
     setupHttpMocks();
     await processor.process(createMockJob());
 
-    const transcriptPatch = clipProjectsService.patch.mock.calls.find(
-      (call) => call[1]?.transcriptText !== undefined,
-    );
+    const transcriptPatch = (
+      clipProjectsService.patch.mock.calls as ClipProjectPatchCall[]
+    ).find((call) => call[1]?.transcriptText !== undefined);
     expect(transcriptPatch).toBeDefined();
     expect(transcriptPatch?.[1]?.transcriptText).toBe(mockTranscription.text);
     expect(transcriptPatch?.[1]?.transcriptSrt).toBe(mockTranscription.srt);
@@ -314,9 +341,9 @@ describe('ClipAnalyzeProcessor', () => {
       }),
       expect.any(Object),
     );
-    const pendingPatch = clipProjectsService.patch.mock.calls.find(
-      (call) => call[1]?.referenceFrames?.status === 'pending',
-    );
+    const pendingPatch = (
+      clipProjectsService.patch.mock.calls as ClipProjectPatchCall[]
+    ).find((call) => call[1]?.referenceFrames?.status === 'pending');
     expect(pendingPatch?.[1]).toMatchObject({ progress: 75 });
     expect(
       pendingPatch?.[1]?.referenceFrames?.candidates.map(
@@ -341,7 +368,9 @@ describe('ClipAnalyzeProcessor', () => {
 
     await processor.process(createMockJob());
 
-    const lastPatchCall = clipProjectsService.patch.mock.calls.at(-1);
+    const lastPatchCall = clipProjectsService.patch.mock.calls.at(-1) as
+      | ClipProjectPatchCall
+      | undefined;
     expect(lastPatchCall?.[1]).toMatchObject({
       progress: 100,
       referenceFrames: {
@@ -357,9 +386,9 @@ describe('ClipAnalyzeProcessor', () => {
 
     await expect(processor.process(createMockJob())).rejects.toThrow();
 
-    const failedPatch = clipProjectsService.patch.mock.calls.find(
-      (call) => call[1]?.status === 'failed',
-    );
+    const failedPatch = (
+      clipProjectsService.patch.mock.calls as ClipProjectPatchCall[]
+    ).find((call) => call[1]?.status === 'failed');
     expect(failedPatch).toBeDefined();
   });
 
@@ -369,7 +398,8 @@ describe('ClipAnalyzeProcessor', () => {
 
     // Processor should not have any dependency on ClipGenerationService
     // Verify only patch calls happened, no generation-related calls
-    const patchCalls = clipProjectsService.patch.mock.calls;
+    const patchCalls = clipProjectsService.patch.mock
+      .calls as ClipProjectPatchCall[];
     const statusUpdates = patchCalls
       .map((call) => call[1]?.status)
       .filter(Boolean);
