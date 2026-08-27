@@ -745,22 +745,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/images/controllers/transformations/images-transformations.controller.spec.ts",
-      "fingerprint": "1cb0c0baffca1b8de2ac",
-      "message": "Type '\"4x\"' is not assignable to type 'UpscaleFactor | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/images/controllers/transformations/images-transformations.controller.spec.ts",
-      "fingerprint": "3ffdf8fe50ccda3661dc",
-      "message": "Type '\"jpg\"' is not assignable to type 'ImageFormat | undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/images/entities/image.entity.spec.ts",
@@ -1366,14 +1350,6 @@
       "file": "apps/server/api/src/collections/videos/controllers/relationships/videos-relationships.controller.spec.ts",
       "fingerprint": "6b24a12cb323b24613f3",
       "message": "Type '{}' is missing the following properties from type 'VideosQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2741,
-      "count": 2,
-      "file": "apps/server/api/src/collections/videos/controllers/relationships/videos-relationships.controller.spec.ts",
-      "fingerprint": "e66b5ceb349863bd5336",
-      "message": "Property 'category' is missing in type '{ ids: string[]; isCaptionsEnabled: false; isResizeEnabled: false; }' but required in type 'CreateMergedVideoDto'.",
       "workspace": "api"
     },
     {
@@ -2825,14 +2801,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 6,
-      "file": "apps/server/api/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
-      "fingerprint": "acf950e218ee7a05c55a",
-      "message": "Argument of type 'PostEntity' is not assignable to parameter of type 'PostDocument'.   Type 'PostEntity' is missing the following properties from type 'PostDocument': entityModel, source, seoBreakdown, seoScore, and 19 more.",
-      "workspace": "api"
-    },
-    {
       "code": 2304,
       "count": 4,
       "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
@@ -2846,14 +2814,6 @@
       "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
       "fingerprint": "e13f84a28991fa7a3bbe",
       "message": "Type 'null' is not assignable to type 'string'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 6,
-      "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
-      "fingerprint": "c48ba3e38d3b73f83248",
-      "message": "Argument of type 'PostEntity' is not assignable to parameter of type 'PostDocument'.   Type 'PostEntity' is missing the following properties from type 'PostDocument': entityModel, source, seoBreakdown, seoScore, and 19 more.",
       "workspace": "api"
     },
     {

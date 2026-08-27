@@ -5,7 +5,7 @@ import type {
   CreateAgentPublishAuditInput,
 } from '@api/collections/agent-publish-audits/schemas/agent-publish-audit.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { AgentPublishDecision } from '@genfeedai/enums';
+import { AgentPublishDecision } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 

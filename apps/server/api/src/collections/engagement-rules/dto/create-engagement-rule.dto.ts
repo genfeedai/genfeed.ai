@@ -38,7 +38,7 @@ export class CreateEngagementRuleDto {
   @IsEnum(EngagementRuleAction)
   actionType!: EngagementRuleAction;
 
-  @ApiPropertyOptional({ type: 'object' })
+  @ApiPropertyOptional({ type: Object })
   @IsOptional()
   @IsObject()
   @Type(() => Object)
