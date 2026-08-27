@@ -43,6 +43,40 @@ describe('desktop runtime mode transitions', () => {
     expect(persisted).toBe(false);
   });
 
+  it('invalidates a timed-out attempt and lets a fresh retry persist', async () => {
+    let resolveFirstAttempt: (() => void) | undefined;
+    const firstAttempt = new Promise<void>((resolve) => {
+      resolveFirstAttempt = resolve;
+    });
+    let invalidated = false;
+    let persisted = 0;
+
+    await expect(
+      activateDesktopLocalMode(
+        async () => firstAttempt,
+        () => {
+          persisted += 1;
+        },
+        20,
+        () => {
+          invalidated = true;
+        },
+      ),
+    ).rejects.toThrow('Local workspace did not finish starting');
+
+    expect(invalidated).toBe(true);
+    await activateDesktopLocalMode(
+      async () => undefined,
+      () => {
+        persisted += 1;
+      },
+    );
+    resolveFirstAttempt?.();
+    await firstAttempt;
+
+    expect(persisted).toBe(1);
+  });
+
   it('never falls back to cloud while local mode is active', () => {
     const cloudService = { mode: 'cloud' };
 
@@ -162,5 +196,7 @@ describe('desktop local runtime unwind', () => {
     expect(source).toContain(
       'let draftsService: DesktopDraftsService | null = null',
     );
+    expect(source).toContain('attemptId !== localRuntimeAttemptId');
+    expect(source).toContain('invalidateLocalRuntimeAttempt');
   });
 });

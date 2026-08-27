@@ -377,10 +377,19 @@ describe('CliAuthPage', () => {
       screen.getByRole('button', { name: 'Try again' }),
     ).toBeInTheDocument();
 
+    vi.mocked(navigator.clipboard.writeText).mockRejectedValueOnce(
+      new Error('clipboard permission denied'),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
     await waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
         'gf_desktop_code',
+      );
+      expect(screen.getByLabelText('Sign-in code')).toHaveValue(
+        'gf_desktop_code',
+      );
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Select the full code below and copy it manually',
       );
     });
   });

@@ -5,6 +5,8 @@ const ORIGINAL_ENV = {
   GENFEED_DESKTOP_API_URL: process.env.GENFEED_DESKTOP_API_URL,
   GENFEED_DESKTOP_AUTH_URL: process.env.GENFEED_DESKTOP_AUTH_URL,
   GENFEED_DESKTOP_CDN_URL: process.env.GENFEED_DESKTOP_CDN_URL,
+  GENFEED_DESKTOP_PROVIDER_TIMEOUT_MS:
+    process.env.GENFEED_DESKTOP_PROVIDER_TIMEOUT_MS,
   GENFEED_DESKTOP_WS_URL: process.env.GENFEED_DESKTOP_WS_URL,
 };
 
@@ -30,7 +32,16 @@ describe('DesktopConfigService', () => {
     restoreEnvValue('GENFEED_DESKTOP_API_URL');
     restoreEnvValue('GENFEED_DESKTOP_AUTH_URL');
     restoreEnvValue('GENFEED_DESKTOP_CDN_URL');
+    restoreEnvValue('GENFEED_DESKTOP_PROVIDER_TIMEOUT_MS');
     restoreEnvValue('GENFEED_DESKTOP_WS_URL');
+  });
+
+  it('captures the local provider timeout through the config service', () => {
+    process.env.GENFEED_DESKTOP_PROVIDER_TIMEOUT_MS = '1250';
+
+    const service = new DesktopConfigService();
+
+    expect(service.getLocalProviderTimeoutMs()).toBe(1250);
   });
 
   it('defaults installed desktop builds to Genfeed Cloud endpoints', () => {
