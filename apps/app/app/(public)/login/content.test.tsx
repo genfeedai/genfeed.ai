@@ -338,6 +338,37 @@ describe('LoginPage', () => {
     });
   });
 
+  it('shows the inner desktop error instead of the Electron IPC wrapper', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    desktopRuntimeMocks.completeWithCode.mockRejectedValueOnce(
+      new Error(
+        "Error invoking remote method 'desktop:auth:completeWithCode': Error: Sign-in expired. Click Sign in with Genfeed, then paste the new code from that browser tab.",
+      ),
+    );
+    render(<LoginPage />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+    );
+    await waitFor(() => {
+      expect(desktopRuntimeMocks.login).toHaveBeenCalledOnce();
+    });
+
+    fireEvent.change(screen.getByLabelText('Sign-in code'), {
+      target: { value: 'stale-code' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue with code' }));
+
+    expect(
+      await screen.findByText(
+        'Sign-in expired. Click Sign in with Genfeed, then paste the new code from that browser tab.',
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/Error invoking remote method/),
+    ).not.toBeInTheDocument();
+  });
+
   it('unsubscribes from desktop session changes on unmount', () => {
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
     const { unmount } = render(<LoginPage />);

@@ -365,6 +365,22 @@ describe('DesktopSessionService', () => {
     expect(service.buildCallbackUrlFromPaste('desktop-code')).toBe(null);
   });
 
+  it('restores a pending PKCE paste after the process restarts', () => {
+    const firstService = createSessionService(kvService, cookieMock);
+    const loginUrl = new URL(firstService.getLoginUrl());
+    const state = loginUrl.searchParams.get('state');
+
+    if (!state) {
+      throw new Error('Expected login URL state');
+    }
+
+    const restartedService = createSessionService(kvService, cookieMock);
+
+    expect(restartedService.buildCallbackUrlFromPaste('desktop-code')).toBe(
+      `genfeedai-desktop://auth?code=desktop-code&state=${state}`,
+    );
+  });
+
   it('exchanges a pasted authorize code', async () => {
     const service = createSessionService(kvService, cookieMock);
     service.getLoginUrl();

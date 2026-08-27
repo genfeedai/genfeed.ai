@@ -49,6 +49,17 @@ import {
 const subscribeToClientSurface = () => () => {};
 const LOGIN_TITLE = 'Welcome back';
 const LOGIN_DESCRIPTION = 'Sign in to Genfeed';
+const DESKTOP_IPC_ERROR_PREFIX =
+  /Error invoking remote method '[^']+':(?: Error:)?\s*/;
+
+function readDesktopBridgeError(error: unknown, fallback: string): string {
+  if (!(error instanceof Error) || !error.message.trim()) {
+    return fallback;
+  }
+
+  const message = error.message.replace(DESKTOP_IPC_ERROR_PREFIX, '').trim();
+  return message || fallback;
+}
 
 type LoginMode = 'chooser' | 'magic-link' | 'password';
 type InvitationNotice = {
@@ -285,9 +296,10 @@ export default function LoginBetterAuth({
       isWaitingForDesktopSessionRef.current = true;
       setIsWaitingForDesktopSession(true);
       setDesktopErrorMessage(
-        error instanceof Error
-          ? error.message
-          : 'The sign-in code could not be used. Copy it again from the browser.',
+        readDesktopBridgeError(
+          error,
+          'The sign-in code could not be used. Copy it again from the browser.',
+        ),
       );
       setIsSubmittingDesktopCode(false);
     }

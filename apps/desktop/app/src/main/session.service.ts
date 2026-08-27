@@ -7,6 +7,7 @@ import { safeStorage } from 'electron';
 import type { DesktopKeyValueStore } from './store.service';
 
 const SESSION_STORAGE_KEY = 'desktop.session';
+const PENDING_AUTH_STORAGE_KEY = 'desktop.pendingAuth';
 const DESKTOP_AUTH_SCHEME = 'genfeedai-desktop';
 const DESKTOP_AUTH_PATH = 'auth';
 const DESKTOP_AUTH_PROTOCOL = `${DESKTOP_AUTH_SCHEME}:`;
@@ -449,7 +450,7 @@ export class DesktopSessionService {
   getLoginUrl(): string {
     const codeVerifier = createCodeVerifier();
     const state = createState();
-    this.pendingAuth = { codeVerifier, state };
+    this.persistPendingAuth({ codeVerifier, state });
 
     const url = new URL(this.environment.authEndpoint);
     const returnTo = `${DESKTOP_AUTH_SCHEME}://${DESKTOP_AUTH_PATH}`;
@@ -459,6 +460,57 @@ export class DesktopSessionService {
     url.searchParams.set('return_to', returnTo);
     url.searchParams.set('state', state);
     return url.toString();
+  }
+
+  private persistPendingAuth(pending: PendingDesktopAuth): void {
+    this.pendingAuth = pending;
+    const payload = JSON.stringify(pending);
+    const stored = safeStorage.isEncryptionAvailable()
+      ? safeStorage.encryptString(payload).toString('base64')
+      : payload;
+    this.store.setValueSync(PENDING_AUTH_STORAGE_KEY, stored);
+  }
+
+  private readStoredPendingAuth(): PendingDesktopAuth | null {
+    const stored = this.store.getValueSync(PENDING_AUTH_STORAGE_KEY);
+
+    if (!stored) {
+      return null;
+    }
+
+    try {
+      const raw = safeStorage.isEncryptionAvailable()
+        ? safeStorage.decryptString(Buffer.from(stored, 'base64'))
+        : stored;
+      const parsed = JSON.parse(raw) as unknown;
+
+      if (
+        !parsed ||
+        typeof parsed !== 'object' ||
+        typeof (parsed as PendingDesktopAuth).codeVerifier !== 'string' ||
+        typeof (parsed as PendingDesktopAuth).state !== 'string'
+      ) {
+        return null;
+      }
+
+      return {
+        codeVerifier: (parsed as PendingDesktopAuth).codeVerifier,
+        state: (parsed as PendingDesktopAuth).state,
+      };
+    } catch {
+      void this.store.deleteValue(PENDING_AUTH_STORAGE_KEY);
+      return null;
+    }
+  }
+
+  private getPendingAuth(): PendingDesktopAuth | null {
+    this.pendingAuth ??= this.readStoredPendingAuth();
+    return this.pendingAuth;
+  }
+
+  private clearPendingAuth(): void {
+    this.pendingAuth = null;
+    void this.store.deleteValue(PENDING_AUTH_STORAGE_KEY);
   }
 
   /**
@@ -485,7 +537,7 @@ export class DesktopSessionService {
       return null;
     }
 
-    const pendingState = this.pendingAuth?.state;
+    const pendingState = this.getPendingAuth()?.state;
 
     if (!pendingState) {
       return null;
@@ -535,7 +587,7 @@ export class DesktopSessionService {
     code: string,
     state: string,
   ): Promise<DesktopAuthCallbackResult> {
-    const pendingAuth = this.pendingAuth;
+    const pendingAuth = this.getPendingAuth();
 
     if (!pendingAuth || !safeEqual(pendingAuth.state, state)) {
       return failedCallback(
@@ -544,7 +596,7 @@ export class DesktopSessionService {
       );
     }
 
-    this.pendingAuth = null;
+    this.clearPendingAuth();
 
     try {
       const response = await fetch(

@@ -1322,7 +1322,7 @@ const registerIpcHandlers = (): void => {
 
       if (!callbackUrl) {
         throw new Error(
-          'Paste the sign-in code from the browser. Start sign-in from this app first.',
+          'Sign-in expired. Click Sign in with Genfeed, then paste the new code from that browser tab.',
         );
       }
 
