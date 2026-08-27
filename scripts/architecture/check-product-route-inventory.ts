@@ -180,6 +180,8 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/services',
     '/skills',
     '/studio',
+    '/tools',
+    '/tools/youtube-clips',
     '/use-cases',
     '/use-cases/:slug',
     '/vs',
