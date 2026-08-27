@@ -34,6 +34,7 @@ describe('SubscriptionsController', () => {
   };
 
   const mockSubscription = {
+    billingAccountId: null,
     cancelAtPeriodEnd: false,
     createdAt: new Date(),
     currentPeriodStart: new Date(),
