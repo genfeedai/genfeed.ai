@@ -11,6 +11,7 @@ describe('CreditDeductionProcessor', () => {
   let creditsUtilsService: {
     deductCreditsFromOrganization: ReturnType<typeof vi.fn>;
     getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
+    settleReservation: ReturnType<typeof vi.fn>;
   };
   let creditTransactionsService: {
     createTransactionEntry: ReturnType<typeof vi.fn>;
@@ -32,6 +33,7 @@ describe('CreditDeductionProcessor', () => {
     creditsUtilsService = {
       deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(5000),
+      settleReservation: vi.fn().mockResolvedValue(undefined),
     };
     creditTransactionsService = {
       createTransactionEntry: vi.fn().mockResolvedValue(undefined),

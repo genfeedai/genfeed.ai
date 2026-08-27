@@ -1,3 +1,4 @@
+import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
 import { BILLING_ACCOUNT_METADATA } from '@api/services/integrations/stripe/services/billing-account-metadata.constant';
 import {
@@ -41,6 +42,7 @@ type BillingAccountProvisionInput = BillingAccountProjection & {
 @Injectable()
 export class OrganizationBillingAccountService {
   constructor(
+    private readonly billingAccountsService: BillingAccountsService,
     private readonly customersService: CustomersService,
     private readonly stripeService: StripeService,
     private readonly loggerService: LoggerService,
@@ -110,6 +112,16 @@ export class OrganizationBillingAccountService {
     if (!customer.stripeCustomerId) {
       throw this.failure('billing_customer_missing', 'customer_missing');
     }
+
+    const account = await this.billingAccountsService.ensureForOrganization({
+      label: input.organizationLabel,
+      organizationId: input.organizationId,
+      userId: input.userId,
+    });
+    await this.billingAccountsService.attachStripeCustomer(
+      account.id,
+      customer.stripeCustomerId,
+    );
 
     return {
       customerId: String(customer.id),

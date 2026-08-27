@@ -1,4 +1,6 @@
 import type { ActivitySource } from '@genfeedai/enums';
+import type { ICreditReservation } from './billing-account.interface';
+import type { ICreditWalletSnapshot } from './credits.interface';
 
 /**
  * Contract for the credits utility service.
@@ -180,4 +182,31 @@ export interface ICreditsUtilsService {
     cycleEndAt: Date,
     currentBalance: number,
   ): Promise<ICycleRemainingMetrics>;
+
+  getWalletSnapshot(organizationId: string): Promise<ICreditWalletSnapshot>;
+
+  reserveCredits(input: {
+    organizationId: string;
+    actorUserId: string;
+    amount: number;
+    idempotencyKey: string;
+    workloadType?: string;
+    workloadId?: string;
+    expiresAt?: Date;
+  }): Promise<ICreditReservation>;
+
+  settleReservation(input: {
+    reservationId?: string;
+    idempotencyKey?: string;
+    actualAmount: number;
+    actorUserId: string;
+    description: string;
+    source?: ActivitySource;
+  }): Promise<ICreditWalletSnapshot>;
+
+  releaseReservation(input: {
+    reservationId?: string;
+    idempotencyKey?: string;
+    reason?: 'release' | 'expiry';
+  }): Promise<ICreditWalletSnapshot>;
 }

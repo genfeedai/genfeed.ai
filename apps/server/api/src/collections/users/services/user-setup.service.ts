@@ -9,6 +9,7 @@
  * - Credit balance
  * - Member record
  */
+import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
@@ -53,6 +54,7 @@ export class UserSetupService {
     private readonly membersService: MembersService,
     private readonly rolesService: RolesService,
     private readonly settingsService: SettingsService,
+    private readonly billingAccountsService: BillingAccountsService,
     private readonly creditBalanceService: CreditBalanceService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly logger: LoggerService,
@@ -107,6 +109,13 @@ export class UserSetupService {
       // Default daily post/newsletter/image workflows are no longer
       // auto-provisioned. Operators create schedules from Automate when they
       // want them.
+
+      await this.billingAccountsService.ensureForOrganization({
+        label: organization.label,
+        organizationId: organization.id.toString(),
+        planTier: organizationSettings.subscriptionTier ?? null,
+        userId,
+      });
 
       // Step 6: Create credit balance (REQUIRED - cascading failure)
       await this.creditBalanceService.getOrCreateBalance(

@@ -55,19 +55,30 @@ export class CreditDeductionProcessor extends WorkerHost {
           return;
         }
 
-        await this.creditsUtilsService.deductCreditsFromOrganization(
-          organizationId,
-          userId,
-          amount,
-          description,
-          source,
-          {
-            maxOverdraftCredits: job.data.maxOverdraftCredits,
-            metadata: job.data.metadata,
-            referenceId: job.data.referenceId,
-            referenceType: job.data.referenceType,
-          },
-        );
+        if (job.data.reservationId || job.data.idempotencyKey) {
+          await this.creditsUtilsService.settleReservation({
+            actualAmount: amount,
+            actorUserId: userId,
+            description,
+            idempotencyKey: job.data.idempotencyKey,
+            reservationId: job.data.reservationId,
+            source,
+          });
+        } else {
+          await this.creditsUtilsService.deductCreditsFromOrganization(
+            organizationId,
+            userId,
+            amount,
+            description,
+            source,
+            {
+              maxOverdraftCredits: job.data.maxOverdraftCredits,
+              metadata: job.data.metadata,
+              referenceId: job.data.referenceId,
+              referenceType: job.data.referenceType,
+            },
+          );
+        }
 
         await this.checkLowCredits(organizationId);
       } else if (type === 'record-byok-usage') {

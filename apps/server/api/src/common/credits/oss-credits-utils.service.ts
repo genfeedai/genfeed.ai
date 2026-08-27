@@ -1,7 +1,10 @@
 import type { ActivitySource } from '@genfeedai/enums';
+import { CreditReservationStatus } from '@genfeedai/enums';
 import type {
   IAddCreditsOptions,
+  ICreditReservation,
   ICreditsUtilsService,
+  ICreditWalletSnapshot,
   ICycleRemainingMetrics,
   IDeductCreditsOptions,
   IOrganizationCreditsWithExpiration,
@@ -92,5 +95,54 @@ export class OssCreditsUtilsService implements ICreditsUtilsService {
       cycleTotal: 0,
       remainingPercent: 100,
     };
+  }
+
+  async getWalletSnapshot(
+    _organizationId: string,
+  ): Promise<ICreditWalletSnapshot> {
+    return {
+      available: Number.POSITIVE_INFINITY,
+      billingAccountId: null,
+      held: 0,
+      id: 'oss',
+      organizationId: _organizationId,
+      settled: Number.POSITIVE_INFINITY,
+      version: 0,
+    };
+  }
+
+  async reserveCredits(input: {
+    organizationId: string;
+    actorUserId: string;
+    amount: number;
+    idempotencyKey: string;
+    workloadType?: string;
+    workloadId?: string;
+    expiresAt?: Date;
+  }): Promise<ICreditReservation> {
+    return {
+      actorUserId: input.actorUserId,
+      amount: input.amount,
+      billingAccountId: 'oss',
+      createdAt: new Date().toISOString(),
+      expiresAt: (input.expiresAt ?? new Date()).toISOString(),
+      id: input.idempotencyKey,
+      idempotencyKey: input.idempotencyKey,
+      isDeleted: false,
+      organizationId: input.organizationId,
+      settledAmount: null,
+      status: CreditReservationStatus.RESERVED,
+      updatedAt: new Date().toISOString(),
+      workloadId: input.workloadId ?? null,
+      workloadType: input.workloadType ?? null,
+    };
+  }
+
+  async settleReservation(): Promise<ICreditWalletSnapshot> {
+    return this.getWalletSnapshot('oss');
+  }
+
+  async releaseReservation(): Promise<ICreditWalletSnapshot> {
+    return this.getWalletSnapshot('oss');
   }
 }

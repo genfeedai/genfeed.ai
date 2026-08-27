@@ -24,6 +24,7 @@ vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
 });
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -170,6 +171,14 @@ describe('StripeController', () => {
         { provide: UsersService, useValue: usersService },
         { provide: OrganizationsService, useValue: organizationsService },
         { provide: LifecycleEmailService, useValue: lifecycleEmailService },
+        {
+          provide: BillingAccountsService,
+          useValue: {
+            ensureForOrganization: vi.fn().mockResolvedValue({ id: 'ba_1' }),
+            requireRole: vi.fn().mockResolvedValue('OWNER'),
+            resolveForOrganization: vi.fn().mockResolvedValue({ id: 'ba_1' }),
+          },
+        },
       ],
     })
       .overrideGuard(RolesGuard)

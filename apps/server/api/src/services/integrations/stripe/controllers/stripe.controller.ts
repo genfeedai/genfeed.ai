@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { CreateCheckoutSessionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -17,6 +18,7 @@ import {
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { isEEEnabled } from '@genfeedai/config';
+import { BillingAccountMemberRole } from '@genfeedai/enums';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
@@ -53,6 +55,7 @@ export class StripeController {
     private readonly organizationsService: OrganizationsService,
     private readonly lifecycleEmailService: LifecycleEmailService,
     private readonly billingAccountService: OrganizationBillingAccountService,
+    private readonly billingAccountsService: BillingAccountsService,
   ) {}
 
   /**
@@ -123,6 +126,18 @@ export class StripeController {
       if (!organization) {
         return returnNotFound('Organization', user.organizationId);
       }
+
+      const domainAccount =
+        await this.billingAccountsService.ensureForOrganization({
+          label: organization.label,
+          organizationId: user.organizationId,
+          userId: dbUser.id.toString(),
+        });
+      await this.billingAccountsService.requireRole(
+        domainAccount.id,
+        dbUser.id.toString(),
+        BillingAccountMemberRole.ADMINISTRATOR,
+      );
 
       const billingAccount =
         await this.billingAccountService.resolveOrProvision({
@@ -341,6 +356,15 @@ export class StripeController {
       if (!subscription) {
         return returnNotFound('Subscription', user.organizationId);
       }
+      const domainAccount =
+        await this.billingAccountsService.resolveForOrganization(
+          user.organizationId,
+        );
+      await this.billingAccountsService.requireRole(
+        domainAccount.id,
+        user.userId ?? user.id,
+        BillingAccountMemberRole.ADMINISTRATOR,
+      );
       const stripeCustomerId = await this.resolveOrgStripeCustomerId(
         user.organizationId,
         subscription,

@@ -8,6 +8,10 @@ export class CreditTransactionsEntity
 {
   declare readonly id: string;
   declare readonly organizationId: string;
+  declare readonly billingAccountId: string | null;
+  declare readonly actorUserId: string | null;
+  declare readonly reservationId: string | null;
+  declare readonly idempotencyKey: string | null;
   declare readonly metadata: CreditTransactions['metadata'];
   declare readonly referenceId: CreditTransactions['referenceId'];
   declare readonly referenceType: CreditTransactions['referenceType'];

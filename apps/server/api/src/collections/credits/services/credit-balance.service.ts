@@ -1,7 +1,13 @@
 import type { CreditBalanceDocument } from '@api/collections/credits/schemas/credit-balance.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { BusinessLogicException } from '@api/helpers/exceptions/business/business-logic.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type {
+  IApplyCreditDeltaInput,
+  ICreditWalletSnapshot,
+} from '@genfeedai/interfaces/billing';
+import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -21,6 +27,9 @@ export class CreditBalanceService {
       balance: number;
       isDeleted: boolean;
       organizationId: string;
+      billingAccountId?: string | null;
+      heldAmount?: number;
+      version?: number;
     },
     tx?: PrismaTransactionClient,
   ): Promise<CreditBalanceDocument> {
@@ -48,18 +57,121 @@ export class CreditBalanceService {
   async getOrCreateBalance(
     organizationId: string,
     tx?: PrismaTransactionClient,
+    billingAccountId?: string | null,
   ): Promise<CreditBalanceDocument> {
     if (!organizationId) {
       throw new Error(`Invalid organization ID: ${organizationId}`);
     }
 
+    const client = tx ?? this.prisma;
+    if (billingAccountId) {
+      const shared = await client.creditBalance.findFirst({
+        where: { billingAccountId, isDeleted: false },
+      });
+      if (shared) {
+        return shared;
+      }
+    }
+
     const balance = await this.findByOrganization(organizationId, tx);
 
     if (!balance) {
-      return this.create({ balance: 0, isDeleted: false, organizationId }, tx);
+      return this.create(
+        {
+          balance: 0,
+          billingAccountId: billingAccountId ?? undefined,
+          heldAmount: 0,
+          isDeleted: false,
+          organizationId,
+          version: 0,
+        },
+        tx,
+      );
+    }
+
+    if (billingAccountId && !balance.billingAccountId) {
+      return client.creditBalance.update({
+        data: { billingAccountId },
+        where: { id: balance.id },
+      });
     }
 
     return balance;
+  }
+
+  toSnapshot(balance: CreditBalanceDocument): ICreditWalletSnapshot {
+    const settled = typeof balance.balance === 'number' ? balance.balance : 0;
+    const held =
+      typeof balance.heldAmount === 'number' ? balance.heldAmount : 0;
+    return {
+      available: settled - held,
+      billingAccountId: balance.billingAccountId ?? null,
+      held,
+      id: balance.id,
+      organizationId: balance.organizationId ?? '',
+      settled,
+      version: balance.version ?? 0,
+    };
+  }
+
+  /**
+   * Conditional balance mutation. Rejects the write when it would make
+   * available credits (settled - held) drop below `-maxOverdraftCredits`,
+   * or when it would make held amount negative.
+   */
+  async applyDelta(
+    organizationId: string,
+    input: IApplyCreditDeltaInput,
+    tx?: PrismaTransactionClient,
+  ): Promise<ICreditWalletSnapshot> {
+    const balanceDelta = input.balanceDelta ?? 0;
+    const heldDelta = input.heldDelta ?? 0;
+    const maxOverdraftCredits = Math.max(0, input.maxOverdraftCredits ?? 0);
+    const balance = await this.getOrCreateBalance(
+      organizationId,
+      tx,
+      input.billingAccountId,
+    );
+    const client = tx ?? this.prisma;
+    const updated = await client.$executeRaw(
+      Prisma.sql`
+        UPDATE "credit_balances"
+        SET
+          "balance" = "balance" + ${balanceDelta},
+          "heldAmount" = "heldAmount" + ${heldDelta},
+          "version" = "version" + 1,
+          "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "id" = ${balance.id}
+          AND "isDeleted" = false
+          AND "heldAmount" + ${heldDelta} >= 0
+          AND ("balance" + ${balanceDelta}) - ("heldAmount" + ${heldDelta}) >= ${-maxOverdraftCredits}
+      `,
+    );
+
+    if (updated !== 1) {
+      throw new BusinessLogicException(
+        `Insufficient organization credits. Available: ${this.toSnapshot(balance).available}, Required: ${Math.max(0, -balanceDelta) + Math.max(0, heldDelta)}, Max overdraft: ${maxOverdraftCredits}`,
+        {
+          available: this.toSnapshot(balance).available,
+          balanceDelta,
+          heldDelta,
+          maxOverdraftCredits,
+          organizationId,
+        },
+        'INSUFFICIENT_CREDITS',
+      );
+    }
+
+    const next = await client.creditBalance.findFirst({
+      where: { id: balance.id, isDeleted: false },
+    });
+    if (!next) {
+      throw new BusinessLogicException(
+        'Credit balance disappeared during mutation',
+      );
+    }
+
+    return this.toSnapshot(next);
   }
 
   @HandleErrors('update balance', 'credits')
@@ -68,12 +180,21 @@ export class CreditBalanceService {
     newBalance: number,
     tx?: PrismaTransactionClient,
   ): Promise<CreditBalanceDocument> {
-    const balance = await this.getOrCreateBalance(organizationId, tx);
-
-    return (tx ?? this.prisma).creditBalance.update({
-      data: { balance: newBalance },
-      where: { id: balance.id },
+    const current = await this.getOrCreateBalance(organizationId, tx);
+    const snapshot = await this.applyDelta(
+      organizationId,
+      { balanceDelta: newBalance - (current.balance ?? 0) },
+      tx,
+    );
+    const next = await (tx ?? this.prisma).creditBalance.findFirst({
+      where: { id: snapshot.id, isDeleted: false },
     });
+    if (!next) {
+      throw new BusinessLogicException(
+        'Credit balance disappeared during mutation',
+      );
+    }
+    return next;
   }
 
   @HandleErrors('delete credit balance', 'credits')

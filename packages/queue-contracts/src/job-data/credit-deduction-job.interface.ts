@@ -14,4 +14,5 @@ export interface CreditDeductionJobData {
   referenceType?: string;
   /** Defers settlement until this persisted media asset is terminal. */
   settlementAssetId?: string;
+  reservationId?: string;
 }

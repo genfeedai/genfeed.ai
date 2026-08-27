@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
   ARTICLES: '/articles',
   ASSETS: '/assets',
   BATCHES: '/batches',
+  BILLING_ACCOUNTS: '/billing-accounts',
   BLACKLISTS: '/elements/blacklists',
   BOT_ACTIVITIES: '/bot-activities',
   BOTS: '/bots',

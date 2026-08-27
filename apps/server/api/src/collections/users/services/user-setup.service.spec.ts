@@ -1,3 +1,4 @@
+import type { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -85,6 +86,9 @@ describe('UserSetupService', () => {
       mockMembersService as unknown as MembersService,
       mockRolesService as unknown as RolesService,
       mockSettingsService as unknown as SettingsService,
+      {
+        ensureForOrganization: vi.fn().mockResolvedValue({ id: 'ba_1' }),
+      } as unknown as BillingAccountsService,
       mockCreditBalanceService as unknown as CreditBalanceService,
       mockCreditsUtilsService as unknown as CreditsUtilsService,
       mockLogger as unknown as LoggerService,

@@ -412,6 +412,32 @@ enum SubscriptionStatus {
   INCOMPLETE
 }
 
+enum BillingAccountStatus {
+  UNPROVISIONED
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  STALE
+}
+
+enum BillingAccountMemberRole {
+  OWNER
+  ADMINISTRATOR
+  VIEWER
+}
+
+enum BillingAccountOrganizationStatus {
+  LINKED
+  DETACHED
+}
+
+enum CreditReservationStatus {
+  RESERVED
+  SETTLED
+  RELEASED
+  EXPIRED
+}
+
 enum LeadStatus {
   NEW
   CONTACTED
@@ -624,6 +650,7 @@ model User {
   contentVersionPins       ContentVersionPin[]
   publishApprovals         PublishApproval[]
   studioLooks              StudioLook[]
+  billingAccountMembers    BillingAccountMember[]
 
   @@index([isDefault])
   @@index([appSource])
@@ -636,6 +663,8 @@ model Organization {
   authProviderLogoUrl        String?
   userId                     String
   user                       User                  @relation(fields: [userId], references: [id])
+  billingAccountId           String?
+  billingAccount             BillingAccount?       @relation(fields: [billingAccountId], references: [id])
   label                      String
   slug                       String                @unique
   prefix                     String?
@@ -757,6 +786,8 @@ model Organization {
   subscriptions                 Subscription[]
   creditBalances                CreditBalance[]
   creditTransactions            CreditTransaction[]
+  billingAccountLinks           BillingAccountOrganization[]
+  creditReservations            CreditReservation[]
   llmVendorCosts                LlmVendorCost[]
   mediaVendorCosts              MediaVendorCost[]
   subscriptionAttributions      SubscriptionAttribution[]
@@ -787,6 +818,7 @@ model Organization {
   @@index([isDefault])
   @@index([category])
   @@index([accountType])
+  @@index([billingAccountId])
   @@map("organizations")
 }
 
@@ -2526,17 +2558,20 @@ model Distribution {
 // ═══════════════════════════════════════════════════════════════
 
 model Customer {
-  id               String       @id @default(cuid())
+  id               String          @id @default(cuid())
   organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id])
+  organization     Organization    @relation(fields: [organizationId], references: [id])
+  billingAccountId String?
+  billingAccount   BillingAccount? @relation(fields: [billingAccountId], references: [id])
   stripeCustomerId String?
-  isDeleted        Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  isDeleted        Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   subscriptions Subscription[]
 
   @@index([organizationId, isDeleted])
+  @@index([billingAccountId, isDeleted])
   @@map("customers")
 }
 
@@ -2544,6 +2579,8 @@ model Subscription {
   id                   String             @id @default(cuid())
   organizationId       String
   organization         Organization       @relation(fields: [organizationId], references: [id])
+  billingAccountId     String?
+  billingAccount       BillingAccount?    @relation(fields: [billingAccountId], references: [id])
   userId               String
   user                 User               @relation(fields: [userId], references: [id])
   customerId           String?
@@ -2560,6 +2597,7 @@ model Subscription {
   updatedAt            DateTime           @updatedAt
 
   @@index([organizationId, isDeleted])
+  @@index([billingAccountId, isDeleted])
   @@map("subscriptions")
 }
 
@@ -2708,37 +2746,134 @@ model NotificationDelivery {
 }
 
 model CreditBalance {
-  id             String       @id @default(cuid())
-  organizationId String       @unique
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  balance        Float        @default(0)
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id               String          @id @default(cuid())
+  organizationId   String?         @unique
+  organization     Organization?   @relation(fields: [organizationId], references: [id])
+  billingAccountId String?
+  billingAccount   BillingAccount? @relation(fields: [billingAccountId], references: [id])
+  balance          Float           @default(0)
+  heldAmount       Float           @default(0)
+  version          Int             @default(0)
+  isDeleted        Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
+  @@index([billingAccountId, isDeleted])
   @@map("credit_balances")
 }
 
 model CreditTransaction {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  amount         Float
-  balanceAfter   Float?
-  source         String?
-  description    String?
-  referenceId    String?
-  referenceType  String?
-  metadata       Json?
-  category       String?
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id               String             @id @default(cuid())
+  organizationId   String
+  organization     Organization       @relation(fields: [organizationId], references: [id])
+  billingAccountId String?
+  billingAccount   BillingAccount?    @relation(fields: [billingAccountId], references: [id])
+  actorUserId      String?
+  reservationId    String?
+  reservation      CreditReservation? @relation(fields: [reservationId], references: [id])
+  idempotencyKey   String?
+  amount           Float
+  balanceAfter     Float?
+  source           String?
+  description      String?
+  referenceId      String?
+  referenceType    String?
+  metadata         Json?
+  category         String?
+  isDeleted        Boolean            @default(false)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
   @@index([source, isDeleted, createdAt(sort: Desc)], map: "credit_transactions_source_deleted_created_at_idx")
   @@index([source, isDeleted, organizationId, createdAt(sort: Desc)], map: "credit_transactions_source_deleted_org_created_at_idx")
   @@index([organizationId, isDeleted, category, createdAt(sort: Desc)], map: "credit_transactions_org_deleted_category_created_at_idx")
+  @@index([billingAccountId, isDeleted, createdAt(sort: Desc)])
+  @@index([reservationId])
   @@map("credit_transactions")
+}
+
+model BillingAccount {
+  id               String                @id @default(cuid())
+  label            String?
+  stripeCustomerId String?
+  status           BillingAccountStatus  @default(UNPROVISIONED)
+  planTier         String?
+  isDeleted        Boolean               @default(false)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  members          BillingAccountMember[]
+  organizationLinks BillingAccountOrganization[]
+  organizations    Organization[]
+  customers        Customer[]
+  subscriptions    Subscription[]
+  creditBalances   CreditBalance[]
+  creditTransactions CreditTransaction[]
+  creditReservations CreditReservation[]
+
+  @@index([status, isDeleted])
+  @@map("billing_accounts")
+}
+
+model BillingAccountMember {
+  id               String                   @id @default(cuid())
+  billingAccountId String
+  billingAccount   BillingAccount           @relation(fields: [billingAccountId], references: [id])
+  userId           String
+  user             User                     @relation(fields: [userId], references: [id])
+  role             BillingAccountMemberRole
+  isDeleted        Boolean                  @default(false)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  @@unique([billingAccountId, userId])
+  @@index([userId, isDeleted])
+  @@map("billing_account_members")
+}
+
+model BillingAccountOrganization {
+  id               String                            @id @default(cuid())
+  billingAccountId String
+  billingAccount   BillingAccount                    @relation(fields: [billingAccountId], references: [id])
+  organizationId   String
+  organization     Organization                      @relation(fields: [organizationId], references: [id])
+  status           BillingAccountOrganizationStatus  @default(LINKED)
+  monthlyBudgetCredits Float?
+  budgetPolicy     String?
+  linkedAt         DateTime                          @default(now())
+  detachedAt       DateTime?
+  isDeleted        Boolean                           @default(false)
+  createdAt        DateTime                          @default(now())
+  updatedAt        DateTime                          @updatedAt
+
+  @@index([billingAccountId, status, isDeleted])
+  @@index([organizationId, status, isDeleted])
+  @@map("billing_account_organizations")
+}
+
+model CreditReservation {
+  id               String                   @id @default(cuid())
+  billingAccountId String
+  billingAccount   BillingAccount           @relation(fields: [billingAccountId], references: [id])
+  organizationId   String
+  organization     Organization             @relation(fields: [organizationId], references: [id])
+  actorUserId      String?
+  amount           Float
+  settledAmount    Float?
+  status           CreditReservationStatus  @default(RESERVED)
+  workloadType     String?
+  workloadId       String?
+  idempotencyKey   String                   @unique
+  expiresAt        DateTime
+  isDeleted        Boolean                  @default(false)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  settlements      CreditTransaction[]
+
+  @@index([billingAccountId, status, isDeleted])
+  @@index([organizationId, status, isDeleted])
+  @@index([status, expiresAt])
+  @@map("credit_reservations")
 }
 
 /// Per-completion LLM vendor cost (#2361). Micro-USD integers; BYOK rows
