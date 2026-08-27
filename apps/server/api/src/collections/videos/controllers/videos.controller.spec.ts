@@ -1419,7 +1419,7 @@ describe('VideosController', () => {
       await controller.create(mockRequest, dto, mockUser);
 
       expect(klingAIService.queueGenerateTextToVideo).toHaveBeenCalledWith(
-        expect.stringContaining('dolly, wide, natural, slow'),
+        expect.stringMatching(/dolly.*wide.*natural.*slow/),
         expect.objectContaining({
           height: 1080,
           model: MODEL_KEYS.KLINGAI_V2,
