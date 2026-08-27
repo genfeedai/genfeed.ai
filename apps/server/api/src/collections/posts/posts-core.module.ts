@@ -4,6 +4,7 @@ import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.modul
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
+import { QueuesModule } from '@api/queues/core/queues.module';
 import { Module } from '@nestjs/common';
 
 /** Post persistence + aggregation. Generation HTTP stays on PostsModule. */
@@ -14,6 +15,7 @@ import { Module } from '@nestjs/common';
     OrganizationSettingsModule,
     PostLifecycleModule,
     PublishApprovalsModule,
+    QueuesModule,
   ],
   providers: [AnalyticsAggregationService, PostsService],
 })

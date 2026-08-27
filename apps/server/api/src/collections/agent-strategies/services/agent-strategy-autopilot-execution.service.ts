@@ -822,7 +822,7 @@ export class AgentStrategyAutopilotExecutionService {
             scheduledDate: new Date(),
             source: draft.source ?? undefined,
             targetAttachments: draft.targetAttachments,
-            targetExecutionState: TargetExecutionState.PUBLISHING,
+            targetExecutionState: TargetExecutionState.SCHEDULED,
             targetSettings: draft.targetSettings,
             userId,
           } as PostCreateInput)
@@ -831,7 +831,8 @@ export class AgentStrategyAutopilotExecutionService {
             groupId,
             platform: target.platform,
             scheduledDate: new Date(),
-            targetExecutionState: TargetExecutionState.PUBLISHING,
+            targetExecutionState: TargetExecutionState.SCHEDULED,
+            userId,
           });
 
       createdPostIds.push(documentId(post));

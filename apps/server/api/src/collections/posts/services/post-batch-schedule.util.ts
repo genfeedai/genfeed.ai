@@ -1,4 +1,5 @@
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import type { CacheService } from '@api/services/cache/services/cache.service';
@@ -6,7 +7,7 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
 import { PostCategory, TargetExecutionState } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
+import { type PostPublishQueueService, scopedWhere } from '@genfeedai/server';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 export interface PostBatchScheduleItem {
@@ -33,15 +34,17 @@ export interface PostBatchScheduleResult {
  * file, which is at its runtime-complexity ceiling.
  */
 export interface PostBatchScheduleContext {
+  actorUserId: string;
   cacheService?: Pick<CacheService, 'invalidateByTags'>;
   cacheTags: readonly string[];
   logger: Pick<LoggerService, 'log'>;
   normalizeData: (data: unknown) => Record<string, unknown>;
   normalizeDocument: (document: unknown) => PostDocument;
+  postPublishQueueService?: Pick<PostPublishQueueService, 'enqueue'>;
   prisma: PrismaService;
   publishApprovalsService?: Pick<
     PublishApprovalsService,
-    'assertPostMutable' | 'invalidatePost'
+    'assertPostMutable' | 'createForCurrentPost' | 'markQueued'
   >;
 }
 
@@ -147,7 +150,7 @@ function planBatchWrites(
  * single `$transaction` carrying every write, and one cache invalidation.
  *
  * Scoping, status transitions, timezone conversion, the child cascade and the
- * approval invalidation all match `patch` exactly — only the number of
+ * version-bound approval mint all match `create`/`patch` — only the number of
  * round-trips changes.
  */
 export async function batchSchedulePosts(
@@ -204,17 +207,20 @@ export async function batchSchedulePosts(
     await context.cacheService.invalidateByTags([...context.cacheTags]);
   }
 
-  if (approvalsService && approvalGuardedIds.length > 0) {
-    await Promise.all(
-      approvalGuardedIds.map((id: string) =>
-        approvalsService.invalidatePost(
-          organizationId,
-          id,
-          'Canonical Post material or protected schedule intent changed.',
-        ),
-      ),
-    );
-  }
+  const posts = updateIndexes.map((index) =>
+    context.normalizeDocument(results[index]),
+  );
+  await Promise.all(
+    posts.map((post) =>
+      bindScheduledPublishApproval({
+        actorUserId: context.actorUserId,
+        post,
+        postPublishQueueService: context.postPublishQueueService,
+        provenanceSurface: 'posts-batch-schedule',
+        publishApprovalsService: context.publishApprovalsService,
+      }),
+    ),
+  );
 
   context.logger.log('Batch scheduled posts', {
     missing: missingPostIds.length,
@@ -225,8 +231,6 @@ export async function batchSchedulePosts(
 
   return {
     missingPostIds,
-    posts: updateIndexes.map((index) =>
-      context.normalizeDocument(results[index]),
-    ),
+    posts,
   };
 }
