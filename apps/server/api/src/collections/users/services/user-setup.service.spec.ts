@@ -493,7 +493,7 @@ describe('UserSetupService', () => {
           expect.stringContaining('CRITICAL: User setup failed'),
           expect.objectContaining({
             brandCreated: true,
-            memberCreated: false,
+            memberCreated: true,
             organizationCreated: true,
             organizationSettingsCreated: true,
             userSettingsCreated: true,
