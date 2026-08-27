@@ -8,6 +8,7 @@ import {
   type PollOptions,
   PollUntilService,
 } from '@server/shared/services/poll-until/poll-until.service';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('PollUntilService', () => {
   let service: PollUntilService;

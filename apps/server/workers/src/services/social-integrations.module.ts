@@ -1,6 +1,3 @@
-import { ConfigModule } from '@libs/config/config.module';
-import { LoggerModule } from '@libs/logger/logger.module';
-import { HttpModule } from '@nestjs/axios';
 import { Injectable, Module } from '@nestjs/common';
 import {
   SERVER_TOKENS,
@@ -18,11 +15,6 @@ import { RedditService } from '@server/services/integrations/reddit/services/red
 import { ThreadsService } from '@server/services/integrations/threads/services/threads.service';
 import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import { TwitterResponseMapper } from '@server/services/integrations/twitter/services/twitter-response.mapper';
-import { YoutubeAnalyticsService } from '@server/services/integrations/youtube/services/modules/youtube-analytics.service';
-import { YoutubeAuthService } from '@server/services/integrations/youtube/services/modules/youtube-auth.service';
-import { YoutubeCommentsService } from '@server/services/integrations/youtube/services/modules/youtube-comments.service';
-import { YoutubeMetadataService } from '@server/services/integrations/youtube/services/modules/youtube-metadata.service';
 import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 import { WorkersDomainModule } from '@server/workers-domain.module';
 
@@ -58,21 +50,10 @@ const SOCIAL_SERVICES = [
 
 @Module({
   exports: [...SOCIAL_SERVICES],
-  imports: [
-    WorkersDomainModule,
-    ConfigModule,
-    HttpModule,
-    LoggerModule,
-  ],
+  imports: [WorkersDomainModule],
   providers: [
-    ...SOCIAL_SERVICES,
-    TwitterResponseMapper,
     WorkerLinkedInTrendResolver,
     WorkerYoutubeUploader,
-    YoutubeAnalyticsService,
-    YoutubeAuthService,
-    YoutubeCommentsService,
-    YoutubeMetadataService,
     {
       provide: SERVER_TOKENS.linkedInTrends,
       useExisting: WorkerLinkedInTrendResolver,

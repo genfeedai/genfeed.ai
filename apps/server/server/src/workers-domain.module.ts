@@ -5,14 +5,11 @@ import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { SERVER_TOKENS } from '@server/server.dependencies';
-import { CacheModule } from '@server/services/cache/cache.module';
 import { AnalyticsSocialJobService } from '@server/analytics/services/analytics-social-job.service';
 import { AnalyticsTwitterJobService } from '@server/analytics/services/analytics-twitter-job.service';
 import { AnalyticsYouTubeJobService } from '@server/analytics/services/analytics-youtube-job.service';
 import { PostAnalyticsCollectionStateService } from '@server/analytics/services/post-analytics-collection-state.service';
 import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { AdBulkUploadJobsService } from '@server/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
 import { AdCreativeMappingsService } from '@server/collections/ad-creative-mappings/services/ad-creative-mappings.service';
 import { AdOptimizationAuditLogsService } from '@server/collections/ad-optimization-audit-logs/services/ad-optimization-audit-logs.service';
@@ -28,17 +25,17 @@ import { AgentStrategyOpportunitiesService } from '@server/collections/agent-str
 import { AgentStrategyReportsService } from '@server/collections/agent-strategies/services/agent-strategy-reports.service';
 import { AgentStrategyWorkflowRunService } from '@server/collections/agent-strategies/services/agent-strategy-workflow-run.service';
 import { ArticleAnalyticsService } from '@server/collections/articles/services/article-analytics.service';
-import { ArticlesContentService } from '@server/collections/articles/services/articles-content.service';
 import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import { ArticlesContentService } from '@server/collections/articles/services/articles-content.service';
 import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
 import { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
+import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
 import { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
 import { ClipLibraryLinkService } from '@server/collections/clip-projects/services/clip-library-link.service';
 import { HighlightRewriteService } from '@server/collections/clip-projects/services/highlight-rewrite.service';
 import { HookClipApprovalService } from '@server/collections/clip-projects/services/hook-clip-approval.service';
-import { RawCutClipCompletionService } from '@server/collections/clip-projects/services/raw-cut-clip-completion.service';
 import { RawCutClipService } from '@server/collections/clip-projects/services/raw-cut-clip.service';
+import { RawCutClipCompletionService } from '@server/collections/clip-projects/services/raw-cut-clip-completion.service';
 import { AnalyticsSyncService } from '@server/collections/content-performance/services/analytics-sync.service';
 import { AttributionService } from '@server/collections/content-performance/services/attribution.service';
 import { EmailDigestService } from '@server/collections/content-performance/services/email-digest.service';
@@ -47,10 +44,11 @@ import { PerformanceSummaryService } from '@server/collections/content-performan
 import { VariationGroupScoringService } from '@server/collections/content-performance/services/variation-group-scoring.service';
 import { WinnerPromotionWorkflowService } from '@server/collections/content-performance/services/winner-promotion-workflow.service';
 import { ContextsService } from '@server/collections/contexts/services/contexts.service';
-import { KnowledgeSourceIngestService } from '@server/collections/contexts/services/knowledge-source-ingest.service';
 import { KnowledgeSourceService } from '@server/collections/contexts/services/knowledge-source.service';
+import { KnowledgeSourceIngestService } from '@server/collections/contexts/services/knowledge-source-ingest.service';
 import { CreativePatternsService } from '@server/collections/creative-patterns/creative-patterns.service';
 import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
 import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
@@ -65,9 +63,7 @@ import { ModelsService } from '@server/collections/models/services/models.servic
 import { AssetGateService } from '@server/collections/organization-settings/services/asset-gate.service';
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { DEFAULT_CAMPAIGN_SCHEDULE_VERSION } from '@server/collections/outreach-campaigns/services/outreach-campaign-schedule.util';
 import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
-import { PostEntity } from '@server/collections/posts/entities/post.entity';
 import { PostAnalyticsService } from '@server/collections/posts/services/post-analytics.service';
 import { PostRepurposeService } from '@server/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@server/collections/posts/services/posts.service';
@@ -86,8 +82,8 @@ import { VoiceGenerationService } from '@server/collections/voices/services/voic
 import { VoicesService } from '@server/collections/voices/services/voices.service';
 import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
 import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
-import { BatchWorkflowQueueService } from '@server/collections/workflows/services/batch-workflow-queue.service';
 import { BatchWorkflowService } from '@server/collections/workflows/services/batch-workflow.service';
+import { BatchWorkflowQueueService } from '@server/collections/workflows/services/batch-workflow-queue.service';
 import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionAuthorizationService } from '@server/collections/workflows/services/workflow-execution-authorization.service';
@@ -100,11 +96,9 @@ import { WorkflowSchedulerService } from '@server/collections/workflows/services
 import { WorkflowStepRunnerService } from '@server/collections/workflows/services/workflow-step-runner.service';
 import { WorkflowTemplateSeederService } from '@server/collections/workflows/services/workflow-template-seeder.service';
 import { WorkflowWebhookService } from '@server/collections/workflows/services/workflow-webhook.service';
-import { SYSTEM_WORKFLOW_ACTION_IDS, SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
+import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import { ManagedInferenceClientService } from '@server/endpoints/v1/managed-inference/managed-inference-client.service';
 import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
-import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
-import { JsonParserUtil } from '@server/helpers/utils/json-parser.util';
 import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
 import { BatchGenerationQueueService } from '@server/queues/batch-generation/batch-generation-queue.service';
 import { CampaignQueueService } from '@server/queues/campaign/campaign-queue.service';
@@ -119,36 +113,34 @@ import { CampaignWinnerExtractionService } from '@server/services/agent-campaign
 import { ContentEngineService } from '@server/services/agent-campaign/content-engine.service';
 import { ContentRotationService } from '@server/services/agent-campaign/content-rotation.service';
 import { OrchestratorQueueService } from '@server/services/agent-campaign/orchestrator-queue.service';
-import { TriggerEvaluatorQueueService } from '@server/services/agent-campaign/trigger-evaluator-queue.service';
 import { TriggerEvaluatorService } from '@server/services/agent-campaign/trigger-evaluator.service';
+import { TriggerEvaluatorQueueService } from '@server/services/agent-campaign/trigger-evaluator-queue.service';
 import { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherService } from '@server/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentTurnAcceptanceService } from '@server/services/agent-orchestrator/agent-turn-acceptance.service';
 import { ApiKeyHelperService } from '@server/services/api-key/api-key-helper.service';
 import { HeygenAvatarProvider } from '@server/services/avatar-video/providers/heygen-avatar.provider';
-import { BatchContentQueueService } from '@server/services/batch-content/batch-content-queue.service';
 import { BatchContentService } from '@server/services/batch-content/batch-content.service';
-import { BatchAlreadyOwnedException } from '@server/services/batch-generation/batch-already-owned.exception';
+import { BatchContentQueueService } from '@server/services/batch-content/batch-content-queue.service';
+import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
 import { BatchGenerationCreditsService } from '@server/services/batch-generation/batch-generation-credits.service';
 import { BatchGenerationReconcileService } from '@server/services/batch-generation/batch-generation-reconcile.service';
 import { BatchGenerationStreamService } from '@server/services/batch-generation/batch-generation-stream.service';
-import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
 import { BrandMemorySyncService } from '@server/services/brand-memory/brand-memory-sync.service';
-import { ByokBillingService } from '@server/services/byok-billing/byok-billing.service';
-import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
 import { ByokService } from '@server/services/byok/byok.service';
-import { CacheService } from '@server/services/cache/cache.service';
+import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
+import { ByokBillingService } from '@server/services/byok-billing/byok-billing.service';
+import { CacheModule } from '@server/services/cache/cache.module';
 import { CampaignDiscoveryService } from '@server/services/campaign/campaign-discovery.service';
 import { CampaignExecutorService } from '@server/services/campaign/campaign-executor.service';
 import { DmCampaignExecutorService } from '@server/services/campaign/dm-campaign-executor.service';
 import { AbTestSuggestionHarnessService } from '@server/services/content-optimization/ab-test-suggestion-harness.service';
-import { ContentOptimizationQueueService } from '@server/services/content-optimization/content-optimization-queue.service';
 import { ContentOptimizationService } from '@server/services/content-optimization/content-optimization.service';
+import { ContentOptimizationQueueService } from '@server/services/content-optimization/content-optimization-queue.service';
 import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
 import { ContentqueryQueueService } from '@server/services/content-orchestration/content-pipeline-queue.service';
 import { TelegramDistributionService } from '@server/services/distribution/telegram/telegram-distribution.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import { BeehiivProviderError } from '@server/services/integrations/beehiiv/errors/beehiiv-provider.error';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { FacebookService } from '@server/services/integrations/facebook/services/facebook.service';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
@@ -161,7 +153,6 @@ import { LeonardoAIService } from '@server/services/integrations/leonardoai/serv
 import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
 import { MastodonService } from '@server/services/integrations/mastodon/services/mastodon.service';
 import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
-import { OPENROUTER_FIRST_PARTY_PROVIDER_POLICY } from '@server/services/integrations/openrouter/dto/openrouter.dto';
 import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
 import { BeehiivPublisherService } from '@server/services/integrations/publishers/beehiiv-publisher.service';
 import { FacebookPublisherService } from '@server/services/integrations/publishers/facebook-publisher.service';
@@ -185,8 +176,8 @@ import { RedditService } from '@server/services/integrations/reddit/services/red
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { ThreadsService } from '@server/services/integrations/threads/services/threads.service';
 import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
-import { TwitterResponseMapper } from '@server/services/integrations/twitter/services/twitter-response.mapper';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { TwitterResponseMapper } from '@server/services/integrations/twitter/services/twitter-response.mapper';
 import { YoutubeAnalyticsService } from '@server/services/integrations/youtube/services/modules/youtube-analytics.service';
 import { YoutubeAuthService } from '@server/services/integrations/youtube/services/modules/youtube-auth.service';
 import { YoutubeCommentsService } from '@server/services/integrations/youtube/services/modules/youtube-comments.service';
@@ -222,7 +213,6 @@ import { GenerationEventWebhookService } from '@server/services/webhook-client/g
 import { PublishEventWebhookService } from '@server/services/webhook-client/publish-event-webhook.service';
 import { WebhookClientService } from '@server/services/webhook-client/webhook-client.service';
 import { WebhookDispatchService } from '@server/services/webhook-client/webhook-dispatch.service';
-import { WebhookEndpointValidationError } from '@server/services/webhook-client/webhook-endpoint.validator';
 import { WorkflowEventWebhookService } from '@server/services/webhook-client/workflow-event-webhook.service';
 import { WhisperService } from '@server/services/whisper/whisper.service';
 import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
@@ -263,7 +253,6 @@ const WORKER_DOMAIN_SERVICES = [
   AttributionService,
   AuthorReplyLoopService,
   AvatarVideoGenerationService,
-  BatchAlreadyOwnedException,
   BatchContentQueueService,
   BatchContentService,
   BatchGenerationCreditsService,
@@ -273,15 +262,12 @@ const WORKER_DOMAIN_SERVICES = [
   BatchGenerationStreamService,
   BatchWorkflowQueueService,
   BatchWorkflowService,
-  BeehiivProviderError,
   BeehiivPublisherService,
   BotActionExecutorService,
   BrandMemorySyncService,
-  BusinessLogicException,
   ByokBillingService,
   ByokProviderFactoryService,
   ByokService,
-  CacheService,
   CampaignDiscoveryService,
   CampaignExecutorService,
   CampaignMemoryQueueService,
@@ -305,7 +291,6 @@ const WORKER_DOMAIN_SERVICES = [
   CreditTransactionsService,
   CreditsUtilsService,
   CustomerInstanceResolverService,
-  DEFAULT_CAMPAIGN_SCHEDULE_VERSION,
   DmCampaignExecutorService,
   ElevenLabsService,
   EmailDigestService,
@@ -329,7 +314,6 @@ const WORKER_DOMAIN_SERVICES = [
   InsightsService,
   InstagramPublisherService,
   InstagramService,
-  JsonParserUtil,
   KlingAIService,
   KnowledgeSourceIngestQueueService,
   KnowledgeSourceIngestService,
@@ -347,7 +331,6 @@ const WORKER_DOMAIN_SERVICES = [
   ModelsService,
   NotificationPreferenceService,
   NotificationsService,
-  OPENROUTER_FIRST_PARTY_PROVIDER_POLICY,
   OptimizationCycleService,
   OrchestratorQueueService,
   OrganizationSettingsService,
@@ -359,7 +342,6 @@ const WORKER_DOMAIN_SERVICES = [
   PollUntilService,
   PostAnalyticsCollectionStateService,
   PostAnalyticsService,
-  PostEntity,
   PostRepurposeService,
   PostsService,
   PublicClipToolStoreService,
@@ -381,8 +363,6 @@ const WORKER_DOMAIN_SERVICES = [
   ReplyInboundQueueService,
   ReplyPostWatchService,
   ReviewablePostsService,
-  SERVER_TOKENS,
-  SYSTEM_WORKFLOW_ACTION_IDS,
   SharedService,
   ShopifyPublisherService,
   SignupPrefillService,
@@ -418,7 +398,6 @@ const WORKER_DOMAIN_SERVICES = [
   VoicesService,
   WebhookClientService,
   WebhookDispatchService,
-  WebhookEndpointValidationError,
   WebhooksService,
   WhatsappPublisherService,
   WhisperService,
@@ -453,7 +432,7 @@ const WORKER_DOMAIN_SERVICES = [
 ] as const;
 
 @Module({
-  exports: [...WORKER_DOMAIN_SERVICES],
+  exports: [...WORKER_DOMAIN_SERVICES, CacheModule],
   imports: [CacheModule, ConfigModule, HttpModule, LoggerModule, PrismaModule],
   providers: [
     ...WORKER_DOMAIN_SERVICES,

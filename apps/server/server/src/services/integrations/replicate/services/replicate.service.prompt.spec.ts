@@ -11,6 +11,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ReplicateService', () => {
   let service: ReplicateService;

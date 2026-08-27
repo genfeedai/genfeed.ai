@@ -13,6 +13,7 @@ import type {
 } from '@server/services/integrations/meta-ads/interfaces/meta-ads.interface';
 import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 import { of, throwError } from 'rxjs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('MetaAdsService', () => {
   let service: MetaAdsService;
