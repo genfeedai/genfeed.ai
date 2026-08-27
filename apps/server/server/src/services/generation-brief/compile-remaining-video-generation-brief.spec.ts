@@ -37,6 +37,45 @@ describe('compileRemainingVideoGenerationBrief', () => {
     expect(result.dispatch.duration).toBe(8);
   });
 
+  it('preserves creative direction in the provider prompt and evidence', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: {
+        cinematography: 'handheld',
+        composition: 'dolly, wide',
+        lighting: 'natural',
+        motion: 'slow',
+        objective: 'the product turns to camera',
+        scene: 'a daylight studio',
+        visualDirection: 'editorial',
+      },
+      mediaKind: 'video',
+      output: { aspectRatio: '16:9', durationSeconds: 8 },
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST),
+      modelKey: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST,
+    });
+
+    expect(result.dispatch.prompt).toBe(
+      'the product turns to camera, a daylight studio, dolly, wide, natural, handheld, slow, editorial',
+    );
+    expect(result.evidence.appliedFields).toEqual(
+      expect.arrayContaining([
+        'intent.cinematography',
+        'intent.composition',
+        'intent.lighting',
+        'intent.motion',
+        'intent.scene',
+        'intent.visualDirection',
+      ]),
+    );
+  });
+
   it('requires a first frame for Kling v2.1', () => {
     const brief = videoGenerationBriefSchema.parse({
       constraints: [],

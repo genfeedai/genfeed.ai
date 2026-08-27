@@ -126,6 +126,15 @@ export function compileRemainingVideoGenerationBrief(
   if (brief.intent.scene) {
     parts.push(brief.intent.scene);
   }
+  if (brief.intent.composition) {
+    parts.push(brief.intent.composition);
+  }
+  if (brief.intent.lighting) {
+    parts.push(brief.intent.lighting);
+  }
+  if (brief.intent.cinematography) {
+    parts.push(brief.intent.cinematography);
+  }
   if (brief.intent.motion) {
     parts.push(brief.intent.motion);
   }
@@ -211,6 +220,14 @@ export function compileRemainingVideoGenerationBrief(
       'intent.objective',
       'output.aspectRatio',
       'output.durationSeconds',
+      ...(brief.intent.subjects.length > 0 ? ['intent.subjects'] : []),
+      ...(brief.intent.scene ? ['intent.scene'] : []),
+      ...(brief.intent.composition ? ['intent.composition'] : []),
+      ...(brief.intent.lighting ? ['intent.lighting'] : []),
+      ...(brief.intent.cinematography ? ['intent.cinematography'] : []),
+      ...(brief.intent.motion ? ['intent.motion'] : []),
+      ...(brief.intent.visualDirection ? ['intent.visualDirection'] : []),
+      ...(brief.intent.audioDirection ? ['intent.audioDirection'] : []),
       ...(firstFrameAssetId ? ['references.first_frame'] : []),
       ...(lastFrameAssetId ? ['references.last_frame'] : []),
     ],

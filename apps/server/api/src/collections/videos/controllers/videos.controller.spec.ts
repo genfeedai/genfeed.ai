@@ -9,25 +9,9 @@ vi.mock('@server/collections/templates/services/templates.service', () => ({
   TemplatesService: class {},
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
 import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
-import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { IngredientGenerationCancellationService } from '@server/collections/ingredients/services/ingredient-generation-cancellation.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
-import type { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
-import type { VideosQueryDto } from '@server/collections/videos/dto/videos-query.dto';
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
@@ -38,21 +22,7 @@ import { VideoGenerationCreditsService } from '@api/collections/videos/services/
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
-import { VideoMusicOrchestrationService } from '@server/collections/videos/services/video-music-orchestration.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import type { VoteDocument } from '@server/collections/votes/schemas/vote.schema';
-import { VotesService } from '@server/collections/votes/services/votes.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
-import { ByokService } from '@server/services/byok/byok.service';
-import { CacheService } from '@server/services/cache/cache.service';
-import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@server/services/router/router.service';
-import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
-import { IngredientCompletionService } from '@server/shared/services/poll-until/ingredient-completion.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   IngredientCategory,
@@ -63,11 +33,41 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, StreamableFile } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
+import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import { IngredientGenerationCancellationService } from '@server/collections/ingredients/services/ingredient-generation-cancellation.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { PromptsService } from '@server/collections/prompts/services/prompts.service';
+import type { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
+import type { VideosQueryDto } from '@server/collections/videos/dto/videos-query.dto';
+import { VideoMusicOrchestrationService } from '@server/collections/videos/services/video-music-orchestration.service';
+import { VideosService } from '@server/collections/videos/services/videos.service';
+import type { VoteDocument } from '@server/collections/votes/schemas/vote.schema';
+import { VotesService } from '@server/collections/votes/services/votes.service';
+import { ByokService } from '@server/services/byok/byok.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
+import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
 import { KlingAIService } from '@server/services/integrations/klingai/services/klingai.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { RouterService } from '@server/services/router/router.service';
+import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
+import { IngredientCompletionService } from '@server/shared/services/poll-until/ingredient-completion.service';
 import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
+import { SharedService } from '@server/shared/services/shared/shared.service';
+import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import type { Response as ExpressResponse } from 'express';
 
 describe('VideosController', () => {
@@ -1368,6 +1368,10 @@ describe('VideosController', () => {
         ...baseCreateDto,
         references: [referenceId],
       };
+      const ingredientsService = testingModule.get(IngredientsService);
+      (ingredientsService.findOne as vi.Mock).mockResolvedValue({
+        id: referenceId,
+      });
 
       await controller.create(mockRequest, dto, mockUser);
 
@@ -1387,20 +1391,19 @@ describe('VideosController', () => {
       };
 
       const ingredientsService = testingModule.get(IngredientsService);
-      (ingredientsService.findOne as vi.Mock).mockResolvedValueOnce({
+      (ingredientsService.findOne as vi.Mock).mockResolvedValue({
         id: endFrameId,
       });
 
-      const promptBuilder = testingModule.get(PromptBuilderService);
-
       await controller.create(mockRequest, dto, mockUser);
 
-      expect(promptBuilder.buildPrompt).toHaveBeenCalledWith(
-        expect.any(String),
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        mockUser,
         expect.objectContaining({
-          endFrame: expect.any(String),
+          providerData: expect.objectContaining({
+            referenceAssetIds: [endFrameId],
+          }),
         }),
-        expect.any(String),
       );
     });
 
@@ -1413,19 +1416,15 @@ describe('VideosController', () => {
         lighting: 'natural',
       };
 
-      const promptBuilder = testingModule.get(PromptBuilderService);
-
       await controller.create(mockRequest, dto, mockUser);
 
-      expect(promptBuilder.buildPrompt).toHaveBeenCalledWith(
-        expect.any(String),
+      expect(klingAIService.queueGenerateTextToVideo).toHaveBeenCalledWith(
+        expect.stringContaining('dolly, wide, natural, slow'),
         expect.objectContaining({
-          camera: 'dolly',
-          cameraMovement: 'slow',
-          lens: 'wide',
-          lighting: 'natural',
+          height: 1080,
+          model: MODEL_KEYS.KLINGAI_V2,
+          width: 1920,
         }),
-        expect.any(String),
       );
     });
   });
