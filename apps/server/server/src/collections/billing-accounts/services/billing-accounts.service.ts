@@ -294,6 +294,7 @@ export class BillingAccountsService {
           },
         });
         if (!alreadyLinked) {
+          // tenant-scope-ignore: billing account plan limits intentionally count linked organizations across the shared account
           const linkedCount = await tx.billingAccountOrganization.count({
             where: {
               billingAccountId: currentAccount.id,
@@ -331,6 +332,7 @@ export class BillingAccountsService {
         const orgBalance = await tx.creditBalance.findFirst({
           where: { isDeleted: false, organizationId: input.organizationId },
         });
+        // tenant-scope-ignore: the destination is the billing account's shared cross-organization wallet and must be addressed by billingAccountId
         const accountBalance = await tx.creditBalance.findFirst({
           where: { billingAccountId: currentAccount.id, isDeleted: false },
         });
@@ -349,6 +351,7 @@ export class BillingAccountsService {
           accountBalance &&
           orgBalance.id !== accountBalance.id
         ) {
+          // tenant-scope-ignore: the destination is the billing account's shared cross-organization wallet and cannot be scoped to the linking organization
           const mergedBalance = await tx.creditBalance.updateMany({
             data: {
               balance: { increment: orgBalance.balance },
@@ -423,6 +426,7 @@ export class BillingAccountsService {
           data: { billingAccountId: currentAccount.id },
           where: {
             billingAccountId: null,
+            isDeleted: false,
             organizationId: input.organizationId,
           },
         });

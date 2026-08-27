@@ -739,14 +739,6 @@
     {
       "delegate": "creditBalance",
       "file": "apps/server/server/src/collections/billing-accounts/services/billing-accounts.service.ts",
-      "fingerprint": "f0ad0f6f81cc6b592696",
-      "method": "findFirst",
-      "model": "CreditBalance",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "creditBalance",
-      "file": "apps/server/server/src/collections/billing-accounts/services/billing-accounts.service.ts",
       "fingerprint": "4500112b8847033b61eb",
       "method": "update",
       "model": "CreditBalance",
@@ -767,14 +759,6 @@
       "method": "groupBy",
       "model": "CreditTransaction",
       "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "creditTransaction",
-      "file": "apps/server/server/src/collections/billing-accounts/services/billing-accounts.service.ts",
-      "fingerprint": "afd2495ab0558362f08f",
-      "method": "updateMany",
-      "model": "CreditTransaction",
-      "reason": "missing-is-deleted"
     },
     {
       "delegate": "subscription",
