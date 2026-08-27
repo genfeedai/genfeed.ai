@@ -158,7 +158,7 @@ import { AgentThreadingModule } from '@api/services/agent-threading/agent-thread
 import { AiInfluencerModule } from '@api/services/ai-influencer/ai-influencer.module';
 import { BatchContentModule } from '@api/services/batch-content/batch-content.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
-import { CacheModule } from '@server/services/cache/cache.module';
+import { CacheModule } from '@api/services/cache/cache.module';
 import { ContentEngineModule } from '@api/services/content-engine/content-engine.module';
 import { ContentGatewayModule } from '@api/services/content-gateway/content-gateway.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';

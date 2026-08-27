@@ -154,7 +154,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
   }
 
   private registerVideoGenExecutor(engine: WorkflowEngine): void {
-    if (!this.promptBuilderService || !this.replicateService) {
+    if (!this.replicateService) {
       return;
     }
 
@@ -179,6 +179,8 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
       const compiled = runVideoGenerationBrief({
         avoid: negativePrompt ? [negativePrompt] : undefined,
         durationSeconds: duration,
+        endFrameId:
+          typeof params.lastFrame === 'string' ? params.lastFrame : undefined,
         height,
         model: model as string,
         objective: prompt,

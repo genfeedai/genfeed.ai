@@ -11,6 +11,7 @@ describe('CreditDeductionProcessor', () => {
   let creditsUtilsService: {
     deductCreditsFromOrganization: ReturnType<typeof vi.fn>;
     getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
+    releaseReservation: ReturnType<typeof vi.fn>;
     settleReservation: ReturnType<typeof vi.fn>;
   };
   let creditTransactionsService: {
@@ -33,6 +34,7 @@ describe('CreditDeductionProcessor', () => {
     creditsUtilsService = {
       deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(5000),
+      releaseReservation: vi.fn().mockResolvedValue(undefined),
       settleReservation: vi.fn().mockResolvedValue(undefined),
     };
     creditTransactionsService = {
@@ -99,11 +101,20 @@ describe('CreditDeductionProcessor', () => {
       url: null,
     });
 
-    await processor.process(buildJob({ settlementAssetId: 'asset-1' }));
+    await processor.process(
+      buildJob({
+        reservationId: 'reservation-1',
+        settlementAssetId: 'asset-1',
+      }),
+    );
 
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
     ).not.toHaveBeenCalled();
+    expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      reservationId: 'reservation-1',
+    });
   });
 
   it('moves no credits when a terminal media row has no user-accessible file', async () => {
@@ -134,6 +145,7 @@ describe('CreditDeductionProcessor', () => {
         idempotencyKey: 'agent-media-action-1',
         referenceId: 'action-1',
         referenceType: 'agent-media:generation',
+        reservationId: 'reservation-1',
         settlementAssetId: 'asset-1',
       }),
     );
@@ -143,8 +155,8 @@ describe('CreditDeductionProcessor', () => {
       actualAmount: 10,
       actorUserId: 'user-1',
       description: 'Image generation',
-      idempotencyKey: 'agent-media-action-1',
-      reservationId: undefined,
+      organizationId: 'org-1',
+      reservationId: 'reservation-1',
       source: ActivitySource.IMAGE_GENERATION,
     });
     expect(
@@ -176,17 +188,25 @@ describe('CreditDeductionProcessor', () => {
       opts: { attempts: 3 },
     } as Job<CreditDeductionJobData>);
 
-    expect(creditsUtilsService.settleReservation).toHaveBeenCalledWith({
-      actualAmount: 18,
-      actorUserId: 'user-1',
-      description: 'Fleet voice clone compute',
-      idempotencyKey: 'fleet-voice-clone-job-1',
-      reservationId: undefined,
-      source: ActivitySource.VOICE_GENERATION,
-    });
+    expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
+    ).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      18,
+      'Fleet voice clone compute',
+      ActivitySource.VOICE_GENERATION,
+      {
+        maxOverdraftCredits: undefined,
+        metadata: {
+          fleetJobId: 'job-1',
+          processTimeSeconds: 61,
+        },
+        referenceId: 'job-1',
+        referenceType: 'fleet:voice-clone',
+      },
+    );
   });
 
   function buildJob(

@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 const ingestionSource = readFileSync(
   join(
     dirname(fileURLToPath(import.meta.url)),
-    'services/social-inbox-ingestion.service.ts',
+    '../../../../server/src/collections/social-inbox/services/social-inbox-ingestion.service.ts',
   ),
   'utf8',
 );

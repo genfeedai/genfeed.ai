@@ -1,9 +1,11 @@
+export interface PublicArticleAuthorUserSource {
+  firstName?: unknown;
+  lastName?: unknown;
+}
+
 export interface PublicArticleAuthorSource {
   author?: unknown;
-  user?: {
-    firstName?: unknown;
-    lastName?: unknown;
-  } | null;
+  user?: PublicArticleAuthorUserSource | null;
 }
 
 const UNICODE_LETTER_PATTERN = /\p{L}/u;

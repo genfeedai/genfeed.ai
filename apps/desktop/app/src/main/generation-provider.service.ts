@@ -7,36 +7,30 @@ import type {
   IDesktopGenerationProviderTestResult,
 } from '@genfeedai/desktop-contracts';
 import { sleep } from '@genfeedai/helpers';
+import type { DesktopConfigService } from './config.service';
 
 const PROVIDER_CONFIG_KEY = 'desktop.generation.provider';
 const MAX_GENERATED_ASSET_BYTES = 50 * 1024 * 1024;
-const DEFAULT_LOCAL_PROVIDER_TIMEOUT_MS = 8_000;
 const LOCAL_PROVIDER_TIMEOUT_ERROR =
   'The local provider did not respond. Start Ollama or LM Studio, or pick a reachable endpoint.';
 
-function getLocalProviderTimeoutMs(): number {
-  const configured = Number(process.env.GENFEED_DESKTOP_PROVIDER_TIMEOUT_MS);
-
-  return Number.isFinite(configured) && configured > 0
-    ? configured
-    : DEFAULT_LOCAL_PROVIDER_TIMEOUT_MS;
-}
-
-async function fetchWithTimeout(
+async function fetchTextWithTimeout(
   url: string,
+  timeoutMs: number,
   init?: RequestInit,
-): Promise<Response> {
+): Promise<{ response: Response; text: string }> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(
-    () => controller.abort(),
-    getLocalProviderTimeoutMs(),
-  );
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    return await fetch(url, {
+    const response = await fetch(url, {
       ...init,
-      signal: init?.signal ?? controller.signal,
+      signal: init?.signal
+        ? AbortSignal.any([init.signal, controller.signal])
+        : controller.signal,
     });
+    const text = await response.text();
+    return { response, text };
   } catch (error) {
     if (controller.signal.aborted) {
       throw new Error(LOCAL_PROVIDER_TIMEOUT_ERROR);
@@ -447,7 +441,13 @@ const buildProviderHeaders = (
 });
 
 export class DesktopGenerationProviderService {
-  constructor(private readonly database: DesktopGenerationProviderStore) {}
+  constructor(
+    private readonly database: DesktopGenerationProviderStore,
+    private readonly configService: Pick<
+      DesktopConfigService,
+      'getLocalProviderTimeoutMs'
+    >,
+  ) {}
 
   async clearProviderConfig(): Promise<void> {
     await this.database.deleteValue(PROVIDER_CONFIG_KEY);
@@ -535,8 +535,9 @@ export class DesktopGenerationProviderService {
       return this.requestFalCompletion(config, messages);
     }
 
-    const response = await fetchWithTimeout(
+    const { response, text: responseText } = await fetchTextWithTimeout(
       buildCompletionUrl(config.baseUrl),
+      this.configService.getLocalProviderTimeoutMs(),
       {
         body: JSON.stringify({
           messages,
@@ -548,7 +549,6 @@ export class DesktopGenerationProviderService {
       },
     );
 
-    const responseText = await response.text();
     if (!response.ok) {
       throw new Error(
         `Local provider request failed (${String(response.status)}): ${

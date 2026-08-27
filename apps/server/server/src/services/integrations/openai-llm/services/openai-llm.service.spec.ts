@@ -1,10 +1,11 @@
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, type TestingModule } from '@nestjs/testing';
 import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
 } from '@server/services/integrations/openrouter/dto/openrouter.dto';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { ChatCompletionMessageToolCall } from 'openai/resources/chat/completions';
 
 const mockCreate = vi.fn();
 
@@ -35,7 +36,7 @@ const makeParams = (
 
 const makeOpenAIResponse = (
   content: string | null = 'Hello back',
-  toolCalls?: OpenAI.Chat.Completions.ChatCompletionMessageToolCall[],
+  toolCalls?: ChatCompletionMessageToolCall[],
 ) => ({
   choices: [
     {
@@ -50,9 +51,6 @@ const makeOpenAIResponse = (
   id: 'chatcmpl-test-001',
   usage: { completion_tokens: 10, prompt_tokens: 5, total_tokens: 15 },
 });
-
-// Avoid importing OpenAI types directly; use inline shape
-type OpenAI = typeof import('openai').default;
 
 describe('OpenAiLlmService', () => {
   let service: OpenAiLlmService;

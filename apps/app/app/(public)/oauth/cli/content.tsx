@@ -185,6 +185,7 @@ function CliAuthPageContent() {
     step: 'validating',
   });
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const tokenRequestedRef = useRef(false);
 
   const portParam = searchParams.get('port');
@@ -492,6 +493,7 @@ function CliAuthPageContent() {
   ]);
 
   const handleRetry = () => {
+    setCopyError(null);
     tokenRequestedRef.current = false;
     setFlowState({ error: null, step: 'validating' });
 
@@ -504,9 +506,17 @@ function CliAuthPageContent() {
 
   const handleCopyKey = async () => {
     if (flowState.apiKey) {
-      await navigator.clipboard.writeText(flowState.apiKey);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopyError(null);
+      try {
+        await navigator.clipboard.writeText(flowState.apiKey);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        setCopied(false);
+        setCopyError(
+          'Clipboard access was denied. Select the full code below and copy it manually.',
+        );
+      }
     }
   };
 
@@ -590,6 +600,7 @@ function CliAuthPageContent() {
                   <CopyKeyFallback
                     apiKey={flowState.apiKey}
                     copied={copied}
+                    copyError={copyError}
                     isDesktopMode={isDesktopMode}
                     onCopy={handleCopyKey}
                   />
@@ -612,6 +623,7 @@ function CliAuthPageContent() {
                   <CopyKeyFallback
                     apiKey={flowState.apiKey}
                     copied={copied}
+                    copyError={copyError}
                     isDesktopMode={isDesktopMode}
                     onCopy={handleCopyKey}
                   />
@@ -630,6 +642,7 @@ function CliAuthPageContent() {
                   <CopyKeyFallback
                     apiKey={flowState.apiKey}
                     copied={copied}
+                    copyError={copyError}
                     isDesktopMode={isDesktopMode}
                     onCopy={handleCopyKey}
                   />
@@ -669,11 +682,13 @@ function CliAuthPageContent() {
 function CopyKeyFallback({
   apiKey,
   copied,
+  copyError,
   isDesktopMode,
   onCopy,
 }: {
   apiKey: string;
   copied: boolean;
+  copyError: string | null;
   isDesktopMode: boolean;
   onCopy: () => void;
 }) {
@@ -689,7 +704,7 @@ function CopyKeyFallback({
           aria-label="Sign-in code"
           className="flex-1 font-mono text-muted-foreground"
           isReadOnly
-          value={previewAuthCode(apiKey)}
+          value={copyError ? apiKey : previewAuthCode(apiKey)}
           onChange={() => undefined}
         />
         <Button
@@ -705,6 +720,11 @@ function CopyKeyFallback({
           {copied ? 'Copied' : 'Copy'}
         </Button>
       </div>
+      {copyError && (
+        <p className="mt-2 text-xs text-destructive" role="alert">
+          {copyError}
+        </p>
+      )}
     </div>
   );
 }

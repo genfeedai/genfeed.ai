@@ -19,11 +19,27 @@ describe('assertIsolatedDatabaseUrl', () => {
   });
 
   it('fails closed when DATABASE_URL is missing', () => {
-    expect(() => assertIsolatedDatabaseUrl(undefined)).toThrow(
-      /DATABASE_URL is missing/,
-    );
-    expect(() => assertIsolatedDatabaseUrl('')).toThrow(
-      /DATABASE_URL is missing/,
+    const previous = process.env.DATABASE_URL;
+    delete process.env.DATABASE_URL;
+    try {
+      expect(() => assertIsolatedDatabaseUrl()).toThrow(
+        /DATABASE_URL is missing/,
+      );
+      expect(() => assertIsolatedDatabaseUrl('')).toThrow(
+        /DATABASE_URL is missing/,
+      );
+    } finally {
+      if (previous === undefined) {
+        delete process.env.DATABASE_URL;
+      } else {
+        process.env.DATABASE_URL = previous;
+      }
+    }
+  });
+
+  it('fails closed when DATABASE_URL is not a valid URL', () => {
+    expect(() => assertIsolatedDatabaseUrl('not-a-url')).toThrow(
+      /DATABASE_URL is not a valid URL/,
     );
   });
 

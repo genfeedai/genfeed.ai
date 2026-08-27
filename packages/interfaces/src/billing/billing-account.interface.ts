@@ -1,4 +1,5 @@
 import type {
+  ActivitySource,
   BillingAccountBudgetPolicy,
   BillingAccountMemberRole,
   BillingAccountOrganizationStatus,
@@ -70,6 +71,23 @@ export interface IReserveCreditsInput {
   workloadType?: string;
   workloadId?: string;
   expiresAt?: Date;
+}
+
+export interface ISettleCreditReservationInput {
+  organizationId: string;
+  reservationId?: string;
+  idempotencyKey?: string;
+  actualAmount: number;
+  actorUserId: string;
+  description: string;
+  source?: ActivitySource;
+}
+
+export interface IReleaseCreditReservationInput {
+  organizationId: string;
+  reservationId?: string;
+  idempotencyKey?: string;
+  reason?: 'release' | 'expiry';
 }
 
 export interface ILinkOrganizationInput {

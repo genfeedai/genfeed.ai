@@ -12,16 +12,28 @@ const context: AgentChatContext = {
 };
 
 const mockStreamPublisher = {
-  publishDoneEffect: vi.fn(() => Effect.void),
-  publishErrorEffect: vi.fn(() => Effect.void),
-  publishInputRequestEffect: vi.fn(() => Effect.void),
-  publishReasoningEffect: vi.fn(() => Effect.void),
-  publishStreamStartEffect: vi.fn(() => Effect.void),
-  publishTokenEffect: vi.fn(() => Effect.void),
-  publishToolCompleteEffect: vi.fn(() => Effect.void),
-  publishToolStartEffect: vi.fn(() => Effect.void),
-  publishUIBlocksEffect: vi.fn(() => Effect.void),
-  publishWorkEventEffect: vi.fn(() => Effect.void),
+  publishDoneEffect: vi.fn((): Effect.Effect<void, unknown> => Effect.void),
+  publishErrorEffect: vi.fn((): Effect.Effect<void, unknown> => Effect.void),
+  publishInputRequestEffect: vi.fn(
+    (): Effect.Effect<void, unknown> => Effect.void,
+  ),
+  publishReasoningEffect: vi.fn(
+    (): Effect.Effect<void, unknown> => Effect.void,
+  ),
+  publishStreamStartEffect: vi.fn(
+    (): Effect.Effect<void, unknown> => Effect.void,
+  ),
+  publishTokenEffect: vi.fn((): Effect.Effect<void, unknown> => Effect.void),
+  publishToolCompleteEffect: vi.fn(
+    (): Effect.Effect<void, unknown> => Effect.void,
+  ),
+  publishToolStartEffect: vi.fn(
+    (): Effect.Effect<void, unknown> => Effect.void,
+  ),
+  publishUIBlocksEffect: vi.fn((): Effect.Effect<void, unknown> => Effect.void),
+  publishWorkEventEffect: vi.fn(
+    (): Effect.Effect<void, unknown> => Effect.void,
+  ),
 };
 
 const mockAgentRunsService = {

@@ -83,6 +83,13 @@ describe('CreditReservationService', () => {
     });
 
     expect(result.id).toBe('res_1');
+    expect(prisma.creditReservation.findFirst).toHaveBeenCalledWith({
+      where: {
+        idempotencyKey: 'gen_1',
+        isDeleted: false,
+        organizationId: 'org_1',
+      },
+    });
     expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
   });
 
@@ -100,10 +107,56 @@ describe('CreditReservationService', () => {
         actualAmount: 25,
         actorUserId: 'user_1',
         description: 'too much',
+        organizationId: 'org_1',
         reservationId: 'res_1',
       }),
     ).rejects.toBeInstanceOf(BusinessLogicException);
     expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+  });
+
+  it.each([-1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects an invalid settlement amount of %s',
+    async (actualAmount) => {
+      prisma.creditReservation.findFirst.mockResolvedValue({
+        amount: 20,
+        billingAccountId: 'ba_1',
+        id: 'res_1',
+        organizationId: 'org_1',
+        status: CreditReservationStatus.RESERVED,
+      });
+
+      await expect(
+        service.settle({
+          actualAmount,
+          actorUserId: 'user_1',
+          description: 'invalid amount',
+          organizationId: 'org_1',
+          reservationId: 'res_1',
+        }),
+      ).rejects.toBeInstanceOf(BusinessLogicException);
+      expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+    },
+  );
+
+  it('scopes reservation identities to the owning organization', async () => {
+    prisma.creditReservation.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.settle({
+        actualAmount: 10,
+        actorUserId: 'user_1',
+        description: 'wrong organization',
+        organizationId: 'org_2',
+        reservationId: 'res_1',
+      }),
+    ).rejects.toBeInstanceOf(BusinessLogicException);
+    expect(prisma.creditReservation.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'res_1',
+        isDeleted: false,
+        organizationId: 'org_2',
+      },
+    });
   });
 
   it('releases an expired reservation exactly once', async () => {

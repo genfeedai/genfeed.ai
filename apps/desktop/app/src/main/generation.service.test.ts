@@ -107,12 +107,16 @@ const providerConfig: IDesktopGenerationProviderConfig = {
   model: 'llama3.1',
   provider: 'ollama',
 };
+const providerTimeoutConfig = {
+  getLocalProviderTimeoutMs: () => 50,
+};
 
 describe('DesktopGenerationProviderService', () => {
   it('retains a saved key when the redacted config is saved unchanged', async () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationProviderService(
       database as unknown as DesktopGenerationProviderStore,
+      providerTimeoutConfig,
     );
 
     await service.saveProviderConfig({
@@ -136,10 +140,9 @@ describe('DesktopGenerationProviderService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationProviderService(
       database as unknown as DesktopGenerationProviderStore,
+      providerTimeoutConfig,
     );
     const originalFetch = globalThis.fetch;
-    const originalTimeout = process.env.GENFEED_DESKTOP_PROVIDER_TIMEOUT_MS;
-    process.env.GENFEED_DESKTOP_PROVIDER_TIMEOUT_MS = '50';
 
     globalThis.fetch = ((_input: RequestInfo | URL, init?: RequestInit) =>
       new Promise<Response>((_resolve, reject) => {
@@ -156,11 +159,38 @@ describe('DesktopGenerationProviderService', () => {
       );
     } finally {
       globalThis.fetch = originalFetch;
-      if (originalTimeout === undefined) {
-        delete process.env.GENFEED_DESKTOP_PROVIDER_TIMEOUT_MS;
-      } else {
-        process.env.GENFEED_DESKTOP_PROVIDER_TIMEOUT_MS = originalTimeout;
-      }
+    }
+  });
+
+  it('keeps the provider timeout active until the response body completes', async () => {
+    const database = createDatabaseMock();
+    const service = new DesktopGenerationProviderService(
+      database as unknown as DesktopGenerationProviderStore,
+      providerTimeoutConfig,
+    );
+    const originalFetch = globalThis.fetch;
+
+    globalThis.fetch = ((_input: RequestInfo | URL, init?: RequestInit) =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        text: () =>
+          new Promise<string>((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () => {
+              const abortError = new Error('The operation was aborted.');
+              abortError.name = 'AbortError';
+              reject(abortError);
+            });
+          }),
+      } as Response)) as typeof fetch;
+
+    try {
+      await expect(service.testProviderConfig(providerConfig)).rejects.toThrow(
+        'The local provider did not respond',
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
     }
   });
 });
@@ -176,6 +206,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
 
     const publicConfig = await service.saveProviderConfig({
@@ -200,6 +231,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
 
     await service.saveProviderConfig(providerConfig);
@@ -252,6 +284,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
 
     await expect(service.generateContent(generationParams)).rejects.toThrow(
@@ -287,6 +320,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
 
     await service.saveProviderConfig(providerConfig);
@@ -307,6 +341,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
 
     await service.saveProviderConfig(providerConfig);
@@ -360,6 +395,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
 
     await service.saveProviderConfig({
@@ -407,6 +443,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
     const calls: string[] = [];
 
@@ -467,6 +504,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
     const calls: string[] = [];
 
@@ -576,6 +614,7 @@ describe('DesktopGenerationService', () => {
     const assetWriter = createAssetWriterMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
       assetWriter,
     );
     const calls: string[] = [];
@@ -639,6 +678,7 @@ describe('DesktopGenerationService', () => {
     const assetWriter = createAssetWriterMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
       assetWriter,
     );
     const calls: string[] = [];
@@ -688,6 +728,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
 
     database.syncJobs.set('job-running', {

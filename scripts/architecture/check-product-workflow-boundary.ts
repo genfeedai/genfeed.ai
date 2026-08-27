@@ -7,6 +7,9 @@ const DEFAULT_INCLUDE_GLOBS = [
   'apps/server/api/src/services/campaign/**/*.ts',
   'apps/server/api/src/services/reply-bot/**/*.ts',
   'apps/server/api/src/services/twitter-pipeline/**/*.ts',
+  'apps/server/server/src/collections/social-inbox/**/*.ts',
+  'apps/server/server/src/services/campaign/**/*.ts',
+  'apps/server/server/src/services/reply-bot/**/*.ts',
   'apps/server/workers/src/crons/**/*.ts',
 ];
 
@@ -100,7 +103,7 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     },
     {
       classification: 'workflow-adapter',
-      file: 'apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts',
+      file: 'apps/server/server/src/services/reply-bot/reply-bot-orchestrator.service.ts',
       id: 'reply-bot-orchestration',
       reason:
         'Reply/DM social actions are wrapped by reply-dm-automation system workflow executions.',
@@ -108,7 +111,7 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     },
     {
       classification: 'workflow-adapter',
-      file: 'apps/server/api/src/services/reply-bot/bot-action-executor.service.ts',
+      file: 'apps/server/server/src/services/reply-bot/bot-action-executor.service.ts',
       id: 'reply-bot-action-executor',
       reason:
         'Low-level social client adapter used by workflow-backed action callers; it must not schedule product behavior itself.',
@@ -124,7 +127,7 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     },
     {
       classification: 'pending-system-workflow-migration',
-      file: 'apps/server/api/src/services/reply-bot/author-reply-loop.service.ts',
+      file: 'apps/server/server/src/services/reply-bot/author-reply-loop.service.ts',
       id: 'author-reply-loop',
       issue: 1011,
       reason:
@@ -132,8 +135,17 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
       systemWorkflowIds: ['reply-dm-automation'],
     },
     {
+      classification: 'pending-system-workflow-migration',
+      file: 'apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts',
+      id: 'social-inbox-manual-actions',
+      issue: 1032,
+      reason:
+        'Manual social inbox replies and DMs still call platform services directly while they migrate behind reply-dm-automation.',
+      systemWorkflowIds: ['reply-dm-automation'],
+    },
+    {
       classification: 'workflow-adapter',
-      file: 'apps/server/api/src/services/campaign/campaign-executor.service.ts',
+      file: 'apps/server/server/src/services/campaign/campaign-executor.service.ts',
       id: 'campaign-reply-automation',
       reason:
         'Outreach campaign replies are wrapped by campaign-reply-automation system workflow executions.',
@@ -141,20 +153,11 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     },
     {
       classification: 'workflow-adapter',
-      file: 'apps/server/api/src/services/campaign/dm-campaign-executor.service.ts',
+      file: 'apps/server/server/src/services/campaign/dm-campaign-executor.service.ts',
       id: 'campaign-dm-automation',
       reason:
         'Outreach campaign DMs are wrapped by campaign-dm-automation system workflow executions.',
       systemWorkflowIds: ['campaign-dm-automation'],
-    },
-    {
-      classification: 'pending-system-workflow-migration',
-      file: 'apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts',
-      id: 'social-inbox-manual-actions',
-      issue: 1032,
-      reason:
-        'Manual social inbox reply/DM endpoints still dispatch directly while reply and DM actions move behind workflow execution.',
-      systemWorkflowIds: ['reply-dm-automation'],
     },
   ];
 
@@ -187,7 +190,8 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
   {
     id: 'social-inbox-direct-platform-action',
     matches: (file, source) =>
-      file.startsWith('apps/server/api/src/collections/social-inbox/') &&
+      (file.startsWith('apps/server/api/src/collections/social-inbox/') ||
+        file.startsWith('apps/server/server/src/collections/social-inbox/')) &&
       (/\byoutubeService\s*\.\s*postCommentReply\s*\(/.test(source) ||
         /\binstagramService\s*\.\s*(?:replyToComment|sendCommentReplyDm)\s*\(/.test(
           source,

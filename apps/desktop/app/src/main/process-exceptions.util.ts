@@ -29,14 +29,15 @@ export function isIgnorableDesktopIoException(error: unknown): boolean {
   }
 
   const code = 'code' in error ? error.code : undefined;
-  if (typeof code === 'string' && IGNORABLE_IO_CODES.has(code)) {
-    return true;
-  }
-
-  const message = 'message' in error ? error.message : undefined;
+  const fd = 'fd' in error ? error.fd : undefined;
+  const syscall = 'syscall' in error ? error.syscall : undefined;
   return (
-    typeof message === 'string' &&
-    (message.includes('write EPIPE') || message.includes('read ECONNRESET'))
+    typeof code === 'string' &&
+    IGNORABLE_IO_CODES.has(code) &&
+    typeof fd === 'number' &&
+    fd >= 0 &&
+    fd <= 2 &&
+    (syscall === 'read' || syscall === 'write')
   );
 }
 

@@ -7,6 +7,9 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import { Prisma } from '@genfeedai/prisma';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import {
   FIRST_ORDER_TARGETS,
   SECOND_ORDER_TARGETS,
@@ -14,9 +17,6 @@ import {
 import { BrandRelocationService } from '@server/collections/brands/services/brand-relocation.service';
 import type { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
 import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { Prisma } from '@genfeedai/prisma';
-import type { LoggerService } from '@libs/logger/logger.service';
-import { ConflictException, ForbiddenException } from '@nestjs/common';
 
 type Delegate = {
   count: ReturnType<typeof vi.fn>;
@@ -282,6 +282,20 @@ describe('BrandRelocationService', () => {
       data: { organizationId: DEST_ORG },
       where: { brandId: BRAND_ID, organizationId: { not: DEST_ORG } },
     });
+    for (const delegate of [
+      'agentPublishAudit',
+      'engagementRule',
+      'rssFeedItem',
+      'rssSource',
+    ]) {
+      expect(getDelegate(delegate).updateMany).toHaveBeenCalledWith({
+        data: { organizationId: DEST_ORG },
+        where: { brandId: BRAND_ID, organizationId: { not: DEST_ORG } },
+      });
+      expect(getDelegate(delegate).count).toHaveBeenCalledWith({
+        where: { brandId: BRAND_ID, organizationId: { not: DEST_ORG } },
+      });
+    }
 
     // Non-standard field names.
     expect(getDelegate('lead').updateMany).toHaveBeenCalledWith({

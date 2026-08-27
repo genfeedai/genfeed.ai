@@ -1,5 +1,3 @@
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
 import type {
   ImageGenerationCompletionPlan,
   ImageGenerationContext,
@@ -20,17 +18,7 @@ import {
   shouldFinalizeExternalOutput,
 } from '@api/collections/images/services/image-generation-output.util';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
-import { ImagesService } from '@server/collections/images/services/images.service';
 import { isGenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
-import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { toRedactedGenerationBriefProviderData } from '@server/services/generation-brief';
-import { MediaGenerationCostService } from '@server/services/media-vendor-cost/media-generation-cost.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { GenerationEventWebhookService } from '@server/services/webhook-client/generation-event-webhook.service';
-import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
 import type { GenerationWebhookOutput } from '@api-types/contracts/generation-webhook-events.contract';
 import {
   ActivityEntityModel,
@@ -45,7 +33,24 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { ImagesService } from '@server/collections/images/services/images.service';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { toRedactedGenerationBriefProviderData } from '@server/services/generation-brief';
+import { MediaGenerationCostService } from '@server/services/media-vendor-cost/media-generation-cost.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { GenerationEventWebhookService } from '@server/services/webhook-client/generation-event-webhook.service';
+import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
+
+interface RealizedImageDimensions {
+  height?: number;
+  width?: number;
+}
 
 /**
  * Coordinates provider-neutral output persistence and completion behavior.
@@ -255,15 +260,20 @@ export class ImageGenerationProviderDispatchService {
         ),
       ]);
 
-      await this.emitGenerationCompleted(context, context.ingredientData.id, {
-        mimeType: 'image/png',
-        storageKey:
-          typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : null,
-        url:
-          typeof uploadMeta.publicUrl === 'string'
-            ? uploadMeta.publicUrl
-            : null,
-      });
+      await this.emitGenerationCompleted(
+        context,
+        context.ingredientData.id,
+        {
+          mimeType: 'image/png',
+          storageKey:
+            typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : null,
+          url:
+            typeof uploadMeta.publicUrl === 'string'
+              ? uploadMeta.publicUrl
+              : null,
+        },
+        { height: uploadMeta.height, width: uploadMeta.width },
+      );
 
       return context.ingredientData.id.toString();
     } catch (error: unknown) {
@@ -579,11 +589,16 @@ export class ImageGenerationProviderDispatchService {
       ),
     ]);
 
-    await this.emitGenerationCompleted(context, ingredientId, {
-      mimeType: null,
-      storageKey: optionalUploadString(uploadMeta.s3Key) ?? null,
-      url: optionalUploadString(uploadMeta.publicUrl) ?? outputUrl,
-    });
+    await this.emitGenerationCompleted(
+      context,
+      ingredientId,
+      {
+        mimeType: null,
+        storageKey: optionalUploadString(uploadMeta.s3Key) ?? null,
+        url: optionalUploadString(uploadMeta.publicUrl) ?? outputUrl,
+      },
+      { height: uploadMeta.height, width: uploadMeta.width },
+    );
   }
 
   private externalId(result: ImageGenerationProviderResult): string {
@@ -632,15 +647,16 @@ export class ImageGenerationProviderDispatchService {
     context: ImageGenerationContext,
     ingredientId: ImageGenerationSavedIngredient['id'],
     output: GenerationWebhookOutput,
+    dimensions: RealizedImageDimensions,
   ): Promise<void> {
     await this.mediaGenerationCostService.recordGenerationCost({
       brandId: context.brand.id?.toString() ?? null,
       category: 'image',
-      height: context.height,
+      height: dimensions.height ?? null,
       ingredientId: ingredientId.toString(),
       modelKey: context.model,
       organizationId: context.user.organizationId,
-      width: context.width,
+      width: dimensions.width ?? null,
     });
 
     await this.generationEventWebhookService.emitGenerationCompleted({

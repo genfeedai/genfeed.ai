@@ -1,7 +1,9 @@
+import type {
+  ExecutableNode,
+  ExecutionContext,
+  ExecutorInput,
+} from '@genfeedai/workflows/engine';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ExecutionContext } from '../../execution/engine';
-import type { ExecutableNode } from '../../types';
-import type { ExecutorInput } from '../base-executor';
 import { VideoGenExecutor } from './video-gen-executor';
 
 function makeInput(

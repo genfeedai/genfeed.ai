@@ -8,6 +8,9 @@ import type {
   ICycleRemainingMetrics,
   IDeductCreditsOptions,
   IOrganizationCreditsWithExpiration,
+  IReleaseCreditReservationInput,
+  IReserveCreditsInput,
+  ISettleCreditReservationInput,
 } from '@genfeedai/interfaces/billing';
 import { Injectable } from '@nestjs/common';
 
@@ -111,15 +114,9 @@ export class OssCreditsUtilsService implements ICreditsUtilsService {
     };
   }
 
-  async reserveCredits(input: {
-    organizationId: string;
-    actorUserId: string;
-    amount: number;
-    idempotencyKey: string;
-    workloadType?: string;
-    workloadId?: string;
-    expiresAt?: Date;
-  }): Promise<ICreditReservation> {
+  async reserveCredits(
+    input: IReserveCreditsInput,
+  ): Promise<ICreditReservation> {
     return {
       actorUserId: input.actorUserId,
       amount: input.amount,
@@ -138,11 +135,15 @@ export class OssCreditsUtilsService implements ICreditsUtilsService {
     };
   }
 
-  async settleReservation(): Promise<ICreditWalletSnapshot> {
-    return this.getWalletSnapshot('oss');
+  async settleReservation(
+    input: ISettleCreditReservationInput,
+  ): Promise<ICreditWalletSnapshot> {
+    return this.getWalletSnapshot(input.organizationId);
   }
 
-  async releaseReservation(): Promise<ICreditWalletSnapshot> {
-    return this.getWalletSnapshot('oss');
+  async releaseReservation(
+    input: IReleaseCreditReservationInput,
+  ): Promise<ICreditWalletSnapshot> {
+    return this.getWalletSnapshot(input.organizationId);
   }
 }

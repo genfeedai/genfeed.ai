@@ -6,6 +6,20 @@ vi.mock(
 );
 
 import 'reflect-metadata';
+import type { CreateReleaseGroupInput } from '@api-types/contracts/scheduler.contract';
+import {
+  ApiKeyScope,
+  IngredientCategory,
+  ReleaseStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
+import { AgentToolName } from '@genfeedai/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { AiActionType } from '@server/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentAdsResearchToolHandler } from '@server/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@server/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
@@ -43,20 +57,6 @@ import { AgentWorkflowToolInstallService } from '@server/services/agent-orchestr
 import { AgentWorkspaceToolHandler } from '@server/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@server/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
 import { BatchGenerationStreamService } from '@server/services/batch-generation/batch-generation-stream.service';
-import type { CreateReleaseGroupInput } from '@api-types/contracts/scheduler.contract';
-import {
-  ApiKeyScope,
-  IngredientCategory,
-  ReleaseStatus,
-  TargetExecutionState,
-} from '@genfeedai/enums';
-import { AgentToolName } from '@genfeedai/interfaces';
-import { testId } from '@helpers/testing/test-id.helper';
-import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  InternalServerErrorException,
-} from '@nestjs/common';
 import { Effect } from 'effect';
 import { of } from 'rxjs';
 
@@ -2222,7 +2222,10 @@ describe('AgentToolExecutorService', () => {
         platforms: ['linkedin'],
         sourceActionId: 'publish-card-blocked',
       },
-      scopedContext(testId('brandvideo')),
+      {
+        ...scopedContext(testId('brandvideo')),
+        strategyId: testId('strategy'),
+      },
     );
 
     expect(result.success).toBe(false);

@@ -217,7 +217,12 @@ export class BrandRemixRunPlanningService {
     draft: BrandRemixDraft,
   ): BrandRemixReadiness {
     const issues: BrandRemixReadiness['issues'] = [];
-    if (draft.fidelityMode === 'strict' && draft.references.length === 0) {
+    const hasStrictFidelityReference = draft.references.some((reference) =>
+      ['subject', 'character', 'product', 'first_frame', 'last_frame'].includes(
+        reference.role,
+      ),
+    );
+    if (draft.fidelityMode === 'strict' && !hasStrictFidelityReference) {
       issues.push({
         code: 'missing_required_reference',
         field: 'references',

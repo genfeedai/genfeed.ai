@@ -7,8 +7,6 @@
  * key that is missing from both.
  */
 
-import { compileRemainingImageGenerationBrief } from '@api/services/generation-brief/compile-remaining-image-generation-brief';
-import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-image-generation-brief-families';
 import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
 import type {
   GenerationBriefCompileEvidence,
@@ -133,10 +131,12 @@ import { compileImagenGenerationBrief } from '@server/services/generation-brief/
 import { compileNanoBanana2GenerationBrief } from '@server/services/generation-brief/compile-nano-banana-2-generation-brief';
 import { compileNanoBananaGenerationBrief } from '@server/services/generation-brief/compile-nano-banana-generation-brief';
 import { compileQwenImageGenerationBrief } from '@server/services/generation-brief/compile-qwen-image-generation-brief';
+import { compileRemainingImageGenerationBrief } from '@server/services/generation-brief/compile-remaining-image-generation-brief';
 import { compileRunwayGen4ImageTurboGenerationBrief } from '@server/services/generation-brief/compile-runwayml-gen4-image-turbo-generation-brief';
 import { compileSeedream45GenerationBrief } from '@server/services/generation-brief/compile-seedream-4-5-generation-brief';
 import { compileSeedream4GenerationBrief } from '@server/services/generation-brief/compile-seedream-4-generation-brief';
 import { compileSeedream5ProGenerationBrief } from '@server/services/generation-brief/compile-seedream-5-pro-generation-brief';
+import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@server/services/generation-brief/remaining-image-generation-brief-families';
 
 /** Structural dispatch payload — each family's compiler returns its own
  * strict, provider-shaped dispatch type; this widens it for registry-level

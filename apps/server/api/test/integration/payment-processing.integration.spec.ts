@@ -1,17 +1,18 @@
 import process from 'node:process';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
-import { CreditTransactionsService } from '@credits/services/credit-transactions.service';
 import { CustomersService } from '@customers/services/customers.service';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
+import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import { MongoIdFactory } from '@test/factories/base.factory';
 import {
   mockConfigService,
   mockLoggerService,
 } from '@test/mocks/service.mocks';
+import type { Mock } from 'vitest';
 
 // Allow skipping this file when a real DB integration is not available
 // Set SKIP_DB_INTEGRATION=true to skip all tests in this file
@@ -26,13 +27,30 @@ if (process.env.SKIP_DB_INTEGRATION === 'true') {
   g.test = g.it;
 }
 
+type CallableMock<Result = unknown> = Mock<(...args: unknown[]) => Result>;
+
+type CreditTransactionResult = {
+  balance?: number;
+  credits?: number;
+  reason: string;
+  type: string;
+};
+
 type PaymentSubscriptionsServiceMock = {
-  cancel: vi.Mock;
-  create: vi.Mock;
-  findByCustomer: vi.Mock;
-  findOne: vi.Mock;
-  update: vi.Mock;
-  updateStatus: vi.Mock;
+  cancel: CallableMock;
+  create: CallableMock;
+  findByCustomer: CallableMock;
+  findOne: CallableMock;
+  update: CallableMock;
+  updateStatus: CallableMock;
+};
+
+type CreditTransactionsServiceMock = {
+  addCredits: CallableMock<Promise<CreditTransactionResult>>;
+  calculateBalance: CallableMock<Promise<number>>;
+  create: CallableMock;
+  deductCredits: CallableMock<Promise<CreditTransactionResult>>;
+  findByUser: CallableMock;
 };
 
 describe('Payment Processing Integration Tests (Stripe)', () => {
@@ -45,7 +63,7 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
   let stripeService: StripeService;
   let subscriptionsService: PaymentSubscriptionsServiceMock;
   let customersService: CustomersService;
-  let creditTransactionsService: CreditTransactionsService;
+  let creditTransactionsService: CreditTransactionsServiceMock;
   let mockStripe: any;
 
   beforeAll(async () => {
@@ -189,9 +207,9 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
       SUBSCRIPTIONS_SERVICE,
     );
     customersService = moduleRef.get<CustomersService>(CustomersService);
-    creditTransactionsService = moduleRef.get<CreditTransactionsService>(
+    creditTransactionsService = moduleRef.get(
       CreditTransactionsService,
-    );
+    ) as CreditTransactionsServiceMock;
   });
 
   afterEach(() => {

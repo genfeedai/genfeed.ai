@@ -104,6 +104,7 @@ import { WorkflowWebhookService } from '@server/collections/workflows/services/w
 import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import { ManagedInferenceClientService } from '@server/endpoints/v1/managed-inference/managed-inference-client.service';
 import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
+import { TransactionUtil } from '@server/helpers/utils/transaction/transaction.util';
 import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
 import { BatchGenerationQueueService } from '@server/queues/batch-generation/batch-generation-queue.service';
 import { CampaignQueueService } from '@server/queues/campaign/campaign-queue.service';
@@ -298,6 +299,7 @@ const WORKER_DOMAIN_SERVICES = [
   CreditReservationService,
   CreditTransactionsService,
   CreditsUtilsService,
+  TransactionUtil,
   CustomerInstanceResolverService,
   DmCampaignExecutorService,
   ElevenLabsService,

@@ -16,7 +16,7 @@ const CSV_HEADERS = [
 ] as const;
 
 function neutralizeFormula(value: string): string {
-  return /^[=+\-@]/.test(value) ? `'${value}` : value;
+  return /^\s*[=+\-@]/.test(value) ? `'${value}` : value;
 }
 
 function csvCell(value: string | number | boolean | null): string {

@@ -1,6 +1,6 @@
-import { MarketplaceApiClient } from '@server/marketplace-integration/marketplace-api-client';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { MarketplaceApiClient } from '@server/marketplace-integration/marketplace-api-client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@libs/security/destination-guard', () => ({
@@ -38,7 +38,8 @@ describe('MarketplaceApiClient', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    fetchMock = global.fetch as unknown as FetchMock;
+    fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
     configService = { get: vi.fn().mockReturnValue(undefined) };
     logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
     client = new MarketplaceApiClient(

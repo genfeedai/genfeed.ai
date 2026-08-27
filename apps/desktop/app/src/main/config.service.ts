@@ -4,12 +4,22 @@ const DEFAULT_GENFEED_CLOUD_API_URL = 'https://api.genfeed.ai/v1';
 const DEFAULT_GENFEED_CLOUD_AUTH_URL = 'https://app.genfeed.ai/oauth/cli';
 const DEFAULT_GENFEED_CLOUD_CDN_URL = 'https://cdn.genfeed.ai';
 const DEFAULT_GENFEED_CLOUD_WS_URL = 'https://notifications.genfeed.ai';
+const DEFAULT_LOCAL_PROVIDER_TIMEOUT_MS = 8_000;
 
 export class DesktopConfigService {
   private readonly environment: IDesktopEnvironment;
+  private readonly localProviderTimeoutMs: number;
 
   constructor() {
     const appPort = Number(process.env.GENFEED_DESKTOP_APP_PORT || '3230');
+    const configuredProviderTimeout = Number(
+      process.env.GENFEED_DESKTOP_PROVIDER_TIMEOUT_MS,
+    );
+    this.localProviderTimeoutMs =
+      Number.isFinite(configuredProviderTimeout) &&
+      configuredProviderTimeout > 0
+        ? configuredProviderTimeout
+        : DEFAULT_LOCAL_PROVIDER_TIMEOUT_MS;
 
     this.environment = {
       apiEndpoint:
@@ -36,5 +46,9 @@ export class DesktopConfigService {
 
   getEnvironment(): IDesktopEnvironment {
     return this.environment;
+  }
+
+  getLocalProviderTimeoutMs(): number {
+    return this.localProviderTimeoutMs;
   }
 }

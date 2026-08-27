@@ -9,7 +9,6 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { EngagementRulesService } from '@api/collections/engagement-rules/services/engagement-rules.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   EngagementMetric,
   EngagementRuleAction,
@@ -17,6 +16,7 @@ import {
   EngagementRuleState,
 } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const context = {
@@ -159,7 +159,9 @@ describe('EngagementRulesService', () => {
 
     expect(engagementRule.update).toHaveBeenCalledWith({
       data: {
+        actionPayload: { channels: [] },
         isEnabled: false,
+        mode: EngagementRuleMode.APPROVAL,
         state: EngagementRuleState.DISABLED,
       },
       where: scopedWhere('org-1', { id: 'rule-1' }),

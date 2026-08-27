@@ -1,15 +1,19 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ArticleStatus } from '@genfeedai/enums';
 import {
   ARTICLE_CREATE_UNKNOWN_PRISMA_FIELDS,
   ArticleFilterUtil,
 } from '@server/helpers/utils/article-filter/article-filter.util';
-import { ArticleStatus } from '@genfeedai/enums';
 
-const API_SRC_ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../..');
+const SERVER_SRC_ROOT = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../..',
+);
+const API_SRC_ROOT = join(SERVER_SRC_ROOT, '../../api/src');
 const ARTICLE_STATUS_GUARD_ROOTS = [
-  join(API_SRC_ROOT, 'collections/articles'),
+  join(SERVER_SRC_ROOT, 'collections/articles'),
   join(API_SRC_ROOT, 'endpoints/public'),
 ];
 const PRISMA_ARTICLE_STATUS_MEMBERS = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
@@ -299,7 +303,7 @@ describe('ArticleFilterUtil', () => {
       )) {
         const source = readFileSync(filePath, 'utf-8');
         if (hasForbiddenStatusFilter(source)) {
-          violations.push(relative(API_SRC_ROOT, filePath));
+          violations.push(relative(join(SERVER_SRC_ROOT, '../..'), filePath));
         }
       }
 

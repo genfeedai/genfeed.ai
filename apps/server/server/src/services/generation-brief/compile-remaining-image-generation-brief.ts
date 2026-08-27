@@ -1,7 +1,3 @@
-import type {
-  RemainingImageFamilyDispatchSpec,
-  RemainingImageGenerationBriefFamily,
-} from '@api/services/generation-brief/remaining-image-generation-brief-families';
 import type { ImageGenerationBrief } from '@api-types/contracts/generation-brief.contract';
 import { generationFidelityPolicies } from '@api-types/contracts/generation-brief.contract';
 import type {
@@ -22,6 +18,10 @@ import {
   selectImageGenerationBriefReferences,
 } from '@server/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@server/services/generation-brief/generation-brief-compile.error';
+import type {
+  RemainingImageFamilyDispatchSpec,
+  RemainingImageGenerationBriefFamily,
+} from '@server/services/generation-brief/remaining-image-generation-brief-families';
 
 export interface CompileRemainingImageGenerationBriefInput {
   brief: ImageGenerationBrief;

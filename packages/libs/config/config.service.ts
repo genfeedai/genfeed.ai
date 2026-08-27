@@ -58,6 +58,7 @@ interface ApiEnvConfig extends IEnvConfig {
   API_SLOW_QUERY_THRESHOLD_MS?: string;
   CONTENT_HARNESS_PACKAGES?: string;
   FEATURE_FLAG_DEFAULTS?: string;
+  GENERATION_BRIEF_LIVE_EVAL?: '0' | '1';
   POSTHOG_HOST?: string;
   POSTHOG_PROJECT_API_KEY?: string;
   GF_DEV_ENABLE_OPTIONAL_INIT?: 'true' | 'false';
@@ -67,6 +68,7 @@ interface ApiEnvConfig extends IEnvConfig {
   LOGO_DEV_PUBLISHABLE_KEY?: string;
   PGSSLROOTCERT?: string;
   PRISMA_POSTGRES_CA_FILE?: string;
+  REPLICATE_API_TOKEN?: string;
   npm_package_description?: string;
   npm_package_version?: string;
 }
@@ -97,6 +99,7 @@ const apiSpecificSchema = {
     .optional()
     .allow(''),
   FEATURE_FLAG_DEFAULTS: Joi.string().optional().allow(''),
+  GENERATION_BRIEF_LIVE_EVAL: Joi.string().valid('0', '1').optional().allow(''),
   POSTHOG_HOST: Joi.string().uri().optional().allow(''),
   POSTHOG_PROJECT_API_KEY: Joi.string().optional().allow(''),
   GF_DEV_ENABLE_OPTIONAL_INIT: Joi.string()
@@ -119,6 +122,7 @@ const apiSpecificSchema = {
   LOGO_DEV_PUBLISHABLE_KEY: Joi.string().optional().allow(''),
   PGSSLROOTCERT: Joi.string().optional().allow(''),
   PRISMA_POSTGRES_CA_FILE: Joi.string().optional().allow(''),
+  REPLICATE_API_TOKEN: Joi.string().optional().allow(''),
   // Solana (optional)
   SOLANA_KEY: Joi.string().optional().allow(''),
   SOLANA_URL: Joi.string().optional().allow(''),
@@ -162,7 +166,9 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
   constructor() {
     super(apiSchema, {
       appName: 'api',
-      workingDir: 'apps/server',
+      workingDir: process.cwd().endsWith('apps/server')
+        ? 'apps/server'
+        : 'root',
     });
   }
 

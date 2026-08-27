@@ -28,6 +28,22 @@ vi.mock(
   }),
 );
 
+function MockPostingSetPicker() {
+  return null;
+}
+
+vi.mock('@ui/publisher/PostingSetPicker', () => ({
+  default: MockPostingSetPicker,
+}));
+
+function MockPostingSignaturePicker() {
+  return null;
+}
+
+vi.mock('@ui/publisher/PostingSignaturePicker', () => ({
+  default: MockPostingSignaturePicker,
+}));
+
 describe('ReviewGateCard', () => {
   function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
     return {
@@ -135,9 +151,10 @@ describe('SchedulePostCard', () => {
     expect(onSchedule.mock.calls[0]?.[0].scheduledAt).toEqual(
       expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
     );
+    expect(screen.getByText('Schedule launch post')).toBeInTheDocument();
     expect(
-      screen.getByText(/post scheduled for 1 platform/i),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: /schedule/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('toggles platforms before scheduling', () => {
@@ -149,7 +166,6 @@ describe('SchedulePostCard', () => {
       />,
     );
 
-    fireEvent.click(screen.getByLabelText(/twitter/i));
     fireEvent.click(screen.getByLabelText(/instagram/i));
     fireEvent.click(screen.getByRole('button', { name: /schedule/i }));
 

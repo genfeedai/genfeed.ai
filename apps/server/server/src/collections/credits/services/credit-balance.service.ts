@@ -178,12 +178,20 @@ export class CreditBalanceService {
   async updateBalance(
     organizationId: string,
     newBalance: number,
+    billingAccountId: string,
     tx?: PrismaTransactionClient,
   ): Promise<CreditBalanceDocument> {
-    const current = await this.getOrCreateBalance(organizationId, tx);
+    const current = await this.getOrCreateBalance(
+      organizationId,
+      tx,
+      billingAccountId,
+    );
     const snapshot = await this.applyDelta(
       organizationId,
-      { balanceDelta: newBalance - (current.balance ?? 0) },
+      {
+        balanceDelta: newBalance - (current.balance ?? 0),
+        billingAccountId,
+      },
       tx,
     );
     const next = await (tx ?? this.prisma).creditBalance.findFirst({

@@ -1,10 +1,9 @@
-import { CacheService } from '@server/services/cache/cache.service';
 import { FileQueueService } from '@api/services/file-queue/file-queue.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { CreditTransactionsService } from '@credits/services/credit-transactions.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
+import { CacheService } from '@server/services/cache/cache.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { of } from 'rxjs';
 import { vi } from 'vitest';
 
@@ -146,24 +145,23 @@ export const mockFileQueueService = (): Partial<FileQueueService> => ({
   }),
 });
 
-export const mockCreditTransactionsService =
-  (): Partial<CreditTransactionsService> => ({
-    createTransactionEntry: vi.fn().mockResolvedValue({
-      _id: 'test-id-' + Math.random().toString(36).slice(2, 9),
-      amount: 100,
-      balanceAfter: 100,
-      balanceBefore: 0,
-      createdAt: new Date(),
-      description: 'Credit purchase',
-      organization: 'test-id-' + Math.random().toString(36).slice(2, 9),
-      source: 'stripe',
-      type: 'purchase',
-    }),
-    getExpiredCredits: vi.fn().mockResolvedValue([]),
-    getOrganizationTransactions: vi.fn().mockResolvedValue([]),
-    getTransactionsByType: vi.fn().mockResolvedValue([]),
-    markCreditsAsExpired: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
-  });
+export const mockCreditTransactionsService = () => ({
+  createTransactionEntry: vi.fn().mockResolvedValue({
+    _id: 'test-id-' + Math.random().toString(36).slice(2, 9),
+    amount: 100,
+    balanceAfter: 100,
+    balanceBefore: 0,
+    createdAt: new Date(),
+    description: 'Credit purchase',
+    organization: 'test-id-' + Math.random().toString(36).slice(2, 9),
+    source: 'stripe',
+    type: 'purchase',
+  }),
+  getExpiredCredits: vi.fn().mockResolvedValue([]),
+  getOrganizationTransactions: vi.fn().mockResolvedValue([]),
+  getTransactionsByType: vi.fn().mockResolvedValue([]),
+  markCreditsAsExpired: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
+});
 
 export const mockHttpService = (): Partial<HttpService> => ({
   delete: vi.fn().mockReturnValue(

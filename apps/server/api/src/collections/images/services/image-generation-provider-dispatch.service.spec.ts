@@ -250,6 +250,66 @@ describe('ImageGenerationProviderDispatchService', () => {
     expect(plan?.kind).toBe('inline');
   });
 
+  it('records realized provider dimensions instead of requested dimensions', async () => {
+    promptBuilderService.buildPrompt.mockResolvedValue({
+      input: { prompt: 'provider prompt' },
+    });
+    replicateService.generateTextToImage.mockResolvedValue('replicate-job');
+    filesClientService.uploadToS3.mockResolvedValueOnce({
+      height: 720,
+      publicUrl: 'https://cdn.example.com/provider-adjusted.png',
+      s3Key: 'images/provider-adjusted.png',
+      size: 1024,
+      width: 1280,
+    });
+    const context = buildContext({
+      height: 1080,
+      model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+      width: 1920,
+    });
+
+    const plan = await service.dispatch(context);
+    await plan?.generationPromise;
+
+    expect(
+      mediaGenerationCostService.recordGenerationCost,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        height: 720,
+        ingredientId: 'ingredient-1',
+        width: 1280,
+      }),
+    );
+  });
+
+  it('records unknown dimensions when upload metadata omits them', async () => {
+    const imageBuffer = Buffer.from('image');
+    comfyUIService.generateImage.mockResolvedValueOnce({ imageBuffer });
+    filesClientService.uploadToS3.mockResolvedValueOnce({
+      publicUrl: 'https://cdn.example.com/generated.png',
+      s3Key: 'images/generated.png',
+      size: imageBuffer.length,
+    });
+    const context = buildContext({
+      height: 1080,
+      model: MODEL_KEYS.GENFEED_AI_FLUX_DEV,
+      width: 1920,
+    });
+
+    const plan = await service.dispatch(context);
+    await plan?.generationPromise;
+
+    expect(
+      mediaGenerationCostService.recordGenerationCost,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        height: null,
+        ingredientId: 'ingredient-1',
+        width: null,
+      }),
+    );
+  });
+
   it('emits a generation failure webhook when the provider throws', async () => {
     comfyUIService.generateImage.mockRejectedValueOnce(
       new Error('ComfyUI unreachable'),

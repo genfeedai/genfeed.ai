@@ -31,6 +31,10 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/helpers/src'),
       },
       {
+        find: '@files',
+        replacement: path.resolve(serviceDir, '../files/src'),
+      },
+      {
         find: /^@helpers\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
@@ -38,11 +42,29 @@ export default defineConfig({
         ),
       },
       {
-        find: '@genfeedai/config',
+        find: /^@api-types\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
-          '../../../packages/config/src/index.ts',
+          '../../../packages/api-types/src/$1',
         ),
+      },
+      {
+        find: '@api-types',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/api-types/src',
+        ),
+      },
+      {
+        find: /^@genfeedai\/config\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/config/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/config',
+        replacement: path.resolve(serviceDir, '../../../packages/config/src'),
       },
       {
         find: '@genfeedai/storage/path-containment',
@@ -86,6 +108,7 @@ export default defineConfig({
     globals: true,
     include: ['src/**/*.spec.ts'],
     passWithNoTests: false,
+    setupFiles: ['./test/setup-unit.ts'],
     testTimeout: 30000,
   },
 });

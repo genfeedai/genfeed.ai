@@ -37,6 +37,11 @@ vi.mock('@ui/primitives/sheet', () => ({
   SheetContent: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
+  SheetDescription: ({ children }: { children: ReactNode }) => (
+    <p>{children}</p>
+  ),
+  SheetHeader: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  SheetTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
 }));
 
 const mocks = vi.hoisted(() => ({

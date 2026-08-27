@@ -1,4 +1,3 @@
-import type { RemainingVideoGenerationBriefFamily } from '@api/services/generation-brief/remaining-video-generation-brief-families';
 import type { VideoGenerationBrief } from '@api-types/contracts/generation-brief.contract';
 import { generationFidelityPolicies } from '@api-types/contracts/generation-brief.contract';
 import type {
@@ -17,6 +16,7 @@ import {
   recordOmittedGenerationBriefSignal,
 } from '@server/services/generation-brief/compile-image-generation-brief.util';
 import { GenerationBriefCompileError } from '@server/services/generation-brief/generation-brief-compile.error';
+import type { RemainingVideoGenerationBriefFamily } from '@server/services/generation-brief/remaining-video-generation-brief-families';
 
 export interface CompileRemainingVideoGenerationBriefInput {
   brief: VideoGenerationBrief;
@@ -85,10 +85,23 @@ export function compileRemainingVideoGenerationBrief(
   let firstFrameAssetId: string | undefined;
   let lastFrameAssetId: string | undefined;
   const extraReferenceAssetIds: string[] = [];
+  const supportsFirstFrame = profile.references.roles.includes('first_frame');
 
   for (const reference of brief.references) {
+    if (!profile.references.roles.includes(reference.role)) {
+      recordOmittedGenerationBriefSignal(
+        omitted,
+        `references.${reference.role}`,
+        `${spec.modelLabel} does not support ${reference.role} references for ${profile.modelKey}.`,
+        policy,
+        required,
+        spec.modelLabel,
+      );
+      continue;
+    }
     if (
-      (reference.role === 'first_frame' || reference.role === 'subject') &&
+      (reference.role === 'first_frame' ||
+        (reference.role === 'subject' && supportsFirstFrame)) &&
       firstFrameAssetId === undefined
     ) {
       firstFrameAssetId = reference.assetId;
@@ -125,6 +138,15 @@ export function compileRemainingVideoGenerationBrief(
   }
   if (brief.intent.scene) {
     parts.push(brief.intent.scene);
+  }
+  if (brief.intent.composition) {
+    parts.push(brief.intent.composition);
+  }
+  if (brief.intent.lighting) {
+    parts.push(brief.intent.lighting);
+  }
+  if (brief.intent.cinematography) {
+    parts.push(brief.intent.cinematography);
   }
   if (brief.intent.motion) {
     parts.push(brief.intent.motion);
@@ -211,6 +233,14 @@ export function compileRemainingVideoGenerationBrief(
       'intent.objective',
       'output.aspectRatio',
       'output.durationSeconds',
+      ...(brief.intent.subjects.length > 0 ? ['intent.subjects'] : []),
+      ...(brief.intent.scene ? ['intent.scene'] : []),
+      ...(brief.intent.composition ? ['intent.composition'] : []),
+      ...(brief.intent.lighting ? ['intent.lighting'] : []),
+      ...(brief.intent.cinematography ? ['intent.cinematography'] : []),
+      ...(brief.intent.motion ? ['intent.motion'] : []),
+      ...(brief.intent.visualDirection ? ['intent.visualDirection'] : []),
+      ...(brief.intent.audioDirection ? ['intent.audioDirection'] : []),
       ...(firstFrameAssetId ? ['references.first_frame'] : []),
       ...(lastFrameAssetId ? ['references.last_frame'] : []),
     ],

@@ -43,10 +43,22 @@ const LOCAL_RUNTIME_INIT_TIMEOUT_MS = 20_000;
 const LOCAL_RUNTIME_INIT_TIMEOUT_ERROR =
   'Local workspace did not finish starting. Retry or switch back to cloud.';
 
+export function createLocalRuntimeCleanupBarrier(
+  attempt: Promise<void> | null,
+): Promise<void> {
+  return (
+    attempt?.then(
+      () => undefined,
+      () => undefined,
+    ) ?? Promise.resolve()
+  );
+}
+
 async function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,
   message: string,
+  onTimeout: () => void,
 ): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
@@ -54,7 +66,10 @@ async function withTimeout<T>(
     return await Promise.race([
       promise,
       new Promise<T>((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+        timeoutId = setTimeout(() => {
+          onTimeout();
+          reject(new Error(message));
+        }, timeoutMs);
       }),
     ]);
   } finally {
@@ -68,11 +83,13 @@ export async function activateDesktopLocalMode(
   initializeLocalRuntime: () => Promise<void>,
   persistLocalMode: () => void,
   timeoutMs = LOCAL_RUNTIME_INIT_TIMEOUT_MS,
+  invalidateAttempt: () => void = () => undefined,
 ): Promise<void> {
   await withTimeout(
     initializeLocalRuntime(),
     timeoutMs,
     LOCAL_RUNTIME_INIT_TIMEOUT_ERROR,
+    invalidateAttempt,
   );
   persistLocalMode();
 }

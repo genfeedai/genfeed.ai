@@ -63,6 +63,7 @@ import {
 } from './main/process-exceptions.util';
 import {
   activateDesktopLocalMode,
+  createLocalRuntimeCleanupBarrier,
   createUnwoundLocalRuntimeState,
   selectDesktopDataService,
   switchDesktopToCloud,
@@ -122,6 +123,8 @@ let draftsService: DesktopDraftsService | null = null;
 let appShellService: DesktopAppShellService;
 let isOfflineMode = false;
 let localRuntimePromise: Promise<void> | null = null;
+let localRuntimeCleanupBarrier: Promise<void> = Promise.resolve();
+let localRuntimeAttemptId = 0;
 let assetProtocolRegistered = false;
 let logService: DesktopLogService | null = null;
 
@@ -424,10 +427,13 @@ const runDataService = async <T>(
 };
 
 const initializeLocalRuntime = async (): Promise<void> => {
+  await localRuntimeCleanupBarrier;
+
   if (localRuntimePromise) {
     return localRuntimePromise;
   }
 
+  const attemptId = ++localRuntimeAttemptId;
   localRuntimePromise = (async () => {
     let nextPgliteService: DesktopPgliteService | null = null;
 
@@ -491,6 +497,7 @@ const initializeLocalRuntime = async (): Promise<void> => {
             });
           },
         },
+        configService,
         nextFilesService,
       );
       await nextGenerationService.resumeAssetGenerationJobs();
@@ -508,6 +515,12 @@ const initializeLocalRuntime = async (): Promise<void> => {
         nextPrismaService,
         nextLocalIdentityService,
       );
+
+      if (attemptId !== localRuntimeAttemptId) {
+        throw new Error(
+          'Local runtime initialization attempt was invalidated.',
+        );
+      }
 
       if (!assetProtocolRegistered) {
         new DesktopAssetProtocolService(nextFilesService).register();
@@ -531,7 +544,11 @@ const initializeLocalRuntime = async (): Promise<void> => {
       bootstrapCache = null;
     } catch (error) {
       await unwindFailedLocalRuntimeAfterClose({
-        applyReset: applyUnwoundLocalRuntime,
+        applyReset: (reset) => {
+          if (attemptId === localRuntimeAttemptId) {
+            applyUnwoundLocalRuntime(reset);
+          }
+        },
         closeDatabase: async () => {
           await nextPgliteService?.close();
         },
@@ -541,6 +558,13 @@ const initializeLocalRuntime = async (): Promise<void> => {
   })();
 
   return localRuntimePromise;
+};
+
+const invalidateLocalRuntimeAttempt = (): void => {
+  localRuntimeAttemptId += 1;
+  localRuntimeCleanupBarrier =
+    createLocalRuntimeCleanupBarrier(localRuntimePromise);
+  localRuntimePromise = null;
 };
 
 const requireLocalRuntime = (): void => {
@@ -924,9 +948,14 @@ const createWindow = async (): Promise<void> => {
 
   buildDesktopMenu(mainWindow, () => {
     void (async () => {
-      await activateDesktopLocalMode(initializeLocalRuntime, () => {
-        desktopStore.setValueSync(OFFLINE_MODE_KEY, 'local');
-      });
+      await activateDesktopLocalMode(
+        initializeLocalRuntime,
+        () => {
+          desktopStore.setValueSync(OFFLINE_MODE_KEY, 'local');
+        },
+        undefined,
+        invalidateLocalRuntimeAttempt,
+      );
       const workspace = await openAndActivateWorkspace();
       if (!workspace) return;
       await emitBootstrap();
@@ -1256,9 +1285,14 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.appEnableOfflineMode,
     async () => {
-      await activateDesktopLocalMode(initializeLocalRuntime, () => {
-        desktopStore.setValueSync(OFFLINE_MODE_KEY, 'local');
-      });
+      await activateDesktopLocalMode(
+        initializeLocalRuntime,
+        () => {
+          desktopStore.setValueSync(OFFLINE_MODE_KEY, 'local');
+        },
+        undefined,
+        invalidateLocalRuntimeAttempt,
+      );
       await emitBootstrap();
       return getBootstrap();
     },

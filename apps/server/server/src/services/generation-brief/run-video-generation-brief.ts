@@ -1,4 +1,3 @@
-import { getVideoGenerationBriefRegistryEntry } from '@api/services/generation-brief/video-generation-brief-registry';
 import type {
   GenerationBriefReference,
   GenerationFidelityMode,
@@ -13,6 +12,7 @@ import { assembleVideoGenerationBrief } from '@server/services/generation-brief/
 import { assertRedactedVideoGenerationBriefEvidence } from '@server/services/generation-brief/redact-generation-brief-evidence';
 import { resolveVideoGenerationBriefSupport } from '@server/services/generation-brief/resolve-video-generation-brief-support';
 import { resolveVideoGenerationFidelityMode } from '@server/services/generation-brief/resolve-video-generation-fidelity-mode';
+import { getVideoGenerationBriefRegistryEntry } from '@server/services/generation-brief/video-generation-brief-registry';
 
 export interface RunVideoGenerationBriefInput {
   audioDirection?: string;

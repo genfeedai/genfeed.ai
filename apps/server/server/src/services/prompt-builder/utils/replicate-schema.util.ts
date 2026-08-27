@@ -2,14 +2,14 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { ErrorCode } from '@genfeedai/enums';
+import { HttpStatus, Logger } from '@nestjs/common';
 import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
 import type {
   ImageReferenceField,
   ReplicateModelSchema,
 } from '@server/services/prompt-builder/interfaces/replicate-schema.interface';
 import { IMAGE_REFERENCE_FIELDS } from '@server/services/prompt-builder/interfaces/replicate-schema.interface';
-import { ErrorCode } from '@genfeedai/enums';
-import { HttpStatus, Logger } from '@nestjs/common';
 
 const logger = new Logger('ReplicateSchemaUtil');
 const moduleDir = dirname(fileURLToPath(import.meta.url));
@@ -23,6 +23,12 @@ function resolveSchemasDir(): string | null {
     ),
     // Local dev/test from api package root
     join(process.cwd(), 'src/services/integrations/replicate/schemas'),
+    // Extracted server-domain tests run from the sibling server package while
+    // Replicate's generated schema assets remain owned by the API application.
+    join(
+      moduleDir,
+      '../../../../../api/src/services/integrations/replicate/schemas',
+    ),
     // Fallback when cwd differs but compiled file structure is preserved
     join(moduleDir, '../../integrations/replicate/schemas'),
   ];

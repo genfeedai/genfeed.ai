@@ -35,9 +35,12 @@ describe('Videos split controllers', () => {
       operationId: 'VideosRelationshipsController.mergeVideos',
       summary: 'mergeVideos',
     });
-    expect(Reflect.getMetadata('design:paramtypes', handler)?.[2]).toBe(
-      CreateMergedVideoDto,
-    );
+    const parameterTypes = Reflect.getMetadata(
+      'design:paramtypes',
+      VideosMergeController.prototype,
+      'mergeVideos',
+    ) as unknown[];
+    expect(parameterTypes[2]).toBe(CreateMergedVideoDto);
   });
 
   it('preserves RolesGuard while keeping the local ffmpeg merge uncredited', () => {

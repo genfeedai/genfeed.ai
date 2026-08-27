@@ -79,7 +79,7 @@ function downloadCsv(data: ArrayBuffer): void {
 
 export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
   const translate = useTranslations('pages.costUsage');
-  const { brands, isReady, selectedBrand } = useBrand();
+  const { brands, isReady, organizationId, selectedBrand } = useBrand();
   const [selectedBrandId, setSelectedBrandId] = useState('');
   const [rangeDays, setRangeDays] = useState(DEFAULT_RANGE_DAYS);
   const [isExporting, setIsExporting] = useState(false);
@@ -108,7 +108,7 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
       const service = await getCostsService();
       return service.getSummary(reportQuery);
     },
-    queryKey: ['settings-cost-summary', reportQuery],
+    queryKey: ['settings-cost-summary', organizationId, reportQuery],
   });
   const entriesQuery = useQuery({
     enabled: canLoad,
@@ -116,7 +116,7 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
       const service = await getCostsService();
       return service.getEntries({ ...reportQuery, limit: 100, skip: 0 });
     },
-    queryKey: ['settings-cost-entries', reportQuery],
+    queryKey: ['settings-cost-entries', organizationId, reportQuery],
   });
 
   const summary = summaryQuery.data;
@@ -386,15 +386,20 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
         />
       ) : null}
 
-      <AppTable
-        label={translate('tables.ledger.label')}
-        columns={entryColumns}
-        items={entriesQuery.data ?? []}
-        isLoading={isLoading}
-        getRowKey={(row) => `${row.entryType}:${row.id}`}
-        emptyLabel={translate('tables.emptyLabel')}
-        emptyDescription={translate('tables.ledger.emptyDescription')}
-      />
+      <div className="space-y-2">
+        <AppTable
+          label={translate('tables.ledger.label')}
+          columns={entryColumns}
+          items={entriesQuery.data ?? []}
+          isLoading={isLoading}
+          getRowKey={(row) => `${row.entryType}:${row.id}`}
+          emptyLabel={translate('tables.emptyLabel')}
+          emptyDescription={translate('tables.ledger.emptyDescription')}
+        />
+        <Text size="xs" color="muted">
+          {translate('tables.ledger.limitNotice', { limit: 100 })}
+        </Text>
+      </div>
     </div>
   );
 }

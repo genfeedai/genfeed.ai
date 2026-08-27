@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   activateDesktopLocalMode,
+  createLocalRuntimeCleanupBarrier,
   createUnwoundLocalRuntimeState,
   selectDesktopDataService,
   switchDesktopToCloud,
@@ -41,6 +42,64 @@ describe('desktop runtime mode transitions', () => {
     ).rejects.toThrow('Local workspace did not finish starting');
 
     expect(persisted).toBe(false);
+  });
+
+  it('invalidates a timed-out attempt and lets a fresh retry persist', async () => {
+    let resolveFirstAttempt: (() => void) | undefined;
+    const firstAttempt = new Promise<void>((resolve) => {
+      resolveFirstAttempt = resolve;
+    });
+    let invalidated = false;
+    let persisted = 0;
+
+    await expect(
+      activateDesktopLocalMode(
+        async () => firstAttempt,
+        () => {
+          persisted += 1;
+        },
+        20,
+        () => {
+          invalidated = true;
+        },
+      ),
+    ).rejects.toThrow('Local workspace did not finish starting');
+
+    expect(invalidated).toBe(true);
+    await activateDesktopLocalMode(
+      async () => undefined,
+      () => {
+        persisted += 1;
+      },
+    );
+    resolveFirstAttempt?.();
+    await firstAttempt;
+
+    expect(persisted).toBe(1);
+  });
+
+  it('waits for invalidated runtime cleanup before starting a retry', async () => {
+    const events: string[] = [];
+    let releaseAttempt: (() => void) | undefined;
+    const attempt = (async () => {
+      await new Promise<void>((resolve) => {
+        releaseAttempt = resolve;
+      });
+      events.push('close');
+      throw new Error('timed out');
+    })();
+    const cleanupBarrier = createLocalRuntimeCleanupBarrier(attempt);
+    const retry = (async () => {
+      await cleanupBarrier;
+      events.push('retry');
+    })();
+
+    await Promise.resolve();
+    expect(events).toEqual([]);
+    releaseAttempt?.();
+    await retry;
+
+    expect(events).toEqual(['close', 'retry']);
   });
 
   it('never falls back to cloud while local mode is active', () => {
@@ -162,5 +221,7 @@ describe('desktop local runtime unwind', () => {
     expect(source).toContain(
       'let draftsService: DesktopDraftsService | null = null',
     );
+    expect(source).toContain('attemptId !== localRuntimeAttemptId');
+    expect(source).toContain('invalidateLocalRuntimeAttempt');
   });
 });

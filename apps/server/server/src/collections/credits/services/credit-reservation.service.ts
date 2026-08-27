@@ -7,9 +7,13 @@ import {
 import type {
   ICreditReservation,
   ICreditWalletSnapshot,
+  IReleaseCreditReservationInput,
+  IReserveCreditsInput,
+  ISettleCreditReservationInput,
 } from '@genfeedai/interfaces/billing';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
 import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
 import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
@@ -19,30 +23,8 @@ import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const DEFAULT_RESERVATION_TTL_MS = 2 * 60 * 60 * 1000;
 
-type ReserveCreditsInput = {
-  organizationId: string;
+type ReserveCreditsInput = IReserveCreditsInput & {
   billingAccountId: string;
-  actorUserId: string;
-  amount: number;
-  idempotencyKey: string;
-  workloadType?: string;
-  workloadId?: string;
-  expiresAt?: Date;
-};
-
-type SettleReservationInput = {
-  reservationId?: string;
-  idempotencyKey?: string;
-  actualAmount: number;
-  actorUserId: string;
-  description: string;
-  source?: ActivitySource;
-};
-
-type ReleaseReservationInput = {
-  reservationId?: string;
-  idempotencyKey?: string;
-  reason?: 'release' | 'expiry';
 };
 
 @Injectable()
@@ -52,16 +34,20 @@ export class CreditReservationService {
     private readonly logger: LoggerService,
     private readonly creditBalanceService: CreditBalanceService,
     private readonly creditTransactionsService: CreditTransactionsService,
-    @Optional() private readonly transactionUtil?: TransactionUtil,
+    private readonly transactionUtil: TransactionUtil,
   ) {}
 
   async reserve(input: ReserveCreditsInput): Promise<ICreditReservation> {
-    if (!(input.amount > 0)) {
+    if (!Number.isFinite(input.amount) || !(input.amount > 0)) {
       throw new BusinessLogicException('Reservation amount must be positive');
     }
 
     const existing = await this.prisma.creditReservation.findFirst({
-      where: { idempotencyKey: input.idempotencyKey, isDeleted: false },
+      where: {
+        idempotencyKey: input.idempotencyKey,
+        isDeleted: false,
+        organizationId: input.organizationId,
+      },
     });
     if (existing) {
       return this.toReservation(existing);
@@ -95,16 +81,14 @@ export class CreditReservationService {
       return this.toReservation(created);
     };
 
-    if (!this.transactionUtil) {
-      return run(this.prisma);
-    }
-
     return this.transactionUtil.runInTransaction((tx) => run(tx), {
       isolationLevel: 'Serializable',
     });
   }
 
-  async settle(input: SettleReservationInput): Promise<ICreditWalletSnapshot> {
+  async settle(
+    input: ISettleCreditReservationInput,
+  ): Promise<ICreditWalletSnapshot> {
     const reservation = await this.findReservation(input);
     if (reservation.status === CreditReservationStatus.SETTLED) {
       return this.creditBalanceService.toSnapshot(
@@ -119,6 +103,12 @@ export class CreditReservationService {
     if (reservation.status !== CreditReservationStatus.RESERVED) {
       throw new BusinessLogicException(
         `Reservation ${reservation.status} cannot be settled`,
+      );
+    }
+
+    if (!Number.isFinite(input.actualAmount) || input.actualAmount < 0) {
+      throw new BusinessLogicException(
+        'Settlement amount must be finite and non-negative',
       );
     }
 
@@ -184,17 +174,13 @@ export class CreditReservationService {
       return snapshot;
     };
 
-    if (!this.transactionUtil) {
-      return run(this.prisma);
-    }
-
     return this.transactionUtil.runInTransaction((tx) => run(tx), {
       isolationLevel: 'Serializable',
     });
   }
 
   async release(
-    input: ReleaseReservationInput,
+    input: IReleaseCreditReservationInput,
   ): Promise<ICreditWalletSnapshot> {
     const reservation = await this.findReservation(input);
     if (
@@ -237,10 +223,6 @@ export class CreditReservationService {
       return snapshot;
     };
 
-    if (!this.transactionUtil) {
-      return run(this.prisma);
-    }
-
     return this.transactionUtil.runInTransaction((tx) => run(tx), {
       isolationLevel: 'Serializable',
     });
@@ -259,6 +241,7 @@ export class CreditReservationService {
     let expired = 0;
     for (const reservation of due) {
       await this.release({
+        organizationId: reservation.organizationId,
         reason: 'expiry',
         reservationId: reservation.id,
       });
@@ -270,6 +253,7 @@ export class CreditReservationService {
   }
 
   private async findReservation(input: {
+    organizationId: string;
     reservationId?: string;
     idempotencyKey?: string;
   }) {
@@ -278,13 +262,12 @@ export class CreditReservationService {
     }
 
     const reservation = await this.prisma.creditReservation.findFirst({
-      where: {
-        isDeleted: false,
+      where: scopedWhere(input.organizationId, {
         ...(input.reservationId ? { id: input.reservationId } : {}),
         ...(input.idempotencyKey
           ? { idempotencyKey: input.idempotencyKey }
           : {}),
-      },
+      }),
     });
 
     if (!reservation) {
