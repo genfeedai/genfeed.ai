@@ -1,4 +1,9 @@
-import { PostFrequency } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostFrequency,
+  PostVisibility,
+  ReleaseStatus,
+} from '@genfeedai/enums';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -42,6 +47,36 @@ describe('ReleaseGroupsService', () => {
         instance: typeof instance;
       }
     ).instance;
+  });
+
+  it('creates a release group on POST /', async () => {
+    instance.post.mockResolvedValue({
+      data: { data: { id: 'release-1', title: 'Hook' } },
+    });
+    const controller = new AbortController();
+    const input = {
+      baseContent: 'Caption',
+      media: [{ assetId: 'ingredient-1', kind: 'image' }],
+      status: ReleaseStatus.DRAFT,
+      targets: [
+        {
+          credentialId: 'cred-1',
+          order: 0,
+          platform: CredentialPlatform.TIKTOK,
+          visibility: PostVisibility.PUBLIC,
+        },
+      ],
+      timezone: 'UTC',
+      title: 'Hook',
+    };
+
+    await expect(service.create(input, controller.signal)).resolves.toEqual({
+      id: 'release-1',
+      title: 'Hook',
+    });
+    expect(instance.post).toHaveBeenCalledWith('', input, {
+      signal: controller.signal,
+    });
   });
 
   it('reads one canonical release group', async () => {

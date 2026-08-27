@@ -54,6 +54,14 @@ export interface UseFastlaneScheduleParams {
   brandId: string;
 }
 
+export interface FastlaneReleaseBuildParams {
+  asset: FastlaneAssetItem;
+  brandId: string;
+  caption: string;
+  targets: FastlaneScheduleTarget[];
+  timezone: string;
+}
+
 export interface ScheduleApprovedParams {
   assets: FastlaneAssetItem[];
   targets: FastlaneScheduleTarget[];

@@ -1,13 +1,7 @@
 'use client';
 
-import {
-  PostCategory,
-  PostVisibility,
-  TargetExecutionState,
-} from '@genfeedai/enums';
-import type { FastlaneScheduleTarget } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { PostsService } from '@services/content/posts.service';
+import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useCallback, useState } from 'react';
@@ -15,12 +9,15 @@ import type {
   ScheduleApprovedParams,
   UseFastlaneScheduleReturn,
 } from '../types';
+import { buildFastlaneReleaseInput } from '../utils/fastlane-release';
 
-export function useFastlaneSchedule(): UseFastlaneScheduleReturn {
+export function useFastlaneSchedule(
+  brandId: string,
+): UseFastlaneScheduleReturn {
   const [isScheduling, setIsScheduling] = useState(false);
 
-  const getPostsService = useAuthedService((token: string) =>
-    PostsService.getInstance(token),
+  const getReleaseGroupsService = useAuthedService((token: string) =>
+    ReleaseGroupsService.getInstance(token),
   );
 
   const notificationsService = NotificationsService.getInstance();
@@ -33,7 +30,7 @@ export function useFastlaneSchedule(): UseFastlaneScheduleReturn {
       timezone,
     }: ScheduleApprovedParams): Promise<void> => {
       const approved = assets.filter(
-        (a) => a.status === 'approved' && a.ingredientId,
+        (asset) => asset.status === 'approved' && asset.ingredientId,
       );
 
       if (approved.length === 0 || targets.length === 0) {
@@ -42,51 +39,53 @@ export function useFastlaneSchedule(): UseFastlaneScheduleReturn {
 
       setIsScheduling(true);
 
-      // Single shared groupId for this Fastlane batch
-      const groupId = crypto.randomUUID();
-
       try {
-        const service = await getPostsService();
+        const service = await getReleaseGroupsService();
 
-        // "Post now" must use SCHEDULED with scheduledDate = now: the publisher
-        // cron only picks up posts with status in [SCHEDULED, PROCESSING] whose
-        // scheduledDate <= now (PENDING is a TikTok-specific intermediate state,
-        // so PENDING immediate posts would never publish on Instagram/YouTube).
-        const nowIso = new Date().toISOString();
-
-        const posts = approved.flatMap((asset) =>
-          targets.map((target: FastlaneScheduleTarget) => {
-            const editedCaption = captions[asset.idea.id] ?? asset.idea.caption;
-            const category =
-              asset.idea.format === 'image'
-                ? PostCategory.IMAGE
-                : PostCategory.VIDEO;
-
-            const payload = {
-              credentialId: target.credentialId,
-              ingredients: [asset.ingredientId as string],
-              label: asset.idea.hook.slice(0, 100),
-              description: editedCaption,
-              category,
-              targetExecutionState: TargetExecutionState.SCHEDULED,
-              scheduledDate: target.scheduledDate ?? nowIso,
+        const results = await Promise.allSettled(
+          approved.map(async (asset) => {
+            const input = buildFastlaneReleaseInput({
+              asset,
+              brandId,
+              caption: captions[asset.idea.id] ?? asset.idea.caption,
+              targets,
               timezone,
-              groupId,
-              source: 'fastlane',
-              isShareToFeedSelected: true,
-              visibility: PostVisibility.PUBLIC,
-            };
+            });
+            if (!input) {
+              throw new Error(
+                'Fastlane release is missing media or a valid platform target.',
+              );
+            }
 
-            return { asset, target, payload };
+            const release = await service.create(input);
+            const channelTargets = release.targets ?? [];
+            if (channelTargets.length === 0) {
+              throw new Error(
+                'Fastlane release created with no channel targets.',
+              );
+            }
+
+            await Promise.all(
+              channelTargets.map((channelTarget) => {
+                const requested = targets.find(
+                  (target) =>
+                    target.credentialId === channelTarget.credentialId,
+                );
+                if (requested?.scheduledDate) {
+                  return service.scheduleTarget(
+                    release.id,
+                    channelTarget.id,
+                    requested.scheduledDate,
+                  );
+                }
+                return service.publishTargetNow(release.id, channelTarget.id);
+              }),
+            );
           }),
         );
 
-        const results = await Promise.allSettled(
-          posts.map(({ payload }) => service.post(payload)),
-        );
-
         const failedCount = results.filter(
-          (r) => r.status === 'rejected',
+          (result) => result.status === 'rejected',
         ).length;
 
         if (failedCount > 0) {
@@ -112,7 +111,7 @@ export function useFastlaneSchedule(): UseFastlaneScheduleReturn {
         setIsScheduling(false);
       }
     },
-    [getPostsService, notificationsService],
+    [brandId, getReleaseGroupsService, notificationsService],
   );
 
   return { isScheduling, scheduleApproved };
