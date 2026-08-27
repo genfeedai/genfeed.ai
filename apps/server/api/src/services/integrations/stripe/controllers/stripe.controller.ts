@@ -128,11 +128,9 @@ export class StripeController {
       }
 
       const domainAccount =
-        await this.billingAccountsService.ensureForOrganization({
-          label: organization.label,
-          organizationId: user.organizationId,
-          userId: dbUser.id.toString(),
-        });
+        await this.billingAccountsService.resolveForOrganization(
+          user.organizationId,
+        );
       await this.billingAccountsService.requireRole(
         domainAccount.id,
         dbUser.id.toString(),
@@ -141,6 +139,7 @@ export class StripeController {
 
       const billingAccount =
         await this.billingAccountService.resolveOrProvision({
+          billingAccountId: domainAccount.id,
           billingEmail: email,
           organizationId: user.organizationId,
           organizationLabel: organization.label,
@@ -269,8 +268,19 @@ export class StripeController {
         return returnNotFound('Organization', user.organizationId);
       }
 
+      const domainAccount =
+        await this.billingAccountsService.resolveForOrganization(
+          user.organizationId,
+        );
+      await this.billingAccountsService.requireRole(
+        domainAccount.id,
+        dbUser.id.toString(),
+        BillingAccountMemberRole.ADMINISTRATOR,
+      );
+
       const billingAccount =
         await this.billingAccountService.resolveOrProvision({
+          billingAccountId: domainAccount.id,
           billingEmail: email,
           organizationId: user.organizationId,
           organizationLabel: organization.label,

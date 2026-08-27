@@ -1,4 +1,8 @@
-import { BillingAccountStatus } from '@genfeedai/enums';
+import {
+  BillingAccountMemberRole,
+  BillingAccountOrganizationStatus,
+  BillingAccountStatus,
+} from '@genfeedai/enums';
 import type { IBillingAccountMigrationReport } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -68,26 +72,82 @@ export class BillingAccountMigrationService {
         if (!organization) {
           continue;
         }
-        const account = await this.prisma.billingAccount.create({
-          data: {
-            label: organization.label,
-            status: organization.customers[0]?.stripeCustomerId
-              ? BillingAccountStatus.ACTIVE
-              : BillingAccountStatus.UNPROVISIONED,
-            stripeCustomerId: organization.customers[0]?.stripeCustomerId,
+        const result = await this.prisma.$transaction(
+          async (tx) => {
+            const current = await tx.organization.findFirst({
+              where: {
+                billingAccountId: null,
+                id: organization.id,
+                isDeleted: false,
+              },
+            });
+            if (!current) {
+              return { attributed: 0, created: 0, linked: 0 };
+            }
+
+            const account = await tx.billingAccount.create({
+              data: {
+                label: organization.label,
+                status: organization.customers[0]?.stripeCustomerId
+                  ? BillingAccountStatus.ACTIVE
+                  : BillingAccountStatus.UNPROVISIONED,
+                stripeCustomerId: organization.customers[0]?.stripeCustomerId,
+              },
+            });
+            await tx.billingAccountMember.create({
+              data: {
+                billingAccountId: account.id,
+                role: BillingAccountMemberRole.OWNER,
+                userId: current.userId,
+              },
+            });
+            await tx.billingAccountOrganization.create({
+              data: {
+                billingAccountId: account.id,
+                organizationId: organization.id,
+                status: BillingAccountOrganizationStatus.LINKED,
+              },
+            });
+            const linked = await tx.organization.updateMany({
+              data: { billingAccountId: account.id },
+              where: {
+                billingAccountId: null,
+                id: organization.id,
+                isDeleted: false,
+              },
+            });
+            if (linked.count !== 1) {
+              throw new Error(
+                'Organization billing account changed during migration',
+              );
+            }
+            await tx.customer.updateMany({
+              data: { billingAccountId: account.id },
+              where: { isDeleted: false, organizationId: organization.id },
+            });
+            await tx.subscription.updateMany({
+              data: { billingAccountId: account.id },
+              where: { isDeleted: false, organizationId: organization.id },
+            });
+            await tx.creditBalance.updateMany({
+              data: { billingAccountId: account.id },
+              where: { isDeleted: false, organizationId: organization.id },
+            });
+            const attributed = await tx.creditTransaction.updateMany({
+              data: { billingAccountId: account.id },
+              where: {
+                billingAccountId: null,
+                isDeleted: false,
+                organizationId: organization.id,
+              },
+            });
+            return { attributed: attributed.count, created: 1, linked: 1 };
           },
-        });
-        await this.prisma.organization.update({
-          data: { billingAccountId: account.id },
-          where: { id: organization.id },
-        });
-        createdAccounts += 1;
-        linkedOrganizations += 1;
-        const attributed = await this.prisma.creditTransaction.updateMany({
-          data: { billingAccountId: account.id },
-          where: { billingAccountId: null, organizationId: organization.id },
-        });
-        attributedTransactions += attributed.count;
+          { isolationLevel: 'Serializable' },
+        );
+        createdAccounts += result.created;
+        linkedOrganizations += result.linked;
+        attributedTransactions += result.attributed;
       }
     }
 

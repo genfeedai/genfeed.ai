@@ -1,0 +1,12 @@
+ALTER TABLE "billing_account_members" VALIDATE CONSTRAINT "billing_account_members_billingAccountId_fkey";
+ALTER TABLE "billing_account_members" VALIDATE CONSTRAINT "billing_account_members_userId_fkey";
+ALTER TABLE "billing_account_organizations" VALIDATE CONSTRAINT "billing_account_organizations_billingAccountId_fkey";
+ALTER TABLE "billing_account_organizations" VALIDATE CONSTRAINT "billing_account_organizations_organizationId_fkey";
+ALTER TABLE "credit_reservations" VALIDATE CONSTRAINT "credit_reservations_billingAccountId_fkey";
+ALTER TABLE "credit_reservations" VALIDATE CONSTRAINT "credit_reservations_organizationId_fkey";
+ALTER TABLE "organizations" VALIDATE CONSTRAINT "organizations_billingAccountId_fkey";
+ALTER TABLE "customers" VALIDATE CONSTRAINT "customers_billingAccountId_fkey";
+ALTER TABLE "subscriptions" VALIDATE CONSTRAINT "subscriptions_billingAccountId_fkey";
+ALTER TABLE "credit_balances" VALIDATE CONSTRAINT "credit_balances_billingAccountId_fkey";
+ALTER TABLE "credit_transactions" VALIDATE CONSTRAINT "credit_transactions_billingAccountId_fkey";
+ALTER TABLE "credit_transactions" VALIDATE CONSTRAINT "credit_transactions_reservationId_fkey";

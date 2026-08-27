@@ -2831,7 +2831,9 @@ model NotificationDelivery {
 
 model CreditBalance {
   id               String          @id @default(cuid())
-  organizationId   String?         @unique
+  // Active organization ownership is enforced by the partial SQL index
+  // credit_balances_organizationId_active_key so soft-deleted history remains.
+  organizationId   String?
   organization     Organization?   @relation(fields: [organizationId], references: [id])
   billingAccountId String?
   billingAccount   BillingAccount? @relation(fields: [billingAccountId], references: [id])

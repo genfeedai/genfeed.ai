@@ -33,6 +33,7 @@ type BillingAccountProjection = {
 };
 
 type BillingAccountProvisionInput = BillingAccountProjection & {
+  billingAccountId: string;
   billingEmail: string;
   organizationId: string;
   organizationLabel: string;
@@ -52,12 +53,20 @@ export class OrganizationBillingAccountService {
     organizationId: string,
     projection: BillingAccountProjection,
   ): Promise<{ customerId: string; stripeCustomerId: string }> {
+    const account =
+      await this.billingAccountsService.resolveForOrganization(organizationId);
     const customer =
       await this.customersService.findByOrganizationId(organizationId);
     const persistedId = customer?.stripeCustomerId ?? null;
+    this.assertProjectionMatches(
+      account.stripeCustomerId ?? null,
+      projection.stripeCustomerId,
+    );
+    this.assertProjectionMatches(persistedId, account.stripeCustomerId);
     this.assertProjectionMatches(persistedId, projection.stripeCustomerId);
 
-    const stripeCustomerId = persistedId ?? projection.stripeCustomerId;
+    const stripeCustomerId =
+      account.stripeCustomerId ?? persistedId ?? projection.stripeCustomerId;
     if (!stripeCustomerId) {
       throw this.failure('billing_customer_missing', 'customer_missing');
     }
@@ -66,7 +75,7 @@ export class OrganizationBillingAccountService {
     if (!stripeCustomer) {
       throw this.failure('billing_customer_missing', 'customer_missing');
     }
-    this.assertOwnedByOrganization(stripeCustomer, organizationId);
+    this.assertOwnedByBillingAccount(stripeCustomer, account.id);
 
     if (!customer?.id) {
       throw this.failure('billing_customer_unverified', 'identity_conflict');
@@ -78,29 +87,48 @@ export class OrganizationBillingAccountService {
   async resolveOrProvision(
     input: BillingAccountProvisionInput,
   ): Promise<{ customerId: string; stripeCustomerId: string }> {
+    const account = await this.billingAccountsService.resolveForOrganization(
+      input.organizationId,
+    );
+    if (account.id !== input.billingAccountId) {
+      throw this.failure('billing_customer_conflict', 'identity_conflict');
+    }
+    this.assertProjectionMatches(
+      account.stripeCustomerId ?? null,
+      input.stripeCustomerId,
+    );
     const customer = await this.customersService.provisionForOrganization(
       input.organizationId,
       async (persistedId) => {
+        this.assertProjectionMatches(
+          persistedId,
+          account.stripeCustomerId ?? null,
+        );
         this.assertProjectionMatches(persistedId, input.stripeCustomerId);
-        const candidateId = persistedId ?? input.stripeCustomerId ?? null;
+        const candidateId =
+          account.stripeCustomerId ??
+          persistedId ??
+          input.stripeCustomerId ??
+          null;
         if (candidateId) {
           const existing = await this.retrieve(candidateId);
           if (existing) {
-            this.assertOwnedByOrganization(existing, input.organizationId);
+            this.assertOwnedByBillingAccount(existing, account.id);
             return existing.id;
           }
         }
 
-        const matches = await this.stripeService.findOrganizationCustomers(
-          input.organizationId,
+        const matches = await this.stripeService.findBillingAccountCustomers(
+          account.id,
         );
         if (matches.length > 0) {
           throw this.failure('billing_customer_conflict', 'identity_conflict');
         }
 
-        const created = await this.stripeService.createOrganizationCustomer(
+        const created = await this.stripeService.createBillingAccountCustomer(
           input.organizationLabel,
           input.billingEmail,
+          account.id,
           input.organizationId,
           input.userId,
           candidateId,
@@ -113,11 +141,6 @@ export class OrganizationBillingAccountService {
       throw this.failure('billing_customer_missing', 'customer_missing');
     }
 
-    const account = await this.billingAccountsService.ensureForOrganization({
-      label: input.organizationLabel,
-      organizationId: input.organizationId,
-      userId: input.userId,
-    });
     await this.billingAccountsService.attachStripeCustomer(
       account.id,
       customer.stripeCustomerId,
@@ -134,13 +157,21 @@ export class OrganizationBillingAccountService {
     metadata: Record<string, string> | null | undefined,
   ): Promise<string> {
     const organizationId = metadata?.[BILLING_ACCOUNT_METADATA.organizationId];
+    const billingAccountId =
+      metadata?.[BILLING_ACCOUNT_METADATA.billingAccountId];
     if (
-      metadata?.[BILLING_ACCOUNT_METADATA.type] !== 'organization' ||
-      !organizationId
+      metadata?.[BILLING_ACCOUNT_METADATA.type] !== 'billing_account' ||
+      !organizationId ||
+      !billingAccountId
     ) {
       throw this.failure('billing_customer_unverified', 'identity_conflict');
     }
 
+    const account =
+      await this.billingAccountsService.resolveForOrganization(organizationId);
+    if (account.id !== billingAccountId) {
+      throw this.failure('billing_customer_unverified', 'identity_conflict');
+    }
     await this.resolveExisting(organizationId, { stripeCustomerId });
     return organizationId;
   }
@@ -154,13 +185,15 @@ export class OrganizationBillingAccountService {
     }
   }
 
-  private assertOwnedByOrganization(
+  private assertOwnedByBillingAccount(
     customer: StripeCustomer,
-    organizationId: string,
+    billingAccountId: string,
   ): void {
     if (
-      customer.metadata?.type !== 'organization' ||
-      customer.metadata.organizationId !== organizationId
+      customer.metadata?.[BILLING_ACCOUNT_METADATA.type] !==
+        'billing_account' ||
+      customer.metadata?.[BILLING_ACCOUNT_METADATA.billingAccountId] !==
+        billingAccountId
     ) {
       throw this.failure('billing_customer_unverified', 'identity_conflict');
     }

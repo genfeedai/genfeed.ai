@@ -1,7 +1,3 @@
-import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { CreditTransactionCategory } from '@genfeedai/enums';
 import {
   CREDIT_DEDUCTION_QUEUE,
@@ -11,6 +7,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
+import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { Job, UnrecoverableError } from 'bullmq';
 
 const LOW_CREDITS_THRESHOLD = 1000;
@@ -52,15 +52,21 @@ export class CreditDeductionProcessor extends WorkerHost {
           job.data.settlementAssetId &&
           !(await this.isMediaSettlementBillable(job))
         ) {
+          if (job.data.reservationId) {
+            await this.creditsUtilsService.releaseReservation({
+              organizationId,
+              reservationId: job.data.reservationId,
+            });
+          }
           return;
         }
 
-        if (job.data.reservationId || job.data.idempotencyKey) {
+        if (job.data.reservationId) {
           await this.creditsUtilsService.settleReservation({
             actualAmount: amount,
             actorUserId: userId,
             description,
-            idempotencyKey: job.data.idempotencyKey,
+            organizationId,
             reservationId: job.data.reservationId,
             source,
           });

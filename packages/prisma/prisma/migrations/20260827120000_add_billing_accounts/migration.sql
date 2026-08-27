@@ -110,6 +110,34 @@ ALTER TABLE "credit_transactions"
   ADD COLUMN IF NOT EXISTS "reservationId" TEXT,
   ADD COLUMN IF NOT EXISTS "idempotencyKey" TEXT;
 
+WITH customer_candidates AS (
+  SELECT
+    o."id" AS "organizationId",
+    COUNT(c."id") AS "activeCustomerCount",
+    MAX(c."stripeCustomerId") AS "stripeCustomerId"
+  FROM "organizations" o
+  LEFT JOIN "customers" c
+    ON c."organizationId" = o."id" AND c."isDeleted" = false
+  WHERE o."isDeleted" = false
+  GROUP BY o."id"
+), safe_customer_identities AS (
+  SELECT
+    candidate."organizationId",
+    CASE
+      WHEN candidate."activeCustomerCount" = 1
+        AND candidate."stripeCustomerId" IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "customers" other
+          WHERE other."stripeCustomerId" = candidate."stripeCustomerId"
+            AND other."organizationId" <> candidate."organizationId"
+            AND other."isDeleted" = false
+        )
+      THEN candidate."stripeCustomerId"
+      ELSE NULL
+    END AS "stripeCustomerId"
+  FROM customer_candidates candidate
+)
 INSERT INTO "billing_accounts" (
   "id",
   "label",
@@ -133,8 +161,8 @@ SELECT
   CURRENT_TIMESTAMP,
   CURRENT_TIMESTAMP
 FROM "organizations" o
-LEFT JOIN "customers" c
-  ON c."organizationId" = o."id" AND c."isDeleted" = false
+LEFT JOIN safe_customer_identities c
+  ON c."organizationId" = o."id"
 LEFT JOIN "organization_settings" os
   ON os."organizationId" = o."id"
 WHERE o."isDeleted" = false
@@ -235,123 +263,65 @@ WHERE t."organizationId" = o."id"
   AND t."billingAccountId" IS NULL
   AND o."billingAccountId" IS NOT NULL;
 
-CREATE UNIQUE INDEX IF NOT EXISTS "billing_accounts_stripeCustomerId_active_key"
-  ON "billing_accounts" ("stripeCustomerId")
-  WHERE "stripeCustomerId" IS NOT NULL AND "isDeleted" = false;
-
-CREATE INDEX IF NOT EXISTS "billing_accounts_status_isDeleted_idx"
-  ON "billing_accounts" ("status", "isDeleted");
-
-CREATE UNIQUE INDEX IF NOT EXISTS "billing_account_members_billingAccountId_userId_key"
-  ON "billing_account_members" ("billingAccountId", "userId");
-
-CREATE INDEX IF NOT EXISTS "billing_account_members_userId_isDeleted_idx"
-  ON "billing_account_members" ("userId", "isDeleted");
-
-CREATE UNIQUE INDEX IF NOT EXISTS "billing_account_organizations_active_org_key"
-  ON "billing_account_organizations" ("organizationId")
-  WHERE "status" = 'LINKED' AND "isDeleted" = false;
-
-CREATE INDEX IF NOT EXISTS "billing_account_organizations_account_status_idx"
-  ON "billing_account_organizations" ("billingAccountId", "status", "isDeleted");
-
-CREATE INDEX IF NOT EXISTS "billing_account_organizations_org_status_idx"
-  ON "billing_account_organizations" ("organizationId", "status", "isDeleted");
-
-CREATE UNIQUE INDEX IF NOT EXISTS "credit_reservations_idempotencyKey_key"
-  ON "credit_reservations" ("idempotencyKey");
-
-CREATE INDEX IF NOT EXISTS "credit_reservations_account_status_idx"
-  ON "credit_reservations" ("billingAccountId", "status", "isDeleted");
-
-CREATE INDEX IF NOT EXISTS "credit_reservations_org_status_idx"
-  ON "credit_reservations" ("organizationId", "status", "isDeleted");
-
-CREATE INDEX IF NOT EXISTS "credit_reservations_status_expiresAt_idx"
-  ON "credit_reservations" ("status", "expiresAt");
-
-CREATE UNIQUE INDEX IF NOT EXISTS "credit_balances_billingAccountId_active_key"
-  ON "credit_balances" ("billingAccountId")
-  WHERE "billingAccountId" IS NOT NULL AND "isDeleted" = false;
-
-CREATE INDEX IF NOT EXISTS "credit_balances_billingAccountId_isDeleted_idx"
-  ON "credit_balances" ("billingAccountId", "isDeleted");
-
-CREATE UNIQUE INDEX IF NOT EXISTS "credit_transactions_idempotencyKey_active_key"
-  ON "credit_transactions" ("idempotencyKey")
-  WHERE "idempotencyKey" IS NOT NULL AND "isDeleted" = false;
-
-CREATE INDEX IF NOT EXISTS "credit_transactions_billingAccountId_created_idx"
-  ON "credit_transactions" ("billingAccountId", "isDeleted", "createdAt" DESC);
-
-CREATE INDEX IF NOT EXISTS "credit_transactions_reservationId_idx"
-  ON "credit_transactions" ("reservationId");
-
-CREATE INDEX IF NOT EXISTS "organizations_billingAccountId_idx"
-  ON "organizations" ("billingAccountId");
-
-CREATE INDEX IF NOT EXISTS "customers_billingAccountId_isDeleted_idx"
-  ON "customers" ("billingAccountId", "isDeleted");
-
-CREATE INDEX IF NOT EXISTS "subscriptions_billingAccountId_isDeleted_idx"
-  ON "subscriptions" ("billingAccountId", "isDeleted");
+-- Online indexes are created outside this transactional migration by the
+-- follow-up migration 20260827150000_billing_account_online_indexes.
 
 ALTER TABLE "billing_account_members"
   ADD CONSTRAINT "billing_account_members_billingAccountId_fkey"
   FOREIGN KEY ("billingAccountId") REFERENCES "billing_accounts"("id")
-  ON DELETE RESTRICT ON UPDATE CASCADE;
+  ON DELETE RESTRICT ON UPDATE CASCADE NOT VALID;
 
 ALTER TABLE "billing_account_members"
   ADD CONSTRAINT "billing_account_members_userId_fkey"
   FOREIGN KEY ("userId") REFERENCES "users"("id")
-  ON DELETE RESTRICT ON UPDATE CASCADE;
+  ON DELETE RESTRICT ON UPDATE CASCADE NOT VALID;
 
 ALTER TABLE "billing_account_organizations"
   ADD CONSTRAINT "billing_account_organizations_billingAccountId_fkey"
   FOREIGN KEY ("billingAccountId") REFERENCES "billing_accounts"("id")
-  ON DELETE RESTRICT ON UPDATE CASCADE;
+  ON DELETE RESTRICT ON UPDATE CASCADE NOT VALID;
 
 ALTER TABLE "billing_account_organizations"
   ADD CONSTRAINT "billing_account_organizations_organizationId_fkey"
   FOREIGN KEY ("organizationId") REFERENCES "organizations"("id")
-  ON DELETE RESTRICT ON UPDATE CASCADE;
+  ON DELETE RESTRICT ON UPDATE CASCADE NOT VALID;
 
 ALTER TABLE "credit_reservations"
   ADD CONSTRAINT "credit_reservations_billingAccountId_fkey"
   FOREIGN KEY ("billingAccountId") REFERENCES "billing_accounts"("id")
-  ON DELETE RESTRICT ON UPDATE CASCADE;
+  ON DELETE RESTRICT ON UPDATE CASCADE NOT VALID;
 
 ALTER TABLE "credit_reservations"
   ADD CONSTRAINT "credit_reservations_organizationId_fkey"
   FOREIGN KEY ("organizationId") REFERENCES "organizations"("id")
-  ON DELETE RESTRICT ON UPDATE CASCADE;
+  ON DELETE RESTRICT ON UPDATE CASCADE NOT VALID;
 
 ALTER TABLE "organizations"
   ADD CONSTRAINT "organizations_billingAccountId_fkey"
   FOREIGN KEY ("billingAccountId") REFERENCES "billing_accounts"("id")
-  ON DELETE SET NULL ON UPDATE CASCADE;
+  ON DELETE SET NULL ON UPDATE CASCADE NOT VALID;
 
 ALTER TABLE "customers"
   ADD CONSTRAINT "customers_billingAccountId_fkey"
   FOREIGN KEY ("billingAccountId") REFERENCES "billing_accounts"("id")
-  ON DELETE SET NULL ON UPDATE CASCADE;
+  ON DELETE SET NULL ON UPDATE CASCADE NOT VALID;
 
 ALTER TABLE "subscriptions"
   ADD CONSTRAINT "subscriptions_billingAccountId_fkey"
   FOREIGN KEY ("billingAccountId") REFERENCES "billing_accounts"("id")
-  ON DELETE SET NULL ON UPDATE CASCADE;
+  ON DELETE SET NULL ON UPDATE CASCADE NOT VALID;
 
 ALTER TABLE "credit_balances"
   ADD CONSTRAINT "credit_balances_billingAccountId_fkey"
   FOREIGN KEY ("billingAccountId") REFERENCES "billing_accounts"("id")
-  ON DELETE SET NULL ON UPDATE CASCADE;
+  ON DELETE SET NULL ON UPDATE CASCADE NOT VALID;
 
 ALTER TABLE "credit_transactions"
   ADD CONSTRAINT "credit_transactions_billingAccountId_fkey"
   FOREIGN KEY ("billingAccountId") REFERENCES "billing_accounts"("id")
-  ON DELETE SET NULL ON UPDATE CASCADE;
+  ON DELETE SET NULL ON UPDATE CASCADE NOT VALID;
 
 ALTER TABLE "credit_transactions"
   ADD CONSTRAINT "credit_transactions_reservationId_fkey"
   FOREIGN KEY ("reservationId") REFERENCES "credit_reservations"("id")
-  ON DELETE SET NULL ON UPDATE CASCADE;
+  ON DELETE SET NULL ON UPDATE CASCADE NOT VALID;

@@ -15,8 +15,8 @@ describe('OrganizationBillingAccountService', () => {
     provisionForOrganization: vi.fn(),
   };
   const stripe = {
-    createOrganizationCustomer: vi.fn(),
-    findOrganizationCustomers: vi.fn(),
+    createBillingAccountCustomer: vi.fn(),
+    findBillingAccountCustomers: vi.fn(),
     retrieveCustomer: vi.fn(),
   };
 
@@ -24,7 +24,10 @@ describe('OrganizationBillingAccountService', () => {
     vi.clearAllMocks();
     const billingAccounts = {
       attachStripeCustomer: vi.fn().mockResolvedValue(undefined),
-      ensureForOrganization: vi.fn().mockResolvedValue({ id: 'ba_1' }),
+      resolveForOrganization: vi.fn().mockResolvedValue({
+        id: 'ba_1',
+        stripeCustomerId: null,
+      }),
     };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -48,7 +51,10 @@ describe('OrganizationBillingAccountService', () => {
     });
     stripe.retrieveCustomer.mockResolvedValue({
       id: 'cus_1',
-      metadata: { organizationId: 'org_1', type: 'organization' },
+      metadata: {
+        billing_account_id: 'ba_1',
+        billing_account_type: 'billing_account',
+      },
     });
 
     await expect(
@@ -82,7 +88,10 @@ describe('OrganizationBillingAccountService', () => {
       .mockRejectedValueOnce({ code: 'api_connection_error' })
       .mockResolvedValueOnce({
         id: 'cus_1',
-        metadata: { organizationId: 'org_1', type: 'organization' },
+        metadata: {
+          billing_account_id: 'ba_1',
+          billing_account_type: 'billing_account',
+        },
       });
 
     await expect(
@@ -98,17 +107,20 @@ describe('OrganizationBillingAccountService', () => {
         provision: (id: null) => Promise<string>,
       ) => await provision(null),
     );
-    stripe.findOrganizationCustomers.mockResolvedValue([{ id: 'cus_active' }]);
+    stripe.findBillingAccountCustomers.mockResolvedValue([
+      { id: 'cus_active' },
+    ]);
 
     await expect(
       service.resolveOrProvision({
+        billingAccountId: 'ba_1',
         billingEmail: 'billing@example.com',
         organizationId: 'org_1',
         organizationLabel: 'Example',
         userId: 'user_1',
       }),
     ).rejects.toMatchObject({ code: 'billing_customer_conflict' });
-    expect(stripe.createOrganizationCustomer).not.toHaveBeenCalled();
+    expect(stripe.createBillingAccountCustomer).not.toHaveBeenCalled();
   });
 
   it('repairs a missing identity through the locked idempotent provision path', async () => {
@@ -121,11 +133,12 @@ describe('OrganizationBillingAccountService', () => {
         stripeCustomerId: await provision(null),
       }),
     );
-    stripe.findOrganizationCustomers.mockResolvedValue([]);
-    stripe.createOrganizationCustomer.mockResolvedValue({ id: 'cus_new' });
+    stripe.findBillingAccountCustomers.mockResolvedValue([]);
+    stripe.createBillingAccountCustomer.mockResolvedValue({ id: 'cus_new' });
 
     await expect(
       service.resolveOrProvision({
+        billingAccountId: 'ba_1',
         billingEmail: 'billing@example.com',
         organizationId: 'org_1',
         organizationLabel: 'Example',

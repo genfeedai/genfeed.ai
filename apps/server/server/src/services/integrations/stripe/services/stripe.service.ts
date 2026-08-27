@@ -1,11 +1,4 @@
 import { createHash } from 'node:crypto';
-import { BILLING_ACCOUNT_METADATA } from '@server/services/integrations/stripe/services/billing-account-metadata.constant';
-import {
-  classifyStripeFailure,
-  isStripeResourceMissingError,
-  isStripeSignatureVerificationError,
-  StripeBillingConfigurationError,
-} from '@server/services/integrations/stripe/services/stripe-error.util';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   creditPackTotalCredits,
@@ -21,6 +14,13 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { BILLING_ACCOUNT_METADATA } from '@server/services/integrations/stripe/services/billing-account-metadata.constant';
+import {
+  classifyStripeFailure,
+  isStripeResourceMissingError,
+  isStripeSignatureVerificationError,
+  StripeBillingConfigurationError,
+} from '@server/services/integrations/stripe/services/stripe-error.util';
 import StripeConstructor from 'stripe';
 
 type StripeClient = InstanceType<typeof StripeConstructor>;
@@ -323,6 +323,34 @@ export class StripeService {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  public async createBillingAccountCustomer(
+    accountName: string,
+    billingEmail: string,
+    billingAccountId: string,
+    organizationId: string,
+    userId: string,
+    replacesStripeCustomerId?: string | null,
+  ): Promise<StripeCustomer> {
+    return this.stripe.customers.create(
+      {
+        email: billingEmail,
+        metadata: {
+          [BILLING_ACCOUNT_METADATA.billingAccountId]: billingAccountId,
+          [BILLING_ACCOUNT_METADATA.organizationId]: organizationId,
+          [BILLING_ACCOUNT_METADATA.type]: 'billing_account',
+          userId,
+        },
+        name: accountName,
+      },
+      {
+        idempotencyKey: this.buildCustomerIdempotencyKey(
+          `billing-account-customer-${billingAccountId}`,
+          { generation: replacesStripeCustomerId ?? 'initial' },
+        ),
+      },
+    );
   }
 
   /**
@@ -628,6 +656,27 @@ export class StripeService {
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName} organization customer search failed`,
+        { category: classifyStripeFailure(error) },
+      );
+      throw error;
+    }
+  }
+
+  public async findBillingAccountCustomers(
+    billingAccountId: string,
+  ): Promise<StripeCustomer[]> {
+    const escapedBillingAccountId = billingAccountId.replaceAll("'", "\\'");
+    try {
+      const result = await this.stripe.customers.search({
+        limit: 10,
+        query: `metadata['${BILLING_ACCOUNT_METADATA.billingAccountId}']:'${escapedBillingAccountId}' AND metadata['${BILLING_ACCOUNT_METADATA.type}']:'billing_account'`,
+      });
+      return result.data.filter(
+        (customer) => !customer.deleted,
+      ) as StripeCustomer[];
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} billing account customer search failed`,
         { category: classifyStripeFailure(error) },
       );
       throw error;

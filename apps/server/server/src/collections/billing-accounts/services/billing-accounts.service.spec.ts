@@ -16,6 +16,7 @@ describe('BillingAccountsService', () => {
       create: vi.fn(),
       findFirst: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     },
     billingAccountMember: {
       create: vi.fn(),
@@ -37,11 +38,16 @@ describe('BillingAccountsService', () => {
       update: vi.fn(),
       updateMany: vi.fn(),
     },
+    creditReservation: {
+      findFirst: vi.fn(),
+      updateMany: vi.fn(),
+    },
     creditTransaction: {
       groupBy: vi.fn(),
       updateMany: vi.fn(),
     },
     customer: { updateMany: vi.fn() },
+    member: { findFirst: vi.fn() },
     organization: {
       findFirst: vi.fn(),
       update: vi.fn(),
@@ -63,6 +69,11 @@ describe('BillingAccountsService', () => {
       async (callback: (tx: typeof prisma) => Promise<unknown>) =>
         callback(prisma),
     );
+    prisma.member.findFirst.mockResolvedValue({
+      role: { key: 'owner' },
+      roleKey: 'owner',
+    });
+    prisma.creditReservation.findFirst.mockResolvedValue(null);
   });
 
   it('rejects billing administration without a billing role', async () => {
@@ -158,6 +169,80 @@ describe('BillingAccountsService', () => {
         OR: [{ billingAccountId: null }, { billingAccountId: 'ba_1' }],
       },
     });
+    expect(prisma.creditReservation.updateMany).toHaveBeenCalledWith({
+      data: { billingAccountId: 'ba_1' },
+      where: {
+        isDeleted: false,
+        organizationId: 'org_2',
+        status: 'RESERVED',
+      },
+    });
+  });
+
+  it('rejects linking without administration rights in the target organization', async () => {
+    prisma.billingAccount.findFirst.mockResolvedValue({
+      id: 'ba_1',
+      isDeleted: false,
+      planTier: 'business',
+    });
+    prisma.billingAccountMember.findFirst.mockResolvedValue({
+      role: BillingAccountMemberRole.OWNER,
+    });
+    prisma.organization.findFirst.mockResolvedValue({
+      billingAccountId: null,
+      id: 'org_2',
+    });
+    prisma.member.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.linkOrganization({
+        actorUserId: 'user_1',
+        billingAccountId: 'ba_1',
+        organizationId: 'org_2',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.billingAccountOrganization.create).not.toHaveBeenCalled();
+  });
+
+  it('detaches an organization and provisions its replacement atomically', async () => {
+    prisma.billingAccountMember.findFirst.mockResolvedValue({
+      role: BillingAccountMemberRole.OWNER,
+    });
+    prisma.billingAccountOrganization.updateMany.mockResolvedValue({
+      count: 1,
+    });
+    prisma.billingAccount.create.mockResolvedValue({ id: 'ba_replacement' });
+    prisma.creditBalance.findFirst.mockResolvedValue(null);
+
+    await service.detachOrganization({
+      actorUserId: 'user_1',
+      billingAccountId: 'ba_1',
+      organizationId: 'org_2',
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: 'Serializable',
+    });
+    expect(prisma.organization.update).toHaveBeenCalledWith({
+      data: { billingAccountId: 'ba_replacement' },
+      where: { id: 'org_2' },
+    });
+  });
+
+  it('rejects detaching an organization with unsettled reservations', async () => {
+    prisma.billingAccountMember.findFirst.mockResolvedValue({
+      role: BillingAccountMemberRole.OWNER,
+    });
+    prisma.creditReservation.findFirst.mockResolvedValue({ id: 'res_1' });
+
+    await expect(
+      service.detachOrganization({
+        actorUserId: 'user_1',
+        billingAccountId: 'ba_1',
+        organizationId: 'org_2',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.billingAccountOrganization.updateMany).not.toHaveBeenCalled();
   });
 
   it('keeps the source wallet active when the shared wallet changes', async () => {
@@ -246,6 +331,25 @@ describe('BillingAccountsService', () => {
         billingAccountId: 'ba_1',
         isDeleted: false,
         userId: 'admin_1',
+      },
+    });
+  });
+
+  it('fails closed when attaching a conflicting Stripe customer', async () => {
+    prisma.billingAccount.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.attachStripeCustomer('ba_1', 'cus_new'),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.billingAccount.updateMany).toHaveBeenCalledWith({
+      data: {
+        status: BillingAccountStatus.ACTIVE,
+        stripeCustomerId: 'cus_new',
+      },
+      where: {
+        id: 'ba_1',
+        isDeleted: false,
+        OR: [{ stripeCustomerId: null }, { stripeCustomerId: 'cus_new' }],
       },
     });
   });

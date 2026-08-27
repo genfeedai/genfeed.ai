@@ -8,6 +8,9 @@ import type {
   ICreditReservation,
   ICreditsUtilsService,
   ICreditWalletSnapshot,
+  IReleaseCreditReservationInput,
+  IReserveCreditsInput,
+  ISettleCreditReservationInput,
 } from '@genfeedai/interfaces/billing';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -261,34 +264,31 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     organizationId: string,
     tx?: PrismaTransactionClient,
   ): Promise<ICreditWalletSnapshot> {
-    let billingAccountId: string | null = null;
-    try {
-      const account =
-        await this.billingAccountsService.resolveForOrganization(
-          organizationId,
-        );
-      billingAccountId = account.id;
-    } catch {
-      billingAccountId = null;
-    }
+    const account =
+      await this.billingAccountsService.resolveForOrganization(organizationId);
 
     const balance = await this.creditBalanceService.getOrCreateBalance(
       organizationId,
       tx,
-      billingAccountId,
+      account.id,
     );
     return this.creditBalanceService.toSnapshot(balance);
   }
 
-  async reserveCredits(input: {
-    organizationId: string;
-    actorUserId: string;
-    amount: number;
-    idempotencyKey: string;
-    workloadType?: string;
-    workloadId?: string;
-    expiresAt?: Date;
-  }): Promise<ICreditReservation> {
+  private async getBillingWalletSnapshot(
+    organizationId: string,
+    tx?: PrismaTransactionClient,
+  ): Promise<ICreditWalletSnapshot & { billingAccountId: string }> {
+    const wallet = await this.getWalletSnapshot(organizationId, tx);
+    if (!wallet.billingAccountId) {
+      throw new BusinessLogicException('Billing account wallet not found');
+    }
+    return { ...wallet, billingAccountId: wallet.billingAccountId };
+  }
+
+  async reserveCredits(
+    input: IReserveCreditsInput,
+  ): Promise<ICreditReservation> {
     const account = await this.billingAccountsService.resolveForOrganization(
       input.organizationId,
     );
@@ -298,22 +298,15 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     });
   }
 
-  async settleReservation(input: {
-    reservationId?: string;
-    idempotencyKey?: string;
-    actualAmount: number;
-    actorUserId: string;
-    description: string;
-    source?: ActivitySource;
-  }): Promise<ICreditWalletSnapshot> {
+  async settleReservation(
+    input: ISettleCreditReservationInput,
+  ): Promise<ICreditWalletSnapshot> {
     return this.creditReservationService.settle(input);
   }
 
-  async releaseReservation(input: {
-    reservationId?: string;
-    idempotencyKey?: string;
-    reason?: 'release' | 'expiry';
-  }): Promise<ICreditWalletSnapshot> {
+  async releaseReservation(
+    input: IReleaseCreditReservationInput,
+  ): Promise<ICreditWalletSnapshot> {
     return this.creditReservationService.release(input);
   }
 
@@ -347,10 +340,8 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       // Core add logic — runs atomically inside a transaction when available
       const addCore = async (tx?: PrismaTransactionClient) => {
-        const currentBalance = await this.getOrganizationCreditsBalance(
-          organizationId,
-          tx,
-        );
+        const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
+        const currentBalance = wallet.available;
 
         const newBalance = currentBalance + creditsToAdd;
         const transactionOptions =
@@ -369,6 +360,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         await this.creditBalanceService.updateBalance(
           organizationId,
           newBalance,
+          wallet.billingAccountId,
           tx,
         );
         if (transactionOptions) {
@@ -471,16 +463,15 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       // Core refund logic — runs atomically inside a transaction when available
       const refundCore = async (tx?: PrismaTransactionClient) => {
-        const currentBalance = await this.getOrganizationCreditsBalance(
-          organizationId,
-          tx,
-        );
+        const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
+        const currentBalance = wallet.available;
 
         const newBalance = currentBalance + creditsToRefund;
 
         await this.creditBalanceService.updateBalance(
           organizationId,
           newBalance,
+          wallet.billingAccountId,
           tx,
         );
         await this.creditTransactionsService.createTransactionEntry(
@@ -677,14 +668,13 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       // Core reset logic — runs atomically inside a transaction when available
       const resetCore = async (tx?: PrismaTransactionClient) => {
-        const currentBalance = await this.getOrganizationCreditsBalance(
-          organizationId,
-          tx,
-        );
+        const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
+        const currentBalance = wallet.available;
 
         await this.creditBalanceService.updateBalance(
           organizationId,
           newCreditAmount,
+          wallet.billingAccountId,
           tx,
         );
         if (transactionOptions) {
@@ -782,12 +772,15 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
       // Core remove-all logic — runs atomically inside a transaction when available
       const removeAllCore = async (tx?: PrismaTransactionClient) => {
-        const currentBalance = await this.getOrganizationCreditsBalance(
+        const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
+        const currentBalance = wallet.available;
+
+        await this.creditBalanceService.updateBalance(
           organizationId,
+          0,
+          wallet.billingAccountId,
           tx,
         );
-
-        await this.creditBalanceService.updateBalance(organizationId, 0, tx);
         await this.creditTransactionsService.createTransactionEntry(
           organizationId,
           CreditTransactionCategory.DEDUCT,

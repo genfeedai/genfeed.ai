@@ -269,6 +269,7 @@ describe('CreditsUtilsService', () => {
       expect(creditBalanceService.updateBalance).toHaveBeenCalledWith(
         'org_1',
         150,
+        'ba_1',
         txClient,
       );
       expect(
@@ -302,6 +303,7 @@ describe('CreditsUtilsService', () => {
       expect(creditBalanceService.updateBalance).toHaveBeenCalledWith(
         'org_1',
         110,
+        'ba_1',
         txClient,
       );
     });
@@ -316,6 +318,7 @@ describe('CreditsUtilsService', () => {
       expect(creditBalanceService.updateBalance).toHaveBeenCalledWith(
         'org_1',
         500,
+        'ba_1',
         txClient,
       );
       expect(
@@ -380,8 +383,21 @@ describe('CreditsUtilsService', () => {
       expect(creditBalanceService.updateBalance).toHaveBeenCalledWith(
         'org_1',
         0,
+        'ba_1',
         txClient,
       );
     });
+  });
+
+  it('propagates billing-account resolution failures without creating a local wallet', async () => {
+    const service = buildService();
+    billingAccountsService.resolveForOrganization.mockRejectedValue(
+      new Error('ambiguous billing account'),
+    );
+
+    await expect(service.getWalletSnapshot('org_1')).rejects.toThrow(
+      'ambiguous billing account',
+    );
+    expect(creditBalanceService.getOrCreateBalance).not.toHaveBeenCalled();
   });
 });
