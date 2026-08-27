@@ -17,8 +17,12 @@ import {
   resolveMasterCiFailure,
 } from './master-ci-failure-reporter.mjs';
 
+const UNLABELED_TRACKER_TITLE =
+  '🚨 Tests Gate failed on master push — 2026-08-27';
+
 function createGithubMock({
   openIssues = [],
+  unlabeledTitleIssues = [],
   createNumber = 99,
   labelsApplied = [MASTER_CI_FAILURE_LABEL],
 } = {}) {
@@ -30,10 +34,17 @@ function createGithubMock({
 
   const github = {
     paginate: async (_fn, params) => {
-      if (params.state === 'open') {
+      if (params.state !== 'open') {
+        return [];
+      }
+      // Label lookup is how the reporter used to find trackers. Unlabeled
+      // title-prefix issues must only appear on the unfiltered list, matching
+      // GitHub's listForRepo `labels` filter (the production flood: 42 issues
+      // with empty labels were invisible to `labels=master-ci-failure`).
+      if (params.labels === MASTER_CI_FAILURE_LABEL) {
         return openIssues;
       }
-      return [];
+      return [...openIssues, ...unlabeledTitleIssues];
     },
     rest: {
       issues: {
@@ -107,9 +118,10 @@ test('buildMasterCiFailureBody names the commit, run, and auto-close contract', 
 });
 
 test('reportMasterCiFailure comments existing open tracker and re-asserts P0', async () => {
-  const { github, comments, created, graphqlCalls } = createGithubMock({
-    openIssues: [{ number: 2600, pull_request: undefined }],
-  });
+  const { github, comments, created, labelCalls, graphqlCalls } =
+    createGithubMock({
+      openIssues: [{ number: 2600, pull_request: undefined }],
+    });
 
   const result = await reportMasterCiFailure({
     github,
@@ -124,6 +136,9 @@ test('reportMasterCiFailure comments existing open tracker and re-asserts P0', a
   assert.equal(result.issueNumber, 2600);
   assert.equal(created.length, 0);
   assert.equal(comments[0].issue_number, 2600);
+  assert.equal(labelCalls.length, 1);
+  assert.equal(labelCalls[0].issue_number, 2600);
+  assert.deepEqual(labelCalls[0].labels, [MASTER_CI_FAILURE_LABEL]);
   assert.ok(graphqlCalls.some((c) => c.query.includes('addProjectV2ItemById')));
   assert.ok(
     graphqlCalls.some(
@@ -152,9 +167,9 @@ test('reportMasterCiFailure creates tracker and triages project fields', async (
   assert.equal(result.issueNumber, 99);
   assert.match(created[0].title, /2026-08-08/);
 
-  // The label is applied through addLabels, never left to create-time labels:
-  // GitHub silently drops that field for a token without push access, and an
-  // unlabeled tracker is invisible to both the dedupe and the resolve path.
+  // Create still asks for the label, then addLabels re-applies it in case
+  // GitHub silently dropped the create-time field (#3634, #3659, #3798).
+  assert.deepEqual(created[0].labels, [MASTER_CI_FAILURE_LABEL]);
   assert.equal(labelCalls.length, 1);
   assert.equal(labelCalls[0].issue_number, 99);
   assert.deepEqual(labelCalls[0].labels, [MASTER_CI_FAILURE_LABEL]);
@@ -233,6 +248,110 @@ test('resolveMasterCiFailure closes all open trackers', async () => {
 
   assert.equal(result.action, 'closed');
   assert.deepEqual(result.closed, [2600, 2601]);
+  assert.equal(comments.length, 2);
+  assert.equal(updates.length, 2);
+  assert.equal(updates[0].state, 'closed');
+  assert.equal(updates[0].state_reason, 'completed');
+});
+
+test('reportMasterCiFailure comments an unlabeled title-prefix tracker instead of creating a duplicate', async () => {
+  // Production filed 42 issues titled "🚨 Tests Gate failed on master push — …"
+  // with labels: [] because create-with-labels did not stick. Lookup by label
+  // then found zero open trackers and opened a new issue every red push.
+  const { github, comments, created, labelCalls, graphqlCalls } =
+    createGithubMock({
+      openIssues: [],
+      unlabeledTitleIssues: [
+        {
+          number: 3798,
+          title: UNLABELED_TRACKER_TITLE,
+          labels: [],
+          pull_request: undefined,
+        },
+      ],
+    });
+
+  const result = await reportMasterCiFailure({
+    github,
+    owner: 'genfeedai',
+    repo: 'genfeed.ai',
+    body: 'still red',
+    date: '2026-08-27',
+    core: { info: () => {}, warning: () => {} },
+  });
+
+  assert.equal(result.action, 'commented');
+  assert.equal(result.issueNumber, 3798);
+  assert.equal(created.length, 0);
+  assert.equal(comments[0].issue_number, 3798);
+  assert.equal(labelCalls.length, 1);
+  assert.equal(labelCalls[0].issue_number, 3798);
+  assert.deepEqual(labelCalls[0].labels, [MASTER_CI_FAILURE_LABEL]);
+  assert.ok(graphqlCalls.some((c) => c.query.includes('addProjectV2ItemById')));
+});
+
+test('reportMasterCiFailure prefers the labeled tracker over unlabeled title-prefix duplicates', async () => {
+  const { github, comments, created } = createGithubMock({
+    openIssues: [
+      {
+        number: 3798,
+        title: UNLABELED_TRACKER_TITLE,
+        labels: [{ name: MASTER_CI_FAILURE_LABEL }],
+        pull_request: undefined,
+      },
+    ],
+    unlabeledTitleIssues: [
+      {
+        number: 3701,
+        title: '🚨 Tests Gate failed on master push — 2026-08-25',
+        labels: [],
+        pull_request: undefined,
+      },
+    ],
+  });
+
+  const result = await reportMasterCiFailure({
+    github,
+    owner: 'genfeedai',
+    repo: 'genfeed.ai',
+    body: 'still red',
+    date: '2026-08-27',
+    core: { info: () => {}, warning: () => {} },
+  });
+
+  assert.equal(result.action, 'commented');
+  assert.equal(result.issueNumber, 3798);
+  assert.equal(created.length, 0);
+  assert.equal(comments[0].issue_number, 3798);
+});
+
+test('resolveMasterCiFailure closes unlabeled title-prefix trackers', async () => {
+  const { github, comments, updates } = createGithubMock({
+    openIssues: [],
+    unlabeledTitleIssues: [
+      {
+        number: 3701,
+        title: '🚨 Tests Gate failed on master push — 2026-08-25',
+        labels: [],
+      },
+      {
+        number: 3750,
+        title: '🚨 Tests Gate failed on master push — 2026-08-26',
+        labels: [],
+      },
+    ],
+  });
+
+  const result = await resolveMasterCiFailure({
+    github,
+    owner: 'genfeedai',
+    repo: 'genfeed.ai',
+    body: 'green again',
+    core: { info: () => {}, warning: () => {} },
+  });
+
+  assert.equal(result.action, 'closed');
+  assert.deepEqual(result.closed, [3701, 3750]);
   assert.equal(comments.length, 2);
   assert.equal(updates.length, 2);
   assert.equal(updates[0].state, 'closed');
