@@ -2,8 +2,6 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { ManagedInferenceModule } from '@api/endpoints/v1/managed-inference/managed-inference.module';
 import { ByokModule } from '@api/services/byok/byok.module';
-import { FleetModule } from '@api/services/integrations/fleet/fleet.module';
-import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
@@ -19,9 +17,7 @@ import { GenerationServicesModule } from '@workers/services/generation-services.
   imports: [
     ByokModule,
     CreditsModule,
-    FleetModule,
     GenerationServicesModule,
-    HiggsFieldModule,
     HttpModule,
     ManagedInferenceModule,
     NotificationsModule,

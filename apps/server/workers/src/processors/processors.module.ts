@@ -42,15 +42,6 @@ import { CampaignModule } from '@api/services/campaign/campaign.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
 import { TelegramDistributionModule } from '@api/services/distribution/telegram/telegram-distribution.module';
-import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
-import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
-import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
-import { MastodonModule } from '@api/services/integrations/mastodon/mastodon.module';
-import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
-import { ThreadsModule } from '@api/services/integrations/threads/threads.module';
-import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
-import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
-import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
@@ -128,6 +119,7 @@ import { WorkspaceTaskProcessor } from '@workers/processors/api/services/task-or
 import { WebhookClientProcessor } from '@workers/processors/api/services/webhook-client/webhook-client.processor';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { AdsServicesModule } from '@workers/services/ads-services.module';
+import { SocialIntegrationsModule } from '@workers/services/social-integrations.module';
 
 @Module({
   imports: [
@@ -142,6 +134,7 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
 
     // Collection modules (provide services injected by processors)
     AdsServicesModule,
+    SocialIntegrationsModule,
     forwardRef(() => AgentCampaignsModule),
     forwardRef(() => AgentRunsModule),
     forwardRef(() => AgentStrategiesModule),
@@ -172,12 +165,7 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     forwardRef(() => CampaignModule),
     forwardRef(() => ContentOptimizationModule),
     forwardRef(() => ContentOrchestrationModule),
-    forwardRef(() => FacebookModule),
-    forwardRef(() => InstagramModule),
-    forwardRef(() => LinkedInModule),
-    forwardRef(() => MastodonModule),
     forwardRef(() => NotificationsModule),
-    forwardRef(() => PinterestModule),
     forwardRef(() => ReplyBotModule),
     forwardRef(() => SignupPrefillModule),
     forwardRef(() => SkillExecutorModule),
@@ -185,12 +173,8 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     forwardRef(() => HeygenPollModule),
     forwardRef(() => KnowledgeSourceIngestQueueModule),
     forwardRef(() => TelegramDistributionModule),
-    forwardRef(() => ThreadsModule),
-    forwardRef(() => TiktokModule),
-    forwardRef(() => TwitterModule),
     forwardRef(() => WebhookClientModule),
     forwardRef(() => WhisperModule),
-    forwardRef(() => YoutubeModule),
   ],
   providers: [
     // --- domain services used by extracted analytics-family processors ---

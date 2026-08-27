@@ -201,6 +201,7 @@ export interface ServerPrisma {
   brand: PrismaClient['brand'];
   contentVersionPin: PrismaClient['contentVersionPin'];
   credential: PrismaClient['credential'];
+  customerInstance: PrismaClient['customerInstance'];
   contentPerformance: {
     create(args: unknown): Promise<unknown>;
     findFirst(

@@ -94,6 +94,7 @@ export type {
   ResolveBrandAccountOptions,
 } from './collections/credentials/credential.types';
 export type { ServerCredentialStore } from './collections/credentials/credentials.port';
+export { CustomerInstanceResolverService } from './collections/customer-instances/customer-instance-resolver.service';
 export type {
   ServerModelDimensions,
   ServerModelRecord,
