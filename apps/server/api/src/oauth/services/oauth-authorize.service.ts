@@ -22,7 +22,7 @@ import type { OAuthTokenExchangeDto } from '../dto/token-exchange.dto';
 import {
   resolveMcpResourceUrl,
   resolveOAuthAppUrl,
-} from '../oauth-metadata.util';
+} from '@server/oauth/oauth-metadata.util';
 import { OAuthClientService } from './oauth-client.service';
 
 const MCP_OAUTH_CODE_TTL_MS = 60_000;

@@ -1,7 +1,7 @@
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { createServiceModule } from '@api/shared/service-module.factory';
 
-import { SeoScorerService } from './seo-scorer.service';
+import { SeoScorerService } from '@server/services/seo/seo-scorer.service';
 
 /**
  * Canonical SEO scorer module (#758). PrismaService is provided globally;

@@ -1,7 +1,7 @@
 import {
   buildLogoDevLogoUrl,
   normalizePublicWebsiteDomain,
-} from '@api/services/brand-scraper/logo-dev-logo.util';
+} from './logo-dev-logo.util';
 
 describe('Logo.dev website logo fallback', () => {
   it('normalizes a public website down to a credential-free company domain', () => {

@@ -32,16 +32,16 @@ import { describe, expect, it } from 'vitest';
  * is the guard there.
  */
 
-const SRC_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const SRC_ROOT = join(dirname(fileURLToPath(import.meta.url)), '@server/index');
 // apps/server/api/src -> apps/server
-const SERVER_ROOT = join(SRC_ROOT, '..', '..');
+const SERVER_ROOT = join(SRC_ROOT, '@server/index', '@server/index');
 // apps/server/api/src -> repo root -> packages/prisma/prisma/schema.prisma
 const SCHEMA_PATH = join(
   SRC_ROOT,
-  '..',
-  '..',
-  '..',
-  '..',
+  '@server/index',
+  '@server/index',
+  '@server/index',
+  '@server/index',
   'packages',
   'prisma',
   'prisma',

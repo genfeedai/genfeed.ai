@@ -2,7 +2,7 @@ import {
   canonicalPrismaMock,
   MockPrismaClient,
   mockToPrismaJson,
-} from './prisma-mock';
+} from '@server/shared/testing/prisma-mock';
 
 describe('canonicalPrismaMock', () => {
   it('exports the production-compatible JSON serializer', () => {

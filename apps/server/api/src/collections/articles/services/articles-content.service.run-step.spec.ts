@@ -4,8 +4,8 @@ import { ModelCategory } from '@genfeedai/enums';
 import type { ConfigService } from '@libs/config/config.service';
 import type { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ArticleTextGenerationService } from './article-text-generation.service';
-import type { RunTextGenerationStepParams } from './articles-content.types';
+import { ArticleTextGenerationService } from '@server/collections/articles/services/article-text-generation.service';
+import type { RunTextGenerationStepParams } from '@server/collections/articles/services/articles-content.types';
 
 /**
  * Focused unit tests for the shared `runTextGenerationStep` prologue that backs

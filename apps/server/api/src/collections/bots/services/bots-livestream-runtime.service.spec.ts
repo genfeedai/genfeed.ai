@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BotsLivestreamRuntimeService,
   type LivestreamPlatformState,
-} from './bots-livestream-runtime.service';
+} from '@server/collections/bots/services/bots-livestream-runtime.service';
 
 describe('BotsLivestreamRuntimeService', () => {
   const service = new BotsLivestreamRuntimeService();

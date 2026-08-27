@@ -1,4 +1,4 @@
-import { readStringList } from '@api/services/signup-prefill/utils/string-list.util';
+import { readStringList } from './string-list.util';
 import { describe, expect, it } from 'vitest';
 
 describe('readStringList', () => {

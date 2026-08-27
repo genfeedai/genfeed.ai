@@ -6,8 +6,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { GoogleAdsService } from '../services/google-ads.service';
-import { GoogleAdsOAuthService } from '../services/google-ads-oauth.service';
+import { GoogleAdsService } from '@server/services/integrations/google-ads/services/google-ads.service';
+import { GoogleAdsOAuthService } from '@server/services/integrations/google-ads/services/google-ads-oauth.service';
 import { GoogleAdsController } from './google-ads.controller';
 
 vi.mock('@libs/utils/encryption/encryption.util', () => ({

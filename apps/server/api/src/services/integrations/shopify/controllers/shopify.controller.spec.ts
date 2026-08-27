@@ -11,7 +11,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ShopifyService } from '../services/shopify.service';
+import { ShopifyService } from '@server/services/integrations/shopify/services/shopify.service';
 import { ShopifyController } from './shopify.controller';
 
 vi.mock('@api/helpers/decorators/swagger/auto-swagger.decorator', () => ({

@@ -15,9 +15,9 @@ import type { FilesClientService } from '@server/services/files-microservice/cli
 import {
   type ClipGenerationInput,
   ClipGenerationService,
-} from './clip-generation.service';
-import { RawCutClipService } from './raw-cut-clip.service';
-import { RawCutClipCompletionService } from './raw-cut-clip-completion.service';
+} from '@server/collections/clip-projects/services/clip-generation.service';
+import { RawCutClipService } from '@server/collections/clip-projects/services/raw-cut-clip.service';
+import { RawCutClipCompletionService } from '@server/collections/clip-projects/services/raw-cut-clip-completion.service';
 
 const ORGANIZATION_ID = testId('org');
 const PROJECT_ID = testId('project');
