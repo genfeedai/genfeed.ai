@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { YtDlpService } from '@files/services/ytdlp/ytdlp.service';
+import { YT_DLP_PROCESS_TIMEOUT_MS } from '@genfeedai/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -353,7 +354,7 @@ describe('YtDlpService', () => {
       const settled = vi.fn();
       void promise.then(settled, settled);
       const rejection = expect(promise).rejects.toThrow('yt-dlp timed out');
-      await vi.advanceTimersByTimeAsync(5 * 60_000);
+      await vi.advanceTimersByTimeAsync(YT_DLP_PROCESS_TIMEOUT_MS);
 
       expect(mockProcess.kill).toHaveBeenCalledWith('SIGKILL');
       expect(settled).not.toHaveBeenCalled();

@@ -219,7 +219,7 @@ export class ClipProjectsService extends BaseService<
       if (readyClipCount > 0) {
         update.error =
           failedClipCount > 0
-            ? `${failedClipCount} clip${failedClipCount === 1 ? '' : 's'} require retry or review.`
+            ? `${failedClipCount} clip${failedClipCount === 1 ? '' : 's'} require${failedClipCount === 1 ? 's' : ''} retry or review.`
             : null;
         update.status =
           failedClipCount > 0 ? 'partially-completed' : 'completed';

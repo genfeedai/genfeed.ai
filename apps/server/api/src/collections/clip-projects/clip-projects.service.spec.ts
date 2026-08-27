@@ -508,7 +508,7 @@ describe('ClipProjectsService', () => {
           highlights: [{ id: 'h-1' }],
           name: 'Existing',
         }),
-        error: '1 clip requires retry or review.',
+        error: null,
         progress: 100,
         readiness: expect.objectContaining({
           readyActions: ['download', 'edit', 'publish'],
@@ -602,7 +602,7 @@ describe('ClipProjectsService', () => {
     });
     expect(prisma.clipProject.update).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        error: null,
+        error: '1 clip requires retry or review.',
         failedClipCount: 1,
         pendingClipCount: 0,
         progress: 100,

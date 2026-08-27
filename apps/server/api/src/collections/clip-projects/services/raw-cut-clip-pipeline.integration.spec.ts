@@ -247,7 +247,7 @@ describe('raw-cut clip pipeline integration', () => {
       websocketUrl: '/clips/clip-result-1',
     });
     expect(clipResultsService.records.get(clipResultId)).toMatchObject({
-      captionSrt: '1\n00:00:02,000 --> 00:00:06,000\nKeep this caption',
+      captionSrt: '1\n00:00:01,960 --> 00:00:06,120\nKeep this caption',
       mode: 'raw-cut',
       providerJobId: 'raw-cut-trim-clip-result-1',
       providerName: 'raw-cut',

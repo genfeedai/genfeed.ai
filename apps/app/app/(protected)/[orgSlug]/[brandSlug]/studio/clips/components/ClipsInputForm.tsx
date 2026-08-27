@@ -7,6 +7,7 @@ import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { CirclePlay, Search, Sparkles, Upload } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import ClipModeSelector from './ClipModeSelector';
 
@@ -31,6 +32,7 @@ export default function ClipsInputForm({
   uploadProgress,
   youtubeUrl,
 }: ClipsInputFormProps) {
+  const t = useTranslations('pages.studioClips');
   const hasSource =
     sourceKind === 'youtube'
       ? youtubeUrl.trim().length > 0
@@ -41,7 +43,7 @@ export default function ClipsInputForm({
       <Card bodyClassName="space-y-5 p-6">
         <fieldset>
           <legend className="mb-2 text-sm font-medium text-foreground">
-            Source
+            {t('source')}
           </legend>
           <div className="grid grid-cols-2 gap-3">
             <Button
@@ -55,7 +57,7 @@ export default function ClipsInputForm({
                   : 'border-border bg-secondary text-muted-foreground'
               }`}
               icon={<CirclePlay className="size-4" />}
-              label="YouTube URL"
+              label={t('youtubeUrl')}
             />
             <Button
               variant={ButtonVariant.UNSTYLED}
@@ -68,7 +70,7 @@ export default function ClipsInputForm({
                   : 'border-border bg-secondary text-muted-foreground'
               }`}
               icon={<Upload className="size-4" />}
-              label="Upload audio or video"
+              label={t('uploadAudioOrVideo')}
             />
           </div>
         </fieldset>
@@ -79,14 +81,14 @@ export default function ClipsInputForm({
               htmlFor="youtube-url"
               className="mb-1.5 block text-sm font-medium text-foreground"
             >
-              YouTube URL
+              {t('youtubeUrl')}
             </label>
             <Input
               id="youtube-url"
               type="url"
               value={youtubeUrl}
               onChange={(e) => onSetYoutubeUrl(e.target.value)}
-              placeholder="https://www.youtube.com/watch?v=..."
+              placeholder={t('youtubeUrlPlaceholder')}
             />
           </div>
         ) : (
@@ -95,7 +97,7 @@ export default function ClipsInputForm({
               htmlFor="clip-source-file"
               className="mb-1.5 block text-sm font-medium text-foreground"
             >
-              Audio or video file
+              {t('audioOrVideoFile')}
             </label>
             <Input
               id="clip-source-file"
@@ -106,18 +108,22 @@ export default function ClipsInputForm({
               }
             />
             <p className="mt-1.5 text-xs text-muted-foreground">
-              Supports long-form audio and video up to 10 GB and 6 hours.
+              {t('sourceLimits')}
             </p>
             {sourceFile ? (
               <p className="mt-2 text-xs text-foreground" role="status">
-                {sourceFile.name} · {(sourceFile.size / 1024 / 1024).toFixed(1)}{' '}
-                MB
+                {t('fileSizeMegabytes', {
+                  name: sourceFile.name,
+                  size: (sourceFile.size / 1024 / 1024).toFixed(1),
+                })}
               </p>
             ) : null}
             {isSubmitting && uploadProgress > 0 ? (
               <div
                 className="mt-3"
-                aria-label={`Upload ${uploadProgress}% complete`}
+                aria-label={t('uploadProgressAria', {
+                  progress: uploadProgress,
+                })}
                 aria-valuemax={100}
                 aria-valuemin={0}
                 aria-valuenow={uploadProgress}
@@ -130,7 +136,7 @@ export default function ClipsInputForm({
                   />
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Uploading source… {uploadProgress}%
+                  {t('uploadingSource', { progress: uploadProgress })}
                 </p>
               </div>
             ) : null}
@@ -145,7 +151,7 @@ export default function ClipsInputForm({
             htmlFor="max-clips"
             className="mb-1.5 flex items-center justify-between text-sm font-medium text-foreground"
           >
-            <span>Max Clips</span>
+            <span>{t('maxClips')}</span>
             <span className="text-xs text-muted-foreground">{maxClips}</span>
           </label>
           <Input
@@ -170,7 +176,7 @@ export default function ClipsInputForm({
             htmlFor="min-virality"
             className="mb-1.5 flex items-center justify-between text-sm font-medium text-foreground"
           >
-            <span>Min Virality Score</span>
+            <span>{t('minViralityScore')}</span>
             <span className="text-xs text-muted-foreground">
               {minViralityScore}
             </span>
@@ -215,7 +221,7 @@ export default function ClipsInputForm({
                 <Sparkles className="size-4" />
               )
             }
-            label={isSubmitting ? 'Starting…' : 'Start Clip Factory'}
+            label={isSubmitting ? t('starting') : t('startClipFactory')}
           />
 
           <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
@@ -226,7 +232,7 @@ export default function ClipsInputForm({
                   variant={ButtonVariant.LINK}
                   onClick={onCancel}
                   className="text-xs text-muted-foreground hover:text-foreground"
-                  label="Cancel"
+                  label={t('cancel')}
                 />
               ) : null}
               <Button
@@ -235,7 +241,7 @@ export default function ClipsInputForm({
                 isDisabled={isSubmitting || !hasSource}
                 className="text-xs text-muted-foreground hover:text-foreground"
                 icon={<Search className="size-3.5" />}
-                label="Review highlights first"
+                label={t('reviewHighlightsFirst')}
               />
             </div>
           </div>

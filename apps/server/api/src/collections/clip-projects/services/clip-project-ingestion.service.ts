@@ -74,22 +74,15 @@ export class ClipProjectIngestionService {
     const estimatedClips = dto.maxClips ?? 10;
     const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
     const provider = dto.avatarProvider ?? 'heygen';
-    const resolvedIdentity =
-      mode === 'avatar' && provider !== 'genfeedai'
-        ? await this.clipIdentityResolutionService.resolve({
-            avatarId: dto.avatarId,
-            avatarProvider: dto.avatarProvider,
-            brandId: dto.brandId,
-            organizationId: orgId,
-            voiceId: dto.voiceId,
-          })
-        : undefined;
-    const identity =
-      mode === 'avatar' && provider !== 'genfeedai'
-        ? resolvedIdentity
-        : undefined;
-
-    this.clipGenerationRequestService.assertCompleteAvatarIdentity(identity);
+    const identity = await this.resolveBrandAndIdentity({
+      avatarId: dto.avatarId,
+      avatarProvider: dto.avatarProvider,
+      brandId: dto.brandId,
+      mode,
+      organizationId: orgId,
+      provider,
+      voiceId: dto.voiceId,
+    });
     const runReferences = dto.brandId
       ? await this.clipGenerationRequestService.resolveRunReferences(
           dto.brandId,
@@ -484,7 +477,7 @@ export class ClipProjectIngestionService {
     const settings = project.settings ?? {};
     const estimatedClips = settings.maxClips ?? 10;
     const flow: ClipProcessingFlow = settings.flow ?? source.flow;
-    const sourceUrl = project.sourceVideoUrl;
+    const sourceUrl = project.sourceVideoUrl ?? source.artifact?.mediaUrl;
     const userId = user.userId ?? user.id;
 
     if (!sourceUrl) {
@@ -518,21 +511,15 @@ export class ClipProjectIngestionService {
 
     const mode = settings.mode ?? DEFAULT_CLIP_RESULT_MODE;
     const provider = settings.avatarProvider ?? 'heygen';
-    const resolvedIdentity =
-      mode === 'avatar' && provider !== 'genfeedai'
-        ? await this.clipIdentityResolutionService.resolve({
-            avatarId: settings.avatarId,
-            avatarProvider: settings.avatarProvider,
-            brandId: project.brandId ?? undefined,
-            organizationId: user.organizationId,
-            voiceId: settings.voiceId,
-          })
-        : undefined;
-    const identity =
-      mode === 'avatar' && provider !== 'genfeedai'
-        ? resolvedIdentity
-        : undefined;
-    this.clipGenerationRequestService.assertCompleteAvatarIdentity(identity);
+    const identity = await this.resolveBrandAndIdentity({
+      avatarId: settings.avatarId,
+      avatarProvider: settings.avatarProvider,
+      brandId: project.brandId ?? undefined,
+      mode,
+      organizationId: user.organizationId,
+      provider,
+      voiceId: settings.voiceId,
+    });
 
     const runReferences = project.brandId
       ? await this.clipGenerationRequestService.resolveRunReferences(
@@ -643,5 +630,39 @@ export class ClipProjectIngestionService {
 
   private hashSource(value: string): string {
     return `sha256:${createHash('sha256').update(value).digest('hex')}`;
+  }
+
+  private needsAvatarIdentity(mode: string, provider: string): boolean {
+    return mode === 'avatar' && provider !== 'genfeedai';
+  }
+
+  private async resolveBrandAndIdentity(input: {
+    avatarId?: string;
+    avatarProvider?: string;
+    brandId?: string;
+    mode: string;
+    organizationId: string;
+    provider: string;
+    voiceId?: string;
+  }): Promise<AgentClipRunIdentity | undefined> {
+    const needsAvatar = this.needsAvatarIdentity(input.mode, input.provider);
+    if (!needsAvatar && !input.brandId) {
+      return undefined;
+    }
+
+    const resolved = await this.clipIdentityResolutionService.resolve({
+      avatarId: input.avatarId,
+      avatarProvider: input.avatarProvider,
+      brandId: input.brandId,
+      organizationId: input.organizationId,
+      voiceId: input.voiceId,
+    });
+
+    if (!needsAvatar) {
+      return undefined;
+    }
+
+    this.clipGenerationRequestService.assertCompleteAvatarIdentity(resolved);
+    return resolved;
   }
 }

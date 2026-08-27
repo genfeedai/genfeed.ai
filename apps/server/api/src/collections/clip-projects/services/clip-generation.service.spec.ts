@@ -711,8 +711,9 @@ describe('ClipGenerationService (raw-cut mode)', () => {
     };
   }
 
-  // Highlight [15, 45] with a segment [20, 25] → offset to [5, 10] of the cut.
-  const EXPECTED_SRT = '1\n00:00:05,000 --> 00:00:10,000\nInside window';
+  // Highlight [15, 45] with a segment [20, 25] → offset to the cut, with
+  // the 40ms visual lead and 120ms tail from generateClipSrt.
+  const EXPECTED_SRT = '1\n00:00:04,960 --> 00:00:10,120\nInside window';
 
   it('persists mode "raw-cut" on every clip-result it creates', async () => {
     await service.generateClips(

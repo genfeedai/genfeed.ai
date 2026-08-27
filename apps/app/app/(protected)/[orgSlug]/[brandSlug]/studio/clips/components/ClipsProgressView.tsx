@@ -71,9 +71,7 @@ export default function ClipsProgressView({
       }
     } catch (error: unknown) {
       setDecisionError(
-        error instanceof Error
-          ? error.message
-          : 'The hook decision could not be saved.',
+        error instanceof Error ? error.message : t('hookDecisionFailed'),
       );
     } finally {
       setIsDecisionSubmitting(false);
@@ -85,28 +83,28 @@ export default function ClipsProgressView({
   const pendingDescription =
     selectedCount > 0
       ? project.mode === 'raw-cut'
-        ? `Cutting ${selectedCount} selected highlights...`
-        : `Generating ${selectedCount} avatar clips...`
+        ? t('cuttingSelectedHighlights', { count: selectedCount })
+        : t('generatingAvatarClips', { count: selectedCount })
       : project.mode === 'raw-cut'
-        ? 'Processing source video and creating raw cuts...'
-        : 'Processing source media and generating avatar clips...';
+        ? t('processingRawCuts')
+        : t('processingAvatarClips');
   const statusHeading = isAwaitingHookApproval
-    ? 'Review the hook clip'
+    ? t('reviewHookClip')
     : isGeneratingHook
       ? approval?.lastAction === 'request_changes'
-        ? 'Regenerating hook clip'
-        : 'Generating hook clip'
+        ? t('regeneratingHookClip')
+        : t('generatingHookClip')
       : approval?.state === 'resuming' || approval?.state === 'approved'
-        ? 'Generating remaining clips'
+        ? t('generatingRemainingClips')
         : approval?.state === 'rejected'
-          ? 'Hook clip rejected'
+          ? t('hookClipRejected')
           : project.status === 'completed'
-            ? 'Clips ready'
+            ? t('clipsReady')
             : project.status === 'partially-completed'
-              ? 'Some clips are ready'
+              ? t('someClipsAreReady')
               : project.status === 'failed'
-                ? 'Clip generation failed'
-                : 'Generating clips';
+                ? t('clipGenerationFailed')
+                : t('generatingClips');
   const canRetryFailedClips =
     project.status === 'partially-completed' ||
     (project.status === 'failed' &&
@@ -126,19 +124,20 @@ export default function ClipsProgressView({
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
           {isAwaitingHookApproval
-            ? `${approval.remainingClipCount} remaining clip${approval.remainingClipCount === 1 ? '' : 's'} will start only after approval.`
+            ? t('remainingClipsAfterApproval', {
+                count: approval.remainingClipCount,
+              })
             : isGeneratingHook
-              ? 'Only the hook clip is being generated. Remaining clips have not been dispatched.'
+              ? t('hookOnlyGenerating')
               : approval?.state === 'resuming' || approval?.state === 'approved'
-                ? 'Hook approved. The same character, voice, and reference identities are being reused.'
+                ? t('hookApprovedReuse')
                 : approval?.state === 'rejected'
-                  ? (approval.feedback ??
-                    'The run stopped before any remaining clips were dispatched.')
+                  ? (approval.feedback ?? t('runStoppedBeforeRemaining'))
                   : project.status === 'completed' ||
                       project.status === 'partially-completed'
-                    ? `Done — ${project.clips.length} clip${project.clips.length === 1 ? '' : 's'} generated`
+                    ? t('doneClipCount', { count: project.clips.length })
                     : project.status === 'failed'
-                      ? 'Pipeline failed. Check logs for details.'
+                      ? t('pipelineFailed')
                       : pendingDescription}
         </p>
 
@@ -161,7 +160,7 @@ export default function ClipsProgressView({
         <Card bodyClassName="space-y-3 p-5" className="mb-6">
           <div>
             <h3 className="text-sm font-medium text-foreground">
-              Source processing failed
+              {t('sourceProcessingFailed')}
             </h3>
             <p className="mt-1 text-xs text-muted-foreground">
               {project.source.failure.message}
@@ -174,7 +173,7 @@ export default function ClipsProgressView({
             isDisabled={isRetrying}
             onClick={onRetrySource}
           >
-            Retry source processing
+            {t('retrySourceProcessing')}
           </Button>
         </Card>
       ) : null}
@@ -183,10 +182,10 @@ export default function ClipsProgressView({
         <Card bodyClassName="space-y-3 p-5" className="mb-6">
           <div>
             <h3 className="text-sm font-medium text-foreground">
-              Some clips failed
+              {t('someClipsFailed')}
             </h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              Completed clips stay ready. Retry dispatches only failed work.
+              {t('retryFailedClipsHint')}
             </p>
           </div>
           <Button
@@ -196,7 +195,7 @@ export default function ClipsProgressView({
             isDisabled={isRetrying}
             onClick={onRetryFailedClips}
           >
-            Retry failed clips
+            {t('retryFailedClips')}
           </Button>
         </Card>
       ) : null}
@@ -212,9 +211,9 @@ export default function ClipsProgressView({
             </p>
           </div>
           <Textarea
-            aria-label="Hook review feedback"
+            aria-label={t('hookReviewFeedbackAria')}
             className="min-h-20 w-full rounded-md"
-            placeholder="Describe what should change, or why this hook is rejected"
+            placeholder={t('hookReviewPlaceholder')}
             value={feedback}
             onChange={(event) => setFeedback(event.target.value)}
           />
@@ -281,8 +280,8 @@ export default function ClipsProgressView({
             <Spinner size={ComponentSize.LG} className="mb-4 text-primary" />
             <p className="text-sm text-muted-foreground">
               {project.mode === 'raw-cut'
-                ? 'Processing source video and creating captioned raw cuts…'
-                : 'Processing source media and generating avatar clips…'}
+                ? t('processingCaptionedRawCuts')
+                : t('processingAvatarClipsEllipsis')}
             </p>
           </Card>
         )
@@ -293,7 +292,7 @@ export default function ClipsProgressView({
           variant={ButtonVariant.LINK}
           className="text-sm text-muted-foreground hover:text-foreground"
           onClick={onReset}
-          label="Back to projects"
+          label={t('backToProjects')}
         />
       </div>
     </div>

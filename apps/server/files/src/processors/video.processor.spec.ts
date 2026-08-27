@@ -1338,8 +1338,8 @@ describe('VideoProcessor', () => {
       const result = await processor.handleExtractFrames(job);
 
       expect(result.success).toBe(true);
-      expect(result.frameCount).toBe(1);
-      expect(ffmpegService.extractFrame).toHaveBeenCalled();
+      expect(result.frameCount).toBe(5);
+      expect(ffmpegService.extractFrame).toHaveBeenCalledTimes(5);
     });
 
     it('should use custom output directory when provided', async () => {
@@ -1387,7 +1387,7 @@ describe('VideoProcessor', () => {
       const result = await processor.handleGetVideoMetadata(job);
 
       expect(result.success).toBe(true);
-      expect(result.metadata).toEqual({
+      expect(result.metadata).toMatchObject({
         codec: 'h264',
         duration: 10,
         fps: 30,

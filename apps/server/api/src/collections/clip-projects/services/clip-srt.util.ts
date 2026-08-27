@@ -63,17 +63,20 @@ export function generateClipSrt(
   clipStart: number,
   clipEnd: number,
 ): string {
-  const words = segments
-    .flatMap(segmentToWords)
-    .filter((word) => word.end > clipStart && word.start < clipEnd)
-    .map((word) => ({
-      ...word,
-      end: Math.min(word.end, clipEnd),
-      start: Math.max(word.start, clipStart),
-    }))
-    .filter((word) => word.end > word.start)
+  const phrases = segments
+    .flatMap((segment) => {
+      const words = segmentToWords(segment)
+        .filter((word) => word.end > clipStart && word.start < clipEnd)
+        .map((word) => ({
+          ...word,
+          end: Math.min(word.end, clipEnd),
+          start: Math.max(word.start, clipStart),
+        }))
+        .filter((word) => word.end > word.start)
+        .sort((left, right) => left.start - right.start);
+      return wordsToPhrases(words);
+    })
     .sort((left, right) => left.start - right.start);
-  const phrases = wordsToPhrases(words);
 
   return phrases
     .map((phrase, index) => {
