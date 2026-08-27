@@ -1,7 +1,7 @@
+import { RssSourcesController } from '@api/collections/rss-sources/controllers/rss-sources.controller';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { ApiKeyScope } from '@genfeedai/enums';
 import { ForbiddenException } from '@nestjs/common';
-import { RssSourcesController } from '@server/collections/rss-sources/controllers/rss-sources.controller';
 import type { RssSourcesService } from '@server/collections/rss-sources/services/rss-sources.service';
 
 const MUTATION_SCOPES = [

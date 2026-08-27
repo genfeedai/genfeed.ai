@@ -13,6 +13,10 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
+import { getModelMeta } from '@genfeedai/prisma';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import type { CreateArticleDto } from '@server/collections/articles/dto/create-article.dto';
 import { ArticleInsightsService } from '@server/collections/articles/services/article-insights.service';
 import { ArticleRemixService } from '@server/collections/articles/services/article-remix.service';
@@ -21,10 +25,6 @@ import { ArticleVersionService } from '@server/collections/articles/services/art
 import { ArticlesService } from '@server/collections/articles/services/articles.service';
 import { ARTICLE_CREATE_UNKNOWN_PRISMA_FIELDS } from '@server/helpers/utils/article-filter/article-filter.util';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
-import { getModelMeta } from '@genfeedai/prisma';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
 
 /**
  * Regression coverage for #2767. `articles` persisted `title`/`excerpt` while
@@ -221,7 +221,12 @@ describe('ArticlesService create persistence', () => {
 
   it('generate persist source never assigns unknown Prisma Article fields', () => {
     const source = readFileSync(
-      fileURLToPath(new URL('./articles-content.service.ts', import.meta.url)),
+      fileURLToPath(
+        new URL(
+          '../../../../../server/src/collections/articles/services/articles-content.service.ts',
+          import.meta.url,
+        ),
+      ),
       'utf8',
     );
 

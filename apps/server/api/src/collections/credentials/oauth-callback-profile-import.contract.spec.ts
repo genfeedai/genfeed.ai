@@ -5,7 +5,8 @@ import { Platform } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 
 const SPEC_DIR = path.dirname(fileURLToPath(import.meta.url));
-const API_SRC = path.resolve(SPEC_DIR, '@server/index');
+const API_SRC = path.resolve(SPEC_DIR, '../..');
+const SERVER_SRC = path.resolve(SPEC_DIR, '../../../../server/src');
 
 const OAUTH_PROFILE_IMPORT_PROVIDERS = [
   Platform.FACEBOOK,
@@ -20,7 +21,10 @@ const OAUTH_PROFILE_IMPORT_PROVIDERS = [
 describe('OAuth callback profile import contract', () => {
   it('imports avatars through the shared SSRF-guarded credential path', () => {
     const source = readFileSync(
-      path.join(SPEC_DIR, 'services/credentials.service.ts'),
+      path.join(
+        SERVER_SRC,
+        'collections/credentials/services/credentials.service.ts',
+      ),
       'utf8',
     );
 

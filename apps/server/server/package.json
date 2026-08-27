@@ -66,7 +66,7 @@
     "build": "echo 'Source-level package \u2014 consumed via path aliases, no build needed'",
     "clean": "echo 'Nothing to clean'",
     "test": "vitest run --config vitest.config.ts",
-    "type-check": "NODE_OPTIONS=--max-old-space-size=6144 bunx tsc --noEmit -p tsconfig.typecheck.json"
+    "type-check": "NODE_OPTIONS=--max-old-space-size=8192 bunx tsc --noEmit -p tsconfig.typecheck.json"
   },
   "sideEffects": false,
   "type": "module",

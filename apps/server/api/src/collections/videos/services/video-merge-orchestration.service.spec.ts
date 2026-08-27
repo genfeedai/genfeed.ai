@@ -1,15 +1,4 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import type { CaptionsService } from '@server/collections/captions/services/captions.service';
-import type { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import type { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import type { CreateMergedVideoDto } from '@server/collections/videos/dto/create-video.dto';
 import { VideoMergeOrchestrationService } from '@api/collections/videos/services/video-merge-orchestration.service';
-import type { VideosService } from '@server/collections/videos/services/videos.service';
-import type { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import type { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import type { WhisperService } from '@server/services/whisper/whisper.service';
-import type { SharedService } from '@server/shared/services/shared/shared.service';
 import { JOB_TYPES } from '@files/queues/queue.constants';
 import {
   ActivityEntityModel,
@@ -30,7 +19,18 @@ import {
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import type { CaptionsService } from '@server/collections/captions/services/captions.service';
+import type { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import type { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import type { CreateMergedVideoDto } from '@server/collections/videos/dto/create-video.dto';
+import type { VideosService } from '@server/collections/videos/services/videos.service';
 import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import type { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import type { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import type { WhisperService } from '@server/services/whisper/whisper.service';
+import type { SharedService } from '@server/shared/services/shared/shared.service';
 
 describe('VideoMergeOrchestrationService', () => {
   const firstVideoId = 'video-1';
@@ -51,7 +51,7 @@ describe('VideoMergeOrchestrationService', () => {
     create: vi.fn(),
     patch: vi.fn(),
   };
-  const captionsService = { create: vi.fn() };
+  const captionsService = { create: vi.fn(), patch: vi.fn() };
   const configService = {
     ingredientsEndpoint: 'https://api.example.com/ingredients',
   };
@@ -107,7 +107,11 @@ describe('VideoMergeOrchestrationService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     activitiesService.patch.mockResolvedValue(undefined);
-    captionsService.create.mockResolvedValue({ content: 'caption content' });
+    captionsService.create.mockResolvedValue({
+      content: 'caption content',
+      id: 'caption-1',
+    });
+    captionsService.patch.mockResolvedValue({ content: 'caption content' });
     fileQueueService.processVideo.mockResolvedValue({ jobId: 'merge-job' });
     fileQueueService.waitForJob.mockResolvedValue({
       outputPath: '/tmp/merged.mp4',
@@ -299,13 +303,9 @@ describe('VideoMergeOrchestrationService', () => {
     );
     expect(whisperService.generateCaptions).toHaveBeenCalledWith(ingredientId);
     expect(captionsService.create).toHaveBeenCalledWith({
-      content: 'caption content',
       format: CaptionFormat.SRT,
       ingredientId,
-      isDeleted: false,
       language: CaptionLanguage.EN,
-      organizationId: user.organizationId,
-      userId: user.userId,
     });
     expect(fileQueueService.processVideo).toHaveBeenNthCalledWith(3, {
       ingredientId,

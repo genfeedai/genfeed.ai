@@ -28,6 +28,14 @@ vi.mock(
   }),
 );
 
+vi.mock('@ui/publisher/PostingSetPicker', () => ({
+  default: () => null,
+}));
+
+vi.mock('@ui/publisher/PostingSignaturePicker', () => ({
+  default: () => null,
+}));
+
 describe('ReviewGateCard', () => {
   function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
     return {
@@ -135,9 +143,10 @@ describe('SchedulePostCard', () => {
     expect(onSchedule.mock.calls[0]?.[0].scheduledAt).toEqual(
       expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
     );
+    expect(screen.getByText('Schedule launch post')).toBeInTheDocument();
     expect(
-      screen.getByText(/post scheduled for 1 platform/i),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: /schedule/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('toggles platforms before scheduling', () => {

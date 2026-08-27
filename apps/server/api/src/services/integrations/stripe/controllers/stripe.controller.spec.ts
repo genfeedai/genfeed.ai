@@ -165,12 +165,24 @@ describe('StripeController', () => {
           useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
         },
         { provide: StripeService, useValue: stripeService },
-        OrganizationBillingAccountService,
         { provide: SUBSCRIPTIONS_SERVICE, useValue: subscriptionsService },
         { provide: CustomersService, useValue: customersService },
         { provide: UsersService, useValue: usersService },
         { provide: OrganizationsService, useValue: organizationsService },
         { provide: LifecycleEmailService, useValue: lifecycleEmailService },
+        {
+          provide: OrganizationBillingAccountService,
+          useValue: {
+            resolveExisting: vi.fn().mockResolvedValue({
+              customerId: 'cust_row_1',
+              stripeCustomerId: 'cus_test123',
+            }),
+            resolveOrProvision: vi.fn().mockResolvedValue({
+              customerId: 'cust_row_1',
+              stripeCustomerId: 'cus_test123',
+            }),
+          },
+        },
         {
           provide: BillingAccountsService,
           useValue: {

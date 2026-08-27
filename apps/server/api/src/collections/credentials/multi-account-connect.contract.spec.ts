@@ -4,8 +4,17 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 const SPEC_DIR = path.dirname(fileURLToPath(import.meta.url));
-const API_SRC = path.resolve(SPEC_DIR, '@server/index');
-const INTEGRATIONS_DIR = path.join(API_SRC, 'services/integrations');
+const API_SRC = path.resolve(SPEC_DIR, '../..');
+const SERVER_SRC = path.resolve(SPEC_DIR, '../../../../server/src');
+const SERVER_ROOT = path.resolve(SPEC_DIR, '../../../..');
+const INTEGRATIONS_DIRS = [
+  path.join(API_SRC, 'services/integrations'),
+  path.join(SERVER_SRC, 'services/integrations'),
+];
+const CREDENTIALS_SERVICE_PATH = path.join(
+  SERVER_SRC,
+  'collections/credentials/services/credentials.service.ts',
+);
 
 /** Every integration source file, so a new platform is covered the day it lands. */
 function collectIntegrationSources(directory: string): string[] {
@@ -24,9 +33,14 @@ function collectIntegrationSources(directory: string): string[] {
   });
 }
 
-const INTEGRATION_SOURCES = collectIntegrationSources(INTEGRATIONS_DIR).map(
+const INTEGRATION_SOURCES = INTEGRATIONS_DIRS.flatMap((directory) =>
+  collectIntegrationSources(directory),
+).map(
   (filePath) =>
-    [path.relative(API_SRC, filePath), readFileSync(filePath, 'utf8')] as const,
+    [
+      path.relative(SERVER_ROOT, filePath),
+      readFileSync(filePath, 'utf8'),
+    ] as const,
 );
 
 /**
@@ -62,10 +76,7 @@ describe('multi-account connect contract', () => {
   });
 
   it('routes every identity write through the reconciling chokepoint', () => {
-    const service = readFileSync(
-      path.join(SPEC_DIR, 'services/credentials.service.ts'),
-      'utf8',
-    );
+    const service = readFileSync(CREDENTIALS_SERVICE_PATH, 'utf8');
 
     expect(service).toContain('async connectAccount(');
     expect(service).toContain('async createPendingForBrand(');
@@ -77,10 +88,7 @@ describe('multi-account connect contract', () => {
   });
 
   it('provisions a fresh unidentified credential at connect time', () => {
-    const service = readFileSync(
-      path.join(SPEC_DIR, 'services/credentials.service.ts'),
-      'utf8',
-    );
+    const service = readFileSync(CREDENTIALS_SERVICE_PATH, 'utf8');
     const createPending = service.slice(
       service.indexOf('async createPendingForBrand('),
       service.indexOf('private async reapStalePendingCredentials('),
@@ -93,10 +101,7 @@ describe('multi-account connect contract', () => {
   });
 
   it('treats a unique-index collision as a lost race rather than a failure', () => {
-    const service = readFileSync(
-      path.join(SPEC_DIR, 'services/credentials.service.ts'),
-      'utf8',
-    );
+    const service = readFileSync(CREDENTIALS_SERVICE_PATH, 'utf8');
 
     expect(service).toContain('isUniqueConstraintViolation(error)');
     expect(service).toContain("=== 'P2002'");
@@ -104,10 +109,7 @@ describe('multi-account connect contract', () => {
   });
 
   it('refuses to persist an account the provider never identified', () => {
-    const service = readFileSync(
-      path.join(SPEC_DIR, 'services/credentials.service.ts'),
-      'utf8',
-    );
+    const service = readFileSync(CREDENTIALS_SERVICE_PATH, 'utf8');
 
     expect(service).toContain('ValidationException');
     expect(service).toMatch(/did not identify which account was authorized/);

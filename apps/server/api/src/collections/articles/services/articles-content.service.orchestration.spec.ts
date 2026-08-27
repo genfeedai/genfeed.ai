@@ -1,14 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ArticleGenerationType } from '@server/collections/articles/dto/generate-articles.dto';
-import type { ArticleContentPersistenceService } from '@server/collections/articles/services/article-content-persistence.service';
-import type { ArticleReviewService } from '@server/collections/articles/services/article-review.service';
-import type { ArticleTextGenerationService } from '@server/collections/articles/services/article-text-generation.service';
-import { ArticlesContentService } from '@server/collections/articles/services/articles-content.service';
-import type { PersistGeneratedArticleParams } from '@server/collections/articles/services/articles-content.types';
-import type { AccountPublishingContextService } from '@server/collections/credentials/services/account-publishing-context.service';
-import type { TemplatesService } from '@server/collections/templates/services/templates.service';
 import {
   ArticleCategory,
   ArticleStatus,
@@ -19,6 +11,14 @@ import type { AccountPublishingContext } from '@genfeedai/interfaces';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
+import { ArticleGenerationType } from '@server/collections/articles/dto/generate-articles.dto';
+import type { ArticleContentPersistenceService } from '@server/collections/articles/services/article-content-persistence.service';
+import type { ArticleReviewService } from '@server/collections/articles/services/article-review.service';
+import type { ArticleTextGenerationService } from '@server/collections/articles/services/article-text-generation.service';
+import { ArticlesContentService } from '@server/collections/articles/services/articles-content.service';
+import type { PersistGeneratedArticleParams } from '@server/collections/articles/services/articles-content.types';
+import type { AccountPublishingContextService } from '@server/collections/credentials/services/account-publishing-context.service';
+import type { TemplatesService } from '@server/collections/templates/services/templates.service';
 import type { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -168,7 +168,7 @@ describe('ArticlesContentService generation orchestration', () => {
     const source = readFileSync(
       join(
         dirname(fileURLToPath(import.meta.url)),
-        'articles-content.service.ts',
+        '../../../../../server/src/collections/articles/services/articles-content.service.ts',
       ),
       'utf8',
     );
