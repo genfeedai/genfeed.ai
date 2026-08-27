@@ -214,8 +214,19 @@ export function readPublishTargetProposals(
         platform,
         settingFields: readSettingFields(item.settingFields),
         settings,
+        signatureIds: Array.isArray(item.signatureIds)
+          ? item.signatureIds.filter(
+              (signatureId): signatureId is string =>
+                typeof signatureId === 'string' &&
+                signatureId.trim().length > 0,
+            )
+          : undefined,
+        scheduledAt:
+          readString(item.scheduledAt) ?? readString(item.scheduledDate),
+        timezone: readString(item.timezone),
         visibility: readVisibility(item.visibility),
         warnings: readIssues(item.warnings),
+        referenceState: readString(item.referenceState),
       },
     ];
   });

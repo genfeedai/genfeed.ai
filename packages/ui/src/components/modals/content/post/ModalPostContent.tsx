@@ -6,6 +6,7 @@ import ModalPostSetupTab from '@ui/modals/content/post/ModalPostSetupTab';
 
 export default function ModalPostContent({
   activeTab,
+  applyEnabledCredentialIds,
   form,
   platformConfigs,
   globalScheduledDate,
@@ -34,6 +35,7 @@ export default function ModalPostContent({
 
   return (
     <ModalPostPlatformsTab
+      applyEnabledCredentialIds={applyEnabledCredentialIds}
       form={form}
       ingredients={ingredients}
       platformConfigs={platformConfigs}

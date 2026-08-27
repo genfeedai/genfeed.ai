@@ -6,7 +6,6 @@ import type {
 import { PostingSet } from '@genfeedai/models/content/posting-set.model';
 import { PostingSetSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
-import type { JsonApiResponseDocument } from '@services/core/json-api';
 
 export class PostingSetsService extends BaseService<
   PostingSet,
@@ -28,11 +27,14 @@ export class PostingSetsService extends BaseService<
       scheduledDate?: string;
       timezone?: string;
     } = {},
-  ): Promise<{ targets: unknown[] }> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      `/${id}/expand`,
-      data,
-    );
-    return response.data as { targets: unknown[] };
+  ): Promise<{ targets: Array<Record<string, unknown>> }> {
+    const response = await this.instance.post<{
+      targets: Array<Record<string, unknown>>;
+    }>(`/${id}/expand`, data);
+    return {
+      targets: Array.isArray(response.data?.targets)
+        ? response.data.targets
+        : [],
+    };
   }
 }

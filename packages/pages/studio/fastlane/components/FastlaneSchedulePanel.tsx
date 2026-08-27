@@ -1,6 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, parsePlatform } from '@genfeedai/enums';
+import { usePostingSets } from '@genfeedai/hooks/data/content/use-posting-sets/use-posting-sets';
 import type {
   FastlaneAssetItem,
   FastlaneScheduleTarget,
@@ -10,6 +11,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import DateTimePicker from '@ui/primitives/date-time-picker';
 import { Textarea } from '@ui/primitives/textarea';
+import PostingSetPicker from '@ui/publisher/PostingSetPicker';
 import type { ChangeEvent } from 'react';
 import { useState } from 'react';
 import type { ScheduleApprovedParams } from '../types';
@@ -60,6 +62,16 @@ export default function FastlaneSchedulePanel({
       scheduledDate: undefined,
     })),
   );
+  const [selectedSetId, setSelectedSetId] = useState<string | undefined>();
+  const {
+    createSet,
+    expandError,
+    expandSet,
+    isExpanding,
+    isSaving,
+    saveError,
+    sets,
+  } = usePostingSets();
 
   function updateCaption(ideaId: string, value: string) {
     setCaptions((prev) => ({ ...prev, [ideaId]: value }));
@@ -118,6 +130,53 @@ export default function FastlaneSchedulePanel({
 
   return (
     <div className="flex flex-col gap-8 max-w-2xl mx-auto w-full">
+      <PostingSetPicker
+        canSave={selectedCredCount > 0}
+        expandError={expandError ?? undefined}
+        isExpanding={isExpanding}
+        isSaving={isSaving}
+        onSaveCurrent={(label) => {
+          const selected = credTargets.filter((target) => target.isSelected);
+          if (selected.length === 0) {
+            return;
+          }
+          void createSet({
+            label,
+            targets: selected.flatMap((target, order) => {
+              const platform = parsePlatform(target.platform);
+              if (!platform) {
+                return [];
+              }
+              return [
+                {
+                  credentialId: target.credentialId,
+                  order,
+                  platform,
+                  targetKey: `${target.platform}:${target.credentialId}`,
+                },
+              ];
+            }),
+          });
+        }}
+        onSelectSet={(id) => {
+          setSelectedSetId(id);
+          void expandSet(id, { timezone }).then((expanded) => {
+            const selected = new Set(
+              expanded.map((target) => target.credentialId),
+            );
+            setCredTargets((prev) =>
+              prev.map((target) => ({
+                ...target,
+                isSelected: selected.has(target.credentialId),
+              })),
+            );
+          });
+        }}
+        saveError={saveError ?? undefined}
+        selectedSetId={selectedSetId}
+        sets={sets}
+      />
+
       {/* Platform selection */}
       <div className="flex flex-col gap-3">
         <p className="gen-label">Publish to</p>

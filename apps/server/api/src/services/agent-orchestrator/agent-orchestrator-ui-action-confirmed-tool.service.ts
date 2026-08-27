@@ -124,11 +124,19 @@ export class AgentOrchestratorUiActionConfirmedToolService {
   private async executePublishPost(
     params: ThreadUiActionExecutionParams,
   ): Promise<AgentChatResult> {
+    const sourceActionId =
+      typeof params.payload?.sourceActionId === 'string'
+        ? params.payload.sourceActionId.trim()
+        : '';
     const toolPayload = { ...(params.payload ?? {}), confirmed: true };
     const execution = await this.executeTool(
       params,
       AgentToolName.CREATE_POST,
       toolPayload,
+      {
+        confirmationOrigin: 'thread-ui-action',
+        ...(sourceActionId ? { sourceActionId } : {}),
+      },
     );
     if (!execution.result.success) {
       throwFailedUiActionResult(

@@ -7,6 +7,8 @@ export interface AgentPublishCredential {
 }
 
 export interface AgentPublishContext {
+  autonomyMode?: string;
+  confirmationOrigin?: 'thread-ui-action';
   organizationId: string;
   runId?: string;
   strategyId?: string;
@@ -15,11 +17,22 @@ export interface AgentPublishContext {
   validatedScope?: ValidatedAgentScope;
 }
 
+export interface AgentPublishTargetAttachment {
+  body: string;
+  kind: string;
+  order?: number;
+  platform?: string;
+}
+
 export interface AgentPublishTargetPayload {
+  attachments?: AgentPublishTargetAttachment[];
   caption?: string;
   credentialId: string;
   platform: string;
+  scheduledAt?: string;
   settings?: Record<string, unknown>;
+  signatureIds?: string[];
+  timezone?: string;
   visibility?: PostVisibility;
 }
 
@@ -30,9 +43,11 @@ export interface PublishConfirmedContentInput {
   ctx: AgentPublishContext;
   ingredient: Record<string, unknown>;
   platforms: string[];
+  postingSetId?: string;
   scheduledAt?: string;
   sourceActionId: string;
   targets?: AgentPublishTargetPayload[];
+  timezone?: string;
   visibility: PostVisibility;
 }
 

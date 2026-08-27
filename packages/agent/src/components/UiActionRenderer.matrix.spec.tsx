@@ -1,7 +1,30 @@
 import { UiActionRenderer } from '@genfeedai/agent/components/UiActionRenderer';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { fireEvent, render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@hooks/data/content/use-posting-sets/use-posting-sets', () => ({
+  usePostingSets: () => ({
+    createSet: vi.fn(),
+    expandError: null,
+    expandSet: vi.fn(),
+    isExpanding: false,
+    isLoading: false,
+    isSaving: false,
+    saveError: null,
+    sets: [],
+  }),
+}));
+
+vi.mock(
+  '@hooks/data/content/use-posting-signatures/use-posting-signatures',
+  () => ({
+    usePostingSignatures: () => ({
+      isLoading: false,
+      signatures: [],
+    }),
+  }),
+);
 
 function makeAction(
   type: string,

@@ -21,6 +21,7 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-schedule-error.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import { evaluateAgentAutoPublishPolicies } from '@api-types/contracts/agent-auto-publish.contract';
 import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/constants';
 import {
   ActivitySource,
@@ -142,9 +143,11 @@ export class AgentPublishToolHandler {
       ctx,
       ingredient,
       platforms,
+      postingSetId,
       scheduledAt,
       sourceActionId,
       targets: requestedTargets,
+      timezone,
       visibility,
     } = input;
 
@@ -218,14 +221,26 @@ export class AgentPublishToolHandler {
       };
     }
 
+    const policy = evaluateAgentAutoPublishPolicies({
+      autonomyMode: ctx.autonomyMode,
+      brandAutoPublishEnabled: ctx.confirmationOrigin === 'thread-ui-action',
+      channels: createdPlatforms,
+    });
+
     const canonicalTargets = resolvedTargets.targets.map((target, order) =>
       toCanonicalChannelTarget({
+        attachments: targetsWithCaptions[order]?.attachments,
         caption: targetsWithCaptions[order]?.caption,
         credentialId: target.credentialId,
         order,
         platform: target.platform,
-        scheduledAt,
-        settings: targetsWithCaptions[order]?.settings,
+        scheduledAt: targetsWithCaptions[order]?.scheduledAt ?? scheduledAt,
+        settings: {
+          ...(targetsWithCaptions[order]?.settings ?? {}),
+          ...(postingSetId ? { postingSetId } : {}),
+          autoPublishPolicyId: policy.policyId,
+        },
+        timezone: targetsWithCaptions[order]?.timezone ?? timezone,
         visibility: targetsWithCaptions[order]?.visibility ?? visibility,
       }),
     );
@@ -256,6 +271,7 @@ export class AgentPublishToolHandler {
             ...(mediaKind ? { kind: mediaKind } : {}),
           },
         ],
+        ...(postingSetId ? { postingSetId } : {}),
         ...(scheduledAt
           ? {
               scheduledDate: scheduledAt,
@@ -263,7 +279,7 @@ export class AgentPublishToolHandler {
             }
           : { status: ReleaseStatus.DRAFT }),
         targets: canonicalTargets,
-        timezone: 'UTC',
+        timezone: timezone ?? 'UTC',
         title: baseContent.slice(0, 100),
       },
       idempotencyKey,
@@ -273,6 +289,8 @@ export class AgentPublishToolHandler {
         agentRunId: ctx.runId,
         agentStrategyId: ctx.strategyId,
         agentThreadId: ctx.validatedScope?.threadId,
+        autoPublishPolicyId: policy.policyId,
+        ...(postingSetId ? { postingSetId } : {}),
         source: 'agent',
         sourceActionId,
       },
@@ -295,9 +313,11 @@ export class AgentPublishToolHandler {
     return {
       creditsUsed: 0,
       data: {
+        autoPublishPolicyId: policy.policyId,
         contentId,
         createdPlatforms,
         missingPlatforms,
+        ...(postingSetId ? { postingSetId } : {}),
         postIds,
         scheduledAt,
         totalCreated: postIds.length,
@@ -710,16 +730,23 @@ export class AgentPublishToolHandler {
         };
       }
       if (params.confirmed !== true) {
-        return this.buildPublishCardResult(
-          {
-            caption,
-            contentId,
-            platforms,
-            scheduledAt: requestedScheduledAt,
-            visibility,
-          },
-          ctx,
-        );
+        const policy = evaluateAgentAutoPublishPolicies({
+          autonomyMode: ctx.autonomyMode,
+          brandAutoPublishEnabled: false,
+          channels: platforms,
+        });
+        if (!policy.isPermitted) {
+          return this.buildPublishCardResult(
+            {
+              caption,
+              contentId,
+              platforms,
+              scheduledAt: requestedScheduledAt,
+              visibility,
+            },
+            ctx,
+          );
+        }
       }
       const scheduledAt = scheduledDate?.toISOString();
 
@@ -762,6 +789,8 @@ export class AgentPublishToolHandler {
         };
       }
 
+      const postingSetId = readOptionalString(params.postingSetId);
+      const timezone = readOptionalString(params.timezone);
       return this.publishConfirmedContent({
         caption,
         contentId,
@@ -769,9 +798,11 @@ export class AgentPublishToolHandler {
         ctx,
         ingredient,
         platforms,
+        ...(postingSetId ? { postingSetId } : {}),
         scheduledAt,
         sourceActionId,
         ...(requestedTargets.length > 0 ? { targets: requestedTargets } : {}),
+        ...(timezone ? { timezone } : {}),
         visibility,
       });
     }

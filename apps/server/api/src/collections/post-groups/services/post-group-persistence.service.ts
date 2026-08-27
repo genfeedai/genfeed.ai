@@ -257,7 +257,18 @@ export class PostGroupPersistenceService {
             readinessByCredential.get(target.credentialId) ??
               validation.readiness,
           ),
-          targetSettings: this.contractService.toJson(target.settings ?? {}),
+          targetSettings: this.contractService.toJson({
+            ...(target.settings ?? {}),
+            ...(params.input.postingSetId
+              ? { postingSetId: params.input.postingSetId }
+              : {}),
+            ...(params.provenance?.autoPublishPolicyId
+              ? { autoPublishPolicyId: params.provenance.autoPublishPolicyId }
+              : {}),
+            ...(params.provenance?.postingSetId
+              ? { postingSetId: params.provenance.postingSetId }
+              : {}),
+          }),
           visibility: target.visibility,
           targetValidationIssues:
             this.contractService.validationIssues(validation),

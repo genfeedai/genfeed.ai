@@ -7,8 +7,11 @@ import {
   CredentialPlatform,
   PostCategory,
   PostVisibility,
+  parsePlatform,
 } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { usePostingSets } from '@genfeedai/hooks/data/content/use-posting-sets/use-posting-sets';
+import { usePostingSignatures } from '@genfeedai/hooks/data/content/use-posting-signatures/use-posting-signatures';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type { IIngredient, IPostPlatformConfig } from '@genfeedai/interfaces';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
@@ -22,6 +25,8 @@ import PlatformPreview, {
   type PlatformPreviewTarget,
 } from '@ui/posts/platform-preview/PlatformPreview';
 import { Button } from '@ui/primitives/button';
+import PostingSetPicker from '@ui/publisher/PostingSetPicker';
+import PostingSignaturePicker from '@ui/publisher/PostingSignaturePicker';
 import { Eye, EyeOff } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -34,6 +39,7 @@ import {
 } from './platform-map.constants';
 
 export default function ModalPostPlatformsTab({
+  applyEnabledCredentialIds,
   form,
   ingredients,
   platformConfigs,
@@ -52,6 +58,17 @@ export default function ModalPostPlatformsTab({
     null,
   );
   const [isPreviewVisible, setIsPreviewVisible] = useState(true);
+  const [selectedSetId, setSelectedSetId] = useState<string | undefined>();
+  const {
+    createSet,
+    expandError,
+    expandSet,
+    isExpanding,
+    isSaving,
+    saveError,
+    sets,
+  } = usePostingSets();
+  const { signatures } = usePostingSignatures();
   const previewTargets = useMemo(
     () =>
       buildComposerPreviewTargets(
@@ -180,8 +197,72 @@ export default function ModalPostPlatformsTab({
     [globalLabel, globalDescription, getPromptsService, listenForSocket],
   );
 
+  const handleSelectSet = useCallback(
+    async (id: string) => {
+      setSelectedSetId(id);
+      const expanded = await expandSet(id);
+      applyEnabledCredentialIds?.(
+        expanded.map((target) => target.credentialId),
+      );
+      for (const target of expanded) {
+        if (target.scheduledDate) {
+          updatePlatformConfig(target.credentialId, {
+            customScheduledDate: target.scheduledDate,
+            overrideSchedule: true,
+          });
+        }
+      }
+    },
+    [applyEnabledCredentialIds, expandSet, updatePlatformConfig],
+  );
+
+  const handleSaveCurrent = useCallback(
+    async (label: string) => {
+      const enabled = platformConfigs.filter((config) => config.enabled);
+      if (enabled.length === 0) {
+        return;
+      }
+      await createSet({
+        label,
+        targets: enabled.flatMap((config, order) => {
+          const platform = parsePlatform(config.platform);
+          if (!platform) {
+            return [];
+          }
+          return [
+            {
+              credentialId: config.credentialId,
+              order,
+              platform,
+              ...(config.signatureIds && config.signatureIds.length > 0
+                ? { signatureIds: config.signatureIds }
+                : {}),
+              targetKey: `${config.platform}:${config.credentialId}`,
+            },
+          ];
+        }),
+      });
+    },
+    [createSet, platformConfigs],
+  );
+
   return (
     <>
+      <PostingSetPicker
+        canSave={platformConfigs.some((config) => config.enabled)}
+        expandError={expandError ?? undefined}
+        isExpanding={isExpanding}
+        isSaving={isSaving}
+        onSaveCurrent={(label) => {
+          void handleSaveCurrent(label);
+        }}
+        onSelectSet={(id) => {
+          void handleSelectSet(id);
+        }}
+        saveError={saveError ?? undefined}
+        selectedSetId={selectedSetId}
+        sets={sets}
+      />
       <ModalPostPlatformGrid
         platformConfigs={platformConfigs}
         togglePlatform={togglePlatform}
@@ -214,23 +295,34 @@ export default function ModalPostPlatformsTab({
               const currentLength = config.description?.length ?? 0;
 
               const node = (
-                <ModalPostPlatformCard
-                  key={config.platform}
-                  config={config}
-                  isLoading={isLoading}
-                  isEnabled={isEnabled}
-                  isTwitter={isTwitter}
-                  isYoutube={isYoutube}
-                  isInstagram={isInstagram}
-                  currentLength={currentLength}
-                  globalLabel={globalLabel}
-                  globalDescription={globalDescription}
-                  generatingTitleFor={generatingTitleFor}
-                  generatingDescFor={generatingDescFor}
-                  updatePlatformConfig={updatePlatformConfig}
-                  getMinDateTime={getMinDateTime}
-                  handleGenerateContent={handleGenerateContent}
-                />
+                <div key={config.platform} className="space-y-2">
+                  <ModalPostPlatformCard
+                    config={config}
+                    isLoading={isLoading}
+                    isEnabled={isEnabled}
+                    isTwitter={isTwitter}
+                    isYoutube={isYoutube}
+                    isInstagram={isInstagram}
+                    currentLength={currentLength}
+                    globalLabel={globalLabel}
+                    globalDescription={globalDescription}
+                    generatingTitleFor={generatingTitleFor}
+                    generatingDescFor={generatingDescFor}
+                    updatePlatformConfig={updatePlatformConfig}
+                    getMinDateTime={getMinDateTime}
+                    handleGenerateContent={handleGenerateContent}
+                  />
+                  <PostingSignaturePicker
+                    onChange={(signatureIds) =>
+                      updatePlatformConfig(config.credentialId, {
+                        signatureIds,
+                      })
+                    }
+                    platform={config.platform}
+                    selectedIds={config.signatureIds ?? []}
+                    signatures={signatures}
+                  />
+                </div>
               );
               acc.push(node);
               return acc;

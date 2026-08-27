@@ -9,6 +9,29 @@ import { PostVisibility } from '@genfeedai/enums';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('@hooks/data/content/use-posting-sets/use-posting-sets', () => ({
+  usePostingSets: () => ({
+    createSet: vi.fn(),
+    expandError: null,
+    expandSet: vi.fn(),
+    isExpanding: false,
+    isLoading: false,
+    isSaving: false,
+    saveError: null,
+    sets: [],
+  }),
+}));
+
+vi.mock(
+  '@hooks/data/content/use-posting-signatures/use-posting-signatures',
+  () => ({
+    usePostingSignatures: () => ({
+      isLoading: false,
+      signatures: [],
+    }),
+  }),
+);
+
 function makeTarget(
   overrides: Partial<AgentPublishTargetProposal>,
 ): AgentPublishTargetProposal {

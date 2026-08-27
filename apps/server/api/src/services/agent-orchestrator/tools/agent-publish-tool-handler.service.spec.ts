@@ -232,6 +232,82 @@ describe('AgentPublishToolHandler per-channel review', () => {
     expect(postGroupsService.publishNow).toHaveBeenCalled();
   });
 
+  it('applies posting-set provenance and signature attachments on schedule mutation', async () => {
+    const {
+      credentialsService,
+      handler,
+      ingredientsService,
+      postGroupsService,
+    } = createHandler();
+    ingredientsService.findOne.mockResolvedValue({
+      brandId: 'brand-1',
+      category: IngredientCategory.IMAGE,
+      id: 'ingredient-1',
+    });
+    credentialsService.find.mockResolvedValue([
+      { id: 'cred-twitter', platform: 'twitter' },
+    ]);
+
+    const result = await handler.createPost(
+      {
+        caption: 'Launch copy',
+        confirmed: true,
+        contentId: 'ingredient-1',
+        postingSetId: 'set-launch',
+        sourceActionId: 'publish-card-1',
+        targets: [
+          {
+            attachments: [
+              {
+                body: '— Genfeed',
+                kind: 'signature',
+                order: 0,
+                platform: 'twitter',
+              },
+            ],
+            credentialId: 'cred-twitter',
+            platform: 'twitter',
+            signatureIds: ['sig-twitter'],
+          },
+        ],
+        timezone: 'Europe/Malta',
+      },
+      scopedContext('brand-1'),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        autoPublishPolicyId: 'supervised.require_approval',
+        postingSetId: 'set-launch',
+      }),
+    );
+    expect(postGroupsService.create).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      expect.objectContaining({
+        postingSetId: 'set-launch',
+        targets: [
+          expect.objectContaining({
+            attachments: [
+              expect.objectContaining({
+                body: '— Genfeed',
+                kind: 'signature',
+              }),
+            ],
+            credentialId: 'cred-twitter',
+          }),
+        ],
+        timezone: 'Europe/Malta',
+      }),
+      expect.stringMatching(/^agent-publish:/),
+      expect.objectContaining({
+        autoPublishPolicyId: 'supervised.require_approval',
+        postingSetId: 'set-launch',
+      }),
+    );
+  });
+
   it('rejects confirmation when a selected target violates channel capabilities', async () => {
     const {
       credentialsService,
