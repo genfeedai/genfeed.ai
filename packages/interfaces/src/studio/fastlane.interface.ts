@@ -71,4 +71,6 @@ export interface FastlaneScheduleTarget {
   platform: string;
   /** When to publish; omit/undefined means publish now. */
   scheduledDate?: string;
+  /** Optional posting-signature ids carried from a posting set. */
+  signatureIds?: string[];
 }

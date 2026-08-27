@@ -56,6 +56,7 @@ export enum ReleaseTargetSource {
   MANUAL = 'manual',
   WORKFLOW = 'workflow',
   AGENT = 'agent',
+  RSS = 'rss',
 }
 
 /**

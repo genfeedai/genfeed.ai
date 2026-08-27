@@ -58,6 +58,7 @@ export interface FastlaneReleaseBuildParams {
   asset: FastlaneAssetItem;
   brandId: string;
   caption: string;
+  postingSetId?: string;
   targets: FastlaneScheduleTarget[];
   timezone: string;
 }
@@ -66,6 +67,7 @@ export interface ScheduleApprovedParams {
   assets: FastlaneAssetItem[];
   targets: FastlaneScheduleTarget[];
   captions: Record<string, string>;
+  postingSetId?: string;
   timezone: string;
 }
 

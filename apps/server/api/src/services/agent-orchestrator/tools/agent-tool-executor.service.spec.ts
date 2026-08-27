@@ -822,6 +822,15 @@ describe('AgentToolExecutorService', () => {
       assertResourceBrand: vi.fn(),
     };
     const postRepurposeService = { repurpose: vi.fn() };
+    const agentStrategiesService = {
+      findOne: vi.fn().mockResolvedValue({
+        autonomyMode: 'AUTO_PUBLISH',
+        publishPolicy: { autoPublishEnabled: true },
+      }),
+    };
+    const agentPublishAuditsService = {
+      createAudit: vi.fn().mockResolvedValue({ id: 'audit-1' }),
+    };
     const publishHandler = new AgentPublishToolHandler(
       postGroupsService as never,
       postsService as never,
@@ -831,6 +840,8 @@ describe('AgentToolExecutorService', () => {
       agentScopeContextService as never,
       postRepurposeService as never,
       creditsUtilsService as never,
+      agentStrategiesService as never,
+      agentPublishAuditsService as never,
     );
     const instagramInspirationHandler =
       new AgentInstagramInspirationToolHandler(

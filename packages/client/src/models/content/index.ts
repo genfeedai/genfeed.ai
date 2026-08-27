@@ -1,6 +1,8 @@
+export * from './agent-publish-audit.model';
 export * from './article.model';
 export * from './caption.model';
 export * from './dashboard-layout.model';
+export * from './engagement-rule.model';
 export * from './ingredient.model';
 export * from './knowledge-base.model';
 export * from './model.model';
@@ -9,5 +11,6 @@ export * from './newsletter.model';
 export * from './post.model';
 export * from './posting-set.model';
 export * from './prompt.model';
+export * from './rss-source.model';
 export * from './studio-look.model';
 export * from './template.model';

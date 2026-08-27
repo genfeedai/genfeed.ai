@@ -27,6 +27,7 @@ export function useFastlaneSchedule(
       assets,
       targets,
       captions,
+      postingSetId,
       timezone,
     }: ScheduleApprovedParams): Promise<void> => {
       const approved = assets.filter(
@@ -48,6 +49,7 @@ export function useFastlaneSchedule(
               asset,
               brandId,
               caption: captions[asset.idea.id] ?? asset.idea.caption,
+              postingSetId,
               targets,
               timezone,
             });

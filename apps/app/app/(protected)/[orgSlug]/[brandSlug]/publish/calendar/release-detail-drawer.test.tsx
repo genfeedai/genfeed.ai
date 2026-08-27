@@ -17,6 +17,10 @@ import ReleaseDetailDrawer, {
 
 // Radix's Sheet portals into a dialog the jsdom tree cannot focus-trap; the
 // drawer's own behavior is what these tests are about.
+vi.mock('./release-engagement-rules', () => ({
+  default: () => <div>Automation</div>,
+}));
+
 vi.mock('@ui/primitives/sheet', () => ({
   Sheet: ({ children }: { children: React.ReactNode }) => children,
   SheetContent: ({ children }: { children: React.ReactNode }) => (

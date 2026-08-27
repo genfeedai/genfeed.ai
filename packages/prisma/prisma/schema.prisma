@@ -616,6 +616,10 @@ model User {
   watchlists               Watchlist[]
   postingSets              PostingSet[]
   postingSignatures        PostingSignature[]
+  rssSources               RssSource[]
+  rssFeedItems             RssFeedItem[]
+  engagementRules          EngagementRule[]
+  agentPublishAudits       AgentPublishAudit[]
   streaks                  Streak[]
   forecasts                Forecast[]
   tasks                    Task[]
@@ -745,6 +749,10 @@ model Organization {
   schedules                     Schedule[]
   postingSets                   PostingSet[]
   postingSignatures             PostingSignature[]
+  rssSources                    RssSource[]
+  rssFeedItems                  RssFeedItem[]
+  engagementRules               EngagementRule[]
+  agentPublishAudits            AgentPublishAudit[]
   distributions                 Distribution[]
   votes                         Vote[]
   watchlists                    Watchlist[]
@@ -957,6 +965,10 @@ model Brand {
   schedules                  Schedule[]
   postingSets                PostingSet[]
   postingSignatures          PostingSignature[]
+  rssSources                 RssSource[]
+  rssFeedItems               RssFeedItem[]
+  engagementRules            EngagementRule[]
+  agentPublishAudits         AgentPublishAudit[]
   bookmarks                  Bookmark[]
   moodBoard                  MoodBoard?                 @relation("brand_moodboard")
   dashboardLayouts           DashboardLayout[]          @relation("brand_dashboard_layout")
@@ -984,6 +996,71 @@ enum BrandInterviewStatus {
   ABANDONED
 
   @@map("brand_interview_status")
+}
+
+enum RssImportPolicy {
+  DRAFT
+  SCHEDULED
+  PUBLISH_NOW
+
+  @@map("rss_import_policy")
+}
+
+enum RssApprovalMode {
+  APPROVAL
+  AUTO
+
+  @@map("rss_approval_mode")
+}
+
+enum RssFeedItemStatus {
+  PENDING
+  IMPORTED
+  SKIPPED
+  FAILED
+
+  @@map("rss_feed_item_status")
+}
+
+enum EngagementMetric {
+  LIKES
+  COMMENTS
+  SHARES
+  VIEWS
+  ENGAGEMENT_RATE
+
+  @@map("engagement_metric")
+}
+
+enum EngagementRuleAction {
+  REPOST
+  FOLLOW_UP_COMMENT
+
+  @@map("engagement_rule_action")
+}
+
+enum EngagementRuleMode {
+  APPROVAL
+  AUTO
+
+  @@map("engagement_rule_mode")
+}
+
+enum EngagementRuleState {
+  ARMED
+  TRIGGERED
+  COMPLETED
+  EXPIRED
+  DISABLED
+
+  @@map("engagement_rule_state")
+}
+
+enum AgentPublishDecision {
+  PERMITTED
+  DENIED
+
+  @@map("agent_publish_decision")
 }
 
 // Stateful brand-context interview session. Detects in-scope gaps (identity /
@@ -2391,9 +2468,16 @@ model PostGroup {
   idempotencyKey    String?
   attachments       Json         @default("[]")
   statusTransitions Json         @default("[]")
+  postingSetId      String?
+  postingSet        PostingSet?  @relation(fields: [postingSetId], references: [id])
+  rssSourceId       String?
+  rssSource         RssSource?   @relation(fields: [rssSourceId], references: [id])
+  rssFeedItemId     String?
   isDeleted         Boolean      @default(false)
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
+  engagementRules   EngagementRule[]
+  agentPublishAudits AgentPublishAudit[]
 
   @@unique([organizationId, idempotencyKey])
   @@index([organizationId, isDeleted, status, scheduledAt(sort: Asc), id], map: "post_groups_org_status_schedule_idx")
@@ -6024,6 +6108,7 @@ model PostingSet {
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  postGroups     PostGroup[]
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)])
@@ -6053,4 +6138,130 @@ model PostingSignature {
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)])
   @@index([userId, isDeleted, createdAt(sort: Desc)])
   @@map("posting_signatures")
+}
+
+/// RSS feed configuration. Polling is a scheduler-owned sweep, not a workflow node.
+model RssSource {
+  id             String          @id @default(cuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id])
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  brandId        String?
+  brand          Brand?          @relation(fields: [brandId], references: [id])
+  label          String
+  feedUrl        String
+  importPolicy   RssImportPolicy @default(DRAFT)
+  approvalMode   RssApprovalMode @default(APPROVAL)
+  timezone       String          @default("UTC")
+  targetChannels Json            @default("[]")
+  isEnabled      Boolean         @default(true)
+  lastPolledAt   DateTime?
+  lastError      String?
+  importedCount  Int             @default(0)
+  skippedCount   Int             @default(0)
+  failedCount    Int             @default(0)
+  isDeleted      Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  items          RssFeedItem[]
+  postGroups     PostGroup[]
+
+  @@index([organizationId, isDeleted, isEnabled, createdAt(sort: Desc)])
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)])
+  @@index([userId, isDeleted, createdAt(sort: Desc)])
+  @@map("rss_sources")
+}
+
+/// Deduplicated feed item. Unique per source + guid (or URL fallback).
+model RssFeedItem {
+  id             String            @id @default(cuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id])
+  organizationId String
+  organization   Organization      @relation(fields: [organizationId], references: [id])
+  brandId        String?
+  brand          Brand?            @relation(fields: [brandId], references: [id])
+  rssSourceId    String
+  rssSource      RssSource         @relation(fields: [rssSourceId], references: [id])
+  guid           String
+  url            String
+  title          String
+  summary        String?
+  imageUrl       String?
+  publishedAt    DateTime?
+  status         RssFeedItemStatus @default(PENDING)
+  postGroupId    String?
+  error          String?
+  isDeleted      Boolean           @default(false)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([rssSourceId, guid])
+  @@index([organizationId, isDeleted, status, createdAt(sort: Desc)])
+  @@index([rssSourceId, isDeleted, status])
+  @@map("rss_feed_items")
+}
+
+/// Engagement-triggered automation attached to a published release target.
+model EngagementRule {
+  id                   String               @id @default(cuid())
+  userId               String
+  user                 User                 @relation(fields: [userId], references: [id])
+  organizationId       String
+  organization         Organization         @relation(fields: [organizationId], references: [id])
+  brandId              String?
+  brand                Brand?               @relation(fields: [brandId], references: [id])
+  postGroupId          String
+  postGroup            PostGroup            @relation(fields: [postGroupId], references: [id])
+  targetId             String
+  metric               EngagementMetric
+  threshold            Float
+  windowEndsAt         DateTime?
+  actionType           EngagementRuleAction
+  actionPayload        Json                 @default("{}")
+  mode                 EngagementRuleMode   @default(APPROVAL)
+  state                EngagementRuleState  @default(ARMED)
+  isEnabled            Boolean              @default(true)
+  triggeredAt          DateTime?
+  metricSnapshot       Json?
+  resultingReleaseId   String?
+  lastError            String?
+  isDeleted            Boolean              @default(false)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  @@index([organizationId, isDeleted, state, isEnabled])
+  @@index([organizationId, postGroupId, isDeleted])
+  @@index([targetId, isDeleted, state])
+  @@map("engagement_rules")
+}
+
+/// Queryable audit of every agent-initiated publish policy decision.
+model AgentPublishAudit {
+  id             String               @id @default(cuid())
+  userId         String
+  user           User                 @relation(fields: [userId], references: [id])
+  organizationId String
+  organization   Organization         @relation(fields: [organizationId], references: [id])
+  brandId        String?
+  brand          Brand?               @relation(fields: [brandId], references: [id])
+  postGroupId    String?
+  postGroup      PostGroup?           @relation(fields: [postGroupId], references: [id])
+  agentRunId     String?
+  agentThreadId  String?
+  agentStrategyId String?
+  autonomyMode   String
+  channel        String?
+  policyName     String
+  decision       AgentPublishDecision
+  reason         String
+  isDeleted      Boolean              @default(false)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([postGroupId, isDeleted, createdAt(sort: Desc)])
+  @@index([agentRunId, isDeleted])
+  @@map("agent_publish_audits")
 }

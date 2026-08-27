@@ -112,6 +112,7 @@ export default function FastlaneSchedulePanel({
       assets: approved,
       targets: selectedTargets,
       captions,
+      postingSetId: selectedSetId,
       timezone,
     });
   }

@@ -2,6 +2,7 @@ import { AgentCampaignsModule } from '@api/collections/agent-campaigns/agent-cam
 import { AgentGoalsModule } from '@api/collections/agent-goals/agent-goals.module';
 import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memories.module';
 import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messages.module';
+import { AgentPublishAuditsModule } from '@api/collections/agent-publish-audits/agent-publish-audits.module';
 import { AgentRunsCoreModule } from '@api/collections/agent-runs/agent-runs-core.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
@@ -116,6 +117,7 @@ import { Module } from '@nestjs/common';
     AgentContextAssemblyModule,
     AgentThreadsModule,
     AgentMemoriesModule,
+    AgentPublishAuditsModule,
     AgentMessageBusModule,
     AgentMessagesModule,
     AgentThreadingCoreModule,

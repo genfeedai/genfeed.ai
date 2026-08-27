@@ -185,6 +185,7 @@ export default function FastlaneLayout() {
         {step === 'schedule' && (
           <FastlaneSchedulePanel
             assets={enrichedAssets}
+            brandId={brandId ?? ''}
             credentials={credentials}
             isScheduling={isScheduling}
             timezone={Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC'}

@@ -47,6 +47,7 @@ export function buildFastlaneReleaseInput(
         kind: params.asset.idea.format === 'image' ? 'image' : 'video',
       },
     ],
+    ...(params.postingSetId ? { postingSetId: params.postingSetId } : {}),
     status: ReleaseStatus.DRAFT,
     targets,
     timezone: params.timezone,

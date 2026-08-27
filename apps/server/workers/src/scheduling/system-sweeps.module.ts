@@ -4,8 +4,10 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@workers/config/config.module';
 import { CronAgentTurnModule } from '@workers/crons/agent-turn/cron.agent-turn.module';
 import { CronBatchGenerationModule } from '@workers/crons/batch-generation/cron.batch-generation.module';
+import { CronEngagementModule } from '@workers/crons/engagement/cron.engagement.module';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 import { CronReviewGateModule } from '@workers/crons/review-gate/cron.review-gate.module';
+import { CronRssModule } from '@workers/crons/rss/cron.rss.module';
 import { CronStreaksModule } from '@workers/crons/streaks/cron.streaks.module';
 import { CronTiktokModule } from '@workers/crons/tiktok/cron.tiktok.module';
 import { CronTranscriptPurgeModule } from '@workers/crons/transcript-purge/cron.transcript-purge.module';
@@ -28,7 +30,9 @@ import { SystemSweepsProcessor } from '@workers/scheduling/system-sweeps.process
     }),
     CronAgentTurnModule,
     CronBatchGenerationModule,
+    CronEngagementModule,
     CronPostsModule,
+    CronRssModule,
     CronReviewGateModule,
     CronStreaksModule,
     CronTiktokModule,

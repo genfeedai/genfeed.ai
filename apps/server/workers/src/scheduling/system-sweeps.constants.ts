@@ -16,8 +16,10 @@ export const SYSTEM_SWEEP_JOBS = {
   AGENT_TURN_RECONCILE: 'agent-turn-reconcile-sweep',
   BATCH_CREDIT_SETTLEMENT_RECONCILE: 'batch-credit-settlement-reconcile-sweep',
   BATCH_GENERATION_RECONCILE: 'batch-generation-reconcile-sweep',
+  ENGAGEMENT_TRIGGERS: 'engagement-triggers-sweep',
   POSTS_PUBLISH: 'posts-publish-sweep',
   REVIEW_GATE_TIMEOUT: 'review-gate-timeout-sweep',
+  RSS_AUTOPOST: 'rss-autopost-sweep',
   STREAK_MAINTENANCE: 'streak-maintenance-sweep',
   TIKTOK_STATUS: 'tiktok-status-sweep',
   TRANSCRIPT_PURGE: 'transcript-purge-sweep',
@@ -43,6 +45,16 @@ export const SYSTEM_SWEEP_DEFINITIONS: SystemSweepDefinition[] = [
   },
   {
     jobName: SYSTEM_SWEEP_JOBS.POSTS_PUBLISH,
+    pattern: '*/15 * * * *',
+    timezone: 'UTC',
+  },
+  {
+    jobName: SYSTEM_SWEEP_JOBS.RSS_AUTOPOST,
+    pattern: '*/15 * * * *',
+    timezone: 'UTC',
+  },
+  {
+    jobName: SYSTEM_SWEEP_JOBS.ENGAGEMENT_TRIGGERS,
     pattern: '*/15 * * * *',
     timezone: 'UTC',
   },
