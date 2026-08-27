@@ -17,6 +17,29 @@ interface DesktopProcessExceptionHandlerOptions {
   writeError: (message: string) => void;
 }
 
+const IGNORABLE_IO_CODES = new Set([
+  'ECONNRESET',
+  'EPIPE',
+  'ERR_STREAM_DESTROYED',
+]);
+
+export function isIgnorableDesktopIoException(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const code = 'code' in error ? error.code : undefined;
+  if (typeof code === 'string' && IGNORABLE_IO_CODES.has(code)) {
+    return true;
+  }
+
+  const message = 'message' in error ? error.message : undefined;
+  return (
+    typeof message === 'string' &&
+    (message.includes('write EPIPE') || message.includes('read ECONNRESET'))
+  );
+}
+
 export function createDesktopProcessExceptionHandler({
   captureException,
   exit,
@@ -30,6 +53,17 @@ export function createDesktopProcessExceptionHandler({
   let isHandling = false;
 
   return (error, source) => {
+    if (isIgnorableDesktopIoException(error)) {
+      try {
+        writeError(
+          `[desktop] ${source}: ignored broken stdio (${error instanceof Error ? error.message : String(error)})\n`,
+        );
+      } catch {
+        // stderr may already be the broken pipe.
+      }
+      return;
+    }
+
     if (isHandling) {
       exit(1);
       return;

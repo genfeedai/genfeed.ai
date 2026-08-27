@@ -1820,7 +1820,11 @@ const handleDesktopProcessException = createDesktopProcessExceptionHandler({
   isAppReady: () => app.isReady(),
   showFailureScreen: showDesktopStartupFailure,
   writeError: (message) => {
-    process.stderr.write(message);
+    try {
+      process.stderr.write(message);
+    } catch {
+      // Parent bun/next may have closed the pipe; the file log still records it.
+    }
     logService?.error(message.trim());
   },
 });
