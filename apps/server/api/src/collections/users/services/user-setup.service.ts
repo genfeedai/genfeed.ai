@@ -111,6 +111,11 @@ export class UserSetupService {
       // auto-provisioned. Operators create schedules from Automate when they
       // want them.
 
+      // Billing-account linking verifies that the caller administers the
+      // organization. Establish the canonical membership before invoking that
+      // authorization boundary so first-time signup can finish provisioning.
+      member = await this.getOrCreateMember(organization.id, userId);
+
       await this.billingAccountsService.ensureForOrganization({
         label: organization.label,
         organizationId: organization.id.toString(),
@@ -118,7 +123,7 @@ export class UserSetupService {
         userId,
       });
 
-      // Step 6: Create credit balance (REQUIRED - cascading failure)
+      // Create credit balance (REQUIRED - cascading failure)
       await this.creditBalanceService.getOrCreateBalance(
         organization.id.toString(),
       );
@@ -130,9 +135,6 @@ export class UserSetupService {
       if (organizationResult.wasCreated) {
         await this.awardSignupGiftCredits(organization.id);
       }
-
-      // Step 7: Create member (REQUIRED - cascading failure)
-      member = await this.getOrCreateMember(organization.id, userId);
 
       // Log success summary
       this.logger.log(
@@ -407,15 +409,16 @@ export class UserSetupService {
   }
 
   /**
-   * Prefer admin, then user, then owner (the role self-hosted seed always
-   * creates). If the catalog is empty, create admin so first-time signup can
-   * still attach a membership row.
+   * Prefer admin, then owner (the role self-hosted seed always creates). Both
+   * roles satisfy the organization-administration boundary required while
+   * linking the signup workspace to its billing account. If the catalog is
+   * empty, create admin so first-time signup can still attach a membership row.
    */
   private async resolveSignupMemberRole(): Promise<{
     id: string;
     key: string;
   }> {
-    const roleKeys = [MemberRole.ADMIN, MemberRole.USER, MemberRole.OWNER];
+    const roleKeys = [MemberRole.ADMIN, MemberRole.OWNER];
 
     for (const key of roleKeys) {
       const role = await this.rolesService.findOne({ key });
