@@ -77,6 +77,9 @@ describe('first-party skill catalog migration', () => {
   });
 });
 
+// Narrow exception: this framework-agnostic Prisma integration test reads the
+// DATABASE_URL supplied by CI's test-packages job directly because Nest's
+// ConfigService is unavailable in this package.
 const databaseUrl = process.env.DATABASE_URL;
 const describePostgres = databaseUrl ? describe : describe.skip;
 
