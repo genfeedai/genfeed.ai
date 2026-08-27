@@ -12,7 +12,7 @@ import {
   parseUpdateEngagementRuleInput,
   type StoredEngagementRuleRow,
 } from '@api/collections/engagement-rules/services/engagement-rule-persistence.helpers';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { EngagementRuleState } from '@genfeedai/enums';
 import { toPrismaJson } from '@genfeedai/prisma';

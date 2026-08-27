@@ -8,7 +8,7 @@ import { MetadataService } from '@server/collections/metadata/services/metadata.
 import type { CreateMergedVideoDto } from '@server/collections/videos/dto/create-video.dto';
 import { VideosService } from '@server/collections/videos/services/videos.service';
 import { requireVideoOutputPath } from '@server/collections/videos/utils/video-processing-result.util';
-import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
+import { customLabels } from '@server/helpers/utils/pagination.util';
 import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
 import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
