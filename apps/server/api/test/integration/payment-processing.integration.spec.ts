@@ -26,21 +26,28 @@ if (process.env.SKIP_DB_INTEGRATION === 'true') {
   g.test = g.it;
 }
 
+type CallableMock = {
+  (...args: never[]): unknown;
+  mockImplementation: (impl: (...args: never[]) => unknown) => unknown;
+  mockRejectedValue: (value: unknown) => unknown;
+  mockResolvedValue: (value: unknown) => unknown;
+};
+
 type PaymentSubscriptionsServiceMock = {
-  cancel: ReturnType<typeof vi.fn>;
-  create: ReturnType<typeof vi.fn>;
-  findByCustomer: ReturnType<typeof vi.fn>;
-  findOne: ReturnType<typeof vi.fn>;
-  update: ReturnType<typeof vi.fn>;
-  updateStatus: ReturnType<typeof vi.fn>;
+  cancel: CallableMock;
+  create: CallableMock;
+  findByCustomer: CallableMock;
+  findOne: CallableMock;
+  update: CallableMock;
+  updateStatus: CallableMock;
 };
 
 type CreditTransactionsServiceMock = {
-  addCredits: ReturnType<typeof vi.fn>;
-  calculateBalance: ReturnType<typeof vi.fn>;
-  create: ReturnType<typeof vi.fn>;
-  deductCredits: ReturnType<typeof vi.fn>;
-  findByUser: ReturnType<typeof vi.fn>;
+  addCredits: CallableMock;
+  calculateBalance: CallableMock;
+  create: CallableMock;
+  deductCredits: CallableMock;
+  findByUser: CallableMock;
 };
 
 describe('Payment Processing Integration Tests (Stripe)', () => {

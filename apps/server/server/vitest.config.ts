@@ -38,6 +38,20 @@ export default defineConfig({
         ),
       },
       {
+        find: /^@api-types\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/api-types/src/$1',
+        ),
+      },
+      {
+        find: '@api-types',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/api-types/src',
+        ),
+      },
+      {
         find: /^@genfeedai\/config\/(.*)$/,
         replacement: path.resolve(
           serviceDir,

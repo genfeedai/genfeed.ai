@@ -158,7 +158,6 @@ describe('SchedulePostCard', () => {
       />,
     );
 
-    fireEvent.click(screen.getByLabelText(/twitter/i));
     fireEvent.click(screen.getByLabelText(/instagram/i));
     fireEvent.click(screen.getByRole('button', { name: /schedule/i }));
 
