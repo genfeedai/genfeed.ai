@@ -1,28 +1,5 @@
 import { createHash } from 'node:crypto';
 import { AgentPublishAuditsService } from '@api/collections/agent-publish-audits/services/agent-publish-audits.service';
-import { AgentStrategiesService } from '@server/collections/agent-strategies/services/agent-strategies.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
-import { CreatePostDto } from '@server/collections/posts/dto/create-post.dto';
-import { PostRepurposeService } from '@server/collections/posts/services/post-repurpose.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import {
-  buildAgentPublishTargetProposals,
-  collectInvalidTargetBlockers,
-  formatTargetBlockersError,
-  parseAgentPublishTargetPayloads,
-  readCredentialId,
-  readDomainPlatform,
-  resolvePublishMediaKind,
-  resolvePublishValidationMedia,
-  toCanonicalChannelTarget,
-} from '@server/services/agent-orchestrator/tools/agent-publish-target.util';
-import {
-  readAgentScheduleValidationError,
-  SAFE_AGENT_SCHEDULE_ERROR,
-} from '@server/services/agent-orchestrator/tools/agent-schedule-error.util';
-import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { readOptionalString } from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import { evaluateAgentAutoPublishPolicies } from '@api-types/contracts/agent-auto-publish.contract';
 import {
   type AgentPublishPolicyResult,
@@ -58,6 +35,29 @@ import {
   Injectable,
   Optional,
 } from '@nestjs/common';
+import { AgentStrategiesService } from '@server/collections/agent-strategies/services/agent-strategies.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
+import { CreatePostDto } from '@server/collections/posts/dto/create-post.dto';
+import { PostRepurposeService } from '@server/collections/posts/services/post-repurpose.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import {
+  buildAgentPublishTargetProposals,
+  collectInvalidTargetBlockers,
+  formatTargetBlockersError,
+  parseAgentPublishTargetPayloads,
+  readCredentialId,
+  readDomainPlatform,
+  resolvePublishMediaKind,
+  resolvePublishValidationMedia,
+  toCanonicalChannelTarget,
+} from '@server/services/agent-orchestrator/tools/agent-publish-target.util';
+import {
+  readAgentScheduleValidationError,
+  SAFE_AGENT_SCHEDULE_ERROR,
+} from '@server/services/agent-orchestrator/tools/agent-schedule-error.util';
+import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { readOptionalString } from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import { z } from 'zod';
 
 const STRICT_SCHEDULE_DATE_SCHEMA = z.string().datetime({ offset: true });
@@ -234,7 +234,7 @@ export class AgentPublishToolHandler {
       };
     }
 
-    const policy = evaluateAgentAutoPublishPolicies({
+    const autoPublishPolicy = evaluateAgentAutoPublishPolicies({
       autonomyMode: ctx.autonomyMode,
       brandAutoPublishEnabled: ctx.confirmationOrigin === 'thread-ui-action',
       channels: createdPlatforms,
@@ -251,7 +251,7 @@ export class AgentPublishToolHandler {
         settings: {
           ...(targetsWithCaptions[order]?.settings ?? {}),
           ...(postingSetId ? { postingSetId } : {}),
-          autoPublishPolicyId: policy.policyId,
+          autoPublishPolicyId: autoPublishPolicy.policyId,
         },
         timezone: targetsWithCaptions[order]?.timezone ?? timezone,
         visibility: targetsWithCaptions[order]?.visibility ?? visibility,

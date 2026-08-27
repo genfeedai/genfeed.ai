@@ -64,11 +64,13 @@ import { AssetGateService } from '@server/collections/organization-settings/serv
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
 import { PostAnalyticsService } from '@server/collections/posts/services/post-analytics.service';
 import { PostRepurposeService } from '@server/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@server/collections/posts/services/posts.service';
 import { ReviewablePostsService } from '@server/collections/posts/services/reviewable-posts.service';
 import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
+import { RssSourcesService } from '@server/collections/rss-sources/services/rss-sources.service';
 import { SocialInboxService } from '@server/collections/social-inbox/services/social-inbox.service';
 import { SocialReplyCampaignDispatchService } from '@server/collections/social-inbox/services/social-reply-campaign-dispatch.service';
 import { StreaksService } from '@server/collections/streaks/services/streaks.service';
@@ -343,8 +345,10 @@ const WORKER_DOMAIN_SERVICES = [
   PostAnalyticsCollectionStateService,
   PostAnalyticsService,
   PostRepurposeService,
+  PostGroupsService,
   PostsService,
   PublicClipToolStoreService,
+  RssSourcesService,
   PublishEventWebhookService,
   PublisherFactoryService,
   QueueService,

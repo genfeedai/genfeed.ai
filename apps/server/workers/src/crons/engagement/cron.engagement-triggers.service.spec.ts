@@ -1,6 +1,6 @@
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
-    '@api/shared/testing/prisma-mock'
+    '@server/shared/testing/prisma-mock'
   );
   return {
     ...canonicalPrismaMock(),
@@ -8,8 +8,6 @@ vi.mock('@genfeedai/prisma', async () => {
   };
 });
 
-import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
-import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import {
   CredentialPlatform,
   EngagementMetric,
@@ -19,6 +17,8 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
+import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
+import { PublisherFactoryService } from '@server/services/integrations/publishers/publisher-factory.service';
 import { CronEngagementTriggersService } from '@workers/crons/engagement/cron.engagement-triggers.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

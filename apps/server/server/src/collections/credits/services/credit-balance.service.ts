@@ -1,8 +1,3 @@
-import type { CreditBalanceDocument } from '@server/collections/credits/schemas/credit-balance.schema';
-import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
-import type { PrismaTransactionClient } from '@server/helpers/utils/transaction/transaction.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type {
   IApplyCreditDeltaInput,
   ICreditWalletSnapshot,
@@ -11,6 +6,11 @@ import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import type { CreditBalanceDocument } from '@server/collections/credits/schemas/credit-balance.schema';
+import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
+import type { PrismaTransactionClient } from '@server/helpers/utils/transaction/transaction.util';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 @Injectable()
 export class CreditBalanceService {

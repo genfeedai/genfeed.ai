@@ -1,14 +1,5 @@
 import { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
-import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
-import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
-import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
-import type { PrismaTransactionClient } from '@server/helpers/utils/transaction/transaction.util';
-import { TransactionUtil } from '@server/helpers/utils/transaction/transaction.util';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
   ActivitySource,
@@ -25,6 +16,15 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
+import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
+import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
+import type { PrismaTransactionClient } from '@server/helpers/utils/transaction/transaction.util';
+import { TransactionUtil } from '@server/helpers/utils/transaction/transaction.util';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 /**
  * Metered credits utility service — the real ledger, bound when

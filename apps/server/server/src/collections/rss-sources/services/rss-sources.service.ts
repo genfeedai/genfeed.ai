@@ -1,22 +1,3 @@
-import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
-import type { CreateRssSourceDto } from '@api/collections/rss-sources/dto/create-rss-source.dto';
-import type { RssSourcesQueryDto } from '@api/collections/rss-sources/dto/rss-sources-query.dto';
-import type { UpdateRssSourceDto } from '@api/collections/rss-sources/dto/update-rss-source.dto';
-import type {
-  RssSourceDocument,
-  RssSourceScope,
-} from '@api/collections/rss-sources/schemas/rss-source.schema';
-import {
-  errorMessage,
-  parseCreateRssSourceInput,
-  parseStoredTargetChannels,
-  parseUpdateRssSourceInput,
-  type StoredPostingSignatureRow,
-  type StoredRssSourceRow,
-  toCredentialPlatform,
-} from '@api/collections/rss-sources/services/rss-source-persistence.helpers';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type ParsedRssFeedItem,
   parseRssFeed,
@@ -35,6 +16,25 @@ import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
+import type { CreateRssSourceDto } from '@server/collections/rss-sources/dto/create-rss-source.dto';
+import type { RssSourcesQueryDto } from '@server/collections/rss-sources/dto/rss-sources-query.dto';
+import type { UpdateRssSourceDto } from '@server/collections/rss-sources/dto/update-rss-source.dto';
+import type {
+  RssSourceDocument,
+  RssSourceScope,
+} from '@server/collections/rss-sources/schemas/rss-source.schema';
+import {
+  errorMessage,
+  parseCreateRssSourceInput,
+  parseStoredTargetChannels,
+  parseUpdateRssSourceInput,
+  type StoredPostingSignatureRow,
+  type StoredRssSourceRow,
+  toCredentialPlatform,
+} from '@server/collections/rss-sources/services/rss-source-persistence.helpers';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const RSS_SCHEDULE_DELAY_MS = 5 * 60 * 1000;
 

@@ -1,5 +1,5 @@
-import { RssSourcesService } from '@api/collections/rss-sources/services/rss-sources.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { RssSourcesService } from '@server/collections/rss-sources/services/rss-sources.service';
 import { CronRssAutopostService } from '@workers/crons/rss/cron.rss-autopost.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

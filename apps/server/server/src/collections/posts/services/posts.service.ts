@@ -1,31 +1,5 @@
 import process from 'node:process';
-import { CredentialEntity } from '@server/collections/credentials/entities/credential.entity';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { IngredientEntity } from '@server/collections/ingredients/entities/ingredient.entity';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { CreatePostDto } from '@server/collections/posts/dto/create-post.dto';
-import { UpdatePostDto } from '@server/collections/posts/dto/update-post.dto';
-import type { PostDocument } from '@server/collections/posts/post.schema';
-import {
-  batchSchedulePosts,
-  type PostBatchScheduleItem,
-  type PostBatchScheduleResult,
-  type PostBatchScheduleTarget,
-} from '@server/collections/posts/services/post-batch-schedule.util';
 import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
-import { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
-import { CacheService } from '@server/services/cache/cache.service';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import {
-  BaseService,
-  type PopulateInput,
-} from '@server/shared/services/base/base.service';
-import { pickDefinedFields } from '@server/shared/utils/object/pick-defined-fields.util';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
-import { paginatedQueryCacheTag } from '@server/shared/utils/query-cache/query-cache.util';
-import { TimezoneUtil } from '@server/shared/utils/timezone/timezone.util';
 import { getSupportedPostVisibilities } from '@api-types/contracts/channel-capabilities.contract';
 import {
   projectLegacyPostStatus,
@@ -52,6 +26,32 @@ import type { IOnboardingJourneyMissionState } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import { CredentialEntity } from '@server/collections/credentials/entities/credential.entity';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { IngredientEntity } from '@server/collections/ingredients/entities/ingredient.entity';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { CreatePostDto } from '@server/collections/posts/dto/create-post.dto';
+import { UpdatePostDto } from '@server/collections/posts/dto/update-post.dto';
+import type { PostDocument } from '@server/collections/posts/post.schema';
+import {
+  batchSchedulePosts,
+  type PostBatchScheduleItem,
+  type PostBatchScheduleResult,
+  type PostBatchScheduleTarget,
+} from '@server/collections/posts/services/post-batch-schedule.util';
+import { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
+import { CacheService } from '@server/services/cache/cache.service';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@server/shared/services/base/base.service';
+import { pickDefinedFields } from '@server/shared/utils/object/pick-defined-fields.util';
+import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
+import { paginatedQueryCacheTag } from '@server/shared/utils/query-cache/query-cache.util';
+import { TimezoneUtil } from '@server/shared/utils/timezone/timezone.util';
 
 const ONBOARDING_JOURNEY_REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
 const DEFAULT_CONTENT_MENTION_LIMIT = 50;

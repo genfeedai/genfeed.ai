@@ -8,9 +8,6 @@ vi.mock('@genfeedai/prisma', async () => {
   };
 });
 
-import type { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
-import { RssSourcesService } from '@api/collections/rss-sources/services/rss-sources.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ReleaseStatus,
   RssApprovalMode,
@@ -19,6 +16,9 @@ import {
 } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import type { LoggerService } from '@libs/logger/logger.service';
+import type { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
+import { RssSourcesService } from '@server/collections/rss-sources/services/rss-sources.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const context = {

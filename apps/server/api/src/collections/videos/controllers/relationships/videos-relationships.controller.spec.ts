@@ -13,13 +13,13 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import { VideosRelationshipsController } from '@api/collections/videos/controllers/relationships/videos-relationships.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { testId } from '@helpers/testing/test-id.helper';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { PostsService } from '@server/collections/posts/services/posts.service';
 import { VideosQueryDto } from '@server/collections/videos/dto/videos-query.dto';
 import { VideosService } from '@server/collections/videos/services/videos.service';
-import { testId } from '@helpers/testing/test-id.helper';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
 describe('VideosRelationshipsController', () => {
