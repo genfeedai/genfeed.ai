@@ -135,6 +135,15 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
       systemWorkflowIds: ['reply-dm-automation'],
     },
     {
+      classification: 'pending-system-workflow-migration',
+      file: 'apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts',
+      id: 'social-inbox-manual-actions',
+      issue: 1032,
+      reason:
+        'Manual social inbox replies and DMs still call platform services directly while they migrate behind reply-dm-automation.',
+      systemWorkflowIds: ['reply-dm-automation'],
+    },
+    {
       classification: 'workflow-adapter',
       file: 'apps/server/server/src/services/campaign/campaign-executor.service.ts',
       id: 'campaign-reply-automation',
