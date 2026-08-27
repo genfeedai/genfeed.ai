@@ -53,6 +53,11 @@ vi.mock('@/lib/desktop/use-desktop-local-workspace-flag', () => ({
   useDesktopLocalWorkspaceFlag: () => desktopLocalWorkspaceFlagMock,
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useSearchParams: () => new URLSearchParams(window.location.search),

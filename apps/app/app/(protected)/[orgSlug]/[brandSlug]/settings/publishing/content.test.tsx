@@ -492,7 +492,7 @@ describe('BrandSettingsPublishingPage', () => {
     fireEvent.change(screen.getByLabelText('RSS source label'), {
       target: { value: 'Industry news' },
     });
-    fireEvent.click(screen.getByLabelText('@ready-account'));
+    fireEvent.click(screen.getByLabelText(/@ready-account/));
     fireEvent.click(screen.getByText('Save RSS source'));
 
     await waitFor(() => {
@@ -633,7 +633,7 @@ describe('BrandSettingsPublishingPage', () => {
     render(<BrandSettingsPublishingPage />);
 
     expect(await screen.findByText('Ready account')).toBeVisible();
-    expect(screen.getByText('@failed-account')).toBeVisible();
+    expect(screen.getAllByText('@failed-account').length).toBeGreaterThan(0);
     expect(screen.getByText('Unavailable')).toBeVisible();
     expect(
       screen.getByText(

@@ -3,13 +3,13 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockFindAll = vi.fn();
-const mockPoll = vi.fn();
+const mockPollNow = vi.fn();
 const mockGetService = vi.fn();
-const mockUseBrand = vi.fn();
+const mockUseCollectionScope = vi.fn();
 const mockUseAuthIdentity = vi.fn();
 
-vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => mockUseBrand(),
+vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
+  useCollectionScope: () => mockUseCollectionScope(),
 }));
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
@@ -32,12 +32,12 @@ describe('useRssSources', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFindAll.mockResolvedValue([SOURCE]);
-    mockPoll.mockResolvedValue(SOURCE);
+    mockPollNow.mockResolvedValue(SOURCE);
     mockGetService.mockResolvedValue({
       findAll: mockFindAll,
-      poll: mockPoll,
+      pollNow: mockPollNow,
     });
-    mockUseBrand.mockReturnValue({ brandId: 'brand-1' });
+    mockUseCollectionScope.mockReturnValue({ brandId: 'brand-1' });
     mockUseAuthIdentity.mockReturnValue({ isSignedIn: true });
   });
 
@@ -51,7 +51,7 @@ describe('useRssSources', () => {
     });
 
     expect(mockFindAll).toHaveBeenCalledWith(
-      { brand: 'brand-1' },
+      { brandId: 'brand-1' },
       expect.any(AbortSignal),
     );
     expect(result.current.sources).toEqual([SOURCE]);
@@ -66,7 +66,7 @@ describe('useRssSources', () => {
   });
 
   it('does not fetch without a brand id', () => {
-    mockUseBrand.mockReturnValue({ brandId: undefined });
+    mockUseCollectionScope.mockReturnValue({ brandId: undefined });
 
     renderHook(() => useRssSources(), { wrapper: createQueryWrapper() });
 
@@ -85,10 +85,10 @@ describe('useRssSources', () => {
     mockFindAll.mockClear();
 
     await act(async () => {
-      await result.current.poll('rss-1');
+      await result.current.pollNow('rss-1');
     });
 
-    expect(mockPoll).toHaveBeenCalledWith('rss-1');
+    expect(mockPollNow).toHaveBeenCalledWith('rss-1');
     await waitFor(() => {
       expect(mockFindAll).toHaveBeenCalled();
     });

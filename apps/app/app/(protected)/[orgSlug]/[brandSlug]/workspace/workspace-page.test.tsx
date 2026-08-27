@@ -7,6 +7,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import WorkspacePageContent from './workspace-page';
 
@@ -14,6 +15,29 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+vi.mock('@ui/primitives/sheet', () => ({
+  Sheet: ({
+    children,
+    onOpenChange,
+    open,
+  }: {
+    children: ReactNode;
+    onOpenChange?: (open: boolean) => void;
+    open?: boolean;
+  }) =>
+    open ? (
+      <div>
+        {children}
+        <button type="button" onClick={() => onOpenChange?.(false)}>
+          Close
+        </button>
+      </div>
+    ) : null,
+  SheetContent: ({ children }: { children: ReactNode }) => (
+    <div>{children}</div>
+  ),
+}));
 
 const mocks = vi.hoisted(() => ({
   agentRunsList: vi.fn(),
