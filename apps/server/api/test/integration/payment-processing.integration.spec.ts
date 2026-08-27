@@ -12,6 +12,7 @@ import {
   mockConfigService,
   mockLoggerService,
 } from '@test/mocks/service.mocks';
+import type { Mock } from 'vitest';
 
 // Allow skipping this file when a real DB integration is not available
 // Set SKIP_DB_INTEGRATION=true to skip all tests in this file
@@ -26,11 +27,13 @@ if (process.env.SKIP_DB_INTEGRATION === 'true') {
   g.test = g.it;
 }
 
-type CallableMock = {
-  (...args: never[]): unknown;
-  mockImplementation: (impl: (...args: never[]) => unknown) => unknown;
-  mockRejectedValue: (value: unknown) => unknown;
-  mockResolvedValue: (value: unknown) => unknown;
+type CallableMock<Result = unknown> = Mock<(...args: unknown[]) => Result>;
+
+type CreditTransactionResult = {
+  balance?: number;
+  credits?: number;
+  reason: string;
+  type: string;
 };
 
 type PaymentSubscriptionsServiceMock = {
@@ -43,10 +46,10 @@ type PaymentSubscriptionsServiceMock = {
 };
 
 type CreditTransactionsServiceMock = {
-  addCredits: CallableMock;
-  calculateBalance: CallableMock;
+  addCredits: CallableMock<Promise<CreditTransactionResult>>;
+  calculateBalance: CallableMock<Promise<number>>;
   create: CallableMock;
-  deductCredits: CallableMock;
+  deductCredits: CallableMock<Promise<CreditTransactionResult>>;
   findByUser: CallableMock;
 };
 
