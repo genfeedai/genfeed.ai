@@ -32,6 +32,9 @@ export type DigestOwnerResolver = (
   organizationId: string,
 ) => Promise<{ userId: string | null; email: string | null } | null>;
 
+/** Fail-closed recipient check applied after the owner email is resolved. */
+export type DigestRecipientGate = (email: string) => boolean;
+
 /** Fetches the deterministically-ranked top-N trends for an org. */
 export type DigestTrendsProvider = (params: {
   organizationId: string;
@@ -66,6 +69,7 @@ export interface TrendDigestSkippedOutput {
   skipped: true;
   reason:
     | 'no-owner-email'
+    | 'recipient-not-allowed'
     | 'already-ran-today'
     | 'insufficient-credits'
     | 'no-trends';
@@ -116,6 +120,7 @@ function utcDateKey(): string {
 export class TrendDigestExecutor extends BaseExecutor {
   readonly nodeType = 'trendDigest';
   private ownerResolver: DigestOwnerResolver | null = null;
+  private recipientGate: DigestRecipientGate | null = null;
   private trendsProvider: DigestTrendsProvider | null = null;
   private idempotencyGuard: DigestIdempotencyGuard | null = null;
   private creditsChecker: DigestCreditsChecker | null = null;
@@ -123,6 +128,10 @@ export class TrendDigestExecutor extends BaseExecutor {
 
   setOwnerResolver(resolver: DigestOwnerResolver): void {
     this.ownerResolver = resolver;
+  }
+
+  setRecipientGate(gate: DigestRecipientGate): void {
+    this.recipientGate = gate;
   }
 
   setTrendsProvider(provider: DigestTrendsProvider): void {
@@ -189,6 +198,10 @@ export class TrendDigestExecutor extends BaseExecutor {
     const owner = await this.ownerResolver(orgId);
     if (!owner?.email) {
       return this.skip('no-owner-email');
+    }
+
+    if (this.recipientGate && !this.recipientGate(owner.email)) {
+      return this.skip('recipient-not-allowed');
     }
 
     const acquired = await this.idempotencyGuard(

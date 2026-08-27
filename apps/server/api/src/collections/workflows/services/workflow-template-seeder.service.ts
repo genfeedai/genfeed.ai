@@ -1,3 +1,4 @@
+import { resolveDailyTrendsDigestScheduleEnabled } from '@api/collections/workflows/services/daily-trends-digest-access';
 import { SYSTEM_WORKFLOW_ACTION_DEFINITIONS } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { areWorkflowMetadataValuesEqual } from '@api/collections/workflows/services/workflow-template-seeder-metadata.util';
@@ -398,8 +399,8 @@ export class WorkflowTemplateSeederService {
    * Idempotently seeds the predetermined "Daily Trends Digest" workflow for an
    * organization. Kept for operator backfill / self-host scripts only —
    * organization creation no longer auto-seeds (#2176 catalog install).
-   * Unlike the template seeders below, an existing row that was toggled off is
-   * repaired back to enabled.
+   * Hosted SaaS keeps the schedule on only for the operator inbox; other orgs
+   * are paused. Self-host defaults on for new clones and honors an existing pause.
    */
   async ensureDailyTrendsDigestWorkflow(
     userId: string,
@@ -411,11 +412,15 @@ export class WorkflowTemplateSeederService {
         path: ['sourceTemplateId'],
       },
     });
+    const ownerEmail = await this.resolveOwnerEmail(userId);
 
-    const createData = this.buildDailyTrendsDigestCreateData(
-      userId,
+    const createData = this.buildDailyTrendsDigestCreateData({
+      isScheduleEnabled: resolveDailyTrendsDigestScheduleEnabled({
+        email: ownerEmail,
+      }),
       organizationId,
-    );
+      userId,
+    });
 
     // Fast path: most calls hit an already-seeded org.
     const preCheck = await this.prisma.workflow.findFirst({
@@ -424,27 +429,40 @@ export class WorkflowTemplateSeederService {
     });
 
     if (preCheck) {
-      const metadataPatch = this.buildSeededWorkflowMetadataPatch({
+      const writePatch = this.buildDailyTrendsDigestWritePatch({
         desiredMetadata: createData.metadata,
+        existingEnabled: preCheck.isScheduleEnabled,
         existingMetadata: preCheck.metadata,
+        ownerEmail,
       });
-      if (!preCheck.isScheduleEnabled || metadataPatch) {
+      if (Object.keys(writePatch).length > 0) {
         await this.prisma.workflow.update({
-          data: {
-            ...(metadataPatch
-              ? { metadata: metadataPatch as Prisma.InputJsonValue }
-              : {}),
-            ...(!preCheck.isScheduleEnabled ? { isScheduleEnabled: true } : {}),
-          },
+          data: writePatch,
           where: scopedWhere(organizationId, { id: preCheck.id }),
         });
       }
+      await this.syncDailyTrendsDigestScheduler({
+        isScheduleEnabled: resolveDailyTrendsDigestScheduleEnabled({
+          email: ownerEmail,
+          existingScheduleEnabled: preCheck.isScheduleEnabled,
+        }),
+        metadata: writePatch.metadata ?? preCheck.metadata,
+        schedule: DAILY_TRENDS_DIGEST_TEMPLATE.schedule ?? '0 7 * * *',
+        timezone: DAILY_TRENDS_DIGEST_TEMPLATE.timezone ?? 'UTC',
+        workflowId: preCheck.id,
+      });
       await this.reconcileDesiredSystemWorkflowDuplicates(
         organizationId,
         createData.metadata,
       );
       return;
     }
+
+    let schedulerSync: {
+      isScheduleEnabled: boolean;
+      metadata: unknown;
+      workflowId: string;
+    } | null = null;
 
     try {
       await this.prisma.$transaction(
@@ -455,29 +473,38 @@ export class WorkflowTemplateSeederService {
           });
 
           if (existing) {
-            const metadataPatch = this.buildSeededWorkflowMetadataPatch({
+            const writePatch = this.buildDailyTrendsDigestWritePatch({
               desiredMetadata: createData.metadata,
+              existingEnabled: existing.isScheduleEnabled,
               existingMetadata: existing.metadata,
+              ownerEmail,
             });
-            if (!existing.isScheduleEnabled || metadataPatch) {
+            if (Object.keys(writePatch).length > 0) {
               await tx.workflow.update({
-                data: {
-                  ...(metadataPatch
-                    ? { metadata: metadataPatch as Prisma.InputJsonValue }
-                    : {}),
-                  ...(!existing.isScheduleEnabled
-                    ? { isScheduleEnabled: true }
-                    : {}),
-                },
+                data: writePatch,
                 where: scopedWhere(organizationId, { id: existing.id }),
               });
             }
+            schedulerSync = {
+              isScheduleEnabled: resolveDailyTrendsDigestScheduleEnabled({
+                email: ownerEmail,
+                existingScheduleEnabled: existing.isScheduleEnabled,
+              }),
+              metadata: writePatch.metadata ?? existing.metadata,
+              workflowId: existing.id,
+            };
             return;
           }
 
-          await tx.workflow.create({
+          const created = await tx.workflow.create({
             data: createData as Prisma.WorkflowCreateInput,
+            select: { id: true },
           });
+          schedulerSync = {
+            isScheduleEnabled: Boolean(createData.isScheduleEnabled),
+            metadata: createData.metadata,
+            workflowId: created.id,
+          };
         },
         { isolationLevel: 'Serializable' },
       );
@@ -493,21 +520,90 @@ export class WorkflowTemplateSeederService {
       }
     }
 
+    if (schedulerSync) {
+      await this.syncDailyTrendsDigestScheduler({
+        isScheduleEnabled: schedulerSync.isScheduleEnabled,
+        metadata: schedulerSync.metadata,
+        schedule: DAILY_TRENDS_DIGEST_TEMPLATE.schedule ?? '0 7 * * *',
+        timezone: DAILY_TRENDS_DIGEST_TEMPLATE.timezone ?? 'UTC',
+        workflowId: schedulerSync.workflowId,
+      });
+    }
+
     await this.reconcileDesiredSystemWorkflowDuplicates(
       organizationId,
       createData.metadata,
     );
   }
 
-  private buildDailyTrendsDigestCreateData(
-    userId: string,
-    organizationId: string,
-  ): Record<string, unknown> {
+  private async resolveOwnerEmail(userId: string): Promise<string | null> {
+    const owner = await this.prisma.user.findFirst({
+      select: { email: true },
+      where: { id: userId, isDeleted: false },
+    });
+    return owner?.email ?? null;
+  }
+
+  private buildDailyTrendsDigestWritePatch(input: {
+    desiredMetadata: unknown;
+    existingEnabled: boolean | null | undefined;
+    existingMetadata: unknown;
+    ownerEmail: string | null;
+  }): {
+    isScheduleEnabled?: boolean;
+    metadata?: Prisma.InputJsonValue;
+  } {
+    const metadataPatch = this.buildSeededWorkflowMetadataPatch({
+      desiredMetadata: input.desiredMetadata,
+      existingMetadata: input.existingMetadata,
+    });
+    const shouldEnable = resolveDailyTrendsDigestScheduleEnabled({
+      email: input.ownerEmail,
+      existingScheduleEnabled: input.existingEnabled ?? null,
+    });
+
+    return {
+      ...(metadataPatch
+        ? { metadata: metadataPatch as Prisma.InputJsonValue }
+        : {}),
+      ...(input.existingEnabled !== shouldEnable
+        ? { isScheduleEnabled: shouldEnable }
+        : {}),
+    };
+  }
+
+  private async syncDailyTrendsDigestScheduler(input: {
+    isScheduleEnabled: boolean;
+    metadata: unknown;
+    schedule: string;
+    timezone: string;
+    workflowId: string;
+  }): Promise<void> {
+    if (!this.workflowExecutionQueueService) {
+      return;
+    }
+
+    await this.workflowExecutionQueueService.syncWorkflowScheduler({
+      id: input.workflowId,
+      isDeleted: false,
+      isScheduleEnabled: input.isScheduleEnabled,
+      metadata: input.metadata,
+      schedule: input.schedule,
+      status: WorkflowStatus.ACTIVE,
+      timezone: input.timezone,
+    });
+  }
+
+  private buildDailyTrendsDigestCreateData(input: {
+    isScheduleEnabled: boolean;
+    organizationId: string;
+    userId: string;
+  }): Record<string, unknown> {
     return {
       edges: DAILY_TRENDS_DIGEST_TEMPLATE.edges as Prisma.InputJsonValue,
       executionCount: 0,
       isDeleted: false,
-      isScheduleEnabled: true,
+      isScheduleEnabled: input.isScheduleEnabled,
       label: 'Daily Trends Digest',
       metadata: this.buildSeededSystemWorkflowMetadata({
         changeSummary: DAILY_TRENDS_DIGEST_TEMPLATE.changeSummary,
@@ -516,13 +612,13 @@ export class WorkflowTemplateSeederService {
         version: DAILY_TRENDS_DIGEST_TEMPLATE.version,
       }),
       nodes: DAILY_TRENDS_DIGEST_TEMPLATE.nodes as Prisma.InputJsonValue,
-      organizationId,
+      organizationId: input.organizationId,
       progress: 0,
       schedule: DAILY_TRENDS_DIGEST_TEMPLATE.schedule ?? '0 7 * * *',
       status: WorkflowStatus.ACTIVE,
       steps: [],
       timezone: DAILY_TRENDS_DIGEST_TEMPLATE.timezone ?? 'UTC',
-      userId,
+      userId: input.userId,
     };
   }
 

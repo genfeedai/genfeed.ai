@@ -5,6 +5,23 @@ import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-w
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock(
+  '@api/collections/workflows/services/daily-trends-digest-access',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@api/collections/workflows/services/daily-trends-digest-access')
+      >();
+    return {
+      ...actual,
+      isDailyTrendsDigestRecipientAllowed: vi.fn(
+        (email: string | null | undefined) =>
+          actual.isDailyTrendsDigestRecipientAllowed(email, { isCloud: true }),
+      ),
+    };
+  },
+);
+
 function createMockLogger() {
   return {
     debug: vi.fn(),
@@ -16,10 +33,14 @@ function createMockLogger() {
 
 function createMockPrisma() {
   return {
+    user: {
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
     workflow: {
       findFirst: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn().mockResolvedValue({}),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
   };
 }
@@ -128,6 +149,62 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
       workflowId: 'wf-loop',
     });
     expect(queueService.removeWorkflowScheduler).not.toHaveBeenCalled();
+  });
+
+  it('pauses hosted daily trends digest schedules for non-operator owners', async () => {
+    const prisma = createMockPrisma();
+    prisma.user.findFirst.mockResolvedValue({
+      email: 'mitchell@mantella.nl',
+    });
+    const { queueService, service } = createService({ prisma });
+
+    await service.scheduleWorkflow({
+      id: 'wf-digest',
+      isScheduleEnabled: true,
+      metadata: {
+        sourceTemplateId: 'daily-trends-digest',
+      },
+      organizationId: 'org-1',
+      schedule: '0 7 * * *',
+      timezone: 'UTC',
+      userId: 'user-1',
+    } as unknown as WorkflowDocument);
+
+    expect(prisma.workflow.updateMany).toHaveBeenCalledWith({
+      data: { isScheduleEnabled: false },
+      where: { id: 'wf-digest', isDeleted: false, organizationId: 'org-1' },
+    });
+    expect(queueService.removeWorkflowScheduler).toHaveBeenCalledWith(
+      'wf-digest',
+    );
+    expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
+  });
+
+  it('keeps the hosted daily trends digest on for the operator inbox', async () => {
+    const prisma = createMockPrisma();
+    prisma.user.findFirst.mockResolvedValue({
+      email: 'vincent@genfeed.ai',
+    });
+    const { queueService, service } = createService({ prisma });
+
+    await service.scheduleWorkflow({
+      id: 'wf-digest',
+      isScheduleEnabled: true,
+      metadata: {
+        sourceTemplateId: 'daily-trends-digest',
+      },
+      organizationId: 'org-1',
+      schedule: '0 7 * * *',
+      timezone: 'UTC',
+      userId: 'user-1',
+    } as unknown as WorkflowDocument);
+
+    expect(prisma.workflow.updateMany).not.toHaveBeenCalled();
+    expect(queueService.upsertWorkflowScheduler).toHaveBeenCalledWith({
+      cronExpression: '0 7 * * *',
+      timezone: 'UTC',
+      workflowId: 'wf-digest',
+    });
   });
 
   it('upserts a BullMQ job scheduler when a schedule is set and enabled', async () => {
@@ -344,8 +421,10 @@ describe('WorkflowSchedulerService — boot sync', () => {
         id: true,
         isScheduleEnabled: true,
         metadata: true,
+        organizationId: true,
         schedule: true,
         timezone: true,
+        userId: true,
       },
       where: {
         isDeleted: false,

@@ -1,10 +1,10 @@
 /**
  * Seed Script: Daily Trends Digest Workflows
  *
- * Idempotently provisions the predetermined "Daily Trends Digest" workflow for
- * existing organizations (seeded ON by default; owners can pause it from the workflow list).
- * New organizations are seeded automatically on creation; this backfills the
- * organizations that existed before the feature shipped.
+ * Idempotently provisions the predetermined "Daily Trends Digest" workflow.
+ * Hosted SaaS keeps the schedule on only for vincent@genfeed.ai; every other
+ * org is paused. Self-host defaults on for new clones and honors an existing
+ * pause. Organization creation no longer auto-seeds (#2176).
  *
  * Dry-run is the default. Pass `--live` to apply changes.
  *
@@ -19,6 +19,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { resolveDailyTrendsDigestScheduleEnabled } from '@api/collections/workflows/services/daily-trends-digest-access';
 import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
 import { PrismaClient, toPrismaJson } from '@genfeedai/prisma';
 import {
@@ -40,6 +41,7 @@ type SeedArgs = {
 type SeedOrganization = {
   id: string;
   userId: string | null;
+  user: { email: string | null } | null;
 };
 
 type ExistingDigestWorkflow = {
@@ -184,26 +186,31 @@ async function findExistingDigestWorkflow(
 
 async function ensureDailyTrendsDigestWorkflow(params: {
   dryRun: boolean;
+  ownerEmail: string | null;
   organizationId: string;
   prisma: PrismaClient;
   userId: string;
-}): Promise<'created' | 'enabled' | 'unchanged'> {
+}): Promise<'created' | 'enabled' | 'disabled' | 'unchanged'> {
   const existing = await findExistingDigestWorkflow(
     params.prisma,
     params.organizationId,
   );
+  const shouldEnable = resolveDailyTrendsDigestScheduleEnabled({
+    email: params.ownerEmail,
+    existingScheduleEnabled: existing?.isScheduleEnabled ?? null,
+  });
 
   if (existing) {
-    if (existing.isScheduleEnabled) {
+    if (existing.isScheduleEnabled === shouldEnable) {
       return 'unchanged';
     }
     if (!params.dryRun) {
       await params.prisma.workflow.update({
-        data: { isScheduleEnabled: true },
+        data: { isScheduleEnabled: shouldEnable },
         where: { id: existing.id },
       });
     }
-    return 'enabled';
+    return shouldEnable ? 'enabled' : 'disabled';
   }
 
   if (!params.dryRun) {
@@ -213,7 +220,7 @@ async function ensureDailyTrendsDigestWorkflow(params: {
         executionCount: 0,
         inputVariables: [],
         isDeleted: false,
-        isScheduleEnabled: true,
+        isScheduleEnabled: shouldEnable,
         label: 'Daily Trends Digest',
         metadata: {
           sourceTemplateId: 'daily-trends-digest',
@@ -248,7 +255,11 @@ async function main(): Promise<void> {
 
     const organizations = (await prisma.organization.findMany({
       orderBy: { createdAt: 'asc' },
-      select: { id: true, userId: true },
+      select: {
+        id: true,
+        user: { select: { email: true } },
+        userId: true,
+      },
       where,
     })) as SeedOrganization[];
 
@@ -257,6 +268,7 @@ async function main(): Promise<void> {
     );
 
     let created = 0;
+    let disabled = 0;
     let enabled = 0;
     let skipped = 0;
     let unchanged = 0;
@@ -272,6 +284,7 @@ async function main(): Promise<void> {
 
       const result = await ensureDailyTrendsDigestWorkflow({
         dryRun: args.dryRun,
+        ownerEmail: organization.user?.email ?? null,
         organizationId: organization.id,
         prisma,
         userId: organization.userId,
@@ -279,7 +292,7 @@ async function main(): Promise<void> {
 
       if (args.dryRun && result !== 'unchanged') {
         logger.log(
-          `[DRY RUN] would ${result === 'enabled' ? 'enable' : 'create'} Daily Trends Digest workflow for org ${organization.id}`,
+          `[DRY RUN] would ${result} Daily Trends Digest workflow for org ${organization.id}`,
         );
       }
 
@@ -287,13 +300,15 @@ async function main(): Promise<void> {
         created += 1;
       } else if (result === 'enabled') {
         enabled += 1;
+      } else if (result === 'disabled') {
+        disabled += 1;
       } else {
         unchanged += 1;
       }
     }
 
     logger.log(
-      `Trends digest seed summary: created=${created}, enabled=${enabled}, unchanged=${unchanged}, skipped=${skipped}`,
+      `Trends digest seed summary: created=${created}, enabled=${enabled}, disabled=${disabled}, unchanged=${unchanged}, skipped=${skipped}`,
     );
   } finally {
     await prisma.$disconnect();

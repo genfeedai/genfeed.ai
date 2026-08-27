@@ -1,3 +1,4 @@
+import { resolveDailyTrendsDigestScheduleEnabled } from '@api/collections/workflows/services/daily-trends-digest-access';
 import {
   SYSTEM_WORKFLOW_ACTION_DEFINITIONS,
   SYSTEM_WORKFLOW_ACTION_IDS,
@@ -14,6 +15,16 @@ import {
 import { WorkflowStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock(
+  '@api/collections/workflows/services/daily-trends-digest-access',
+  () => ({
+    resolveDailyTrendsDigestScheduleEnabled: vi.fn(
+      (input: { existingScheduleEnabled?: boolean | null }) =>
+        input.existingScheduleEnabled ?? true,
+    ),
+  }),
+);
+
 describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => {
   const tx = {
     workflow: {
@@ -24,6 +35,9 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
   };
   const prisma = {
     $transaction: vi.fn(),
+    user: {
+      findFirst: vi.fn(),
+    },
     workflow: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
@@ -45,10 +59,14 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
 
   beforeEach(() => {
     vi.clearAllMocks();
+    prisma.user.findFirst.mockResolvedValue({ email: 'owner@org.com' });
     prisma.workflow.findFirst.mockResolvedValue(null);
     prisma.workflow.findMany.mockResolvedValue([]);
     prisma.workflow.update.mockResolvedValue({});
     prisma.workflow.updateMany.mockResolvedValue({ count: 0 });
+    vi.mocked(resolveDailyTrendsDigestScheduleEnabled).mockImplementation(
+      (input) => input.existingScheduleEnabled ?? true,
+    );
     workflowExecutionQueueService.syncWorkflowScheduler.mockResolvedValue(
       undefined,
     );
@@ -236,7 +254,7 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
     expect(tx.workflow.create).not.toHaveBeenCalled();
   });
 
-  it('repairs legacy daily trends metadata while preserving the enabled repair', async () => {
+  it('repairs legacy daily trends metadata without re-enabling a paused self-host clone', async () => {
     prisma.workflow.findFirst.mockResolvedValue({
       id: 'workflow-1',
       isScheduleEnabled: false,
@@ -247,10 +265,13 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
 
     await service.ensureDailyTrendsDigestWorkflow('user-1', 'org-1');
 
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      select: { email: true },
+      where: { id: 'user-1', isDeleted: false },
+    });
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(prisma.workflow.update).toHaveBeenCalledWith({
       data: {
-        isScheduleEnabled: true,
         metadata: expect.objectContaining({
           sourceIssue: 1011,
           sourceTemplateChangeSummary:
@@ -270,6 +291,92 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
       where: { id: 'workflow-1', isDeleted: false, organizationId: 'org-1' },
     });
     expect(tx.workflow.create).not.toHaveBeenCalled();
+    expect(
+      workflowExecutionQueueService.syncWorkflowScheduler,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'workflow-1',
+        isScheduleEnabled: false,
+      }),
+    );
+  });
+
+  it('pauses an enabled hosted digest when the owner is not the operator', async () => {
+    prisma.workflow.findFirst.mockResolvedValue({
+      id: 'workflow-1',
+      isScheduleEnabled: true,
+      metadata: {
+        sourceTemplateId: 'daily-trends-digest',
+      },
+    });
+    vi.mocked(resolveDailyTrendsDigestScheduleEnabled).mockReturnValue(false);
+
+    await service.ensureDailyTrendsDigestWorkflow('user-1', 'org-1');
+
+    expect(prisma.workflow.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({ isScheduleEnabled: false }),
+      where: { id: 'workflow-1', isDeleted: false, organizationId: 'org-1' },
+    });
+    expect(
+      workflowExecutionQueueService.syncWorkflowScheduler,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'workflow-1',
+        isScheduleEnabled: false,
+      }),
+    );
+  });
+
+  it('enables the hosted digest for the operator inbox', async () => {
+    prisma.user.findFirst.mockResolvedValue({
+      email: 'vincent@genfeed.ai',
+    });
+    prisma.workflow.findFirst.mockResolvedValue({
+      id: 'workflow-1',
+      isScheduleEnabled: false,
+      metadata: {
+        sourceTemplateId: 'daily-trends-digest',
+      },
+    });
+    vi.mocked(resolveDailyTrendsDigestScheduleEnabled).mockReturnValue(true);
+
+    await service.ensureDailyTrendsDigestWorkflow('user-1', 'org-1');
+
+    expect(prisma.workflow.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({ isScheduleEnabled: true }),
+      where: { id: 'workflow-1', isDeleted: false, organizationId: 'org-1' },
+    });
+    expect(
+      workflowExecutionQueueService.syncWorkflowScheduler,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'workflow-1',
+        isScheduleEnabled: true,
+      }),
+    );
+  });
+
+  it('creates a hosted digest paused when the owner is not the operator', async () => {
+    vi.mocked(resolveDailyTrendsDigestScheduleEnabled).mockReturnValue(false);
+    tx.workflow.create.mockResolvedValue({ id: 'workflow-new' });
+
+    await service.ensureDailyTrendsDigestWorkflow('user-1', 'org-1');
+
+    expect(tx.workflow.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        isScheduleEnabled: false,
+        label: 'Daily Trends Digest',
+      }),
+      select: { id: true },
+    });
+    expect(
+      workflowExecutionQueueService.syncWorkflowScheduler,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'workflow-new',
+        isScheduleEnabled: false,
+      }),
+    );
   });
 
   it('marks stale system workflow duplicates as upgrade available', async () => {

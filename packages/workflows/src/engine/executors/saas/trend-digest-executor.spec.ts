@@ -120,6 +120,30 @@ describe('TrendDigestExecutor', () => {
     expect(mocks.idempotencyGuard).not.toHaveBeenCalled();
   });
 
+  it('skips with recipient-not-allowed before acquiring the marker', async () => {
+    executor.setRecipientGate((email) => email === 'vincent@genfeed.ai');
+    const result = await executor.execute(makeInput());
+    expect((result.data as TrendDigestSkippedOutput).reason).toBe(
+      'recipient-not-allowed',
+    );
+    expect(mocks.idempotencyGuard).not.toHaveBeenCalled();
+    expect(mocks.creditsChecker).not.toHaveBeenCalled();
+    expect(mocks.renderer).not.toHaveBeenCalled();
+  });
+
+  it('sends when the recipient gate allows the owner inbox', async () => {
+    mocks.ownerResolver.mockResolvedValueOnce({
+      email: 'vincent@genfeed.ai',
+      userId: 'user-1',
+    });
+    executor.setRecipientGate((email) => email === 'vincent@genfeed.ai');
+    const result = await executor.execute(makeInput());
+    expect((result.data as TrendDigestReadyOutput).skipped).toBe(false);
+    expect((result.data as TrendDigestReadyOutput).to).toBe(
+      'vincent@genfeed.ai',
+    );
+  });
+
   it('skips with already-ran-today when the marker is already held', async () => {
     mocks.idempotencyGuard.mockResolvedValueOnce(false);
     const result = await executor.execute(makeInput());

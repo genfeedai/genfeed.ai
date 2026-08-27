@@ -31,6 +31,7 @@ describe('system workflow catalog', () => {
     expect(entry).toMatchObject({
       canonicalId: 'daily-trends-digest',
       installable: true,
+      isScheduleEnabled: false,
       label: 'Daily Trends Digest',
       schedule: '0 7 * * *',
     });

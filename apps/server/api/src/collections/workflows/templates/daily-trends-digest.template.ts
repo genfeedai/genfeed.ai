@@ -4,11 +4,12 @@ import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
 /**
  * Daily Trends Digest — a predetermined, per-org workflow.
  *
- * Seeded ON (`isScheduleEnabled: true`) for every organization and toggled off
- * from the automation/workflow list UI when needed. The canonical
- * WorkflowSchedulerService fires it daily; the node graph assembles a curated
- * digest from the existing global trend corpus (no scrape, no LLM) and emails it
- * to the org owner. Credits are charged once per confirmed send by the adapter.
+ * Hosted SaaS keeps the schedule on only for the operator inbox
+ * (`vincent@genfeed.ai`); every other org is paused. Self-host still defaults
+ * on for the single tenant. The canonical WorkflowSchedulerService fires it
+ * daily; the node graph assembles a curated digest from the existing global
+ * trend corpus (no scrape, no LLM) and emails it to the org owner. Credits are
+ * charged once per confirmed send by the adapter.
  *
  * Node graph: trendDigest → sendEmail (explicit edge handles carry the rendered
  * `to`/`subject`/`html` plus the `skipped`/`reason` short-circuit signal).
@@ -21,7 +22,7 @@ export const DAILY_TRENDS_DIGEST_TEMPLATE: WorkflowTemplate = {
     'Scan the latest social trends daily and email a curated digest to the organization owner. Uses credits per delivered email.',
   icon: 'trending-up',
   id: 'daily-trends-digest',
-  isScheduleEnabled: true,
+  isScheduleEnabled: false,
   name: 'Daily Trends Digest',
   schedule: '0 7 * * *',
   timezone: 'UTC',

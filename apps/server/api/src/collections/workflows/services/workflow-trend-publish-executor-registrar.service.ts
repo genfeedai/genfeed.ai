@@ -4,6 +4,7 @@ import { PostAccountFanoutService } from '@api/collections/posts/services/post-a
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
+import { isDailyTrendsDigestRecipientAllowed } from '@api/collections/workflows/services/daily-trends-digest-access';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.types';
@@ -367,6 +368,9 @@ export class WorkflowTrendPublishExecutorRegistrarService {
         userId: organization.userId ?? null,
       };
     });
+    executor.setRecipientGate((email) =>
+      isDailyTrendsDigestRecipientAllowed(email),
+    );
     executor.setTrendsProvider(({ topN, minViralScore, platforms }) =>
       this.buildDigestTrends(trends, topN, minViralScore, platforms),
     );

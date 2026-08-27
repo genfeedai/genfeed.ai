@@ -1,5 +1,9 @@
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import {
+  isDailyTrendsDigestMetadata,
+  isDailyTrendsDigestRecipientAllowed,
+} from '@api/collections/workflows/services/daily-trends-digest-access';
 import { isSweepDrivenSystemWorkflow } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import {
@@ -78,8 +82,10 @@ export class WorkflowSchedulerService implements OnModuleInit {
           id: true,
           isScheduleEnabled: true,
           metadata: true,
+          organizationId: true,
           schedule: true,
           timezone: true,
+          userId: true,
         },
         where: {
           isDeleted: false,
@@ -123,6 +129,10 @@ export class WorkflowSchedulerService implements OnModuleInit {
       return;
     }
 
+    if (await this.disableUnauthorizedDailyTrendsDigest(workflow, workflowId)) {
+      return;
+    }
+
     // Sweep-driven provenance actions fire from the workers sweep scheduler —
     // the engine has no executor for systemWorkflowAction nodes. Catalog
     // system workflows with real nodes (content-loop-autopilot, …) still
@@ -158,6 +168,47 @@ export class WorkflowSchedulerService implements OnModuleInit {
         'WorkflowSchedulerService',
       );
     }
+  }
+
+  private async disableUnauthorizedDailyTrendsDigest(
+    workflow: WorkflowDocument,
+    workflowId: string,
+  ): Promise<boolean> {
+    const record = workflow as unknown as Record<string, unknown>;
+    if (!isDailyTrendsDigestMetadata(record.metadata)) {
+      return false;
+    }
+
+    const userId = typeof record.userId === 'string' ? record.userId : null;
+    const organizationId =
+      typeof record.organizationId === 'string' ? record.organizationId : null;
+    let email: string | null = null;
+
+    if (userId) {
+      const owner = await this.prisma.user.findFirst({
+        select: { email: true },
+        where: { id: userId, isDeleted: false },
+      });
+      email = owner?.email ?? null;
+    }
+
+    if (isDailyTrendsDigestRecipientAllowed(email)) {
+      return false;
+    }
+
+    if (organizationId) {
+      await this.prisma.workflow.updateMany({
+        data: { isScheduleEnabled: false },
+        where: scopedWhere(organizationId, { id: workflowId }),
+      });
+    }
+
+    this.logger.log(
+      `Disabled daily trends digest schedule for unauthorized recipient ${workflowId}`,
+      'WorkflowSchedulerService',
+    );
+    await this.unscheduleWorkflow(workflowId);
+    return true;
   }
 
   /**
