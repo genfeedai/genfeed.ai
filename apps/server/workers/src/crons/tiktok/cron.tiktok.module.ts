@@ -1,16 +1,24 @@
-import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
+import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { PostsModule } from '@api/collections/posts/posts.module';
+import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { PostLifecycleService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
+import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 import { SocialIntegrationsModule } from '@workers/services/social-integrations.module';
-import { WorkersDomainModule } from '@server/workers-domain.module';
 
 @Module({
-  imports: [WorkersDomainModule, SocialIntegrationsModule, PrismaModule],
+  imports: [
+    forwardRef(() => CredentialsModule),
+    forwardRef(() => PostsModule),
+    forwardRef(() => WebhookClientModule),
+    SocialIntegrationsModule,
+    PrismaModule,
+  ],
   exports: [CronTiktokStatusService],
   providers: [
     CronTiktokStatusService,

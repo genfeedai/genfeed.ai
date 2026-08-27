@@ -7,7 +7,8 @@
  * `@genfeedai/queue-contracts`, pure infra moves to `packages/libs`, and
  * entangled domain/integration services move to `@genfeedai/server`.
  *
- * The baseline is empty: any `@api/*` specifier in workers fails the build.
+ * The release fallback baseline contains only the previously proven Nest
+ * module-composition imports. Any other `@api/*` specifier still fails.
  *
  * Unlike sibling guards, spec/test files are scanned too: test-only
  * `@api/*` imports still couple workers to API source.

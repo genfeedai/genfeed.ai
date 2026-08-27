@@ -1,19 +1,23 @@
-import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
+import { PostsModule } from '@api/collections/posts/posts.module';
+import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
+import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { PostLifecycleService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
+import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import { CronYoutubeMessagesService } from '@workers/crons/youtube/cron.youtube-messages.service';
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 import { SocialIntegrationsModule } from '@workers/services/social-integrations.module';
-import { WorkersDomainModule } from '@server/workers-domain.module';
 
 @Module({
   imports: [
-    WorkersDomainModule,
+    forwardRef(() => PostsModule),
+    forwardRef(() => WebhookClientModule),
+    forwardRef(() => SocialInboxModule),
     forwardRef(() => WorkersQueuesModule),
     SocialIntegrationsModule,
     PrismaModule,
