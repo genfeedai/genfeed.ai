@@ -76,7 +76,14 @@ describe('AgentPublishAuditsService', () => {
   it('lists through organization + isDeleted scope', async () => {
     await service.findAllScoped(
       { organizationId: 'org-1', userId: 'user-1' },
-      { agentRunId: 'run-1', limit: 10, page: 1, postGroupId: 'group-1' },
+      {
+        agentRunId: 'run-1',
+        isDeleted: false,
+        limit: 10,
+        page: 1,
+        postGroupId: 'group-1',
+        sort: 'createdAt: -1',
+      },
     );
 
     expect(agentPublishAudit.findMany).toHaveBeenCalledWith(

@@ -8,7 +8,7 @@ import {
   persistEngagementRuleInputSchema,
   updateEngagementRuleInputSchema,
 } from '@api-types/contracts/engagement-rules.contract';
-import type {
+import {
   EngagementMetric,
   EngagementRuleMode,
   EngagementRuleState,
@@ -26,13 +26,13 @@ export type StoredEngagementRuleRow = {
   isDeleted: boolean;
   isEnabled: boolean;
   lastError: string | null;
-  metric: EngagementMetric;
+  metric: string;
   metricSnapshot: unknown;
-  mode: EngagementRuleMode;
+  mode: string;
   organizationId: string;
   postGroupId: string;
   resultingReleaseId: string | null;
-  state: EngagementRuleState;
+  state: string;
   targetId: string;
   threshold: number;
   triggeredAt: Date | null;
@@ -40,6 +40,54 @@ export type StoredEngagementRuleRow = {
   userId: string;
   windowEndsAt: Date | null;
 };
+
+export function parseStoredEngagementMetric(value: string): EngagementMetric {
+  switch (value) {
+    case EngagementMetric.COMMENTS:
+      return EngagementMetric.COMMENTS;
+    case EngagementMetric.SHARES:
+      return EngagementMetric.SHARES;
+    case EngagementMetric.VIEWS:
+      return EngagementMetric.VIEWS;
+    case EngagementMetric.ENGAGEMENT_RATE:
+      return EngagementMetric.ENGAGEMENT_RATE;
+    default:
+      return EngagementMetric.LIKES;
+  }
+}
+
+export function parseStoredEngagementRuleAction(
+  value: string,
+): EngagementRuleAction {
+  return value === EngagementRuleAction.FOLLOW_UP_COMMENT
+    ? EngagementRuleAction.FOLLOW_UP_COMMENT
+    : EngagementRuleAction.REPOST;
+}
+
+export function parseStoredEngagementRuleMode(
+  value: string,
+): EngagementRuleMode {
+  return value === EngagementRuleMode.AUTO
+    ? EngagementRuleMode.AUTO
+    : EngagementRuleMode.APPROVAL;
+}
+
+export function parseStoredEngagementRuleState(
+  value: string,
+): EngagementRuleState {
+  switch (value) {
+    case EngagementRuleState.TRIGGERED:
+      return EngagementRuleState.TRIGGERED;
+    case EngagementRuleState.COMPLETED:
+      return EngagementRuleState.COMPLETED;
+    case EngagementRuleState.EXPIRED:
+      return EngagementRuleState.EXPIRED;
+    case EngagementRuleState.DISABLED:
+      return EngagementRuleState.DISABLED;
+    default:
+      return EngagementRuleState.ARMED;
+  }
+}
 
 function badRequestFromZod(
   error: ZodError,

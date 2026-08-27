@@ -74,6 +74,9 @@
       "unavailableTitle": "Claim unavailable"
     }
   },
+  "desktopAuth": {
+    "pasteCodeHint": "Source checkouts cannot open automatically. Copy the code from that tab and paste it here."
+  },
   "oauth": {
     "platformCallback": {
       "actions": {
@@ -337,6 +340,7 @@
         "title": "Local mode needs attention"
       },
       "eyebrow": "Local mode",
+      "loading": "Starting local workspace…",
       "generation": {
         "description": "Uses the provider configured on this device.",
         "generate": "Generate",

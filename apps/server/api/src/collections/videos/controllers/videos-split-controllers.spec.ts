@@ -5,7 +5,6 @@ import { VideosMergeController } from '@api/collections/videos/controllers/relat
 import { VideosRelationshipsController } from '@api/collections/videos/controllers/relationships/videos-relationships.controller';
 import { VideosUploadController } from '@api/collections/videos/controllers/upload/videos-upload.controller';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
-import { CreateMergedVideoDto } from '@server/collections/videos/dto/create-video.dto';
 import { VideoMergeOrchestrationService } from '@api/collections/videos/services/video-merge-orchestration.service';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
@@ -19,6 +18,7 @@ import {
   MODULE_METADATA,
   PATH_METADATA,
 } from '@nestjs/common/constants';
+import { CreateMergedVideoDto } from '@server/collections/videos/dto/create-video.dto';
 
 describe('Videos split controllers', () => {
   it('preserves the merge route and legacy OpenAPI identity', () => {
@@ -81,7 +81,9 @@ describe('Videos split controllers', () => {
   });
 
   it('removes mergeVideos from the relationships controller', () => {
-    expect(VideosRelationshipsController.prototype.mergeVideos).toBeUndefined();
+    expect(
+      Object.hasOwn(VideosRelationshipsController.prototype, 'mergeVideos'),
+    ).toBe(false);
   });
 
   it('preserves LogMethod on the moved transport', () => {

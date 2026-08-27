@@ -1,6 +1,8 @@
 'use client';
 
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
+import { isDesktopClient } from '@genfeedai/config/deployment';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { LinkCategory, type OrganizationCategory } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -383,6 +385,10 @@ function BrandContentContent() {
     try {
       const token = await resolveAuthToken(getToken);
       if (!token) {
+        if (isDesktopClient()) {
+          push(APP_ROUTES.DESKTOP.LOCAL);
+          return;
+        }
         throw new Error('Authentication is unavailable');
       }
 

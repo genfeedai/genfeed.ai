@@ -131,6 +131,38 @@ describe('DesktopGenerationProviderService', () => {
       apiKeyConfigured: true,
     });
   });
+
+  it('fails a provider test when the local endpoint never answers', async () => {
+    const database = createDatabaseMock();
+    const service = new DesktopGenerationProviderService(
+      database as unknown as DesktopGenerationProviderStore,
+    );
+    const originalFetch = globalThis.fetch;
+    const originalTimeout = process.env.GENFEED_DESKTOP_PROVIDER_TIMEOUT_MS;
+    process.env.GENFEED_DESKTOP_PROVIDER_TIMEOUT_MS = '50';
+
+    globalThis.fetch = ((_input: RequestInfo | URL, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => {
+          const abortError = new Error('The operation was aborted.');
+          abortError.name = 'AbortError';
+          reject(abortError);
+        });
+      })) as typeof fetch;
+
+    try {
+      await expect(service.testProviderConfig(providerConfig)).rejects.toThrow(
+        'The local provider did not respond',
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+      if (originalTimeout === undefined) {
+        delete process.env.GENFEED_DESKTOP_PROVIDER_TIMEOUT_MS;
+      } else {
+        process.env.GENFEED_DESKTOP_PROVIDER_TIMEOUT_MS = originalTimeout;
+      }
+    }
+  });
 });
 
 describe('DesktopGenerationService', () => {

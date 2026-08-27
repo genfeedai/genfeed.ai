@@ -745,22 +745,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/images/controllers/transformations/images-transformations.controller.spec.ts",
-      "fingerprint": "1cb0c0baffca1b8de2ac",
-      "message": "Type '\"4x\"' is not assignable to type 'UpscaleFactor | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/images/controllers/transformations/images-transformations.controller.spec.ts",
-      "fingerprint": "3ffdf8fe50ccda3661dc",
-      "message": "Type '\"jpg\"' is not assignable to type 'ImageFormat | undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/images/entities/image.entity.spec.ts",
@@ -828,24 +812,8 @@
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "e6ce428b0e1ccb1a6e9c",
-      "message": "Argument of type '{ label: string; description?: string; category: ModelCategory; key: string; endpoint?: string; provider: ModelProvider; cost: number; isActive?: boolean; isHighlighted?: boolean; isDefault?: boolean; ... 12 more ...; id: string; }' is not assignable to parameter of type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 64 more ...; supportsFeatures: string[]; } & ServerModelRecord'.   Type '{ label: string; description?: string | undefined; category: ModelCategory; key: string; endpoint?: string | undefined; provider: ModelProvider; cost: number; ... 15 more ...; id: string; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 64 more ...; supportsFeatures: string[]; }': isDeleted, createdAt, updatedAt, config, and 48 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "f8c1325647459927bf57",
-      "message": "Argument of type '{ id: string; isActive: boolean; isLegacy: boolean; key: string; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isActive: boolean; isLegacy: boolean; key: string; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 64 more ...; supportsFeatures: string[]; }': description, label, category, isDeleted, and 66 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "e916552d944117a61b5d",
-      "message": "Argument of type '{ id: string; isDefault: false; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isDefault: false; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 64 more ...; supportsFeatures: string[]; }': description, label, category, isDeleted, and 68 more.",
+      "fingerprint": "0a1daff66b477f44603d",
+      "message": "Argument of type '{ id: string; category: string; isDefault: true; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; category: string; isDefault: true; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 64 more ...; supportsFeatures: string[]; }': description, label, isDeleted, createdAt, and 67 more.",
       "workspace": "api"
     },
     {
@@ -860,8 +828,8 @@
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "a5a37e446e6c30260e5e",
-      "message": "Argument of type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is not assignable to parameter of type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 64 more ...; supportsFeatures: string[]; } & ServerModelRecord'.   Type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 64 more ...; supportsFeatures: string[]; }': description, isDeleted, createdAt, updatedAt, and 64 more.",
+      "fingerprint": "62db5695a13fc1a76d71",
+      "message": "Argument of type '{ docs: { id: string; key: string; label: string; type: string; }[]; hasNextPage: boolean; hasPrevPage: boolean; limit: number; nextPage: null; page: number; pagingCounter: number; prevPage: null; totalDocs: number; totalPages: number; }' is not assignable to parameter of type 'AggregatePaginateResult<ModelDocument>'.   Types of property 'docs' are incompatible.     Type '{ id: string; key: string; label: string; type: string; }[]' is not assignable to type 'ModelDocument[]'.       Type '{ id: string; key: string; label: string; type: string; }' is not assignable to type 'ModelDocument'.         Type '{ id: string; key: string; label: string; type: string; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 64 more ...; supportsFeatures: string[]; }': description, category, isDeleted, createdAt, and 67 more.",
       "workspace": "api"
     },
     {
@@ -876,16 +844,32 @@
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "0a1daff66b477f44603d",
-      "message": "Argument of type '{ id: string; category: string; isDefault: true; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; category: string; isDefault: true; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 64 more ...; supportsFeatures: string[]; }': description, label, isDeleted, createdAt, and 67 more.",
+      "fingerprint": "a5a37e446e6c30260e5e",
+      "message": "Argument of type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is not assignable to parameter of type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 64 more ...; supportsFeatures: string[]; } & ServerModelRecord'.   Type '{ id: string; isDefault: boolean; key: string; label: string; category: ModelCategory; provider: ModelProvider; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 64 more ...; supportsFeatures: string[]; }': description, isDeleted, createdAt, updatedAt, and 64 more.",
       "workspace": "api"
     },
     {
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
-      "fingerprint": "62db5695a13fc1a76d71",
-      "message": "Argument of type '{ docs: { id: string; key: string; label: string; type: string; }[]; hasNextPage: boolean; hasPrevPage: boolean; limit: number; nextPage: null; page: number; pagingCounter: number; prevPage: null; totalDocs: number; totalPages: number; }' is not assignable to parameter of type 'AggregatePaginateResult<ModelDocument>'.   Types of property 'docs' are incompatible.     Type '{ id: string; key: string; label: string; type: string; }[]' is not assignable to type 'ModelDocument[]'.       Type '{ id: string; key: string; label: string; type: string; }' is not assignable to type 'ModelDocument'.         Type '{ id: string; key: string; label: string; type: string; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 64 more ...; supportsFeatures: string[]; }': description, category, isDeleted, createdAt, and 67 more.",
+      "fingerprint": "e6ce428b0e1ccb1a6e9c",
+      "message": "Argument of type '{ label: string; description?: string; category: ModelCategory; key: string; endpoint?: string; provider: ModelProvider; cost: number; isActive?: boolean; isHighlighted?: boolean; isDefault?: boolean; ... 12 more ...; id: string; }' is not assignable to parameter of type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 64 more ...; supportsFeatures: string[]; } & ServerModelRecord'.   Type '{ label: string; description?: string | undefined; category: ModelCategory; key: string; endpoint?: string | undefined; provider: ModelProvider; cost: number; ... 15 more ...; id: string; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 64 more ...; supportsFeatures: string[]; }': isDeleted, createdAt, updatedAt, config, and 48 more.",
+      "workspace": "api"
+    },
+    {
+      "code": 2345,
+      "count": 2,
+      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
+      "fingerprint": "e916552d944117a61b5d",
+      "message": "Argument of type '{ id: string; isDefault: false; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isDefault: false; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 64 more ...; supportsFeatures: string[]; }': description, label, category, isDeleted, and 68 more.",
+      "workspace": "api"
+    },
+    {
+      "code": 2345,
+      "count": 1,
+      "file": "apps/server/api/src/collections/models/controllers/models.controller.spec.ts",
+      "fingerprint": "f8c1325647459927bf57",
+      "message": "Argument of type '{ id: string; isActive: boolean; isLegacy: boolean; key: string; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ id: string; isActive: boolean; isLegacy: boolean; key: string; }' is missing the following properties from type '{ description: string | null; label: string; category: string; isDeleted: boolean; createdAt: Date; id: string; updatedAt: Date; organizationId: string | null; config: JsonValue; ... 64 more ...; supportsFeatures: string[]; }': description, label, category, isDeleted, and 66 more.",
       "workspace": "api"
     },
     {
@@ -1366,14 +1350,6 @@
       "file": "apps/server/api/src/collections/videos/controllers/relationships/videos-relationships.controller.spec.ts",
       "fingerprint": "6b24a12cb323b24613f3",
       "message": "Type '{}' is missing the following properties from type 'VideosQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2741,
-      "count": 2,
-      "file": "apps/server/api/src/collections/videos/controllers/relationships/videos-relationships.controller.spec.ts",
-      "fingerprint": "e66b5ceb349863bd5336",
-      "message": "Property 'category' is missing in type '{ ids: string[]; isCaptionsEnabled: false; isResizeEnabled: false; }' but required in type 'CreateMergedVideoDto'.",
       "workspace": "api"
     },
     {
@@ -2825,14 +2801,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 6,
-      "file": "apps/server/api/src/services/integrations/publishers/linkedin-publisher.service.spec.ts",
-      "fingerprint": "acf950e218ee7a05c55a",
-      "message": "Argument of type 'PostEntity' is not assignable to parameter of type 'PostDocument'.   Type 'PostEntity' is missing the following properties from type 'PostDocument': entityModel, source, seoBreakdown, seoScore, and 19 more.",
-      "workspace": "api"
-    },
-    {
       "code": 2304,
       "count": 4,
       "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
@@ -2846,14 +2814,6 @@
       "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
       "fingerprint": "e13f84a28991fa7a3bbe",
       "message": "Type 'null' is not assignable to type 'string'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 6,
-      "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
-      "fingerprint": "c48ba3e38d3b73f83248",
-      "message": "Argument of type 'PostEntity' is not assignable to parameter of type 'PostDocument'.   Type 'PostEntity' is missing the following properties from type 'PostDocument': entityModel, source, seoBreakdown, seoScore, and 19 more.",
       "workspace": "api"
     },
     {

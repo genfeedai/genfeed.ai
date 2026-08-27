@@ -1,7 +1,3 @@
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import type { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
-import type { CacheService } from '@server/services/cache/cache.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
   PostFormat,
@@ -10,6 +6,10 @@ import {
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import type { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
+import type { CacheService } from '@server/services/cache/cache.service';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 // Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.Post plus real enum
 // value objects, so `normalizeData` resolves `category` as a genuine Prisma
@@ -738,7 +738,7 @@ describe('PostsService batchSchedule', () => {
   it('mints a version-bound approval when creating a scheduled post', async () => {
     const { postPublishQueueService, publishApprovalsService, service } =
       makeService();
-    const scheduledDate = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    const scheduledDate = new Date(Date.now() + 60 * 60 * 1000);
 
     await service.create(
       {
@@ -779,7 +779,7 @@ describe('PostsService batchSchedule', () => {
         label: 'Now',
         organizationId: 'org-1',
         platform: CredentialPlatform.TWITTER,
-        scheduledDate: new Date().toISOString(),
+        scheduledDate: new Date(),
         targetExecutionState: TargetExecutionState.SCHEDULED,
         userId: 'user-1',
       },

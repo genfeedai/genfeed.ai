@@ -34,6 +34,23 @@ export type StoredRssSourceRow = {
   userId: string;
 };
 
+export function parseStoredRssApprovalMode(value: string): RssApprovalMode {
+  return value === RssApprovalMode.AUTO
+    ? RssApprovalMode.AUTO
+    : RssApprovalMode.APPROVAL;
+}
+
+export function parseStoredRssImportPolicy(value: string): RssImportPolicy {
+  switch (value) {
+    case RssImportPolicy.SCHEDULED:
+      return RssImportPolicy.SCHEDULED;
+    case RssImportPolicy.PUBLISH_NOW:
+      return RssImportPolicy.PUBLISH_NOW;
+    default:
+      return RssImportPolicy.DRAFT;
+  }
+}
+
 export type StoredPostingSignatureRow = {
   body: string;
   id: string;

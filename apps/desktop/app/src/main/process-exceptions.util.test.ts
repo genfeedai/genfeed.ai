@@ -41,6 +41,20 @@ const createExceptionHarness = ({
 };
 
 describe('desktop process exception handling', () => {
+  it('ignores broken-stdio EPIPE instead of treating it as a fatal crash', () => {
+    const error = Object.assign(new Error('write EPIPE'), { code: 'EPIPE' });
+    const harness = createExceptionHarness();
+
+    harness.handler(error, DESKTOP_PROCESS_EXCEPTION_SOURCE.UNCAUGHT_EXCEPTION);
+
+    expect(harness.events).toEqual([
+      'write:[desktop] uncaughtException: ignored broken stdio (write EPIPE)',
+    ]);
+    expect(harness.captured).toEqual([]);
+    expect(harness.events).not.toContain('exit:1');
+    expect(harness.events).not.toContain('show-failure');
+  });
+
   it('terminates immediately when a startup exception happens before app readiness', () => {
     const error = new Error('shell failed before ready');
     const harness = createExceptionHarness({ isAppReady: false });

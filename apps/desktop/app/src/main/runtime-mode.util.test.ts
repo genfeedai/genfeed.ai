@@ -27,6 +27,22 @@ describe('desktop runtime mode transitions', () => {
     expect(persisted).toBe(false);
   });
 
+  it('fails local mode when initialization never finishes', async () => {
+    let persisted = false;
+
+    await expect(
+      activateDesktopLocalMode(
+        async () => new Promise(() => undefined),
+        () => {
+          persisted = true;
+        },
+        20,
+      ),
+    ).rejects.toThrow('Local workspace did not finish starting');
+
+    expect(persisted).toBe(false);
+  });
+
   it('never falls back to cloud while local mode is active', () => {
     const cloudService = { mode: 'cloud' };
 

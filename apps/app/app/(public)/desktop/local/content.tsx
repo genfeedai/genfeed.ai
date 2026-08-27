@@ -6,8 +6,9 @@ import type {
   IDesktopGeneratedContent,
   IDesktopWorkspace,
 } from '@genfeedai/desktop-contracts';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
+import Spinner from '@ui/feedback/spinner/Spinner';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
@@ -177,120 +178,136 @@ export default function LocalDesktopContent() {
           </Button>
         </header>
 
-        {error ? (
-          <Alert variant="destructive">
-            <AlertTitle>{translate('errors.title')}</AlertTitle>
-            <AlertDescription className="space-y-3">
-              <p>{error}</p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.SECONDARY}
-                  onClick={() => void loadLocalRuntime()}
-                >
-                  <RefreshCw aria-hidden="true" className="size-4" />
-                  {translate('errors.retry')}
-                </Button>
-                <Button
-                  type="button"
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  onClick={() => void handleRevealLogs()}
-                >
-                  {translate('errors.revealLogs')}
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        ) : null}
-
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <div className="space-y-6">
-            <Card bodyClassName="space-y-4 p-5">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-base font-semibold">
-                    {translate('workspace.title')}
-                  </h2>
-                  <p className="text-sm text-foreground/55">
-                    {activeWorkspace
-                      ? activeWorkspace.path
-                      : translate('workspace.description')}
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.SECONDARY}
-                  isDisabled={isBusy}
-                  onClick={() => void openWorkspace()}
-                >
-                  <FolderOpen aria-hidden="true" className="size-4" />
-                  {activeWorkspace
-                    ? translate('workspace.openAnother')
-                    : translate('workspace.chooseFolder')}
-                </Button>
-              </div>
-
-              {bootstrap && bootstrap.workspaces.length > 1 ? (
-                <div className="flex flex-wrap gap-2">
-                  {bootstrap.workspaces.map((workspace) => (
+        {isBusy && !bootstrap && !error ? (
+          <div
+            className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-background-secondary/40"
+            role="status"
+          >
+            <Spinner size={ComponentSize.LG} />
+            <p className="text-sm text-muted-foreground">
+              {translate('loading')}
+            </p>
+          </div>
+        ) : (
+          <>
+            {error ? (
+              <Alert variant="destructive">
+                <AlertTitle>{translate('errors.title')}</AlertTitle>
+                <AlertDescription className="space-y-3">
+                  <p>{error}</p>
+                  <div className="flex flex-wrap gap-2">
                     <Button
-                      key={workspace.id}
                       type="button"
                       size={ButtonSize.SM}
-                      variant={
-                        workspace.id === activeWorkspace?.id
-                          ? ButtonVariant.DEFAULT
-                          : ButtonVariant.GHOST
-                      }
-                      onClick={() => void selectWorkspace(workspace)}
+                      variant={ButtonVariant.SECONDARY}
+                      onClick={() => void loadLocalRuntime()}
                     >
-                      {workspace.name}
+                      <RefreshCw aria-hidden="true" className="size-4" />
+                      {translate('errors.retry')}
                     </Button>
-                  ))}
-                </div>
-              ) : null}
-            </Card>
+                    <Button
+                      type="button"
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.GHOST}
+                      onClick={() => void handleRevealLogs()}
+                    >
+                      {translate('errors.revealLogs')}
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            ) : null}
 
-            <Card bodyClassName="space-y-4 p-5">
-              <div>
-                <h2 className="flex items-center gap-2 text-base font-semibold">
-                  <Sparkles aria-hidden="true" className="size-4" />
-                  {translate('generation.title')}
-                </h2>
-                <p className="text-sm text-foreground/55">
-                  {translate('generation.description')}
-                </p>
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+              <div className="space-y-6">
+                <Card bodyClassName="space-y-4 p-5">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-base font-semibold">
+                        {translate('workspace.title')}
+                      </h2>
+                      <p className="text-sm text-foreground/55">
+                        {activeWorkspace
+                          ? activeWorkspace.path
+                          : translate('workspace.description')}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.SECONDARY}
+                      isDisabled={isBusy}
+                      onClick={() => void openWorkspace()}
+                    >
+                      <FolderOpen aria-hidden="true" className="size-4" />
+                      {activeWorkspace
+                        ? translate('workspace.openAnother')
+                        : translate('workspace.chooseFolder')}
+                    </Button>
+                  </div>
+
+                  {bootstrap && bootstrap.workspaces.length > 1 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {bootstrap.workspaces.map((workspace) => (
+                        <Button
+                          key={workspace.id}
+                          type="button"
+                          size={ButtonSize.SM}
+                          variant={
+                            workspace.id === activeWorkspace?.id
+                              ? ButtonVariant.DEFAULT
+                              : ButtonVariant.GHOST
+                          }
+                          onClick={() => void selectWorkspace(workspace)}
+                        >
+                          {workspace.name}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : null}
+                </Card>
+
+                <Card bodyClassName="space-y-4 p-5">
+                  <div>
+                    <h2 className="flex items-center gap-2 text-base font-semibold">
+                      <Sparkles aria-hidden="true" className="size-4" />
+                      {translate('generation.title')}
+                    </h2>
+                    <p className="text-sm text-foreground/55">
+                      {translate('generation.description')}
+                    </p>
+                  </div>
+                  <Textarea
+                    aria-label={translate('generation.promptLabel')}
+                    className="min-h-32"
+                    placeholder={translate('generation.promptPlaceholder')}
+                    value={prompt}
+                    onChange={(event) => setPrompt(event.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant={ButtonVariant.DEFAULT}
+                    isDisabled={isBusy || !prompt.trim() || !activeWorkspace}
+                    onClick={() => void generate()}
+                  >
+                    {isBusy
+                      ? translate('generation.working')
+                      : translate('generation.generate')}
+                  </Button>
+                  {result ? (
+                    <div className="border-t border-border/60 pt-4 text-sm leading-6 whitespace-pre-wrap">
+                      {result.content}
+                    </div>
+                  ) : null}
+                </Card>
               </div>
-              <Textarea
-                aria-label={translate('generation.promptLabel')}
-                className="min-h-32"
-                placeholder={translate('generation.promptPlaceholder')}
-                value={prompt}
-                onChange={(event) => setPrompt(event.target.value)}
-              />
-              <Button
-                type="button"
-                variant={ButtonVariant.DEFAULT}
-                isDisabled={isBusy || !prompt.trim() || !activeWorkspace}
-                onClick={() => void generate()}
-              >
-                {isBusy
-                  ? translate('generation.working')
-                  : translate('generation.generate')}
-              </Button>
-              {result ? (
-                <div className="border-t border-border/60 pt-4 text-sm leading-6 whitespace-pre-wrap">
-                  {result.content}
-                </div>
-              ) : null}
-            </Card>
-          </div>
 
-          {bootstrap ? <DesktopLocalProviderSettings variant="card" /> : null}
-        </div>
+              {bootstrap ? (
+                <DesktopLocalProviderSettings variant="card" />
+              ) : null}
+            </div>
+          </>
+        )}
       </div>
     </main>
   );

@@ -9,15 +9,19 @@ import {
   parseActionPayload,
   parseCreateEngagementRuleInput,
   parseMetricSnapshot,
+  parseStoredEngagementMetric,
+  parseStoredEngagementRuleAction,
+  parseStoredEngagementRuleMode,
+  parseStoredEngagementRuleState,
   parseUpdateEngagementRuleInput,
   type StoredEngagementRuleRow,
 } from '@api/collections/engagement-rules/services/engagement-rule-persistence.helpers';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { EngagementRuleState } from '@genfeedai/enums';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 @Injectable()
 export class EngagementRulesService {
@@ -178,20 +182,20 @@ export class EngagementRulesService {
   private toDocument(row: StoredEngagementRuleRow): EngagementRuleDocument {
     return {
       actionPayload: parseActionPayload(row.actionPayload),
-      actionType: row.actionType,
+      actionType: parseStoredEngagementRuleAction(row.actionType),
       brandId: row.brandId,
       createdAt: row.createdAt,
       id: row.id,
       isDeleted: row.isDeleted,
       isEnabled: row.isEnabled,
       lastError: row.lastError,
-      metric: row.metric,
+      metric: parseStoredEngagementMetric(row.metric),
       metricSnapshot: parseMetricSnapshot(row.metricSnapshot),
-      mode: row.mode,
+      mode: parseStoredEngagementRuleMode(row.mode),
       organizationId: row.organizationId,
       postGroupId: row.postGroupId,
       resultingReleaseId: row.resultingReleaseId,
-      state: row.state,
+      state: parseStoredEngagementRuleState(row.state),
       targetId: row.targetId,
       threshold: row.threshold,
       triggeredAt: row.triggeredAt,

@@ -14,6 +14,7 @@ import { Input } from '@ui/primitives/input';
 import { KeyRound, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent,
   type FormEvent,
@@ -49,6 +50,17 @@ import {
 const subscribeToClientSurface = () => () => {};
 const LOGIN_TITLE = 'Welcome back';
 const LOGIN_DESCRIPTION = 'Sign in to Genfeed';
+const DESKTOP_IPC_ERROR_PREFIX =
+  /Error invoking remote method '[^']+':(?: Error:)?\s*/;
+
+function readDesktopBridgeError(error: unknown, fallback: string): string {
+  if (!(error instanceof Error) || !error.message.trim()) {
+    return fallback;
+  }
+
+  const message = error.message.replace(DESKTOP_IPC_ERROR_PREFIX, '').trim();
+  return message || fallback;
+}
 
 type LoginMode = 'chooser' | 'magic-link' | 'password';
 type InvitationNotice = {
@@ -104,6 +116,7 @@ export default function LoginBetterAuth({
   isDesktopShell = false,
   mode = 'chooser',
 }: LoginBetterAuthProps) {
+  const translate = useTranslations('common');
   const searchParams = useSearchParams();
   const isDesktop = useSyncExternalStore(
     subscribeToClientSurface,
@@ -132,6 +145,8 @@ export default function LoginBetterAuth({
   const [isWaitingForDesktopSession, setIsWaitingForDesktopSession] =
     useState(false);
   const [isStartingLocalMode, setIsStartingLocalMode] = useState(false);
+  const [desktopAuthCode, setDesktopAuthCode] = useState('');
+  const [isSubmittingDesktopCode, setIsSubmittingDesktopCode] = useState(false);
   const { isEnabled: isLocalWorkspaceEnabled, isReady: isLocalWorkspaceReady } =
     useDesktopLocalWorkspaceFlag();
   const desktopSessionUnsubscribeRef = useRef<(() => void) | null>(null);
@@ -251,6 +266,45 @@ export default function LoginBetterAuth({
     isWaitingForDesktopSessionRef.current = false;
     setDesktopErrorMessage(null);
     setIsWaitingForDesktopSession(false);
+    setDesktopAuthCode('');
+    setIsSubmittingDesktopCode(false);
+  }
+
+  async function handleDesktopCompleteWithCode(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+    const bridge = getDesktopBridge();
+    const code = desktopAuthCode.trim();
+
+    if (!bridge) {
+      setDesktopErrorMessage(
+        'Desktop sign-in is unavailable because the desktop bridge could not be loaded.',
+      );
+      return;
+    }
+
+    if (!code) {
+      setDesktopErrorMessage('Paste the sign-in code from the browser.');
+      return;
+    }
+
+    setDesktopErrorMessage(null);
+    setIsSubmittingDesktopCode(true);
+
+    try {
+      await bridge.auth.completeWithCode(code);
+    } catch (error) {
+      isWaitingForDesktopSessionRef.current = true;
+      setIsWaitingForDesktopSession(true);
+      setDesktopErrorMessage(
+        readDesktopBridgeError(
+          error,
+          'The sign-in code could not be used. Copy it again from the browser.',
+        ),
+      );
+      setIsSubmittingDesktopCode(false);
+    }
   }
 
   async function handleDesktopLocalMode() {
@@ -270,7 +324,7 @@ export default function LoginBetterAuth({
     setIsStartingLocalMode(true);
     try {
       await bridge.app.enableOfflineMode();
-      window.location.assign(APP_ROUTES.ONBOARDING.BRAND);
+      window.location.assign(APP_ROUTES.DESKTOP.LOCAL);
     } catch (error) {
       setDesktopErrorMessage(
         error instanceof Error
@@ -374,18 +428,52 @@ export default function LoginBetterAuth({
       >
         <AuthActionSurface
           actions={
-            <>
-              {isWaitingForDesktopSession ? (
+            isWaitingForDesktopSession ? (
+              <form
+                className="space-y-3"
+                onSubmit={(event) => void handleDesktopCompleteWithCode(event)}
+              >
+                <Field label="Sign-in code">
+                  <Input
+                    autoComplete="off"
+                    name="desktop-signin-code"
+                    placeholder="Paste the code from the browser"
+                    spellCheck={false}
+                    value={desktopAuthCode}
+                    isDisabled={isSubmittingDesktopCode}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                      setDesktopAuthCode(event.target.value)
+                    }
+                  />
+                </Field>
+                <Button
+                  type="submit"
+                  variant={ButtonVariant.DEFAULT}
+                  isDisabled={
+                    !isDesktopBridgeAvailable ||
+                    isSubmittingDesktopCode ||
+                    desktopAuthCode.trim().length === 0
+                  }
+                  className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
+                  withWrapper={false}
+                >
+                  {isSubmittingDesktopCode
+                    ? 'Connecting…'
+                    : 'Continue with code'}
+                </Button>
                 <Button
                   type="button"
                   variant={ButtonVariant.SECONDARY}
                   onClick={handleDesktopBack}
+                  isDisabled={isSubmittingDesktopCode}
                   className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
                   withWrapper={false}
                 >
                   Back
                 </Button>
-              ) : (
+              </form>
+            ) : (
+              <>
                 <Button
                   type="button"
                   variant={ButtonVariant.DEFAULT}
@@ -396,43 +484,45 @@ export default function LoginBetterAuth({
                 >
                   Sign in with Genfeed
                 </Button>
-              )}
-
-              <Button
-                type="button"
-                variant={ButtonVariant.SECONDARY}
-                isDisabled={
-                  !isLocalWorkspaceEnabled ||
-                  !isDesktopBridgeAvailable ||
-                  isStartingLocalMode ||
-                  isWaitingForDesktopSession
-                }
-                className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
-                withWrapper={false}
-                onClick={() => void handleDesktopLocalMode()}
-              >
-                {isStartingLocalMode
-                  ? 'Starting local workspace…'
-                  : isLocalWorkspaceEnabled
-                    ? 'Use a local workspace'
-                    : 'Use a local workspace — coming soon'}
-              </Button>
-            </>
+                <Button
+                  type="button"
+                  variant={ButtonVariant.SECONDARY}
+                  isDisabled={
+                    !isLocalWorkspaceEnabled ||
+                    !isDesktopBridgeAvailable ||
+                    isStartingLocalMode
+                  }
+                  className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+                  withWrapper={false}
+                  onClick={() => void handleDesktopLocalMode()}
+                >
+                  {isStartingLocalMode
+                    ? 'Starting local workspace…'
+                    : isLocalWorkspaceEnabled
+                      ? 'Use a local workspace'
+                      : 'Use a local workspace — coming soon'}
+                </Button>
+              </>
+            )
           }
           error={desktopErrorMessage}
           hideHeading
           supportingCopy={
             <div className="space-y-2">
               {isWaitingForDesktopSession ? (
-                <p aria-live="polite">Waiting for the browser...</p>
-              ) : null}
-              <p>
-                {isLocalWorkspaceEnabled
-                  ? 'Local mode keeps its database and workspace files on this Mac. It starts only when you choose it.'
-                  : isLocalWorkspaceReady
-                    ? 'Local workspace is coming soon. Sign in with Genfeed Cloud.'
-                    : 'Checking whether local workspace is available…'}
-              </p>
+                <>
+                  <p aria-live="polite">Waiting for the browser...</p>
+                  <p>{translate('desktopAuth.pasteCodeHint')}</p>
+                </>
+              ) : (
+                <p>
+                  {isLocalWorkspaceEnabled
+                    ? 'Local mode keeps its database and workspace files on this Mac. It starts only when you choose it.'
+                    : isLocalWorkspaceReady
+                      ? 'Local workspace is coming soon. Sign in with Genfeed Cloud.'
+                      : 'Checking whether local workspace is available…'}
+                </p>
+              )}
             </div>
           }
         />

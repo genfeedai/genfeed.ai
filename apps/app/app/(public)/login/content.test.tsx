@@ -20,6 +20,7 @@ const authClientMocks = vi.hoisted(() => ({
 
 const desktopRuntimeMocks = vi.hoisted(() => ({
   eventOrder: [] as string[],
+  completeWithCode: vi.fn(),
   enableOfflineMode: vi.fn(),
   getDesktopBridge: vi.fn(),
   login: vi.fn(),
@@ -51,6 +52,11 @@ vi.mock('@/lib/desktop/runtime', () => ({
 vi.mock('@/lib/desktop/use-desktop-local-workspace-flag', () => ({
   useDesktopLocalWorkspaceFlag: () => desktopLocalWorkspaceFlagMock,
 }));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
@@ -110,6 +116,8 @@ describe('LoginPage', () => {
     desktopLocalWorkspaceFlagMock.isReady = true;
     desktopRuntimeMocks.enableOfflineMode.mockReset();
     desktopRuntimeMocks.enableOfflineMode.mockResolvedValue({});
+    desktopRuntimeMocks.completeWithCode.mockReset();
+    desktopRuntimeMocks.completeWithCode.mockResolvedValue(undefined);
     desktopRuntimeMocks.getDesktopBridge.mockReset();
     desktopRuntimeMocks.login.mockReset();
     desktopRuntimeMocks.login.mockImplementation(async () => {
@@ -130,6 +138,7 @@ describe('LoginPage', () => {
         enableOfflineMode: desktopRuntimeMocks.enableOfflineMode,
       },
       auth: {
+        completeWithCode: desktopRuntimeMocks.completeWithCode,
         login: desktopRuntimeMocks.login,
         onDidChangeSession: desktopRuntimeMocks.onDidChangeSession,
       },
@@ -280,9 +289,7 @@ describe('LoginPage', () => {
     await waitFor(() => {
       expect(desktopRuntimeMocks.enableOfflineMode).toHaveBeenCalledOnce();
     });
-    expect(locationAssignMock).toHaveBeenCalledWith(
-      APP_ROUTES.ONBOARDING.BRAND,
-    );
+    expect(locationAssignMock).toHaveBeenCalledWith(APP_ROUTES.DESKTOP.LOCAL);
   });
 
   it('subscribes before opening the system browser and can return to idle', async () => {
@@ -298,18 +305,73 @@ describe('LoginPage', () => {
     });
     expect(desktopRuntimeMocks.eventOrder).toEqual(['subscribe', 'login']);
     expect(screen.getByText('Waiting for the browser...')).toBeVisible();
-    const localModeButton = screen.getByRole('button', {
-      name: 'Use a local workspace',
-    });
-    expect(localModeButton).toBeDisabled();
-    fireEvent.click(localModeButton);
-    expect(desktopRuntimeMocks.enableOfflineMode).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(/Source checkouts cannot open automatically/i),
+    ).toBeVisible();
+    expect(screen.getByLabelText('Sign-in code')).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'Use a local workspace' }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 
     expect(
       screen.getByRole('button', { name: 'Sign in with Genfeed' }),
     ).toBeEnabled();
+  });
+
+  it('submits a pasted browser code to the desktop bridge', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    render(<LoginPage />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+    );
+
+    await waitFor(() => {
+      expect(desktopRuntimeMocks.login).toHaveBeenCalledOnce();
+    });
+
+    const codeInput = screen.getByLabelText('Sign-in code');
+    fireEvent.change(codeInput, { target: { value: ' desktop-code ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue with code' }));
+
+    await waitFor(() => {
+      expect(desktopRuntimeMocks.completeWithCode).toHaveBeenCalledWith(
+        'desktop-code',
+      );
+    });
+  });
+
+  it('shows the inner desktop error instead of the Electron IPC wrapper', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    desktopRuntimeMocks.completeWithCode.mockRejectedValueOnce(
+      new Error(
+        "Error invoking remote method 'desktop:auth:completeWithCode': Error: Sign-in expired. Click Sign in with Genfeed, then paste the new code from that browser tab.",
+      ),
+    );
+    render(<LoginPage />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+    );
+    await waitFor(() => {
+      expect(desktopRuntimeMocks.login).toHaveBeenCalledOnce();
+    });
+
+    fireEvent.change(screen.getByLabelText('Sign-in code'), {
+      target: { value: 'stale-code' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue with code' }));
+
+    expect(
+      await screen.findByText(
+        'Sign-in expired. Click Sign in with Genfeed, then paste the new code from that browser tab.',
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/Error invoking remote method/),
+    ).not.toBeInTheDocument();
   });
 
   it('unsubscribes from desktop session changes on unmount', () => {

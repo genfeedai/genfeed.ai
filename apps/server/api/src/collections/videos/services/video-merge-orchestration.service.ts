@@ -1,20 +1,3 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { CaptionsService } from '@server/collections/captions/services/captions.service';
-import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import type { CreateMergedVideoDto } from '@server/collections/videos/dto/create-video.dto';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import { requireVideoOutputPath } from '@server/collections/videos/utils/video-processing-result.util';
-import { customLabels } from '@server/helpers/utils/pagination.util';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { WhisperService } from '@server/services/whisper/whisper.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 import { JOB_TYPES } from '@files/queues/queue.constants';
 import {
   ActivityEntityModel,
@@ -34,7 +17,24 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { CaptionsService } from '@server/collections/captions/services/captions.service';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import type { CreateMergedVideoDto } from '@server/collections/videos/dto/create-video.dto';
+import { VideosService } from '@server/collections/videos/services/videos.service';
+import { requireVideoOutputPath } from '@server/collections/videos/utils/video-processing-result.util';
+import { customLabels } from '@server/helpers/utils/pagination.util';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { WhisperService } from '@server/services/whisper/whisper.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
+import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 
 @Injectable()
 export class VideoMergeOrchestrationService {
@@ -185,19 +185,21 @@ export class VideoMergeOrchestrationService {
               ingredientData.id,
             );
             const caption = await this.captionsService.create({
-              content: captionContent,
               format: CaptionFormat.SRT,
               ingredientId: ingredientData.id,
-              isDeleted: false,
               language: CaptionLanguage.EN,
-              organizationId: user.organizationId,
-              userId: user.userId ?? user.id,
             });
+            const captionId = caption?.id;
+            if (captionId) {
+              await this.captionsService.patch(captionId, {
+                content: captionContent,
+              });
+            }
             const captionsJob = await this.fileQueueService.processVideo({
               ingredientId,
               organizationId: user.organizationId,
               params: {
-                captionContent: caption.content,
+                captionContent,
                 inputPath: `${this.configService.ingredientsEndpoint}/videos/${ingredientId}`,
               },
               room: getUserRoomName(user.id),

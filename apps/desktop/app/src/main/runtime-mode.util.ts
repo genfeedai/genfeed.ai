@@ -39,11 +39,41 @@ export function selectDesktopDataService<TService>({
   return localService;
 }
 
+const LOCAL_RUNTIME_INIT_TIMEOUT_MS = 20_000;
+const LOCAL_RUNTIME_INIT_TIMEOUT_ERROR =
+  'Local workspace did not finish starting. Retry or switch back to cloud.';
+
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  message: string,
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
 export async function activateDesktopLocalMode(
   initializeLocalRuntime: () => Promise<void>,
   persistLocalMode: () => void,
+  timeoutMs = LOCAL_RUNTIME_INIT_TIMEOUT_MS,
 ): Promise<void> {
-  await initializeLocalRuntime();
+  await withTimeout(
+    initializeLocalRuntime(),
+    timeoutMs,
+    LOCAL_RUNTIME_INIT_TIMEOUT_ERROR,
+  );
   persistLocalMode();
 }
 

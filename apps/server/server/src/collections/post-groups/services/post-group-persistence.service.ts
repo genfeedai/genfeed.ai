@@ -1,3 +1,13 @@
+import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
+import {
+  ReleaseAttachmentKind,
+  ReleaseStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
+import type { IReleaseGroup } from '@genfeedai/interfaces';
+import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import type {
   CreateAttachmentPostsParams,
   CreatePostGroupParams,
@@ -13,16 +23,6 @@ import { PostGroupContractService } from '@server/collections/post-groups/servic
 import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
-import {
-  ReleaseAttachmentKind,
-  ReleaseStatus,
-  TargetExecutionState,
-} from '@genfeedai/enums';
-import type { IReleaseGroup } from '@genfeedai/interfaces';
-import { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { BadRequestException, Injectable } from '@nestjs/common';
 
 type ReleaseProjectionRecord = {
   group: SchedulerPostGroup;
@@ -535,8 +535,11 @@ export class PostGroupPersistenceService {
       media: [],
       organizationId,
       ownerId: target.userId,
+      postingSetId: null,
       publishedAt: target.publishedAt,
       recurrence: null,
+      rssFeedItemId: null,
+      rssSourceId: null,
       scheduledAt: target.scheduledDate,
       status: target.targetExecutionState,
       statusTransitions: [],

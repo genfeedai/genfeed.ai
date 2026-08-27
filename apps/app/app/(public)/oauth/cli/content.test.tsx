@@ -361,12 +361,27 @@ describe('CliAuthPage', () => {
     });
     expect(
       screen.getByText(
-        'Genfeed Desktop did not open automatically. Make sure the app is installed, then try again or copy the code below.',
+        'The desktop app did not open automatically. Source checkouts and unpackaged builds cannot. Copy the code and paste it in the desktop app.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText('gf_desktop_code')).toBeInTheDocument();
+    const codeInput = screen.getByLabelText('Sign-in code');
+    expect(codeInput).toHaveAttribute('readonly');
+    expect(codeInput).toHaveValue('gf_deskt…');
+    expect(
+      screen.queryByDisplayValue('gf_desktop_code'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Copy this code and paste it in the desktop app:'),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Try again' }),
     ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        'gf_desktop_code',
+      );
+    });
   });
 });
