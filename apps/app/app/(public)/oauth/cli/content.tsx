@@ -493,6 +493,7 @@ function CliAuthPageContent() {
   ]);
 
   const handleRetry = () => {
+    setCopyError(null);
     tokenRequestedRef.current = false;
     setFlowState({ error: null, step: 'validating' });
 

@@ -272,7 +272,10 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       tx,
       account.id,
     );
-    return this.creditBalanceService.toSnapshot(balance);
+    return {
+      ...this.creditBalanceService.toSnapshot(balance),
+      organizationId,
+    };
   }
 
   private async getBillingWalletSnapshot(

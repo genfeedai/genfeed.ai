@@ -16,7 +16,7 @@ import {
   DEFAULT_WORKFLOW_GENERATION_NODE_TYPES,
   parseWorkflowGenerationResponse,
 } from '@genfeedai/workflows/generation';
-import { DesktopConfigService } from './config.service';
+import type { DesktopConfigService } from './config.service';
 import {
   __desktopGenerationProviderServiceTestUtils,
   buildSystemPrompt,
@@ -233,11 +233,8 @@ export class DesktopGenerationService {
 
   constructor(
     private readonly database: DesktopGenerationStore,
+    configService: Pick<DesktopConfigService, 'getLocalProviderTimeoutMs'>,
     private readonly generatedAssetWriter?: DesktopGeneratedAssetWriter,
-    configService: Pick<
-      DesktopConfigService,
-      'getLocalProviderTimeoutMs'
-    > = new DesktopConfigService(),
   ) {
     this.providerService = new DesktopGenerationProviderService(
       database,

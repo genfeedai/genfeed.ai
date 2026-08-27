@@ -206,6 +206,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
 
     const publicConfig = await service.saveProviderConfig({
@@ -230,6 +231,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
 
     await service.saveProviderConfig(providerConfig);
@@ -282,6 +284,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
 
     await expect(service.generateContent(generationParams)).rejects.toThrow(
@@ -317,6 +320,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
 
     await service.saveProviderConfig(providerConfig);
@@ -337,6 +341,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
 
     await service.saveProviderConfig(providerConfig);
@@ -390,6 +395,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
 
     await service.saveProviderConfig({
@@ -437,6 +443,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
     const calls: string[] = [];
 
@@ -497,6 +504,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
     const calls: string[] = [];
 
@@ -606,6 +614,7 @@ describe('DesktopGenerationService', () => {
     const assetWriter = createAssetWriterMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
       assetWriter,
     );
     const calls: string[] = [];
@@ -669,6 +678,7 @@ describe('DesktopGenerationService', () => {
     const assetWriter = createAssetWriterMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
       assetWriter,
     );
     const calls: string[] = [];
@@ -718,6 +728,7 @@ describe('DesktopGenerationService', () => {
     const database = createDatabaseMock();
     const service = new DesktopGenerationService(
       database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
     );
 
     database.syncJobs.set('job-running', {

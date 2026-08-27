@@ -62,6 +62,15 @@ describe('billing accounts migration (#3612)', () => {
     expect(onlineIndexSource).toContain(
       'credit_balances_organizationId_active_key',
     );
+    expect(onlineIndexSource).toContain(
+      'credit_reservations_organizationId_idempotencyKey_active_key',
+    );
+    expect(onlineIndexSource).toContain(
+      'ON "credit_reservations" ("organizationId", "idempotencyKey")\n  WHERE "isDeleted" = false',
+    );
+    expect(onlineIndexSource).not.toContain(
+      'credit_reservations_idempotencyKey_key',
+    );
     expect(validationSource).toContain('VALIDATE CONSTRAINT');
   });
 });
@@ -140,7 +149,7 @@ describePostgres('billing account identity backfill on PostgreSQL', () => {
       ]);
       await client.query('COMMIT');
     } finally {
-      await client.query('ROLLBACK');
+      await client.query('ROLLBACK').catch(() => undefined);
       await client.query(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`);
       client.release();
       await pool.end();

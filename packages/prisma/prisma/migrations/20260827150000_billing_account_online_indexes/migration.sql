@@ -17,8 +17,9 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS "billing_account_organizations_account_s
   ON "billing_account_organizations" ("billingAccountId", "status", "isDeleted");
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "billing_account_organizations_org_status_idx"
   ON "billing_account_organizations" ("organizationId", "status", "isDeleted");
-CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "credit_reservations_idempotencyKey_key"
-  ON "credit_reservations" ("idempotencyKey");
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "credit_reservations_organizationId_idempotencyKey_active_key"
+  ON "credit_reservations" ("organizationId", "idempotencyKey")
+  WHERE "isDeleted" = false;
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "credit_reservations_account_status_idx"
   ON "credit_reservations" ("billingAccountId", "status", "isDeleted");
 CREATE INDEX CONCURRENTLY IF NOT EXISTS "credit_reservations_org_status_idx"

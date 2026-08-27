@@ -43,6 +43,17 @@ const LOCAL_RUNTIME_INIT_TIMEOUT_MS = 20_000;
 const LOCAL_RUNTIME_INIT_TIMEOUT_ERROR =
   'Local workspace did not finish starting. Retry or switch back to cloud.';
 
+export function createLocalRuntimeCleanupBarrier(
+  attempt: Promise<void> | null,
+): Promise<void> {
+  return (
+    attempt?.then(
+      () => undefined,
+      () => undefined,
+    ) ?? Promise.resolve()
+  );
+}
+
 async function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,

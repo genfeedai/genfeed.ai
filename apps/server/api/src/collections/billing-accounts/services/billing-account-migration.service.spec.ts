@@ -66,6 +66,31 @@ describe('BillingAccountMigrationService', () => {
     expect(prisma.organization.updateMany).not.toHaveBeenCalled();
   });
 
+  it('quarantines Stripe identities shared across organizations', async () => {
+    prisma.organization.findMany.mockResolvedValue([
+      {
+        billingAccountId: null,
+        customers: [{ id: 'c1', stripeCustomerId: 'cus_shared' }],
+        id: 'org_1',
+        subscriptions: [],
+      },
+      {
+        billingAccountId: null,
+        customers: [{ id: 'c2', stripeCustomerId: 'cus_shared' }],
+        id: 'org_2',
+        subscriptions: [],
+      },
+    ]);
+
+    const report = await service.applyUnambiguous();
+
+    expect(report.classified).toEqual([
+      expect.objectContaining({ classification: 'duplicate' }),
+      expect.objectContaining({ classification: 'duplicate' }),
+    ]);
+    expect(prisma.billingAccount.create).not.toHaveBeenCalled();
+  });
+
   it('creates and attributes a missing account in one serializable transaction', async () => {
     prisma.organization.findMany.mockResolvedValue([
       {

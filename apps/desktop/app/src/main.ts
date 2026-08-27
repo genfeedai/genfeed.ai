@@ -63,6 +63,7 @@ import {
 } from './main/process-exceptions.util';
 import {
   activateDesktopLocalMode,
+  createLocalRuntimeCleanupBarrier,
   createUnwoundLocalRuntimeState,
   selectDesktopDataService,
   switchDesktopToCloud,
@@ -122,6 +123,7 @@ let draftsService: DesktopDraftsService | null = null;
 let appShellService: DesktopAppShellService;
 let isOfflineMode = false;
 let localRuntimePromise: Promise<void> | null = null;
+let localRuntimeCleanupBarrier: Promise<void> = Promise.resolve();
 let localRuntimeAttemptId = 0;
 let assetProtocolRegistered = false;
 let logService: DesktopLogService | null = null;
@@ -425,6 +427,8 @@ const runDataService = async <T>(
 };
 
 const initializeLocalRuntime = async (): Promise<void> => {
+  await localRuntimeCleanupBarrier;
+
   if (localRuntimePromise) {
     return localRuntimePromise;
   }
@@ -493,8 +497,8 @@ const initializeLocalRuntime = async (): Promise<void> => {
             });
           },
         },
-        nextFilesService,
         configService,
+        nextFilesService,
       );
       await nextGenerationService.resumeAssetGenerationJobs();
       const nextTerminalService = new DesktopTerminalService(
@@ -558,6 +562,8 @@ const initializeLocalRuntime = async (): Promise<void> => {
 
 const invalidateLocalRuntimeAttempt = (): void => {
   localRuntimeAttemptId += 1;
+  localRuntimeCleanupBarrier =
+    createLocalRuntimeCleanupBarrier(localRuntimePromise);
   localRuntimePromise = null;
 };
 

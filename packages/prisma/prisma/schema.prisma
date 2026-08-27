@@ -2949,7 +2949,7 @@ model CreditReservation {
   status           CreditReservationStatus  @default(RESERVED)
   workloadType     String?
   workloadId       String?
-  idempotencyKey   String                   @unique
+  idempotencyKey   String
   expiresAt        DateTime
   isDeleted        Boolean                  @default(false)
   createdAt        DateTime                 @default(now())

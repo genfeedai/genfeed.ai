@@ -72,6 +72,11 @@ describe('StripeController', () => {
     resolveExisting: ReturnType<typeof vi.fn>;
     resolveOrProvision: ReturnType<typeof vi.fn>;
   };
+  let billingAccountsService: {
+    ensureForOrganization: ReturnType<typeof vi.fn>;
+    requireRole: ReturnType<typeof vi.fn>;
+    resolveForOrganization: ReturnType<typeof vi.fn>;
+  };
 
   const mockRequest = {
     headers: { origin: 'https://app.genfeed.ai' },
@@ -174,6 +179,11 @@ describe('StripeController', () => {
         stripeCustomerId: 'cus_test123',
       }),
     };
+    billingAccountsService = {
+      ensureForOrganization: vi.fn().mockResolvedValue({ id: 'ba_1' }),
+      requireRole: vi.fn().mockResolvedValue('OWNER'),
+      resolveForOrganization: vi.fn().mockResolvedValue({ id: 'ba_1' }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [StripeController],
@@ -194,11 +204,7 @@ describe('StripeController', () => {
         },
         {
           provide: BillingAccountsService,
-          useValue: {
-            ensureForOrganization: vi.fn().mockResolvedValue({ id: 'ba_1' }),
-            requireRole: vi.fn().mockResolvedValue('OWNER'),
-            resolveForOrganization: vi.fn().mockResolvedValue({ id: 'ba_1' }),
-          },
+          useValue: billingAccountsService,
         },
       ],
     })
@@ -230,6 +236,13 @@ describe('StripeController', () => {
       expect(usersService.findOne).toHaveBeenCalledWith({
         id: userId,
       });
+      expect(billingAccountsService.ensureForOrganization).toHaveBeenCalledWith(
+        {
+          label: 'Test Org',
+          organizationId: orgId,
+          userId,
+        },
+      );
       expect(lifecycleEmailService.recordCheckoutStarted).toHaveBeenCalledWith({
         checkoutSessionId: 'cs_org_1',
         checkoutUrl: 'https://checkout.stripe.com/session',
@@ -392,6 +405,13 @@ describe('StripeController', () => {
         mockRequest,
       );
       expect(result).toEqual({ url: 'https://checkout.stripe.com/setup' });
+      expect(billingAccountsService.ensureForOrganization).toHaveBeenCalledWith(
+        {
+          label: 'Test Org',
+          organizationId: orgId,
+          userId,
+        },
+      );
     });
 
     it('should throw BAD_REQUEST when origin missing', async () => {

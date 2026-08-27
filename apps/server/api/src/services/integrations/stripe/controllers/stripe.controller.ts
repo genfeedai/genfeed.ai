@@ -127,6 +127,11 @@ export class StripeController {
         return returnNotFound('Organization', user.organizationId);
       }
 
+      await this.billingAccountsService.ensureForOrganization({
+        label: organization.label,
+        organizationId: user.organizationId,
+        userId: dbUser.id.toString(),
+      });
       const domainAccount =
         await this.billingAccountsService.resolveForOrganization(
           user.organizationId,
@@ -268,6 +273,11 @@ export class StripeController {
         return returnNotFound('Organization', user.organizationId);
       }
 
+      await this.billingAccountsService.ensureForOrganization({
+        label: organization.label,
+        organizationId: user.organizationId,
+        userId: dbUser.id.toString(),
+      });
       const domainAccount =
         await this.billingAccountsService.resolveForOrganization(
           user.organizationId,

@@ -34,6 +34,23 @@ export class BillingAccountMigrationService {
       },
     });
 
+    const stripeIdentityOrganizations = new Map<string, Set<string>>();
+    for (const organization of organizations) {
+      for (const customer of organization.customers) {
+        if (!customer.stripeCustomerId) {
+          continue;
+        }
+        const organizationIds =
+          stripeIdentityOrganizations.get(customer.stripeCustomerId) ??
+          new Set<string>();
+        organizationIds.add(organization.id);
+        stripeIdentityOrganizations.set(
+          customer.stripeCustomerId,
+          organizationIds,
+        );
+      }
+    }
+
     const classified = organizations.map((organization) => {
       const customers = organization.customers;
       const subscriptions = organization.subscriptions;
@@ -42,6 +59,17 @@ export class BillingAccountMigrationService {
           classification: 'duplicate' as const,
           organizationId: organization.id,
           reason: 'Multiple active customer or subscription rows',
+        };
+      }
+      const stripeCustomerId = customers[0]?.stripeCustomerId;
+      if (
+        stripeCustomerId &&
+        (stripeIdentityOrganizations.get(stripeCustomerId)?.size ?? 0) > 1
+      ) {
+        return {
+          classification: 'duplicate' as const,
+          organizationId: organization.id,
+          reason: 'Stripe customer identity is shared by organizations',
         };
       }
       if (!organization.billingAccountId) {
