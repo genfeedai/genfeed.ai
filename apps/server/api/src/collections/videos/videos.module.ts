@@ -19,6 +19,7 @@ import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { VideosCaptionsController } from '@api/collections/videos/controllers/captions/videos-captions.controller';
 import { VideosProvenanceController } from '@api/collections/videos/controllers/provenance/videos-provenance.controller';
+import { VideosMergeController } from '@api/collections/videos/controllers/relationships/videos-merge.controller';
 import { VideosRelationshipsController } from '@api/collections/videos/controllers/relationships/videos-relationships.controller';
 import { VideosUploadController } from '@api/collections/videos/controllers/upload/videos-upload.controller';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
@@ -32,6 +33,7 @@ import { VideoGenerationCreditsService } from '@api/collections/videos/services/
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
+import { VideoMergeOrchestrationService } from '@api/collections/videos/services/video-merge-orchestration.service';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import { VideoProvenanceService } from '@api/collections/videos/services/video-provenance.service';
 import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
@@ -65,6 +67,7 @@ import { Module } from '@nestjs/common';
     // Core controllers only - transformations and generation in sub-modules
     VideosController,
     VideosRelationshipsController,
+    VideosMergeController,
     VideosUploadController,
   ],
   exports: [
@@ -126,6 +129,7 @@ import { Module } from '@nestjs/common';
     VideoGenerationPreparationService,
     VideoGenerationProviderDispatchService,
     VideoGenerationService,
+    VideoMergeOrchestrationService,
     VideoMusicOrchestrationService,
     VideoProvenanceService,
   ],

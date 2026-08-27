@@ -1,14 +1,15 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { ImagesController } from '@api/collections/images/controllers/images.controller';
 import { ImagesOperationsController } from '@api/collections/images/controllers/operations/images-operations.controller';
 import { ImagesRelationshipsController } from '@api/collections/images/controllers/relationships/images-relationships.controller';
 import { ImagesReframeController } from '@api/collections/images/controllers/transformations/images-reframe.controller';
 import { ImagesResizeController } from '@api/collections/images/controllers/transformations/images-resize.controller';
-import { ImagesTransformationsController } from '@api/collections/images/controllers/transformations/images-transformations.controller';
+import { ImagesUpscaleController } from '@api/collections/images/controllers/transformations/images-upscale.controller';
 import { ImagesUploadsController } from '@api/collections/images/controllers/upload/images-uploads.controller';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { ImageReframeService } from '@api/collections/images/services/image-reframe.service';
 import { ImageResizeService } from '@api/collections/images/services/image-resize.service';
+import { ImageUpscaleService } from '@api/collections/images/services/image-upscale.service';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { RequestMethod } from '@nestjs/common';
 import {
@@ -53,6 +54,24 @@ describe('Images split controllers', () => {
     });
   });
 
+  it('preserves the upscale route and legacy OpenAPI identity', () => {
+    const handler = ImagesUpscaleController.prototype.upscaleImage;
+
+    expect(Reflect.getMetadata(PATH_METADATA, ImagesUpscaleController)).toBe(
+      'images',
+    );
+    expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(
+      ':imageId/upscale',
+    );
+    expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(
+      RequestMethod.POST,
+    );
+    expect(Reflect.getMetadata('swagger/apiOperation', handler)).toMatchObject({
+      operationId: 'ImagesTransformationsController.upscaleImage',
+      summary: 'upscaleImage',
+    });
+  });
+
   it('preserves credit interception on every transformation transport', () => {
     expect(
       Reflect.getMetadata(INTERCEPTORS_METADATA, ImagesReframeController),
@@ -61,14 +80,11 @@ describe('Images split controllers', () => {
       Reflect.getMetadata(INTERCEPTORS_METADATA, ImagesResizeController),
     ).toContain(CreditsInterceptor);
     expect(
-      Reflect.getMetadata(
-        INTERCEPTORS_METADATA,
-        ImagesTransformationsController,
-      ),
+      Reflect.getMetadata(INTERCEPTORS_METADATA, ImagesUpscaleController),
     ).toContain(CreditsInterceptor);
   });
 
-  it('registers transformation siblings before the transformations controller', () => {
+  it('registers transformation siblings in the established module order', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, ImagesModule),
     ).toEqual([
@@ -77,7 +93,7 @@ describe('Images split controllers', () => {
       ImagesRelationshipsController,
       ImagesResizeController,
       ImagesReframeController,
-      ImagesTransformationsController,
+      ImagesUpscaleController,
       ImagesUploadsController,
     ]);
   });
@@ -90,23 +106,27 @@ describe('Images split controllers', () => {
 
     expect(providers).toContain(ImageReframeService);
     expect(providers).toContain(ImageResizeService);
+    expect(providers).toContain(ImageUpscaleService);
   });
 
-  it('removes extracted methods from the transformations controller', () => {
+  it('removes the empty legacy transformations controller file', () => {
     expect(
-      Reflect.get(ImagesTransformationsController.prototype, 'reframeImage'),
-    ).toBeUndefined();
-    expect(
-      Reflect.get(ImagesTransformationsController.prototype, 'resizeImage'),
-    ).toBeUndefined();
+      existsSync(
+        new URL(
+          './transformations/images-transformations.controller.ts',
+          import.meta.url,
+        ),
+      ),
+    ).toBe(false);
   });
 
   it.each([
-    './transformations/images-transformations.controller.ts',
     './transformations/images-reframe.controller.ts',
     './transformations/images-resize.controller.ts',
+    './transformations/images-upscale.controller.ts',
     '../services/image-reframe.service.ts',
     '../services/image-resize.service.ts',
+    '../services/image-upscale.service.ts',
   ])('keeps %s below 500 lines', (relativePath) => {
     const source = readFileSync(new URL(relativePath, import.meta.url), 'utf8');
 
