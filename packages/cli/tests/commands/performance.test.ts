@@ -91,9 +91,9 @@ describe('performance command', () => {
         [
           'weekly',
           '--top',
-          '3',
+          '12',
           '--worst',
-          '2',
+          '8',
           '--start',
           '2026-01-01',
           '--end',
@@ -107,8 +107,8 @@ describe('performance command', () => {
         brandId: 'brand-active',
         endDate: '2026-01-07',
         startDate: '2026-01-01',
-        topN: 3,
-        worstN: 2,
+        topN: 12,
+        worstN: 8,
       });
     });
 

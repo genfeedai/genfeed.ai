@@ -7,6 +7,7 @@ import { archiveThreadAndPrint, runAgentShell, showThreadSummary } from '@/shell
 import { createAssistantStreamRenderer } from '@/shell/assistant-stream-renderer';
 import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
+import { parsePositiveInteger } from '@/utils/options';
 
 async function readAnswerFromStdin(): Promise<string> {
   const chunks: Buffer[] = [];
@@ -105,7 +106,7 @@ export const threadsCommand = new Command('threads')
       .option('--request <id>', 'Specific pending input request ID')
       .option('--stdin', 'Read the answer from stdin')
       .option('--json', 'Output as JSON')
-      .option('--timeout <ms>', 'Wait timeout in milliseconds', Number.parseInt, 120000)
+      .option('--timeout <ms>', 'Wait timeout in milliseconds', parsePositiveInteger, 120000)
       .action(async (threadId, answer, options) => {
         try {
           await requireAuth();

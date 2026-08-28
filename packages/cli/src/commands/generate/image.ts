@@ -4,6 +4,7 @@ import { requireAuth } from '@/api/client';
 import { createImage, getImage, type Image } from '@/api/images';
 import { getActiveProfile } from '@/config/store';
 import { handleError } from '@/utils/errors';
+import { parseInteger, parsePositiveInteger } from '@/utils/options';
 import {
   downloadGeneratedFile,
   printGeneratedResult,
@@ -16,10 +17,10 @@ export const imageCommand = new Command('image')
   .description('Generate an AI image')
   .argument('<prompt>', 'The prompt describing the image to generate')
   .option('-m, --model <model>', 'Model to use for generation')
-  .option('-w, --width <width>', 'Image width in pixels', Number.parseInt)
-  .option('-h, --height <height>', 'Image height in pixels', Number.parseInt)
-  .option('--seed <seed>', 'Deterministic generation seed', Number.parseInt)
-  .option('--outputs <count>', 'Number of outputs', Number.parseInt)
+  .option('-w, --width <width>', 'Image width in pixels', parsePositiveInteger)
+  .option('-h, --height <height>', 'Image height in pixels', parsePositiveInteger)
+  .option('--seed <seed>', 'Deterministic generation seed', parseInteger)
+  .option('--outputs <count>', 'Number of outputs', parsePositiveInteger)
   .option('--reference <id...>', 'Source image ingredient IDs')
   .option('--style <style>', 'Artistic or visual style')
   .option('--format <format>', 'Output composition format')

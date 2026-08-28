@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parsePositiveInteger } from '../../src/utils/options';
+import { parseInteger, parsePositiveInteger } from '../../src/utils/options';
 
 describe('CLI option parsers', () => {
   it.each([
@@ -16,4 +16,16 @@ describe('CLI option parsers', () => {
       expect(() => parsePositiveInteger(value)).toThrow('Invalid positive integer');
     }
   );
+
+  it.each([
+    ['0', 0],
+    ['-42', -42],
+    ['123', 123],
+  ])('parses safe integer %s', (value, expected) => {
+    expect(parseInteger(value)).toBe(expected);
+  });
+
+  it.each(['abc', '1.5', '9007199254740992'])('rejects invalid safe integer %s', (value) => {
+    expect(() => parseInteger(value)).toThrow('Invalid integer');
+  });
 });

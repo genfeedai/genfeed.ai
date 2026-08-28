@@ -38,7 +38,7 @@ export const batchCommand = new Command('batch').description('Batch content gene
 batchCommand
   .command('create')
   .description('Create a batch content generation job')
-  .requiredOption('-n, --count <n>', 'Number of content pieces (1-100)', Number.parseInt)
+  .requiredOption('-n, --count <n>', 'Number of content pieces (1-100)', parsePositiveInteger)
   .requiredOption('-p, --platforms <list>', 'Comma-separated target platforms')
   .option('-b, --brand <id>', 'Brand ID (overrides active brand)')
   .option('--topics <list>', 'Comma-separated content topics')
