@@ -1,11 +1,10 @@
 'use client';
 
 import {
-  BatchStatus,
   ButtonSize,
   ButtonVariant,
   formatEnumLabel,
-  WorkflowBatchItemStatus,
+  WorkflowExecutionStatus,
 } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
@@ -18,8 +17,8 @@ import Image from 'next/image';
 import { useMemo } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type {
-  BatchItemStatus,
-  BatchJobStatus,
+  BatchExecution,
+  BatchExecutionItem,
   WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
 import { isTerminalBatchStatus } from '@/features/workflows/utils/batch-status';
@@ -27,11 +26,11 @@ import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 type OutputEntry = {
   ingredient: IIngredient;
-  item: BatchItemStatus;
+  item: BatchExecutionItem;
 };
 
 type Props = {
-  activeBatchStatus: BatchJobStatus;
+  activeBatchStatus: BatchExecution;
   availableOutputs: OutputEntry[];
   selectedOutputs: OutputEntry[];
   selectedOutputIds: Set<string>;
@@ -48,34 +47,26 @@ type Props = {
   onOpenPostModal: (ingredient: IIngredient | IIngredient[]) => void;
 };
 
-/**
- * Serves both the job status (Prisma `BatchStatus`, SCREAMING_SNAKE) and the
- * per-item status (`items` JSON payload, lowercase), so the input is upper-cased
- * before it is matched.
- *
- * @see .agents/memory/rules/enum_source_of_truth.md
- */
-function getStatusClasses(
-  status: BatchStatus | WorkflowBatchItemStatus,
-): string {
-  switch (status.toUpperCase()) {
-    case BatchStatus.COMPLETED:
+function getStatusClasses(status: WorkflowExecutionStatus): string {
+  switch (status) {
+    case WorkflowExecutionStatus.COMPLETED:
       return 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300';
-    case BatchStatus.PROCESSING:
+    case WorkflowExecutionStatus.RUNNING:
       return 'border-blue-500/30 bg-blue-500/15 text-blue-300';
-    case BatchStatus.FAILED:
+    case WorkflowExecutionStatus.FAILED:
       return 'border-red-500/30 bg-red-500/15 text-red-300';
     default:
       return 'border-border-strong bg-muted/50 text-muted-foreground';
   }
 }
 
-function getProgressPercent(batchJob: BatchJobStatus): number {
-  if (batchJob.totalCount <= 0) {
+function getProgressPercent(execution: BatchExecution): number {
+  if (execution.totalCount <= 0) {
     return 0;
   }
   return Math.round(
-    ((batchJob.completedCount + batchJob.failedCount) / batchJob.totalCount) *
+    ((execution.completedCount + execution.failedCount) /
+      execution.totalCount) *
       100,
   );
 }
@@ -270,9 +261,9 @@ export default function BatchDetail({
               className="mt-5 border-dashed bg-background/40 px-4 py-6 text-sm text-muted-foreground"
               tone="default"
             >
-              This batch finished without persisted output metadata. Older jobs
-              can still be inspected, but download and publish actions are only
-              available for jobs that expose output summaries.
+              This batch finished without persisted output metadata. Download
+              and publish actions are available when child executions expose
+              output summaries.
             </InsetSurface>
           )}
 
@@ -357,7 +348,7 @@ export default function BatchDetail({
 
                   {!item.error &&
                     !item.outputSummary &&
-                    item.status === WorkflowBatchItemStatus.COMPLETED && (
+                    item.status === WorkflowExecutionStatus.COMPLETED && (
                       <p className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
                         Output metadata is unavailable for this completed item.
                       </p>

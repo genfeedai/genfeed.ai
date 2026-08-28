@@ -2,10 +2,10 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import type { BatchJobStatus } from '@/features/workflows/services/workflow-api';
+import type { BatchExecution } from '@/features/workflows/services/workflow-api';
 
 type Props = {
-  activeBatchStatus: BatchJobStatus | null;
+  activeBatchStatus: BatchExecution | null;
   onBackToComposer: () => void;
 };
 

@@ -31,27 +31,12 @@
       {
         "command": "genfeed.postContent",
         "icon": "$(megaphone)",
-        "title": "Genfeed: Post Content"
+        "title": "Genfeed: Create Post Draft"
       },
       {
         "command": "genfeed.showAnalytics",
         "icon": "$(graph)",
         "title": "Genfeed: Show Analytics"
-      },
-      {
-        "command": "genfeed.runFullLoop",
-        "icon": "$(run-all)",
-        "title": "Genfeed: Run Full Loop"
-      },
-      {
-        "command": "genfeed.runComposite",
-        "icon": "$(run-all)",
-        "title": "Genfeed: Run Composite Workflow (Alias)"
-      },
-      {
-        "command": "genfeed.runStatus",
-        "icon": "$(pulse)",
-        "title": "Genfeed: Run Status"
       },
       {
         "command": "genfeed.generateContentFromTemplate",
@@ -62,20 +47,6 @@
         "command": "genfeed.createCampaign",
         "icon": "$(edit)",
         "title": "Genfeed: Configure Workspace Campaign"
-      },
-      {
-        "command": "genfeed.exportRunArtifacts",
-        "icon": "$(save)",
-        "title": "Genfeed: Save Run Artifacts"
-      },
-      {
-        "command": "genfeed.toggleAgentMode",
-        "icon": "$(hubot)",
-        "title": "Genfeed: Toggle Agent Mode"
-      },
-      {
-        "command": "genfeed.openRunQueue",
-        "title": "Genfeed: Open Run Queue"
       },
       {
         "command": "genfeed.openTemplates",
@@ -89,11 +60,6 @@
         "command": "genfeed.toggleSidebar",
         "icon": "$(layout-sidebar-left)",
         "title": "Genfeed: Toggle Sidebar"
-      },
-      {
-        "command": "genfeed.refreshRunQueue",
-        "icon": "$(refresh)",
-        "title": "Genfeed: Refresh Run Queue"
       },
       {
         "command": "genfeed.refreshTemplates",
@@ -118,16 +84,6 @@
         "title": "Genfeed: Set API Key"
       },
       {
-        "command": "genfeed.publishContent",
-        "icon": "$(megaphone)",
-        "title": "Genfeed: Run Publish Content (Alias)"
-      },
-      {
-        "command": "genfeed.viewAnalytics",
-        "icon": "$(graph)",
-        "title": "Genfeed: Run Analytics (Alias)"
-      },
-      {
         "command": "genfeed.openPresets",
         "title": "Genfeed: Open Presets Panel (Legacy)"
       },
@@ -149,11 +105,6 @@
     ],
     "configuration": {
       "properties": {
-        "genfeed.agentMode": {
-          "default": true,
-          "description": "Use agent mode by default for full-loop runs",
-          "type": "boolean"
-        },
         "genfeed.apiEndpoint": {
           "default": "https://api.genfeed.ai",
           "description": "Genfeed.ai API endpoint",
@@ -202,11 +153,6 @@
           "default": "",
           "description": "Directory to save generated media (leave empty for workspace root)",
           "type": "string"
-        },
-        "genfeed.writeArtifactsByDefault": {
-          "default": false,
-          "description": "Persist structured run artifacts to workspace by default",
-          "type": "boolean"
         }
       },
       "title": "Genfeed.ai"
@@ -228,11 +174,6 @@
         }
       ],
       "view/title": [
-        {
-          "command": "genfeed.refreshRunQueue",
-          "group": "navigation",
-          "when": "view == genfeed.runQueueView"
-        },
         {
           "command": "genfeed.refreshTemplates",
           "group": "navigation",
@@ -257,11 +198,6 @@
     },
     "views": {
       "genfeed-sidebar": [
-        {
-          "id": "genfeed.runQueueView",
-          "name": "Run Queue",
-          "type": "webview"
-        },
         {
           "id": "genfeed.templatesView",
           "name": "Templates",
@@ -295,6 +231,7 @@
     }
   },
   "dependencies": {
+    "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/ui": "workspace:*",
     "@sentry/node": "10.71.0"
   },

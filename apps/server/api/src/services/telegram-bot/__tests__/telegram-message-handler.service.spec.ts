@@ -6,7 +6,6 @@ import type {
 } from '@api/services/telegram-bot/telegram-bot.types';
 import { TelegramConversationService } from '@api/services/telegram-bot/telegram-conversation.service';
 import { TelegramMessageHandlerService } from '@api/services/telegram-bot/telegram-message-handler.service';
-import type { TelegramRunCommandsService } from '@api/services/telegram-bot/telegram-run-commands.service';
 import type { TelegramWorkflowRunnerService } from '@api/services/telegram-bot/telegram-workflow-runner.service';
 import { FileInputType } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -219,7 +218,6 @@ describe('TelegramMessageHandlerService media inputs', () => {
     const service = new TelegramMessageHandlerService(
       logger,
       conversation,
-      {} as unknown as TelegramRunCommandsService,
       filesClientService,
     );
     service.setBotToken('bot-token');
@@ -262,7 +260,6 @@ describe('TelegramMessageHandlerService media inputs', () => {
     const service = new TelegramMessageHandlerService(
       logger,
       conversation,
-      {} as unknown as TelegramRunCommandsService,
       filesClientService,
     );
     service.setBotToken('bot-token');
@@ -305,7 +302,6 @@ describe('TelegramMessageHandlerService media inputs', () => {
     const service = new TelegramMessageHandlerService(
       logger,
       conversation,
-      {} as unknown as TelegramRunCommandsService,
       filesClientService,
     );
     service.setBotToken('bot-token');
@@ -354,7 +350,6 @@ describe('TelegramMessageHandlerService media inputs', () => {
     const service = new TelegramMessageHandlerService(
       logger,
       conversation,
-      {} as unknown as TelegramRunCommandsService,
       filesClientService,
     );
     service.setBotToken('bot-token');

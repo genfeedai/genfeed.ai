@@ -17,10 +17,9 @@ import type * as WorkflowApiContract from './workflow-api.types';
  */
 const PUBLIC_WORKFLOW_API_CONTRACTS = [
   'ApprovalResponse',
-  'BatchItemStatus',
-  'BatchJobStatus',
-  'BatchJobSummary',
-  'BatchRunResult',
+  'BatchExecution',
+  'BatchExecutionItem',
+  'BatchExecutionSummary',
   'BrandSummary',
   'CloudWorkflowData',
   'CreateWorkflowInput',
@@ -63,7 +62,7 @@ const PUBLIC_WORKFLOW_API_CONTRACT_KEYS: Record<
     'rejectionReason',
     'status',
   ],
-  BatchItemStatus: [
+  BatchExecutionItem: [
     'completedAt',
     'error',
     'executionId',
@@ -75,7 +74,7 @@ const PUBLIC_WORKFLOW_API_CONTRACT_KEYS: Record<
     'startedAt',
     'status',
   ],
-  BatchJobStatus: [
+  BatchExecution: [
     'completedCount',
     'createdAt',
     'failedCount',
@@ -86,7 +85,7 @@ const PUBLIC_WORKFLOW_API_CONTRACT_KEYS: Record<
     'updatedAt',
     'workflowId',
   ],
-  BatchJobSummary: [
+  BatchExecutionSummary: [
     'completedCount',
     'createdAt',
     'failedCount',
@@ -95,7 +94,6 @@ const PUBLIC_WORKFLOW_API_CONTRACT_KEYS: Record<
     'totalCount',
     'workflowId',
   ],
-  BatchRunResult: ['batchJobId', 'totalCount'],
   BrandSummary: ['id', 'label', 'logoUrl', 'primaryColor', 'slug'],
   CloudWorkflowData: [
     'brandId',
@@ -372,10 +370,9 @@ describe('workflow API contract exports', () => {
 
   it('preserves every public contract through the compatibility module', () => {
     expectTypeOf<CompatibilityApi.ApprovalResponse>().toEqualTypeOf<WorkflowApiContract.ApprovalResponse>();
-    expectTypeOf<CompatibilityApi.BatchItemStatus>().toEqualTypeOf<WorkflowApiContract.BatchItemStatus>();
-    expectTypeOf<CompatibilityApi.BatchJobStatus>().toEqualTypeOf<WorkflowApiContract.BatchJobStatus>();
-    expectTypeOf<CompatibilityApi.BatchJobSummary>().toEqualTypeOf<WorkflowApiContract.BatchJobSummary>();
-    expectTypeOf<CompatibilityApi.BatchRunResult>().toEqualTypeOf<WorkflowApiContract.BatchRunResult>();
+    expectTypeOf<CompatibilityApi.BatchExecution>().toEqualTypeOf<WorkflowApiContract.BatchExecution>();
+    expectTypeOf<CompatibilityApi.BatchExecutionItem>().toEqualTypeOf<WorkflowApiContract.BatchExecutionItem>();
+    expectTypeOf<CompatibilityApi.BatchExecutionSummary>().toEqualTypeOf<WorkflowApiContract.BatchExecutionSummary>();
     expectTypeOf<CompatibilityApi.BrandSummary>().toEqualTypeOf<WorkflowApiContract.BrandSummary>();
     expectTypeOf<CompatibilityApi.CloudWorkflowData>().toEqualTypeOf<WorkflowApiContract.CloudWorkflowData>();
     expectTypeOf<CompatibilityApi.CreateWorkflowInput>().toEqualTypeOf<WorkflowApiContract.CreateWorkflowInput>();

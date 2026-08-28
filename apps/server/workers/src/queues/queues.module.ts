@@ -8,7 +8,6 @@
 
 import {
   AGENT_RUN_QUEUE,
-  BATCH_WORKFLOW_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
@@ -106,15 +105,6 @@ import { ConfigService } from '@workers/config/config.service';
       },
       // Note: collections/workflows WorkflowExecutionProcessor also listens on
       // 'workflow-execution' — both processors share the same queue (registered above).
-      {
-        defaultJobOptions: {
-          attempts: 2,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 200,
-          removeOnFail: 100,
-        },
-        name: BATCH_WORKFLOW_QUEUE,
-      },
       {
         defaultJobOptions: {
           attempts: 2,

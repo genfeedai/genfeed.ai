@@ -255,6 +255,103 @@ describe('SystemWorkflowRunnerService definitions', () => {
     );
   });
 
+  it('precreates and queues one immutable parent execution', async () => {
+    const queueSystemWorkflow = vi.fn().mockResolvedValue('queued-parent');
+    const createExecution = vi.fn().mockResolvedValue({
+      id: 'parent-execution',
+      status: 'PENDING',
+    });
+    const { runner } = createRunner(
+      { queueSystemWorkflow },
+      {},
+      {},
+      { createExecution },
+    );
+    runner.registerWorkflow(definition);
+    const internals = runner as unknown as RunnerInternals;
+    vi.spyOn(internals, 'resolveUserId').mockResolvedValue('tenant-user');
+    vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror').mockResolvedValue({
+      currentVersion: { id: 'global-version' },
+      id: 'global-workflow',
+      label: definition.label,
+    });
+
+    await expect(
+      runner.enqueueWorkflow({
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { ingredientIds: ['ingredient-1'] },
+        metadata: { batchExecution: { itemCount: 1 } },
+        organizationId: 'tenant-org',
+        source: 'batch',
+        userId: 'tenant-user',
+      }),
+    ).resolves.toEqual({
+      executionId: 'parent-execution',
+      status: 'PENDING',
+    });
+    expect(createExecution).toHaveBeenCalledWith(
+      'tenant-user',
+      'tenant-org',
+      expect.objectContaining({
+        workflowId: 'global-workflow',
+        workflowVersionId: 'global-version',
+      }),
+    );
+    expect(queueSystemWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({ canonicalId: definition.canonicalId }),
+      'system-workflow-parent-execution',
+      expect.objectContaining({
+        priorExecution: expect.objectContaining({
+          executionId: 'parent-execution',
+          status: 'PENDING',
+          workflowId: 'global-workflow',
+        }),
+      }),
+    );
+  });
+
+  it('marks a precreated parent failed when queueing fails', async () => {
+    const queueError = new Error('queue unavailable');
+    const queueSystemWorkflow = vi.fn().mockRejectedValue(queueError);
+    const createExecution = vi.fn().mockResolvedValue({
+      id: 'parent-execution',
+      status: 'PENDING',
+    });
+    const completeExecution = vi.fn().mockResolvedValue({
+      id: 'parent-execution',
+      status: 'FAILED',
+    });
+    const { runner } = createRunner(
+      { queueSystemWorkflow },
+      {},
+      {},
+      { completeExecution, createExecution },
+    );
+    runner.registerWorkflow(definition);
+    const internals = runner as unknown as RunnerInternals;
+    vi.spyOn(internals, 'resolveUserId').mockResolvedValue('tenant-user');
+    vi.spyOn(internals, 'ensureHiddenSystemWorkflowMirror').mockResolvedValue({
+      currentVersion: { id: 'global-version' },
+      id: 'global-workflow',
+      label: definition.label,
+    });
+
+    await expect(
+      runner.enqueueWorkflow({
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        organizationId: 'tenant-org',
+        source: 'batch',
+        userId: 'tenant-user',
+      }),
+    ).rejects.toBe(queueError);
+    expect(completeExecution).toHaveBeenCalledWith(
+      'parent-execution',
+      'queue unavailable',
+    );
+  });
+
   it('runs one registered child with mapped inputs and parent provenance', async () => {
     const { executors, runner } = createRunner();
     runner.onModuleInit();
@@ -328,6 +425,111 @@ describe('SystemWorkflowRunnerService definitions', () => {
       ],
     });
     expect(runner.runWorkflow).toHaveBeenCalledTimes(2);
+  });
+
+  it('executes the exact tenant workflow version for every pinned child', async () => {
+    const executePinnedManualWorkflow = vi.fn().mockResolvedValue({
+      execution: {
+        executionId: 'child-execution',
+        nodeResults: [],
+        status: 'COMPLETED',
+        workflowId: 'tenant-workflow',
+      },
+      workflowLabel: 'Tenant workflow',
+    });
+    const { executors, runner } = createRunner(
+      undefined,
+      {},
+      { executePinnedManualWorkflow },
+    );
+    runner.onModuleInit();
+
+    const forEachNode = executableForEachNode({
+      childWorkflowId: 'tenant-workflow',
+      childWorkflowVersionId: 'tenant-version',
+    });
+    const inputs = new Map([['items', ['ingredient-1']]]);
+    const result = await executors.get(WORKFLOW_FOR_EACH_ACTION_ID)?.(
+      forEachNode,
+      inputs,
+      executionContext(),
+    );
+    await executors.get(WORKFLOW_FOR_EACH_ACTION_ID)?.(
+      forEachNode,
+      inputs,
+      executionContext(),
+    );
+
+    expect(executePinnedManualWorkflow).toHaveBeenCalledWith(
+      'tenant-workflow',
+      'tenant-version',
+      'user-1',
+      'org-1',
+      { item: 'ingredient-1' },
+      expect.objectContaining({
+        childWorkflowVersionId: 'tenant-version',
+        parentExecutionId: 'parent-execution',
+        workflowForEachIndex: 0,
+      }),
+      expect.stringMatching(/^workflow-for-each:[a-f0-9]{64}$/),
+    );
+    expect(result).toMatchObject({
+      count: 1,
+      results: [
+        {
+          index: 0,
+          provenance: {
+            executionId: 'child-execution',
+            workflowId: 'tenant-workflow',
+          },
+        },
+      ],
+    });
+    expect(executePinnedManualWorkflow).toHaveBeenCalledTimes(2);
+    expect(executePinnedManualWorkflow.mock.calls[0]?.[6]).toBe(
+      executePinnedManualWorkflow.mock.calls[1]?.[6],
+    );
+  });
+
+  it('collects a failed pinned child without hiding its execution identity', async () => {
+    const executePinnedManualWorkflow = vi.fn().mockResolvedValue({
+      execution: {
+        error: 'Generation failed',
+        executionId: 'failed-child-execution',
+        nodeResults: [],
+        status: 'FAILED',
+        workflowId: 'tenant-workflow',
+      },
+      workflowLabel: 'Tenant workflow',
+    });
+    const { executors, runner } = createRunner(
+      undefined,
+      {},
+      { executePinnedManualWorkflow },
+    );
+    runner.onModuleInit();
+
+    const result = await executors.get(WORKFLOW_FOR_EACH_ACTION_ID)?.(
+      executableForEachNode({
+        childWorkflowId: 'tenant-workflow',
+        childWorkflowVersionId: 'tenant-version',
+        failureMode: 'collect',
+      }),
+      new Map([['items', ['ingredient-1']]]),
+      executionContext(),
+    );
+
+    expect(result).toEqual({
+      count: 1,
+      results: [
+        {
+          error: 'Generation failed',
+          executionId: 'failed-child-execution',
+          index: 0,
+          status: 'failed',
+        },
+      ],
+    });
   });
 
   it('durably schedules paced children with deterministic delays', async () => {
@@ -460,6 +662,8 @@ describe('SystemWorkflowRunnerService definitions', () => {
 function createRunner(
   queue = { queueSystemWorkflow: vi.fn() },
   prisma: object = {},
+  workflowExecutor: object = {},
+  workflowExecutions: object = {},
 ): {
   executors: Map<string, NodeExecutor>;
   runner: SystemWorkflowRunnerService;
@@ -472,8 +676,18 @@ function createRunner(
     },
   };
   const moduleRef = {
-    get: (token: { name?: string }) =>
-      token.name === 'WorkflowExecutionQueueService' ? queue : adapter,
+    get: (token: { name?: string }) => {
+      if (token.name === 'WorkflowExecutionQueueService') {
+        return queue;
+      }
+      if (token.name === 'WorkflowExecutorService') {
+        return workflowExecutor;
+      }
+      if (token.name === 'WorkflowExecutionsService') {
+        return workflowExecutions;
+      }
+      return adapter;
+    },
   };
   return {
     executors,
@@ -483,6 +697,17 @@ function createRunner(
     ),
   };
 }
+
+type RunnerInternals = {
+  ensureHiddenSystemWorkflowMirror: (
+    definition: SystemWorkflowGraphDefinition,
+  ) => Promise<{
+    currentVersion: { id: string };
+    id: string;
+    label: string;
+  }>;
+  resolveUserId: (organizationId: string, userId?: string) => Promise<string>;
+};
 
 function executableForEachNode(
   config: Record<string, unknown>,

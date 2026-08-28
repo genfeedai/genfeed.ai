@@ -17,12 +17,8 @@ export const TELEGRAM_BOT_CONSTANTS = {
 
   /** Supported bot commands */
   COMMANDS: {
-    ANALYTICS: 'analytics',
     CANCEL: 'cancel',
     CONNECT: 'connect',
-    GENERATE: 'generate',
-    POST: 'post',
-    RUN: 'run',
     START: 'start',
     STATUS: 'status',
     WORKFLOWS: 'workflows',

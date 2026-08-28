@@ -4,7 +4,6 @@ import {
   getStringByPaths,
   isRecord,
 } from '@genfeedai/utils/data/extract.util';
-import type { RunActionType, RunRecord } from '~services/runs.service';
 
 export interface PostResultEntry {
   externalId?: string;
@@ -12,7 +11,7 @@ export interface PostResultEntry {
   platform?: string;
   publishedUrl?: string;
   raw?: Record<string, unknown>;
-  status: 'published' | 'failed' | 'unknown';
+  status: 'draft' | 'published' | 'failed' | 'unknown';
   timestamp?: string;
 }
 
@@ -85,48 +84,9 @@ const POST_RESULT_FIELD_PATHS: Record<string, Array<Array<string | number>>> = {
   message: [['message'], ['detail'], ['error']],
   platform: [['platform'], ['channel'], ['network']],
   publishedUrl: [['publishedUrl'], ['externalUrl'], ['url'], ['permalink']],
-  status: [['status'], ['state'], ['publishStatus']],
+  status: [['status'], ['state'], ['publishStatus'], ['executionState']],
   timestamp: [['publishedAt'], ['timestamp'], ['completedAt'], ['createdAt']],
 };
-
-function stableSerialize(input: unknown): string {
-  if (input === null || input === undefined) {
-    return String(input);
-  }
-
-  if (typeof input !== 'object') {
-    return JSON.stringify(input);
-  }
-
-  if (Array.isArray(input)) {
-    return `[${input.map((item) => stableSerialize(item)).join(',')}]`;
-  }
-
-  const record = input as Record<string, unknown>;
-  const keys = Object.keys(record).sort();
-  const pairs = keys.map(
-    (key) => `${JSON.stringify(key)}:${stableSerialize(record[key])}`,
-  );
-  return `{${pairs.join(',')}}`;
-}
-
-function hashFNV1a(text: string): string {
-  let hash = 0x811c9dc5;
-
-  for (let i = 0; i < text.length; i += 1) {
-    hash ^= text.charCodeAt(i);
-    hash =
-      (hash +
-        (hash << 1) +
-        (hash << 4) +
-        (hash << 7) +
-        (hash << 8) +
-        (hash << 24)) >>>
-      0;
-  }
-
-  return hash.toString(16).padStart(8, '0');
-}
 
 function toPostResultEntry(value: unknown): PostResultEntry | null {
   if (!isRecord(value)) {
@@ -135,14 +95,16 @@ function toPostResultEntry(value: unknown): PostResultEntry | null {
 
   const statusRaw = getStringByPaths(value, POST_RESULT_FIELD_PATHS.status);
   const normalizedStatus =
-    statusRaw?.toLowerCase() === 'published' ||
-    statusRaw?.toLowerCase() === 'completed' ||
-    statusRaw?.toLowerCase() === 'success'
-      ? 'published'
-      : statusRaw?.toLowerCase() === 'failed' ||
-          statusRaw?.toLowerCase() === 'error'
-        ? 'failed'
-        : 'unknown';
+    statusRaw?.toLowerCase() === 'draft'
+      ? 'draft'
+      : statusRaw?.toLowerCase() === 'published' ||
+          statusRaw?.toLowerCase() === 'completed' ||
+          statusRaw?.toLowerCase() === 'success'
+        ? 'published'
+        : statusRaw?.toLowerCase() === 'failed' ||
+            statusRaw?.toLowerCase() === 'error'
+          ? 'failed'
+          : 'unknown';
 
   const entry: PostResultEntry = {
     externalId:
@@ -170,20 +132,6 @@ function toPostResultEntry(value: unknown): PostResultEntry | null {
   }
 
   return entry;
-}
-
-export function buildRunIdempotencyKey(
-  actionType: Extract<RunActionType, 'post' | 'composite'>,
-  input: Record<string, unknown>,
-  brandId?: string | null,
-): string {
-  const fingerprint = stableSerialize({
-    actionType,
-    brandId: brandId ?? null,
-    input,
-  });
-
-  return `ext:${actionType}:${hashFNV1a(fingerprint)}`;
 }
 
 export function extractGeneratedPreview(output: unknown): string | null {
@@ -215,50 +163,20 @@ export function extractPostResults(output: unknown): PostResultEntry[] {
   return single ? [single] : [];
 }
 
-export function summarizeRunHistory(runs: RunRecord[]): {
-  failedPosts: number;
-  generated: number;
-  published: number;
-} {
-  return runs.reduce(
-    (acc, run) => {
-      if (run.actionType === 'generate' && run.status === 'completed') {
-        acc.generated += 1;
-      }
-
-      if (run.actionType === 'post') {
-        if (run.status === 'completed') {
-          acc.published += 1;
-        }
-
-        if (run.status === 'failed') {
-          acc.failedPosts += 1;
-        }
-      }
-
-      return acc;
-    },
-    { failedPosts: 0, generated: 0, published: 0 },
-  );
-}
-
 export function extractAnalyticsSnapshot(
   output: unknown,
-  historyFallback: {
+  fallback: {
     failedPosts: number;
     generated: number;
     published: number;
-  },
+  } = { failedPosts: 0, generated: 0, published: 0 },
 ): AnalyticsSnapshot {
   const generated =
-    getNumberByPaths(output, NUMBER_PATHS.generated) ??
-    historyFallback.generated;
+    getNumberByPaths(output, NUMBER_PATHS.generated) ?? fallback.generated;
   const published =
-    getNumberByPaths(output, NUMBER_PATHS.published) ??
-    historyFallback.published;
+    getNumberByPaths(output, NUMBER_PATHS.published) ?? fallback.published;
   const failed =
-    getNumberByPaths(output, NUMBER_PATHS.failed) ??
-    historyFallback.failedPosts;
+    getNumberByPaths(output, NUMBER_PATHS.failed) ?? fallback.failedPosts;
 
   const publishBase = published + failed;
   const publishSuccessRate =

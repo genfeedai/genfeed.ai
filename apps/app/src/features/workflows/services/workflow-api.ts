@@ -13,9 +13,6 @@ import { logger } from '@services/core/logger.service';
 import { BrandsService } from '@services/social/brands.service';
 import type {
   ApprovalResponse,
-  BatchJobStatus,
-  BatchJobSummary,
-  BatchRunResult,
   BrandSummary,
   CloudWorkflowData,
   CreateWorkflowInput,
@@ -688,33 +685,18 @@ export class WorkflowApiService extends HTTPBaseService {
   // BATCH WORKFLOW EXECUTION
   // ---------------------------------------------------------------------------
 
-  /** Start a batch workflow run for multiple ingredients */
-  async runBatch(
+  /** Start one parent workflow execution over multiple ingredients. */
+  async startBatchExecution(
     workflowId: string,
     ingredientIds: string[],
-  ): Promise<BatchRunResult> {
-    const response = await this.instance.post<{ data: BatchRunResult }>(
-      `/${workflowId}/batch`,
+  ): Promise<ExecutionResult> {
+    const response = await this.instance.post<unknown>(
+      `/${workflowId}/executions/batch`,
       { ingredientIds },
     );
-    return response.data.data;
-  }
-
-  /** Get batch job status with all items */
-  async getBatchStatus(batchJobId: string): Promise<BatchJobStatus> {
-    const response = await this.instance.get<{ data: BatchJobStatus }>(
-      `/batch/${batchJobId}`,
-    );
-    return response.data.data;
-  }
-
-  /** List batch jobs */
-  async listBatchJobs(limit = 20, offset = 0): Promise<BatchJobSummary[]> {
-    const response = await this.instance.get<{ data: BatchJobSummary[] }>(
-      '/batch',
-      { params: { limit, offset } },
-    );
-    return response.data.data;
+    return this.isJsonApiResourceDocument(response.data)
+      ? deserializeResource<ExecutionResult>(response.data)
+      : (response.data as ExecutionResult);
   }
 }
 

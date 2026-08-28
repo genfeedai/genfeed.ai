@@ -5,7 +5,6 @@
  * Separate from the existing TelegramModule (social auth integration).
  */
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
-import { RunsModule } from '@api/collections/runs/runs.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { TelegramBotController } from '@api/services/telegram-bot/telegram-bot.controller';
@@ -22,7 +21,6 @@ import { Module } from '@nestjs/common';
     ConfigModule,
     FilesClientModule,
     LoggerModule,
-    RunsModule,
     WorkflowsModule,
   ],
   providers: [TelegramBotService],

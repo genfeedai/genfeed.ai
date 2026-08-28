@@ -71,6 +71,60 @@ describe('check-product-workflow-boundary', () => {
     );
   });
 
+  it('rejects retired API workflow processors and placeholder mutations', () => {
+    writeFixture(
+      'apps/server/api/src/services/workflow-executor/processors/legacy.processor.ts',
+      `
+        export class LegacyProcessor {
+          process(): void {}
+        }
+      `,
+    );
+    writeFixture(
+      'apps/server/api/src/collections/personas/personas.controller.ts',
+      `
+        export class PersonasController {
+          generateCaption(topic: string) {
+            return { caption: \`Generated caption for topic: \${topic}\` };
+          }
+        }
+      `,
+    );
+
+    const result = runCheckProductWorkflowBoundary({ exceptions: [] });
+
+    expect(result.detections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ruleId: 'retired-api-workflow-executor-plane',
+        }),
+        expect.objectContaining({
+          ruleId: 'literal-placeholder-product-mutation',
+        }),
+      ]),
+    );
+    expect(result.violations).toHaveLength(2);
+  });
+
+  it('rejects workflow-entry IDs reused as internal node actions', () => {
+    writeFixture(
+      'apps/server/server/src/collections/articles/articles.service.ts',
+      `
+        const ARTICLE_GENERATION_ACTION_ID = 'create_article';
+        runner.registerAction(ARTICLE_GENERATION_ACTION_ID, persistDraft);
+      `,
+    );
+
+    const result = runCheckProductWorkflowBoundary({ exceptions: [] });
+
+    expect(result.detections).toEqual([
+      expect.objectContaining({
+        ruleId: 'workflow-entry-action-used-as-internal-node',
+      }),
+    ]);
+    expect(result.violations).toHaveLength(1);
+  });
+
   it('does not allow exceptions for dynamic single-action workflow wrappers', () => {
     const file =
       'apps/server/api/src/collections/content-runs/brand-remix.service.ts';

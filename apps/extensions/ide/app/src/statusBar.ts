@@ -53,12 +53,12 @@ export class GenFeedStatusBar {
     }
 
     try {
-      const runs = await ApiService.getInstance().listRuns({
+      const drafts = await ApiService.getInstance().listDrafts({
         limit: 50,
         status: 'pending',
       });
 
-      const pending = runs.length;
+      const pending = drafts.length;
       this.item.text =
         pending > 0
           ? `${STATUS_BAR_ICON} GenFeed: ${pending} draft${pending === 1 ? '' : 's'}`

@@ -34,6 +34,7 @@ describe('WorkflowExecutionsService', () => {
       findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn().mockResolvedValue({ id: 'execution-1' }),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      upsert: vi.fn().mockResolvedValue({ id: 'execution-idempotent' }),
     };
 
     const prisma = {
@@ -127,6 +128,31 @@ describe('WorkflowExecutionsService', () => {
         }),
       }),
     );
+  });
+
+  it('uses the organization-scoped unique key for idempotent child creation', async () => {
+    const { prisma, service } = makeService();
+
+    await service.createExecution('user-1', 'org-1', {
+      idempotencyKey: 'workflow-for-each:stable-key',
+      workflowId: 'workflow-1',
+      workflowVersionId: 'version-1',
+    });
+
+    expect(prisma.workflowExecution.upsert).toHaveBeenCalledWith({
+      create: expect.objectContaining({
+        idempotencyKey: 'workflow-for-each:stable-key',
+        organizationId: 'org-1',
+      }),
+      update: {},
+      where: {
+        organizationId_idempotencyKey: {
+          idempotencyKey: 'workflow-for-each:stable-key',
+          organizationId: 'org-1',
+        },
+      },
+    });
+    expect(prisma.workflowExecution.create).not.toHaveBeenCalled();
   });
 
   it('stores trusted action provenance with workflow execution metadata', async () => {

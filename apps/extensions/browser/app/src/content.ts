@@ -2,9 +2,7 @@
 
 import {
   getComposerState,
-  insertAndPublishContent,
   insertContentIntoComposer,
-  publishComposer,
 } from '~platforms/composer-helpers';
 import {
   getCurrentPlatform,
@@ -221,11 +219,9 @@ function notifyPlatformDetected(): void {
 
   chrome.runtime.sendMessage({
     payload: {
-      canSubmitFromComposer: composerState.canSubmit,
       composeBoxAvailable: composerState.composeBoxAvailable,
       pageContext: extractCurrentPageContext(),
       platform: platformName,
-      submitButtonAvailable: composerState.submitButtonAvailable,
       url: window.location.href,
     },
     type: 'PLATFORM_DETECTED',
@@ -297,33 +293,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     chrome.runtime.sendMessage({
       payload: { error: result.error, success: result.success },
       type: 'CONTENT_INSERTED',
-    });
-
-    sendResponse(result);
-    return true;
-  }
-
-  if (message.type === 'PUBLISH_CONTENT') {
-    const result = publishComposer(getCurrentPlatform());
-
-    chrome.runtime.sendMessage({
-      payload: { error: result.error, success: result.success },
-      type: 'CONTENT_PUBLISHED',
-    });
-
-    sendResponse(result);
-    return true;
-  }
-
-  if (message.type === 'INSERT_AND_PUBLISH_CONTENT') {
-    const result = insertAndPublishContent(
-      String(message.content ?? ''),
-      getCurrentPlatform(),
-    );
-
-    chrome.runtime.sendMessage({
-      payload: { error: result.error, success: result.success },
-      type: 'CONTENT_PUBLISHED',
     });
 
     sendResponse(result);

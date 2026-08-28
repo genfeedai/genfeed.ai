@@ -94,6 +94,7 @@ type WorkflowExecutionCreateInput = CreateWorkflowExecutionDto & {
   estimatedDurationMs?: number;
   etaConfidence?: string;
   etaCurrentPhase?: string;
+  idempotencyKey?: string;
   remainingDurationMs?: number;
   totalNodes?: number;
   workflowVersionId: string;
@@ -430,6 +431,7 @@ export class WorkflowExecutionsService extends BaseService<
       etaConfidence: dto.etaConfidence ?? null,
       etaCurrentPhase: dto.etaCurrentPhase ?? null,
       etaUpdatedAt: dto.etaCurrentPhase ? new Date() : null,
+      idempotencyKey: dto.idempotencyKey ?? null,
       organizationId,
       progress: 0,
       purgeAfterHours: retention.purgeAfterHours,
@@ -445,9 +447,18 @@ export class WorkflowExecutionsService extends BaseService<
       workflowVersionId: dto.workflowVersionId,
     } satisfies Prisma.WorkflowExecutionUncheckedCreateInput;
 
-    const result = await this.prisma.workflowExecution.create({
-      data,
-    });
+    const result = dto.idempotencyKey
+      ? await this.prisma.workflowExecution.upsert({
+          create: data,
+          update: {},
+          where: {
+            organizationId_idempotencyKey: {
+              idempotencyKey: dto.idempotencyKey,
+              organizationId,
+            },
+          },
+        })
+      : await this.prisma.workflowExecution.create({ data });
 
     return this.normalizeDocument(result);
   }

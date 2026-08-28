@@ -264,13 +264,23 @@ export class WorkflowExecutorService {
         completedAt: execution.completedAt ?? new Date(),
         error: undefined,
         executionId,
-        nodeResults: [],
+        nodeResults: execution.nodeResults.map((nodeResult) => ({
+          completedAt: nodeResult.completedAt ?? undefined,
+          creditsUsed: nodeResult.creditsUsed ?? 0,
+          error: nodeResult.error ?? undefined,
+          nodeId: nodeResult.nodeId,
+          nodeType: nodeResult.nodeType,
+          output: nodeResult.output,
+          retryCount: nodeResult.retryCount ?? 0,
+          startedAt: nodeResult.startedAt ?? undefined,
+          status: nodeResult.status as WorkflowExecutionStatus,
+        })),
         startedAt: execution.startedAt ?? new Date(),
         status:
           status === WorkflowExecutionStatus.CANCELLED
             ? WorkflowExecutionStatus.CANCELLED
             : WorkflowExecutionStatus.COMPLETED,
-        totalCreditsUsed: 0,
+        totalCreditsUsed: execution.creditsUsed ?? 0,
         workflowId,
       };
     }
@@ -290,8 +300,12 @@ export class WorkflowExecutorService {
     return this.executeWorkflowDocumentWithActionOrigin(
       normalizedWorkflow,
       event,
-      WorkflowExecutionTrigger.EVENT,
-      { continuedFromExecutionId: executionId },
+      (execution.trigger as WorkflowExecutionTrigger | null) ??
+        WorkflowExecutionTrigger.EVENT,
+      {
+        ...(execution.metadata ?? {}),
+        continuedFromExecutionId: executionId,
+      },
       executionId,
     );
   }
@@ -358,6 +372,67 @@ export class WorkflowExecutorService {
     );
   }
 
+  async executePinnedManualWorkflow(
+    workflowId: string,
+    workflowVersionId: string,
+    userId: string,
+    organizationId: string,
+    inputValues: Record<string, unknown> = {},
+    metadata?: Record<string, unknown>,
+    idempotencyKey?: string,
+  ): Promise<{
+    execution: WorkflowExecutionResult;
+    workflowLabel: string;
+  }> {
+    const workflowDoc = await this.documentService.findPinnedWorkflow(
+      workflowId,
+      workflowVersionId,
+      organizationId,
+      userId,
+    );
+    if (!workflowDoc) {
+      throw new Error(
+        `Workflow ${workflowId} version ${workflowVersionId} is unavailable in organization ${organizationId}`,
+      );
+    }
+
+    if (idempotencyKey) {
+      const existingExecution = await this.executionsService.findOne({
+        idempotencyKey,
+        isDeleted: false,
+        organizationId,
+      });
+      if (existingExecution) {
+        return {
+          execution: await this.continueExistingExecution(
+            existingExecution.id,
+            {
+              data: inputValues,
+              organizationId,
+              platform: 'manual',
+              type: 'manual',
+              userId,
+            },
+          ),
+          workflowLabel: this.documentService.getWorkflowLabel(workflowDoc),
+        };
+      }
+    }
+
+    return {
+      execution: await this.executeManualWorkflowDocument(
+        workflowDoc,
+        userId,
+        organizationId,
+        inputValues,
+        metadata,
+        WorkflowExecutionTrigger.API,
+        idempotencyKey,
+      ),
+      workflowLabel: this.documentService.getWorkflowLabel(workflowDoc),
+    };
+  }
+
   async executeManualWorkflowDocument(
     workflowDoc: WorkflowDocument | ExecutableWorkflowRow,
     userId: string,
@@ -365,6 +440,7 @@ export class WorkflowExecutorService {
     inputValues: Record<string, unknown> = {},
     metadata?: Record<string, unknown>,
     trigger: WorkflowExecutionTrigger = WorkflowExecutionTrigger.MANUAL,
+    idempotencyKey?: string,
   ): Promise<WorkflowExecutionResult> {
     return this.executeWorkflowDocument(
       this.documentService.normalizeWorkflowDocument(workflowDoc),
@@ -377,6 +453,8 @@ export class WorkflowExecutorService {
       },
       trigger,
       metadata,
+      undefined,
+      idempotencyKey,
     );
   }
 
@@ -637,6 +715,7 @@ export class WorkflowExecutorService {
     trigger: WorkflowExecutionTrigger,
     metadata?: Record<string, unknown>,
     graphOptions?: { respectLocks?: boolean; selectedNodeIds?: string[] },
+    idempotencyKey?: string,
   ): Promise<WorkflowExecutionResult> {
     return runWithActionOrigin(
       resolveNestedActionOrigin(ActionOrigin.WORKFLOW),
@@ -648,6 +727,7 @@ export class WorkflowExecutorService {
           metadata,
           undefined,
           graphOptions,
+          idempotencyKey,
         ),
     );
   }
@@ -659,6 +739,7 @@ export class WorkflowExecutorService {
     metadata?: Record<string, unknown>,
     existingExecutionId?: string,
     graphOptions?: { respectLocks?: boolean; selectedNodeIds?: string[] },
+    idempotencyKey?: string,
   ): Promise<WorkflowExecutionResult> {
     const workflowLabel = this.documentService.getWorkflowLabel(workflowDoc);
     const workflowId = String(
@@ -705,6 +786,7 @@ export class WorkflowExecutorService {
           etaConfidence: initialEta.etaConfidence,
           etaCurrentPhase: initialEta.currentPhase,
           inputValues: event.data,
+          idempotencyKey,
           metadata: executionMetadata,
           remainingDurationMs: initialEta.remainingDurationMs,
           totalNodes: executableWorkflow.nodes.length,

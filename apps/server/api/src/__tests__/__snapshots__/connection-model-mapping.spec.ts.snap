@@ -31,7 +31,6 @@ exports[`Connection-Model Mapping > should match the full model→connection sna
   "ArticleAnalytics": "ANALYTICS",
   "Asset": "CLOUD",
   "Batch": "CLOUD",
-  "BatchWorkflowJob": "CLOUD",
   "Bookmark": "CLOUD",
   "Bot": "CLOUD",
   "BotActivity": "CLOUD",

@@ -20,6 +20,7 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
@@ -240,6 +241,68 @@ export class SystemWorkflowRunnerService
       throw new Error(`Unknown system workflow: ${input.canonicalId}`);
     }
     return this.startDefinition(definition, input);
+  }
+
+  async enqueueWorkflow(
+    input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
+  ): Promise<{ executionId: string; status: WorkflowExecutionStatus }> {
+    const definition = this.workflowDefinitions.get(input.canonicalId);
+    if (!definition) {
+      throw new Error(`Unknown system workflow: ${input.canonicalId}`);
+    }
+    const userId = await this.resolveUserId(input.organizationId, input.userId);
+    const workflow = await this.ensureHiddenSystemWorkflowMirror(definition);
+    if (!workflow.currentVersion) {
+      throw new Error(
+        `System workflow ${input.canonicalId} has no immutable version pin`,
+      );
+    }
+    const trigger = input.trigger ?? WorkflowExecutionTrigger.API;
+    const execution = await this.getWorkflowExecutions().createExecution(
+      userId,
+      input.organizationId,
+      {
+        inputValues: input.inputValues ?? {},
+        metadata: {
+          ...(input.metadata ?? {}),
+          actionType: input.actionType,
+          canonicalId: input.canonicalId,
+          isSystemAction: true,
+          source: input.source,
+        },
+        totalNodes: definition.definition.nodes.length,
+        trigger,
+        workflowId: workflow.id,
+        workflowVersionId: workflow.currentVersion.id,
+      },
+    );
+
+    try {
+      await this.getWorkflowQueue().queueSystemWorkflow(
+        { ...input, trigger, userId },
+        `system-workflow-${execution.id}`,
+        {
+          priorExecution: {
+            executionId: execution.id,
+            status: WorkflowExecutionStatus.PENDING,
+            userId,
+            workflowId: workflow.id,
+            workflowLabel: workflow.label ?? definition.label,
+          },
+        },
+      );
+    } catch (error: unknown) {
+      await this.getWorkflowExecutions().completeExecution(
+        execution.id,
+        error instanceof Error ? error.message : String(error),
+      );
+      throw error;
+    }
+
+    return {
+      executionId: execution.id,
+      status: WorkflowExecutionStatus.PENDING,
+    };
   }
 
   private async executeDefinition<T>(
@@ -519,6 +582,12 @@ export class SystemWorkflowRunnerService
           result: unknown;
         }
       | { index: number; jobId: string }
+      | {
+          error: string;
+          executionId?: string;
+          index: number;
+          status: 'failed';
+        }
     >;
   }> {
     const childWorkflowId = this.requiredString(
@@ -527,6 +596,9 @@ export class SystemWorkflowRunnerService
     );
     const itemInputKey =
       this.optionalString(request.input.itemInputKey) ?? 'item';
+    const childWorkflowVersionId = this.optionalString(
+      request.input.childWorkflowVersionId,
+    );
     const parentNodeId =
       this.optionalString(request.provenance.nodeId) ?? 'workflow-for-each';
     const items = request.input.items;
@@ -547,6 +619,18 @@ export class SystemWorkflowRunnerService
     const mode = this.optionalString(request.input.mode) ?? 'await';
     if (mode !== 'await' && mode !== 'scheduled') {
       throw new Error('workflow.for-each mode must be await or scheduled');
+    }
+    if (childWorkflowVersionId && mode === 'scheduled') {
+      throw new Error(
+        'workflow.for-each pinned tenant workflows require await mode',
+      );
+    }
+    const failureMode =
+      this.optionalString(request.input.failureMode) ?? 'fail-fast';
+    if (failureMode !== 'fail-fast' && failureMode !== 'collect') {
+      throw new Error(
+        'workflow.for-each failureMode must be fail-fast or collect',
+      );
     }
     const interItemDelayMs =
       request.input.interItemDelayMs === undefined
@@ -607,11 +691,19 @@ export class SystemWorkflowRunnerService
       });
     }
 
-    const results: Array<{
-      index: number;
-      provenance: SystemWorkflowProvenance;
-      result: unknown;
-    }> = new Array(items.length);
+    const results: Array<
+      | {
+          index: number;
+          provenance: SystemWorkflowProvenance;
+          result: unknown;
+        }
+      | {
+          error: string;
+          executionId?: string;
+          index: number;
+          status: 'failed';
+        }
+    > = new Array(items.length);
     let cursor = 0;
     let failure: unknown;
 
@@ -629,28 +721,56 @@ export class SystemWorkflowRunnerService
               `workflow.for-each could not resolve child context for item ${index}`,
             );
           }
-          const child = await this.runWorkflow<unknown>({
-            actionType: childWorkflowId,
-            canonicalId: childWorkflowId,
-            inputValues: {
-              ...baseInput,
-              [itemInputKey]: items[index],
-            },
-            metadata: {
-              parentExecutionId: request.provenance.executionId,
-              parentNodeId,
-              parentWorkflowId: request.provenance.workflowId,
-              workflowForEachIndex: index,
-            },
-            organizationId: childContext.organizationId,
-            runtimeContext: request.runtimeContext,
-            source: `${WORKFLOW_FOR_EACH_ACTION_ID}:${request.provenance.executionId}:${parentNodeId}`,
-            trigger: WorkflowExecutionTrigger.API,
-            userId: childContext.userId,
-          });
+          const childInputValues = {
+            ...baseInput,
+            [itemInputKey]: items[index],
+          };
+          const childMetadata = {
+            ...(childWorkflowVersionId ? { childWorkflowVersionId } : {}),
+            parentExecutionId: request.provenance.executionId,
+            parentNodeId,
+            parentWorkflowId: request.provenance.workflowId,
+            workflowForEachIndex: index,
+          };
+          const child = childWorkflowVersionId
+            ? await this.executePinnedChildWorkflow({
+                childWorkflowId,
+                childWorkflowVersionId,
+                idempotencyKey: this.forEachChildIdempotencyKey({
+                  childWorkflowVersionId,
+                  index,
+                  parentExecutionId: request.provenance.executionId,
+                  parentNodeId,
+                }),
+                inputValues: childInputValues,
+                metadata: childMetadata,
+                organizationId: childContext.organizationId,
+                userId: childContext.userId,
+              })
+            : await this.runWorkflow<unknown>({
+                actionType: childWorkflowId,
+                canonicalId: childWorkflowId,
+                inputValues: childInputValues,
+                metadata: childMetadata,
+                organizationId: childContext.organizationId,
+                runtimeContext: request.runtimeContext,
+                source: `${WORKFLOW_FOR_EACH_ACTION_ID}:${request.provenance.executionId}:${parentNodeId}`,
+                trigger: WorkflowExecutionTrigger.API,
+                userId: childContext.userId,
+              });
           results[index] = { index, ...child };
         } catch (error: unknown) {
-          failure = error;
+          if (failureMode === 'fail-fast') {
+            failure = error;
+            continue;
+          }
+          const executionId = this.readFailedExecutionId(error);
+          results[index] = {
+            error: error instanceof Error ? error.message : String(error),
+            ...(executionId ? { executionId } : {}),
+            index,
+            status: 'failed',
+          };
         }
       }
     };
@@ -665,6 +785,80 @@ export class SystemWorkflowRunnerService
       throw failure;
     }
     return { count: results.length, results };
+  }
+
+  private async executePinnedChildWorkflow(input: {
+    childWorkflowId: string;
+    childWorkflowVersionId: string;
+    idempotencyKey: string;
+    inputValues: Record<string, unknown>;
+    metadata: Record<string, unknown>;
+    organizationId: string;
+    userId: string;
+  }): Promise<{
+    provenance: SystemWorkflowProvenance;
+    result: unknown;
+  }> {
+    const { execution, workflowLabel } =
+      await this.getWorkflowExecutor().executePinnedManualWorkflow(
+        input.childWorkflowId,
+        input.childWorkflowVersionId,
+        input.userId,
+        input.organizationId,
+        input.inputValues,
+        input.metadata,
+        input.idempotencyKey,
+      );
+    if (execution.status !== WorkflowExecutionStatus.COMPLETED) {
+      const error = new Error(
+        execution.error ??
+          `Workflow ${input.childWorkflowId} version ${input.childWorkflowVersionId} failed`,
+      );
+      Object.assign(error, { workflowExecutionId: execution.executionId });
+      throw error;
+    }
+    return {
+      provenance: {
+        executionId: execution.executionId,
+        workflowId: input.childWorkflowId,
+        workflowLabel,
+      },
+      result: this.resolvePinnedChildResult(execution),
+    };
+  }
+
+  private resolvePinnedChildResult(
+    execution: WorkflowExecutionResult,
+  ): unknown {
+    for (const nodeResult of [...execution.nodeResults].reverse()) {
+      if (nodeResult.output !== undefined) {
+        return nodeResult.output;
+      }
+    }
+    return {};
+  }
+
+  private readFailedExecutionId(error: unknown): string | undefined {
+    return this.optionalString(this.readRecord(error).workflowExecutionId);
+  }
+
+  private forEachChildIdempotencyKey(input: {
+    childWorkflowVersionId: string;
+    index: number;
+    parentExecutionId: string;
+    parentNodeId: string;
+  }): string {
+    const identity = createHash('sha256')
+      .update(
+        [
+          input.parentExecutionId,
+          input.parentNodeId,
+          String(input.index),
+          input.childWorkflowVersionId,
+        ].join(':'),
+      )
+      .digest('hex');
+    return `workflow-for-each:${identity}`;
   }
 
   private async executeChild(
@@ -887,6 +1081,10 @@ export class SystemWorkflowRunnerService
 
   private getWorkflowQueue(): WorkflowExecutionQueueService {
     return this.moduleRef.get(WorkflowExecutionQueueService, { strict: false });
+  }
+
+  private getWorkflowExecutions(): WorkflowExecutionsService {
+    return this.moduleRef.get(WorkflowExecutionsService, { strict: false });
   }
 
   private async resolveUserId(

@@ -53,12 +53,8 @@ import { NotificationsPublisherModule } from '@api/services/notifications/publis
 import { PaidCreativeResearchModule } from '@api/services/paid-creative-research/paid-creative-research.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
-import { WorkflowExecutorModule } from '@api/services/workflow-executor/workflow-executor.module';
 import { SharedModule } from '@api/shared/shared.module';
-import {
-  BATCH_WORKFLOW_QUEUE,
-  WORKFLOW_EXECUTION_QUEUE,
-} from '@genfeedai/queue-contracts';
+import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
 import { forwardRef, Module } from '@nestjs/common';
@@ -67,8 +63,7 @@ import { InstagramSocialAdapter } from '@server/collections/workflows/services/a
 import { SocialAdapterFactory } from '@server/collections/workflows/services/adapters/social-adapter.factory';
 import { TwitterSocialAdapter } from '@server/collections/workflows/services/adapters/twitter-social.adapter';
 import { YoutubeSocialAdapter } from '@server/collections/workflows/services/adapters/youtube-social.adapter';
-import { BatchWorkflowService } from '@server/collections/workflows/services/batch-workflow.service';
-import { BatchWorkflowQueueService } from '@server/collections/workflows/services/batch-workflow-queue.service';
+import { BatchWorkflowExecutionService } from '@server/collections/workflows/services/batch-workflow-execution.service';
 import { LivestreamBotWorkflowService } from '@server/collections/workflows/services/livestream-bot-workflow.service';
 import { OutreachCampaignDispatchWorkflowService } from '@server/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
 import { PaidCreativeResearchWorkflowService } from '@server/collections/workflows/services/paid-creative-research-workflow.service';
@@ -106,8 +101,7 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     WebhooksController,
   ],
   exports: [
-    BatchWorkflowQueueService,
-    BatchWorkflowService,
+    BatchWorkflowExecutionService,
     SystemWorkflowCatalogService,
     SystemWorkflowRunnerService,
     WorkflowsCoreModule,
@@ -168,7 +162,6 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     VideosModule,
     WhisperModule,
     WorkflowExecutionsModule,
-    WorkflowExecutorModule,
     PaidCreativeResearchModule,
 
     BullModule.registerQueue({
@@ -180,16 +173,6 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
       },
       name: WORKFLOW_EXECUTION_QUEUE,
     }),
-
-    BullModule.registerQueue({
-      defaultJobOptions: {
-        attempts: 2,
-        backoff: { delay: 5000, type: 'exponential' },
-        removeOnComplete: 200,
-        removeOnFail: 100,
-      },
-      name: BATCH_WORKFLOW_QUEUE,
-    }),
   ],
   providers: [
     AdAutomationWorkflowService,
@@ -197,8 +180,7 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     InstagramSocialAdapter,
     YoutubeSocialAdapter,
     SocialAdapterFactory,
-    BatchWorkflowQueueService,
-    BatchWorkflowService,
+    BatchWorkflowExecutionService,
     WorkflowEngineAdapterService,
     WorkflowExecutionAuthorizationService,
     WorkflowExecutorService,

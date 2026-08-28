@@ -1,7 +1,5 @@
 import type {
-  BatchStatus,
   IngredientStatus,
-  WorkflowBatchItemStatus,
   WorkflowExecutionStatus,
 } from '@genfeedai/enums';
 import type {
@@ -211,12 +209,6 @@ export interface ListExecutionsParams {
 // BATCH WORKFLOW TYPES
 // =============================================================================
 
-/** Result of creating a batch workflow run */
-export interface BatchRunResult {
-  batchJobId: string;
-  totalCount: number;
-}
-
 interface BatchOutputSummary {
   id: string;
   category: string;
@@ -225,16 +217,10 @@ interface BatchOutputSummary {
   thumbnailUrl?: string;
 }
 
-/**
- * Status of a single batch item.
- *
- * `batch_workflow_jobs.items` is a `Json` column, so item statuses stay
- * lowercase — unlike the job's own Prisma-backed `BatchStatus` column.
- */
-export interface BatchItemStatus {
+export interface BatchExecutionItem {
   id: string;
   ingredientId: string;
-  status: WorkflowBatchItemStatus;
+  status: WorkflowExecutionStatus;
   executionId?: string;
   outputIngredientId?: string;
   outputCategory?: string;
@@ -244,24 +230,22 @@ export interface BatchItemStatus {
   completedAt?: string;
 }
 
-/** Full batch job status with items */
-export interface BatchJobStatus {
+export interface BatchExecution {
   id: string;
   workflowId: string;
-  status: BatchStatus;
+  status: WorkflowExecutionStatus;
   totalCount: number;
   completedCount: number;
   failedCount: number;
-  items: BatchItemStatus[];
+  items: BatchExecutionItem[];
   createdAt?: string;
   updatedAt?: string;
 }
 
-/** Batch job summary for list view */
-export interface BatchJobSummary {
+export interface BatchExecutionSummary {
   id: string;
   workflowId: string;
-  status: BatchStatus;
+  status: WorkflowExecutionStatus;
   totalCount: number;
   completedCount: number;
   failedCount: number;

@@ -92,7 +92,6 @@ import { PublishApprovalsModule } from '@api/collections/publish-approvals/publi
 import { PublishingSetupModule } from '@api/collections/publishing-setup/publishing-setup.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
 import { RssSourcesModule } from '@api/collections/rss-sources/rss-sources.module';
-import { RunsModule } from '@api/collections/runs/runs.module';
 import { SchedulesModule } from '@api/collections/schedules/schedules.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SkillsModule } from '@api/collections/skills/skills.module';
@@ -207,7 +206,6 @@ import { SyncModule } from '@api/services/sync/sync.module';
 import { TelegramBotModule } from '@api/services/telegram-bot/telegram-bot.module';
 import { TwitterPipelineModule } from '@api/services/twitter-pipeline/twitter-pipeline.module';
 import { VideoCompletionModule } from '@api/services/video-completion/video-completion.module';
-import { WorkflowExecutorModule } from '@api/services/workflow-executor/workflow-executor.module';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { RateLimitModule } from '@api/shared/modules/rate-limit/rate-limit.module';
 import { SharedModule } from '@api/shared/shared.module';
@@ -357,7 +355,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     PromptsModule,
     RolesModule,
     RssSourcesModule,
-    RunsModule,
     SchedulesModule,
     SettingsModule,
     SpeechModule,
@@ -392,7 +389,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     WorkflowExecutionsModule,
     AgentWorkflowsModule,
     PreflightModule,
-    WorkflowExecutorModule,
     WorkflowsModule,
 
     // Services (alphabetical)

@@ -588,25 +588,13 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
  * indirect ownership), `Invitation` (org-level). These stay in the source org by
  * design.
  *
- * `WorkflowExecution` / `BatchWorkflowJob` hang off the first-order `Workflow`
- * parent and now move with the brand-owned workflow row.
+ * `WorkflowExecution` hangs off the first-order `Workflow` parent and moves
+ * with the brand-owned workflow row.
  */
 export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
   {
     delegate: 'workflowExecution',
     table: 'workflow_executions',
-    orgField: 'organizationId',
-    parents: [
-      {
-        parentDelegate: 'workflow',
-        parentBrandField: 'brandId',
-        fkField: 'workflowId',
-      },
-    ],
-  },
-  {
-    delegate: 'batchWorkflowJob',
-    table: 'batch_workflow_jobs',
     orgField: 'organizationId',
     parents: [
       {

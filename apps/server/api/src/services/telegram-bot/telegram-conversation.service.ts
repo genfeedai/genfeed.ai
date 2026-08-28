@@ -4,7 +4,7 @@
  * Owns the conversational workflow runner: listing/selecting workflows,
  * collecting inputs over multiple messages, confirmation, editing, and handing
  * a confirmed run to the workflow runner. Sole owner of per-chat conversation
- * state, pending generation images, and the loaded workflow map; the message
+ * state and the loaded workflow map; the message
  * handler reaches this state through the small public API below.
  */
 
@@ -20,7 +20,6 @@ import { type Context, InlineKeyboard } from 'grammy';
 
 export class TelegramConversationService {
   private readonly conversations: Map<number, ConversationState> = new Map();
-  private readonly pendingGenerationImages: Map<number, string> = new Map();
   private readonly recentPhotoTimestamps: Map<number, number> = new Map();
   private workflows: Map<string, WorkflowJson> = new Map();
 
@@ -51,27 +50,6 @@ export class TelegramConversationService {
     return this.conversations.get(chatId);
   }
 
-  setPendingImage(chatId: number, url: string): void {
-    this.pendingGenerationImages.set(chatId, url);
-  }
-
-  peekPendingImage(chatId: number): string | undefined {
-    return this.pendingGenerationImages.get(chatId);
-  }
-
-  clearPendingImage(chatId: number): void {
-    this.pendingGenerationImages.delete(chatId);
-  }
-
-  /** Take (read + clear) the pending generation image for a chat. */
-  takePendingImage(chatId: number): string | undefined {
-    const url = this.pendingGenerationImages.get(chatId);
-    if (url) {
-      this.pendingGenerationImages.delete(chatId);
-    }
-    return url;
-  }
-
   /**
    * Photo-throttle gate: returns true (and replies should be sent by the caller)
    * when a photo arrives within 1.5s of the previous one; otherwise records the
@@ -90,7 +68,6 @@ export class TelegramConversationService {
   /** Describe the current status of a chat for the /status command. */
   describeStatus(chatId?: number): {
     statusLine: string;
-    hasPendingImage: boolean;
   } {
     const state = chatId ? this.conversations.get(chatId) : undefined;
 
@@ -113,17 +90,13 @@ export class TelegramConversationService {
     }
 
     return {
-      hasPendingImage: chatId
-        ? this.pendingGenerationImages.has(chatId)
-        : false,
       statusLine,
     };
   }
 
-  /** Clear conversation + pending state and confirm the cancellation. */
+  /** Clear conversation state and confirm the cancellation. */
   private async resetConversation(ctx: Context, chatId: number): Promise<void> {
     this.conversations.delete(chatId);
-    this.pendingGenerationImages.delete(chatId);
     await ctx.reply('❌ Cancelled. Send /workflows to start again.');
   }
 

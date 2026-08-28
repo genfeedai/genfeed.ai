@@ -102,8 +102,6 @@ export * from './review-decision.enum';
 export * from './review-gate.enum';
 export * from './router.enum';
 export * from './rss-source.enum';
-// Public automation interfaces import these from the package root.
-export * from './run.enum';
 export * from './scheduler.enum';
 export * from './scope.enum';
 export * from './setting.enum';

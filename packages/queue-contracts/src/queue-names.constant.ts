@@ -11,7 +11,6 @@ export const AGENT_RUN_QUEUE = 'agent-run';
 
 // ---------- Workflows ----------
 export const WORKFLOW_EXECUTION_QUEUE = 'workflow-execution';
-export const BATCH_WORKFLOW_QUEUE = 'batch-workflow';
 
 // ---------- Distribution & messaging ----------
 export const NOTIFICATION_DELIVERY_QUEUE = 'notification-delivery';
@@ -25,7 +24,6 @@ export const ALL_QUEUE_NAMES = [
   DEFAULT_QUEUE,
   AGENT_RUN_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
-  BATCH_WORKFLOW_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   HEYGEN_POLL_QUEUE,

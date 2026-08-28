@@ -3,13 +3,23 @@ import path from 'node:path';
 import { globSync } from 'glob';
 
 const DEFAULT_INCLUDE_GLOBS = [
+  'apps/app/**/*.{ts,tsx}',
+  'apps/desktop/**/*.{ts,tsx}',
+  'apps/extensions/**/*.{ts,tsx}',
+  'apps/mobile/**/*.{ts,tsx}',
   'apps/server/api/src/**/*.ts',
+  'apps/server/discord/src/**/*.ts',
   'apps/server/files/src/**/*.ts',
   'apps/server/mcp/src/**/*.ts',
   'apps/server/server/src/**/*.ts',
+  'apps/server/slack/src/**/*.ts',
+  'apps/server/telegram/src/**/*.ts',
   'apps/server/workers/src/**/*.ts',
   'apps/website/**/*.{ts,tsx}',
   'packages/actions/src/**/*.ts',
+  'packages/agent/src/**/*.ts',
+  'packages/cli/src/**/*.ts',
+  'packages/client/src/**/*.ts',
   'packages/services/**/*.ts',
 ];
 
@@ -216,6 +226,32 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
 const PRODUCT_CRON_PATH_SEGMENTS = ['/content-pipeline/', '/posts/'];
 
 const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
+  {
+    exceptionAllowed: false,
+    id: 'retired-api-workflow-executor-plane',
+    matches: (file) =>
+      file.startsWith('apps/server/api/src/services/workflow-executor/'),
+    message:
+      'The parallel API workflow-executor processor plane is retired. Product behavior must be registered as action-backed nodes in the shared workflow engine.',
+  },
+  {
+    exceptionAllowed: false,
+    id: 'literal-placeholder-product-mutation',
+    matches: (_file, source) =>
+      /caption\s*:\s*`Generated caption for topic:/s.test(source),
+    message:
+      'Product mutation endpoints cannot return literal placeholder generation results. Delete the surface or route it through a real action-backed workflow.',
+  },
+  {
+    exceptionAllowed: false,
+    id: 'workflow-entry-action-used-as-internal-node',
+    matches: (_file, source) =>
+      /(?:registerAction|actionId\s*:)[\s\S]{0,80}\b(?:ARTICLE_GENERATION_ACTION_ID|LINKEDIN_CONTENT_GENERATION_ACTION_ID)\b/.test(
+        source,
+      ),
+    message:
+      'Workflow-entry tool IDs cannot be reused for a differently shaped internal node. Give the atomic node its own stable action ID and exact contract.',
+  },
   {
     exceptionAllowed: false,
     id: 'dynamic-system-action-workflow',

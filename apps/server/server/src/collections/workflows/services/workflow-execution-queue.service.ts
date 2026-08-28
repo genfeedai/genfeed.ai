@@ -63,6 +63,9 @@ export interface QueueSystemWorkflowOptions {
   attempts?: number;
   delayMs?: number;
   failureWorkflow?: SystemWorkflowFailureReference;
+  priorExecution?: NonNullable<
+    NonNullable<WorkflowExecutionJobData['systemRun']>['priorExecution']
+  >;
   replaceTerminalJob?: boolean;
 }
 
@@ -197,6 +200,9 @@ export class WorkflowExecutionQueueService {
             ? { failureWorkflow: options.failureWorkflow }
             : {}),
           input,
+          ...(options.priorExecution
+            ? { priorExecution: options.priorExecution }
+            : {}),
         },
         type: 'system-run',
       },

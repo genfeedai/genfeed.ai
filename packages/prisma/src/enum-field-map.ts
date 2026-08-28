@@ -992,29 +992,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       organization: 'organizationId',
     },
   },
-  BatchWorkflowJob: {
-    allFields: [
-      'createdAt',
-      'id',
-      'isDeleted',
-      'items',
-      'organization',
-      'organizationId',
-      'status',
-      'updatedAt',
-      'userId',
-      'workflow',
-      'workflowId',
-    ],
-    listFields: [],
-    enumFields: {
-      status: { enumType: 'BatchStatus', isRequired: true },
-    },
-    relationIdFields: {
-      organization: 'organizationId',
-      workflow: 'workflowId',
-    },
-  },
   BillingAccount: {
     allFields: [
       'createdAt',
@@ -3546,7 +3523,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'articleAnalytics',
       'articles',
       'batchItems',
-      'batchWorkflowJobs',
       'batches',
       'billingAccountLinks',
       'bookmarks',
@@ -5783,7 +5759,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'user',
       'userId',
     ],
-    listFields: ['batchJobs', 'executions', 'tags', 'versions'],
+    listFields: ['executions', 'tags', 'versions'],
     enumFields: {},
     relationIdFields: {
       brand: 'brandId',
@@ -5807,6 +5783,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'etaUpdatedAt',
       'failedNodeId',
       'id',
+      'idempotencyKey',
       'isDeleted',
       'organization',
       'organizationId',

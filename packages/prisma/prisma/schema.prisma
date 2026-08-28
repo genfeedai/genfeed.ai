@@ -737,7 +737,6 @@ model Organization {
   workflowArtifacts             WorkflowArtifact[]
   notificationEvents            NotificationEvent[]
   notificationDeliveries        NotificationDelivery[]
-  batchWorkflowJobs             BatchWorkflowJob[]
   contentRuns                   ContentRun[]
   bots                          Bot[]
   livestreamBotSessions         LivestreamBotSession[]
@@ -4038,7 +4037,6 @@ model Workflow {
   tags       Tag[]               @relation("workflow_tags")
   versions   WorkflowVersion[]   @relation("workflow_versions")
   executions WorkflowExecution[]
-  batchJobs  BatchWorkflowJob[]
 
   // Narrows predicate locks on the default-recurring-workflow re-check from a
   // relation-level SIReadLock to a page-level lock, preventing unrelated
@@ -4077,6 +4075,7 @@ model WorkflowVersion {
 
 model WorkflowExecution {
   id             String                  @id @default(cuid())
+  idempotencyKey String?
   workflowId     String
   workflow       Workflow                @relation(fields: [workflowId], references: [id])
   workflowVersionId String
@@ -4121,6 +4120,7 @@ model WorkflowExecution {
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, workflowVersionId, createdAt(sort: Desc)])
+  @@unique([organizationId, idempotencyKey], map: "workflow_executions_org_idempotency_key")
   @@index([purgeAt, payloadScrubbedAt, isDeleted], map: "workflow_executions_purgeAt_idx")
   @@map("workflow_executions")
 }
@@ -4206,24 +4206,6 @@ model WorkflowNodeClaim {
   @@unique([executionId, nodeId])
   @@index([organizationId, executionId])
   @@map("workflow_node_claims")
-}
-
-model BatchWorkflowJob {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  userId         String
-  workflowId     String
-  workflow       Workflow     @relation(fields: [workflowId], references: [id])
-  items          Json         @default("[]")
-  status         BatchStatus  @default(PENDING)
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  @@index([organizationId, status])
-  @@index([workflowId])
-  @@map("batch_workflow_jobs")
 }
 
 model ContentRun {
@@ -6084,37 +6066,6 @@ model LivestreamBotSession {
   @@index([organizationId, isDeleted])
   @@index([organizationId, botId, isDeleted])
   @@map("livestream_bot_sessions")
-}
-
-model Run {
-  id             String    @id @default(cuid())
-  organizationId String
-  brandId        String?
-  userId         String?
-  actionType     String?
-  authType       String?
-  surface        String?
-  trigger        String?
-  status         String?
-  idempotencyKey String?
-  traceId        String?
-  correlationId  String?
-  progress       Int?
-  durationMs     Int?
-  error          String?
-  startedAt      DateTime?
-  completedAt    DateTime?
-  input          Json?
-  output         Json?
-  metadata       Json?
-  events         Json?
-  data           Json      @default("{}")
-  isDeleted      Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
-  @@map("runs")
 }
 
 model Analytic {

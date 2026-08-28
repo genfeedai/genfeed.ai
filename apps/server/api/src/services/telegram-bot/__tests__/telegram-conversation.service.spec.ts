@@ -18,16 +18,6 @@ describe('TelegramConversationService', () => {
     service = buildService();
   });
 
-  describe('pending images', () => {
-    it('takes (reads + clears) a pending image once', () => {
-      service.setPendingImage(1, 'url');
-      expect(service.peekPendingImage(1)).toBe('url');
-      expect(service.takePendingImage(1)).toBe('url');
-      expect(service.peekPendingImage(1)).toBeUndefined();
-      expect(service.takePendingImage(1)).toBeUndefined();
-    });
-  });
-
   describe('shouldThrottlePhoto', () => {
     it('allows the first photo and throttles an immediate second', () => {
       expect(service.shouldThrottlePhoto(1)).toBe(false);
@@ -38,15 +28,6 @@ describe('TelegramConversationService', () => {
   describe('describeStatus', () => {
     it('reports idle when there is no conversation', () => {
       expect(service.describeStatus(undefined)).toEqual({
-        hasPendingImage: false,
-        statusLine: '💤 Idle',
-      });
-    });
-
-    it('reflects a pending image for a known chat', () => {
-      service.setPendingImage(7, 'url');
-      expect(service.describeStatus(7)).toEqual({
-        hasPendingImage: true,
         statusLine: '💤 Idle',
       });
     });
@@ -82,14 +63,11 @@ describe('TelegramConversationService', () => {
     it('clears state and confirms cancellation', async () => {
       const reply = vi.fn();
       const ctx = { chat: { id: 9 }, reply } as unknown as Context;
-      service.setPendingImage(9, 'url');
-
       await service.handleCancelCommand(ctx);
 
       expect(reply).toHaveBeenCalledWith(
         '❌ Cancelled. Send /workflows to start again.',
       );
-      expect(service.peekPendingImage(9)).toBeUndefined();
     });
   });
 });

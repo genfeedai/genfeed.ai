@@ -1,4 +1,7 @@
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import {
+  WorkflowExecutionStatus,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
 import type {
   ExecutableWorkflow,
   NodeExecutionResult,
@@ -113,6 +116,112 @@ describe('WorkflowExecutorService', () => {
       executionsService as never,
       websocketService as never,
     );
+  });
+
+  it('executes an exact immutable tenant workflow version', async () => {
+    prisma.workflowVersion.findFirst.mockResolvedValue(
+      pinnedVersion({
+        id: 'workflow-1',
+        label: 'Pinned workflow',
+        nodes: [],
+      }),
+    );
+    vi.spyOn(service, 'executeManualWorkflowDocument').mockResolvedValue({
+      executionId: 'execution-1',
+      nodeResults: [],
+      startedAt: new Date(),
+      status: WorkflowExecutionStatus.COMPLETED,
+      totalCreditsUsed: 0,
+      workflowId: 'workflow-1',
+    });
+
+    await expect(
+      service.executePinnedManualWorkflow(
+        'workflow-1',
+        WORKFLOW_VERSION_ID,
+        'user-1',
+        'org-1',
+        { ingredientId: 'ingredient-1' },
+        { parentExecutionId: 'parent-1' },
+      ),
+    ).resolves.toMatchObject({
+      execution: { executionId: 'execution-1' },
+      workflowLabel: 'Pinned workflow',
+    });
+    expect(prisma.workflowVersion.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: WORKFLOW_VERSION_ID, workflowId: 'workflow-1' },
+      }),
+    );
+  });
+
+  it('fails closed when the workflow/version tuple is unavailable to the tenant', async () => {
+    prisma.workflowVersion.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.executePinnedManualWorkflow(
+        'workflow-1',
+        'other-version',
+        'user-1',
+        'org-1',
+      ),
+    ).rejects.toThrow(
+      'Workflow workflow-1 version other-version is unavailable in organization org-1',
+    );
+  });
+
+  it('resolves a completed child by its durable idempotency key', async () => {
+    prisma.workflowVersion.findFirst.mockResolvedValue(
+      pinnedVersion({ id: 'workflow-1', label: 'Pinned workflow', nodes: [] }),
+    );
+    executionsService.findOne.mockResolvedValue({
+      completedAt: new Date(),
+      creditsUsed: 2,
+      id: 'existing-child',
+      metadata: { parentExecutionId: 'parent-1' },
+      nodeResults: [
+        {
+          creditsUsed: 2,
+          nodeId: 'result',
+          nodeType: 'generate',
+          output: { ingredientId: 'output-1' },
+          retryCount: 0,
+          status: WorkflowExecutionStatus.COMPLETED,
+        },
+      ],
+      startedAt: new Date(),
+      status: WorkflowExecutionStatus.COMPLETED,
+      trigger: WorkflowExecutionTrigger.API,
+      workflowId: 'workflow-1',
+      workflowVersionId: WORKFLOW_VERSION_ID,
+    });
+    const executeDocument = vi.spyOn(service, 'executeManualWorkflowDocument');
+
+    await expect(
+      service.executePinnedManualWorkflow(
+        'workflow-1',
+        WORKFLOW_VERSION_ID,
+        'user-1',
+        'org-1',
+        { ingredientId: 'ingredient-1' },
+        { parentExecutionId: 'parent-1' },
+        'workflow-for-each:stable-key',
+      ),
+    ).resolves.toMatchObject({
+      execution: {
+        executionId: 'existing-child',
+        nodeResults: [
+          expect.objectContaining({ output: { ingredientId: 'output-1' } }),
+        ],
+      },
+    });
+    expect(executionsService.findOne).toHaveBeenCalledWith({
+      idempotencyKey: 'workflow-for-each:stable-key',
+      isDeleted: false,
+      organizationId: 'org-1',
+    });
+    expect(executeDocument).not.toHaveBeenCalled();
+    expect(executionsService.createExecution).not.toHaveBeenCalled();
   });
 
   it('executes a multi-node manual workflow through persistence and completion', async () => {

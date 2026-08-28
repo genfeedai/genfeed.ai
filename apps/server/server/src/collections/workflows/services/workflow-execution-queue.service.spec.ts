@@ -1,4 +1,8 @@
-import { ActionOrigin, WorkflowStatus } from '@genfeedai/enums';
+import {
+  ActionOrigin,
+  WorkflowExecutionStatus,
+  WorkflowStatus,
+} from '@genfeedai/enums';
 import { runWithActionOrigin } from '@genfeedai/server';
 import {
   WorkflowExecutionQueueService,
@@ -200,6 +204,35 @@ describe('WorkflowExecutionQueueService', () => {
         'system-run',
         expect.anything(),
         expect.objectContaining({ delay: 30_000 }),
+      );
+    });
+
+    it('queues an already-created immutable parent execution', async () => {
+      const input = {
+        actionType: 'workflow.batch.execute',
+        canonicalId: 'workflow.batch.execute',
+        organizationId: 'org-1',
+        source: 'batch',
+        userId: 'user-1',
+      };
+      const priorExecution = {
+        executionId: 'parent-execution',
+        status: WorkflowExecutionStatus.PENDING,
+        userId: 'user-1',
+        workflowId: 'hidden-parent',
+        workflowLabel: 'Execute Workflow Batch',
+      };
+
+      await service.queueSystemWorkflow(input, 'system-workflow-parent', {
+        priorExecution,
+      });
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'system-run',
+        expect.objectContaining({
+          systemRun: { input, priorExecution },
+        }),
+        expect.objectContaining({ jobId: 'system-workflow-parent' }),
       );
     });
   });

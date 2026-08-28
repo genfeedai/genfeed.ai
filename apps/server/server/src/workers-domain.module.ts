@@ -90,8 +90,6 @@ import { WorkflowExecutionsService } from '@server/collections/workflow-executio
 import { AdAutomationWorkflowService } from '@server/collections/workflows/services/ad-automation-workflow.service';
 import { AdBulkUploadWorkflowService } from '@server/collections/workflows/services/ad-bulk-upload-workflow.service';
 import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
-import { BatchWorkflowService } from '@server/collections/workflows/services/batch-workflow.service';
-import { BatchWorkflowQueueService } from '@server/collections/workflows/services/batch-workflow-queue.service';
 import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionAuthorizationService } from '@server/collections/workflows/services/workflow-execution-authorization.service';
@@ -256,8 +254,6 @@ const WORKER_DOMAIN_SERVICES = [
   BatchGenerationService,
   BillingAccountsService,
   BatchGenerationStreamService,
-  BatchWorkflowQueueService,
-  BatchWorkflowService,
   BeehiivPublisherService,
   BotActionExecutorService,
   BrandMemorySyncService,

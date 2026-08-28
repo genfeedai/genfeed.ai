@@ -19,22 +19,13 @@ const PLATFORM_CHAR_LIMITS: Record<string, number> = {
   youtube: 5000,
 };
 
-type InsertStatus =
-  | 'idle'
-  | 'inserting'
-  | 'inserted'
-  | 'publishing'
-  | 'published'
-  | 'failed';
+type InsertStatus = 'idle' | 'inserting' | 'inserted' | 'failed';
 
 export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
   const [copied, setCopied] = useState(false);
   const [insertStatus, setInsertStatus] = useState<InsertStatus>('idle');
   const currentPlatform = usePlatformStore((s) => s.currentPlatform);
   const composeBoxAvailable = usePlatformStore((s) => s.composeBoxAvailable);
-  const canSubmitFromComposer = usePlatformStore(
-    (s) => s.canSubmitFromComposer,
-  );
 
   const content = message.metadata?.generatedContent ?? message.content;
   const charLimit = currentPlatform
@@ -61,29 +52,6 @@ export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
       (response) => {
         if (response?.success) {
           setInsertStatus('inserted');
-          setTimeout(() => setInsertStatus('idle'), 2500);
-        } else {
-          setInsertStatus('failed');
-          setTimeout(() => setInsertStatus('idle'), 3000);
-        }
-      },
-    );
-  }
-
-  function handleInsertAndPublish() {
-    setInsertStatus('publishing');
-    chrome.runtime.sendMessage(
-      {
-        event: 'RELAY_TO_CONTENT',
-        payload: {
-          content,
-          platform: currentPlatform,
-          type: 'INSERT_AND_PUBLISH_CONTENT',
-        },
-      },
-      (response) => {
-        if (response?.success) {
-          setInsertStatus('published');
           setTimeout(() => setInsertStatus('idle'), 2500);
         } else {
           setInsertStatus('failed');
@@ -144,42 +112,20 @@ export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
             {copied ? 'Copied!' : 'Copy'}
           </Button>
 
-          {composeBoxAvailable &&
-            insertStatus !== 'inserted' &&
-            insertStatus !== 'published' && (
-              <Button
-                type="button"
-                variant={ButtonVariant.DEFAULT}
-                onClick={handleInsert}
-                disabled={
-                  insertStatus === 'inserting' || insertStatus === 'publishing'
-                }
-                className="rounded px-2.5 py-1 text-xs"
-              >
-                {insertStatus === 'inserting' ? 'Inserting...' : 'Insert'}
-              </Button>
-            )}
-
-          {composeBoxAvailable && canSubmitFromComposer && (
+          {composeBoxAvailable && insertStatus !== 'inserted' && (
             <Button
               type="button"
               variant={ButtonVariant.DEFAULT}
-              onClick={handleInsertAndPublish}
-              disabled={
-                insertStatus === 'inserting' || insertStatus === 'publishing'
-              }
-              className="rounded bg-primary/80 px-2.5 py-1 text-xs hover:bg-primary"
+              onClick={handleInsert}
+              disabled={insertStatus === 'inserting'}
+              className="rounded px-2.5 py-1 text-xs"
             >
-              {insertStatus === 'publishing' ? 'Posting...' : 'Insert + Post'}
+              {insertStatus === 'inserting' ? 'Inserting...' : 'Insert'}
             </Button>
           )}
 
           {insertStatus === 'inserted' && (
             <span className="text-xs text-success">Inserted</span>
-          )}
-
-          {insertStatus === 'published' && (
-            <span className="text-xs text-success">Posted</span>
           )}
 
           {insertStatus === 'failed' && (

@@ -137,10 +137,9 @@ export class WorkflowExecutionProcessor extends WorkerHost {
     systemRun: NonNullable<WorkflowExecutionJobData['systemRun']>,
   ): Promise<unknown> {
     const prior = systemRun.priorExecution;
-    const result =
-      (job.attemptsMade ?? 0) > 0 && prior
-        ? await this.continuePriorSystemRun(systemRun, prior)
-        : await this.systemWorkflowRunner.startWorkflow(systemRun.input);
+    const result = prior
+      ? await this.continuePriorSystemRun(systemRun, prior)
+      : await this.systemWorkflowRunner.startWorkflow(systemRun.input);
     try {
       await job.updateData({
         ...job.data,

@@ -1,5 +1,4 @@
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
-import { RunsService } from '@api/collections/runs/services/runs.service';
 import { TelegramBotService } from '@api/services/telegram-bot/telegram-bot.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -13,7 +12,6 @@ describe('TelegramBotService', () => {
   let logger: LoggerService;
   let systemWorkflowRunner: SystemWorkflowRunnerService;
   let prisma: PrismaService;
-  let runsService: RunsService;
   let apiKeysService: ApiKeysService;
 
   beforeEach(() => {
@@ -44,13 +42,8 @@ describe('TelegramBotService', () => {
     } as unknown as SystemWorkflowRunnerService;
     prisma = {} as PrismaService;
 
-    runsService = {
-      createRun: vi.fn(),
-      updateRunStatus: vi.fn(),
-    } as unknown as RunsService;
-
     apiKeysService = {
-      validateApiKey: vi.fn(),
+      findByKey: vi.fn(),
     } as unknown as ApiKeysService;
 
     service = new TelegramBotService(
@@ -58,7 +51,6 @@ describe('TelegramBotService', () => {
       logger,
       systemWorkflowRunner,
       prisma,
-      runsService,
       apiKeysService,
     );
   });
@@ -138,8 +130,6 @@ describe('TelegramBotService', () => {
 
   describe('workflow execution', () => {
     it('should have workflow execution capabilities', () => {
-      // The service depends on runs service for workflow execution
-      expect(runsService).toBeDefined();
       expect(systemWorkflowRunner).toBeDefined();
     });
   });

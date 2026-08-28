@@ -54,7 +54,6 @@ import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 // --- collections/ processors ---
-import { BatchWorkflowProcessor } from '@workers/processors/api/collections/workflows/services/batch-workflow.processor';
 import { WorkflowExecutionProcessor as CollectionsWorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
 // --- queues/ processors ---
 import { AgentRunProcessor } from '@workers/processors/api/queues/agent-run/agent-run.processor';
@@ -132,8 +131,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     // --- services/ processors ---
     WebhookClientProcessor,
 
-    // --- collections/ processors (3) ---
-    BatchWorkflowProcessor,
+    // --- collections/ processors ---
     CollectionsWorkflowExecutionProcessor,
   ],
 })

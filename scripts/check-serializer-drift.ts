@@ -575,7 +575,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'tag:Tag': [],
   'tracked-link:TrackedLink': [],
   'user:User': [],
-  'workflow-execution:WorkflowExecution': [],
+  'workflow-execution:WorkflowExecution': ['idempotencyKey'],
   'api-key:ApiKey': [],
   'avatar:Ingredient': [
     'age',
@@ -706,7 +706,6 @@ export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
   'agent-thread-snapshot:AgentThreadSnapshot': OPERATIONAL_MODEL_REASON,
   'agent-workflow:AgentWorkflow': INTERNAL_MODEL_REASON,
   'article-analytics:ArticleAnalytics': ANALYTICS_MODEL_REASON,
-  'batch-workflow-job:BatchWorkflowJob': OPERATIONAL_MODEL_REASON,
   'campaign-target:CampaignTarget': INTERNAL_MODEL_REASON,
   'content-pattern:ContentPattern': ANALYTICS_MODEL_REASON,
   'content-score:ContentScore': ANALYTICS_MODEL_REASON,

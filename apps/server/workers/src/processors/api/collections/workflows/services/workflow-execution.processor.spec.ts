@@ -197,7 +197,7 @@ describe('WorkflowExecutionProcessor', () => {
       });
     });
 
-    it('does not create a second system execution when BullMQ retries', async () => {
+    it('runs a precreated parent execution on the first queue attempt', async () => {
       const input = {
         actionType: 'campaign.reply.execute-target',
         canonicalId: 'campaign.reply.execute-target',
@@ -205,6 +205,14 @@ describe('WorkflowExecutionProcessor', () => {
         source: 'workflow.for-each',
         userId: 'user-1',
       };
+      mockExecutor.continueExistingExecution.mockResolvedValueOnce({
+        executionId: 'exec-prior',
+        nodeResults: [],
+        startedAt: new Date(),
+        status: WorkflowExecutionStatus.COMPLETED,
+        totalCreditsUsed: 0,
+        workflowId: 'wf-system',
+      });
 
       await expect(
         processor.process(
@@ -214,7 +222,7 @@ describe('WorkflowExecutionProcessor', () => {
                 input,
                 priorExecution: {
                   executionId: 'exec-prior',
-                  status: WorkflowExecutionStatus.COMPLETED,
+                  status: WorkflowExecutionStatus.PENDING,
                   userId: 'user-1',
                   workflowId: 'wf-system',
                   workflowLabel: 'Campaign reply',
@@ -222,7 +230,7 @@ describe('WorkflowExecutionProcessor', () => {
               },
               type: 'system-run',
             },
-            { attemptsMade: 1 },
+            { attemptsMade: 0 },
           ) as never,
         ),
       ).resolves.toMatchObject({
@@ -230,6 +238,13 @@ describe('WorkflowExecutionProcessor', () => {
         status: WorkflowExecutionStatus.COMPLETED,
       });
       expect(mockSystemWorkflowRunner.startWorkflow).not.toHaveBeenCalled();
+      expect(mockExecutor.continueExistingExecution).toHaveBeenCalledWith(
+        'exec-prior',
+        expect.objectContaining({
+          organizationId: 'org-1',
+          userId: 'user-1',
+        }),
+      );
     });
 
     it('does not compensate a failed workflow before its terminal queue attempt', async () => {

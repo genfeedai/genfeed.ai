@@ -1,64 +1,38 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { Checkbox } from '@ui/primitives/checkbox';
-import { Input } from '@ui/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactElement, useMemo, useState } from 'react';
 import {
   type AnalyticsSnapshot,
-  buildRunIdempotencyKey,
   extractAnalyticsSnapshot,
   extractGeneratedPreview,
   extractPostResults,
   type PostResultEntry,
-  summarizeRunHistory,
 } from '~components/create/content-engine.utils';
 import { TemplateCard } from '~components/create/TemplateCard';
-import { authService } from '~services/auth.service';
-import { ContentEngineService } from '~services/content-engine.service';
 import {
-  type RunActionType,
-  type RunEventRecord,
-  type RunRecord,
-  RunsService,
-} from '~services/runs.service';
+  AgentToolsService,
+  type ExtensionToolAction,
+} from '~services/agent-tools.service';
+import { authService } from '~services/auth.service';
 import { useBrandStore } from '~store/use-brand-store';
 import { useChatStore } from '~store/use-chat-store';
 import { usePlatformStore } from '~store/use-platform-store';
-import { useSettingsStore } from '~store/use-settings-store';
 
-type ComposerActionType = 'INSERT_CONTENT' | 'INSERT_AND_PUBLISH_CONTENT';
-
-type RunTemplateContext = {
-  analyticsQuery: string;
+type ToolTemplateContext = {
   brandId: string | null;
   currentPlatform: string | null;
   generatePrompt: string;
   pageContext: { postAuthor?: string; postContent?: string; url?: string };
   previewContent: string;
-  selectedCredentialId: string | null;
 };
 
-interface RunTemplate {
-  actionType: RunActionType;
+interface ToolTemplate {
+  actionType: ExtensionToolAction;
   description: string;
   id: string;
   label: string;
-  buildInput: (context: RunTemplateContext) => Record<string, unknown>;
-}
-
-interface Credential {
-  id: string;
-  platform: string;
-  externalHandle?: string;
-  isConnected: boolean;
+  buildInput: (context: ToolTemplateContext) => Record<string, unknown>;
 }
 
 interface CreatePanelProps {
@@ -108,16 +82,18 @@ const CHAT_TEMPLATES: ChatTemplate[] = [
   },
 ];
 
-const RUN_TEMPLATES: RunTemplate[] = [
+const TOOL_TEMPLATES: ToolTemplate[] = [
   {
     actionType: 'generate',
     buildInput: (context) => ({
-      brandId: context.brandId,
-      pageContext: context.pageContext,
-      platform: context.currentPlatform,
-      prompt:
+      ...(context.brandId ? { brandId: context.brandId } : {}),
+      ...(normalizeToolPlatform(context.currentPlatform, true)
+        ? { platform: normalizeToolPlatform(context.currentPlatform, true) }
+        : {}),
+      topic:
         context.generatePrompt ||
         `Generate a polished social post for ${context.currentPlatform || 'social'} using this context: ${context.pageContext.postContent || context.pageContext.url || 'Current page'}`,
+      type: 'post',
     }),
     description: 'Generate copy from the active page context.',
     id: 'generate-from-page',
@@ -126,59 +102,45 @@ const RUN_TEMPLATES: RunTemplate[] = [
   {
     actionType: 'post',
     buildInput: (context) => ({
-      brandId: context.brandId,
-      credentialId: context.selectedCredentialId,
-      pageContext: context.pageContext,
-      payload: context.previewContent,
-      platform: context.currentPlatform,
+      content: context.previewContent,
+      ...(normalizeToolPlatform(context.currentPlatform, false)
+        ? { platform: normalizeToolPlatform(context.currentPlatform, false) }
+        : {}),
     }),
-    description: 'Publish current preview using connected credentials.',
+    description: 'Save the current preview as a Genfeed post draft.',
     id: 'publish-preview',
-    label: 'Publish Preview',
+    label: 'Create Post Draft',
   },
   {
     actionType: 'analytics',
-    buildInput: (context) => ({
-      brandId: context.brandId,
-      platform: context.currentPlatform,
-      query:
-        context.analyticsQuery || 'generated vs published content overview',
-    }),
+    buildInput: () => ({}),
     description: 'Fetch generated/published KPI snapshot.',
     id: 'analytics-snapshot',
     label: 'Analytics Snapshot',
   },
-  {
-    actionType: 'composite',
-    buildInput: (context) => ({
-      brandId: context.brandId,
-      brief: `Generate content for ${context.currentPlatform || 'social'}, publish it using connected account ${context.selectedCredentialId || 'default'}, and return analytics snapshot for generated/published KPIs. Seed prompt: ${context.generatePrompt || context.previewContent || context.pageContext.postContent || 'no prompt provided'}`,
-      pageContext: context.pageContext,
-      platform: context.currentPlatform,
-    }),
-    description: 'Run generate -> post -> analytics as a composite brief.',
-    id: 'full-loop',
-    label: 'Full Loop',
-  },
 ];
 
-const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled']);
+const SOCIAL_PLATFORMS = new Set([
+  'facebook',
+  'instagram',
+  'linkedin',
+  'tiktok',
+  'twitter',
+  'youtube',
+]);
 
-function upsertRun(history: RunRecord[], run: RunRecord): RunRecord[] {
-  const next = [...history];
-  const existingIndex = next.findIndex((item) => item.id === run.id);
-
-  if (existingIndex >= 0) {
-    next[existingIndex] = run;
-  } else {
-    next.unshift(run);
+function normalizeToolPlatform(
+  platform: string | null,
+  allowNewsletter: boolean,
+): string | undefined {
+  const normalized = platform === 'x' ? 'twitter' : platform;
+  if (normalized && SOCIAL_PLATFORMS.has(normalized)) {
+    return normalized;
   }
-
-  return next.slice(0, 24);
-}
-
-function formatRunStatus(status: string): string {
-  return status.charAt(0).toUpperCase() + status.slice(1);
+  if (allowNewsletter && (normalized === 'email' || normalized === 'blog')) {
+    return 'newsletter';
+  }
+  return undefined;
 }
 
 function formatPercent(value: number): string {
@@ -242,65 +204,6 @@ function ExecutionContextSection({
   );
 }
 
-function ActiveRunSection({
-  events,
-  run,
-}: {
-  events: RunEventRecord[];
-  run: RunRecord | null;
-}): ReactElement | null {
-  if (!run) {
-    return null;
-  }
-
-  return (
-    <section className="border border-border bg-card p-3">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Active Run
-          </p>
-          <p className="text-sm text-foreground">{run.id}</p>
-        </div>
-        <span
-          className={`rounded-full px-2 py-0.5 text-2xs font-medium ${
-            run.status === 'completed'
-              ? 'bg-emerald-500/15 text-emerald-500'
-              : run.status === 'failed'
-                ? 'bg-destructive/15 text-destructive'
-                : 'bg-primary/15 text-primary'
-          }`}
-        >
-          {formatRunStatus(run.status)}
-        </span>
-      </div>
-      <div className="mt-2 h-1.5 rounded-full bg-border">
-        <div
-          className="h-1.5 rounded-full bg-primary transition-all"
-          style={{ width: `${Math.max(2, Math.min(100, run.progress || 0))}%` }}
-        />
-      </div>
-      <p className="mt-1 text-2xs text-muted-foreground">
-        Progress {formatPercent(run.progress || 0)}
-      </p>
-      {events.length > 0 ? (
-        <div className="mt-2 max-h-28 space-y-1 overflow-y-auto border border-border bg-background p-2">
-          {events.slice(-5).map((event) => (
-            <div key={`${event.type}-${event.createdAt}`}>
-              <p className="text-2xs text-foreground">
-                {event.message || event.type}
-              </p>
-              <p className="text-2xs text-muted-foreground">
-                {event.createdAt.split('T')[1]?.slice(0, 8) ?? event.createdAt}
-              </p>
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
 function PanelNotice({
   tone,
   children,
@@ -322,10 +225,10 @@ function PanelNotice({
 
 function WorkflowTemplatesSection({
   isRunning,
-  onRunTemplate,
+  onExecuteTemplate,
 }: {
   isRunning: boolean;
-  onRunTemplate: (template: RunTemplate) => void;
+  onExecuteTemplate: (template: ToolTemplate) => void;
 }): ReactElement {
   return (
     <section className="border border-border bg-card p-3">
@@ -333,13 +236,13 @@ function WorkflowTemplatesSection({
         Workflow Templates
       </p>
       <div className="grid grid-cols-2 gap-2">
-        {RUN_TEMPLATES.map((template) => (
+        {TOOL_TEMPLATES.map((template) => (
           <Button
             key={template.id}
             type="button"
             variant={ButtonVariant.UNSTYLED}
             disabled={isRunning}
-            onClick={() => onRunTemplate(template)}
+            onClick={() => onExecuteTemplate(template)}
             className="border border-border bg-background p-2 text-left transition-colors hover:bg-muted disabled:opacity-60"
           >
             <p className="text-xs font-medium text-foreground">
@@ -356,13 +259,13 @@ function WorkflowTemplatesSection({
 }
 
 function GenerateSection({
-  currentRun,
+  currentAction,
   generatePrompt,
   isRunning,
   onGenerate,
   onPromptChange,
 }: {
-  currentRun: RunRecord | null;
+  currentAction: ExtensionToolAction | null;
   generatePrompt: string;
   isRunning: boolean;
   onGenerate: () => void;
@@ -386,7 +289,7 @@ function GenerateSection({
         onClick={onGenerate}
         className="mt-2 w-full text-xs"
       >
-        {isRunning && currentRun?.actionType === 'generate'
+        {isRunning && currentAction === 'generate'
           ? 'Running Generate…'
           : 'Run Generate'}
       </Button>
@@ -395,17 +298,15 @@ function GenerateSection({
 }
 
 function PreviewSection({
-  canSubmit,
   canCompose,
   previewContent,
   onPreviewChange,
-  onRelay,
+  onInsert,
 }: {
-  canSubmit: boolean;
   canCompose: boolean;
   previewContent: string;
   onPreviewChange: (value: string) => void;
-  onRelay: (actionType: ComposerActionType) => void;
+  onInsert: () => void;
 }): ReactElement {
   return (
     <section className="border border-border bg-card p-3">
@@ -418,24 +319,15 @@ function PreviewSection({
         placeholder="Generated preview appears here…"
         className="min-h-24 w-full border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
       />
-      <div className="mt-2 grid grid-cols-2 gap-2">
+      <div className="mt-2">
         <Button
           type="button"
           variant={ButtonVariant.SECONDARY}
           disabled={!previewContent.trim() || !canCompose}
-          onClick={() => onRelay('INSERT_CONTENT')}
-          className="p-2 text-xs font-medium"
+          onClick={onInsert}
+          className="w-full p-2 text-xs font-medium"
         >
           Insert In Composer
-        </Button>
-        <Button
-          type="button"
-          variant={ButtonVariant.SECONDARY}
-          disabled={!previewContent.trim() || !canSubmit}
-          onClick={() => onRelay('INSERT_AND_PUBLISH_CONTENT')}
-          className="p-2 text-xs font-medium"
-        >
-          Insert + Publish
         </Button>
       </div>
     </section>
@@ -443,64 +335,23 @@ function PreviewSection({
 }
 
 function PostSection({
-  credentials,
-  currentRun,
+  currentAction,
   isRunning,
   postResults,
-  postToComposer,
   previewContent,
-  selectedCredentialId,
-  onCredentialChange,
   onPost,
-  onPostToComposerChange,
 }: {
-  credentials: Credential[];
-  currentRun: RunRecord | null;
+  currentAction: ExtensionToolAction | null;
   isRunning: boolean;
   postResults: PostResultEntry[];
-  postToComposer: boolean;
   previewContent: string;
-  selectedCredentialId: string | null;
-  onCredentialChange: (value: string | null) => void;
   onPost: () => void;
-  onPostToComposerChange: (value: boolean) => void;
 }): ReactElement {
   return (
     <section className="border border-border bg-card p-3">
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        3. Post
+        3. Post Draft
       </p>
-
-      <Select
-        value={selectedCredentialId ?? ''}
-        onValueChange={(value) => onCredentialChange(value || null)}
-      >
-        <SelectTrigger className="w-full border border-border bg-background px-3 py-2 text-xs text-foreground">
-          <SelectValue placeholder="Default connected account" />
-        </SelectTrigger>
-        <SelectContent>
-          {credentials.map((credential) => (
-            <SelectItem key={credential.id} value={credential.id}>
-              {credential.platform}
-              {credential.externalHandle
-                ? ` (@${credential.externalHandle})`
-                : ''}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <label
-        className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"
-        htmlFor="create-panel-post-to-composer"
-      >
-        <Checkbox
-          id="create-panel-post-to-composer"
-          isChecked={postToComposer}
-          onChange={(event) => onPostToComposerChange(event.target.checked)}
-        />
-        Also publish from current page composer after run completes
-      </label>
 
       <Button
         type="button"
@@ -509,9 +360,9 @@ function PostSection({
         onClick={onPost}
         className="mt-2 w-full text-xs"
       >
-        {isRunning && currentRun?.actionType === 'post'
-          ? 'Running Post…'
-          : 'Run Post'}
+        {isRunning && currentAction === 'post'
+          ? 'Creating Draft…'
+          : 'Create Post Draft'}
       </Button>
 
       {postResults.length > 0 ? (
@@ -550,39 +401,29 @@ function PostSection({
 }
 
 function AnalyticsSection({
-  analyticsQuery,
-  currentRun,
+  currentAction,
   isRunning,
   kpis,
   onAnalytics,
-  onAnalyticsQueryChange,
 }: {
-  analyticsQuery: string;
-  currentRun: RunRecord | null;
+  currentAction: ExtensionToolAction | null;
   isRunning: boolean;
   kpis: AnalyticsSnapshot;
   onAnalytics: () => void;
-  onAnalyticsQueryChange: (value: string) => void;
 }): ReactElement {
   return (
     <section className="border border-border bg-card p-3">
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         4. Analytics
       </p>
-      <Input
-        value={analyticsQuery}
-        onChange={(event) => onAnalyticsQueryChange(event.target.value)}
-        placeholder="Analytics query"
-        className="w-full border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
-      />
       <Button
         type="button"
         variant={ButtonVariant.DEFAULT}
-        disabled={isRunning || !analyticsQuery.trim()}
+        disabled={isRunning}
         onClick={onAnalytics}
         className="mt-2 w-full text-xs"
       >
-        {isRunning && currentRun?.actionType === 'analytics'
+        {isRunning && currentAction === 'analytics'
           ? 'Running Analytics…'
           : 'Run Analytics'}
       </Button>
@@ -641,19 +482,19 @@ function ChatTemplatesSection({
 }
 
 function RunningFooter({
-  currentRun,
+  currentAction,
   isRunning,
 }: {
-  currentRun: RunRecord | null;
+  currentAction: ExtensionToolAction | null;
   isRunning: boolean;
 }): ReactElement | null {
-  if (!isRunning || !currentRun || TERMINAL_STATUSES.has(currentRun.status)) {
+  if (!isRunning || !currentAction) {
     return null;
   }
 
   return (
     <div className="border-t border-border px-3 py-2 text-2xs text-muted-foreground">
-      Processing {currentRun.actionType} run…
+      Running {currentAction} workflow…
     </div>
   );
 }
@@ -667,97 +508,26 @@ function useCreatePanelController(onStartChat: () => void) {
   const currentPlatform = usePlatformStore((s) => s.currentPlatform);
   const pageContext = usePlatformStore((s) => s.pageContext);
   const composeBoxAvailable = usePlatformStore((s) => s.composeBoxAvailable);
-  const canSubmitFromComposer = usePlatformStore(
-    (s) => s.canSubmitFromComposer,
-  );
-  const autoPost = useSettingsStore((s) => s.autoPost);
 
   const [generatePrompt, setGeneratePrompt] = useState('');
   const [previewContent, setPreviewContent] = useState('');
-  const [analyticsQuery, setAnalyticsQuery] = useState(
-    'generated vs published performance overview',
-  );
-  const [credentialState, setCredentialState] = useState<{
-    credentials: Credential[];
-    selectedCredentialId: string | null;
-  }>({ credentials: [], selectedCredentialId: null });
-  const { credentials, selectedCredentialId } = credentialState;
-  const setSelectedCredentialId = (id: string | null) =>
-    setCredentialState((prev) => ({ ...prev, selectedCredentialId: id }));
-  const [currentRun, setCurrentRun] = useState<RunRecord | null>(null);
-  const [currentRunEvents, setCurrentRunEvents] = useState<RunEventRecord[]>(
-    [],
-  );
-  const [runHistory, setRunHistory] = useState<RunRecord[]>([]);
+  const [currentAction, setCurrentAction] =
+    useState<ExtensionToolAction | null>(null);
   const [postResults, setPostResults] = useState<PostResultEntry[]>([]);
   const [analyticsSnapshot, setAnalyticsSnapshot] =
     useState<AnalyticsSnapshot | null>(null);
   const [isRunning, setIsRunning] = useState(false);
-  const [runError, setRunError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [composerFeedback, setComposerFeedback] = useState<string | null>(null);
-  const [postToComposer, setPostToComposer] = useState(autoPost);
-
-  const runAbortControllerRef = useRef<AbortController | null>(null);
 
   const activeBrand = useMemo(
     () => brands.find((brand) => brand.id === activeBrandId) || null,
     [activeBrandId, brands],
   );
 
-  const historySummary = useMemo(
-    () => summarizeRunHistory(runHistory),
-    [runHistory],
-  );
-
-  const kpis = useMemo(() => {
-    if (analyticsSnapshot) {
-      return {
-        ...analyticsSnapshot,
-        failed: analyticsSnapshot.failed || historySummary.failedPosts,
-        generated: analyticsSnapshot.generated || historySummary.generated,
-        published: analyticsSnapshot.published || historySummary.published,
-        publishSuccessRate:
-          analyticsSnapshot.publishSuccessRate ||
-          (historySummary.published + historySummary.failedPosts > 0
-            ? (historySummary.published /
-                (historySummary.published + historySummary.failedPosts)) *
-              100
-            : 0),
-      };
-    }
-
-    return extractAnalyticsSnapshot({}, historySummary);
-  }, [analyticsSnapshot, historySummary]);
-
-  useEffect(() => {
-    if (!activeBrandId) {
-      setCredentialState({ credentials: [], selectedCredentialId: null });
-      return;
-    }
-
-    chrome.runtime.sendMessage(
-      { event: 'getCredentials', payload: { brandId: activeBrandId } },
-      (response) => {
-        if (response?.success && Array.isArray(response.credentials)) {
-          const connected = (response.credentials as Credential[]).filter(
-            (credential) => credential.isConnected,
-          );
-          setCredentialState({
-            credentials: connected,
-            selectedCredentialId: connected[0]?.id ?? null,
-          });
-        } else {
-          setCredentialState({ credentials: [], selectedCredentialId: null });
-        }
-      },
-    );
-  }, [activeBrandId]);
-
-  useEffect(
-    () => () => {
-      runAbortControllerRef.current?.abort();
-    },
-    [],
+  const kpis = useMemo(
+    () => analyticsSnapshot ?? extractAnalyticsSnapshot({}),
+    [analyticsSnapshot],
   );
 
   function handleSelectTemplate(template: ChatTemplate) {
@@ -773,12 +543,7 @@ function useCreatePanelController(onStartChat: () => void) {
     onStartChat();
   }
 
-  async function ensureRunContext(actionType: RunActionType): Promise<{
-    authContext: NonNullable<
-      Awaited<ReturnType<typeof authService.getAuthContext>>
-    >;
-    token: string;
-  }> {
+  async function requireToolToken(): Promise<string> {
     const token = await authService.getToken();
     if (!token) {
       throw new Error('Sign in from the extension popup first.');
@@ -791,29 +556,14 @@ function useCreatePanelController(onStartChat: () => void) {
       );
     }
 
-    if (
-      (actionType === 'post' || actionType === 'analytics') &&
-      !activeBrandId
-    ) {
-      throw new Error(
-        'Select an active brand in Settings before running this action.',
-      );
-    }
-
-    return {
-      authContext,
-      token,
-    };
+    return token;
   }
 
-  function relayComposer(actionType: ComposerActionType) {
+  function insertInComposer() {
     if (!previewContent.trim()) {
       setComposerFeedback('Add preview content before sending to composer.');
       return;
     }
-
-    const actionLabel =
-      actionType === 'INSERT_AND_PUBLISH_CONTENT' ? 'posted' : 'inserted';
 
     chrome.runtime.sendMessage(
       {
@@ -821,12 +571,12 @@ function useCreatePanelController(onStartChat: () => void) {
         payload: {
           content: previewContent,
           platform: currentPlatform,
-          type: actionType,
+          type: 'INSERT_CONTENT',
         },
       },
       (response) => {
         if (response?.success) {
-          setComposerFeedback(`Preview ${actionLabel} in active composer.`);
+          setComposerFeedback('Preview inserted in active composer.');
         } else {
           setComposerFeedback(
             response?.error ||
@@ -838,203 +588,143 @@ function useCreatePanelController(onStartChat: () => void) {
   }
 
   async function runAction(
-    actionType: RunActionType,
-    input: Record<string, unknown>,
-    options: { idempotencyKey?: string; templateId?: string } = {},
-  ) {
-    const { token, authContext } = await ensureRunContext(actionType);
-
-    runAbortControllerRef.current?.abort();
-    runAbortControllerRef.current = new AbortController();
+    actionType: ExtensionToolAction,
+    parameters: Record<string, unknown>,
+  ): Promise<void> {
+    const token = await requireToolToken();
 
     setIsRunning(true);
-    setRunError(null);
+    setCurrentAction(actionType);
+    setActionError(null);
     setComposerFeedback(null);
-    setCurrentRunEvents([]);
-
-    const runsService = new RunsService(token);
-    const contentEngine = new ContentEngineService(runsService);
 
     try {
-      const snapshot = await contentEngine.executeRunLoop({
+      const result = await new AgentToolsService(token).execute(
         actionType,
-        correlationId: `extension:${actionType}:${Date.now()}`,
-        idempotencyKey: options.idempotencyKey,
-        input,
-        metadata: {
-          brandId: activeBrandId,
-          organizationId: authContext.organization.id,
-          platform: currentPlatform,
-          source: 'extension.sidepanel.create-loop',
-          templateId: options.templateId,
-        },
-        onUpdate: ({ run, events }) => {
-          setCurrentRun(run);
-          setCurrentRunEvents(events);
-        },
-        signal: runAbortControllerRef.current.signal,
-      });
+        parameters,
+      );
+      if (!result.success) {
+        throw new Error(result.error || `${actionType} workflow failed.`);
+      }
 
-      const nextHistory = upsertRun(runHistory, snapshot.run);
-      setRunHistory(nextHistory);
-
-      if (snapshot.run.status === 'completed') {
-        if (actionType === 'generate') {
-          const generated = extractGeneratedPreview(snapshot.run.output);
-          if (generated) {
-            setPreviewContent(generated);
-          }
-        }
-
-        if (actionType === 'post') {
-          const entries = extractPostResults(snapshot.run.output);
-          if (entries.length > 0) {
-            setPostResults((previous) =>
-              [...entries, ...previous].slice(0, 12),
-            );
-          } else {
-            setPostResults((previous) => [
-              {
-                message: 'Post run completed.',
-                platform: currentPlatform ?? undefined,
-                status: 'unknown',
-                timestamp: new Date().toISOString(),
-              },
-              ...previous,
-            ]);
-          }
-        }
-
-        if (actionType === 'analytics') {
-          setAnalyticsSnapshot(
-            extractAnalyticsSnapshot(
-              snapshot.run.output,
-              summarizeRunHistory(nextHistory),
-            ),
-          );
+      if (actionType === 'generate') {
+        const generated = extractGeneratedPreview(result.data);
+        if (generated) {
+          setPreviewContent(generated);
         }
       }
 
-      if (snapshot.run.status === 'failed') {
-        setRunError(
-          snapshot.run.error || 'Run failed. Check event log for details.',
+      if (actionType === 'post') {
+        const entries = extractPostResults(result.data);
+        setPostResults((previous) =>
+          entries.length > 0
+            ? [...entries, ...previous].slice(0, 12)
+            : [
+                {
+                  message: 'Post draft created.',
+                  platform: currentPlatform ?? undefined,
+                  status: 'unknown',
+                  timestamp: new Date().toISOString(),
+                },
+                ...previous,
+              ],
         );
+      }
+
+      if (actionType === 'analytics') {
+        setAnalyticsSnapshot(extractAnalyticsSnapshot(result.data));
       }
     } finally {
       setIsRunning(false);
+      setCurrentAction(null);
     }
   }
 
-  async function handleGenerateRun() {
+  async function handleGenerate() {
     const prompt = generatePrompt.trim();
     if (!prompt) {
-      setRunError('Generation prompt is required.');
+      setActionError('Generation prompt is required.');
       return;
     }
 
     try {
       await runAction('generate', {
-        brandId: activeBrandId,
-        pageContext,
-        platform: currentPlatform,
-        prompt,
+        ...(activeBrandId ? { brandId: activeBrandId } : {}),
+        ...(normalizeToolPlatform(currentPlatform, true)
+          ? { platform: normalizeToolPlatform(currentPlatform, true) }
+          : {}),
+        topic: prompt,
+        type: 'post',
       });
     } catch (error) {
-      setRunError(
+      setActionError(
         error instanceof Error
           ? error.message
-          : 'Failed to start generate run.',
+          : 'Failed to execute generate workflow.',
       );
     }
   }
 
-  async function handlePostRun() {
+  async function handlePost() {
     const payload = previewContent.trim();
     if (!payload) {
-      setRunError('Preview content is required before posting.');
+      setActionError('Preview content is required before posting.');
       return;
     }
 
     const postInput = {
-      brandId: activeBrandId,
-      credentialId: selectedCredentialId,
-      pageContext,
-      payload,
-      platform: currentPlatform,
+      content: payload,
+      ...(normalizeToolPlatform(currentPlatform, false)
+        ? { platform: normalizeToolPlatform(currentPlatform, false) }
+        : {}),
     };
 
     try {
-      await runAction('post', postInput, {
-        idempotencyKey: buildRunIdempotencyKey(
-          'post',
-          postInput,
-          activeBrandId,
-        ),
-      });
-
-      if (postToComposer) {
-        await relayComposer('INSERT_AND_PUBLISH_CONTENT');
-      }
+      await runAction('post', postInput);
     } catch (error) {
-      setRunError(
-        error instanceof Error ? error.message : 'Failed to start post run.',
-      );
-    }
-  }
-
-  async function handleAnalyticsRun() {
-    const query = analyticsQuery.trim();
-    if (!query) {
-      setRunError('Analytics query is required.');
-      return;
-    }
-
-    try {
-      await runAction('analytics', {
-        brandId: activeBrandId,
-        platform: currentPlatform,
-        query,
-      });
-    } catch (error) {
-      setRunError(
+      setActionError(
         error instanceof Error
           ? error.message
-          : 'Failed to start analytics run.',
+          : 'Failed to execute post workflow.',
       );
     }
   }
 
-  async function handleRunTemplate(template: RunTemplate) {
-    const templateContext: RunTemplateContext = {
-      analyticsQuery,
+  async function handleAnalytics() {
+    try {
+      await runAction('analytics', {});
+    } catch (error) {
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to execute analytics workflow.',
+      );
+    }
+  }
+
+  async function handleExecuteTemplate(template: ToolTemplate) {
+    const templateContext: ToolTemplateContext = {
       brandId: activeBrandId,
       currentPlatform,
       generatePrompt,
       pageContext,
       previewContent,
-      selectedCredentialId,
     };
 
     const input = template.buildInput(templateContext);
 
     if (template.actionType === 'post') {
-      const payload = String(input.payload ?? '').trim();
+      const payload = String(input.content ?? '').trim();
       if (!payload) {
-        setRunError('Template requires preview content before posting.');
+        setActionError('Template requires preview content before posting.');
         return;
       }
     }
 
     try {
-      await runAction(template.actionType, input, {
-        idempotencyKey:
-          template.actionType === 'post' || template.actionType === 'composite'
-            ? buildRunIdempotencyKey(template.actionType, input, activeBrandId)
-            : undefined,
-        templateId: template.id,
-      });
+      await runAction(template.actionType, input);
     } catch (error) {
-      setRunError(
+      setActionError(
         error instanceof Error
           ? error.message
           : `Failed to execute ${template.label} template.`,
@@ -1044,66 +734,48 @@ function useCreatePanelController(onStartChat: () => void) {
 
   return {
     activeBrand,
-    analyticsQuery,
-    canSubmitFromComposer,
+    actionError,
     composeBoxAvailable,
     composerFeedback,
-    credentials,
+    currentAction,
     currentPlatform,
-    currentRun,
-    currentRunEvents,
     generatePrompt,
-    handleAnalyticsRun,
-    handleGenerateRun,
-    handlePostRun,
-    handleRunTemplate,
+    handleAnalytics,
+    handleExecuteTemplate,
+    handleGenerate,
+    handlePost,
     handleSelectTemplate,
     isRunning,
     kpis,
     postResults,
-    postToComposer,
     previewContent,
-    relayComposer,
-    runError,
-    selectedCredentialId,
-    setAnalyticsQuery,
+    insertInComposer,
     setGeneratePrompt,
-    setPostToComposer,
     setPreviewContent,
-    setSelectedCredentialId,
   };
 }
 
 export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
   const {
     activeBrand,
-    analyticsQuery,
-    canSubmitFromComposer,
+    actionError,
     composeBoxAvailable,
     composerFeedback,
-    credentials,
+    currentAction,
     currentPlatform,
-    currentRun,
-    currentRunEvents,
     generatePrompt,
-    handleAnalyticsRun,
-    handleGenerateRun,
-    handlePostRun,
-    handleRunTemplate,
+    handleAnalytics,
+    handleExecuteTemplate,
+    handleGenerate,
+    handlePost,
     handleSelectTemplate,
     isRunning,
     kpis,
     postResults,
-    postToComposer,
     previewContent,
-    relayComposer,
-    runError,
-    selectedCredentialId,
-    setAnalyticsQuery,
+    insertInComposer,
     setGeneratePrompt,
-    setPostToComposer,
     setPreviewContent,
-    setSelectedCredentialId,
   } = useCreatePanelController(onStartChat);
 
   return (
@@ -1116,59 +788,50 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
           canCompose={composeBoxAvailable}
           platform={currentPlatform}
         />
-        <ActiveRunSection run={currentRun} events={currentRunEvents} />
-        <PanelNotice tone="error">{runError}</PanelNotice>
+        <PanelNotice tone="error">{actionError}</PanelNotice>
         <PanelNotice tone="primary">{composerFeedback}</PanelNotice>
         <WorkflowTemplatesSection
           isRunning={isRunning}
-          onRunTemplate={(template) => {
-            void handleRunTemplate(template);
+          onExecuteTemplate={(template) => {
+            void handleExecuteTemplate(template);
           }}
         />
         <GenerateSection
-          currentRun={currentRun}
+          currentAction={currentAction}
           generatePrompt={generatePrompt}
           isRunning={isRunning}
           onGenerate={() => {
-            void handleGenerateRun();
+            void handleGenerate();
           }}
           onPromptChange={setGeneratePrompt}
         />
         <PreviewSection
           canCompose={composeBoxAvailable}
-          canSubmit={canSubmitFromComposer}
           previewContent={previewContent}
           onPreviewChange={setPreviewContent}
-          onRelay={relayComposer}
+          onInsert={insertInComposer}
         />
         <PostSection
-          credentials={credentials}
-          currentRun={currentRun}
+          currentAction={currentAction}
           isRunning={isRunning}
           postResults={postResults}
-          postToComposer={postToComposer}
           previewContent={previewContent}
-          selectedCredentialId={selectedCredentialId}
-          onCredentialChange={setSelectedCredentialId}
           onPost={() => {
-            void handlePostRun();
+            void handlePost();
           }}
-          onPostToComposerChange={setPostToComposer}
         />
         <AnalyticsSection
-          analyticsQuery={analyticsQuery}
-          currentRun={currentRun}
+          currentAction={currentAction}
           isRunning={isRunning}
           kpis={kpis}
           onAnalytics={() => {
-            void handleAnalyticsRun();
+            void handleAnalytics();
           }}
-          onAnalyticsQueryChange={setAnalyticsQuery}
         />
         <ChatTemplatesSection onSelectTemplate={handleSelectTemplate} />
       </div>
 
-      <RunningFooter currentRun={currentRun} isRunning={isRunning} />
+      <RunningFooter currentAction={currentAction} isRunning={isRunning} />
     </div>
   );
 }
