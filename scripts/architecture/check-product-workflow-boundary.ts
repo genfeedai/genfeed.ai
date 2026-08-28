@@ -250,10 +250,10 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     id: 'empty-internal-action-contract',
     matches: (file, source) =>
       file.startsWith('packages/actions/src/') &&
-      /inputSchema\s*:\s*\{\s*type\s*:\s*['"]object['"]\s*,\s*properties\s*:\s*\{\s*\}\s*\}/s.test(
+      /inputSchema\s*:\s*(?:OBJECT_SCHEMA\b|\{\s*type\s*:\s*['"]object['"]\s*,\s*properties\s*:\s*\{\s*\}\s*\})/s.test(
         source,
       ) &&
-      /outputSchema\s*:\s*\{\s*\}/s.test(source),
+      /outputSchema\s*:\s*(?:ANY_SCHEMA\b|\{\s*\})/s.test(source),
     message:
       'Registered product actions require concrete JSON-schema input and output contracts; empty internal-action placeholders are retired.',
   },

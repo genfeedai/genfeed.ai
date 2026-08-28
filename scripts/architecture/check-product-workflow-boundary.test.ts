@@ -173,6 +173,27 @@ describe('check-product-workflow-boundary', () => {
     expect(result.violations).toHaveLength(2);
   });
 
+  it('rejects empty action contracts hidden behind shared schema constants', () => {
+    writeFixture(
+      'packages/actions/src/registry/action-registry.ts',
+      `
+        const OBJECT_SCHEMA = { type: 'object', properties: {} };
+        const ANY_SCHEMA = {};
+        const action = {
+          inputSchema: OBJECT_SCHEMA,
+          outputSchema: ANY_SCHEMA,
+        };
+      `,
+    );
+
+    const result = runCheckProductWorkflowBoundary({ exceptions: [] });
+
+    expect(result.detections).toEqual([
+      expect.objectContaining({ ruleId: 'empty-internal-action-contract' }),
+    ]);
+    expect(result.violations).toHaveLength(1);
+  });
+
   it('rejects the dormant MCP direct workflow execution client', () => {
     writeFixture(
       'apps/server/mcp/src/services/client/workflow.client.ts',
