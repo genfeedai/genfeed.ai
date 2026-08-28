@@ -2,11 +2,8 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { PersonasModule } from '@api/collections/personas/personas.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { ByokModule } from '@api/services/byok/byok.module';
-import { ContentOrchestrationController } from '@api/services/content-orchestration/content-orchestration.controller';
-import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
-import { ContentqueryQueueService } from '@server/services/content-orchestration/content-pipeline-queue.service';
-import { StepExecutorService } from '@server/services/content-orchestration/step-executor.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
@@ -17,12 +14,12 @@ import { PersonaContentModule } from '@api/services/persona-content/persona-cont
 import { SharedModule } from '@api/shared/shared.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
+import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
+import { StepExecutorService } from '@server/services/content-orchestration/step-executor.service';
 
 @Module({
-  controllers: [ContentOrchestrationController],
-  exports: [ContentOrchestrationService, ContentqueryQueueService],
+  exports: [ContentOrchestrationService],
   imports: [
     ConfigModule,
     LoggerModule,
@@ -39,20 +36,8 @@ import { Module } from '@nestjs/common';
     MetadataModule,
     FilesClientModule,
     SharedModule,
-    BullModule.registerQueue({
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: { delay: 10000, type: 'exponential' },
-        removeOnComplete: 100,
-        removeOnFail: 50,
-      },
-      name: 'content-pipeline',
-    }),
+    WorkflowsModule,
   ],
-  providers: [
-    ContentOrchestrationService,
-    ContentqueryQueueService,
-    StepExecutorService,
-  ],
+  providers: [ContentOrchestrationService, StepExecutorService],
 })
 export class ContentOrchestrationModule {}

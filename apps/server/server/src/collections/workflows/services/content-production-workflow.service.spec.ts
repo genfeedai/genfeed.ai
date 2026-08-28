@@ -1,5 +1,5 @@
-import { ContentProductionWorkflowService } from '@server/collections/workflows/services/content-production-workflow.service';
 import { PersonaContentFormat } from '@genfeedai/enums';
+import { ContentProductionWorkflowService } from '@server/collections/workflows/services/content-production-workflow.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ContentProductionWorkflowService', () => {
@@ -9,7 +9,7 @@ describe('ContentProductionWorkflowService', () => {
   const prisma = {
     persona: { findMany: vi.fn(), update: vi.fn() },
   };
-  const contentPipelineQueueService = { queueGenerateAndPublish: vi.fn() };
+  const contentOrchestrationService = { generateAndPublish: vi.fn() };
   const cacheService = { acquireLock: vi.fn(), releaseLock: vi.fn() };
   const logger = {
     error: vi.fn(),
@@ -41,16 +41,18 @@ describe('ContentProductionWorkflowService', () => {
     });
     prisma.persona.findMany.mockResolvedValue([]);
     prisma.persona.update.mockResolvedValue({});
-    contentPipelineQueueService.queueGenerateAndPublish.mockResolvedValue(
-      'job-1',
-    );
+    contentOrchestrationService.generateAndPublish.mockResolvedValue({
+      postIds: ['post-1'],
+      status: 'completed',
+      steps: [],
+    });
 
     service = new ContentProductionWorkflowService(
       brandsService as never,
       contentPlannerService as never,
       contentExecutionService as never,
       prisma as never,
-      contentPipelineQueueService as never,
+      contentOrchestrationService as never,
       cacheService as never,
       logger as never,
     );
@@ -115,7 +117,7 @@ describe('ContentProductionWorkflowService', () => {
     });
   });
 
-  it('queues due autopilot personas with per-org query guards and idempotency', async () => {
+  it('runs due persona pipelines through persisted workflows', async () => {
     prisma.persona.findMany.mockResolvedValue([
       {
         brandId: 'brand-1',
@@ -144,9 +146,7 @@ describe('ContentProductionWorkflowService', () => {
         where: expect.objectContaining({ organizationId: 'org-1' }),
       }),
     );
-    expect(
-      contentPipelineQueueService.queueGenerateAndPublish,
-    ).toHaveBeenCalledWith(
+    expect(contentOrchestrationService.generateAndPublish).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
         idempotencyKey: 'autopilot-persona-1-2026-06-24T09',

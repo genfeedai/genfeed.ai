@@ -113,7 +113,6 @@ import { OrchestratorProcessor } from '@workers/processors/api/services/agent-ca
 import { TriggerEvaluatorProcessor } from '@workers/processors/api/services/agent-campaign/trigger-evaluator.processor';
 import { BatchContentProcessor } from '@workers/processors/api/services/batch-content/batch-content.processor';
 import { ContentOptimizationProcessor } from '@workers/processors/api/services/content-optimization/content-optimization.processor';
-import { ContentPipelineProcessor } from '@workers/processors/api/services/content-orchestration/content-pipeline.processor';
 import { WorkspaceTaskProcessor } from '@workers/processors/api/services/task-orchestration/workspace-task.processor';
 import { WebhookClientProcessor } from '@workers/processors/api/services/webhook-client/webhook-client.processor';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
@@ -263,12 +262,11 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     SocialReplyCampaignProcessor,
     TelegramDistributeProcessor,
 
-    // --- services/ processors (8) ---
+    // --- services/ processors ---
     BatchContentProcessor,
     BatchGenerationProcessor,
     CampaignMemoryProcessor,
     ContentOptimizationProcessor,
-    ContentPipelineProcessor,
     OrchestratorProcessor,
     TriggerEvaluatorProcessor,
     WebhookClientProcessor,

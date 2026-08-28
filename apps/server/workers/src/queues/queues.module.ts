@@ -28,7 +28,6 @@ import {
   CLIP_ANALYZE_QUEUE,
   CLIP_FACTORY_QUEUE,
   CONTENT_OPTIMIZATION_QUEUE,
-  CONTENT_PIPELINE_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   EMAIL_DIGEST_QUEUE,
@@ -374,15 +373,6 @@ import { PatternExtractionQueueService } from '@workers/queues/pattern-extractio
           removeOnFail: 50,
         },
         name: CONTENT_OPTIMIZATION_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: CONTENT_PIPELINE_QUEUE,
       },
       {
         defaultJobOptions: {

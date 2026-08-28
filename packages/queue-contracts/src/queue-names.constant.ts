@@ -33,7 +33,6 @@ export const BATCH_CONTENT_QUEUE = 'batch-content';
 /** Agent batch generation (services/batch-generation) — distinct from BATCH_CONTENT_QUEUE. */
 export const BATCH_GENERATION_QUEUE = 'batch-generation';
 export const CONTENT_OPTIMIZATION_QUEUE = 'content-optimization';
-export const CONTENT_PIPELINE_QUEUE = 'content-pipeline';
 export const PATTERN_EXTRACTION_QUEUE = 'pattern-extraction';
 export const POST_PUBLISH_QUEUE = 'post-publish';
 
@@ -88,7 +87,6 @@ export const ALL_QUEUE_NAMES = [
   BATCH_CONTENT_QUEUE,
   BATCH_GENERATION_QUEUE,
   CONTENT_OPTIMIZATION_QUEUE,
-  CONTENT_PIPELINE_QUEUE,
   PATTERN_EXTRACTION_QUEUE,
   POST_PUBLISH_QUEUE,
   CLIP_ANALYZE_QUEUE,

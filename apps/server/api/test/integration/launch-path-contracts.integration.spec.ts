@@ -106,6 +106,27 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(source).toContain('attemptsMade');
   });
 
+  it('executes content pipelines as persisted action graphs without a parallel queue engine', () => {
+    const service = readSourceOf('ContentOrchestrationService', {
+      root: API_SRC,
+    });
+    const queueNames = readRepo(
+      'packages/queue-contracts/src/queue-names.constant.ts',
+    );
+    const processors = readSourceOf('ProcessorsModule', {
+      root: WORKERS_SRC,
+    });
+
+    expect(service).toContain('buildContentPipelineWorkflowDefinition');
+    expect(service).toContain('runWorkflowDefinition<PipelineResultV2>');
+    expect(service).toContain("'content.pipeline.generate-image'");
+    expect(service).toContain("'content.pipeline.publish'");
+    expect(service).toContain("'content.pipeline.resolve-context'");
+    expect(service).not.toContain('for (let i = 0; i < config.steps.length');
+    expect(queueNames).not.toContain('CONTENT_PIPELINE_QUEUE');
+    expect(processors).not.toContain('ContentPipelineProcessor');
+  });
+
   it('treats completed and cancelled prior executions as terminal on continue', () => {
     const source = readSourceOf('WorkflowExecutorService', { root: API_SRC });
     expect(source).toContain('continueExistingExecution');

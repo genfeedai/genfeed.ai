@@ -211,6 +211,21 @@ export class SystemWorkflowRunnerService {
     return this.executeDefinition<T>(definition, input);
   }
 
+  async runWorkflowDefinition<T>(
+    definition: SystemWorkflowGraphDefinition,
+    input: RunSystemWorkflowInput,
+  ): Promise<{
+    provenance: SystemWorkflowProvenance;
+    result: T;
+  }> {
+    if (definition.canonicalId !== input.canonicalId) {
+      throw new Error(
+        `System workflow definition ${definition.canonicalId} cannot execute as ${input.canonicalId}`,
+      );
+    }
+    return this.executeDefinition<T>(definition, input);
+  }
+
   private async executeDefinition<T>(
     definition: SystemWorkflowGraphDefinition,
     input: RunSystemWorkflowInput,

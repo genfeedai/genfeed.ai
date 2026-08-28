@@ -143,7 +143,7 @@ import { AbTestSuggestionHarnessService } from '@server/services/content-optimiz
 import { ContentOptimizationService } from '@server/services/content-optimization/content-optimization.service';
 import { ContentOptimizationQueueService } from '@server/services/content-optimization/content-optimization-queue.service';
 import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
-import { ContentqueryQueueService } from '@server/services/content-orchestration/content-pipeline-queue.service';
+import { StepExecutorService } from '@server/services/content-orchestration/step-executor.service';
 import { TelegramDistributionService } from '@server/services/distribution/telegram/telegram-distribution.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
@@ -289,8 +289,8 @@ const WORKER_DOMAIN_SERVICES = [
   ContentOptimizationQueueService,
   ContentOptimizationService,
   ContentOrchestrationService,
+  StepExecutorService,
   ContentRotationService,
-  ContentqueryQueueService,
   ContextsService,
   CreativePatternsService,
   CredentialPublishingReadinessService,

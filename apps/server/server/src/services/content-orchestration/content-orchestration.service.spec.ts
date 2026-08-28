@@ -1,13 +1,3 @@
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { PersonasService } from '@server/collections/personas/services/personas.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
-import type { PipelineStep } from '@server/services/content-orchestration/pipeline.interfaces';
-import { StepExecutorService } from '@server/services/content-orchestration/step-executor.service';
-import { PersonaPublisherService } from '@server/services/persona-content/persona-publisher.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
 import {
   ImageTaskModel,
   IngredientStatus,
@@ -16,7 +6,22 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { PersonasService } from '@server/collections/personas/services/personas.service';
+import {
+  type SystemWorkflowActionExecutor,
+  type SystemWorkflowGraphDefinition,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
+import type { PipelineStep } from '@server/services/content-orchestration/pipeline.interfaces';
+import { StepExecutorService } from '@server/services/content-orchestration/step-executor.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { PersonaPublisherService } from '@server/services/persona-content/persona-publisher.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 
 vi.mock('@sentry/nestjs', () => ({
   SentryTraced:
@@ -38,6 +43,8 @@ describe('ContentOrchestrationService', () => {
   let mockIngredientsService: Record<string, ReturnType<typeof vi.fn>>;
   let mockMetadataService: Record<string, ReturnType<typeof vi.fn>>;
   let mockStepExecutorService: Record<string, ReturnType<typeof vi.fn>>;
+  let mockSystemWorkflowRunner: Record<string, ReturnType<typeof vi.fn>>;
+  let workflowActionExecutors: Map<string, SystemWorkflowActionExecutor>;
 
   const ingredientId = 'test-object-id';
   const metadataId = 'test-object-id';
@@ -67,6 +74,61 @@ describe('ContentOrchestrationService', () => {
   };
 
   beforeEach(async () => {
+    workflowActionExecutors = new Map();
+    mockSystemWorkflowRunner = {
+      registerAction: vi.fn(
+        (actionId: string, executor: SystemWorkflowActionExecutor) => {
+          workflowActionExecutors.set(actionId, executor);
+        },
+      ),
+      runWorkflowDefinition: vi.fn(
+        async (definition: SystemWorkflowGraphDefinition) => {
+          const outputs = new Map<string, unknown>();
+          for (const node of definition.definition.nodes ?? []) {
+            const actionId = node.data.config.actionId;
+            const executor = workflowActionExecutors.get(actionId);
+            if (!executor) {
+              throw new Error(`Missing test action executor ${actionId}`);
+            }
+            const input = { ...node.data.config.parameters };
+            for (const edge of definition.definition.edges ?? []) {
+              if (edge.target === node.id) {
+                input[edge.targetHandle ?? edge.source] = outputs.get(
+                  edge.source,
+                );
+              }
+            }
+            outputs.set(
+              node.id,
+              await executor({
+                context: {
+                  organizationId: baseConfig.organizationId,
+                  runId: 'run-1',
+                  userId: baseConfig.userId,
+                  workflowId: 'workflow-1',
+                  workflowVersionId: 'workflow-version-1',
+                },
+                input,
+                provenance: {
+                  executionId: 'execution-1',
+                  workflowId: 'workflow-1',
+                  workflowLabel: definition.label,
+                },
+              }),
+            );
+          }
+          return {
+            provenance: {
+              executionId: 'execution-1',
+              workflowId: 'workflow-1',
+              workflowLabel: definition.label,
+            },
+            result: outputs.get(definition.resultNodeId),
+          };
+        },
+      ),
+    };
+
     mockLogger = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -143,6 +205,10 @@ describe('ContentOrchestrationService', () => {
         { provide: IngredientsService, useValue: mockIngredientsService },
         { provide: MetadataService, useValue: mockMetadataService },
         { provide: StepExecutorService, useValue: mockStepExecutorService },
+        {
+          provide: SystemWorkflowRunnerService,
+          useValue: mockSystemWorkflowRunner,
+        },
       ],
     }).compile();
 
@@ -246,14 +312,13 @@ describe('ContentOrchestrationService', () => {
       );
     });
 
-    it('should handle step execution errors', async () => {
+    it('fails the workflow when a step action fails', async () => {
       const error = new Error('Step execution failed');
       mockStepExecutorService.execute.mockRejectedValue(error);
 
-      const result = await service.generateAndPublish(baseConfig);
-
-      expect(result.status).toBe('failed');
-      expect(result.steps[0].error).toBeDefined();
+      await expect(service.generateAndPublish(baseConfig)).rejects.toThrow(
+        'Step execution failed',
+      );
     });
 
     it('should throw NotFoundException when persona not found', async () => {
@@ -287,49 +352,6 @@ describe('ContentOrchestrationService', () => {
       expect(mockMetadataService.patch).toHaveBeenCalledWith(metadataId, {
         size: 500000,
       });
-    });
-  });
-
-  describe('runBatchForPersona', () => {
-    it('should process all items and return summary', async () => {
-      const batchConfig = {
-        brandId: baseConfig.brandId,
-        count: 2,
-        items: [
-          { prompt: 'Prompt 1', steps },
-          { prompt: 'Prompt 2', steps },
-        ],
-        organizationId: baseConfig.organizationId,
-        personaId: baseConfig.personaId,
-        userId: baseConfig.userId,
-      };
-
-      const result = await service.runBatchForPersona(batchConfig);
-
-      expect(result.results).toHaveLength(2);
-      expect(result.summary.completed).toBe(2);
-      expect(result.summary.failed).toBe(0);
-      expect(result.summary.total).toBe(2);
-    });
-
-    it('should count failures in batch', async () => {
-      mockStepExecutorService.execute.mockRejectedValueOnce(new Error('fail'));
-
-      const batchConfig = {
-        brandId: baseConfig.brandId,
-        count: 2,
-        items: [
-          { prompt: 'Prompt 1', steps },
-          { prompt: 'Prompt 2', steps },
-        ],
-        organizationId: baseConfig.organizationId,
-        personaId: baseConfig.personaId,
-        userId: baseConfig.userId,
-      };
-
-      const result = await service.runBatchForPersona(batchConfig);
-
-      expect(result.summary.failed).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -481,24 +503,19 @@ describe('ContentOrchestrationService', () => {
       expect(mockPublisherService.publishToAll).toHaveBeenCalled();
     });
 
-    it('should handle publishing errors gracefully', async () => {
+    it('fails closed when the publish action fails', async () => {
       mockPublisherService.publishToAll.mockRejectedValueOnce(
         new Error('Publishing failed'),
       );
 
-      const result = await service.generateAndPublish(baseConfig);
-
-      expect(result.status).toBe('completed');
-      expect(result.postIds).toEqual([]);
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining('publishing failed'),
-        expect.any(Object),
+      await expect(service.generateAndPublish(baseConfig)).rejects.toThrow(
+        'Publishing failed',
       );
     });
   });
 
   describe('generateAndPublish - partial completion', () => {
-    it('should return partial status when some steps fail', async () => {
+    it('does not execute downstream actions when a later step fails', async () => {
       mockStepExecutorService.execute
         .mockResolvedValueOnce({
           contentType: 'image/png',
@@ -506,51 +523,11 @@ describe('ContentOrchestrationService', () => {
         })
         .mockRejectedValueOnce(new Error('Video generation failed'));
 
-      const result = await service.generateAndPublish(baseConfig);
-
-      expect(result.status).toBe('partial');
-      expect(result.steps).toHaveLength(2);
-      expect(result.steps[0]).not.toHaveProperty('error');
-      expect(result.steps[1]).toHaveProperty('error');
-    });
-  });
-
-  describe('runBatchForPersona - error handling', () => {
-    it('should handle pipeline execution errors', async () => {
-      mockPersonasService.findOne.mockRejectedValueOnce(
-        new Error('Persona service error'),
+      await expect(service.generateAndPublish(baseConfig)).rejects.toThrow(
+        'Video generation failed',
       );
-
-      const batchConfig = {
-        brandId: baseConfig.brandId,
-        count: 1,
-        items: [{ prompt: 'Prompt 1', steps }],
-        organizationId: baseConfig.organizationId,
-        personaId: baseConfig.personaId,
-        userId: baseConfig.userId,
-      };
-
-      const result = await service.runBatchForPersona(batchConfig);
-
-      expect(result.summary.failed).toBe(1);
-      expect(result.results[0].status).toBe('failed');
+      expect(mockPublisherService.publishToAll).not.toHaveBeenCalled();
     });
-  });
-
-  it('resolves batch references once before dispatching all items', async () => {
-    await service.runBatchForPersona({
-      brandId: baseConfig.brandId,
-      count: 2,
-      items: [
-        { prompt: 'Prompt 1', steps },
-        { prompt: 'Prompt 2', steps },
-      ],
-      organizationId: baseConfig.organizationId,
-      personaId: baseConfig.personaId,
-      userId: baseConfig.userId,
-    });
-
-    expect(mockBrandsService.resolveBrandKitAssets).toHaveBeenCalledOnce();
   });
 
   // ── Sentry Performance Tracing ─────────────────────────────────────────────

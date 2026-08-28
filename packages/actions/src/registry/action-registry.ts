@@ -384,6 +384,36 @@ const WORKFLOW_ACTION_DEFINITIONS = WORKFLOW_ACTIONS.map(
 const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
   ...WORKFLOW_ACTION_DEFINITIONS,
   internalAction(
+    'content.pipeline.generate-image',
+    'Generate Pipeline Image',
+    'Generates and persists one image for a content workflow.',
+  ),
+  internalAction(
+    'content.pipeline.generate-music',
+    'Generate Pipeline Music',
+    'Generates and persists one music asset for a content workflow.',
+  ),
+  internalAction(
+    'content.pipeline.generate-speech',
+    'Generate Pipeline Speech',
+    'Generates and persists one speech asset for a content workflow.',
+  ),
+  internalAction(
+    'content.pipeline.generate-video',
+    'Generate Pipeline Video',
+    'Generates and persists one video for a content workflow.',
+  ),
+  internalAction(
+    'content.pipeline.publish',
+    'Publish Content Pipeline Output',
+    'Publishes the selected generated assets for one persona.',
+  ),
+  internalAction(
+    'content.pipeline.resolve-context',
+    'Resolve Content Pipeline Context',
+    'Resolves one persona and its immutable brand references.',
+  ),
+  internalAction(
     'article.review',
     'Review Article',
     'Reviews one tenant article with the configured rubric.',
@@ -619,7 +649,7 @@ export function createGenfeedActionNode(
   }
   return {
     data: {
-      config: { actionId: action.id, parameters: {} },
+      config: { actionId: action.id, parameters: input.parameters ?? {} },
       inputVariableKeys: input.inputVariableKeys ?? [],
       label: input.label ?? action.label,
     },

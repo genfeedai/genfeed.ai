@@ -1,10 +1,3 @@
-import { type ContentPlanItemDocument } from '@server/collections/content-plan-items/schemas/content-plan-item.schema';
-import { ContentPlanItemsService } from '@server/collections/content-plan-items/services/content-plan-items.service';
-import { ContentPlansService } from '@server/collections/content-plans/services/content-plans.service';
-import { ReviewablePostsService } from '@server/collections/posts/services/reviewable-posts.service';
-import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
-import { PipelineStep } from '@server/services/content-orchestration/pipeline.interfaces';
-import { SkillExecutorService } from '@server/services/skill-executor/skill-executor.service';
 import {
   ContentPlanItemStatus,
   ContentPlanItemType,
@@ -15,6 +8,13 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { type ContentPlanItemDocument } from '@server/collections/content-plan-items/schemas/content-plan-item.schema';
+import { ContentPlanItemsService } from '@server/collections/content-plan-items/services/content-plan-items.service';
+import { ContentPlansService } from '@server/collections/content-plans/services/content-plans.service';
+import { ReviewablePostsService } from '@server/collections/posts/services/reviewable-posts.service';
+import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
+import { PipelineStep } from '@server/services/content-orchestration/pipeline.interfaces';
+import { SkillExecutorService } from '@server/services/skill-executor/skill-executor.service';
 
 export interface ExecutionResult {
   itemId: string;
@@ -333,14 +333,13 @@ export class ContentExecutionService {
       }
     });
 
-    // ContentOrchestrationService requires a personaId which we don't have in the engine context.
-    // For now, we create a draft record directly from the pipeline result.
+    // The hidden workflow is scoped to a persona identity. Content-plan items
+    // currently use their owning brand identity for that system-only scope.
     const pipelineResult =
       await this.contentOrchestrationService.generateAndPublish({
         brandId,
         organizationId,
-        // The orchestration service requires a personaId — use brandId as a proxy.
-        // In production, this should be resolved from the brand's linked persona.
+        // The content-plan contract does not yet store a persona reference.
         personaId: brandId,
         platforms: itemPlatforms,
         prompt: itemPrompt,

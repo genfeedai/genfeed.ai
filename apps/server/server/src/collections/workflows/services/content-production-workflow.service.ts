@@ -1,12 +1,3 @@
-import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CacheService } from '@server/services/cache/cache.service';
-import { ContentExecutionService } from '@server/services/content-engine/content-execution.service';
-import { ContentPlannerService } from '@server/services/content-engine/content-planner.service';
-import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
-import { ContentPipelineQueueService } from '@server/services/content-orchestration/content-pipeline-queue.service';
-import type { PipelineStep } from '@server/services/content-orchestration/pipeline.interfaces';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   ImageTaskModel,
   MusicTaskModel,
@@ -18,6 +9,14 @@ import { type Credential, type Persona, toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CacheService } from '@server/services/cache/cache.service';
+import { ContentExecutionService } from '@server/services/content-engine/content-execution.service';
+import { ContentPlannerService } from '@server/services/content-engine/content-planner.service';
+import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
+import type { PipelineStep } from '@server/services/content-orchestration/pipeline.interfaces';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const MAX_BRANDS_PER_CYCLE = 10;
 const MAX_PERSONAS_PER_CYCLE = 20;
@@ -65,7 +64,7 @@ export class ContentProductionWorkflowService {
     private readonly contentPlannerService: ContentPlannerService,
     private readonly contentExecutionService: ContentExecutionService,
     private readonly prisma: PrismaService,
-    private readonly contentPipelineQueueService: ContentPipelineQueueService,
+    private readonly contentOrchestrationService: ContentOrchestrationService,
     private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
   ) {}
@@ -267,7 +266,7 @@ export class ContentProductionWorkflowService {
     const prompt = this.buildPromptFromStrategy(persona);
     const steps = this.buildStepsFromStrategy(persona, prompt);
 
-    await this.contentPipelineQueueService.queueGenerateAndPublish({
+    await this.contentOrchestrationService.generateAndPublish({
       brandId: persona.brandId ?? '',
       idempotencyKey: `autopilot-${personaId}-${now.toISOString().slice(0, 13)}`,
       organizationId: persona.organizationId,

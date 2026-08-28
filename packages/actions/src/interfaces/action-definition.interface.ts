@@ -27,6 +27,7 @@ export interface CreateGenfeedActionNodeInput {
   id: string;
   inputVariableKeys?: string[];
   label?: string;
+  parameters?: Record<string, unknown>;
   position?: { x: number; y: number };
 }
 
@@ -34,7 +35,7 @@ export interface GenfeedActionNodeDefinition {
   data: {
     config: {
       actionId: string;
-      parameters: Record<string, never>;
+      parameters: Record<string, unknown>;
     };
     inputVariableKeys: string[];
     label: string;

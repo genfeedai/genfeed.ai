@@ -45,12 +45,13 @@ describe('Genfeed action registry', () => {
         actionId: 'youtube.resolve-source',
         id: 'resolve-source',
         inputVariableKeys: ['youtubeUrl'],
+        parameters: { includeMetadata: true },
       }),
     ).toEqual({
       data: {
         config: {
           actionId: 'youtube.resolve-source',
-          parameters: {},
+          parameters: { includeMetadata: true },
         },
         inputVariableKeys: ['youtubeUrl'],
         label: 'Resolve YouTube Source',
@@ -77,6 +78,19 @@ describe('Genfeed action registry', () => {
       id: 'workflow.collect-output',
       visibility: 'internal',
     });
+  });
+
+  it('owns every atomic content-pipeline action used by compiled graphs', () => {
+    expect(
+      [
+        'content.pipeline.generate-image',
+        'content.pipeline.generate-music',
+        'content.pipeline.generate-speech',
+        'content.pipeline.generate-video',
+        'content.pipeline.publish',
+        'content.pipeline.resolve-context',
+      ].every((actionId) => getActionDefinition(actionId)),
+    ).toBe(true);
   });
 
   it('owns workflow credit policy instead of delegating it to the engine', () => {
