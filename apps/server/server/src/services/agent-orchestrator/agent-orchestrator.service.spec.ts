@@ -4,6 +4,7 @@ import {
 } from '@genfeedai/constants';
 import {
   AgentAutonomyMode,
+  AgentExecutionStatus,
   AgentMessageRole,
   AgentType,
   ApiKeyScope,
@@ -382,7 +383,10 @@ describe('AgentOrchestratorService', () => {
       ),
     };
     const agentRunsServiceMock = {
-      complete: vi.fn().mockResolvedValue({ durationMs: 100 }),
+      complete: vi.fn().mockResolvedValue({
+        durationMs: 100,
+        status: AgentExecutionStatus.COMPLETED,
+      }),
       create: vi.fn().mockResolvedValue({ id: RUN_ID }),
       fail: vi.fn().mockResolvedValue({}),
       isCancelled: vi.fn().mockResolvedValue(false),
@@ -2327,7 +2331,7 @@ describe('AgentOrchestratorService', () => {
     );
   });
 
-  it('rejects a queue-owned provider failure so BullMQ can retry it', async () => {
+  it('leaves queue-owned provider failures non-terminal for BullMQ retry', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
@@ -2347,13 +2351,14 @@ describe('AgentOrchestratorService', () => {
         {
           executionMode: 'background',
           organizationId: ORG_ID,
+          runId: RUN_ID,
           userId: USER_ID,
         },
       ),
     ).rejects.toThrow('Request failed with status code 429');
 
-    expect(agentRunsService.fail).toHaveBeenCalledOnce();
-    expect(streamPublisher.publishError).toHaveBeenCalledOnce();
+    expect(agentRunsService.fail).not.toHaveBeenCalled();
+    expect(streamPublisher.publishError).not.toHaveBeenCalled();
   });
 
   it('streams real LLM deltas via agent:token when AGENT_TOKEN_STREAMING_ENABLED is on', async () => {
@@ -2383,7 +2388,7 @@ describe('AgentOrchestratorService', () => {
 
     // Real provider deltas are published as agent:token events, in order.
     const streamedTokens = streamPublisher.publishToken.mock.calls.map(
-      (call) => (call[0] as { token: string }).token,
+      (call: unknown[]) => (call[0] as { token: string }).token,
     );
     expect(streamedTokens).toEqual(['Hello ', 'streamed']);
 
@@ -2443,7 +2448,8 @@ describe('AgentOrchestratorService', () => {
     for (let i = 0; i < 20; i++) {
       if (
         streamPublisher.publishWorkEvent.mock.calls.some(
-          (call) => (call[0] as { event?: string }).event === 'cancelled',
+          (call: unknown[]) =>
+            (call[0] as { event?: string }).event === 'cancelled',
         )
       ) {
         break;
@@ -2486,7 +2492,8 @@ describe('AgentOrchestratorService', () => {
     for (let i = 0; i < 20; i++) {
       if (
         streamPublisher.publishWorkEvent.mock.calls.some(
-          (call) => (call[0] as { event?: string }).event === 'cancelled',
+          (call: unknown[]) =>
+            (call[0] as { event?: string }).event === 'cancelled',
         )
       ) {
         break;
@@ -2505,6 +2512,37 @@ describe('AgentOrchestratorService', () => {
       getAgentChatModelRoundCredits(DEFAULT_AGENT_CHAT_MODEL_KEY),
       `Agent chat turn (${DEFAULT_AGENT_CHAT_MODEL_KEY})`,
       expect.anything(),
+    );
+    expect(streamPublisher.publishDone).not.toHaveBeenCalled();
+  });
+
+  it('does not publish completion when cancellation wins the terminal transition', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    agentRunsService.complete.mockResolvedValueOnce({
+      status: AgentExecutionStatus.CANCELLED,
+    } as never);
+
+    await service.chatStream(
+      { content: 'Cancel at the completion boundary' },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    for (let i = 0; i < 20; i++) {
+      if (
+        streamPublisher.publishWorkEvent.mock.calls.some(
+          (call: unknown[]) =>
+            (call[0] as { event?: string }).event === 'cancelled',
+        )
+      ) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+
+    expect(streamPublisher.publishWorkEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'cancelled', status: 'cancelled' }),
     );
     expect(streamPublisher.publishDone).not.toHaveBeenCalled();
   });

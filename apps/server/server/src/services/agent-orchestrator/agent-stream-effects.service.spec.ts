@@ -318,6 +318,45 @@ describe('AgentStreamEffectsService', () => {
       );
     });
 
+    it('publishes cancellation when it wins the failure transition', async () => {
+      mockAgentRunsService.fail.mockResolvedValueOnce({ status: 'CANCELLED' });
+
+      await runEffectPromise(
+        serviceWithRuns.publishStreamFailureEffect({
+          context,
+          error: 'late provider failure',
+          failRun: true,
+          threadId: 'thread-1',
+        }),
+      );
+
+      expect(mockStreamPublisher.publishErrorEffect).toHaveBeenCalledWith(
+        expect.objectContaining({ error: 'Agent run cancelled' }),
+      );
+      expect(mockStreamPublisher.publishWorkEventEffect).toHaveBeenCalledWith(
+        expect.objectContaining({ event: 'cancelled', status: 'cancelled' }),
+      );
+      expect(
+        mockStreamPublisher.publishWorkEventEffect,
+      ).not.toHaveBeenCalledWith(expect.objectContaining({ event: 'failed' }));
+    });
+
+    it('does not publish failure after another terminal state wins', async () => {
+      mockAgentRunsService.fail.mockResolvedValueOnce({ status: 'COMPLETED' });
+
+      await runEffectPromise(
+        serviceWithRuns.publishStreamFailureEffect({
+          context,
+          error: 'late provider failure',
+          failRun: true,
+          threadId: 'thread-1',
+        }),
+      );
+
+      expect(mockStreamPublisher.publishErrorEffect).not.toHaveBeenCalled();
+      expect(mockStreamPublisher.publishWorkEventEffect).not.toHaveBeenCalled();
+    });
+
     it('persists the classified error while preserving the public stream error', async () => {
       await runEffectPromise(
         serviceWithRuns.publishStreamFailureEffect({

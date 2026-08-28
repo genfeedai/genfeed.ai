@@ -4178,14 +4178,6 @@
     },
     {
       "code": 7006,
-      "count": 1,
-      "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
-      "fingerprint": "26a391796adfd3c6c6cb",
-      "message": "Parameter 'call' implicitly has an 'any' type.",
-      "workspace": "server"
-    },
-    {
-      "code": 7006,
       "count": 6,
       "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
       "fingerprint": "9dc5d02052d379abf13f",
@@ -4198,14 +4190,6 @@
       "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
       "fingerprint": "b78fb57d9d86dfd21419",
       "message": "Parameter 'message' implicitly has an 'any' type.",
-      "workspace": "server"
-    },
-    {
-      "code": 7006,
-      "count": 2,
-      "file": "apps/server/server/src/services/agent-orchestrator/agent-orchestrator.service.spec.ts",
-      "fingerprint": "f719b41c08c5b49f8c65",
-      "message": "Parameter 'call' implicitly has an 'any' type.",
       "workspace": "server"
     },
     {

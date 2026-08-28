@@ -263,6 +263,7 @@ export function attachAgentStreamSubscriptions(
             : {}),
         });
         if (deps.isThreadVisible(payload.threadId)) {
+          deps.setError(null);
           deps.finalizeStream(assistantMessage);
           deps.setActiveRun(payload.runId ?? null, {
             startedAt: payload.startedAt ?? null,

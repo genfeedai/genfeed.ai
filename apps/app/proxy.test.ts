@@ -1549,6 +1549,55 @@ describe('proxy', () => {
     );
   });
 
+  it('resolves signed-in root from authenticated access instead of a stale scoped referrer', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/', {
+        referer: 'http://localhost:3000/default/default/agent',
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/agent',
+    );
+  });
+
+  it('recovers signed-in root from a stale workspace cache and signed cookie', async () => {
+    vi.stubEnv('COOKIE_SECRET', 'test-secret-at-least-32-chars-long!!');
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
+
+    const staleResponse = await proxy(
+      makeSignedInRequest('/default/default/agent'),
+      {} as never,
+    );
+    const staleCookie = (staleResponse.headers.get('set-cookie') ?? '')
+      .match(/gf_ws=([^;]+)/)
+      ?.at(1);
+    expect(staleCookie).toBeTruthy();
+
+    fetchMock.mockClear();
+    const recoveredResponse = await proxy(
+      makeSignedInRequest('/', {
+        extraCookies: { gf_ws: staleCookie ?? '' },
+      }),
+      {} as never,
+    );
+
+    expect(recoveredResponse.status).toBe(307);
+    expect(recoveredResponse.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/agent',
+    );
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).endsWith('/organizations?mine=true'),
+      ),
+    ).toBe(true);
+  });
+
   it('brand-scopes /library/assets from the referer without leaving the page', async () => {
     const { default: proxy } = await import('./proxy');
 
