@@ -114,4 +114,25 @@ describe('BrandVoiceProfileCard', () => {
       screen.getByRole('button', { name: 'Approve and save' }),
     ).toBeEnabled();
   });
+
+  it('renders a store-persisted completed action as saved after remount', () => {
+    render(
+      <BrandVoiceProfileCard
+        action={{
+          id: 'brand-voice-completed',
+          status: 'completed',
+          title: 'Brand Voice Draft',
+          type: 'brand_voice_profile_card',
+        }}
+        onUiAction={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText('Brand voice saved to this brand.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Approve and save' }),
+    ).not.toBeInTheDocument();
+  });
 });
