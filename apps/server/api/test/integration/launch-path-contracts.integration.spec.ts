@@ -171,7 +171,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
       'failed to cancel batch after credit reserve failure',
     );
     expect(source).toContain('this.creditsUtilsService.reserveCredits');
-    expect(source).toContain("idempotencyKey: `batch-generation:${params.batchId}`");
+    expect(source).toContain(
+      'idempotencyKey: `batch-generation:${params.batchId}`',
+    );
   });
 
   it('keeps OSS-safe agent coordination memory (no personal fleet routing)', () => {
