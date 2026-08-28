@@ -1,16 +1,14 @@
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { MediumService } from '@api/services/integrations/medium/services/medium.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
+import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { of } from 'rxjs';
+import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 
 describe('MediumService', () => {
   let service: MediumService;
-  let httpService: vi.Mocked<HttpService>;
-  let loggerService: vi.Mocked<LoggerService>;
 
   beforeEach(async () => {
     const credentialsMock = {
@@ -66,8 +64,6 @@ describe('MediumService', () => {
     }).compile();
 
     service = module.get<MediumService>(MediumService);
-    httpService = module.get(HttpService);
-    loggerService = module.get(LoggerService);
   });
 
   afterEach(() => {
@@ -78,35 +74,56 @@ describe('MediumService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('service initialization', () => {
-    it('should initialize with http and logger services', () => {
-      expect(service).toBeDefined();
-      expect(httpService).toBeDefined();
-      expect(loggerService).toBeDefined();
-    });
-  });
+  describe('generateAuthUrl', () => {
+    it('encodes every OAuth parameter', () => {
+      const url = new URL(service.generateAuthUrl('state with spaces&symbols'));
 
-  describe('error handling', () => {
-    it('should handle API errors gracefully', () => {
-      httpService.get.mockReturnValue(
-        of({
-          config: {} as unknown as import('axios').InternalAxiosRequestConfig,
-          data: null,
-          headers: {},
-          status: 500,
-          statusText: 'Internal Server Error',
-        }),
+      expect(url.origin + url.pathname).toBe(
+        'https://medium.com/m/oauth/authorize',
       );
-
-      // Test would verify error handling for specific methods
-      expect(service).toBeDefined();
+      expect(url.searchParams.get('client_id')).toBe('mock-MEDIUM_CLIENT_ID');
+      expect(url.searchParams.get('redirect_uri')).toBe(
+        'mock-MEDIUM_REDIRECT_URI',
+      );
+      expect(url.searchParams.get('response_type')).toBe('code');
+      expect(url.searchParams.get('scope')).toBe('basicProfile,publishPost');
+      expect(url.searchParams.get('state')).toBe('state with spaces&symbols');
     });
-  });
 
-  describe('Medium integration', () => {
-    it('should be configured for Medium API', () => {
-      expect(service).toBeDefined();
-      // Medium-specific tests would go here
+    it('rejects missing OAuth configuration', async () => {
+      const module = await Test.createTestingModule({
+        providers: [
+          MediumService,
+          { provide: ConfigService, useValue: { get: vi.fn() } },
+          {
+            provide: CredentialsService,
+            useValue: { findOne: vi.fn(), patch: vi.fn() },
+          },
+          {
+            provide: ArticlesService,
+            useValue: { findOne: vi.fn(), patch: vi.fn() },
+          },
+          {
+            provide: HttpService,
+            useValue: { delete: vi.fn(), get: vi.fn(), post: vi.fn() },
+          },
+          {
+            provide: LoggerService,
+            useValue: {
+              debug: vi.fn(),
+              error: vi.fn(),
+              log: vi.fn(),
+              warn: vi.fn(),
+            },
+          },
+        ],
+      }).compile();
+
+      const unconfigured = module.get<MediumService>(MediumService);
+
+      expect(() => unconfigured.generateAuthUrl('state')).toThrow(
+        HttpException,
+      );
     });
   });
 });
