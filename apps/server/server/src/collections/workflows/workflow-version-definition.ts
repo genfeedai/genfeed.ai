@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   GENFEED_ACTION_NODE_TYPE,
   getActionDefinition,
@@ -136,18 +136,26 @@ type VersionedWorkflowTransaction = Pick<
   Prisma.TransactionClient,
   'workflow' | 'workflowVersion'
 >;
+export type VersionedWorkflowIdentityInput = Omit<
+  Prisma.WorkflowUncheckedCreateInput,
+  'currentVersionId'
+>;
 
 export async function createVersionedWorkflow(
   transaction: VersionedWorkflowTransaction,
-  identityData: Prisma.WorkflowUncheckedCreateInput,
+  identityData: VersionedWorkflowIdentityInput,
   definitionInput: WorkflowDefinitionInput,
 ) {
   const definition = buildWorkflowVersionDefinition(definitionInput);
-  const identity = await transaction.workflow.create({ data: identityData });
-  const version = await transaction.workflowVersion.create({
+  const versionId = randomUUID();
+  const identity = await transaction.workflow.create({
+    data: { ...identityData, currentVersionId: versionId },
+  });
+  await transaction.workflowVersion.create({
     data: {
       contentHash: definition.contentHash,
       graph: definition.graph as unknown as Prisma.InputJsonValue,
+      id: versionId,
       inputSchema: definition.inputSchema as unknown as Prisma.InputJsonValue,
       organizationId: identity.organizationId,
       userId: identity.userId,
@@ -156,8 +164,7 @@ export async function createVersionedWorkflow(
     },
   });
 
-  return transaction.workflow.update({
-    data: { currentVersionId: version.id },
+  return transaction.workflow.findUniqueOrThrow({
     include: { currentVersion: true },
     where: { id: identity.id },
   });

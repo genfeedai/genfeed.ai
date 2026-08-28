@@ -20,7 +20,7 @@ export class WorkflowEntity extends BaseEntity implements WorkflowDocument {
   declare organizationId: string;
   declare brandId: string | null;
   declare userId: string;
-  declare currentVersionId: string | null;
+  declare currentVersionId: string;
   declare label: string;
   declare description: WorkflowDocument['description'];
   declare templateId?: string;

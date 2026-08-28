@@ -4003,8 +4003,8 @@ model Workflow {
   brand             Brand?       @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   label             String?
   description       String?
-  currentVersionId  String?          @unique
-  currentVersion    WorkflowVersion? @relation("workflow_current_version", fields: [currentVersionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  currentVersionId  String          @unique
+  currentVersion    WorkflowVersion @relation("workflow_current_version", fields: [currentVersionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   config            Json         @default("{}")
   metadata          Json?
   recurrence        Json?

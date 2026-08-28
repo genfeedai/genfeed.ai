@@ -1,6 +1,9 @@
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import { buildWorkflowVersionDefinition } from '@server/collections/workflows/workflow-version-definition';
-import { describe, expect, it } from 'vitest';
+import {
+  buildWorkflowVersionDefinition,
+  createVersionedWorkflow,
+} from '@server/collections/workflows/workflow-version-definition';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('buildWorkflowVersionDefinition', () => {
   it('persists explicit action nodes and workflow inputs as one graph', () => {
@@ -105,5 +108,54 @@ describe('buildWorkflowVersionDefinition', () => {
         ],
       }),
     ).toThrow('references non-existent target node');
+  });
+});
+
+describe('createVersionedWorkflow', () => {
+  it('creates the workflow already pinned to its preallocated immutable version', async () => {
+    const workflowCreate = vi.fn().mockImplementation(({ data }) =>
+      Promise.resolve({
+        id: 'workflow-1',
+        organizationId: data.organizationId,
+        userId: data.userId,
+      }),
+    );
+    const versionCreate = vi.fn().mockResolvedValue({ id: 'version-1' });
+    const findUniqueOrThrow = vi.fn().mockResolvedValue({
+      currentVersion: { id: 'version-1', version: 1 },
+      id: 'workflow-1',
+    });
+    const transaction = {
+      workflow: { create: workflowCreate, findUniqueOrThrow },
+      workflowVersion: { create: versionCreate },
+    };
+
+    await createVersionedWorkflow(
+      transaction as never,
+      {
+        organizationId: 'organization-1',
+        userId: 'user-1',
+      },
+      {},
+    );
+
+    const currentVersionId = workflowCreate.mock.calls[0]?.[0].data
+      .currentVersionId as string;
+    expect(currentVersionId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+    expect(versionCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        id: currentVersionId,
+        organizationId: 'organization-1',
+        userId: 'user-1',
+        version: 1,
+        workflowId: 'workflow-1',
+      }),
+    });
+    expect(findUniqueOrThrow).toHaveBeenCalledWith({
+      include: { currentVersion: true },
+      where: { id: 'workflow-1' },
+    });
   });
 });

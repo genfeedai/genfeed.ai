@@ -36,6 +36,7 @@ import {
   createVersionedWorkflow,
   hydrateWorkflowDefinition,
   splitWorkflowDefinition,
+  type VersionedWorkflowIdentityInput,
   WORKFLOW_DEFINITION_FIELDS,
 } from '@server/collections/workflows/workflow-version-definition';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
@@ -215,7 +216,7 @@ export class WorkflowsService extends BaseService<
     const created = await this.prisma.$transaction((transaction) =>
       createVersionedWorkflow(
         transaction,
-        workflow as Prisma.WorkflowUncheckedCreateInput,
+        workflow as VersionedWorkflowIdentityInput,
         definition,
       ),
     );
