@@ -23,8 +23,9 @@
     "empty": "No characters found"
   },
   "composerToolbar": {
-    "actions": "Actions",
-    "actionsAria": "Open composer actions",
+    "actions": "Workspace shortcuts",
+    "actionsAria": "Open workspace shortcuts",
+    "actionsDescription": "Open a focused workspace with this draft",
     "addContext": "Add context",
     "attachFiles": "Attach files",
     "noModelsEnabled": "No models enabled",

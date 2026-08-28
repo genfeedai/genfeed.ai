@@ -128,38 +128,20 @@ function AgentChatInputToolbarInner({
       value: 'video',
     },
   ] as const;
-  const activeGenerationMode =
-    generationModeOptions.find((option) => option.value === generationMode) ??
-    generationModeOptions[0];
-  const ActiveGenerationModeIcon = activeGenerationMode.icon;
   // One shared picker for agent chat + studio/generation (selectionMode=single).
   // autoLabel opts single mode into Auto + priority cards (user settings:
   // empty defaultAgentModel + generationPriority).
-  const emptyAllowlistControl =
-    onModelChange && !hasSelectableModels && !isModelsLoading ? (
-      <Button
-        ariaLabel={translate('noModelsEnabled')}
-        className={cn(
-          'max-w-[12rem] justify-start text-muted-foreground',
-          isCompact ? 'h-8 px-1.5' : 'h-9 px-2',
-        )}
-        isDisabled
-        size={ButtonSize.SM}
-        textTransform="none"
-        title={translate('noModelsEnabledTitle')}
-        variant={ButtonVariant.GHOST}
-        withWrapper={false}
-      >
-        <span className="truncate text-xs">{translate('noModelsEnabled')}</span>
-      </Button>
-    ) : null;
   // Advanced Mode off = no model chrome on the conversation bar; the server
   // Auto-routes. Keep the picker for advanced users.
-  const modelSelector = !isAdvancedMode ? null : emptyAllowlistControl ? (
-    emptyAllowlistControl
-  ) : onModelChange ? (
+  const modelSelector = !isAdvancedMode ? null : onModelChange ? (
     <ModelSelectorPopover
-      autoLabel={hasSelectableModels ? autoLabel : undefined}
+      autoLabel={
+        hasSelectableModels
+          ? autoLabel
+          : isModelsLoading
+            ? 'Loading models…'
+            : undefined
+      }
       className={cn(
         'max-w-[12rem] text-muted-foreground hover:text-foreground',
         isCompact ? 'h-8 px-1.5' : 'h-9 px-2',
@@ -167,9 +149,7 @@ function AgentChatInputToolbarInner({
       favoriteModelKeys={favoriteModelKeys}
       // Model pick stays available while reconnecting — only block during an
       // active run or attachment/mic work.
-      isDisabled={Boolean(
-        showStop || isUploading || isTranscribing || isModelsLoading,
-      )}
+      isDisabled={Boolean(showStop || isUploading || isTranscribing)}
       models={models}
       name="agent-chat-model"
       onChange={(_name, values) => {
@@ -190,6 +170,12 @@ function AgentChatInputToolbarInner({
       prioritize={prioritize}
       creditsAvailable={creditsAvailable}
       selectionMode="single"
+      contextLabel="Generation type"
+      contextOptions={generationModeOptions}
+      contextValue={generationMode}
+      onContextChange={(value) => {
+        onGenerationModeChange(value as ConversationComposerGenerationMode);
+      }}
       values={
         isAutoSelected
           ? [AUTO_MODEL_OPTION_VALUE]
@@ -295,56 +281,6 @@ function AgentChatInputToolbarInner({
     >
       {/* Leading: model first, then tools tight to the chip (no inflated gap). */}
       <div className="flex min-w-0 shrink items-center gap-0.5">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              ariaLabel={`Generation mode: ${activeGenerationMode.label}`}
-              className={cn(
-                'shrink-0 justify-start text-muted-foreground hover:text-foreground',
-                isCompact ? 'h-8 px-1.5' : 'h-9 px-2',
-              )}
-              icon={<ActiveGenerationModeIcon className="size-3.5" />}
-              isDisabled={disabled || showStop}
-              label={activeGenerationMode.label}
-              size={ButtonSize.SM}
-              textTransform="none"
-              tooltip={`${activeGenerationMode.label} mode — ${activeGenerationMode.description}`}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="start"
-            className="w-64"
-            side="top"
-            sideOffset={8}
-          >
-            <DropdownMenuLabel>Generation mode</DropdownMenuLabel>
-            {generationModeOptions.map((option) => {
-              const ModeIcon = option.icon;
-              return (
-                <DropdownMenuItem
-                  key={option.value}
-                  onSelect={() => {
-                    onGenerationModeChange(option.value);
-                  }}
-                >
-                  <ModeIcon className="size-4 shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-primary">
-                      {option.label}
-                    </p>
-                    <p className="text-2xs text-muted">{option.description}</p>
-                  </div>
-                  {generationMode === option.value ? (
-                    <DropdownMenuShortcut>Selected</DropdownMenuShortcut>
-                  ) : null}
-                </DropdownMenuItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
         {modelSelector}
 
         <PromptBarReferenceControls
@@ -363,7 +299,7 @@ function AgentChatInputToolbarInner({
               icon={<Zap className="size-4" />}
               isDisabled={disabled || !hasEditor}
               size={ButtonSize.ICON}
-              tooltip={translate('actions')}
+              tooltip={translate('actionsAria')}
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             />
@@ -374,7 +310,14 @@ function AgentChatInputToolbarInner({
             side="top"
             sideOffset={8}
           >
-            <DropdownMenuLabel>{translate('actions')}</DropdownMenuLabel>
+            <DropdownMenuLabel className="flex flex-col gap-0.5 normal-case tracking-normal">
+              <span className="text-xs font-semibold text-foreground">
+                {translate('actions')}
+              </span>
+              <span className="text-2xs font-normal leading-4 text-muted-foreground">
+                {translate('actionsDescription')}
+              </span>
+            </DropdownMenuLabel>
             {CONVERSATION_COMPOSER_ACTIONS.map((action) => (
               <DropdownMenuItem
                 key={action.name}
@@ -383,10 +326,10 @@ function AgentChatInputToolbarInner({
                 }}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-medium text-primary">
+                  <p className="truncate text-xs font-medium text-foreground">
                     {action.label}
                   </p>
-                  <p className="truncate text-2xs text-muted">
+                  <p className="truncate text-2xs text-muted-foreground">
                     {action.description}
                   </p>
                 </div>

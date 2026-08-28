@@ -94,22 +94,43 @@ vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
 
 vi.mock('@ui/dropdowns/model-selector/ModelSelectorPopover', () => ({
   default: function MockModelSelectorPopover(props: {
+    contextOptions?: readonly { label: string; value: string }[];
+    contextValue?: string;
     models: readonly unknown[];
     name?: string;
     onChange: (name: string, values: string[]) => void;
+    onContextChange?: (value: string) => void;
   }) {
+    const activeContext = props.contextOptions?.find(
+      (option) => option.value === props.contextValue,
+    );
     return (
       <div>
-        <button type="button">Select model</button>
-        <span data-testid="model-catalog-size">{props.models.length}</span>
-        <button
-          type="button"
-          onClick={() =>
-            props.onChange(props.name ?? 'models', ['__auto_model__'])
-          }
-        >
-          Use Auto
+        <button type="button">
+          {activeContext
+            ? `Generation settings: ${activeContext.label}`
+            : 'Select model'}
         </button>
+        <span data-testid="model-catalog-size">{props.models.length}</span>
+        {props.contextOptions?.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => props.onContextChange?.(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+        {props.models.length > 0 ? (
+          <button
+            type="button"
+            onClick={() =>
+              props.onChange(props.name ?? 'models', ['__auto_model__'])
+            }
+          >
+            Use Auto
+          </button>
+        ) : null}
       </div>
     );
   },
@@ -172,18 +193,23 @@ describe('AgentChatInput', () => {
     expect(shell).not.toHaveClass('opacity-50');
   });
 
-  it('does not offer Auto when the required registry catalog is empty', () => {
+  it('keeps generation type switching available when the model catalog is empty', () => {
     const onModelChange = vi.fn();
 
     render(<AgentChatInput onModelChange={onModelChange} onSend={vi.fn()} />);
 
     expect(
-      screen.getByRole('button', { name: /no models enabled/i }),
+      screen.getByRole('button', { name: 'Generation settings: Auto' }),
     ).toBeInTheDocument();
+    expect(screen.getByTestId('model-catalog-size')).toHaveTextContent('0');
     expect(
       screen.queryByRole('button', { name: 'Use Auto' }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByTestId('model-catalog-size')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Image' }));
+    expect(
+      screen.getByRole('button', { name: 'Generation settings: Image' }),
+    ).toBeInTheDocument();
     expect(onModelChange).not.toHaveBeenCalled();
   });
 
@@ -200,6 +226,34 @@ describe('AgentChatInput', () => {
     expect(
       screen.queryByRole('button', { name: /no models enabled/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('uses one generation settings control for mode and model selection', () => {
+    render(
+      <AgentChatInput
+        models={[
+          {
+            id: 'image-1',
+            key: 'replicate/image-1',
+            label: 'Image One',
+          } as never,
+        ]}
+        onModelChange={vi.fn()}
+        onSend={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Generation settings: Auto' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Generation mode:/i }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Video' }));
+    expect(
+      screen.getByRole('button', { name: 'Generation settings: Video' }),
+    ).toBeInTheDocument();
   });
 
   it('renders the stop action within the shell footer when a run is active', () => {
@@ -332,7 +386,9 @@ describe('AgentChatInput', () => {
 
     expect(screen.queryByText(/Plan mode/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText('Add context')).toBeInTheDocument();
-    expect(screen.getByLabelText('Open composer actions')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Open workspace shortcuts'),
+    ).toBeInTheDocument();
   });
 
   it('uses the inspector rail treatment without duplicating shell context', () => {
@@ -356,7 +412,9 @@ describe('AgentChatInput', () => {
     ).not.toBeInTheDocument();
     // Inspector density is compact: actions control is icon-only (no "Actions" label).
     expect(screen.queryByText('Actions')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Open composer actions')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Open workspace shortcuts'),
+    ).toBeInTheDocument();
     expect(getComputedStyle(screen.getByRole('textbox')).minHeight).toBe(
       '56px',
     );
@@ -494,7 +552,7 @@ describe('AgentChatInput', () => {
 
     // Actions are a Radix dropdown: the trigger opens on pointerdown and the
     // entries are menuitems, not buttons.
-    fireEvent.pointerDown(screen.getByLabelText('Open composer actions'));
+    fireEvent.pointerDown(screen.getByLabelText('Open workspace shortcuts'));
     fireEvent.click(
       await screen.findByRole('menuitem', { name: /\/publish/i }),
     );

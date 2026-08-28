@@ -219,6 +219,63 @@ describe('useAgentChatInput generation mode', () => {
       expect.objectContaining({ generationMode: 'video' }),
     );
   });
+
+  it('removes restored brand tags while preserving route brand scope', async () => {
+    writeConversationComposerDocument(
+      draftScopeKey,
+      {
+        content: [
+          {
+            content: [
+              {
+                attrs: { id: 'brand-1', label: 'Acme' },
+                type: 'brandMention',
+              },
+            ],
+            type: 'paragraph',
+          },
+        ],
+        type: 'doc',
+      },
+      '#undefined',
+    );
+    const onSend = vi.fn();
+    const BrandScopedWrapper = ({ children }: { children: ReactNode }) => (
+      <ConversationComposerShellProvider
+        brandId="brand-1"
+        contextLabel="Acme"
+        draftScopeKey={draftScopeKey}
+        portalTarget={null}
+        shellState="canvas"
+      >
+        {children}
+      </ConversationComposerShellProvider>
+    );
+
+    const { result } = renderHook(() => useAgentChatInput({ onSend }), {
+      wrapper: BrandScopedWrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+      expect(result.current.editor?.getText()).toBe('');
+    });
+    expect(result.current.references).toEqual([]);
+
+    act(() => {
+      result.current.editor?.commands.setContent('Create a launch image');
+    });
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    expect(onSend).toHaveBeenCalledWith(
+      'Create a launch image',
+      undefined,
+      undefined,
+      expect.objectContaining({ brandId: 'brand-1' }),
+    );
+  });
 });
 
 describe('useAgentChatInput references', () => {

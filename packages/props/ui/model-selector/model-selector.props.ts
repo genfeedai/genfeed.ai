@@ -39,6 +39,14 @@ export interface ModelSelectorFilter {
   icon?: IconType;
 }
 
+/** Optional generation kind shown inside the same picker as model routing. */
+export interface ModelSelectorContextOption {
+  description?: string;
+  icon?: IconType;
+  label: string;
+  value: string;
+}
+
 export interface ModelSelectorPopoverProps {
   models: readonly IModel[];
   values: string[];
@@ -69,6 +77,11 @@ export interface ModelSelectorPopoverProps {
    * (credit lock). Null/undefined disables the lock.
    */
   creditsAvailable?: number | null;
+  /** Groups generation kind and model routing behind one composer control. */
+  contextLabel?: string;
+  contextOptions?: readonly ModelSelectorContextOption[];
+  contextValue?: string;
+  onContextChange?: (value: string) => void;
 }
 
 export interface ModelSelectorFilterPillsProps {
@@ -113,6 +126,7 @@ export interface ModelSelectorTriggerProps {
   shouldFlash?: boolean;
   className?: string;
   autoLabel?: string;
+  context?: ModelSelectorContextOption;
 }
 
 export interface ModelSelectorCostBadgeProps {
