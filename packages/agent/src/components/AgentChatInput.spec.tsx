@@ -173,8 +173,9 @@ describe('AgentChatInput', () => {
       'utf8',
     );
     expect(source).toContain("useTranslations('agent.composerToolbar')");
-    expect(source).toContain("translate('noModelsEnabled')");
+    expect(source).toContain("translate('generationMode')");
     expect(source).toContain("{translate('actions')}");
+    expect(source).toContain("translate('actionsDescription')");
     expect(source).not.toContain('const COPY =');
   });
 
@@ -193,7 +194,7 @@ describe('AgentChatInput', () => {
     expect(shell).not.toHaveClass('opacity-50');
   });
 
-  it('keeps generation type switching available when the model catalog is empty', () => {
+  it('keeps generation type switching available when the model catalog is empty', async () => {
     const onModelChange = vi.fn();
 
     render(<AgentChatInput onModelChange={onModelChange} onSend={vi.fn()} />);
@@ -206,10 +207,10 @@ describe('AgentChatInput', () => {
       screen.queryByRole('button', { name: 'Use Auto' }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(
+    fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Composer mode: Conversation' }),
     );
-    fireEvent.click(screen.getByRole('menuitem', { name: /Image/i }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Image/i }));
     expect(
       screen.getByRole('button', { name: 'Composer mode: Image' }),
     ).toBeInTheDocument();
@@ -231,7 +232,7 @@ describe('AgentChatInput', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('uses one generation settings control for mode and model selection', () => {
+  it('uses one generation settings control for mode and model selection', async () => {
     render(
       <AgentChatInput
         models={[
@@ -253,10 +254,10 @@ describe('AgentChatInput', () => {
       screen.queryByRole('button', { name: /Generation mode:/i }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(
+    fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Composer mode: Conversation' }),
     );
-    fireEvent.click(screen.getByRole('menuitem', { name: /Video/i }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Video/i }));
     expect(
       screen.getByRole('button', { name: 'Composer mode: Video' }),
     ).toBeInTheDocument();
@@ -271,10 +272,10 @@ describe('AgentChatInput', () => {
     };
 
     render(<AgentChatInput onSend={onSend} />);
-    fireEvent.click(
+    fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Composer mode: Conversation' }),
     );
-    fireEvent.click(screen.getByRole('menuitem', { name: /Image/i }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Image/i }));
     fireEvent.click(await screen.findByLabelText('Generate image'));
 
     await waitFor(() => {

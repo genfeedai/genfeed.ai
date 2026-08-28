@@ -334,11 +334,13 @@ describe('MenuShared', () => {
       name: 'Collapse sidebar',
     });
 
-    expect(collapseButton).toHaveTextContent('G');
+    expect(collapseButton.querySelector('img')?.getAttribute('src')).toContain(
+      'logo.svg',
+    );
     expect(collapseButton.querySelectorAll('svg')).toHaveLength(0);
     fireEvent.mouseEnter(collapseButton);
     expect(collapseButton.querySelectorAll('svg')).toHaveLength(0);
-    expect(collapseButton).toHaveTextContent('G');
+    expect(collapseButton.querySelector('img')).not.toBeNull();
     fireEvent.click(collapseButton);
     expect(onToggleCollapse).toHaveBeenCalledTimes(1);
   });
