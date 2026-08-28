@@ -58,6 +58,11 @@ describe('buildModelsTableColumns', () => {
     expect(columns.map((column) => column.header)).toContain('Quality');
     expect(columns.map((column) => column.header)).toContain('Cost');
     expect(columns.map((column) => column.header)).not.toContain('Value');
+    expect(
+      columns
+        .filter((column) => column.header)
+        .every((column) => column.sortable),
+    ).toBe(true);
   });
 
   it('renders the picker quality meter and dollar cost mark', () => {

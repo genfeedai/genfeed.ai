@@ -2,7 +2,7 @@ import { PageScope } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import ModelsList from '@pages/models/list/models-list';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -110,6 +110,27 @@ describe('ModelsList', () => {
       expect(mockFindAll).toHaveBeenCalled();
     });
     expect(mockFindAll.mock.calls[0]?.[0]).toMatchObject({ isActive: true });
+  });
+
+  it('requests the selected column sort for the full paginated result', async () => {
+    renderModelsList();
+
+    await waitFor(() => {
+      expect(mockFindAll).toHaveBeenCalledWith(
+        expect.objectContaining({ sort: 'label: 1' }),
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sort by Label' }));
+
+    await waitFor(() => {
+      expect(mockFindAll).toHaveBeenLastCalledWith(
+        expect.objectContaining({ sort: 'label: -1' }),
+      );
+    });
+    expect(
+      screen.getByRole('columnheader', { name: /label/i }),
+    ).toHaveAttribute('aria-sort', 'descending');
   });
 
   it('renders the empty state when no models come back', async () => {
