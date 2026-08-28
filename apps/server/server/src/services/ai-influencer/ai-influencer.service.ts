@@ -382,7 +382,12 @@ export class AiInfluencerService {
       ? this.readString((persona as Record<string, unknown>).loraModelPath)
       : undefined;
 
-    return { height, loraPath, prompt, width };
+    return {
+      height,
+      ...(loraPath ? { loraPath } : {}),
+      prompt,
+      width,
+    };
   }
 
   /**
@@ -545,8 +550,9 @@ export class AiInfluencerService {
             videoJobId: videoResult.jobId,
           });
 
+          const externalId = videoResult.jobId ?? videoResult.url;
           return {
-            externalId: videoResult.jobId ?? videoResult.url,
+            ...(externalId ? { externalId } : {}),
             platform,
             status: videoResult.status === 'completed' ? 'published' : 'queued',
             success: true,

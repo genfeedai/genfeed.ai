@@ -285,8 +285,8 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
       publishResults: publishBatch.results
         .toSorted((left, right) => left.index - right.index)
         .map((entry) => entry.result as PlatformPublishResult),
-      videoResult: state.videoResult,
-      voiceResult: state.voiceResult,
+      ...(state.videoResult ? { videoResult: state.videoResult } : {}),
+      ...(state.voiceResult ? { voiceResult: state.voiceResult } : {}),
     };
   }
 
@@ -361,13 +361,16 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
           (platform): platform is string => typeof platform === 'string',
         )
       : [];
+    const aspectRatio = this.optionalString(input.aspectRatio);
+    const captionOverride = this.optionalString(input.captionOverride);
+    const promptOverride = this.optionalString(input.promptOverride);
     return {
-      aspectRatio: this.optionalString(input.aspectRatio),
-      captionOverride: this.optionalString(input.captionOverride),
+      ...(aspectRatio ? { aspectRatio } : {}),
+      ...(captionOverride ? { captionOverride } : {}),
       organizationId,
       personaSlug: this.requiredString(input.personaSlug, 'personaSlug'),
       platforms: this.aiInfluencer.validatePlatforms(platforms),
-      promptOverride: this.optionalString(input.promptOverride),
+      ...(promptOverride ? { promptOverride } : {}),
     };
   }
 
@@ -382,13 +385,21 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
       record.persona,
       'persona',
     ) as PersonaDocument;
+    const aspectRatio = this.optionalString(record.aspectRatio);
+    const caption = this.optionalString(record.caption);
+    const captionOverride = this.optionalString(record.captionOverride);
+    const imageUrl = this.optionalString(record.imageUrl);
+    const ingredientId = this.optionalString(record.ingredientId);
+    const promptOverride = this.optionalString(record.promptOverride);
     const state: PostState = {
-      aspectRatio: this.optionalString(record.aspectRatio),
-      caption: this.optionalString(record.caption),
-      captionOverride: this.optionalString(record.captionOverride),
-      imageConfig: record.imageConfig as ImageGenerationConfig | undefined,
-      imageUrl: this.optionalString(record.imageUrl),
-      ingredientId: this.optionalString(record.ingredientId),
+      ...(aspectRatio ? { aspectRatio } : {}),
+      ...(caption ? { caption } : {}),
+      ...(captionOverride ? { captionOverride } : {}),
+      ...(record.imageConfig
+        ? { imageConfig: record.imageConfig as ImageGenerationConfig }
+        : {}),
+      ...(imageUrl ? { imageUrl } : {}),
+      ...(ingredientId ? { ingredientId } : {}),
       organizationId: this.requiredString(
         record.organizationId,
         'organizationId',
@@ -400,9 +411,13 @@ export class AiInfluencerWorkflowService implements OnModuleInit {
             (platform): platform is string => typeof platform === 'string',
           )
         : [],
-      promptOverride: this.optionalString(record.promptOverride),
-      videoResult: record.videoResult as GenerationResult | undefined,
-      voiceResult: record.voiceResult as GenerationResult | undefined,
+      ...(promptOverride ? { promptOverride } : {}),
+      ...(record.videoResult
+        ? { videoResult: record.videoResult as GenerationResult }
+        : {}),
+      ...(record.voiceResult
+        ? { voiceResult: record.voiceResult as GenerationResult }
+        : {}),
     };
     for (const field of required) {
       if (!state[field]) {
