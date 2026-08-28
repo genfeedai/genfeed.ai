@@ -55,6 +55,20 @@ describe('api/workflows', () => {
     expect(mockFetch).toHaveBeenCalledWith('/workflow-executions', { body: input, method: 'POST' });
   });
 
+  it('forwards cancellation to workflow execution creation', async () => {
+    mockFetch.mockResolvedValue(single('execution-1', { status: 'running' }));
+    const controller = new AbortController();
+    const input = { workflowId: 'workflow-1' };
+
+    await createWorkflowExecution(input, controller.signal);
+
+    expect(mockFetch).toHaveBeenCalledWith('/workflow-executions', {
+      body: input,
+      method: 'POST',
+      signal: controller.signal,
+    });
+  });
+
   it('lists filtered workflow executions', async () => {
     mockFetch.mockResolvedValue(collection('execution-1', { status: 'completed' }));
     const result = await listWorkflowExecutions({

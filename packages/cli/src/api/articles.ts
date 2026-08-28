@@ -77,14 +77,27 @@ const GENERATIONS_PATH = '/articles/generations';
  * The route runs the full generation cycle inline and answers with a JSON:API
  * collection for standard articles and a single resource for X articles.
  */
-export function generateArticle(request: GenerateArticlesRequest): Promise<Article[]>;
-export function generateArticle(request: GenerateXArticleRequest): Promise<Article>;
+export function generateArticle(
+  request: GenerateArticlesRequest,
+  signal?: AbortSignal
+): Promise<Article[]>;
+export function generateArticle(
+  request: GenerateXArticleRequest,
+  signal?: AbortSignal
+): Promise<Article>;
 export async function generateArticle(
-  request: GenerateArticlesRequest | GenerateXArticleRequest
+  request: GenerateArticlesRequest | GenerateXArticleRequest,
+  signal?: AbortSignal
 ): Promise<Article | Article[]> {
-  const response = await post<JsonApiCollectionResponse | JsonApiSingleResponse>(GENERATIONS_PATH, {
-    ...request,
-  });
+  const response = signal
+    ? await post<JsonApiCollectionResponse | JsonApiSingleResponse>(
+        GENERATIONS_PATH,
+        { ...request },
+        { signal }
+      )
+    : await post<JsonApiCollectionResponse | JsonApiSingleResponse>(GENERATIONS_PATH, {
+        ...request,
+      });
 
   return request.type === 'x-article'
     ? flattenSingle<Article>(response as JsonApiSingleResponse)

@@ -6,11 +6,11 @@ const { mockGetOrganizationId, mockListBrands, mockSetActiveBrand } = vi.hoisted
   mockSetActiveBrand: vi.fn(),
 }));
 
-vi.mock('../../src/api/brands', () => ({
+vi.mock('@/api/brands', () => ({
   listBrands: (organizationId: string) => mockListBrands(organizationId),
 }));
 
-vi.mock('../../src/config/store', () => ({
+vi.mock('@/config/store', () => ({
   getOrganizationId: () => mockGetOrganizationId(),
   setActiveBrand: (id: string) => mockSetActiveBrand(id),
 }));
@@ -26,7 +26,7 @@ describe('brand operations', () => {
   });
 
   it('lists brands only through the active organization scope', async () => {
-    const { readBrands } = await import('../../src/operations/brands');
+    const { readBrands } = await import('@/operations/brands');
 
     const brands = await readBrands();
 
@@ -37,7 +37,7 @@ describe('brand operations', () => {
   it.each(['brand-1', 'acme', 'ACME'])(
     'resolves and persists a unique brand reference %s',
     async (reference) => {
-      const { activateBrand } = await import('../../src/operations/brands');
+      const { activateBrand } = await import('@/operations/brands');
 
       const brand = await activateBrand(reference);
 
@@ -51,7 +51,7 @@ describe('brand operations', () => {
       { id: 'brand-1', label: 'Acme' },
       { id: 'brand-2', label: 'Acme' },
     ]);
-    const { activateBrand } = await import('../../src/operations/brands');
+    const { activateBrand } = await import('@/operations/brands');
 
     await expect(activateBrand('acme')).rejects.toThrow('matches more than one brand');
     expect(mockSetActiveBrand).not.toHaveBeenCalled();
@@ -62,14 +62,14 @@ describe('brand operations', () => {
       { id: 'brand-1', label: 'Primary' },
       { id: 'brand-2', label: 'brand-1' },
     ]);
-    const { activateBrand } = await import('../../src/operations/brands');
+    const { activateBrand } = await import('@/operations/brands');
 
     await expect(activateBrand('brand-1')).resolves.toEqual({ id: 'brand-1', label: 'Primary' });
     expect(mockSetActiveBrand).toHaveBeenCalledWith('brand-1');
   });
 
   it('rejects a missing organization or brand', async () => {
-    const { activateBrand, readBrands } = await import('../../src/operations/brands');
+    const { activateBrand, readBrands } = await import('@/operations/brands');
     mockGetOrganizationId.mockResolvedValueOnce(undefined);
     await expect(readBrands()).rejects.toThrow('No organization found');
     mockListBrands.mockResolvedValueOnce([]);

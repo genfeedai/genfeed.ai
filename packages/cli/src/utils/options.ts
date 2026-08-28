@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { GenfeedError } from './errors';
+import { GenfeedError } from '@/utils/errors';
 
 interface JsonOptions extends Record<string, unknown> {
   json?: boolean;
@@ -36,5 +36,13 @@ export function parsePositiveInteger(value: string): number {
   }
 
   if (parsed < 1) throw new GenfeedError(`Invalid positive integer "${value}"`);
+  return parsed;
+}
+
+export function parseIntegerInRange(value: string, minimum: number, maximum: number): number {
+  const parsed = parseInteger(value);
+  if (parsed < minimum || parsed > maximum) {
+    throw new GenfeedError(`Integer must be between ${minimum} and ${maximum}`);
+  }
   return parsed;
 }

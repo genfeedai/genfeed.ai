@@ -4,16 +4,17 @@ import { parseSlashCommand } from './slash-command';
 export interface WorkspaceDispatchHandlers {
   appendError: (message: string) => void;
   runMessage: (value: string) => Promise<void>;
-  runOperation: (command: ParsedSlashCommand) => Promise<void>;
+  runOperation: (command: ParsedSlashCommand, signal: AbortSignal) => Promise<void>;
 }
 
 export async function dispatchWorkspaceInput(
   value: string,
-  handlers: WorkspaceDispatchHandlers
+  handlers: WorkspaceDispatchHandlers,
+  signal: AbortSignal
 ): Promise<void> {
   try {
     if (value.startsWith('/')) {
-      await handlers.runOperation(parseSlashCommand(value));
+      await handlers.runOperation(parseSlashCommand(value), signal);
       return;
     }
     await handlers.runMessage(value);

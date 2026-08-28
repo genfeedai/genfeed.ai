@@ -8,11 +8,11 @@ const { mockGetArticle, mockGetImage, mockPrint, mockRequireAuth } = vi.hoisted(
   mockRequireAuth: vi.fn(),
 }));
 
-vi.mock('../../src/api/articles', () => ({ getArticle: (id: string) => mockGetArticle(id) }));
-vi.mock('../../src/api/client', () => ({ requireAuth: () => mockRequireAuth() }));
-vi.mock('../../src/api/images', () => ({ getImage: (id: string) => mockGetImage(id) }));
-vi.mock('../../src/api/videos', () => ({ getVideo: vi.fn() }));
-vi.mock('../../src/ui/theme', () => ({
+vi.mock('@/api/articles', () => ({ getArticle: (id: string) => mockGetArticle(id) }));
+vi.mock('@/api/client', () => ({ requireAuth: () => mockRequireAuth() }));
+vi.mock('@/api/images', () => ({ getImage: (id: string) => mockGetImage(id) }));
+vi.mock('@/api/videos', () => ({ getVideo: vi.fn() }));
+vi.mock('@/ui/theme', () => ({
   formatError: (value: string) => value,
   formatLabel: (label: string, value: string) => `${label}: ${value}`,
   print: (value?: unknown) => mockPrint(value),
@@ -36,7 +36,7 @@ describe('status command', () => {
       label: 'Draft article',
       status: PersistedArticleStatus.DRAFT,
     });
-    const { createStatusCommand } = await import('../../src/commands/status');
+    const { createStatusCommand } = await import('@/commands/status');
 
     await createStatusCommand().parseAsync(['article-1', '--type', 'article'], { from: 'user' });
 
@@ -52,7 +52,7 @@ describe('status command', () => {
       model: 'flux-schnell',
       status: IngredientStatus.DRAFT,
     });
-    const { createStatusCommand } = await import('../../src/commands/status');
+    const { createStatusCommand } = await import('@/commands/status');
 
     await createStatusCommand().parseAsync(['image-1'], { from: 'user' });
 

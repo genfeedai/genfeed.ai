@@ -55,11 +55,14 @@ export interface CreateImageRequest {
   width?: number;
 }
 
-export async function createImage(request: CreateImageRequest): Promise<Image> {
-  const response = await post<JsonApiSingleResponse>(
-    '/images',
-    request as unknown as Record<string, unknown>
-  );
+export async function createImage(
+  request: CreateImageRequest,
+  signal?: AbortSignal
+): Promise<Image> {
+  const body = request as unknown as Record<string, unknown>;
+  const response = signal
+    ? await post<JsonApiSingleResponse>('/images', body, { signal })
+    : await post<JsonApiSingleResponse>('/images', body);
   return flattenSingle<Image>(response);
 }
 

@@ -59,24 +59,36 @@ function boundedLimit(limit = 20): number {
   return Math.min(Math.max(Math.trunc(limit), 1), 100);
 }
 
-export async function listWorkflows(options: ListWorkflowsOptions = {}): Promise<Workflow[]> {
+export async function listWorkflows(
+  options: ListWorkflowsOptions = {},
+  signal?: AbortSignal
+): Promise<Workflow[]> {
   const query = new URLSearchParams({ limit: String(boundedLimit(options.limit)) });
   if (options.page && options.page > 1) {
     query.set('page', String(Math.trunc(options.page)));
   }
-  const response = await get<JsonApiCollectionResponse>(`/workflows?${query.toString()}`);
+  const path = `/workflows?${query.toString()}`;
+  const response = signal
+    ? await get<JsonApiCollectionResponse>(path, { signal })
+    : await get<JsonApiCollectionResponse>(path);
   return flattenCollection<Workflow>(response);
 }
 
-export async function getWorkflow(id: string): Promise<Workflow> {
-  const response = await get<JsonApiSingleResponse>(`/workflows/${id}`);
+export async function getWorkflow(id: string, signal?: AbortSignal): Promise<Workflow> {
+  const path = `/workflows/${id}`;
+  const response = signal
+    ? await get<JsonApiSingleResponse>(path, { signal })
+    : await get<JsonApiSingleResponse>(path);
   return flattenSingle<Workflow>(response);
 }
 
 export async function createWorkflowExecution(
-  input: CreateWorkflowExecutionInput
+  input: CreateWorkflowExecutionInput,
+  signal?: AbortSignal
 ): Promise<WorkflowExecution> {
-  const response = await post<JsonApiSingleResponse>('/workflow-executions', input);
+  const response = signal
+    ? await post<JsonApiSingleResponse>('/workflow-executions', input, { signal })
+    : await post<JsonApiSingleResponse>('/workflow-executions', input);
   return flattenSingle<WorkflowExecution>(response);
 }
 

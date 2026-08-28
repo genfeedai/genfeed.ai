@@ -63,10 +63,14 @@ export async function getLastPurchaseBaseline(): Promise<LastPurchaseBaseline> {
   return flattenSingle<LastPurchaseBaseline>(response);
 }
 
-export async function createCreditsCheckout(credits: number): Promise<CreditsCheckout> {
-  const response = await post<JsonApiSingleResponse>('/services/stripe/credits/checkout', {
-    credits,
-  });
+export async function createCreditsCheckout(
+  credits: number,
+  signal?: AbortSignal
+): Promise<CreditsCheckout> {
+  const body = { credits };
+  const response = signal
+    ? await post<JsonApiSingleResponse>('/services/stripe/credits/checkout', body, { signal })
+    : await post<JsonApiSingleResponse>('/services/stripe/credits/checkout', body);
   return flattenSingle<CreditsCheckout>(response);
 }
 

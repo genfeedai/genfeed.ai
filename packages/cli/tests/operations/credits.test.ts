@@ -7,7 +7,7 @@ const { mockCheckout, mockHistory, mockUsage } = vi.hoisted(() => ({
 }));
 
 vi.mock('@/api/credits', () => ({
-  createCreditsCheckout: (credits: number) => mockCheckout(credits),
+  createCreditsCheckout: (...args: unknown[]) => mockCheckout(...args),
   getCreditUsage: () => mockUsage(),
   listCreditTransactions: (limit: number) => mockHistory(limit),
 }));
@@ -40,5 +40,14 @@ describe('credit operations', () => {
     const { readCreditHistory, startCreditsCheckout } = await import('@/operations/credits');
     await expect(startCreditsCheckout(5_000)).resolves.toEqual({ url: 'https://checkout.test' });
     await expect(readCreditHistory(20)).resolves.toEqual([{ id: 'tx-1' }]);
+  });
+
+  it('forwards cancellation to Checkout creation', async () => {
+    const controller = new AbortController();
+    const { startCreditsCheckout } = await import('@/operations/credits');
+
+    await startCreditsCheckout(5_000, controller.signal);
+
+    expect(mockCheckout).toHaveBeenCalledWith(5_000, controller.signal);
   });
 });

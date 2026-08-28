@@ -8,7 +8,7 @@ const { mockCreateWorkflowExecution, mockGetWorkflow, mockListWorkflows } = vi.h
   mockListWorkflows: vi.fn(),
 }));
 
-vi.mock('../../src/api/workflows', () => ({
+vi.mock('@/api/workflows', () => ({
   createWorkflowExecution: (...args: unknown[]) => mockCreateWorkflowExecution(...args),
   getWorkflow: (...args: unknown[]) => mockGetWorkflow(...args),
   listWorkflows: (...args: unknown[]) => mockListWorkflows(...args),
@@ -28,17 +28,35 @@ describe('workflow operations', () => {
   it('resolves an entity ID without loading the workflow collection', async () => {
     const workflow = { id: 'cm12345678901234567890123', label: 'Direct' };
     mockGetWorkflow.mockResolvedValue(workflow);
-    const { resolveWorkflow } = await import('../../src/operations/workflows');
+    const { resolveWorkflow } = await import('@/operations/workflows');
 
     await expect(resolveWorkflow(workflow.id)).resolves.toEqual(workflow);
     expect(mockGetWorkflow).toHaveBeenCalledWith(workflow.id);
     expect(mockListWorkflows).not.toHaveBeenCalled();
   });
 
+  it('forwards cancellation through workflow resolution and execution', async () => {
+    const workflow = { id: 'workflow-1', label: 'Weekly Content' };
+    const controller = new AbortController();
+    mockGetWorkflow.mockResolvedValue(workflow);
+    const { runWorkflow } = await import('@/operations/workflows');
+
+    await runWorkflow('workflow-1', undefined, undefined, controller.signal);
+
+    expect(mockGetWorkflow).toHaveBeenCalledWith('workflow-1', controller.signal);
+    expect(mockCreateWorkflowExecution).toHaveBeenCalledWith(
+      {
+        trigger: 'manual',
+        workflowId: 'workflow-1',
+      },
+      controller.signal
+    );
+  });
+
   it.each(['workflow-1', 'weekly-content', 'WEEKLY CONTENT'])(
     'resolves and runs a unique workflow reference %s',
     async (reference) => {
-      const { runWorkflow } = await import('../../src/operations/workflows');
+      const { runWorkflow } = await import('@/operations/workflows');
 
       const result = await runWorkflow(
         reference,
@@ -61,7 +79,7 @@ describe('workflow operations', () => {
       { id: 'workflow-1', label: 'Campaign' },
       { id: 'workflow-2', label: 'Campaign' },
     ]);
-    const { runWorkflow } = await import('../../src/operations/workflows');
+    const { runWorkflow } = await import('@/operations/workflows');
 
     await expect(runWorkflow('campaign')).rejects.toThrow('matches more than one workflow');
     expect(mockCreateWorkflowExecution).not.toHaveBeenCalled();
@@ -76,7 +94,7 @@ describe('workflow operations', () => {
         }))
       )
       .mockResolvedValueOnce([{ id: 'workflow-101', label: 'Deep workflow' }]);
-    const { resolveWorkflow } = await import('../../src/operations/workflows');
+    const { resolveWorkflow } = await import('@/operations/workflows');
 
     await expect(resolveWorkflow('DEEP WORKFLOW')).resolves.toEqual({
       id: 'workflow-101',
@@ -87,7 +105,7 @@ describe('workflow operations', () => {
   });
 
   it('rejects a missing workflow and omits absent inputs', async () => {
-    const { resolveWorkflow, runWorkflow } = await import('../../src/operations/workflows');
+    const { resolveWorkflow, runWorkflow } = await import('@/operations/workflows');
     await expect(resolveWorkflow('missing')).rejects.toThrow('No workflow matches');
     await runWorkflow('launch');
     expect(mockCreateWorkflowExecution).toHaveBeenCalledWith({

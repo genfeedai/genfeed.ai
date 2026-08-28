@@ -143,7 +143,11 @@ export default function TerminalWorkspace({ onDone }: WorkspaceProps) {
     exit();
   }
 
-  async function runGeneration(kind: 'article' | 'image' | 'video', prompt: string): Promise<void> {
+  async function runGeneration(
+    kind: 'article' | 'image' | 'video',
+    prompt: string,
+    signal: AbortSignal
+  ): Promise<void> {
     if (!prompt) throw new Error(`Usage: /${kind} <prompt>`);
     await requireAuth();
     const { profile } = await getActiveProfile();
@@ -151,28 +155,40 @@ export default function TerminalWorkspace({ onDone }: WorkspaceProps) {
     if (!brandId) throw new Error('Select a brand first with /brand use <brand>');
 
     if (kind === 'image') {
-      const result = await createImage({
-        brandId,
-        model: profile.defaults.imageModel,
-        text: prompt,
-      });
+      const result = await createImage(
+        {
+          brandId,
+          model: profile.defaults.imageModel,
+          text: prompt,
+        },
+        signal
+      );
+      signal.throwIfAborted();
       append('system', `Image job ${result.id} — ${result.status}`);
       return;
     }
     if (kind === 'video') {
-      const result = await createVideo({
-        brandId,
-        model: profile.defaults.videoModel,
-        text: prompt,
-      });
+      const result = await createVideo(
+        {
+          brandId,
+          model: profile.defaults.videoModel,
+          text: prompt,
+        },
+        signal
+      );
+      signal.throwIfAborted();
       append('system', `Video job ${result.id} — ${result.status}`);
       return;
     }
-    const result = await generateArticle({ brandId, prompt, type: 'standard' });
+    const result = await generateArticle({ brandId, prompt, type: 'standard' }, signal);
+    signal.throwIfAborted();
     append('system', `Created ${result.length} article${result.length === 1 ? '' : 's'}.`);
   }
 
-  async function handleSlashCommand({ args, name }: ParsedSlashCommand): Promise<void> {
+  async function handleSlashCommand(
+    { args, name }: ParsedSlashCommand,
+    signal: AbortSignal
+  ): Promise<void> {
     switch (name) {
       case 'exit':
       case 'quit':
@@ -237,8 +253,10 @@ export default function TerminalWorkspace({ onDone }: WorkspaceProps) {
         await requireAuth();
         if (args[0] === 'buy') {
           if (!args[1]) throw new Error('Usage: /credits buy <credits>');
-          const checkout = await startCreditsCheckout(parseCreditQuantity(args[1]));
+          const checkout = await startCreditsCheckout(parseCreditQuantity(args[1]), signal);
+          signal.throwIfAborted();
           const opened = await openExternalUrl(checkout.url);
+          signal.throwIfAborted();
           append('system', `${opened ? 'Opened' : 'Created'} secure checkout: ${checkout.url}`);
           return;
         }
@@ -286,7 +304,8 @@ export default function TerminalWorkspace({ onDone }: WorkspaceProps) {
         if (args[0] !== 'run' || !args[1]) {
           throw new Error('Usage: /workflow run <id|key|label>');
         }
-        const result = await runWorkflow(args.slice(1).join(' '));
+        const result = await runWorkflow(args.slice(1).join(' '), undefined, undefined, signal);
+        signal.throwIfAborted();
         append(
           'system',
           `Started ${result.workflow.label ?? result.workflow.id}: ${result.execution.id}`
@@ -321,7 +340,7 @@ export default function TerminalWorkspace({ onDone }: WorkspaceProps) {
       case 'image':
       case 'video':
       case 'article':
-        await runGeneration(name, args.join(' '));
+        await runGeneration(name, args.join(' '), signal);
         return;
       default:
         throw new Error(`Unknown command /${name}. Use /help.`);
@@ -381,13 +400,17 @@ export default function TerminalWorkspace({ onDone }: WorkspaceProps) {
     const controller = new AbortController();
     activeOperationController.current = controller;
     try {
-      await dispatchWorkspaceInput(trimmed, {
-        appendError: (message) => {
-          if (!controller.signal.aborted) append('error', message);
+      await dispatchWorkspaceInput(
+        trimmed,
+        {
+          appendError: (message) => {
+            if (!controller.signal.aborted) append('error', message);
+          },
+          runMessage: (message) => sendMessage(message, controller.signal),
+          runOperation: handleSlashCommand,
         },
-        runMessage: (message) => sendMessage(message, controller.signal),
-        runOperation: handleSlashCommand,
-      });
+        controller.signal
+      );
     } finally {
       if (activeOperationController.current === controller) {
         activeOperationController.current = undefined;

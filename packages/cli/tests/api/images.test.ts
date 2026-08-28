@@ -1,12 +1,12 @@
 import { IngredientStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createImage, getImage } from '../../src/api/images';
+import { createImage, getImage } from '@/api/images';
 
 const mockApiKey = vi.fn<[], string | undefined>();
 const mockApiUrl = vi.fn<[], string>();
 const mockFetch = vi.fn();
 
-vi.mock('../../src/config/store', () => ({
+vi.mock('@/config/store', () => ({
   getApiKey: () => mockApiKey(),
   getApiUrl: () => mockApiUrl(),
 }));
@@ -77,6 +77,26 @@ describe('api/images', () => {
 
       expect(body).toHaveProperty('brandId', 'brand-1');
       expect(body).not.toHaveProperty('brand');
+    });
+
+    it('forwards cancellation to image generation', async () => {
+      mockFetch.mockResolvedValue({
+        data: {
+          attributes: { model: 'imagen-4', status: IngredientStatus.PROCESSING },
+          id: 'img-4',
+          type: 'image',
+        },
+      });
+      const controller = new AbortController();
+      const request = { brandId: 'brand-1', text: 'A launch poster' };
+
+      await createImage(request, controller.signal);
+
+      expect(mockFetch).toHaveBeenCalledWith('/images', {
+        body: request,
+        method: 'POST',
+        signal: controller.signal,
+      });
     });
 
     it('passes optional dimensions', async () => {

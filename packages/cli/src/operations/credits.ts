@@ -65,8 +65,14 @@ export function parseCreditQuantity(value: string | number): number {
   return credits;
 }
 
-export async function startCreditsCheckout(credits: number): Promise<CreditsCheckout> {
-  return await createCreditsCheckout(parseCreditQuantity(credits));
+export async function startCreditsCheckout(
+  credits: number,
+  signal?: AbortSignal
+): Promise<CreditsCheckout> {
+  const quantity = parseCreditQuantity(credits);
+  return signal
+    ? await createCreditsCheckout(quantity, signal)
+    : await createCreditsCheckout(quantity);
 }
 
 export async function readCreditHistory(limit: number): Promise<CreditTransaction[]> {
