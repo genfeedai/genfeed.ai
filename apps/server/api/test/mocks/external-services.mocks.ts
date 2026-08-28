@@ -816,10 +816,12 @@ export const createMockConfigService = (
       GENFEEDAI_APP_URL: 'https://test-app.genfeed.ai',
       GENFEEDAI_WEBHOOKS_URL: 'https://test-webhooks.genfeed.ai',
       JWT_SECRET: 'test-jwt-secret',
-      DATABASE_URL: 'postgresql://genfeed:genfeed_local@localhost:5432/test',
+      DATABASE_URL:
+        process.env.DATABASE_URL ??
+        'postgresql://genfeed:genfeed_local@localhost:5432/test',
       NODE_ENV: 'test',
       PORT: 3001,
-      REDIS_URL: 'redis://localhost:6379',
+      REDIS_URL: process.env.REDIS_URL ?? 'redis://localhost:6379',
       REPLICATE_KEY: 'test-replicate-key',
       STRIPE_SECRET_KEY: 'test-stripe-secret',
       ...config,

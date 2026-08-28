@@ -10,22 +10,11 @@
 const describeWithDatabase =
   process.env.SKIP_PRISMA_DB === 'true' ? describe.skip : describe;
 
-import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { ListeningTopicAnalysisService } from '@api/collections/listening-topics/services/listening-topic-analysis.service';
 import { ListeningTopicAttributionService } from '@api/collections/listening-topics/services/listening-topic-attribution.service';
 import { ListeningTopicCollectorService } from '@api/collections/listening-topics/services/listening-topic-collector.service';
 import { ListeningTopicsService } from '@api/collections/listening-topics/services/listening-topics.service';
-import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
-import { PostGroupPersistenceService } from '@server/collections/post-groups/services/post-group-persistence.service';
-import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
-import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
-import { PostAnalyticsService } from '@server/collections/posts/services/post-analytics.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { PublishingProviderSetupService } from '@server/collections/publishing-setup/services/publishing-provider-setup.service';
-import { SourcePostsService } from '@server/collections/source-posts/services/source-posts.service';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   createTestBrand,
   createTestCredential,
@@ -56,6 +45,17 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
+import { PostGroupPersistenceService } from '@server/collections/post-groups/services/post-group-persistence.service';
+import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
+import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
+import { PostAnalyticsService } from '@server/collections/posts/services/post-analytics.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { PublishingProviderSetupService } from '@server/collections/publishing-setup/services/publishing-provider-setup.service';
+import { SourcePostsService } from '@server/collections/source-posts/services/source-posts.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 type Fixture = {
   brandId: string;
@@ -217,8 +217,7 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
     );
   });
 
-  beforeEach(async () => {
-    await clearAttributionDatabase();
+  beforeEach(() => {
     collectTimeline.mockReset();
     publishOutbound.mockReset();
     enqueuePublish.mockClear();
@@ -226,7 +225,6 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
 
   afterAll(async () => {
     if (moduleRef) {
-      await clearAttributionDatabase();
       await moduleRef.close();
     }
   });
@@ -639,28 +637,6 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
       },
     });
     return fixture;
-  }
-
-  async function clearAttributionDatabase(): Promise<void> {
-    await db.post.updateMany({
-      data: { publishApprovalId: null, reviewVersionPinId: null },
-      where: {},
-    });
-    await db.postAnalytics.deleteMany();
-    await db.activity.deleteMany();
-    await db.publishApproval.deleteMany();
-    await db.post.deleteMany();
-    await db.contentVersionPin.deleteMany();
-    await db.postGroup.deleteMany();
-    await db.listeningSignal.deleteMany();
-    await db.listeningThemeEvidence.deleteMany();
-    await db.listeningTheme.deleteMany();
-    await db.listeningEvidence.deleteMany();
-    await db.listeningTopicSource.deleteMany();
-    await db.listeningTopic.deleteMany();
-    await db.sourcePost.deleteMany();
-    await db.socialSource.deleteMany();
-    await dbHelper.clearDatabase();
   }
 });
 
