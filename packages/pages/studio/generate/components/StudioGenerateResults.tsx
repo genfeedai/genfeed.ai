@@ -16,12 +16,9 @@ function ResultsSheet({
   children: ReactNode;
   view: StudioGenerateResultsProps['view'];
 }): ReactElement {
-  if (view === ViewType.GRID) {
+  if (view === ViewType.LIST) {
     return (
-      <div
-        className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
-        data-testid="studio-grid"
-      >
+      <div className="flex flex-col gap-2" data-testid="studio-list">
         {children}
       </div>
     );
@@ -100,6 +97,7 @@ export default function StudioGenerateResults({
                     key={job.id}
                     onReprompt={onReprompt}
                     onSelect={onSelect}
+                    view={view}
                   />
                 ))}
               </ResultsSheet>

@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, IngredientStatus } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  IngredientStatus,
+  ViewType,
+} from '@genfeedai/enums';
 import type { IImage, IMetadata, IVideo } from '@genfeedai/interfaces';
 import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
 import { Video } from '@genfeedai/models/ingredients/video.model';
@@ -91,6 +96,7 @@ export default function StudioGenerateCard({
   job,
   onReprompt,
   onSelect,
+  view,
 }: StudioGenerateCardProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
   const { label } = getStudioGenerateTypeConfig(job.type);
@@ -111,6 +117,7 @@ export default function StudioGenerateCard({
   const width = Math.max(1, job.width || 1080);
   const height = Math.max(1, job.height || 1080);
   const masonryIngredient = useMemo(() => buildMasonryIngredient(job), [job]);
+  const isListView = view === ViewType.LIST;
 
   const handleMediaError = useCallback(() => {
     if (job.url) {
@@ -138,47 +145,76 @@ export default function StudioGenerateCard({
     return (
       <article
         aria-label={`${label} generation`}
-        className={`group relative w-full overflow-visible rounded-lg ${isSelected ? 'ring-2 ring-primary' : ''}`}
+        className={`group relative w-full rounded-lg ${
+          isListView
+            ? 'grid min-h-36 grid-cols-[10rem_minmax(0,1fr)] overflow-hidden bg-card shadow-border sm:grid-cols-[12rem_minmax(0,1fr)]'
+            : 'overflow-visible'
+        } ${isSelected ? 'ring-2 ring-primary' : ''}`}
         data-asset-media-state={mediaState}
         data-selected={isSelected ? 'true' : 'false'}
         data-testid={`studio-asset-${job.id}`}
       >
-        {job.type === 'image' ? (
-          <LazyMasonryImage
-            {...sharedProps}
-            image={masonryIngredient as IImage}
-            onConvertToVideo={assetActions.onConvertToVideo}
-            onCreateVariation={assetActions.onCreateVariation}
-            onMarkArchived={assetActions.onMarkArchived}
-            onMediaError={handleMediaError}
-            onUseAsVideoReference={assetActions.onUseAsVideoReference}
-          />
-        ) : (
-          <LazyMasonryVideo
-            {...sharedProps}
-            video={masonryIngredient as IVideo}
-          />
-        )}
-
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/90 via-black/35 to-transparent p-3 pr-24 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
-          data-asset-details
+          className={
+            isListView
+              ? 'relative h-36 overflow-hidden border-r border-border sm:h-40'
+              : 'contents'
+          }
         >
-          <p
-            className={
-              'line-clamp-2 text-xs text-white' /* design-system-allow-content-color */
-            }
-          >
-            {job.prompt}
-          </p>
-          <span
-            className={
-              'mt-1 block truncate text-2xs text-white/70' /* design-system-allow-content-color */
-            }
-          >
-            {job.modelKey || 'Auto'}
-          </span>
+          {job.type === 'image' ? (
+            <LazyMasonryImage
+              {...sharedProps}
+              image={masonryIngredient as IImage}
+              onConvertToVideo={assetActions.onConvertToVideo}
+              onCreateVariation={assetActions.onCreateVariation}
+              onMarkArchived={assetActions.onMarkArchived}
+              onMediaError={handleMediaError}
+              onUseAsVideoReference={assetActions.onUseAsVideoReference}
+            />
+          ) : (
+            <LazyMasonryVideo
+              {...sharedProps}
+              video={masonryIngredient as IVideo}
+            />
+          )}
         </div>
+
+        {isListView ? (
+          <div className="flex min-w-0 flex-col gap-2 p-4">
+            <Badge className="w-fit" variant="secondary">
+              {label}
+            </Badge>
+            <p className="line-clamp-3 text-sm leading-relaxed text-foreground">
+              {job.prompt}
+            </p>
+            <span className="mt-auto truncate text-xs text-muted-foreground">
+              {job.modelKey || 'Auto'}
+            </span>
+          </div>
+        ) : (
+          <div
+            className={
+              'pointer-events-none absolute inset-x-2 bottom-14 z-40 rounded-lg border border-white/10 bg-black/85 px-3 py-2.5 text-white shadow-xl opacity-0 backdrop-blur-md transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100' /* design-system-allow-content-color */
+            }
+            data-asset-caption
+            data-asset-details
+          >
+            <p
+              className={
+                'line-clamp-3 text-sm leading-relaxed text-white' /* design-system-allow-content-color */
+              }
+            >
+              {job.prompt}
+            </p>
+            <span
+              className={
+                'mt-1.5 block truncate text-2xs text-white/70' /* design-system-allow-content-color */
+              }
+            >
+              {job.modelKey || 'Auto'}
+            </span>
+          </div>
+        )}
       </article>
     );
   }
@@ -186,11 +222,15 @@ export default function StudioGenerateCard({
   return (
     <article
       aria-label={`${label} generation`}
-      className={`group relative w-full overflow-hidden rounded-lg bg-card shadow-border ${isSelected ? 'ring-2 ring-primary' : ''}`}
+      className={`group relative w-full overflow-hidden rounded-lg bg-card shadow-border ${
+        isListView
+          ? 'grid min-h-36 grid-cols-[10rem_minmax(0,1fr)] sm:grid-cols-[12rem_minmax(0,1fr)]'
+          : ''
+      } ${isSelected ? 'ring-2 ring-primary' : ''}`}
       data-asset-media-state={mediaState}
       data-selected={isSelected ? 'true' : 'false'}
       data-testid={`studio-asset-${job.id}`}
-      style={{ aspectRatio: `${width} / ${height}` }}
+      style={isListView ? undefined : { aspectRatio: `${width} / ${height}` }}
     >
       <Button
         ariaLabel={translate('selectGenerationAria', {
@@ -202,7 +242,13 @@ export default function StudioGenerateCard({
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
       />
-      <div className="pointer-events-none relative z-0 flex size-full min-h-40 items-center justify-center overflow-hidden bg-foreground/[0.04]">
+      <div
+        className={`pointer-events-none relative z-0 flex items-center justify-center overflow-hidden bg-foreground/[0.04] ${
+          isListView
+            ? 'h-36 border-r border-border sm:h-40'
+            : 'size-full min-h-40'
+        }`}
+      >
         {isPending ? (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <Loader2 className="size-5 animate-spin" />
@@ -253,32 +299,43 @@ export default function StudioGenerateCard({
       </div>
 
       <div
-        className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between bg-gradient-to-t from-black/90 via-black/25 to-black/10 p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+        className={
+          isListView
+            ? 'pointer-events-none relative z-20 flex min-w-0 flex-col justify-between gap-3 p-4'
+            : 'pointer-events-none absolute inset-x-2 bottom-2 z-20 flex max-h-[calc(100%-1rem)] flex-col justify-between gap-3 rounded-lg border border-white/10 bg-black/85 p-3 text-white shadow-xl opacity-0 backdrop-blur-md transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100' /* design-system-allow-content-color */
+        }
+        data-asset-caption={isListView ? undefined : ''}
         data-asset-details
       >
         <Badge
-          className="w-fit text-[0.625rem] uppercase tracking-wide"
+          className="w-fit text-2xs uppercase tracking-wide"
           variant="secondary"
         >
           {label}
         </Badge>
 
         <div
-          className={
-            'flex flex-col gap-2 text-white' /* design-system-allow-content-color */
-          }
+          className={`flex min-w-0 flex-col gap-2 ${
+            isListView
+              ? 'text-foreground'
+              : 'text-white' /* design-system-allow-content-color */
+          }`}
         >
           <p
-            className={
-              'line-clamp-3 text-xs text-white' /* design-system-allow-content-color */
-            }
+            className={`line-clamp-3 text-sm leading-relaxed ${
+              isListView
+                ? 'text-foreground'
+                : 'text-white' /* design-system-allow-content-color */
+            }`}
           >
             {job.prompt}
           </p>
           <div className="flex items-center justify-between gap-2">
             <span
               className={
-                'truncate text-[0.625rem] text-white/70' /* design-system-allow-content-color */
+                isListView
+                  ? 'truncate text-2xs text-muted-foreground'
+                  : 'truncate text-2xs text-white/70' /* design-system-allow-content-color */
               }
             >
               {job.modelKey || 'Auto'}
@@ -291,7 +348,9 @@ export default function StudioGenerateCard({
                     type: label,
                   })}
                   className={
-                    'pointer-events-auto px-2 text-xs text-white hover:bg-white/15 hover:text-white' /* design-system-allow-content-color */
+                    isListView
+                      ? 'pointer-events-auto px-2 text-xs'
+                      : 'pointer-events-auto px-2 text-xs text-white hover:bg-white/15 hover:text-white' /* design-system-allow-content-color */
                   }
                   icon={<Trash2 className="size-3.5" />}
                   label={translate('remove')}
@@ -307,7 +366,9 @@ export default function StudioGenerateCard({
                   type: label,
                 })}
                 className={
-                  'pointer-events-auto px-2 text-xs text-white hover:bg-white/15 hover:text-white' /* design-system-allow-content-color */
+                  isListView
+                    ? 'pointer-events-auto px-2 text-xs'
+                    : 'pointer-events-auto px-2 text-xs text-white hover:bg-white/15 hover:text-white' /* design-system-allow-content-color */
                 }
                 icon={<RotateCcw className="size-3.5" />}
                 label={translate('reprompt')}

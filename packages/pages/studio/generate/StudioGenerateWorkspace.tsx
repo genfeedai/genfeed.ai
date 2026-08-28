@@ -100,9 +100,9 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
   const [prompt, setPrompt] = useState('');
   const [search, setSearch] = useState('');
-  const [resultsView, setResultsView] = useState<
-    ViewType.GRID | ViewType.MASONRY
-  >(ViewType.MASONRY);
+  const [resultsView, setResultsView] = useState<ViewType.GRID | ViewType.LIST>(
+    ViewType.GRID,
+  );
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [isContentLibraryOpen, setIsContentLibraryOpen] = useState(false);
   const [contentLibraryRole, setContentLibraryRole] =
@@ -766,15 +766,15 @@ export default function StudioGenerateWorkspace(): ReactElement {
             <ViewToggle
               activeView={resultsView}
               onChange={(view) => {
-                if (view === ViewType.GRID || view === ViewType.MASONRY) {
+                if (view === ViewType.GRID || view === ViewType.LIST) {
                   setResultsView(view);
                 }
               }}
               options={[
                 {
                   icon: <Rows3 className="size-4" />,
-                  label: translate('viewMasonry'),
-                  type: ViewType.MASONRY,
+                  label: translate('viewList'),
+                  type: ViewType.LIST,
                 },
                 {
                   icon: <LayoutGrid className="size-4" />,

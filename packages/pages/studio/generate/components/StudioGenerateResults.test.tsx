@@ -13,7 +13,9 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock('@pages/studio/generate/components/StudioGenerateCard', () => ({
-  default: ({ job }: { job: { id: string } }) => <div>{job.id}</div>,
+  default: ({ job, view }: { job: { id: string }; view: ViewType }) => (
+    <div data-card-view={view}>{job.id}</div>
+  ),
 }));
 
 vi.mock('@ui/display/masonry/Masonry', () => ({
@@ -56,12 +58,16 @@ describe('StudioGenerateResults', () => {
         ]}
         onReprompt={vi.fn()}
         onSelect={vi.fn()}
-        view={ViewType.MASONRY}
+        view={ViewType.GRID}
       />,
     );
 
     expect(screen.getByTestId('studio-masonry')).toBeInTheDocument();
     expect(screen.getByText('asset-1')).toBeInTheDocument();
+    expect(screen.getByText('asset-1')).toHaveAttribute(
+      'data-card-view',
+      'grid',
+    );
   });
 
   it('groups N outputs from one submit under a single run', () => {
@@ -105,7 +111,7 @@ describe('StudioGenerateResults', () => {
         ]}
         onReprompt={vi.fn()}
         onSelect={vi.fn()}
-        view={ViewType.MASONRY}
+        view={ViewType.GRID}
       />,
     );
 
@@ -116,7 +122,7 @@ describe('StudioGenerateResults', () => {
     expect(screen.getByText('d')).toBeInTheDocument();
   });
 
-  it('offers a uniform grid of the results sheet', () => {
+  it('offers a readable list of the results sheet', () => {
     render(
       <StudioGenerateResults
         assetActions={assetActions}
@@ -132,15 +138,19 @@ describe('StudioGenerateResults', () => {
         ]}
         onReprompt={vi.fn()}
         onSelect={vi.fn()}
-        view={ViewType.GRID}
+        view={ViewType.LIST}
       />,
     );
 
-    expect(screen.getByTestId('studio-grid')).toBeInTheDocument();
+    expect(screen.getByTestId('studio-list')).toBeInTheDocument();
     expect(screen.queryByTestId('studio-masonry')).toBeNull();
     expect(screen.getByTestId('studio-generate-results')).toHaveAttribute(
       'data-results-view',
-      'grid',
+      'list',
+    );
+    expect(screen.getByText('asset-1')).toHaveAttribute(
+      'data-card-view',
+      'list',
     );
   });
 });

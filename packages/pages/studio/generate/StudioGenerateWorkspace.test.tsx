@@ -595,13 +595,17 @@ describe('StudioGenerateWorkspace', () => {
     expect(mocks.rehydratePending).toHaveBeenCalledWith(storedJobs);
   });
 
-  it('toggles the results sheet into a uniform grid', () => {
+  it('defaults to the masonry grid and toggles the results into a list', () => {
     render(<StudioGenerateWorkspace />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'viewGrid' }));
 
     expect(mocks.results.mock.calls.at(-1)?.[0]).toEqual(
       expect.objectContaining({ view: 'grid' }),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'viewList' }));
+
+    expect(mocks.results.mock.calls.at(-1)?.[0]).toEqual(
+      expect.objectContaining({ view: 'list' }),
     );
   });
 

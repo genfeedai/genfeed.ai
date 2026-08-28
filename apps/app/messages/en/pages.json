@@ -255,7 +255,7 @@
     },
     "title": "Generate",
     "viewGrid": "Grid",
-    "viewMasonry": "Masonry"
+    "viewList": "List"
   },
   "warmupAccounts": {
     "invitation": {
