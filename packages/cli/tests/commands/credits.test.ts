@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   mockCreateCreditsCheckout,
+  mockGetCreditSummary,
   mockGetCreditUsage,
   mockListCreditTransactions,
   mockOpenExternalUrl,
   mockRequireAuth,
 } = vi.hoisted(() => ({
   mockCreateCreditsCheckout: vi.fn(),
+  mockGetCreditSummary: vi.fn(),
   mockGetCreditUsage: vi.fn(),
   mockListCreditTransactions: vi.fn(),
   mockOpenExternalUrl: vi.fn(),
@@ -20,7 +22,7 @@ vi.mock('@/api/client', () => ({
 
 vi.mock('@/api/credits', () => ({
   createCreditsCheckout: (credits: number) => mockCreateCreditsCheckout(credits),
-  getCreditSummary: vi.fn(),
+  getCreditSummary: () => mockGetCreditSummary(),
   getCreditUsage: () => mockGetCreditUsage(),
   listCreditTransactions: (limit: number) => mockListCreditTransactions(limit),
 }));
@@ -61,6 +63,12 @@ describe('credits command', () => {
     stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     mockRequireAuth.mockResolvedValue('gf_test_key');
     mockGetCreditUsage.mockResolvedValue({ currentBalance: 4_820 });
+    mockGetCreditSummary.mockResolvedValue({
+      billableUsage: 750,
+      freeRemaining: 250,
+      projectedFee: 7.5,
+      totalUsage: 1_000,
+    });
     mockCreateCreditsCheckout.mockResolvedValue({
       url: 'https://checkout.stripe.test/cs_1',
     });
@@ -86,6 +94,15 @@ describe('credits command', () => {
         packs: expect.arrayContaining([expect.objectContaining({ credits: 5_000, label: '$50' })]),
       })
     );
+  });
+
+  it('prints the root balance as JSON', async () => {
+    const { createCreditsCommand } = await import('@/commands/credits');
+    const creditsCommand = createCreditsCommand();
+
+    await creditsCommand.parseAsync(['--json'], { from: 'user' });
+
+    expect(readJsonOutput()).toEqual({ balance: 4_820, unit: 'credits' });
   });
 
   it('creates hosted Checkout without opening a browser when requested', async () => {
@@ -115,5 +132,28 @@ describe('credits command', () => {
 
     expect(mockListCreditTransactions).toHaveBeenCalledWith(25);
     expect(readJsonOutput()).toEqual([]);
+  });
+
+  it('prints credit usage as JSON', async () => {
+    const { createCreditsCommand } = await import('@/commands/credits');
+    const creditsCommand = createCreditsCommand();
+
+    await creditsCommand.parseAsync(['usage', '--json'], { from: 'user' });
+
+    expect(readJsonOutput()).toEqual({ currentBalance: 4_820 });
+  });
+
+  it('prints the BYOK summary as JSON', async () => {
+    const { createCreditsCommand } = await import('@/commands/credits');
+    const creditsCommand = createCreditsCommand();
+
+    await creditsCommand.parseAsync(['summary', '--json'], { from: 'user' });
+
+    expect(readJsonOutput()).toEqual({
+      billableUsage: 750,
+      freeRemaining: 250,
+      projectedFee: 7.5,
+      totalUsage: 1_000,
+    });
   });
 });

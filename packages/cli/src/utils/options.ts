@@ -1,4 +1,17 @@
+import type { Command } from 'commander';
 import { GenfeedError } from './errors';
+
+interface JsonOptions extends Record<string, unknown> {
+  json?: boolean;
+}
+
+export function getCommandOptions<T extends Record<string, unknown>>(command: Command): T {
+  return command.optsWithGlobals<T>();
+}
+
+export function wantsJson(command: Command): boolean {
+  return Boolean(getCommandOptions<JsonOptions>(command).json);
+}
 
 export function parseInteger(value: string): number {
   const normalized = value.trim();

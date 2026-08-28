@@ -15,19 +15,10 @@ import {
 import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
 import { openExternalUrl } from '@/utils/browser';
 import { GenfeedError, handleError } from '@/utils/errors';
-import { parsePositiveInteger } from '@/utils/options';
+import { parsePositiveInteger, wantsJson } from '@/utils/options';
 
 interface CreditsBuyOptions {
-  json?: boolean;
   open: boolean;
-}
-
-interface JsonOptions extends Record<string, unknown> {
-  json?: boolean;
-}
-
-function wantsJson(command: Command): boolean {
-  return Boolean(command.optsWithGlobals<JsonOptions>().json);
 }
 
 async function promptForCredits(): Promise<number> {
@@ -73,10 +64,10 @@ async function runBalance(json = false): Promise<void> {
 export function createCreditsCommand(): Command {
   const creditsCommand = new Command('credits')
     .description('Inspect usage and purchase Genfeed credits')
-    .option('--json', 'Output the balance as JSON')
-    .action(async (options) => {
+    .option('--json', 'Output as JSON')
+    .action(async (_options, command: Command) => {
       try {
-        await runBalance(Boolean(options.json));
+        await runBalance(wantsJson(command));
       } catch (error) {
         handleError(error);
       }

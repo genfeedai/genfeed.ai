@@ -7,9 +7,9 @@ import { downloadGeneratedFile } from '@/commands/generate/helpers';
 import { readAsset, readAssets } from '@/operations/assets';
 import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
-import { parsePositiveInteger } from '@/utils/options';
+import { getCommandOptions, parsePositiveInteger, wantsJson } from '@/utils/options';
 
-interface AssetListOptions {
+interface AssetListOptions extends Record<string, unknown> {
   json?: boolean;
   limit: number;
   type?: string;
@@ -71,9 +71,9 @@ export const libraryCommand = addListOptions(
 
 libraryCommand.addCommand(
   addListOptions(new Command('list').description('List content assets')).action(
-    async (options: AssetListOptions) => {
+    async (_options: AssetListOptions, command: Command) => {
       try {
-        await runAssetList(options);
+        await runAssetList(getCommandOptions<AssetListOptions>(command));
       } catch (error) {
         handleError(error);
       }
@@ -86,11 +86,11 @@ libraryCommand.addCommand(
     .description('Show one content asset')
     .argument('<id>', 'Asset ID')
     .option('--json', 'Output as JSON')
-    .action(async (id: string, options: AssetShowOptions) => {
+    .action(async (id: string, _options: AssetShowOptions, command: Command) => {
       try {
         await requireAuth();
         const asset = await readAsset(id);
-        if (options.json) return printJson(asset);
+        if (wantsJson(command)) return printJson(asset);
         print(formatHeader('Asset\n'));
         print(formatLabel('ID', asset.id));
         print(formatLabel('Type', asset.category));

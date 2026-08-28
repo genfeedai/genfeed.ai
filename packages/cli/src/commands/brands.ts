@@ -15,6 +15,7 @@ import {
   printJson,
 } from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
+import { wantsJson } from '@/utils/options';
 
 type BrandListItem = Pick<Brand, 'description' | 'id' | 'label' | 'slug'> & {
   active: boolean;
@@ -76,9 +77,9 @@ export const brandsCommand = new Command('brand')
   .alias('brands')
   .description('Inspect and select the active brand')
   .option('--json', 'Output the brand list as JSON')
-  .action(async (options) => {
+  .action(async (_options, command: Command) => {
     try {
-      await runBrandList(Boolean(options.json));
+      await runBrandList(wantsJson(command));
     } catch (error) {
       handleError(error);
     }
@@ -88,9 +89,9 @@ brandsCommand
   .command('list')
   .description('List brands in the active organization')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async (_options, command: Command) => {
     try {
-      await runBrandList(Boolean(options.json));
+      await runBrandList(wantsJson(command));
     } catch (error) {
       handleError(error);
     }
@@ -102,7 +103,7 @@ brandsCommand
   .description('Select the active brand by id, slug, or unique label')
   .argument('[reference]', 'Brand id, slug, or unique label')
   .option('--json', 'Output as JSON')
-  .action(async (reference: string | undefined, options) => {
+  .action(async (reference: string | undefined, _options, command: Command) => {
     try {
       await requireAuth();
       let selected: Brand;
@@ -136,7 +137,7 @@ brandsCommand
         await setActiveBrand(selected.id);
       }
 
-      if (options.json) {
+      if (wantsJson(command)) {
         printJson(selected);
         return;
       }
@@ -151,13 +152,13 @@ brandsCommand
   .command('current')
   .description('Show the current active brand')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async (_options, command: Command) => {
     try {
       await requireAuth();
       const activeBrandId = await getActiveBrand();
 
       if (!activeBrandId) {
-        if (options.json) {
+        if (wantsJson(command)) {
           printJson({ activeBrand: null });
           return;
         }
@@ -167,7 +168,7 @@ brandsCommand
       }
 
       const brand = await getBrand(activeBrandId);
-      if (options.json) {
+      if (wantsJson(command)) {
         printJson({ activeBrand: brand });
         return;
       }
@@ -186,12 +187,12 @@ brandsCommand
   .description('Show full brand details')
   .argument('<id>', 'Brand ID')
   .option('--json', 'Output as JSON')
-  .action(async (id, options) => {
+  .action(async (id, _options, command: Command) => {
     try {
       await requireAuth();
       const brand = await getBrand(id);
 
-      if (options.json) {
+      if (wantsJson(command)) {
         printJson(brand);
         return;
       }
