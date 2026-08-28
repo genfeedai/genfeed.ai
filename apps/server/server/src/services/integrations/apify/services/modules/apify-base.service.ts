@@ -1,3 +1,14 @@
+import { ByokProvider } from '@genfeedai/enums';
+import type { ByokResolutionResult } from '@genfeedai/interfaces';
+import { extractHashtags } from '@genfeedai/utils/server';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { HttpService } from '@nestjs/axios';
+import {
+  Injectable,
+  Optional,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
 import {
   ApifyAccountLimitSuspension,
@@ -8,17 +19,6 @@ import {
   describeApifyError,
   isApifyAccountLimitError,
 } from '@server/services/integrations/apify/utils/apify-error.util';
-import { ByokProvider } from '@genfeedai/enums';
-import type { ByokResolutionResult } from '@genfeedai/interfaces';
-import { extractHashtags } from '@genfeedai/utils/data/extract.util';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { HttpService } from '@nestjs/axios';
-import {
-  Injectable,
-  Optional,
-  ServiceUnavailableException,
-} from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 /**

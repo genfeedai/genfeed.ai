@@ -35,7 +35,7 @@
     "build": "tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
-    "type-check": "tsc --noEmit"
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit"
   },
   "types": "./next.config.base.ts",
   "version": "1.0.0"

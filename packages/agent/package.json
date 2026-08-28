@@ -90,6 +90,10 @@
       "types": "./src/services/*",
       "default": "./src/services/*"
     },
+    "./server": {
+      "types": "./dist/server/server.d.ts",
+      "default": "./src/server.ts"
+    },
     "./stores": {
       "types": "./src/stores/index.ts",
       "default": "./src/stores/index.ts"
@@ -120,6 +124,8 @@
     "react-dom": ">=18"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.server.json",
+    "clean": "rm -rf dist",
     "test": "vitest run --config vitest.config.ts",
     "test:browser": "vitest --config vitest.browser.config.ts",
     "test:watch": "vitest --config vitest.config.ts"

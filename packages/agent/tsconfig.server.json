@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "noEmit": false,
+    "outDir": "./dist/server",
+    "paths": {
+      "@genfeedai/agent": ["./src/index.ts"],
+      "@genfeedai/agent/*": ["./src/*"],
+      "@genfeedai/interfaces": ["../interfaces/dist/index.d.ts"],
+      "@genfeedai/interfaces/*": ["../interfaces/dist/*"]
+    },
+    "rootDir": "./src"
+  },
+  "exclude": ["**/*.spec.ts", "**/*.test.ts", "dist", "node_modules"],
+  "extends": "./tsconfig.json",
+  "include": ["src/server.ts"]
+}

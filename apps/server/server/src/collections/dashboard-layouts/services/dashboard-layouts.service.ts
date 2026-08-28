@@ -1,3 +1,8 @@
+import { sanitizeLayoutForPersistence } from '@genfeedai/agent/server';
+import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import type { CreateDashboardLayoutDto } from '@server/collections/dashboard-layouts/dto/create-dashboard-layout.dto';
 import type { UpdateDashboardLayoutDto } from '@server/collections/dashboard-layouts/dto/update-dashboard-layout.dto';
 import type { UpsertDashboardLayoutDto } from '@server/collections/dashboard-layouts/dto/upsert-dashboard-layout.dto';
@@ -11,11 +16,6 @@ import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { ValidationException } from '@server/exceptions/validation.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BaseService } from '@server/shared/services/base/base.service';
-import { sanitizeLayoutForPersistence } from '@genfeedai/agent/dashboard';
-import { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 const DEFAULT_PAGE_KEY = 'workspace-overview';
 

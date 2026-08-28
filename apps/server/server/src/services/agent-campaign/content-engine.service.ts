@@ -1,3 +1,7 @@
+import { AgentExecutionTrigger, type AgentType } from '@genfeedai/enums';
+import type { IAgentCampaignContentRotation } from '@genfeedai/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { type AgentCampaignDocument } from '@server/collections/agent-campaigns/schemas/agent-campaign.schema';
 import { AgentCampaignsService } from '@server/collections/agent-campaigns/services/agent-campaigns.service';
 import { AgentGoalsService } from '@server/collections/agent-goals/services/agent-goals.service';
@@ -13,14 +17,6 @@ import {
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { CampaignMemoryQueueService } from '@server/services/agent-campaign/campaign-memory-queue.service';
 import {
-  type CampaignWinnerExtractionResult,
-  CampaignWinnerExtractionService,
-} from '@server/services/agent-campaign/campaign-winner-extraction.service';
-import {
-  type ContentRotationSelection,
-  ContentRotationService,
-} from '@server/services/agent-campaign/content-rotation.service';
-import {
   DEFAULT_ORCHESTRATION_INTERVAL_HOURS,
   MAX_ORCHESTRATED_STRATEGIES_PER_RUN,
 } from '@server/services/agent-campaign/orchestrator.constants';
@@ -28,10 +24,14 @@ import { OrchestratorQueueService } from '@server/services/agent-campaign/orches
 import { isOrchestratorAgentType } from '@server/services/agent-orchestrator/constants/agent-type.constants';
 import { AgentRuntimeService } from '@server/services/agent-runtime/agent-runtime.service';
 import { requireRelationId } from '@server/shared/utils/relation-id/relation-id.util';
-import { AgentExecutionTrigger, type AgentType } from '@genfeedai/enums';
-import type { IAgentCampaignContentRotation } from '@genfeedai/interfaces';
-import { LoggerService } from '@libs/logger/logger.service';
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  type CampaignWinnerExtractionResult,
+  CampaignWinnerExtractionService,
+} from './campaign-winner-extraction.service';
+import {
+  type ContentRotationSelection,
+  ContentRotationService,
+} from './content-rotation.service';
 
 interface AnalyticsOverview {
   avgEngagementRate?: number;

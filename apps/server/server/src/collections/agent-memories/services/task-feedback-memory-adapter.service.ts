@@ -1,11 +1,11 @@
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import type {
   AgentMemoryContentType,
   AgentMemoryKind,
 } from '@server/collections/agent-memories/schemas/agent-memory.schema';
-import { AgentMemoryCaptureService } from '@server/collections/agent-memories/services/agent-memory-capture.service';
 import type { TaskDocument } from '@server/collections/tasks/schemas/task.schema';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { AgentMemoryCaptureService } from './agent-memory-capture.service';
 
 /** Max chars of reviewer free-text persisted into brand generation memory. */
 const MAX_REVIEWER_NOTE_LENGTH = 500;

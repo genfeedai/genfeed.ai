@@ -12,6 +12,13 @@ interface DesktopCloudModeTransition {
   relaunch: () => void;
 }
 
+interface DesktopRuntimeRestore {
+  initializeLocalRuntime: () => Promise<void>;
+  isLocalModeRequested: boolean;
+  onLocalRuntimeError: (error: unknown) => void;
+  persistCloudMode: () => void;
+}
+
 export function selectDesktopDataService<TService>({
   cloudService,
   hasCloudSession,
@@ -92,6 +99,26 @@ export async function activateDesktopLocalMode(
     invalidateAttempt,
   );
   persistLocalMode();
+}
+
+export async function restoreDesktopRuntimeMode({
+  initializeLocalRuntime,
+  isLocalModeRequested,
+  onLocalRuntimeError,
+  persistCloudMode,
+}: DesktopRuntimeRestore): Promise<boolean> {
+  if (!isLocalModeRequested) {
+    return false;
+  }
+
+  try {
+    await initializeLocalRuntime();
+    return true;
+  } catch (error) {
+    persistCloudMode();
+    onLocalRuntimeError(error);
+    return false;
+  }
 }
 
 export async function switchDesktopToCloud({

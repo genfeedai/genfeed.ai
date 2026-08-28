@@ -404,8 +404,43 @@ function hasResponseBody(method: string, status: number): boolean {
   return method !== 'HEAD' && !RESPONSE_WITHOUT_BODY_STATUSES.has(status);
 }
 
+function nodeReadableToResponseBody(
+  readable: Readable,
+): ReadableStream<Uint8Array> {
+  const iterator = readable[Symbol.asyncIterator]();
+
+  return new ReadableStream<Uint8Array>({
+    async cancel(reason) {
+      await iterator.return?.();
+      readable.destroy(reason instanceof Error ? reason : undefined);
+    },
+    async pull(controller) {
+      try {
+        const result: IteratorResult<unknown> = await iterator.next();
+        if (result.done) {
+          controller.close();
+          return;
+        }
+
+        if (result.value instanceof Uint8Array) {
+          controller.enqueue(result.value);
+          return;
+        }
+        if (typeof result.value === 'string') {
+          controller.enqueue(Buffer.from(result.value));
+          return;
+        }
+
+        throw new TypeError('Pinned response emitted a non-byte chunk');
+      } catch (error: unknown) {
+        controller.error(error);
+      }
+    },
+  });
+}
+
 function createPinnedResponse(
-  incoming: {
+  incoming: Readable & {
     rawHeaders: readonly string[];
     statusCode?: number;
     statusMessage?: string;
@@ -416,9 +451,7 @@ function createPinnedResponse(
   const status = incoming.statusCode ?? 500;
   const method = (init.method ?? 'GET').toUpperCase();
   const body = hasResponseBody(method, status)
-    ? (Readable.toWeb(
-        incoming as unknown as Readable,
-      ) as ReadableStream<Uint8Array>)
+    ? nodeReadableToResponseBody(incoming)
     : null;
 
   const response = new Response(body, {

@@ -11,10 +11,14 @@
     "**/.env.*local"
   ],
   "globalEnv": ["GITHUB_EVENT_PATH"],
-  "globalPassThroughEnv": ["GITHUB_REF_NAME"],
+  "globalPassThroughEnv": ["GITHUB_REF_NAME", "TURBO_HASH"],
   "tasks": {
+    // Package builds are declaration prerequisites for lint/typecheck and must
+    // remain independent of machine-local application env. Deployable app
+    // builds add //#env:check in their workspace turbo config; qa:release,
+    // dev, and tests retain the root environment hygiene gate below.
     "build": {
-      "dependsOn": ["//#env:check", "^build"],
+      "dependsOn": ["^build"],
       "env": ["API_URL", "E2E_COVERAGE", "NEXT_PUBLIC_*"],
       "inputs": [
         "$TURBO_DEFAULT$",
@@ -46,7 +50,7 @@
       "dependsOn": ["^build"]
     },
     "type-check": {
-      "dependsOn": ["//#env:check", "^build"],
+      "dependsOn": ["^build"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/apps/server/tsconfig.typecheck.base.json"

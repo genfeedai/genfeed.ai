@@ -1,8 +1,8 @@
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
+import { OrganizationSettingsService } from './organization-settings.service';
 
 /**
  * First-asset unlock gate — org signal writer.

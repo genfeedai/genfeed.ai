@@ -1,4 +1,4 @@
-import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
+import { formatAgentError } from '@genfeedai/agent/server';
 
 function readAgentRunError(error: unknown): string {
   if (error instanceof Error) {

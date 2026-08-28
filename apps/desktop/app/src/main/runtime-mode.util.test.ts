@@ -5,12 +5,36 @@ import {
   activateDesktopLocalMode,
   createLocalRuntimeCleanupBarrier,
   createUnwoundLocalRuntimeState,
+  restoreDesktopRuntimeMode,
   selectDesktopDataService,
   switchDesktopToCloud,
   unwindFailedLocalRuntimeAfterClose,
 } from './runtime-mode.util';
 
 describe('desktop runtime mode transitions', () => {
+  it('falls back to cloud when a remembered local runtime cannot start', async () => {
+    const error = new Error('database unavailable');
+    const reportedErrors: unknown[] = [];
+    let persistedMode: 'cloud' | null = null;
+
+    const isOfflineMode = await restoreDesktopRuntimeMode({
+      initializeLocalRuntime: async () => {
+        throw error;
+      },
+      isLocalModeRequested: true,
+      onLocalRuntimeError: (runtimeError) => {
+        reportedErrors.push(runtimeError);
+      },
+      persistCloudMode: () => {
+        persistedMode = 'cloud';
+      },
+    });
+
+    expect(isOfflineMode).toBe(false);
+    expect(persistedMode).toBe('cloud');
+    expect(reportedErrors).toEqual([error]);
+  });
+
   it('does not persist local mode when runtime initialization fails', async () => {
     let persisted = false;
 

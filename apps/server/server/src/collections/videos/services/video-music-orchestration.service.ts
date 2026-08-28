@@ -1,4 +1,5 @@
 import { FileInputType } from '@genfeedai/enums';
+
 /**
  * Video + Music Orchestration Service
  *
@@ -10,25 +11,6 @@ import { FileInputType } from '@genfeedai/enums';
  * 5. Returns the final merged video
  */
 
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { MusicsService } from '@server/collections/musics/services/musics.service';
-import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@server/collections/prompts/services/prompts.service';
-import { BackgroundMusicDto } from '@server/collections/videos/dto/create-video.dto';
-import { VideosService } from '@server/collections/videos/services/videos.service';
-import { requireVideoOutputPath } from '@server/collections/videos/utils/video-processing-result.util';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@server/services/router/router.service';
-import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
-import { IngredientCompletionService } from '@server/shared/services/poll-until/ingredient-completion.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import { JOB_TYPES } from '@files/queues/queue.constants';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -42,12 +24,31 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/queue-contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { MusicsService } from '@server/collections/musics/services/musics.service';
+import { PromptEntity } from '@server/collections/prompts/entities/prompt.entity';
+import { PromptsService } from '@server/collections/prompts/services/prompts.service';
+import { BackgroundMusicDto } from '@server/collections/videos/dto/create-video.dto';
+import { VideosService } from '@server/collections/videos/services/videos.service';
+import { requireVideoOutputPath } from '@server/collections/videos/utils/video-processing-result.util';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { RouterService } from '@server/services/router/router.service';
+import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
+import { IngredientCompletionService } from '@server/shared/services/poll-until/ingredient-completion.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 
 export interface OrchestrationContext {
   brandId: string;

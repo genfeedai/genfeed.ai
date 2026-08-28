@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@genfeedai/config": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
@@ -9,14 +10,20 @@
   },
   "description": "Shared backend library modules and infrastructure helpers for Genfeed server applications",
   "exports": {
-    "./*": "./*"
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./*"
+    }
   },
   "name": "@genfeedai/libs",
   "private": true,
   "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
     "test": "vitest run --config vitest.config.ts",
     "test:cov": "vitest run --coverage --config vitest.config.ts",
-    "test:watch": "vitest watch --config vitest.config.ts"
+    "test:watch": "vitest watch --config vitest.config.ts",
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit -p tsconfig.json"
   },
   "sideEffects": false,
   "type": "module",

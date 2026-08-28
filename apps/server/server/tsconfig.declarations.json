@@ -1,5 +1,11 @@
 {
   "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "noEmit": false,
+    "outDir": "./dist",
+    "rootDir": "./src",
     "types": ["node"]
   },
   "exclude": [
@@ -10,6 +16,6 @@
     "**/*.test.ts",
     "**/*.e2e-spec.ts"
   ],
-  "extends": "../tsconfig.typecheck.base.json",
+  "extends": "./tsconfig.typecheck.json",
   "include": ["src/**/*"]
 }
