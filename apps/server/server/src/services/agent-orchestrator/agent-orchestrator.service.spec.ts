@@ -4,6 +4,7 @@ import {
 } from '@genfeedai/constants';
 import {
   AgentAutonomyMode,
+  AgentMessageRole,
   AgentType,
   ApiKeyScope,
   GenerationPriority,
@@ -2289,7 +2290,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
     llmDispatcher.streamChatCompletionAggregated.mockRejectedValueOnce(
@@ -2332,7 +2333,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
     llmDispatcher.streamChatCompletionAggregated.mockRejectedValueOnce(
@@ -2361,7 +2362,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
 
@@ -2397,7 +2398,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
 
@@ -2514,7 +2515,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
     // Simulate a Redis publish outage for the duration of the stream.
