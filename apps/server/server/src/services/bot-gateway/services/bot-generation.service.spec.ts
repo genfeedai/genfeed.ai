@@ -1,259 +1,209 @@
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import { BotCommandType, IngredientCategory } from '@genfeedai/enums';
+import {
+  BotCommandType,
+  CredentialPlatform,
+  IngredientCategory,
+} from '@genfeedai/enums';
+import type {
+  IBotCallbackContext,
+  IBotResolvedUser,
+} from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
-
-import { BotGenerationService } from './bot-generation.service';
-
-vi.mock(
-  '@server/helpers/utils/generation-defaults/generation-defaults.util',
-  () => ({
-    resolveGenerationDefaultModel: vi.fn(() => 'replicate_openai_gpt_image_1'),
-  }),
-);
-
-const makeIngredientId = () => 'test-object-id';
+import { RedisService } from '@libs/redis/redis.service';
+import { ServiceUnavailableException } from '@nestjs/common';
+import { Test, type TestingModule } from '@nestjs/testing';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { BotGenerationService } from '@server/services/bot-gateway/services/bot-generation.service';
+import {
+  BOT_MEDIA_GENERATION_DISPATCHER,
+  type BotMediaGenerationDispatcher,
+} from '@server/services/bot-gateway/services/bot-media-generation-dispatcher.interface';
+import type { Request } from 'express';
 
 describe('BotGenerationService', () => {
-  let service: BotGenerationService;
-  let brandsService: vi.Mocked<Pick<BrandsService, 'findOne'>>;
-  let creditsUtilsService: vi.Mocked<
-    Pick<
-      CreditsUtilsService,
-      'getOrganizationCreditsBalance' | 'deductCreditsFromOrganization'
-    >
-  >;
-  let organizationSettingsService: vi.Mocked<
-    Pick<OrganizationSettingsService, 'findOne'>
-  >;
-  let sharedService: vi.Mocked<Pick<SharedService, 'createMediaDocuments'>>;
-  let configService: vi.Mocked<Pick<ConfigService, 'ingredientsEndpoint'>>;
-  let loggerService: vi.Mocked<Pick<LoggerService, 'log' | 'error' | 'warn'>>;
-
-  const orgId = 'test-object-id';
-  const userId = 'test-object-id';
-  const brandId = 'test-object-id';
-  const ingredientId = makeIngredientId();
-
-  const resolvedUser = { brandId, organizationId: orgId, userId };
-  const callbackCtx = { channelId: 'ch-1', messageId: 'msg-1' };
-
-  const mockBrand = {
-    _id: brandId,
-    defaultImageModel: null,
-    defaultVideoModel: null,
+  const ingredientId = 'ingredient-1';
+  const user: IBotResolvedUser = {
+    brandId: 'brand-1',
+    credentialId: 'credential-1',
+    organizationId: 'org-1',
+    userId: 'user-1',
   };
-  const mockSettings = { defaultImageModel: null, defaultVideoModel: null };
-  const mockIngredientData = { id: ingredientId };
-  const mockMetadataData = { id: 'test-object-id' };
+  const callbackContext: IBotCallbackContext = {
+    applicationId: 'app-1',
+    chatId: 'chat-1',
+    interactionToken: 'token-1',
+    platform: CredentialPlatform.DISCORD,
+  };
+  const request = {} as Request;
+
+  let service: BotGenerationService;
+  let creditsUtilsService: vi.Mocked<
+    Pick<CreditsUtilsService, 'getOrganizationCreditsBalance'>
+  >;
+  let dispatcher: vi.Mocked<BotMediaGenerationDispatcher>;
+  let publisher: {
+    get: ReturnType<typeof vi.fn>;
+    setex: ReturnType<typeof vi.fn>;
+    unlink: ReturnType<typeof vi.fn>;
+  };
+  let redisValues: Map<string, string>;
 
   beforeEach(async () => {
-    brandsService = { findOne: vi.fn().mockResolvedValue(mockBrand) };
+    redisValues = new Map();
+    publisher = {
+      get: vi.fn(async (key: string) => redisValues.get(key) ?? null),
+      setex: vi.fn(async (key: string, _ttl: number, value: string) => {
+        redisValues.set(key, value);
+        return 'OK';
+      }),
+      unlink: vi.fn(async (key: string) => Number(redisValues.delete(key))),
+    };
     creditsUtilsService = {
-      deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
     };
-    organizationSettingsService = {
-      findOne: vi.fn().mockResolvedValue(mockSettings),
-    };
-    sharedService = {
-      createMediaDocuments: vi.fn().mockResolvedValue({
-        ingredientData: mockIngredientData,
-        metadataData: mockMetadataData,
+    dispatcher = {
+      generate: vi.fn(async (input) => {
+        await input.onPlaceholderCreated(ingredientId);
+        return { ingredientId };
       }),
     };
-    configService = {
-      ingredientsEndpoint: 'https://cdn.genfeed.ai',
-    } as unknown as vi.Mocked<Pick<ConfigService, 'ingredientsEndpoint'>>;
-    loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BotGenerationService,
-        { provide: BrandsService, useValue: brandsService },
+        {
+          provide: ConfigService,
+          useValue: { ingredientsEndpoint: 'https://cdn.genfeed.ai' },
+        },
         { provide: CreditsUtilsService, useValue: creditsUtilsService },
         {
-          provide: OrganizationSettingsService,
-          useValue: organizationSettingsService,
+          provide: LoggerService,
+          useValue: { error: vi.fn(), log: vi.fn() },
         },
-        { provide: IngredientsService, useValue: {} },
-        { provide: MetadataService, useValue: {} },
-        { provide: SharedService, useValue: sharedService },
-        { provide: ConfigService, useValue: configService },
-        { provide: LoggerService, useValue: loggerService },
+        {
+          provide: RedisService,
+          useValue: { getPublisher: vi.fn(() => publisher) },
+        },
+        { provide: BOT_MEDIA_GENERATION_DISPATCHER, useValue: dispatcher },
       ],
     }).compile();
 
-    service = module.get<BotGenerationService>(BotGenerationService);
+    service = module.get(BotGenerationService);
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  // ── checkCredits ─────────────────────────────────────────────────────────
-  describe('checkCredits', () => {
-    it('returns hasCredits=true when balance >= required', async () => {
-      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(50);
-      const result = await service.checkCredits(orgId, 10);
-      expect(result.hasCredits).toBe(true);
-      expect(result.balance).toBe(50);
-    });
-
-    it('returns hasCredits=false when balance < required', async () => {
-      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(3);
-      const result = await service.checkCredits(orgId, 10);
-      expect(result.hasCredits).toBe(false);
-      expect(result.balance).toBe(3);
-    });
-
-    it('returns hasCredits=false and balance=0 on service error', async () => {
-      creditsUtilsService.getOrganizationCreditsBalance.mockRejectedValue(
-        new Error('DB error'),
-      );
-      const result = await service.checkCredits(orgId, 5);
-      expect(result).toEqual({ balance: 0, hasCredits: false });
-      expect(loggerService.error).toHaveBeenCalled();
+  it('reports the current organization credit balance', async () => {
+    await expect(service.checkCredits('org-1', 20)).resolves.toEqual({
+      balance: 100,
+      hasCredits: true,
     });
   });
 
-  // ── getCreditCost ─────────────────────────────────────────────────────────
-  describe('getCreditCost', () => {
-    it('returns 5 for PROMPT_IMAGE', () => {
-      expect(service.getCreditCost(BotCommandType.PROMPT_IMAGE)).toBe(5);
-    });
+  it('fails the credit check closed when the balance lookup fails', async () => {
+    creditsUtilsService.getOrganizationCreditsBalance.mockRejectedValue(
+      new Error('database unavailable'),
+    );
 
-    it('returns 20 for PROMPT_VIDEO', () => {
-      expect(service.getCreditCost(BotCommandType.PROMPT_VIDEO)).toBe(20);
-    });
-
-    it('returns 0 for unknown command types', () => {
-      expect(service.getCreditCost('UNKNOWN' as BotCommandType)).toBe(0);
+    await expect(service.checkCredits('org-1', 20)).resolves.toEqual({
+      balance: 0,
+      hasCredits: false,
     });
   });
 
-  // ── triggerGeneration ─────────────────────────────────────────────────────
-  describe('triggerGeneration', () => {
-    it('creates ingredient and deducts credits for IMAGE command', async () => {
+  it.each([
+    [BotCommandType.PROMPT_IMAGE, 'image'],
+    [BotCommandType.PROMPT_VIDEO, 'video'],
+  ])(
+    'dispatches %s through the canonical media path',
+    async (command, label) => {
       const result = await service.triggerGeneration(
-        resolvedUser,
-        BotCommandType.PROMPT_IMAGE,
-        'a beautiful sunset',
-        callbackCtx as never,
+        user,
+        command,
+        'a cinematic launch scene',
+        callbackContext,
+        request,
       );
-      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
-        expect.objectContaining({ id: userId }),
-        expect.objectContaining({ category: IngredientCategory.IMAGE }),
-      );
-      expect(
-        creditsUtilsService.deductCreditsFromOrganization,
-      ).toHaveBeenCalledWith(
-        orgId,
-        userId,
-        5,
-        expect.any(String),
-        expect.any(String),
-      );
-      expect(result.ingredientId).toBe(ingredientId);
-      expect(result.message).toContain('image');
-    });
 
-    it('creates ingredient and deducts credits for VIDEO command', async () => {
-      const result = await service.triggerGeneration(
-        resolvedUser,
-        BotCommandType.PROMPT_VIDEO,
-        'cinematic slow motion',
-        callbackCtx as never,
+      expect(dispatcher.generate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          command,
+          prompt: 'a cinematic launch scene',
+          request,
+          user,
+        }),
       );
-      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
-        expect.objectContaining({ id: userId }),
-        expect.objectContaining({ category: IngredientCategory.VIDEO }),
-      );
-      expect(
-        creditsUtilsService.deductCreditsFromOrganization,
-      ).toHaveBeenCalledWith(
-        orgId,
-        userId,
-        20,
-        expect.any(String),
-        expect.any(String),
-      );
-      expect(result.message).toContain('video');
-    });
+      expect(result).toEqual({
+        ingredientId,
+        message: `Generating your ${label}...`,
+      });
+    },
+  );
 
-    it('stores callback context under ingredientId', async () => {
-      await service.triggerGeneration(
-        resolvedUser,
-        BotCommandType.PROMPT_IMAGE,
-        'test prompt',
-        { ...callbackCtx, ingredientId: undefined } as never,
-      );
-      const ctx = service.getCallbackContext(ingredientId);
-      expect(ctx).toBeDefined();
-    });
+  it('persists callback context before provider dispatch continues', async () => {
+    await service.triggerGeneration(
+      user,
+      BotCommandType.PROMPT_IMAGE,
+      'a launch scene',
+      callbackContext,
+      request,
+    );
 
-    it('throws when brand is not found', async () => {
-      brandsService.findOne.mockResolvedValue(null);
-      await expect(
-        service.triggerGeneration(
-          resolvedUser,
-          BotCommandType.PROMPT_IMAGE,
-          'x',
-          callbackCtx as never,
-        ),
-      ).rejects.toThrow('Brand not found');
-    });
-
-    it('propagates errors from createMediaDocuments', async () => {
-      sharedService.createMediaDocuments.mockRejectedValue(
-        new Error('DB write failed'),
-      );
-      await expect(
-        service.triggerGeneration(
-          resolvedUser,
-          BotCommandType.PROMPT_IMAGE,
-          'y',
-          callbackCtx as never,
-        ),
-      ).rejects.toThrow('DB write failed');
+    expect(publisher.setex).toHaveBeenCalledWith(
+      `bot-generation:callback:${ingredientId}`,
+      86_400,
+      JSON.stringify({ ...callbackContext, ingredientId }),
+    );
+    await expect(service.getCallbackContext(ingredientId)).resolves.toEqual({
+      ...callbackContext,
+      ingredientId,
     });
   });
 
-  // ── callback context management ───────────────────────────────────────────
-  describe('callback context management', () => {
-    it('getCallbackContext returns undefined for unknown id', () => {
-      expect(service.getCallbackContext('nonexistent-id')).toBeUndefined();
-    });
+  it('removes callback context after delivery', async () => {
+    redisValues.set(
+      `bot-generation:callback:${ingredientId}`,
+      JSON.stringify(callbackContext),
+    );
 
-    it('removeCallbackContext removes stored context', async () => {
-      await service.triggerGeneration(
-        resolvedUser,
-        BotCommandType.PROMPT_IMAGE,
-        'remove-test',
-        callbackCtx as never,
-      );
-      expect(service.getCallbackContext(ingredientId)).toBeDefined();
-      service.removeCallbackContext(ingredientId);
-      expect(service.getCallbackContext(ingredientId)).toBeUndefined();
-    });
+    await service.removeCallbackContext(ingredientId);
+
+    await expect(
+      service.getCallbackContext(ingredientId),
+    ).resolves.toBeUndefined();
   });
 
-  // ── getIngredientUrl ──────────────────────────────────────────────────────
-  describe('getIngredientUrl', () => {
-    it('returns image URL for IMAGE category', () => {
-      const url = service.getIngredientUrl('abc123', IngredientCategory.IMAGE);
-      expect(url).toBe('https://cdn.genfeed.ai/images/abc123');
-    });
+  it('rejects generation when durable callback storage is unavailable', async () => {
+    const module = await Test.createTestingModule({
+      providers: [
+        BotGenerationService,
+        { provide: ConfigService, useValue: {} },
+        { provide: CreditsUtilsService, useValue: creditsUtilsService },
+        { provide: LoggerService, useValue: { error: vi.fn(), log: vi.fn() } },
+        {
+          provide: RedisService,
+          useValue: { getPublisher: vi.fn(() => undefined) },
+        },
+        { provide: BOT_MEDIA_GENERATION_DISPATCHER, useValue: dispatcher },
+      ],
+    }).compile();
+    const unavailableService = module.get(BotGenerationService);
 
-    it('returns video URL for VIDEO category', () => {
-      const url = service.getIngredientUrl('abc123', IngredientCategory.VIDEO);
-      expect(url).toBe('https://cdn.genfeed.ai/videos/abc123');
-    });
+    await expect(
+      unavailableService.triggerGeneration(
+        user,
+        BotCommandType.PROMPT_IMAGE,
+        'a launch scene',
+        callbackContext,
+        request,
+      ),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+  });
+
+  it('builds canonical ingredient URLs', () => {
+    expect(service.getIngredientUrl('image-1', IngredientCategory.IMAGE)).toBe(
+      'https://cdn.genfeed.ai/images/image-1',
+    );
+    expect(service.getIngredientUrl('video-1', IngredientCategory.VIDEO)).toBe(
+      'https://cdn.genfeed.ai/videos/video-1',
+    );
   });
 });
