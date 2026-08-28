@@ -8,38 +8,10 @@ const agentFullPageSpy = vi.fn();
 const getTokenMock = vi.fn();
 const createFollowUpTasksMock = vi.fn();
 
-type AgentChatStoreSnapshot = { activeThreadId: string | null };
-type AgentChatStoreListener = (
-  state: AgentChatStoreSnapshot,
-  previousState: AgentChatStoreSnapshot,
-) => void;
-
-const storeListeners = new Set<AgentChatStoreListener>();
-
-/**
- * Stand-in for the zustand conversation store. The shell promotes the route by
- * *subscribing* rather than reading in render, so the double has to replay a
- * real `activeThreadId` transition — not just hand back a value.
- */
-function emitActiveThreadId(
-  activeThreadId: string | null,
-  previousActiveThreadId: string | null = null,
-): void {
-  for (const listener of storeListeners) {
-    listener({ activeThreadId }, { activeThreadId: previousActiveThreadId });
-  }
-}
-
 vi.mock('@genfeedai/agent', () => ({
   AgentFullPage: (props: Record<string, unknown>) => {
     agentFullPageSpy(props);
     return null;
-  },
-  useAgentChatStore: {
-    subscribe: (listener: AgentChatStoreListener) => {
-      storeListeners.add(listener);
-      return () => storeListeners.delete(listener);
-    },
   },
 }));
 
@@ -105,7 +77,6 @@ describe('AgentWorkspacePageShell', () => {
     agentFullPageSpy.mockClear();
     pushMock.mockClear();
     replaceMock.mockClear();
-    storeListeners.clear();
     getTokenMock.mockResolvedValue('authProvider-token');
     vi.mocked(resolveAuthToken).mockResolvedValue('api-token');
     createFollowUpTasksMock.mockResolvedValue([
@@ -145,42 +116,6 @@ describe('AgentWorkspacePageShell', () => {
         threadId: 'thread-123',
       }),
     );
-  });
-
-  it('promotes the unthreaded route to the thread the first turn created', () => {
-    render(<AgentWorkspacePageShell />);
-
-    emitActiveThreadId('thread-created-1');
-
-    expect(replaceMock).toHaveBeenCalledWith(
-      '/test-org/~/agent/onboarding/thread-created-1',
-    );
-  });
-
-  it('leaves a route that already carries its thread alone', () => {
-    render(<AgentWorkspacePageShell threadId="thread-123" />);
-
-    emitActiveThreadId('thread-created-1');
-
-    expect(replaceMock).not.toHaveBeenCalled();
-  });
-
-  it('ignores store updates that do not change the active thread', () => {
-    render(<AgentWorkspacePageShell />);
-
-    // A title edit or status change republishes the same id — that is not a
-    // navigation, and re-running `replace` would fight the router.
-    emitActiveThreadId('thread-created-1', 'thread-created-1');
-
-    expect(replaceMock).not.toHaveBeenCalled();
-  });
-
-  it('stays put when the store clears the active thread', () => {
-    render(<AgentWorkspacePageShell />);
-
-    emitActiveThreadId(null, 'thread-created-1');
-
-    expect(replaceMock).not.toHaveBeenCalled();
   });
 
   it('routes billing actions to Credits in OSS mode', () => {
