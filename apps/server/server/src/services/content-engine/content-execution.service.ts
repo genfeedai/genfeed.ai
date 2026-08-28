@@ -48,7 +48,7 @@ export class ContentExecutionService {
       planId: string;
       userId: string;
     };
-    items: ContentPlanItemDocument[];
+    items: Array<{ id: string }>;
     planId: string;
   }> {
     await this.contentPlansService.getByIdOrFail(organizationId, planId);
@@ -63,7 +63,7 @@ export class ContentExecutionService {
     );
     return {
       baseInput: { brandId, organizationId, planId, userId },
-      items,
+      items: items.map((item) => ({ id: String(item.id) })),
       planId,
     };
   }
