@@ -3,6 +3,18 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('Tailwind theme selector contract', () => {
+  it('scans only browser application and shared UI sources', () => {
+    const source = readFileSync(
+      join(process.cwd(), '../../packages/styles/globals.css'),
+      'utf8',
+    );
+
+    expect(source).toContain('@import "tailwindcss" source(none);');
+    expect(source).toContain('@source "../../apps/app";');
+    expect(source).toContain('@source "../../apps/website";');
+    expect(source).not.toContain('@source "../../apps/server";');
+  });
+
   it('binds dark variants to the data-theme attribute used by next-themes', () => {
     const source = readFileSync(
       join(process.cwd(), '../../packages/styles/globals.css'),

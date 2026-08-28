@@ -24,6 +24,13 @@ export type ConversationComposerScope = 'brand' | 'organization';
 
 export type ConversationComposerGenerationMode = 'auto' | 'image' | 'video';
 
+export interface ConversationComposerGenerationSettings {
+  aspectRatio: string;
+  duration?: number;
+  model?: string;
+  outputs?: number;
+}
+
 export type ConversationComposerContextReferenceKind =
   ResearchFindingReferenceKind;
 
@@ -62,6 +69,7 @@ export interface ConversationComposerSendOptions {
   artifactReferences?: AgentArtifactReference[];
   brandId?: string;
   generationMode?: ConversationComposerGenerationMode;
+  generationSettings?: ConversationComposerGenerationSettings;
   planModeEnabled?: boolean;
 }
 

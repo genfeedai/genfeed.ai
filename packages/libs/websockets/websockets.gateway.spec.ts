@@ -247,7 +247,11 @@ describe('WebSocketGateway', () => {
 
   it('disconnects when Better Auth verification throws', async () => {
     mockConfigService.get.mockReturnValue('http://localhost:3010');
-    verifyMock.mockRejectedValue(new Error('invalid signature'));
+    const verificationError = Object.assign(new Error('invalid signature'), {
+      code: 'ERR_JWT_EXPIRED',
+      payload: { email: 'must-not-be-logged@example.test' },
+    });
+    verifyMock.mockRejectedValue(verificationError);
     const socket = createMockSocket({
       handshake: {
         auth: { token: 'bad.token.here' },
@@ -271,7 +275,14 @@ describe('WebSocketGateway', () => {
     );
     expect(mockLoggerService.warn).toHaveBeenCalledWith(
       expect.stringContaining('Failed to verify Better Auth token'),
-      expect.any(Object),
+      expect.objectContaining({
+        errorCode: 'ERR_JWT_EXPIRED',
+        errorName: 'Error',
+      }),
+    );
+    expect(mockLoggerService.warn).not.toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ error: expect.anything() }),
     );
   });
 

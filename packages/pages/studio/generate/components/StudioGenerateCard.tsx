@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, IngredientStatus } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  IngredientStatus,
+  ViewType,
+} from '@genfeedai/enums';
 import type { IImage, IMetadata, IVideo } from '@genfeedai/interfaces';
 import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
 import { Video } from '@genfeedai/models/ingredients/video.model';
@@ -12,7 +17,14 @@ import {
 } from '@ui/lazy/masonry/LazyMasonry';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { AlertTriangle, Loader2, RotateCcw, Trash2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  Eye,
+  ImageOff,
+  Loader2,
+  RotateCcw,
+  Trash2,
+} from 'lucide-react';
 import NextImage from 'next/image';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
@@ -91,6 +103,7 @@ export default function StudioGenerateCard({
   job,
   onReprompt,
   onSelect,
+  view,
 }: StudioGenerateCardProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
   const { label } = getStudioGenerateTypeConfig(job.type);
@@ -111,12 +124,91 @@ export default function StudioGenerateCard({
   const width = Math.max(1, job.width || 1080);
   const height = Math.max(1, job.height || 1080);
   const masonryIngredient = useMemo(() => buildMasonryIngredient(job), [job]);
+  const isListView = view === ViewType.LIST;
 
   const handleMediaError = useCallback(() => {
     if (job.url) {
       setFailedMediaUrl(job.url);
     }
   }, [job.url]);
+
+  function renderDetails(showLifecycleActions = false): ReactElement {
+    return (
+      <div
+        className={`flex min-w-0 flex-col gap-3 bg-card p-3 ${
+          isListView ? 'justify-center sm:p-4' : 'border-t border-border'
+        }`}
+        data-asset-details
+      >
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <Badge
+            className="w-fit shrink-0 text-2xs uppercase tracking-wide"
+            variant="secondary"
+          >
+            {label}
+          </Badge>
+          <span className="truncate text-2xs text-muted-foreground">
+            {job.modelKey || 'Auto'}
+          </span>
+        </div>
+
+        <p
+          className={`break-words text-sm leading-relaxed text-foreground ${
+            isListView ? '' : 'line-clamp-2'
+          }`}
+        >
+          {job.prompt}
+        </p>
+
+        <Button
+          ariaLabel={translate('selectGenerationAria', {
+            prompt: job.prompt || job.id,
+            type: label,
+          })}
+          className="h-auto w-fit px-0 text-xs text-muted-foreground hover:text-foreground"
+          icon={<Eye className="size-3.5" />}
+          label={translate('inspectPrompt')}
+          onClick={() => onSelect(job)}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+        />
+
+        {showLifecycleActions ? (
+          <div className="flex items-center gap-1 border-t border-border pt-2">
+            {isFailed ? (
+              <Button
+                ariaLabel={translate('removeGenerationAria', {
+                  prompt: job.prompt || job.id,
+                  type: label,
+                })}
+                className="px-2 text-xs"
+                icon={<Trash2 className="size-3.5" />}
+                label={translate('remove')}
+                onClick={() => assetActions.onRemoveGeneration(job)}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            ) : null}
+            <Button
+              ariaLabel={translate('repromptGenerationAria', {
+                prompt: job.prompt || job.id,
+                type: label,
+              })}
+              className="px-2 text-xs"
+              icon={<RotateCcw className="size-3.5" />}
+              label={translate('reprompt')}
+              onClick={() => onReprompt(job)}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   if (mediaState === 'ready' && masonryIngredient) {
     const sharedProps = {
@@ -138,47 +230,41 @@ export default function StudioGenerateCard({
     return (
       <article
         aria-label={`${label} generation`}
-        className={`group relative w-full overflow-visible rounded-lg ${isSelected ? 'ring-2 ring-primary' : ''}`}
+        className={`group relative w-full rounded-lg border border-border bg-card shadow-border transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-border-strong ${
+          isListView
+            ? 'grid min-h-32 grid-cols-[7rem_minmax(0,1fr)] overflow-hidden sm:min-h-40 sm:grid-cols-[12rem_minmax(0,1fr)]'
+            : 'overflow-hidden'
+        } ${isSelected ? 'ring-2 ring-primary' : ''}`}
         data-asset-media-state={mediaState}
         data-selected={isSelected ? 'true' : 'false'}
         data-testid={`studio-asset-${job.id}`}
       >
-        {job.type === 'image' ? (
-          <LazyMasonryImage
-            {...sharedProps}
-            image={masonryIngredient as IImage}
-            onConvertToVideo={assetActions.onConvertToVideo}
-            onCreateVariation={assetActions.onCreateVariation}
-            onMarkArchived={assetActions.onMarkArchived}
-            onMediaError={handleMediaError}
-            onUseAsVideoReference={assetActions.onUseAsVideoReference}
-          />
-        ) : (
-          <LazyMasonryVideo
-            {...sharedProps}
-            video={masonryIngredient as IVideo}
-          />
-        )}
-
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/90 via-black/35 to-transparent p-3 pr-24 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
-          data-asset-details
+          className={
+            isListView
+              ? 'relative h-32 overflow-hidden border-r border-border sm:h-40'
+              : 'relative min-w-0 overflow-hidden'
+          }
         >
-          <p
-            className={
-              'line-clamp-2 text-xs text-white' /* design-system-allow-content-color */
-            }
-          >
-            {job.prompt}
-          </p>
-          <span
-            className={
-              'mt-1 block truncate text-2xs text-white/70' /* design-system-allow-content-color */
-            }
-          >
-            {job.modelKey || 'Auto'}
-          </span>
+          {job.type === 'image' ? (
+            <LazyMasonryImage
+              {...sharedProps}
+              image={masonryIngredient as IImage}
+              onConvertToVideo={assetActions.onConvertToVideo}
+              onCreateVariation={assetActions.onCreateVariation}
+              onMarkArchived={assetActions.onMarkArchived}
+              onMediaError={handleMediaError}
+              onUseAsVideoReference={assetActions.onUseAsVideoReference}
+            />
+          ) : (
+            <LazyMasonryVideo
+              {...sharedProps}
+              video={masonryIngredient as IVideo}
+            />
+          )}
         </div>
+
+        {renderDetails()}
       </article>
     );
   }
@@ -186,23 +272,21 @@ export default function StudioGenerateCard({
   return (
     <article
       aria-label={`${label} generation`}
-      className={`group relative w-full overflow-hidden rounded-lg bg-card shadow-border ${isSelected ? 'ring-2 ring-primary' : ''}`}
+      className={`group relative w-full overflow-hidden rounded-lg border border-border bg-card shadow-border transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-border-strong ${
+        isListView
+          ? 'grid min-h-32 grid-cols-[7rem_minmax(0,1fr)] sm:min-h-40 sm:grid-cols-[12rem_minmax(0,1fr)]'
+          : ''
+      } ${isSelected ? 'ring-2 ring-primary' : ''}`}
       data-asset-media-state={mediaState}
       data-selected={isSelected ? 'true' : 'false'}
       data-testid={`studio-asset-${job.id}`}
-      style={{ aspectRatio: `${width} / ${height}` }}
     >
-      <Button
-        ariaLabel={translate('selectGenerationAria', {
-          prompt: job.prompt || job.id,
-          type: label,
-        })}
-        className="absolute inset-0 z-[5]"
-        onClick={() => onSelect(job)}
-        variant={ButtonVariant.UNSTYLED}
-        withWrapper={false}
-      />
-      <div className="pointer-events-none relative z-0 flex size-full min-h-40 items-center justify-center overflow-hidden bg-foreground/[0.04]">
+      <div
+        className={`pointer-events-none relative z-0 flex items-center justify-center overflow-hidden bg-foreground/[0.04] ${
+          isListView ? 'h-32 border-r border-border sm:h-40' : 'w-full min-h-40'
+        }`}
+        style={isListView ? undefined : { aspectRatio: `${width} / ${height}` }}
+      >
         {isPending ? (
           <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <Loader2 className="size-5 animate-spin" />
@@ -211,13 +295,26 @@ export default function StudioGenerateCard({
         ) : null}
 
         {isFailed || isPreviewUnavailable ? (
-          <div className="flex flex-col items-center gap-2 px-3 text-center text-destructive">
-            <AlertTriangle className="size-5" />
+          <div
+            className={`flex flex-col items-center gap-2 px-3 text-center ${
+              isFailed ? 'text-destructive' : 'text-muted-foreground'
+            }`}
+          >
+            {isFailed ? (
+              <AlertTriangle className="size-5" />
+            ) : (
+              <ImageOff className="size-5" />
+            )}
             <span className="text-xs">
               {isFailed
                 ? job.error || translate('generationFailed')
                 : translate('previewUnavailable')}
             </span>
+            {isPreviewUnavailable ? (
+              <span className="max-w-48 text-2xs leading-relaxed text-muted-foreground/75">
+                {translate('previewUnavailableDescription')}
+              </span>
+            ) : null}
           </div>
         ) : null}
 
@@ -252,74 +349,7 @@ export default function StudioGenerateCard({
         ) : null}
       </div>
 
-      <div
-        className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-between bg-gradient-to-t from-black/90 via-black/25 to-black/10 p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
-        data-asset-details
-      >
-        <Badge
-          className="w-fit text-[0.625rem] uppercase tracking-wide"
-          variant="secondary"
-        >
-          {label}
-        </Badge>
-
-        <div
-          className={
-            'flex flex-col gap-2 text-white' /* design-system-allow-content-color */
-          }
-        >
-          <p
-            className={
-              'line-clamp-3 text-xs text-white' /* design-system-allow-content-color */
-            }
-          >
-            {job.prompt}
-          </p>
-          <div className="flex items-center justify-between gap-2">
-            <span
-              className={
-                'truncate text-[0.625rem] text-white/70' /* design-system-allow-content-color */
-              }
-            >
-              {job.modelKey || 'Auto'}
-            </span>
-            <div className="flex items-center gap-1">
-              {isFailed ? (
-                <Button
-                  ariaLabel={translate('removeGenerationAria', {
-                    prompt: job.prompt || job.id,
-                    type: label,
-                  })}
-                  className={
-                    'pointer-events-auto px-2 text-xs text-white hover:bg-white/15 hover:text-white' /* design-system-allow-content-color */
-                  }
-                  icon={<Trash2 className="size-3.5" />}
-                  label={translate('remove')}
-                  onClick={() => assetActions.onRemoveGeneration(job)}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  withWrapper={false}
-                />
-              ) : null}
-              <Button
-                ariaLabel={translate('repromptGenerationAria', {
-                  prompt: job.prompt || job.id,
-                  type: label,
-                })}
-                className={
-                  'pointer-events-auto px-2 text-xs text-white hover:bg-white/15 hover:text-white' /* design-system-allow-content-color */
-                }
-                icon={<RotateCcw className="size-3.5" />}
-                label={translate('reprompt')}
-                onClick={() => onReprompt(job)}
-                size={ButtonSize.SM}
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      {renderDetails(true)}
     </article>
   );
 }

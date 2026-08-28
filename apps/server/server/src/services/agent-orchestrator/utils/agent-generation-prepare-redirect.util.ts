@@ -117,25 +117,64 @@ export function inferPrepareGenerationType(
   return undefined;
 }
 
+interface GenerationRedirectOptions {
+  generationMode?: 'auto' | 'image' | 'video';
+  requestedGenerationType?: unknown;
+}
+
+function resolveVisualGenerationType(
+  toolName: string,
+  options: GenerationRedirectOptions,
+): 'image' | 'video' | undefined {
+  if (
+    options.generationMode === 'image' ||
+    options.generationMode === 'video'
+  ) {
+    return options.generationMode;
+  }
+  if (
+    options.requestedGenerationType === 'image' ||
+    options.requestedGenerationType === 'video'
+  ) {
+    return options.requestedGenerationType;
+  }
+  return inferPrepareGenerationType(toolName);
+}
+
 /**
- * Direct generation tools run immediately and never paint a review card.
- * When the matching prepare tool is allowed, remap so the user gets a card
- * first — the same contract as image/video → `prepare_generation`.
- *
- * Vendor prefixes (`default_api.generate_image`) and unknown generate-like
- * names recover onto the same card path instead of failing as unknown tools.
+ * The composer owns media review and settings now, so visual generation is a
+ * direct action. Recover both prepare calls and vendor-prefixed direct calls to
+ * the concrete executor tool while retaining voice clone's confirmation flow.
  */
 export function getGenerationPreparationRedirect(
   toolName: string,
   allowedTools: Set<AgentToolName>,
+  options: GenerationRedirectOptions = {},
 ): AgentToolName | null {
   const normalized = normalizeRequestedAgentToolName(toolName);
+  const isPrepareVisual = normalized === AgentToolName.PREPARE_GENERATION;
+  const hasVisualGenerationSurface =
+    allowedTools.has(AgentToolName.PREPARE_GENERATION) ||
+    allowedTools.has(AgentToolName.GENERATE_IMAGE) ||
+    allowedTools.has(AgentToolName.GENERATE_VIDEO);
 
   if (
-    allowedTools.has(AgentToolName.PREPARE_GENERATION) &&
-    isVisualGenerateLike(normalized)
+    hasVisualGenerationSurface &&
+    (isPrepareVisual || isVisualGenerateLike(normalized))
   ) {
-    return AgentToolName.PREPARE_GENERATION;
+    const generationType = resolveVisualGenerationType(normalized, options);
+    const directTool =
+      generationType === 'video'
+        ? AgentToolName.GENERATE_VIDEO
+        : generationType === 'image'
+          ? AgentToolName.GENERATE_IMAGE
+          : null;
+    if (
+      directTool &&
+      (directTool !== normalized || !allowedTools.has(directTool))
+    ) {
+      return directTool;
+    }
   }
 
   if (

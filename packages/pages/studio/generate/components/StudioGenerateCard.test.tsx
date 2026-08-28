@@ -1,4 +1,8 @@
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  ViewType,
+} from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { StudioGenerateAssetActions } from '@genfeedai/props/studio/studio-generate.props';
 import StudioGenerateCard from '@pages/studio/generate/components/StudioGenerateCard';
@@ -67,13 +71,15 @@ const generatedJob = {
 };
 
 describe('StudioGenerateCard', () => {
-  it('keeps asset details in the media hover overlay', () => {
+  it('keeps the asset unobscured and opens the full prompt inspector explicitly', () => {
+    const onSelect = vi.fn();
     const { container } = render(
       <StudioGenerateCard
         assetActions={buildAssetActions()}
         job={generatedJob}
         onReprompt={vi.fn()}
-        onSelect={vi.fn()}
+        onSelect={onSelect}
+        view={ViewType.GRID}
       />,
     );
 
@@ -81,8 +87,17 @@ describe('StudioGenerateCard', () => {
     expect(screen.getByText(generatedJob.modelKey)).toBeInTheDocument();
     expect(
       screen.getByText(generatedJob.prompt).closest('[data-asset-details]'),
-    ).toHaveClass('absolute');
+    ).not.toHaveClass('absolute');
+    expect(container.querySelector('[data-asset-caption]')).toBeNull();
     expect(container.querySelector('[data-asset-footer]')).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: `Inspect Image generation: ${generatedJob.prompt}`,
+      }),
+    );
+
+    expect(onSelect).toHaveBeenCalledWith(generatedJob);
   });
 
   it('replaces a broken image with the shared preview fallback', () => {
@@ -92,6 +107,7 @@ describe('StudioGenerateCard', () => {
         job={generatedJob}
         onReprompt={vi.fn()}
         onSelect={vi.fn()}
+        view={ViewType.GRID}
       />,
     );
 
@@ -114,6 +130,7 @@ describe('StudioGenerateCard', () => {
         job={{ ...generatedJob, url: undefined }}
         onReprompt={vi.fn()}
         onSelect={vi.fn()}
+        view={ViewType.GRID}
       />,
     );
 
@@ -136,6 +153,7 @@ describe('StudioGenerateCard', () => {
         job={job}
         onReprompt={onReprompt}
         onSelect={vi.fn()}
+        view={ViewType.GRID}
       />,
     );
 
@@ -171,6 +189,7 @@ describe('StudioGenerateCard', () => {
         job={job}
         onReprompt={onReprompt}
         onSelect={vi.fn()}
+        view={ViewType.GRID}
       />,
     );
 
@@ -178,7 +197,7 @@ describe('StudioGenerateCard', () => {
     expect(screen.getByText(generatedJob.prompt)).toBeInTheDocument();
     expect(
       screen.getByText(generatedJob.prompt).closest('[data-asset-details]'),
-    ).toHaveClass('absolute');
+    ).not.toHaveClass('absolute');
 
     const imageProps = masonryMocks.image.mock.calls.at(-1)?.[0] as {
       onCopyPrompt: StudioGenerateAssetActions['onCopyPrompt'];
@@ -215,6 +234,7 @@ describe('StudioGenerateCard', () => {
         }}
         onReprompt={vi.fn()}
         onSelect={vi.fn()}
+        view={ViewType.GRID}
       />,
     );
 
@@ -235,6 +255,7 @@ describe('StudioGenerateCard', () => {
         job={job}
         onReprompt={vi.fn()}
         onSelect={onSelect}
+        view={ViewType.GRID}
       />,
     );
 
@@ -245,5 +266,28 @@ describe('StudioGenerateCard', () => {
     );
 
     expect(onSelect).toHaveBeenCalledWith(job);
+  });
+
+  it('renders readable metadata beside the thumbnail in list view', () => {
+    render(
+      <StudioGenerateCard
+        assetActions={buildAssetActions()}
+        job={generatedJob}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.LIST}
+      />,
+    );
+
+    expect(screen.getByText(generatedJob.prompt)).toHaveClass(
+      'text-foreground',
+    );
+    expect(screen.getByText(generatedJob.prompt)).not.toHaveClass(
+      'line-clamp-3',
+    );
+    expect(screen.getByTestId('studio-asset-job-1')).toHaveClass('grid');
+    expect(
+      screen.getByText(generatedJob.prompt).closest('[data-asset-caption]'),
+    ).toBeNull();
   });
 });

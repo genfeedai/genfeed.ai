@@ -1,11 +1,24 @@
-@import "tailwindcss";
-
+@import "tailwindcss" source(none);
 @import "./keyframes.css";
 @import "./animate.css";
 @import "./theme.css";
 @import "./shadcn-theme.css";
 @import "./calendar.css";
 @import "./genfeed.css";
+
+/* The shared stylesheet serves the product app and public website. Disable
+   monorepo-wide auto detection so Tailwind never scans backend and generated
+   source graphs during a frontend compile. */
+@source "../../apps/app";
+@source "../../apps/website";
+@source "../agent";
+@source "../auth-client";
+@source "../contexts";
+@source "../helpers";
+@source "../hooks";
+@source "../pages";
+@source "../ui";
+@source "../workflows";
 
 /* Long-form prose (article bodies) arrives as sanitized HTML through
    `dangerouslySetInnerHTML`, so preflight strips it to unstyled text unless a

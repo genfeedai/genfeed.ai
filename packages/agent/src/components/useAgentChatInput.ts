@@ -6,17 +6,14 @@ import {
   mapMentionsToReferences,
   SendOnEnter,
 } from '@genfeedai/agent/components/agent-chat-input.mentions';
-import { BrandMentionList } from '@genfeedai/agent/components/BrandMentionList';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { CredentialMentionList } from '@genfeedai/agent/components/CredentialMentionList';
 import { TeamMentionList } from '@genfeedai/agent/components/TeamMentionList';
 import { parseConversationComposerCommand } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
-import { BrandMention } from '@genfeedai/agent/extensions/brand-mention.extension';
 import { CharacterMention } from '@genfeedai/agent/extensions/character-mention.extension';
 import { CredentialMention } from '@genfeedai/agent/extensions/credential-mention.extension';
 import { SlashCommands } from '@genfeedai/agent/extensions/slash-commands.extension';
 import { TeamMention } from '@genfeedai/agent/extensions/team-mention.extension';
-import { useBrandMentions } from '@genfeedai/agent/hooks/use-brand-mentions';
 import { useCharacterMentions } from '@genfeedai/agent/hooks/use-character-mentions';
 import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions';
 import { useCredentialMentions } from '@genfeedai/agent/hooks/use-credential-mentions';
@@ -26,6 +23,7 @@ import type {
   ConversationComposerActionName,
   ConversationComposerArtifactReference,
   ConversationComposerGenerationMode,
+  ConversationComposerGenerationSettings,
   ConversationComposerSendOptions,
   PersistedConversationComposerContentReference,
 } from '@genfeedai/agent/models/conversation-composer.model';
@@ -89,10 +87,10 @@ function contentReferenceToMention(
   };
 }
 
-/** Strip legacy inline contentMention nodes from restored drafts. */
-function stripContentMentionNodes(document: JSONContent): JSONContent {
+/** Strip inline context already owned by shell scope or the attachment tray. */
+function stripRedundantContextMentionNodes(document: JSONContent): JSONContent {
   function walk(node: JSONContent): JSONContent | null {
-    if (node.type === 'contentMention') {
+    if (node.type === 'brandMention' || node.type === 'contentMention') {
       return null;
     }
 
@@ -159,6 +157,7 @@ export {
 
 interface UseAgentChatInputParams {
   generationMode?: ConversationComposerGenerationMode;
+  generationSettings?: ConversationComposerGenerationSettings;
   onSend: (
     content: string,
     mentions?: ExtractedMention[],
@@ -184,6 +183,7 @@ interface UseAgentChatInputParams {
 
 export function useAgentChatInput({
   generationMode = 'auto',
+  generationSettings,
   onSend,
   onPromoteQueuedFollowUp,
   hasQueuedFollowUps = false,
@@ -226,7 +226,6 @@ export function useAgentChatInput({
   const { mentions: credentialMentions } = useCredentialMentions(
     apiService ?? null,
   );
-  const { mentions: brandMentions } = useBrandMentions();
   const { mentions: teamMentions } = useTeamMentions(apiService ?? null);
   const { mentions: characterMentions } = useCharacterMentions(
     apiService ?? null,
@@ -292,7 +291,7 @@ export function useAgentChatInput({
     if (!restoredDraft.document) {
       return undefined;
     }
-    return stripContentMentionNodes(restoredDraft.document);
+    return stripRedundantContextMentionNodes(restoredDraft.document);
   }, [restoredDraft.document]);
 
   const editor = useEditor({
@@ -359,22 +358,6 @@ export function useAgentChatInput({
         onEnter: () => {
           handleSendRef.current();
           return true;
-        },
-      }),
-      BrandMention.configure({
-        HTMLAttributes: { class: 'mention mention-brand' },
-        renderText({ node }) {
-          return `#${node.attrs.label ?? node.attrs.brandName}`;
-        },
-        suggestion: {
-          char: '#',
-          ...buildMentionSuggestion({
-            component: BrandMentionList,
-            getItems: (query) =>
-              brandMentions.filter((item) =>
-                item.brandName.toLowerCase().includes(query.toLowerCase()),
-              ),
-          }),
         },
       }),
       CharacterMention.configure({
@@ -519,10 +502,10 @@ export function useAgentChatInput({
       draft.contentReferences,
     );
     const cleanedDocument = draft.document
-      ? stripContentMentionNodes(draft.document)
+      ? stripRedundantContextMentionNodes(draft.document)
       : '';
     applyComposerDocument(editor, cleanedDocument);
-    setIsEmpty(!draft.plainText.trim());
+    setIsEmpty(editor.isEmpty);
     setContentReferences(migratedContentReferences);
     writeConversationComposerContentReferences(
       draftScopeKey,
@@ -663,6 +646,9 @@ export function useAgentChatInput({
           : {}),
         ...(composerShell?.brandId ? { brandId: composerShell.brandId } : {}),
         generationMode,
+        ...(generationMode !== 'auto' && generationSettings
+          ? { generationSettings }
+          : {}),
         planModeEnabled: false,
       },
     );
@@ -690,6 +676,7 @@ export function useAgentChatInput({
     hasCompletedAttachments,
     getCompletedAttachments,
     generationMode,
+    generationSettings,
     clearAllAttachments,
     surfaceArtifactReferences,
     translate,

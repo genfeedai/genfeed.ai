@@ -1,5 +1,5 @@
-import { AgentCompletionCardBuilderService } from '@server/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentToolName, type AgentUiAction } from '@genfeedai/interfaces';
+import { AgentCompletionCardBuilderService } from '@server/services/agent-orchestrator/agent-completion-card-builder.service';
 
 describe('AgentCompletionCardBuilderService', () => {
   const service = new AgentCompletionCardBuilderService();
@@ -130,7 +130,7 @@ describe('AgentCompletionCardBuilderService', () => {
     });
   });
 
-  it('preserves content counts, output order, the four-variant cap, and the review CTA label', () => {
+  it('keeps the concrete content preview as the only result surface', () => {
     const contentAction: AgentUiAction = {
       audio: ['https://cdn.example.com/audio.mp3'],
       ctas: [{ href: '/publish/drafts', label: 'View all drafts' }],
@@ -162,78 +162,27 @@ describe('AgentCompletionCardBuilderService', () => {
       uiActions: [contentAction],
     });
 
-    expect(result.uiActions[0]).toEqual(
-      expect.objectContaining({
-        outcomeBullets: [
-          '3 text variants',
-          '3 image assets',
-          '1 video asset',
-          '1 audio asset',
-        ],
-        outputVariants: [
-          {
-            id: 'content-preview-1:image:0',
-            kind: 'image',
-            title: 'Generated drafts',
-            url: 'https://cdn.example.com/image-1.png',
-          },
-          {
-            id: 'content-preview-1:image:1',
-            kind: 'image',
-            title: 'Generated drafts',
-            url: 'https://cdn.example.com/image-2.png',
-          },
-          {
-            id: 'content-preview-1:video:0',
-            kind: 'video',
-            title: 'Generated drafts',
-            url: 'https://cdn.example.com/video.mp4',
-          },
-          {
-            id: 'content-preview-1:audio:0',
-            kind: 'audio',
-            title: 'Generated drafts',
-            url: 'https://cdn.example.com/audio.mp3',
-          },
-        ],
-        primaryCta: {
-          // Retired route normalized by the builder (normalize-agent-app-href).
-          href: '/publish/review',
-          label: 'Review Draft',
-        },
-        summaryText: 'Generated content for this request.',
-        type: 'completion_summary_card',
-      }),
-    );
+    expect(result.uiActions).toEqual([contentAction]);
   });
 
-  it('keeps thread segments together in the completion output contract', () => {
+  it('keeps a thread preview as the only result surface', () => {
+    const threadPreview: AgentUiAction = {
+      contentFormat: 'thread',
+      id: 'thread-preview-1',
+      textContent: 'Hook',
+      title: 'Launch thread',
+      tweets: ['Hook', 'Proof', 'Close'],
+      type: 'content_preview_card',
+    };
     const result = service.buildAssistantUiActions({
       reviewRequired: false,
       toolCalls: [
         { status: 'completed', toolName: AgentToolName.GENERATE_CONTENT },
       ],
-      uiActions: [
-        {
-          contentFormat: 'thread',
-          id: 'thread-preview-1',
-          textContent: 'Hook',
-          title: 'Launch thread',
-          tweets: ['Hook', 'Proof', 'Close'],
-          type: 'content_preview_card',
-        },
-      ],
+      uiActions: [threadPreview],
     });
 
-    expect(result.uiActions[0].outputVariants).toEqual([
-      {
-        id: 'thread-preview-1:thread',
-        kind: 'text',
-        textContent: 'Hook',
-        threadSegments: ['Hook', 'Proof', 'Close'],
-        title: 'Launch thread',
-      },
-    ]);
+    expect(result.uiActions).toEqual([threadPreview]);
   });
 
   it('does not mint Done for an empty content preview card', () => {
@@ -377,7 +326,7 @@ describe('AgentCompletionCardBuilderService', () => {
     ]);
   });
 
-  it('suppresses suggestions during review without suppressing the completion card', () => {
+  it('suppresses suggestions during review and keeps one concrete preview', () => {
     const result = service.buildAssistantUiActions({
       reviewRequired: true,
       toolCalls: [
@@ -394,10 +343,12 @@ describe('AgentCompletionCardBuilderService', () => {
     });
 
     expect(result.suggestedActions).toEqual([]);
-    expect(result.uiActions[0]).toMatchObject({
-      secondaryCtas: [],
-      type: 'completion_summary_card',
-    });
+    expect(result.uiActions).toEqual([
+      expect.objectContaining({
+        id: 'content-preview-1',
+        type: 'content_preview_card',
+      }),
+    ]);
   });
 
   it('keeps workflow suggestions ahead of later matching domains and caps them at three', () => {

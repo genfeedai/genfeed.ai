@@ -1,3 +1,4 @@
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 
 /**
@@ -19,4 +20,29 @@ export function toRuntimeAgentModel(
     return '';
   }
   return selectedModel?.trim() ?? '';
+}
+
+/**
+ * Auto must remain usable at zero balance when the registry exposes its
+ * explicitly free route. Concrete user picks stay concrete so the UI can show
+ * their real credit requirement instead of silently changing providers.
+ */
+export function resolveAgentModelForBalance(
+  selectedModel: string | null | undefined,
+  creditsRemaining: number | null,
+  selectableModelKeys: readonly string[],
+): string {
+  const trimmedSelection = selectedModel?.trim() ?? '';
+  const isAutoSelection =
+    !trimmedSelection || isAutoAgentModel(trimmedSelection);
+
+  if (
+    creditsRemaining === 0 &&
+    isAutoSelection &&
+    selectableModelKeys.includes(AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE)
+  ) {
+    return AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE;
+  }
+
+  return trimmedSelection;
 }

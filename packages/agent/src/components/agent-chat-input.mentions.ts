@@ -70,18 +70,10 @@ export function extractMentions(json: JSONContent): ExtractedMention[] {
 export function mapMentionsToReferences(
   mentions: readonly ExtractedMention[],
 ): AgentChatReferenceItem[] {
-  // Content library picks are no longer TipTap tokens — only brand/team/
-  // credential mentions still live in the document.
+  // Brand scope belongs to the route/topbar and content picks belong to the
+  // attachment tray. Only people, credentials, and characters are inline.
   const references: AgentChatReferenceItem[] = [];
   for (const mention of mentions) {
-    if (mention.type === 'brand') {
-      references.push({
-        id: mention.id,
-        label: `#${mention.brandName}`,
-        type: 'brand',
-      });
-      continue;
-    }
     if (mention.type === 'team') {
       references.push({
         id: mention.id,

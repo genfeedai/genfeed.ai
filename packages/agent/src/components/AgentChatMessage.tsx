@@ -191,7 +191,7 @@ function AgentChatMessageInner({
     return `Generated ${normalizedType.charAt(0).toUpperCase()}${normalizedType.slice(1)}`;
   }, [generatedContentType]);
   const shouldRenderGeneratedTextCard = useMemo(() => {
-    if (!generatedContent) {
+    if (!generatedContent || turnHasProductResultCard) {
       return false;
     }
     const normalizedType = generatedContentType?.trim().toLowerCase();
@@ -207,7 +207,7 @@ function AgentChatMessageInner({
       'video',
       'videos',
     ].includes(normalizedType);
-  }, [generatedContent, generatedContentType]);
+  }, [generatedContent, generatedContentType, turnHasProductResultCard]);
   // Product result cards own CTAs for the turn — suppress copy/retry footers
   // that stack next to generation/review surfaces (T3 density).
   const shouldShowAssistantActions =

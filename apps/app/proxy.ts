@@ -538,6 +538,31 @@ function resolveRefererWorkspaceSlugs(
   }
 }
 
+function resolveAppRouterSourceWorkspaceSlugs(
+  req: NextRequest,
+): WorkspaceSlugs | null {
+  const refererSlugs = resolveRefererWorkspaceSlugs(req);
+  if (refererSlugs) {
+    return refererSlugs;
+  }
+
+  // Next's client router does not consistently expose the browser-generated
+  // Referer through Request.headers. It does send the mounted route as the
+  // relative `next-url` header on RSC fetches, which is the actual shell the
+  // transition originated from. Keep this deliberately relative: an absolute
+  // or protocol-relative value must not be treated as a trusted app route.
+  const nextUrl = req.headers.get('next-url');
+  if (!nextUrl?.startsWith('/') || nextUrl.startsWith('//')) {
+    return null;
+  }
+
+  try {
+    return slugsFromPathname(new URL(nextUrl, req.url).pathname);
+  } catch {
+    return null;
+  }
+}
+
 async function continueWithCurrentWorkspace(
   req: NextRequest,
   cacheKey?: string | null,
@@ -1117,7 +1142,7 @@ function isScopedAppRouterTransition(req: NextRequest): boolean {
     req.headers.get('rsc') === '1' &&
     req.headers.get('next-action') === null &&
     slugsFromPathname(req.nextUrl.pathname) !== null &&
-    resolveRefererWorkspaceSlugs(req) !== null
+    resolveAppRouterSourceWorkspaceSlugs(req) !== null
   );
 }
 

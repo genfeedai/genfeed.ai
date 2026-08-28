@@ -272,6 +272,50 @@ function openPicker(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('ModelSelectorPopover', () => {
+  it('keeps generation type and model routing in one open picker', async () => {
+    const user = userEvent.setup();
+    const onContextChange = vi.fn();
+
+    render(
+      <ModelSelectorPopover
+        contextLabel="Generation type"
+        contextOptions={[
+          { label: 'Image', value: 'image' },
+          { label: 'Video', value: 'video' },
+        ]}
+        contextValue="image"
+        favoriteModelKeys={[]}
+        models={[
+          createModel({
+            key: 'google/nano-banana',
+            label: 'Nano Banana',
+          }),
+        ]}
+        onChange={vi.fn()}
+        onContextChange={onContextChange}
+        onFavoriteToggle={vi.fn()}
+        values={['__auto_model__']}
+      />,
+    );
+
+    await openPicker(user);
+
+    const generationType = screen.getByRole('group', {
+      name: 'Generation type',
+    });
+    expect(
+      within(generationType).getByRole('button', { name: 'Image' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(
+      within(generationType).getByRole('button', { name: 'Video' }),
+    );
+
+    expect(onContextChange).toHaveBeenCalledWith('video');
+    expect(screen.getByTestId('model-selector-popover')).toBeVisible();
+    expect(screen.getByPlaceholderText('Search models…')).toBeVisible();
+  });
+
   it('uses the elevated overlay surface instead of the canvas card', async () => {
     const user = userEvent.setup();
 

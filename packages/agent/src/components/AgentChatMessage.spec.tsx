@@ -405,6 +405,33 @@ describe('AgentChatMessage', () => {
     ).toHaveAttribute('src', ONE_PIXEL_IMAGE);
   });
 
+  it('renders a generated post once when its product preview card owns the turn', () => {
+    const tweet = 'Move fast, learn faster, and keep shipping.';
+    render(
+      <AgentChatMessage
+        message={{
+          ...buildMessage('assistant', 'Your post is ready.'),
+          metadata: {
+            contentType: 'post',
+            generatedContent: tweet,
+            uiActions: [
+              {
+                contentFormat: 'post',
+                id: 'content-preview-post',
+                platform: 'twitter',
+                title: 'X post',
+                tweets: [tweet],
+                type: 'content_preview_card',
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getAllByText(tweet)).toHaveLength(1);
+  });
+
   it('keeps generation configuration out of the transcript card stack', () => {
     render(
       <AgentChatMessage

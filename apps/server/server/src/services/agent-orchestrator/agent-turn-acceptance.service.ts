@@ -249,6 +249,10 @@ export class AgentTurnAcceptanceService {
       request: {
         ...request,
         clientRequestId: request.clientRequestId,
+        // Acceptance has already loaded and authorized this exact thread
+        // version. Pin it into the durable request so the worker revalidates
+        // the same scope instead of downgrading to a missing-version context.
+        expectedContextVersion: contextVersion,
         threadId,
       },
       runId,

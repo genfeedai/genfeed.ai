@@ -114,6 +114,23 @@ describe('SocketManager', () => {
       expect(stateListener).not.toHaveBeenCalled();
       expect(i2.getSocketService().socket.auth).toEqual({ token: 'token-b' });
     });
+
+    it('refreshes an opaque socket token before the fallback window ends', async () => {
+      vi.useFakeTimers();
+      const resolveToken = vi.fn().mockResolvedValue('token-b');
+
+      const manager = SocketManager.getInstance({
+        resolveToken,
+        token: 'token-a',
+      });
+
+      await vi.advanceTimersByTimeAsync(10 * 60 * 1_000);
+
+      expect(resolveToken).toHaveBeenCalledOnce();
+      expect(manager.getSocketService().socket.auth).toEqual({
+        token: 'token-b',
+      });
+    });
   });
 
   describe('subscribe / unsubscribe', () => {
@@ -226,7 +243,7 @@ describe('SocketManager', () => {
       );
     });
 
-    it('backs off before reconnecting a server-disconnected namespace', () => {
+    it('waits for fresh auth after a server-rejected namespace', () => {
       vi.useFakeTimers();
       const manager = SocketManager.getInstance({ autoConnect: false });
       const states: string[] = [];
@@ -235,14 +252,11 @@ describe('SocketManager', () => {
       socketState.active = false;
       getSocketHandler('disconnect')?.('io server disconnect');
 
-      expect(states.at(-1)).toBe('reconnecting');
+      expect(states.at(-1)).toBe('offline');
       expect(mockSocketConnect).not.toHaveBeenCalled();
 
-      vi.advanceTimersByTime(999);
+      vi.advanceTimersByTime(30_000);
       expect(mockSocketConnect).not.toHaveBeenCalled();
-
-      vi.advanceTimersByTime(1);
-      expect(mockSocketConnect).toHaveBeenCalledOnce();
       vi.useRealTimers();
     });
 

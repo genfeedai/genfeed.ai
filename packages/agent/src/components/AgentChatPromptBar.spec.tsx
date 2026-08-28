@@ -1,5 +1,4 @@
 import { AgentChatPromptBar } from '@genfeedai/agent/components/AgentChatPromptBar';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -27,26 +26,11 @@ vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
 
 vi.mock('@genfeedai/agent/components/AgentComposerStatusStack', () => ({
   AgentComposerStatusStack: () => null,
+  hasRenderableComposerTasks: () => false,
 }));
 
 vi.mock('@genfeedai/agent/components/ConversationComposerShellContext', () => ({
   useConversationComposerShell: () => null,
-}));
-
-vi.mock('@genfeedai/agent/components/GenerationActionCard', () => ({
-  GenerationActionCard: ({
-    className,
-    defaultCollapsed,
-  }: {
-    className?: string;
-    defaultCollapsed?: boolean;
-  }) => (
-    <div
-      className={className}
-      data-default-collapsed={defaultCollapsed ? 'true' : 'false'}
-      data-testid="generation-action-card"
-    />
-  ),
 }));
 
 vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
@@ -63,13 +47,6 @@ vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
     </div>
   ),
 }));
-
-const activeGenerationAction = {
-  generationType: 'image',
-  id: 'generation-card-1',
-  title: 'Generate image',
-  type: 'generation_action_card',
-} satisfies AgentUiAction;
 
 function renderPromptBar(
   isReadOnly: boolean,
@@ -90,8 +67,8 @@ function renderPromptBar(
 ): void {
   render(
     <AgentChatPromptBar
-      activeGenerationAction={activeGenerationAction}
       activeWorkEvent={null}
+      workEvents={[]}
       addFiles={vi.fn()}
       apiService={{} as never}
       chatAttachments={[]}
@@ -121,7 +98,6 @@ function renderPromptBar(
       onSendFollowUpNow={extras.onSendFollowUpNow}
       onStop={vi.fn()}
       onSubmitInputRequest={vi.fn()}
-      onUiAction={vi.fn()}
       pendingInputRequest={null}
       promptBarSuggestions={null}
       removeAttachment={vi.fn()}
@@ -132,37 +108,16 @@ function renderPromptBar(
 }
 
 describe('AgentChatPromptBar', () => {
-  it('hides actionable generation cards in read-only threads', () => {
+  it('keeps read-only threads from rendering a second generation surface', () => {
     renderPromptBar(true);
 
-    expect(
-      screen.queryByTestId('generation-action-card'),
-    ).not.toBeInTheDocument();
-  });
-
-  it('keeps generation cards available in writable threads', () => {
-    renderPromptBar(false);
-
-    expect(screen.getByTestId('generation-action-card')).toBeInTheDocument();
-  });
-
-  it('docks the generation card flush on the prompt bar without a transcript gap', () => {
-    renderPromptBar(false);
-
-    const card = screen.getByTestId('generation-action-card');
-    expect(card.parentElement).not.toHaveClass('pb-2');
-  });
-
-  it('attaches a collapsed generation mode strip to the one prompt bar', () => {
-    renderPromptBar(false);
-
-    const card = screen.getByTestId('generation-action-card');
-    expect(card).toHaveClass('w-full');
-    expect(card).not.toHaveClass('w-[95%]');
-    expect(card).toHaveAttribute('data-default-collapsed', 'true');
+    expect(screen.getByTestId('chat-input')).toHaveAttribute(
+      'data-disabled',
+      'true',
+    );
     expect(screen.getByTestId('chat-input')).toHaveAttribute(
       'data-top-attached',
-      'true',
+      'false',
     );
   });
 

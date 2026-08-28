@@ -32,6 +32,7 @@ function makeSignedInRequest(
     extraCookies?: Record<string, string>;
     method?: string;
     nextAction?: string;
+    nextUrl?: string;
     referer?: string;
     rsc?: boolean;
     search?: string;
@@ -67,6 +68,9 @@ function makeSignedInRequest(
         }
         if (normalizedName === 'next-action') {
           return opts.nextAction ?? null;
+        }
+        if (normalizedName === 'next-url') {
+          return opts.nextUrl ?? null;
         }
         return null;
       }),
@@ -1603,6 +1607,41 @@ describe('proxy', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('location')).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('uses the scoped next-url header when the RSC fetch omits its referer', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', {
+        nextUrl: '/acme/moonrise-studio/agent/thread-1',
+        rsc: true,
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects an absolute next-url as proof of a mounted app shell', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    await proxy(
+      makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', {
+        nextUrl: 'https://attacker.example/acme/moonrise-studio/agent/thread-1',
+        rsc: true,
+      }),
+      {} as never,
+    );
+
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
+      'http://localhost:3010/v1/auth/token',
+    );
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
+      'http://localhost:3010/v1/auth/bootstrap',
+    );
   });
 
   it('keeps strict auth bootstrap for a scoped RSC request without a mounted scoped shell', async () => {
