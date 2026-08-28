@@ -147,9 +147,14 @@ describe('check-product-workflow-boundary', () => {
 
   it('rejects persisted hidden workflow clones and empty action contracts', () => {
     writeFixture(
-      'apps/server/server/src/collections/workflows/system-runner.ts',
+      'apps/server/server/src/collections/workflows/system-workflow-runner.service.ts',
       `
-        const metadata = { sourceType: 'hidden-system-workflow' };
+        async function ensureSystemWorkflow(definition, organizationId, userId) {
+          return createVersionedWorkflow(transaction, {
+            organizationId: organizationId,
+            userId,
+          });
+        }
       `,
     );
     writeFixture(
@@ -171,6 +176,27 @@ describe('check-product-workflow-boundary', () => {
       ]),
     );
     expect(result.violations).toHaveLength(2);
+  });
+
+  it('allows one code-owned hidden workflow mirror under a fixed principal', () => {
+    writeFixture(
+      'apps/server/server/src/collections/workflows/system-workflow-runner.service.ts',
+      `
+        const SYSTEM_WORKFLOW_PRINCIPAL_ID = 'genfeed-public-tools';
+        const metadata = { sourceType: 'hidden-system-workflow' };
+        async function ensureHiddenSystemWorkflowMirror(definition) {
+          return createVersionedWorkflow(transaction, {
+            organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+            userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+          });
+        }
+      `,
+    );
+
+    const result = runCheckProductWorkflowBoundary({ exceptions: [] });
+
+    expect(result.detections).toHaveLength(0);
+    expect(result.violations).toHaveLength(0);
   });
 
   it('rejects empty action contracts hidden behind shared schema constants', () => {

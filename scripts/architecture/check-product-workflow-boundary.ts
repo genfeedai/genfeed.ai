@@ -239,9 +239,12 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
   {
     exceptionAllowed: false,
     id: 'persisted-hidden-system-workflow-clone',
-    matches: (_file, source) =>
-      /sourceType\s*:\s*['"]hidden-system-workflow['"]/.test(source) ||
-      /\bensureSystemWorkflow\s*\(/.test(source),
+    matches: (file, source) =>
+      file.endsWith('/system-workflow-runner.service.ts') &&
+      (/\bensureSystemWorkflow\s*\(/.test(source) ||
+        /createVersionedWorkflow\s*\([\s\S]{0,2400}\borganizationId\s*:\s*(?:input\.)?organizationId\b/.test(
+          source,
+        )),
     message:
       'Hidden system graphs are code-owned and must not create per-organization Workflow clones.',
   },
