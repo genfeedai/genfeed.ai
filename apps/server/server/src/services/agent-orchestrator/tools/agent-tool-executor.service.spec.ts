@@ -3297,6 +3297,39 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
+  it('should give consecutive same-brand voice drafts distinct action identities', async () => {
+    const { brandsService, service } = createService();
+
+    brandsService.findOne.mockResolvedValue({
+      agentConfig: { strategy: { platforms: ['linkedin'] } },
+      id: 'brand-voice-1',
+      label: 'Genfeed',
+    });
+
+    const first = await service.executeTool(
+      AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
+      {},
+      { organizationId: testId('org'), userId: testId('user') },
+    );
+    const second = await service.executeTool(
+      AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
+      {},
+      { organizationId: testId('org'), userId: testId('user') },
+    );
+    const firstAction = first.nextActions?.[0];
+    const secondAction = second.nextActions?.[0];
+
+    expect(firstAction?.id).toMatch(/^brand-voice-profile-/);
+    expect(secondAction?.id).toMatch(/^brand-voice-profile-/);
+    expect(secondAction?.id).not.toBe(firstAction?.id);
+    expect(firstAction?.ctas?.[0]?.payload).toEqual(
+      expect.objectContaining({ sourceActionId: firstAction?.id }),
+    );
+    expect(secondAction?.ctas?.[0]?.payload).toEqual(
+      expect.objectContaining({ sourceActionId: secondAction?.id }),
+    );
+  });
+
   it('should persist an approved brand voice profile into brand agent config', async () => {
     const { brandsService, service } = createService();
 

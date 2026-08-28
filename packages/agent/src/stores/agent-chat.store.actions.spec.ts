@@ -126,6 +126,48 @@ describe('agent-chat.store messages and plans', () => {
     ).toBe('completed');
   });
 
+  it('preserves message and stream references when an action id is absent', () => {
+    const store = useAgentChatStore.getState();
+    store.setMessages([makeMessage('m-1')]);
+    store.addPendingUiActions([
+      { id: 'other-action', type: 'completion_summary_card' },
+    ]);
+    const before = useAgentChatStore.getState();
+
+    before.setUiActionStatus('missing-action', 'completed');
+
+    const after = useAgentChatStore.getState();
+    expect(after.messages).toBe(before.messages);
+    expect(after.stream).toBe(before.stream);
+    expect(after.uiActionStatusById['missing-action']).toBe('completed');
+  });
+
+  it('updates matching message actions without replacing an unrelated pending stream', () => {
+    const store = useAgentChatStore.getState();
+    store.setMessages([
+      makeMessage('m-1', {
+        metadata: {
+          uiActions: [
+            { id: 'message-action', type: 'brand_voice_profile_card' },
+          ],
+        },
+      }),
+    ]);
+    store.addPendingUiActions([
+      { id: 'other-action', type: 'completion_summary_card' },
+    ]);
+    const before = useAgentChatStore.getState();
+
+    before.setUiActionStatus('message-action', 'completed');
+
+    const after = useAgentChatStore.getState();
+    expect(after.messages).not.toBe(before.messages);
+    expect(after.messages[0]?.metadata?.uiActions?.[0]?.status).toBe(
+      'completed',
+    );
+    expect(after.stream).toBe(before.stream);
+  });
+
   it('setMessages derives the latest proposed plan from the newest message', () => {
     const older = makePlan('plan-old');
     const newer = makePlan('plan-new');
