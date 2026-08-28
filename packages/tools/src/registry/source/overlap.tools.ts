@@ -376,7 +376,8 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           type: 'string',
         },
         duration: {
-          description: 'Duration in seconds (4-60, default 10)',
+          description:
+            'Duration in seconds. The selected model clamps or rejects values outside its published range.',
           type: 'number',
         },
         characterHandles: {
@@ -391,6 +392,16 @@ export const OVERLAP_TOOLS: SourceTool[] = [
             'Start-frame image URL for image-to-video or avatar generation. This is the first frame, not a character reference. Use references/characterHandles for identity references.',
           type: 'string',
         },
+        model: {
+          description:
+            'Video generation model key. When omitted, the organization router selects a compatible model.',
+          type: 'string',
+        },
+        endFrame: {
+          description:
+            'Optional tenant-readable image ingredient id used as the final interpolation frame. Keep distinct from references and videoReferences.',
+          type: 'string',
+        },
         prompt: {
           description: 'Detailed text description of the video to generate',
           type: 'string',
@@ -400,6 +411,30 @@ export const OVERLAP_TOOLS: SourceTool[] = [
             'Optional asset/ingredient ids or URLs used as character/style references (not the start frame). Max 8, further capped by the model. Use imageUrl for the start frame.',
           items: { type: 'string' },
           maxItems: 8,
+          type: 'array',
+        },
+        resolution: {
+          description:
+            'Model-native output resolution. Unsupported values are rejected rather than coerced.',
+          enum: [
+            '360p',
+            '480p',
+            '720p',
+            '768p',
+            '768P',
+            '1080p',
+            '2K',
+            'standard',
+            'pro',
+            '4k',
+          ],
+          type: 'string',
+        },
+        videoReferences: {
+          description:
+            'Optional tenant-readable video ingredient ids for models with native video-reference support. Distinct from start/end stills.',
+          items: { type: 'string' },
+          maxItems: 10,
           type: 'array',
         },
       },

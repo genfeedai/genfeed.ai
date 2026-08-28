@@ -109,6 +109,7 @@ export const MODEL_KEYS = {
   FAL_VEO_3_1: 'fal-ai/veo3.1',
   FAL_PIXVERSE_V6: 'fal-ai/pixverse/v6',
   FAL_SEEDANCE_2_0: 'fal-ai/seedance-2.0',
+  FAL_GOOGLE_GEMINI_OMNI_FLASH: 'fal/google/gemini-omni-flash',
   FAL_STABLE_VIDEO: 'fal-ai/stable-video-diffusion',
   FAL_WHISPER: 'fal-ai/whisper',
   FAL_ELEVEN_LABS_TTS: 'fal-ai/eleven-labs-tts',

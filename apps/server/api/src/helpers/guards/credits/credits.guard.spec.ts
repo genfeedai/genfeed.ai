@@ -1,18 +1,18 @@
-import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import type { ModelsService } from '@server/collections/models/services/models.service';
 import {
   CREDITS_DEFER_MODEL_RESOLUTION_KEY,
   CREDITS_KEY,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import type { ByokService } from '@server/services/byok/byok.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
-import { ByokProvider, ModelProvider } from '@genfeedai/enums';
+import { ActivitySource, ByokProvider, ModelProvider } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import type { ModelsService } from '@server/collections/models/services/models.service';
+import type { ByokService } from '@server/services/byok/byok.service';
 
 const orgId = testId('org');
 
@@ -240,6 +240,27 @@ describe('CreditsGuard', () => {
     const calledAmount =
       creditsUtilsService.checkOrganizationCreditsAvailable.mock.calls[0][1];
     expect(calledAmount).toBeGreaterThanOrEqual(10);
+  });
+
+  it('uses the model-aware 4K video generation band before dispatch', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) => {
+      if (key === CREDITS_KEY) {
+        return { source: ActivitySource.VIDEO_GENERATION };
+      }
+      return undefined;
+    });
+    modelsService.findOne.mockResolvedValue({
+      cost: 10,
+      key: 'video-model',
+    });
+
+    await guard.canActivate(
+      createContext({ model: 'video-model', resolution: '4k' }),
+    );
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith(orgId, 40);
   });
 
   it('multiplies credits by outputs count', async () => {

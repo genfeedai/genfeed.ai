@@ -1,8 +1,8 @@
 import { PricingType } from '@genfeedai/enums';
 
 import {
-  applyHighResolutionVideoMultiplier,
   applyMinCost,
+  applyVideoResolutionCreditMultiplier,
   calculateDynamicImageCost,
   calculateDynamicVideoCost,
   calculateMegapixelCost,
@@ -13,7 +13,6 @@ import {
   doesImageProviderFanOutPerOutput,
   FALLBACK_GENERATION_CREDIT_COST,
   isDeferredCreditsRequest,
-  isHighResolutionVideo,
   requestedOutputCount,
   resolveGenerationDimensions,
   resolveModelCreditCost,
@@ -109,12 +108,23 @@ describe('generation credit cost helpers', () => {
   });
 
   describe('video multipliers', () => {
-    it('doubles high and 1080p resolutions only', () => {
-      expect(isHighResolutionVideo('high')).toBe(true);
-      expect(isHighResolutionVideo('1080p')).toBe(true);
-      expect(isHighResolutionVideo('standard')).toBe(false);
-      expect(applyHighResolutionVideoMultiplier(10, 'high')).toBe(20);
-      expect(applyHighResolutionVideoMultiplier(10, '720p')).toBe(10);
+    it('reserves the selected model and resolution band', () => {
+      expect(
+        applyVideoResolutionCreditMultiplier(10, 'provider/model', 'high'),
+      ).toBe(20);
+      expect(
+        applyVideoResolutionCreditMultiplier(10, 'provider/model', '4k'),
+      ).toBe(40);
+      expect(
+        applyVideoResolutionCreditMultiplier(
+          10,
+          'kwaivgi/kling-v3-omni-video',
+          '4k',
+        ),
+      ).toBe(25);
+      expect(
+        applyVideoResolutionCreditMultiplier(10, 'provider/model', '720p'),
+      ).toBe(10);
     });
 
     it('multiplies non-batch video outputs and leaves batch models unscaled', () => {

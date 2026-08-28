@@ -35,6 +35,9 @@ vi.mock('@ui/quick-actions/config/quick-actions.config', () => ({
   createEditAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('edit', 'Edit') : null,
   ),
+  createExtendAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('extend', 'Extend') : null,
+  ),
   createFavoriteAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('favorite', 'Favorite') : null,
   ),

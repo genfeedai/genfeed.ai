@@ -92,7 +92,8 @@ export const SELF_HOSTED_MODELS = [
   },
   /**
    * Cloud default. H3 costs $0.08/s at 768P and $0.13/s at 2K. Seed the
-   * conservative 2K rate because bill time does not yet vary by resolution.
+   * conservative 2K rate; the shared resolution quote/reservation discounts
+   * the published 768P draft band when selected.
    * 5s → applyMargin(0.65) ≈ 217 credits at margin 1.0.
    */
   {
@@ -132,6 +133,28 @@ export const SELF_HOSTED_MODELS = [
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'seedance-2.5', owner: 'bytedance' },
     providerCostUsd: 0.24,
+  },
+  /**
+   * fal partner endpoint. The public contract bills reference/input video at
+   * $0.13/s; seed that conservative band for text and image-reference modes.
+   * 8s -> applyMargin(1.04) ~= 347 credits at margin 1.0.
+   */
+  {
+    category: ModelCategory.VIDEO,
+    cost: 347,
+    costPerUnit: 44,
+    costTier: CostTier.HIGH,
+    description:
+      'Google Gemini Omni Flash via fal — synchronized-audio video from text, a first image, or up to three reference images.',
+    isDefault: false,
+    isHighlighted: true,
+    key: MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
+    label: 'Gemini Omni Flash',
+    minCost: 132,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.FAL,
+    providerConfig: { name: 'gemini-omni-flash', owner: 'google' },
+    providerCostUsd: 0.13,
   },
   /**
    * Cheapest T2V already wired in the Replicate video builder.

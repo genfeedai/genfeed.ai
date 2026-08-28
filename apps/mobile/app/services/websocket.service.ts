@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import Constants from 'expo-constants';
+import { sentryService } from '@/services/sentry.service';
 
 const WS_URL = Constants.expoConfig?.extra?.wsUrl || 'wss://api.genfeed.ai/ws';
 
@@ -102,8 +103,11 @@ class WebSocketService extends EventEmitter {
       const message: WebSocketMessage = JSON.parse(event.data);
       this.emit('message', message);
       this.emit(message.type, message.data);
-    } catch {
-      // Invalid JSON - ignore
+    } catch (error) {
+      sentryService.captureException(
+        error instanceof Error ? error : new Error(String(error)),
+        { operation: 'parseWebSocketMessage' },
+      );
     }
   }
 
@@ -115,7 +119,13 @@ class WebSocketService extends EventEmitter {
   }
 
   private handleError(): void {
-    this.emit('error', new Error('WebSocket connection error'));
+    const error = new Error('WebSocket connection error');
+    sentryService.captureException(error, {
+      connectionState: this.connectionState,
+      operation: 'connectWebSocket',
+      reconnectAttempts: this.reconnectAttempts,
+    });
+    this.emit('connectionError', error);
   }
 
   private attemptReconnect(): void {

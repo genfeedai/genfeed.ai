@@ -173,8 +173,10 @@
   },
   "studioGenerate": {
     "description": "One prompt bar for every asset type, enriched with your brand.",
+    "endFrame": "End Frame",
     "emptyDescription": "Write a prompt below and everything you generate lands here.",
     "emptyTitle": "Nothing here yet",
+    "estimatedCredits": "~{credits} credits",
     "generationFailed": "Generation failed",
     "inspector": {
       "autoModel": "Auto",
@@ -193,6 +195,7 @@
     },
     "generationRemoved": "Generation removed",
     "generating": "Generating…",
+    "kling4KReferenceConflict": "Kling video references require Pro, not 4K",
     "loadingModels": "Loading models…",
     "outputTypes": {
       "avatar": "Avatar",
@@ -217,7 +220,11 @@
       "loading": "Loading saved Looks…",
       "title": "Saved Looks"
     },
+    "seedanceReferenceConflict": "Seedance uses frames or a video reference, not both",
     "selectGenerationAria": "Inspect {type} generation: {prompt}",
+    "startFrame": "Start Frame",
+    "startFrameRequired": "Start Frame required",
+    "videoReference": "Video Reference",
     "remixOutput": {
       "description": "These settings are saved to this remix run before generation.",
       "title": "Output"

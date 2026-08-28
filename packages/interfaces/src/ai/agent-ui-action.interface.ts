@@ -219,6 +219,10 @@ export interface AgentUiAction extends AgentUiActionBase {
     model?: string;
     aspectRatio?: string;
     duration?: number;
+    endFrame?: string;
+    references?: string[];
+    resolution?: string;
+    videoReferences?: string[];
   };
   ingredients?: AgentIngredientItem[];
   workflows?: {

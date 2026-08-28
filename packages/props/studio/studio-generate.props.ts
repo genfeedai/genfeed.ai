@@ -11,6 +11,12 @@ import type { AnyExtension, JSONContent } from '@tiptap/core';
 /** Results-grid filter: one asset type, or every type at once. */
 export type StudioGenerateFilter = StudioGenerateType | 'all';
 
+export type StudioGenerateReferenceRole =
+  | 'reference'
+  | 'startFrame'
+  | 'endFrame'
+  | 'videoReference';
+
 export interface StudioGenerateTypeSelectorProps {
   isDisabled?: boolean;
   onChange: (type: StudioGenerateType) => void;
@@ -35,8 +41,8 @@ export interface StudioGenerateComposerProps {
   isTranscribing: boolean;
   isUploading: boolean;
   models: readonly IModel[];
-  onAddFiles: (files: File[]) => void;
-  onOpenLibrary: () => void;
+  onAddFiles: (files: File[], role?: StudioGenerateReferenceRole) => void;
+  onOpenLibrary: (role?: StudioGenerateReferenceRole) => void;
   onPromptChange: (value: string) => void;
   onPromptDocumentChange?: (document: JSONContent) => void;
   onRemoveAttachedAsset: (assetId: string) => void;

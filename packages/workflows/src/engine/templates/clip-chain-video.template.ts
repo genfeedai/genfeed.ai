@@ -42,6 +42,15 @@ export interface ClipChainWorkflowInstance extends ClipChainWorkflowTemplate {
   userId: string;
 }
 
+export interface VideoExtensionTemplateParams {
+  brandId: string;
+  dispatchMode?: 'native' | 'fabricated';
+  duration?: number;
+  model: string;
+  prompt: string;
+  sourceVideoId: string;
+}
+
 /**
  * Prepends the shared identity directive to a per-segment prompt so motion
  * and dialogue can differ while identity persists across clips.
@@ -271,3 +280,157 @@ export const createClipChainWorkflowInstance = (config: {
     userId: config.userId,
   };
 };
+
+/**
+ * One-click extension graph built from the same last-frame handoff and stitch
+ * primitives as the catalog clip-chain template. The source enters as an
+ * immutable input and the stitched output records it as its parent.
+ */
+export function buildVideoExtensionTemplate(
+  params: VideoExtensionTemplateParams,
+): ClipChainWorkflowTemplate {
+  if (params.dispatchMode === 'native') {
+    return {
+      category: 'video-generation',
+      description:
+        'Extend a completed video through the selected model native reference-video route',
+      edges: [
+        {
+          id: 'edge-source-extension',
+          source: 'source-video',
+          sourceHandle: 'video',
+          target: 'extension-video',
+          targetHandle: 'videoReference',
+        },
+      ],
+      id: 'video-extension',
+      metadata: {
+        createdAt: '2026-08-27T00:00:00.000Z',
+        creditEstimate: getNodeCreditCost('videoGen'),
+        tags: ['video', 'extend', 'native', 'reference-video'],
+        version: '1.0.0',
+      },
+      name: 'Extend Video',
+      nodes: [
+        {
+          config: {
+            itemCategory: 'video',
+            itemId: params.sourceVideoId,
+            source: 'library',
+          },
+          id: 'source-video',
+          inputs: [],
+          label: 'Source Video',
+          type: 'input-video',
+        },
+        {
+          config: {
+            actionVerb: 'extend',
+            brandId: params.brandId,
+            duration: params.duration ?? 8,
+            model: params.model,
+            parentIngredientId: params.sourceVideoId,
+            prompt: params.prompt,
+          },
+          id: 'extension-video',
+          inputs: ['source-video'],
+          label: 'Extended Video',
+          type: 'videoGen',
+        },
+      ],
+    };
+  }
+
+  return {
+    category: 'video-generation',
+    description:
+      'Extend a completed video from its last frame and concatenate the generated continuation',
+    edges: [
+      {
+        id: 'edge-source-extract',
+        source: 'source-video',
+        sourceHandle: 'video',
+        target: 'source-last-frame',
+        targetHandle: 'video',
+      },
+      {
+        id: 'edge-frame-extension',
+        source: 'source-last-frame',
+        sourceHandle: 'last_frame',
+        target: 'extension-video',
+        targetHandle: 'image',
+      },
+      {
+        id: 'edge-source-stitch',
+        source: 'source-video',
+        sourceHandle: 'video',
+        target: 'extended-video',
+        targetHandle: 'video-1',
+      },
+      {
+        id: 'edge-extension-stitch',
+        source: 'extension-video',
+        sourceHandle: 'video',
+        target: 'extended-video',
+        targetHandle: 'video-2',
+      },
+    ],
+    id: 'video-extension',
+    metadata: {
+      createdAt: '2026-08-27T00:00:00.000Z',
+      creditEstimate:
+        getNodeCreditCost('videoGen') + getNodeCreditCost('videoStitch'),
+      tags: ['video', 'clip-chain', 'extend', 'last-frame'],
+      version: '1.0.0',
+    },
+    name: 'Extend Video',
+    nodes: [
+      {
+        config: {
+          itemCategory: 'video',
+          itemId: params.sourceVideoId,
+          source: 'library',
+        },
+        id: 'source-video',
+        inputs: [],
+        label: 'Source Video',
+        type: 'input-video',
+      },
+      {
+        config: { selectionMode: 'last' },
+        id: 'source-last-frame',
+        inputs: ['source-video'],
+        label: 'Source Last Frame',
+        type: 'videoFrameExtract',
+      },
+      {
+        config: {
+          brandId: params.brandId,
+          duration: params.duration ?? 8,
+          model: params.model,
+          prompt: params.prompt,
+        },
+        id: 'extension-video',
+        inputs: ['source-last-frame'],
+        label: 'Generated Continuation',
+        type: 'videoGen',
+      },
+      {
+        config: {
+          audioCodec: 'aac',
+          dispatchMode: 'fabricated',
+          model: params.model,
+          outputQuality: 'full',
+          parentId: params.sourceVideoId,
+          seamlessLoop: false,
+          transitionDuration: 0,
+          transitionType: 'cut',
+        },
+        id: 'extended-video',
+        inputs: ['source-video', 'extension-video'],
+        label: 'Extended Video',
+        type: 'videoStitch',
+      },
+    ],
+  };
+}

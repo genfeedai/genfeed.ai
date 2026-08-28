@@ -23,6 +23,102 @@ const wrapEngineExecutor =
     ).data;
 
 describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
+  it('persists native video extension lineage and dispatches the Seedance extension contract', async () => {
+    const createAndLinkProcessingOutput = vi.fn(
+      async (
+        args: Parameters<
+          WorkflowEngineExecutorHelperService['createAndLinkProcessingOutput']
+        >[0],
+      ) => {
+        await args.runProvider('ingredient-extended');
+        return {
+          ingredientId: 'ingredient-extended',
+          metadataId: 'metadata-extended',
+        };
+      },
+    );
+    const helper = {
+      buildVideoIngredientUrl: (ingredientId: string) =>
+        `https://api.test/videos/${ingredientId}`,
+      createAndLinkProcessingOutput,
+      extractIngredientId: (value: unknown) =>
+        typeof value === 'string'
+          ? value.match(/\/videos\/([^/?#]+)/i)?.[1]
+          : undefined,
+      requireBrandId: (brandId: unknown) => String(brandId),
+      wrapEngineExecutor,
+    } as unknown as WorkflowEngineExecutorHelperService;
+    const replicateService = {
+      runModel: vi.fn().mockResolvedValue('prediction-extended'),
+    };
+    const filesClientService = {
+      getPresignedDownloadUrl: vi
+        .fn()
+        .mockResolvedValue('https://s3.example.com/source-video-1?sig=signed'),
+    };
+    const engine = new WorkflowEngine();
+
+    new WorkflowMediaGenerationExecutorRegistrarService(
+      helper,
+      { log: vi.fn() } as never,
+      { buildPrompt: vi.fn() } as never,
+      undefined,
+      undefined,
+      replicateService as never,
+      filesClientService as never,
+    ).register(engine);
+
+    await engine.getExecutor('videoGen')?.(
+      {
+        config: {
+          actionVerb: 'extend',
+          brandId: 'brand-1',
+          duration: 8,
+          model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+          parentIngredientId: 'source-video-1',
+          prompt: 'Continue into the next room',
+        },
+        id: 'video-gen-1',
+        inputs: [],
+        label: 'Extend video',
+        type: 'videoGen',
+      },
+      new Map([['videoReference', 'https://api.test/videos/source-video-1']]),
+      {
+        organizationId: 'org-1',
+        runId: 'run-1',
+        userId: 'user-1',
+        workflowId: 'workflow-1',
+      },
+    );
+
+    expect(replicateService.runModel).toHaveBeenCalledWith(
+      MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      expect.objectContaining({
+        aspect_ratio: 'adaptive',
+        duration: -1,
+        reference_videos: ['https://s3.example.com/source-video-1?sig=signed'],
+      }),
+    );
+    expect(filesClientService.getPresignedDownloadUrl).toHaveBeenCalledWith(
+      'source-video-1',
+      'videos',
+    );
+    expect(createAndLinkProcessingOutput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        output: expect.objectContaining({
+          parentIngredientId: 'source-video-1',
+          providerData: expect.objectContaining({
+            actionVerb: 'extend',
+            dispatchMode: 'native',
+            referenceAssetIds: ['source-video-1'],
+          }),
+          references: ['source-video-1'],
+        }),
+      }),
+    );
+  });
+
   it('preserves compiled negative prompts and canonical provenance in the workflow result and persisted output', async () => {
     const createAndLinkProcessingOutput = vi.fn(
       async (
@@ -189,6 +285,10 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       buildVideoIngredientUrl: (ingredientId: string) =>
         `https://api.test/videos/${ingredientId}`,
       createAndLinkProcessingOutput,
+      extractIngredientId: (value: unknown) =>
+        typeof value === 'string'
+          ? value.match(/\/videos\/([^/?#]+)/i)?.[1]
+          : undefined,
       requireBrandId: (brandId: unknown) => String(brandId),
       wrapEngineExecutor,
     } as unknown as WorkflowEngineExecutorHelperService;

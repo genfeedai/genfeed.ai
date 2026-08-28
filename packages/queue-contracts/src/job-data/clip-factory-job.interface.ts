@@ -50,7 +50,8 @@ export interface ClipFactoryRunReference {
     | 'style'
     | 'composition'
     | 'first_frame'
-    | 'last_frame';
+    | 'last_frame'
+    | 'reference_video';
   url: string;
 }
 

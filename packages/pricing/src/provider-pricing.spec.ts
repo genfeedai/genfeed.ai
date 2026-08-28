@@ -2,11 +2,15 @@ import { describe, expect, it } from 'vitest';
 import {
   ASPECT_RATIOS,
   DEFAULT_VIDEO_DURATION,
+  getVideoGenerationResolutionCreditMultiplier,
   IMAGE_NODE_TYPES,
   LUMA_ASPECT_RATIOS,
   LUMA_NODE_TYPES,
   OUTPUT_FORMATS,
   PRICING,
+  quoteTopazVideoUpscaleCredits,
+  quoteVideoExtensionCredits,
+  quoteVideoGenerationCredits,
   RESOLUTIONS,
   TOPAZ_NODE_TYPES,
   VIDEO_ASPECT_RATIOS,
@@ -45,6 +49,67 @@ describe('PRICING constants', () => {
   it('should have topaz video upscale pricing', () => {
     expect(PRICING['topaz-video-upscale']['720p-15']).toBe(0.014);
     expect(PRICING['topaz-video-upscale']['1080p-30']).toBe(0.101);
+  });
+
+  it('quotes 4K higher than 1080p for the same video', () => {
+    expect(quoteTopazVideoUpscaleCredits(100, '4k', 30)).toBeGreaterThan(
+      quoteTopazVideoUpscaleCredits(100, '1080p', 30),
+    );
+  });
+
+  it('prices every provider-valid Topaz FPS instead of falling back', () => {
+    expect(quoteTopazVideoUpscaleCredits(100, '1080p', 60)).toBeGreaterThan(
+      quoteTopazVideoUpscaleCredits(100, '1080p', 30),
+    );
+    expect(quoteTopazVideoUpscaleCredits(100, '1080p', 16)).toBeGreaterThan(0);
+  });
+
+  it('quotes generation resolution before dispatch using provider bands', () => {
+    expect(
+      getVideoGenerationResolutionCreditMultiplier(
+        'kwaivgi/kling-v3-omni-video',
+        '4k',
+      ),
+    ).toBe(2.5);
+    expect(
+      quoteVideoGenerationCredits({
+        cost: 10,
+        costPerUnit: 10,
+        duration: 5,
+        modelKey: 'bytedance/seedance-2.5',
+        pricingType: 'per-second',
+        resolution: '4k',
+      }),
+    ).toBe(200);
+  });
+
+  it('quotes MiniMax 768P below its published 2K band', () => {
+    const quote = (resolution: string) =>
+      quoteVideoGenerationCredits({
+        cost: 135,
+        costPerUnit: 27,
+        duration: 5,
+        modelKey: 'minimax/h3',
+        pricingType: 'per-second',
+        resolution,
+      });
+
+    expect(quote('2K')).toBeGreaterThan(quote('768P'));
+  });
+
+  it('charges a fabricated extension for the continuation and stitch only', () => {
+    const input = {
+      cost: 10,
+      duration: 8,
+      modelKey: 'google/veo-3.1',
+    };
+
+    expect(
+      quoteVideoExtensionCredits({ ...input, dispatchMode: 'fabricated' }),
+    ).toBe(11);
+    expect(
+      quoteVideoExtensionCredits({ ...input, dispatchMode: 'native' }),
+    ).toBe(10);
   });
 
   it('should have legacy aliases', () => {

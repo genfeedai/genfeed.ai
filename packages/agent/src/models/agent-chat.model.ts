@@ -242,6 +242,10 @@ export interface AgentUiAction {
     duration?: number;
     outputs?: number;
     prioritize?: string;
+    references?: string[];
+    resolution?: string;
+    endFrame?: string;
+    videoReferences?: string[];
   };
   ingredients?: AgentIngredientItem[];
   workflows?: {

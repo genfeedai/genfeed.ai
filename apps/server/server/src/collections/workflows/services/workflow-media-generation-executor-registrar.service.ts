@@ -18,6 +18,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import {
   runImageGenerationBrief,
   runVideoGenerationBrief,
@@ -29,6 +30,27 @@ import { HeyGenService } from '@server/services/integrations/heygen/services/hey
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
 
+function replaceReferenceTokens(
+  value: unknown,
+  replacements: ReadonlyMap<string, string>,
+): unknown {
+  if (typeof value === 'string') {
+    return replacements.get(value) ?? value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) => replaceReferenceTokens(entry, replacements));
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [
+        key,
+        replaceReferenceTokens(entry, replacements),
+      ]),
+    );
+  }
+  return value;
+}
+
 export class WorkflowMediaGenerationExecutorRegistrarService {
   constructor(
     private readonly helper: WorkflowEngineExecutorHelperService,
@@ -37,6 +59,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     private readonly heyGenService?: HeyGenService,
     private readonly elevenLabsService?: ElevenLabsService,
     private readonly replicateService?: ReplicateService,
+    private readonly filesClientService?: FilesClientService,
   ) {}
 
   register(engine: WorkflowEngine): void {
@@ -167,6 +190,44 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
             (reference): reference is string => typeof reference === 'string',
           )
         : undefined;
+      const videoReferences = Array.isArray(params.videoReferences)
+        ? params.videoReferences.filter(
+            (reference): reference is string => typeof reference === 'string',
+          )
+        : undefined;
+      const lastFrame =
+        typeof params.lastFrame === 'string' ? params.lastFrame : undefined;
+      const referenceReplacements = new Map<string, string>();
+      const referenceAssetIds = references?.map((reference, index) => {
+        const assetId =
+          this.helper.extractIngredientId(reference) ??
+          `workflow-image-reference-${index + 1}`;
+        referenceReplacements.set(assetId, reference);
+        return assetId;
+      });
+      const endFrameId = lastFrame
+        ? (this.helper.extractIngredientId(lastFrame) ??
+          'workflow-last-frame-reference')
+        : undefined;
+      if (endFrameId && lastFrame) {
+        referenceReplacements.set(endFrameId, lastFrame);
+      }
+      const videoReferenceAssetIds = await Promise.all(
+        (videoReferences ?? []).map(async (reference, index) => {
+          const ingredientId = this.helper.extractIngredientId(reference);
+          const assetId =
+            ingredientId ?? `workflow-video-reference-${index + 1}`;
+          const providerUrl =
+            ingredientId && this.filesClientService
+              ? await this.filesClientService.getPresignedDownloadUrl(
+                  ingredientId,
+                  'videos',
+                )
+              : reference;
+          referenceReplacements.set(assetId, providerUrl);
+          return assetId;
+        }),
+      );
       const prompt = typeof params.prompt === 'string' ? params.prompt : '';
       const height = typeof params.height === 'number' ? params.height : 1080;
       const width = typeof params.width === 'number' ? params.width : 1920;
@@ -177,23 +238,30 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
           ? params.negativePrompt
           : undefined;
       const compiled = runVideoGenerationBrief({
+        actionVerb:
+          params.actionVerb === 'extend' ? params.actionVerb : undefined,
         avoid: negativePrompt ? [negativePrompt] : undefined,
         durationSeconds: duration,
-        endFrameId:
-          typeof params.lastFrame === 'string' ? params.lastFrame : undefined,
+        endFrameId,
         height,
         model: model as string,
         objective: prompt,
         referenceIds: [],
-        references: references?.map((assetId) => ({
+        references: referenceAssetIds?.map((assetId) => ({
           assetId,
           role: 'first_frame' as const,
         })),
         seed: typeof params.seed === 'number' ? params.seed : undefined,
         surface: 'workflow',
+        videoReferenceIds: videoReferenceAssetIds,
         width,
       });
-      const input = compiled.dispatch ?? { prompt };
+      const input = compiled.dispatch
+        ? (replaceReferenceTokens(
+            compiled.dispatch,
+            referenceReplacements,
+          ) as Record<string, unknown>)
+        : { prompt };
       const brandId = this.helper.requireBrandId(params.brandId, 'videoGen');
       const pendingOutput = await this.helper.createAndLinkProcessingOutput({
         output: {
@@ -205,9 +273,17 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
           generationSource: compiled.generationSource,
           model: model as string,
           organizationId: context.organizationId,
+          parentIngredientId:
+            typeof params.parentIngredientId === 'string'
+              ? params.parentIngredientId
+              : undefined,
           providerData: toRedactedVideoGenerationBriefProviderData(
             compiled.evidence,
           ),
+          references:
+            typeof params.parentIngredientId === 'string'
+              ? [params.parentIngredientId]
+              : undefined,
           userId: context.userId,
         },
         resultUrl: (ingredientId) =>

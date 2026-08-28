@@ -105,12 +105,14 @@ function SettingRow({
 
 function OptionSelect({
   ariaLabel,
+  isDisabled = false,
   onChange,
   options,
   placeholder,
   value,
 }: {
   ariaLabel: string;
+  isDisabled?: boolean;
   onChange: (value: string | undefined) => void;
   options: ReadonlyArray<{ label: string; value: string }>;
   placeholder: string;
@@ -118,6 +120,7 @@ function OptionSelect({
 }): ReactElement {
   return (
     <Select
+      disabled={isDisabled}
       onValueChange={(next) => onChange(next === NONE_VALUE ? undefined : next)}
       value={value || NONE_VALUE}
     >
@@ -302,7 +305,7 @@ function StandardStudioGenerateSettingsPopover({
   );
 
   const aspectRatios = getStudioAspectRatios(type);
-  const resolutions = getStudioResolutions(type);
+  const resolutions = getStudioResolutions(type, settings.modelKey);
   const durations = getStudioDurations(type);
   const summary = describeStudioGenerateSettings(settings, type);
 
@@ -490,18 +493,20 @@ function StandardStudioGenerateSettingsPopover({
                     />
                   </SettingRow>
                 ) : null}
-                {resolutions.length > 0 ? (
+                {resolutions.length > 0 || type === 'video' ? (
                   <SettingRow label="Resolution">
                     <OptionSelect
                       ariaLabel="Resolution"
+                      isDisabled={type === 'video' && resolutions.length === 0}
                       onChange={(value) =>
                         onChange({ resolution: value || settings.resolution })
                       }
-                      options={resolutions.map((resolution) => ({
-                        label: resolution,
-                        value: resolution,
-                      }))}
-                      placeholder="Resolution"
+                      options={resolutions}
+                      placeholder={
+                        type === 'video' && resolutions.length === 0
+                          ? 'Select a model'
+                          : 'Resolution'
+                      }
                       value={settings.resolution}
                     />
                   </SettingRow>

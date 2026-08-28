@@ -14,9 +14,11 @@ export type {
   ClipChainTemplateParams,
   ClipChainWorkflowInstance,
   ClipChainWorkflowTemplate,
+  VideoExtensionTemplateParams,
 } from './clip-chain-video.template';
 export {
   buildClipChainVideoTemplate,
+  buildVideoExtensionTemplate,
   CLIP_CHAIN_VIDEO_TEMPLATE,
   CLIP_CHAIN_VIDEO_TEMPLATE_ID,
   composeClipChainSegmentPrompt,

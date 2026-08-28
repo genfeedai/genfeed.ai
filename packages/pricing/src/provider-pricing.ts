@@ -54,6 +54,150 @@ export const PRICING = {
   'veo-3.1-fast': { withAudio: 0.15, withoutAudio: 0.1 },
 } as const;
 
+export const TOPAZ_VIDEO_UPSCALE_RESOLUTIONS = ['720p', '1080p', '4k'] as const;
+export const TOPAZ_VIDEO_UPSCALE_FPS = [15, 24, 30, 60] as const;
+
+export type TopazVideoUpscaleResolution =
+  (typeof TOPAZ_VIDEO_UPSCALE_RESOLUTIONS)[number];
+export type TopazVideoUpscaleFps = number;
+
+export function isTopazVideoUpscaleResolution(
+  value: unknown,
+): value is TopazVideoUpscaleResolution {
+  return TOPAZ_VIDEO_UPSCALE_RESOLUTIONS.some((item) => item === value);
+}
+
+export function isTopazVideoUpscaleFps(
+  value: unknown,
+): value is TopazVideoUpscaleFps {
+  return (
+    typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= 15 &&
+    value <= 60
+  );
+}
+
+/** Relative to the former 1080p/30 quote, which remains the default. */
+export function getTopazVideoUpscaleCreditMultiplier(
+  resolution: TopazVideoUpscaleResolution,
+  fps: TopazVideoUpscaleFps,
+): number {
+  const prices = PRICING['topaz-video-upscale'];
+  const priceKey = `${resolution}-${fps}` as keyof typeof prices;
+  const thirtyFpsKey = `${resolution}-30` as keyof typeof prices;
+  const publishedPrice = prices[priceKey];
+  const thirtyFpsPrice = prices[thirtyFpsKey];
+  const effectivePrice = publishedPrice ?? thirtyFpsPrice * (fps / 30);
+  return effectivePrice / PRICING['topaz-video-upscale']['1080p-30'];
+}
+
+export function quoteTopazVideoUpscaleCredits(
+  baseCredits: number,
+  resolution: TopazVideoUpscaleResolution,
+  fps: TopazVideoUpscaleFps,
+): number {
+  return Math.max(
+    1,
+    Math.ceil(
+      baseCredits * getTopazVideoUpscaleCreditMultiplier(resolution, fps),
+    ),
+  );
+}
+
+const KLING_V3_VIDEO_KEYS = new Set([
+  'kwaivgi/kling-v3-video',
+  'kwaivgi/kling-v3-omni-video',
+]);
+
+/**
+ * Resolution multiplier applied to the selected model's draft/base credit
+ * rate. Exact published bands win; generic fallbacks preserve the historical
+ * 1080p=2x rule and make 4K an explicit reservation instead of underbilling.
+ */
+export function getVideoGenerationResolutionCreditMultiplier(
+  modelKey: string,
+  resolution?: string,
+): number {
+  const normalizedResolution = resolution?.toLowerCase();
+
+  if (modelKey === 'minimax/h3') {
+    return normalizedResolution === '768p' ? 0.08 / 0.13 : 1;
+  }
+  if (KLING_V3_VIDEO_KEYS.has(modelKey)) {
+    if (normalizedResolution === 'pro') {
+      return 0.224 / 0.168;
+    }
+    if (normalizedResolution === '4k') {
+      return 2.5;
+    }
+  }
+  if (normalizedResolution === '4k') {
+    return 4;
+  }
+  if (
+    normalizedResolution === '1080p' ||
+    normalizedResolution === 'high' ||
+    normalizedResolution === 'pro'
+  ) {
+    return 2;
+  }
+  return 1;
+}
+
+export interface VideoGenerationCreditQuoteInput {
+  cost: number;
+  costPerUnit?: number | null;
+  duration?: number;
+  minCost?: number | null;
+  modelKey: string;
+  outputs?: number;
+  pricingType?: string | null;
+  resolution?: string;
+}
+
+export const FABRICATED_VIDEO_EXTENSION_STITCH_CREDITS = 1;
+
+export interface VideoExtensionCreditQuoteInput
+  extends VideoGenerationCreditQuoteInput {
+  dispatchMode: 'fabricated' | 'native';
+}
+
+/** Mirrors the deferred server reservation so a displayed quote is billable. */
+export function quoteVideoGenerationCredits({
+  cost,
+  costPerUnit,
+  duration,
+  minCost,
+  modelKey,
+  outputs = 1,
+  pricingType,
+  resolution,
+}: VideoGenerationCreditQuoteInput): number {
+  const durationCost =
+    pricingType === 'per-second' && duration && costPerUnit
+      ? Math.ceil(duration * costPerUnit)
+      : cost;
+  const baseCost = Math.max(durationCost, minCost ?? 0);
+  const resolutionCost = Math.ceil(
+    baseCost *
+      getVideoGenerationResolutionCreditMultiplier(modelKey, resolution),
+  );
+  return resolutionCost * Math.max(1, outputs);
+}
+
+/** Extension bills the continuation once, plus only the fabricated stitch. */
+export function quoteVideoExtensionCredits(
+  input: VideoExtensionCreditQuoteInput,
+): number {
+  return (
+    quoteVideoGenerationCredits(input) +
+    (input.dispatchMode === 'fabricated'
+      ? FABRICATED_VIDEO_EXTENSION_STITCH_CREDITS
+      : 0)
+  );
+}
+
 // Type definitions derived from PRICING
 export type ImageModel =
   | 'nano-banana'

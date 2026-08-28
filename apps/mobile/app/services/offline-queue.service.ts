@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { networkService } from '@/services/network.service';
+import { sentryService } from '@/services/sentry.service';
 
 export interface QueuedAction {
   id: string;
@@ -24,8 +25,8 @@ const QUEUE_KEY = '@genfeed_offline_queue';
 
 class OfflineQueueService extends EventEmitter {
   private queue: QueuedAction[] = [];
-  private isProcessing: boolean = false;
-  private initialized: boolean = false;
+  private isProcessing = false;
+  private initialized = false;
 
   async init(): Promise<void> {
     if (this.initialized) {
@@ -34,9 +35,8 @@ class OfflineQueueService extends EventEmitter {
 
     await this.loadQueue();
 
-    // Listen for network changes
     networkService.on('online', () => {
-      this.processQueue();
+      this.processQueueInBackground();
     });
 
     this.initialized = true;
@@ -66,9 +66,8 @@ class OfflineQueueService extends EventEmitter {
     await this.saveQueue();
     this.emit('actionQueued', queuedAction);
 
-    // Try to process if online
     if (networkService.isOnline()) {
-      this.processQueue();
+      this.processQueueInBackground();
     }
 
     return id;
@@ -89,31 +88,45 @@ class OfflineQueueService extends EventEmitter {
     const actionsToProcess = [...this.queue];
     const processedIds: string[] = [];
 
-    for (const action of actionsToProcess) {
-      try {
-        await this.executeAction(action);
-        processedIds.push(action.id);
-        this.emit('actionProcessed', action);
-      } catch {
-        action.retries++;
-
-        if (action.retries >= action.maxRetries) {
+    try {
+      for (const action of actionsToProcess) {
+        try {
+          await this.executeAction(action);
           processedIds.push(action.id);
-          this.emit('actionFailed', action);
+          this.emit('actionProcessed', action);
+        } catch (error) {
+          action.retries++;
+
+          if (action.retries >= action.maxRetries) {
+            processedIds.push(action.id);
+            this.emit('actionFailed', action);
+            sentryService.captureException(this.toError(error), {
+              actionId: action.id,
+              actionType: action.type,
+              method: action.method,
+            });
+          }
         }
       }
+
+      this.queue = this.queue.filter(
+        (action) => !processedIds.includes(action.id),
+      );
+      await this.saveQueue();
+    } finally {
+      this.isProcessing = false;
+      this.emit('processingComplete', {
+        processed: processedIds.length,
+        remaining: this.queue.length,
+      });
     }
+  }
 
-    // Remove processed actions
-    this.queue = this.queue.filter(
-      (action) => !processedIds.includes(action.id),
-    );
-    await this.saveQueue();
-
-    this.isProcessing = false;
-    this.emit('processingComplete', {
-      processed: processedIds.length,
-      remaining: this.queue.length,
+  private processQueueInBackground(): void {
+    void this.processQueue().catch((error: unknown) => {
+      sentryService.captureException(this.toError(error), {
+        operation: 'processOfflineQueue',
+      });
     });
   }
 
@@ -161,17 +174,20 @@ class OfflineQueueService extends EventEmitter {
       if (stored) {
         this.queue = JSON.parse(stored);
       }
-    } catch {
+    } catch (error) {
       this.queue = [];
+      sentryService.captureException(this.toError(error), {
+        operation: 'loadOfflineQueue',
+      });
     }
   }
 
   private async saveQueue(): Promise<void> {
-    try {
-      await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(this.queue));
-    } catch {
-      // Failed to save queue
-    }
+    await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(this.queue));
+  }
+
+  private toError(error: unknown): Error {
+    return error instanceof Error ? error : new Error(String(error));
   }
 }
 

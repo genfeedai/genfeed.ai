@@ -326,7 +326,6 @@
     "packages/agent/src/components/CredentialMentionList.tsx": 1,
     "packages/agent/src/components/CreditsBalanceCard.tsx": 2,
     "packages/agent/src/components/EngagementOpportunityCard.tsx": 5,
-    "packages/agent/src/components/GenerationActionCanvas.tsx": 8,
     "packages/agent/src/components/GenerationActionCardQualityBadge.tsx": 4,
     "packages/agent/src/components/GenerationActionCardStatusPanel.tsx": 5,
     "packages/agent/src/components/IngredientAlternativesCard.tsx": 3,

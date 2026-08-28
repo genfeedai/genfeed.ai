@@ -20,6 +20,8 @@ export interface VideoStitchProcessorParams {
   concatFilter: string;
   organizationId: string;
   outputQuality: VideoStitchOutputQuality;
+  parentId?: string;
+  providerData?: Record<string, unknown>;
   seamlessLoop: boolean;
   transitionDuration: number;
   transitionType: VideoStitchTransitionType;
@@ -310,6 +312,21 @@ export class VideoStitchExecutor extends BaseExecutor {
       'brandId',
       undefined,
     );
+    const parentId = this.getOptionalConfig<string | undefined>(
+      node.config,
+      'parentId',
+      undefined,
+    );
+    const model = this.getOptionalConfig<string | undefined>(
+      node.config,
+      'model',
+      undefined,
+    );
+    const dispatchMode = this.getOptionalConfig<string | undefined>(
+      node.config,
+      'dispatchMode',
+      undefined,
+    );
 
     const concatFilter = buildFfmpegConcatFilter({
       hasAudio: true,
@@ -324,6 +341,15 @@ export class VideoStitchExecutor extends BaseExecutor {
       concatFilter,
       organizationId: context.organizationId,
       outputQuality,
+      parentId,
+      providerData:
+        model || dispatchMode
+          ? {
+              actionVerb: 'extend',
+              dispatchMode: dispatchMode ?? 'fabricated',
+              model,
+            }
+          : undefined,
       seamlessLoop,
       transitionDuration,
       transitionType,

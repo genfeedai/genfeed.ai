@@ -1,3 +1,33 @@
+import {
+  CREDITS_DEFER_MODEL_RESOLUTION_KEY,
+  CREDITS_KEY,
+} from '@api/helpers/decorators/credits/credits.decorator';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  ActivitySource,
+  type ByokProvider,
+  PricingType,
+} from '@genfeedai/enums';
+import { getDeserializer, isDeserializerRuntime } from '@genfeedai/helpers';
+import type { CreditsConfig } from '@genfeedai/interfaces';
+import {
+  billCreditsFromProviderCost,
+  buildPricingAuditStamp,
+  getVideoGenerationResolutionCreditMultiplier,
+  isTopazVideoUpscaleFps,
+  isTopazVideoUpscaleResolution,
+  quoteTopazVideoUpscaleCredits,
+} from '@genfeedai/pricing';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  CanActivate,
+  ExecutionContext,
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import type { ModelDocument } from '@server/collections/models/schemas/model.schema';
@@ -10,31 +40,10 @@ import {
   isTrainerKey,
   isTrainingKey,
 } from '@server/collections/models/utils/model-key.util';
-import {
-  CREDITS_DEFER_MODEL_RESOLUTION_KEY,
-  CREDITS_KEY,
-} from '@api/helpers/decorators/credits/credits.decorator';
 import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
 import { getMinimumTextCredits } from '@server/helpers/utils/text-pricing/text-pricing.util';
 import { ByokService } from '@server/services/byok/byok.service';
 import { resolveModelByokProvider } from '@server/services/byok/byok-provider-map.util';
-import { type ByokProvider, PricingType } from '@genfeedai/enums';
-import { getDeserializer } from '@genfeedai/helpers';
-import type { CreditsConfig } from '@genfeedai/interfaces';
-import {
-  billCreditsFromProviderCost,
-  buildPricingAuditStamp,
-} from '@genfeedai/pricing';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import {
-  CanActivate,
-  ExecutionContext,
-  HttpException,
-  HttpStatus,
-  Injectable,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 
 // Type for authenticated request with user data
@@ -54,6 +63,8 @@ interface CreditsRequestBody {
   outputs?: number;
   steps?: number;
   resolution?: string;
+  targetFps?: number;
+  targetResolution?: string;
   width?: number;
   height?: number;
   duration?: number;
@@ -142,8 +153,12 @@ export class CreditsGuard implements CanActivate {
       });
 
       try {
-        const deserializedBody = await getDeserializer(request.body);
-        body = (deserializedBody as CreditsRequestBody) || request.body;
+        const deserializedBody = await getDeserializer<CreditsRequestBody>(
+          request.body,
+        );
+        body = isDeserializerRuntime(deserializedBody)
+          ? (request.body as CreditsRequestBody)
+          : deserializedBody;
 
         const bodyRecord = body as Record<string, unknown>;
         const dataObj = bodyRecord?.data as Record<string, unknown> | undefined;
@@ -406,17 +421,47 @@ export class CreditsGuard implements CanActivate {
         throw new InsufficientCreditsException(0, 0);
       }
 
-      // Multiply credits by resolution multiplier (high/1080p = 2x, standard/720p = 1x)
-      // This applies to video generation models
+      // Video generation uses model-aware bands (including 4K); other legacy
+      // generation routes retain their historical high/1080p multiplier.
       const resolution = body?.resolution;
-      if (resolution === 'high' || resolution === '1080p') {
+      if (creditsConfig.source === ActivitySource.VIDEO_GENERATION) {
+        requiredCredits *= getVideoGenerationResolutionCreditMultiplier(
+          modelKey || creditsConfig.modelKey || '',
+          resolution,
+        );
+      } else if (resolution === 'high' || resolution === '1080p') {
         requiredCredits *= 2;
+      }
+      if (
+        resolution &&
+        getVideoGenerationResolutionCreditMultiplier(
+          modelKey || creditsConfig.modelKey || '',
+          resolution,
+        ) !== 1
+      ) {
         this.loggerService.debug(
-          'Credits guard: credits multiplied for high resolution',
+          'Credits guard: credits multiplied for selected resolution',
           {
             requiredCredits,
             resolution,
           },
+        );
+      }
+
+      const effectiveModelKey = baseModelKey(
+        modelKey || creditsConfig.modelKey || '',
+      );
+      const targetResolution = body?.targetResolution;
+      const targetFps = body?.targetFps;
+      if (
+        effectiveModelKey === MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE &&
+        isTopazVideoUpscaleResolution(targetResolution) &&
+        isTopazVideoUpscaleFps(targetFps)
+      ) {
+        requiredCredits = quoteTopazVideoUpscaleCredits(
+          requiredCredits,
+          targetResolution,
+          targetFps,
         );
       }
 

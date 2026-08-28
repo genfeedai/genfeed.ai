@@ -21,6 +21,7 @@ export interface PromptBarReferenceControlsProps {
   density?: 'compact' | 'default';
   isAttachmentDisabled?: boolean;
   isLibraryDisabled?: boolean;
+  label?: string;
   onAddFiles?: (files: File[]) => void;
   onOpenLibrary: () => void;
 }
@@ -32,6 +33,7 @@ export default function PromptBarReferenceControls({
   density = 'default',
   isAttachmentDisabled = false,
   isLibraryDisabled = false,
+  label,
   onAddFiles,
   onOpenLibrary,
 }: PromptBarReferenceControlsProps): ReactElement {
@@ -68,18 +70,22 @@ export default function PromptBarReferenceControls({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            ariaLabel={translate('addContext')}
-            className={cn('shrink-0', controlSize)}
+            ariaLabel={label ?? translate('addContext')}
+            className={cn('shrink-0', label ? 'h-8 gap-1.5 px-2' : controlSize)}
             icon={<Plus className="size-4" />}
             isDisabled={isMenuDisabled}
-            size={ButtonSize.ICON}
-            tooltip={translate('addContext')}
+            size={label ? ButtonSize.SM : ButtonSize.ICON}
+            tooltip={label ?? translate('addContext')}
             variant={ButtonVariant.GHOST}
             withWrapper={false}
-          />
+          >
+            {label}
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56" side="top">
-          <DropdownMenuLabel>{translate('addContext')}</DropdownMenuLabel>
+          <DropdownMenuLabel>
+            {label ?? translate('addContext')}
+          </DropdownMenuLabel>
           {onAddFiles ? (
             <DropdownMenuItem
               disabled={isAttachmentDisabled}

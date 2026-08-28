@@ -28,6 +28,7 @@ function buildHandlers() {
     handleConvertToGif: vi.fn(),
     handleCopyPrompt: vi.fn(),
     handleDelete: vi.fn(),
+    handleExtend: vi.fn(),
     handleLandscape: vi.fn(),
     handleMarkArchived: vi.fn(),
     handleMarkRejected: vi.fn(),

@@ -140,6 +140,7 @@ const VIDEO_SCENARIOS = [
     id: 'video-hailuo',
     model: MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
     objective: 'macro pour of honey',
+    references: [{ assetId: 'frame-2', role: 'first_frame' as const }],
   },
   {
     fidelityMode: 'off' as const,

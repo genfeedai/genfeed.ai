@@ -1,8 +1,12 @@
-import type { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
-import { IngredientCategory, MetadataExtension } from '@genfeedai/enums';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  MetadataExtension,
+} from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
+import type { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowEngineExecutorHelperService.resolveBrandIdFromInputOrFail', () => {
@@ -126,5 +130,41 @@ describe('WorkflowEngineExecutorHelperService.createWorkflowOutputIngredient', (
         providerData: { compilerId: 'qwen-image-image-compiler' },
       }),
     );
+  });
+});
+
+describe('WorkflowEngineExecutorHelperService.createAndLinkProcessingOutput', () => {
+  it('marks the inspectable output failed when provider dispatch rejects', async () => {
+    const ingredientsPatch = vi.fn();
+    const service = new WorkflowEngineExecutorHelperService(
+      {} as ConfigService,
+      {
+        createMediaDocumentsInternal: vi.fn().mockResolvedValue({
+          ingredientData: { id: 'ingredient-1' },
+          metadataData: { id: 'metadata-1' },
+        }),
+      } as never,
+      { patch: vi.fn() } as never,
+      { patch: ingredientsPatch } as never,
+    );
+    const providerError = new Error('provider rejected the request');
+
+    await expect(
+      service.createAndLinkProcessingOutput({
+        output: {
+          brandId: 'brand-1',
+          category: IngredientCategory.VIDEO,
+          extension: MetadataExtension.MP4,
+          organizationId: 'org-1',
+          userId: 'user-1',
+        },
+        resultUrl: (ingredientId) => `/videos/${ingredientId}`,
+        runProvider: vi.fn().mockRejectedValue(providerError),
+      }),
+    ).rejects.toBe(providerError);
+
+    expect(ingredientsPatch).toHaveBeenCalledWith('ingredient-1', {
+      status: IngredientStatus.FAILED,
+    });
   });
 });

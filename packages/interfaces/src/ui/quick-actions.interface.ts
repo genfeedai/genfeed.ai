@@ -5,6 +5,7 @@ export interface IActionHandlers {
   onToggleFavorite?: (ingredient: IIngredient) => void;
   onPublish?: (ingredient: IIngredient, platform: string) => void;
   onUpscale?: (ingredient: IIngredient) => void;
+  onExtend?: (ingredient: IIngredient) => void;
   onDelete?: (ingredient: IIngredient) => void;
   onClone?: (ingredient: IIngredient) => void;
   onReverse?: (ingredient: IIngredient) => void;
@@ -77,6 +78,7 @@ export interface QuickActionsProps {
 export interface ILoadingStates {
   isPublishing?: boolean;
   isUpscaling?: boolean;
+  isExtending?: boolean;
   isDeleting?: boolean;
   isCloning?: boolean;
   isReversing?: boolean;

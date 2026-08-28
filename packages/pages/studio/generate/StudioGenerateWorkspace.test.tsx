@@ -349,10 +349,11 @@ describe('StudioGenerateWorkspace', () => {
     act(() => currentProps.onSubmit());
 
     expect(characterMentionMocks.resolveSubmit).toHaveBeenCalled();
-    expect(mocks.submit).toHaveBeenCalledWith('Use this composition', [
-      'https://cdn.example/reference.png',
-      'img-anna',
-    ]);
+    expect(mocks.submit).toHaveBeenCalledWith('Use this composition', {
+      endFrameId: undefined,
+      imageReferenceIds: ['ingredient-1', 'img-anna'],
+      videoReferenceIds: [],
+    });
   });
 
   it('serializes character mention display names and merges reference ids on generate', () => {
@@ -368,10 +369,11 @@ describe('StudioGenerateWorkspace', () => {
     };
     act(() => currentProps.onSubmit());
 
-    expect(mocks.submit).toHaveBeenCalledWith('Anna walking', [
-      'https://cdn.example/reference.png',
-      'img-anna',
-    ]);
+    expect(mocks.submit).toHaveBeenCalledWith('Anna walking', {
+      endFrameId: undefined,
+      imageReferenceIds: ['ingredient-1', 'img-anna'],
+      videoReferenceIds: [],
+    });
   });
 
   it('turns a gallery remix into a composer reference', () => {

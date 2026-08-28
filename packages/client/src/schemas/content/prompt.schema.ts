@@ -46,6 +46,7 @@ export const promptTextareaSchema = z.object({
   tags: z.array(z.string()),
   text: z.string().min(1, 'Prompt text is required'),
   voiceId: z.string().optional(),
+  videoReferences: z.array(z.string()).optional(),
   width: z.number(),
 });
 

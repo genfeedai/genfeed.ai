@@ -27,11 +27,15 @@ import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { VideoUpscaleSelection } from '@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
 import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
+import VideoUpscaleConfirmControls, {
+  getDefaultVideoUpscaleSelection,
+} from '@ui/modals/ingredients/VideoUpscaleConfirmControls';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { createElement, useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseIngredientsActionsProps {
   type: string;
@@ -101,6 +105,9 @@ export function useIngredientsActions({
     useState<IFolder | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const videoUpscaleSelectionRef = useRef<VideoUpscaleSelection | undefined>(
+    undefined,
+  );
 
   const handleClose = useCallback(() => {
     findAllIngredientsByCategory(true);
@@ -207,25 +214,38 @@ export function useIngredientsActions({
 
   useEffect(() => {
     if (upscaleConfirmData) {
-      const ingredientCategory =
-        upscaleConfirmData.ingredient?.category === IngredientCategory.VIDEO
-          ? 'video'
-          : 'image';
-
-      const message = `Upscale ${ingredientCategory} with Topaz AI?\n\nThis will cost ${formatNumberWithCommas(
-        upscaleConfirmData.cost,
-      )} credits.`;
+      const isVideo =
+        upscaleConfirmData.ingredient?.category === IngredientCategory.VIDEO;
+      const ingredientCategory = isVideo ? 'video' : 'image';
+      const modelOptions = upscaleConfirmData.videoModelOptions ?? [];
+      videoUpscaleSelectionRef.current = isVideo
+        ? getDefaultVideoUpscaleSelection(modelOptions)
+        : undefined;
+      const message = isVideo
+        ? 'Choose the model, output resolution, and frame rate. The source video remains unchanged.'
+        : `Upscale ${ingredientCategory} with Topaz AI?\n\nThis will cost ${formatNumberWithCommas(
+            upscaleConfirmData.cost,
+          )} credits.`;
 
       openConfirm({
         cancelLabel: 'Cancel',
         confirmLabel: 'Upscale',
         label: 'Confirm Upscale',
         message,
+        children:
+          isVideo && modelOptions.length > 0
+            ? createElement(VideoUpscaleConfirmControls, {
+                modelOptions,
+                onChange: (selection) => {
+                  videoUpscaleSelectionRef.current = selection;
+                },
+              })
+            : undefined,
         onClose: () => {
           clearUpscaleConfirm();
         },
         onConfirm: async () => {
-          await executeUpscale();
+          await executeUpscale(videoUpscaleSelectionRef.current);
         },
       });
     }

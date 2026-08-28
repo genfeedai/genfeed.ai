@@ -17,6 +17,7 @@ import {
   createDeleteAction,
   createDownloadAction,
   createEditAction,
+  createExtendAction,
   createFavoriteAction,
   createGifAction,
   createLandscapeAction,
@@ -70,6 +71,7 @@ const MENU_SECTION_ORDER: MenuSection[] = [
 const ACTION_SECTION_BY_ID: Partial<Record<string, MenuSection>> = {
   captions: 'Transform',
   clone: 'Transform',
+  extend: 'Transform',
   'convert-to-preset': 'Transform',
   'convert-to-video': 'Transform',
   'copy-prompt': 'Library',
@@ -292,6 +294,11 @@ export function useQuickActions({
 
     if (isVideo) {
       actionsList.push(
+        createExtendAction(
+          selectedIngredient,
+          handlers.onExtend,
+          loadingStates.isExtending,
+        ),
         createCaptionsAction(
           selectedIngredient,
           handlers.onGenerateCaptions,

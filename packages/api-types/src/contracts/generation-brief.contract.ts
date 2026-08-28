@@ -30,6 +30,7 @@ export const generationReferenceRoleValues = [
   'composition',
   'first_frame',
   'last_frame',
+  'reference_video',
 ] as const;
 
 export const imageGenerationReferenceRoleValues = [
@@ -197,6 +198,7 @@ export const imageGenerationBriefOutputSchema = z
 export const videoGenerationBriefOutputSchema = imageGenerationBriefOutputSchema
   .safeExtend({
     durationSeconds: z.number().positive().max(300).optional(),
+    resolution: z.string().trim().min(1).max(32).optional(),
   })
   .strict();
 

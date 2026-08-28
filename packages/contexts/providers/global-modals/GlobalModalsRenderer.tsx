@@ -101,7 +101,9 @@ export default function GlobalModalsRenderer({
             await currentConfirm.onConfirm();
             closeConfirm();
           }}
-        />
+        >
+          {currentConfirm.children}
+        </LazyModalConfirm>
       )}
 
       {uploadConfig && (

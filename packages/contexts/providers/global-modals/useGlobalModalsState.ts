@@ -30,7 +30,7 @@ import type { PostRepurposeSource } from '@genfeedai/props/modals/modal-post-rep
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
 import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { type ReactNode, useCallback, useState } from 'react';
 import type { GallerySelectItem } from './global-modals.provider';
 
 export function useGlobalModalsState() {
@@ -60,6 +60,7 @@ export function useGlobalModalsState() {
 
   const [confirmQueue, setConfirmQueue] = useState<
     Array<{
+      children?: ReactNode;
       id: string;
       label?: string;
       message?: string;

@@ -138,6 +138,33 @@ export const createUpscaleAction = (
     isLoading,
   );
 
+export const createExtendAction = (
+  ingredient: IIngredient,
+  handler?: IActionHandlers['onExtend'],
+  isLoading?: boolean,
+): IQuickAction | null => {
+  if (
+    ingredient.status !== IngredientStatus.GENERATED &&
+    ingredient.status !== IngredientStatus.VALIDATED
+  ) {
+    return null;
+  }
+
+  return createStandardAction(
+    ingredient,
+    handler,
+    {
+      icon: <Film className={ICON_CLASS} />,
+      id: 'extend',
+      label: 'Extend',
+      showInMenu: true,
+      tooltip: 'Extend from last frame',
+      tooltipPosition: 'top',
+    },
+    isLoading,
+  );
+};
+
 export const createCloneAction = (
   ingredient: IIngredient,
   handler?: IActionHandlers['onClone'],

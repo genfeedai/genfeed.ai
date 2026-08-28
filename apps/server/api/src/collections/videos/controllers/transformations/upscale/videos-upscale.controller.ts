@@ -1,12 +1,5 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { VideoEditDto } from '@api/collections/videos/dto/video-edit.dto';
-import { VideosService } from '@server/collections/videos/services/videos.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -20,12 +13,6 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@server/services/router/router.service';
-import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
@@ -46,6 +33,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
+  BadRequestException,
   Body,
   Controller,
   Param,
@@ -54,8 +42,21 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { VideosService } from '@server/collections/videos/services/videos.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
+import { RouterService } from '@server/services/router/router.service';
+import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -88,7 +89,7 @@ export class VideosUpscaleController {
     source: ActivitySource.VIDEO_UPSCALE,
   })
   @UseInterceptors(CreditsInterceptor)
-  @ValidateModel({ category: ModelCategory.VIDEO_EDIT })
+  @ValidateModel({ category: ModelCategory.VIDEO_UPSCALE })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async upscaleVideo(
     @Req() request: Request,
@@ -99,15 +100,20 @@ export class VideosUpscaleController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const video = await this.videosService.findOne({
+      category: IngredientCategory.VIDEO,
       id: videoId,
-      OR: [
-        { userId: user.userId ?? user.id },
-        { organizationId: user.organizationId },
-      ],
+      isDeleted: false,
+      organizationId: user.organizationId,
     });
 
     if (!video) {
       return returnNotFound(this.constructorName, videoId);
+    }
+    if (
+      video.status !== IngredientStatus.GENERATED &&
+      video.status !== IngredientStatus.VALIDATED
+    ) {
+      throw new BadRequestException('Only completed videos can be upscaled');
     }
 
     // A presigned S3 URL, not the public stream route: the source video is
@@ -117,16 +123,17 @@ export class VideosUpscaleController {
       videoId,
       'videos',
     );
-    // Hard-cap to a predictable cost tier (1080p @ 30fps) until dynamic pricing is added.
-    const targetFps = 30;
-    const targetResolution = '1080p';
-
     // Model selection: user-provided > system default
     const model =
       videoEditDto.model ||
       ((await this.routerService.getDefaultModel(
         ModelCategory.VIDEO_UPSCALE,
       )) as string);
+    const targetFps = videoEditDto.targetFps ?? 30;
+    const targetResolution = videoEditDto.targetResolution ?? '1080p';
+    this.assertSupportedUpscaleOptions(model, targetResolution, targetFps);
+    let outputIngredientId: string | undefined;
+    let failureHandled = false;
 
     try {
       const { metadataData, ingredientData } =
@@ -137,9 +144,18 @@ export class VideosUpscaleController {
           model,
           organizationId: user.organizationId,
           parentId: videoId,
+          providerData: {
+            actionVerb: 'upscale',
+            dispatchMode: 'native',
+            model,
+            targetFps,
+            targetResolution,
+          },
           status: IngredientStatus.PROCESSING,
           transformations: [TransformationCategory.UPSCALED],
         });
+      const ingredientId = String(ingredientData.id);
+      outputIngredientId = ingredientId;
 
       await this.metadataService.patch(
         metadataData.id,
@@ -161,6 +177,8 @@ export class VideosUpscaleController {
           userId: user.userId ?? user.id,
           value: JSON.stringify({
             ingredientId: ingredientData.id.toString(),
+            actionVerb: 'upscale',
+            dispatchMode: 'native',
             model,
             sourceId: videoId,
             type: 'transformation',
@@ -198,26 +216,22 @@ export class VideosUpscaleController {
       }
 
       const { input: promptParams } =
-        await this.promptBuilderService.buildPrompt(
-          MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
-          {
-            modelCategory:
-              ((request as unknown as { selectedModel?: { category?: string } })
-                .selectedModel?.category as ModelCategory) ||
-              ModelCategory.VIDEO_UPSCALE,
-            prompt: 'Video upscaling',
-            target_fps: targetFps,
-            target_resolution: targetResolution,
-            video: videoUrl,
-          },
-        );
+        await this.promptBuilderService.buildPrompt(model, {
+          modelCategory:
+            ((request as unknown as { selectedModel?: { category?: string } })
+              .selectedModel?.category as ModelCategory) ||
+            ModelCategory.VIDEO_UPSCALE,
+          prompt: 'Video upscaling',
+          target_fps: targetFps,
+          target_resolution: targetResolution,
+          video: videoUrl,
+        });
 
       const externalId = await this.replicateService.runModel(
-        MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        model,
         promptParams,
       );
 
-      const ingredientId = String(ingredientData.id);
       const websocketUrl = WebSocketPaths.video(ingredientId);
 
       if (externalId) {
@@ -230,6 +244,7 @@ export class VideosUpscaleController {
 
         // Credits are deducted by CreditsInterceptor on successful response.
       } else {
+        failureHandled = true;
         await this.failedGenerationService.handleFailedVideoGeneration(
           this.videosService,
           ingredientId,
@@ -241,8 +256,53 @@ export class VideosUpscaleController {
 
       return serializeSingle(request, IngredientSerializer, ingredientData);
     } catch (error: unknown) {
+      if (outputIngredientId && !failureHandled) {
+        try {
+          await this.failedGenerationService.handleFailedVideoGeneration(
+            this.videosService,
+            outputIngredientId,
+            WebSocketPaths.video(outputIngredientId),
+            user.id,
+            getUserRoomName(user.id),
+          );
+        } catch {
+          // Preserve the dispatch failure returned to the caller.
+        }
+      }
       this.loggerService.error(`${url} failed`, error);
       throw error;
+    }
+  }
+
+  private assertSupportedUpscaleOptions(
+    model: string,
+    targetResolution: string,
+    targetFps: number,
+  ): void {
+    const isTopaz = model === MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE;
+    const isBytedance = model === MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER;
+    if (!isTopaz && !isBytedance) {
+      throw new BadRequestException(
+        `Unsupported video upscale model: ${model}`,
+      );
+    }
+
+    const resolutions = isTopaz
+      ? new Set(['720p', '1080p', '4k'])
+      : new Set(['720p', '1080p', '2k', '4k']);
+    if (!resolutions.has(targetResolution)) {
+      throw new BadRequestException(
+        `${model} does not support target resolution "${targetResolution}".`,
+      );
+    }
+
+    const isSupportedFps = isTopaz
+      ? Number.isInteger(targetFps) && targetFps >= 15 && targetFps <= 60
+      : new Set([24, 30, 60, 120]).has(targetFps);
+    if (!isSupportedFps) {
+      throw new BadRequestException(
+        `${model} does not support target FPS ${targetFps}.`,
+      );
     }
   }
 }

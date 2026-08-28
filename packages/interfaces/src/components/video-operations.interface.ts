@@ -62,6 +62,12 @@ export interface IVideoEditParams {
   metadata?: Record<string, unknown>;
 }
 
+export interface IVideoExtendParams {
+  duration?: number;
+  model?: string;
+  prompt: string;
+}
+
 export interface IVideoEditResponse {
   id: string;
   status: 'processing' | 'completed' | 'failed';

@@ -17,6 +17,7 @@ import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-aut
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { stopAndResetVideo } from '@genfeedai/hooks/media/video-utils/video.utils';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import type { VideoUpscaleSelection } from '@genfeedai/hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
 import { useIngredientActions } from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
@@ -36,8 +37,11 @@ import {
 import { buildContextualRemixHref } from '@genfeedai/utils/url/contextual-remix-url.util';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { useQuery } from '@tanstack/react-query';
+import VideoUpscaleConfirmControls, {
+  getDefaultVideoUpscaleSelection,
+} from '@ui/modals/ingredients/VideoUpscaleConfirmControls';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createElement, useCallback, useEffect, useRef, useState } from 'react';
 
 export function useModalIngredient({
   ingredient,
@@ -87,6 +91,9 @@ export function useModalIngredient({
   );
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const videoUpscaleSelectionRef = useRef<VideoUpscaleSelection | undefined>(
+    undefined,
+  );
 
   const metadata =
     typeof localIngredient?.metadata === 'object' && localIngredient?.metadata
@@ -243,22 +250,36 @@ export function useModalIngredient({
   // Watch for upscale confirmation and open modal
   useEffect(() => {
     if (upscaleConfirmData) {
-      const ingredientCategory =
-        upscaleConfirmData.ingredient?.category === IngredientCategory.VIDEO
-          ? 'video'
-          : 'image';
-      const message = `Upscale ${ingredientCategory} with Topaz AI?\n\nThis will cost ${formatNumberWithCommas(upscaleConfirmData.cost)} credits.`;
+      const isVideo =
+        upscaleConfirmData.ingredient?.category === IngredientCategory.VIDEO;
+      const ingredientCategory = isVideo ? 'video' : 'image';
+      const modelOptions = upscaleConfirmData.videoModelOptions ?? [];
+      videoUpscaleSelectionRef.current = isVideo
+        ? getDefaultVideoUpscaleSelection(modelOptions)
+        : undefined;
+      const message = isVideo
+        ? 'Choose the model, output resolution, and frame rate. The source video remains unchanged.'
+        : `Upscale ${ingredientCategory} with Topaz AI?\n\nThis will cost ${formatNumberWithCommas(upscaleConfirmData.cost)} credits.`;
 
       openConfirm({
         cancelLabel: 'Cancel',
         confirmLabel: 'Upscale',
         label: 'Confirm Upscale',
-        message: message,
+        message,
+        children:
+          isVideo && modelOptions.length > 0
+            ? createElement(VideoUpscaleConfirmControls, {
+                modelOptions,
+                onChange: (selection) => {
+                  videoUpscaleSelectionRef.current = selection;
+                },
+              })
+            : undefined,
         onClose: () => {
           clearUpscaleConfirm();
         },
         onConfirm: async () => {
-          await executeUpscale();
+          await executeUpscale(videoUpscaleSelectionRef.current);
         },
       });
     }
