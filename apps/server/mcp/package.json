@@ -6,8 +6,8 @@
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/tools": "workspace:*",
     "@genfeedai/ui": "workspace:*",
-    "@posthog/mcp": "0.11.7",
-    "posthog-node": "5.51.2",
+    "@posthog/mcp": "0.12.0",
+    "posthog-node": "5.51.4",
     "tsconfig-paths": "4.2.0"
   },
   "description": "Genfeed MCP Server",

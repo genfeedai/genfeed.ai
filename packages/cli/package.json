@@ -5,7 +5,7 @@
     "gf": "dist/index.js"
   },
   "dependencies": {
-    "@inquirer/prompts": "8.6.0",
+    "@inquirer/prompts": "8.7.0",
     "chalk": "6.0.0",
     "commander": "15.0.0",
     "ofetch": "1.5.1",
@@ -15,7 +15,7 @@
   },
   "description": "Unified CLI for Genfeed.ai - Generate, schedule, analyze, and publish AI content from your terminal",
   "devDependencies": {
-    "@biomejs/biome": "2.5.10",
+    "@biomejs/biome": "2.5.11",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/errors": "workspace:*",

@@ -3,7 +3,7 @@
     "@genfeedai/config": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
-    "grammy": "1.45.1",
+    "grammy": "1.46.0",
     "tsconfig-paths": "4.2.0"
   },
   "description": "Genfeed Telegram Service",

@@ -9,7 +9,7 @@
     "@genfeedai/utils": "workspace:*",
     "@plasmohq/storage": "1.15.0",
     "@sentry/browser": "10.71.0",
-    "axios": "1.19.0",
+    "axios": "1.20.0",
     "plasmo": "0.90.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -19,7 +19,7 @@
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "4.7.1",
     "@testing-library/jest-dom": "7.0.1",
-    "@testing-library/react": "16.3.2",
+    "@testing-library/react": "16.3.3",
     "@types/chrome": "0.2.7",
     "@types/node": "24.13.3",
     "@types/react": "19.2.18",
