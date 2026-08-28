@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { useMobileAuth } from '@/contexts/auth-context';
+import { sentryService } from '@/services/sentry.service';
 import {
   type ConnectionState,
   type WebSocketMessage,
@@ -41,8 +42,11 @@ export function useWebSocket(): UseWebSocketReturn {
       if (token) {
         websocketService.connect(token);
       }
-    } catch {
-      // Failed to get token
+    } catch (error) {
+      sentryService.captureException(
+        error instanceof Error ? error : new Error(String(error)),
+        { operation: 'getWebSocketToken' },
+      );
     }
   }, [getToken, isSignedIn]);
 
