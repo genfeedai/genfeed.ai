@@ -1,17 +1,17 @@
+import { getActionDefinition } from '@genfeedai/actions';
 import type {
   ExecutableEdge,
   ExecutableNode,
   ExecutableWorkflow,
 } from '@genfeedai/workflows/engine';
-import {
-  isWorkflowInputNodeType,
-  normalizeWorkflowNodeTypeToCanonical,
-} from '@server/collections/workflows/node-type-aliases';
 import type {
   WorkflowEdge,
   WorkflowInputVariable,
   WorkflowVisualNode,
 } from '@server/collections/workflows/schemas/workflow.schema';
+import { VISUAL_TRIGGER_NODE_TYPE_TO_EXECUTOR } from '@server/collections/workflows/services/workflow-executor.constants';
+import { isWorkflowInputNodeType } from '@server/collections/workflows/workflow-node-predicates';
+import { isEngineNativeWorkflowNodeType } from '@server/collections/workflows/workflow-version-definition';
 
 export interface WorkflowDocumentShape {
   brandId?: string | null;
@@ -24,88 +24,24 @@ export interface WorkflowDocumentShape {
   userId?: string;
 }
 
-const NODE_TYPE_TO_EXECUTOR: Record<string, string> = {
-  'ai-avatar-video': 'aiAvatarVideo',
-  'ai-enhance': 'ai-enhance',
-  'ai-generate-image': 'imageGen',
-  'ai-generate-newsletter': 'newsletterGen',
-  'ai-generate-post': 'postGen',
-  'ai-generate-video': 'ai-generate-video',
-  'ai-lip-sync': 'lipSync',
-  'ai-llm': 'llm',
-  'ai-prompt-constructor': 'promptConstructor',
-  'ai-reframe': 'reframe',
-  'ai-text-to-speech': 'textToSpeech',
-  'ai-transcribe': 'ai-transcribe',
-  'ai-upscale': 'upscale',
-  'ai-voice-change': 'voiceChange',
-  'attach-post-ingredient': 'attachPostIngredient',
-  brandAsset: 'brandAsset',
+const ENGINE_NATIVE_NODE_TYPE_TO_EXECUTOR: Record<string, string> = {
   'control-branch': 'condition',
   'control-delay': 'delay',
   'control-loop': 'control-loop',
-  'effect-captions': 'effect-captions',
-  'effect-color-grade': 'colorGrade',
-  'effect-ken-burns': 'effect-ken-burns',
-  'effect-portrait-blur': 'effect-portrait-blur',
-  'effect-split-screen': 'effect-split-screen',
-  'effect-text-overlay': 'effect-text-overlay',
-  'effect-watermark': 'effect-watermark',
   'input-image': 'input-image',
-  'input-prompt': 'prompt',
-  prompt: 'prompt',
-  'input-template': 'input-template',
   'input-video': 'input-video',
-  'output-export': 'output-export',
-  'output-notify': 'output-notify',
-  'output-publish': 'publish',
-  'output-save': 'output-save',
-  'output-webhook': 'output-webhook',
-  'process-compress': 'process-compress',
-  'process-extract-audio': 'process-extract-audio',
-  'process-merge-videos': 'process-merge-videos',
-  'process-mirror': 'process-mirror',
-  'process-resize': 'process-resize',
-  'process-reverse': 'process-reverse',
-  'process-transform': 'process-transform',
-  'source-corpus': 'sourceCorpus',
-  'process-trim': 'process-trim',
-  'social-post-reply': 'postReply',
-  'social-send-dm': 'sendDm',
-  'trigger-comment': 'commentTrigger',
-  'trigger-mention': 'mentionTrigger',
-  'trigger-new-follower': 'newFollowerTrigger',
-  'trigger-new-like': 'newLikeTrigger',
-  'trigger-new-repost': 'newRepostTrigger',
-  'analytics-feedback': 'analyticsFeedback',
+  ...VISUAL_TRIGGER_NODE_TYPE_TO_EXECUTOR,
 };
 
-const EDITOR_NODE_DATA_META_KEYS = new Set([
-  'cachedOutput',
-  'color',
-  'comment',
-  'config',
-  'error',
-  'inputVariableKeys',
-  'isLocked',
-  'label',
-  'lockTimestamp',
-  'originalType',
-  'progress',
-  'status',
-]);
-
 const BRAND_ID_REQUIRED_NODE_TYPES = new Set([
-  'ai-avatar-video',
-  'ai-generate-image',
-  'analytics-feedback',
+  'aiAvatarVideo',
   'analyticsFeedback',
   'brandContext',
   'effect-captions',
   'imageGen',
-  'ai-text-to-speech',
   'musicSource',
   'soundOverlay',
+  'textToSpeech',
 ]);
 
 export class WorkflowEngineConverterService {
@@ -114,10 +50,15 @@ export class WorkflowEngineConverterService {
   ): ExecutableWorkflow {
     const primaryBrandId = workflowDoc.brandId ?? undefined;
     const nodes: ExecutableNode[] = (workflowDoc.nodes || []).map((node) => {
-      const config = this.mergeNodeConfig(node);
+      const persistedConfig = this.mergeNodeConfig(node);
       const inputVariableKeys = (
         node.data as unknown as { inputVariableKeys?: unknown } | undefined
       )?.inputVariableKeys;
+      const { config, executorType } = this.resolveExecutor(
+        node,
+        persistedConfig,
+        primaryBrandId,
+      );
       const nodeConfig = Array.isArray(inputVariableKeys)
         ? { ...config, inputVariableKeys }
         : config;
@@ -125,12 +66,12 @@ export class WorkflowEngineConverterService {
       return {
         cachedOutput: (node as unknown as { cachedOutput?: unknown })
           .cachedOutput,
-        config: this.withWorkflowBrandId(node.type, nodeConfig, primaryBrandId),
+        config: nodeConfig,
         id: node.id,
         inputs: (node as unknown as { inputs?: string[] }).inputs || [],
         isLocked: workflowDoc.lockedNodeIds?.includes(node.id) || false,
         label: node.data?.label || node.type,
-        type: NODE_TYPE_TO_EXECUTOR[node.type] || node.type,
+        type: executorType,
       };
     });
 
@@ -255,42 +196,45 @@ export class WorkflowEngineConverterService {
     };
   }
 
-  /**
-   * Editor nodes store prompt/template on `data.*`. Persisted nodes store
-   * them on `data.config`. Merge both so a 1-node prompt workflow executes
-   * whether or not the client folded fields before save.
-   */
   private mergeNodeConfig(node: WorkflowVisualNode): Record<string, unknown> {
-    const data =
-      node.data && typeof node.data === 'object' && !Array.isArray(node.data)
-        ? (node.data as Record<string, unknown>)
-        : {};
-    const rawNestedConfig = data.config;
-    const nestedConfig =
-      rawNestedConfig &&
-      typeof rawNestedConfig === 'object' &&
-      !Array.isArray(rawNestedConfig)
-        ? (rawNestedConfig as Record<string, unknown>)
-        : {};
-    const rawTopLevelConfig = (node as unknown as { config?: unknown }).config;
-    const topLevelConfig =
-      rawTopLevelConfig &&
-      typeof rawTopLevelConfig === 'object' &&
-      !Array.isArray(rawTopLevelConfig)
-        ? (rawTopLevelConfig as Record<string, unknown>)
-        : {};
-    const fromData: Record<string, unknown> = {};
+    return this.readRecord(node.data?.config);
+  }
 
-    for (const [key, value] of Object.entries(data)) {
-      if (!EDITOR_NODE_DATA_META_KEYS.has(key) && value !== undefined) {
-        fromData[key] = value;
+  private resolveExecutor(
+    node: WorkflowVisualNode,
+    persistedConfig: Record<string, unknown>,
+    brandId: string | undefined,
+  ): { config: Record<string, unknown>; executorType: string } {
+    if (node.type === 'genfeedAction') {
+      const actionId = persistedConfig.actionId;
+      if (typeof actionId !== 'string' || !getActionDefinition(actionId)) {
+        throw new Error(
+          `Workflow node ${node.id} references unknown Genfeed action ${String(actionId)}`,
+        );
       }
+
+      return {
+        config: {
+          actionId,
+          parameters: this.withWorkflowBrandId(
+            actionId,
+            this.readRecord(persistedConfig.parameters),
+            brandId,
+          ),
+        },
+        executorType: 'genfeedAction',
+      };
+    }
+
+    if (!isEngineNativeWorkflowNodeType(node.type)) {
+      throw new Error(
+        `Workflow node ${node.id} uses unsupported product node type ${node.type}; use a registered Genfeed action node`,
+      );
     }
 
     return {
-      ...fromData,
-      ...topLevelConfig,
-      ...nestedConfig,
+      config: this.withWorkflowBrandId(node.type, persistedConfig, brandId),
+      executorType: ENGINE_NATIVE_NODE_TYPE_TO_EXECUTOR[node.type] ?? node.type,
     };
   }
 
@@ -299,11 +243,9 @@ export class WorkflowEngineConverterService {
     config: Record<string, unknown>,
     brandId: string | undefined,
   ): Record<string, unknown> {
-    const canonicalNodeType = normalizeWorkflowNodeTypeToCanonical(nodeType);
-
     if (
       !brandId ||
-      !BRAND_ID_REQUIRED_NODE_TYPES.has(canonicalNodeType) ||
+      !BRAND_ID_REQUIRED_NODE_TYPES.has(nodeType) ||
       typeof config.brandId === 'string'
     ) {
       return config;
@@ -318,5 +260,11 @@ export class WorkflowEngineConverterService {
   ): string | undefined {
     const value = config?.[key];
     return typeof value === 'string' ? value : undefined;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
   }
 }

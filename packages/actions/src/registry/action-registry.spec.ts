@@ -12,6 +12,33 @@ describe('Genfeed action registry', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it('does not register visual aliases as duplicate actions', () => {
+    const visualAliases = [
+      'ai-avatar-video',
+      'ai-generate-image',
+      'ai-generate-newsletter',
+      'ai-generate-post',
+      'ai-generate-video',
+      'ai-lip-sync',
+      'ai-llm',
+      'ai-prompt-constructor',
+      'ai-reframe',
+      'ai-text-to-speech',
+      'ai-upscale',
+      'ai-voice-change',
+      'attach-post-ingredient',
+      'cast-prompt-generator',
+      'effect-color-grade',
+      'generateVideo',
+      'output-publish',
+      'source-corpus',
+    ];
+
+    expect(
+      visualAliases.filter((actionId) => getActionDefinition(actionId)),
+    ).toEqual([]);
+  });
+
   it('generates action nodes from registered definitions', () => {
     expect(
       createGenfeedActionNode({

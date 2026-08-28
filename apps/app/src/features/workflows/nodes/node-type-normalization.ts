@@ -1,11 +1,44 @@
-import { extendedNodeDefinitions, saasNodeDefinitions } from './definitions';
 import {
-  normalizeNodeTypeForApi,
-  normalizeNodeTypeForEditor,
-} from './node-type-aliases';
+  getWorkflowActionIdForNodeType,
+  getWorkflowPresentationNodeType,
+} from '@genfeedai/workflows/nodes';
+import { extendedNodeDefinitions, saasNodeDefinitions } from './definitions';
 
 export const FALLBACK_WORKFLOW_NODE_TYPE = 'unknown' as const;
 const ORIGINAL_NODE_TYPE_KEY = 'originalType' as const;
+const WORKFLOW_ACTION_ID_KEY = 'actionId' as const;
+const WORKFLOW_ACTION_PARAMETERS_KEY = 'parameters' as const;
+
+const ENGINE_NATIVE_EDITOR_NODE_TYPES = new Set([
+  'commentTrigger',
+  'condition',
+  'control-branch',
+  'control-delay',
+  'control-loop',
+  'delay',
+  'engagementTrigger',
+  'input-image',
+  'input-video',
+  'keywordTrigger',
+  'mentionTrigger',
+  'newFollowerTrigger',
+  'newLikeTrigger',
+  'newRepostTrigger',
+  'postPublishTrigger',
+  'reviewGate',
+  'trigger-comment',
+  'trigger-mention',
+  'trigger-new-follower',
+  'trigger-new-like',
+  'trigger-new-repost',
+  'workflowInput',
+]);
+
+const MEDIA_INPUT_NODE_TYPES = {
+  audioInput: 'audio',
+  imageInput: 'image',
+  videoInput: 'video',
+} as const satisfies Readonly<Record<string, string>>;
 
 /**
  * Editor-only chrome that must not be treated as executable node config.
@@ -23,6 +56,8 @@ const EDITOR_NODE_DATA_META_KEYS = new Set([
   'label',
   'lockTimestamp',
   ORIGINAL_NODE_TYPE_KEY,
+  WORKFLOW_ACTION_ID_KEY,
+  WORKFLOW_ACTION_PARAMETERS_KEY,
   'progress',
   'status',
 ]);
@@ -87,6 +122,91 @@ function extractEditorConfigFields(
   return config;
 }
 
+function readRecord(value: unknown): Record<string, unknown> {
+  return isNodeDataRecord(value) ? value : {};
+}
+
+function readPersistedActionId(
+  nodeType: string | undefined,
+  data: Record<string, unknown>,
+): string | null {
+  if (nodeType !== 'genfeedAction') {
+    return null;
+  }
+
+  const actionId = readRecord(data.config).actionId;
+  return typeof actionId === 'string' && actionId.length > 0 ? actionId : null;
+}
+
+function toEditorActionNodeData(
+  data: Record<string, unknown>,
+  actionId: string,
+): Record<string, unknown> {
+  const config = readRecord(data.config);
+  const parameters = readRecord(config.parameters);
+  const inputVariableKeys = readInputVariableKeys(data);
+
+  return {
+    ...parameters,
+    ...(inputVariableKeys ? { inputVariableKeys } : {}),
+    [WORKFLOW_ACTION_ID_KEY]: actionId,
+    label: typeof data.label === 'string' ? data.label : actionId,
+    [WORKFLOW_ACTION_PARAMETERS_KEY]: parameters,
+  };
+}
+
+function toPersistedActionNodeData(
+  data: unknown,
+  actionId: string,
+): Record<string, unknown> {
+  const record = isNodeDataRecord(data) ? data : {};
+  const existingParameters = readRecord(record[WORKFLOW_ACTION_PARAMETERS_KEY]);
+  const existingConfig = readRecord(record.config);
+  const extracted = extractEditorConfigFields(record);
+  const inputVariableKeys = readInputVariableKeys(record);
+
+  return {
+    ...(inputVariableKeys ? { inputVariableKeys } : {}),
+    config: {
+      actionId,
+      parameters: {
+        ...existingParameters,
+        ...existingConfig,
+        ...extracted,
+      },
+    },
+    label: typeof record.label === 'string' ? record.label : actionId,
+  };
+}
+
+function toPersistedMediaInputNode(
+  node: WorkflowNodeLike,
+  inputType: string,
+): WorkflowNodeLike {
+  const record = isNodeDataRecord(node.data) ? node.data : {};
+  const configured = readRecord(record.config);
+  const defaultValue =
+    record[inputType] ?? configured.defaultValue ?? configured.value;
+
+  return {
+    ...node,
+    data: {
+      config: {
+        ...(defaultValue !== undefined ? { defaultValue } : {}),
+        inputName:
+          typeof configured.inputName === 'string'
+            ? configured.inputName
+            : String(node.id ?? `${inputType}Input`),
+        inputType,
+        required: configured.required === true,
+      },
+      label:
+        typeof record.label === 'string' ? record.label : `${inputType} input`,
+    },
+    type: 'workflowInput',
+  };
+}
+
 /**
  * Persist editor node data in the API contract (`label` + `config`).
  * Prompt/template live on the editor node as top-level fields; the DTO
@@ -149,9 +269,7 @@ function resolveNodeType(rawType: unknown): string | null {
   }
 
   const trimmedType = rawType.trim();
-  return trimmedType.length > 0
-    ? normalizeNodeTypeForEditor(trimmedType)
-    : null;
+  return trimmedType.length > 0 ? trimmedType : null;
 }
 
 function normalizeNodePosition(node: WorkflowNodeLike): {
@@ -227,7 +345,11 @@ export function normalizeWorkflowNodeCollection(
 
   nodes.forEach((node, index) => {
     const data = isNodeDataRecord(node.data) ? node.data : {};
-    const resolvedType = resolveNodeType(node.type);
+    const persistedActionId = readPersistedActionId(node.type, data);
+    const actionPresentationType = persistedActionId
+      ? getWorkflowPresentationNodeType(persistedActionId)
+      : null;
+    const resolvedType = actionPresentationType ?? resolveNodeType(node.type);
     const originalType =
       typeof data[ORIGINAL_NODE_TYPE_KEY] === 'string'
         ? data[ORIGINAL_NODE_TYPE_KEY]
@@ -249,8 +371,16 @@ export function normalizeWorkflowNodeCollection(
       return;
     }
 
-    const nodeType = resolvedType ?? FALLBACK_WORKFLOW_NODE_TYPE;
-    const editorData = toEditorWorkflowNodeData(data);
+    const nodeType =
+      persistedActionId &&
+      resolvedType !== null &&
+      !supportedNodeTypes.has(resolvedType) &&
+      supportedNodeTypes.has('genfeedAction')
+        ? 'genfeedAction'
+        : (resolvedType ?? FALLBACK_WORKFLOW_NODE_TYPE);
+    const editorData = persistedActionId
+      ? toEditorActionNodeData(data, persistedActionId)
+      : toEditorWorkflowNodeData(data);
     const normalizedData = {
       ...editorData,
       label: resolveNodeLabel(nodeType, editorData),
@@ -311,13 +441,43 @@ export function restoreWorkflowNodeTypes(
 ): WorkflowNodeLike[] {
   return nodes.map((node) => {
     if (node.type !== FALLBACK_WORKFLOW_NODE_TYPE) {
+      const nodeType = node.type;
+      if (typeof nodeType === 'string') {
+        const mediaInputType = (
+          MEDIA_INPUT_NODE_TYPES as Readonly<Record<string, string>>
+        )[nodeType];
+        if (mediaInputType) {
+          return toPersistedMediaInputNode(node, mediaInputType);
+        }
+
+        const record = isNodeDataRecord(node.data) ? node.data : {};
+        const explicitActionId = record[WORKFLOW_ACTION_ID_KEY];
+        const actionId =
+          typeof explicitActionId === 'string' && explicitActionId.length > 0
+            ? getWorkflowActionIdForNodeType(explicitActionId)
+            : ENGINE_NATIVE_EDITOR_NODE_TYPES.has(nodeType)
+              ? undefined
+              : getWorkflowActionIdForNodeType(nodeType);
+
+        if (actionId) {
+          return {
+            ...node,
+            data: toPersistedActionNodeData(node.data, actionId),
+            type: 'genfeedAction',
+          };
+        }
+
+        if (!ENGINE_NATIVE_EDITOR_NODE_TYPES.has(nodeType)) {
+          throw new Error(
+            `Workflow node ${String(node.id)} uses unsupported product node type ${nodeType}`,
+          );
+        }
+      }
+
       return {
         ...node,
         data: toPersistedWorkflowNodeData(node.data),
-        type:
-          typeof node.type === 'string'
-            ? normalizeNodeTypeForApi(node.type)
-            : node.type,
+        type: nodeType,
       };
     }
 
@@ -325,18 +485,26 @@ export function restoreWorkflowNodeTypes(
     const originalType = data[ORIGINAL_NODE_TYPE_KEY];
 
     if (typeof originalType !== 'string' || originalType.length === 0) {
-      return {
-        ...node,
-        data: toPersistedWorkflowNodeData(data),
-      };
+      throw new Error(
+        `Workflow node ${String(node.id)} has no executable type`,
+      );
     }
 
     const { [ORIGINAL_NODE_TYPE_KEY]: _ignored, ...restData } = data;
 
+    const restoredType = originalType;
+    const actionId = getWorkflowActionIdForNodeType(restoredType);
+
+    if (!actionId) {
+      throw new Error(
+        `Workflow node ${String(node.id)} uses unsupported product node type ${restoredType}`,
+      );
+    }
+
     return {
       ...node,
-      data: toPersistedWorkflowNodeData(restData),
-      type: normalizeNodeTypeForApi(originalType),
+      data: toPersistedActionNodeData(restData, actionId),
+      type: 'genfeedAction',
     };
   });
 }

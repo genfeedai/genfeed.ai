@@ -24,7 +24,7 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import type { WorkflowVisualNode } from '@server/collections/workflows/schemas/workflow.schema';
 import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-runner.service';
 
-const WORKFLOW_INPUT_NODE_TYPES = new Set(['workflowInput', 'workflow-input']);
+const WORKFLOW_INPUT_NODE_TYPES = new Set(['workflowInput']);
 
 const TELEGRAM_WORKFLOW_FILES: TelegramWorkflowName[] = [
   'single-image',

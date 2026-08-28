@@ -1,8 +1,10 @@
 // @ts-nocheck
 
+import { getWorkflowActionIdForNodeType } from '@genfeedai/workflows/nodes';
+import { testId } from '@helpers/testing/test-id.helper';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { GENERATION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/generation-templates';
-import { testId } from '@helpers/testing/test-id.helper';
+import { isEngineNativeWorkflowNodeType } from '@server/collections/workflows/workflow-version-definition';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowEngineAdapterService', () => {
@@ -16,6 +18,57 @@ describe('WorkflowEngineAdapterService', () => {
     log: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
+
+  function convertActionGraph(
+    adapter: WorkflowEngineAdapterService,
+    workflow: Record<string, unknown> & {
+      nodes?: Array<Record<string, unknown>>;
+    },
+  ) {
+    return adapter.convertToExecutableWorkflow({
+      ...workflow,
+      nodes: (workflow.nodes ?? []).map((node) => {
+        const nodeType = String(node.type ?? '');
+        if (
+          nodeType === 'genfeedAction' ||
+          isEngineNativeWorkflowNodeType(nodeType)
+        ) {
+          return node;
+        }
+
+        const actionId = getWorkflowActionIdForNodeType(nodeType);
+        if (!actionId) {
+          return node;
+        }
+
+        const data =
+          node.data && typeof node.data === 'object'
+            ? (node.data as Record<string, unknown>)
+            : {};
+        const configuredParameters =
+          data.config && typeof data.config === 'object'
+            ? (data.config as Record<string, unknown>)
+            : {};
+        const parameters = Object.fromEntries(
+          Object.entries(data).filter(
+            ([key]) => !['config', 'label'].includes(key),
+          ),
+        );
+
+        return {
+          ...node,
+          data: {
+            ...data,
+            config: {
+              actionId,
+              parameters: { ...configuredParameters, ...parameters },
+            },
+          },
+          type: 'genfeedAction',
+        };
+      }),
+    });
+  }
 
   beforeEach(() => {
     loggerService = {
@@ -85,7 +138,7 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
       expect(result.id).toBe('wf-1');
       expect(result.organizationId).toBe('org-1');
@@ -104,7 +157,7 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
       expect(result.nodes).toEqual([]);
       expect(result.edges).toEqual([]);
@@ -124,7 +177,7 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
       expect(result.nodes[0].config).toEqual({ model: 'flux', steps: 20 });
     });
@@ -143,31 +196,12 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
       expect(result.nodes[0]?.type).toBe('prompt');
       expect(result.nodes[0]?.config).toEqual({
         prompt: 'Write a FUD News brief',
       });
-    });
-
-    it('should fallback to node.config when data.config is missing', () => {
-      const workflowDoc = {
-        id: 'wf-1',
-        nodes: [
-          {
-            config: { scale: 2 },
-            id: 'n1',
-            type: 'upscale',
-          },
-        ],
-        organizationId: 'org-1',
-        userId: 'user-1',
-      };
-
-      const result = service.convertToExecutableWorkflow(workflowDoc);
-
-      expect(result.nodes[0].config).toEqual({ scale: 2 });
     });
 
     it('injects the workflow primary brand into avatar and media processing nodes', () => {
@@ -178,7 +212,7 @@ describe('WorkflowEngineAdapterService', () => {
           {
             data: { config: {}, label: 'Avatar' },
             id: 'n1',
-            type: 'ai-avatar-video',
+            type: 'aiAvatarVideo',
           },
           {
             data: { config: {}, label: 'Captions' },
@@ -200,7 +234,7 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
       expect(result.nodes.map((node) => node.config.brandId)).toEqual([
         'brand-1',
@@ -208,54 +242,6 @@ describe('WorkflowEngineAdapterService', () => {
         'brand-1',
         'brand-1',
       ]);
-    });
-  });
-
-  describe('convertStepsToExecutableWorkflow', () => {
-    it('should convert steps to nodes with edges from dependsOn', () => {
-      const steps = [
-        {
-          config: { model: 'gpt' },
-          id: 'step-1',
-          name: 'Generate',
-          type: 'generate',
-        },
-        {
-          config: { scale: 2 },
-          dependsOn: ['step-1'],
-          id: 'step-2',
-          name: 'Upscale',
-          type: 'upscale',
-        },
-      ];
-
-      const result = service.convertStepsToExecutableWorkflow(
-        'wf-1',
-        steps,
-        'user-1',
-        'org-1',
-      );
-
-      expect(result.nodes).toHaveLength(2);
-      expect(result.edges).toHaveLength(1);
-      expect(result.edges[0].source).toBe('step-1');
-      expect(result.edges[0].target).toBe('step-2');
-    });
-
-    it('should handle steps without dependencies', () => {
-      const steps = [
-        { config: {}, id: 'step-1', name: 'Step 1', type: 'generate' },
-        { config: {}, id: 'step-2', name: 'Step 2', type: 'publish' },
-      ];
-
-      const result = service.convertStepsToExecutableWorkflow(
-        'wf-1',
-        steps,
-        'user-1',
-        'org-1',
-      );
-
-      expect(result.edges).toHaveLength(0);
     });
   });
 
@@ -287,7 +273,7 @@ describe('WorkflowEngineAdapterService', () => {
   });
 
   describe('executeWorkflow', () => {
-    it('should execute workflows with fallback node types', async () => {
+    it('executes an explicitly action-backed enhancement node', async () => {
       const workflowDoc = {
         id: 'wf-unsupported',
         nodes: [
@@ -301,7 +287,7 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const workflow = service.convertToExecutableWorkflow(workflowDoc);
+      const workflow = convertActionGraph(service, workflowDoc);
       const result = await service.executeWorkflow(workflow);
       expect(result.status).toBe('completed');
     });
@@ -316,7 +302,7 @@ describe('WorkflowEngineAdapterService', () => {
       };
       const socialAdapter = createAdapterWithSocialInbox(socialInboxService);
 
-      const workflow = socialAdapter.convertToExecutableWorkflow({
+      const workflow = convertActionGraph(socialAdapter, {
         id: 'wf-social-reply',
         nodes: [
           {
@@ -371,7 +357,7 @@ describe('WorkflowEngineAdapterService', () => {
       };
       const socialAdapter = createAdapterWithSocialInbox(socialInboxService);
 
-      const workflow = socialAdapter.convertToExecutableWorkflow({
+      const workflow = convertActionGraph(socialAdapter, {
         id: 'wf-social-dm',
         nodes: [
           {
@@ -432,7 +418,7 @@ describe('WorkflowEngineAdapterService', () => {
       };
       const socialAdapter = new WorkflowEngineAdapterService(...args);
 
-      const workflow = socialAdapter.convertToExecutableWorkflow({
+      const workflow = convertActionGraph(socialAdapter, {
         id: 'wf-social-reply-no-inbox',
         nodes: [
           {
@@ -479,7 +465,7 @@ describe('WorkflowEngineAdapterService', () => {
       args[35] = livestreamBotWorkflowService;
       const livestreamAdapter = new WorkflowEngineAdapterService(...args);
 
-      const workflow = livestreamAdapter.convertToExecutableWorkflow({
+      const workflow = convertActionGraph(livestreamAdapter, {
         id: 'wf-livestream',
         nodes: [
           {
@@ -501,7 +487,7 @@ describe('WorkflowEngineAdapterService', () => {
     });
 
     it('executes a 1-node prompt workflow from editor node data', async () => {
-      const workflow = service.convertToExecutableWorkflow({
+      const workflow = convertActionGraph(service, {
         id: 'wf-prompt',
         nodes: [
           {
@@ -537,7 +523,7 @@ describe('WorkflowEngineAdapterService', () => {
         organizationId: 'org-1',
         userId: 'user-1',
       };
-      const workflow = service.convertToExecutableWorkflow(workflowDoc);
+      const workflow = convertActionGraph(service, workflowDoc);
       const hydrated = service.applyRuntimeInputValues(
         workflowDoc,
         workflow,
@@ -550,7 +536,7 @@ describe('WorkflowEngineAdapterService', () => {
     });
 
     it('executes a prompt constructor from data.template', async () => {
-      const workflow = service.convertToExecutableWorkflow({
+      const workflow = convertActionGraph(service, {
         id: 'wf-prompt-constructor',
         nodes: [
           {
@@ -560,7 +546,7 @@ describe('WorkflowEngineAdapterService', () => {
               topic: 'FUD News',
             },
             id: 'constructor-1',
-            type: 'ai-prompt-constructor',
+            type: 'promptConstructor',
           },
         ],
         organizationId: 'org-1',
@@ -576,7 +562,7 @@ describe('WorkflowEngineAdapterService', () => {
     });
 
     it('executes image inputs from picker-backed config', async () => {
-      const workflow = service.convertToExecutableWorkflow({
+      const workflow = convertActionGraph(service, {
         id: 'wf-image-input',
         nodes: [
           {
@@ -607,7 +593,7 @@ describe('WorkflowEngineAdapterService', () => {
     });
 
     it('executes video inputs from picker-backed config', async () => {
-      const workflow = service.convertToExecutableWorkflow({
+      const workflow = convertActionGraph(service, {
         id: 'wf-video-input',
         nodes: [
           {
@@ -638,14 +624,14 @@ describe('WorkflowEngineAdapterService', () => {
     });
 
     it('executes analytics feedback without a performance summary service', async () => {
-      const workflow = service.convertToExecutableWorkflow({
+      const workflow = convertActionGraph(service, {
         id: 'wf-analytics-feedback',
         brandId: 'brand-1',
         nodes: [
           {
             data: { config: { topN: 5, worstN: 3 }, label: 'Analytics' },
             id: 'analytics',
-            type: 'analytics-feedback',
+            type: 'analyticsFeedback',
           },
         ],
         organizationId: 'org-1',
@@ -665,7 +651,7 @@ describe('WorkflowEngineAdapterService', () => {
     });
 
     it('executes hook generator without invoking fallback behavior', async () => {
-      const workflow = service.convertToExecutableWorkflow({
+      const workflow = convertActionGraph(service, {
         id: 'wf-hook-generator',
         nodes: [
           {
@@ -718,7 +704,7 @@ describe('WorkflowEngineAdapterService', () => {
         }),
       };
       const adapter = createAdapterWithAgentAutopilot(agentAutopilotService);
-      const workflow = adapter.convertToExecutableWorkflow({
+      const workflow = convertActionGraph(adapter, {
         id: 'wf-agent',
         nodes: [
           {
@@ -751,7 +737,7 @@ describe('WorkflowEngineAdapterService', () => {
     });
 
     it('executes trend trigger with analytics keywords when no social trend adapter is available', async () => {
-      const workflow = service.convertToExecutableWorkflow({
+      const workflow = convertActionGraph(service, {
         id: 'wf-trend',
         nodes: [
           {
@@ -799,7 +785,7 @@ describe('WorkflowEngineAdapterService', () => {
     });
 
     it('executes text-only publish when brand and caption inputs are present', async () => {
-      const workflow = service.convertToExecutableWorkflow({
+      const workflow = convertActionGraph(service, {
         id: 'wf-publish',
         edges: [
           {
@@ -838,7 +824,7 @@ describe('WorkflowEngineAdapterService', () => {
               label: 'Publish',
             },
             id: 'publish',
-            type: 'output-publish',
+            type: 'publish',
           },
         ],
         organizationId: 'org-1',
@@ -875,7 +861,7 @@ describe('WorkflowEngineAdapterService', () => {
         avatarVideoGenerationService as never,
       );
 
-      const workflow = avatarService.convertToExecutableWorkflow({
+      const workflow = convertActionGraph(avatarService, {
         id: 'wf-1',
         brandId: 'brand-1',
         edges: [],
@@ -886,7 +872,7 @@ describe('WorkflowEngineAdapterService', () => {
               label: 'Avatar',
             },
             id: 'avatar',
-            type: 'ai-avatar-video',
+            type: 'aiAvatarVideo',
           },
         ],
         organizationId: 'org-1',
@@ -901,7 +887,7 @@ describe('WorkflowEngineAdapterService', () => {
         inputs: [],
         isLocked: true,
         label: 'Script',
-        type: 'workflow-input',
+        type: 'workflowInput',
       });
       workflow.edges.push({
         id: 'script-avatar',
@@ -981,7 +967,7 @@ describe('WorkflowEngineAdapterService', () => {
         whisperService as never,
       );
 
-      const captionsWorkflow = executionService.convertToExecutableWorkflow({
+      const captionsWorkflow = convertActionGraph(executionService, {
         id: 'wf-caption',
         brandId,
         edges: [
@@ -997,7 +983,7 @@ describe('WorkflowEngineAdapterService', () => {
             cachedOutput: { id: avatarId },
             data: { config: {}, label: 'Avatar' },
             id: 'avatar',
-            type: 'ai-avatar-video',
+            type: 'aiAvatarVideo',
           },
           {
             data: { config: {}, label: 'Captions' },
@@ -1024,7 +1010,7 @@ describe('WorkflowEngineAdapterService', () => {
         }),
       );
 
-      const musicWorkflow = executionService.convertToExecutableWorkflow({
+      const musicWorkflow = convertActionGraph(executionService, {
         id: 'wf-music',
         brandId,
         edges: [],
@@ -1044,7 +1030,7 @@ describe('WorkflowEngineAdapterService', () => {
       expect(musicResult.status).toBe('completed');
       expect(musicsService.findOne).toHaveBeenCalled();
 
-      const overlayWorkflow = executionService.convertToExecutableWorkflow({
+      const overlayWorkflow = convertActionGraph(executionService, {
         id: 'wf-overlay',
         brandId,
         edges: [
@@ -1173,8 +1159,10 @@ describe('WorkflowEngineAdapterService', () => {
         userId: testId('user'),
       };
 
-      const executableWorkflow =
-        imageWorkflowService.convertToExecutableWorkflow(workflowDoc);
+      const executableWorkflow = convertActionGraph(
+        imageWorkflowService,
+        workflowDoc,
+      );
       const hydratedWorkflow = imageWorkflowService.applyRuntimeInputValues(
         workflowDoc,
         executableWorkflow,
@@ -1233,7 +1221,7 @@ describe('WorkflowEngineAdapterService', () => {
         undefined,
       );
 
-      const workflow = imageWorkflowService.convertToExecutableWorkflow({
+      const workflow = convertActionGraph(imageWorkflowService, {
         id: 'wf-missing-brand',
         edges: [],
         nodes: [
@@ -1264,7 +1252,7 @@ describe('WorkflowEngineAdapterService', () => {
   });
 
   describe('node type to executor mapping', () => {
-    it('should map brandAsset to brandAsset executor', () => {
+    it('keeps brandAsset in its action envelope', () => {
       const workflowDoc = {
         id: 'wf-1',
         nodes: [
@@ -1278,47 +1266,59 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
-      expect(result.nodes[0].type).toBe('brandAsset');
+      expect(result.nodes[0]).toMatchObject({
+        config: {
+          actionId: 'brandAsset',
+          parameters: { assetType: 'logo', brandId: 'brand-1' },
+        },
+        type: 'genfeedAction',
+      });
     });
 
-    it('should map social-post-reply to postReply executor', () => {
+    it('resolves the postReply action executor', () => {
       const workflowDoc = {
         id: 'wf-1',
         nodes: [
           {
             data: { config: {}, label: 'Post Reply' },
             id: 'n1',
-            type: 'social-post-reply',
+            type: 'postReply',
           },
         ],
         organizationId: 'org-1',
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
-      expect(result.nodes[0].type).toBe('postReply');
+      expect(result.nodes[0]).toMatchObject({
+        config: { actionId: 'postReply', parameters: {} },
+        type: 'genfeedAction',
+      });
     });
 
-    it('should map social-send-dm to sendDm executor', () => {
+    it('resolves the sendDm action executor', () => {
       const workflowDoc = {
         id: 'wf-1',
         nodes: [
           {
             data: { config: {}, label: 'Send DM' },
             id: 'n1',
-            type: 'social-send-dm',
+            type: 'sendDm',
           },
         ],
         organizationId: 'org-1',
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
-      expect(result.nodes[0].type).toBe('sendDm');
+      expect(result.nodes[0]).toMatchObject({
+        config: { actionId: 'sendDm', parameters: {} },
+        type: 'genfeedAction',
+      });
     });
 
     it('should map trigger nodes to corresponding executors', () => {
@@ -1355,7 +1355,7 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
       expect(result.nodes[0].type).toBe('mentionTrigger');
       expect(result.nodes[1].type).toBe('newFollowerTrigger');
@@ -1383,13 +1383,13 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
       expect(result.nodes[0].type).toBe('condition');
       expect(result.nodes[1].type).toBe('delay');
     });
 
-    it('should map fallback types to dedicated fallback executors', () => {
+    it('preserves action envelopes and maps engine-native controls', () => {
       const workflowDoc = {
         id: 'wf-1',
         nodes: [
@@ -1408,9 +1408,12 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
-      expect(result.nodes[0].type).toBe('ai-enhance');
+      expect(result.nodes[0]).toMatchObject({
+        config: { actionId: 'ai-enhance', parameters: {} },
+        type: 'genfeedAction',
+      });
       expect(result.nodes[1].type).toBe('control-loop');
     });
 
@@ -1428,12 +1431,12 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
       expect(result.nodes[0].type).toBe('input-video');
     });
 
-    it('should pass through unknown types unchanged', () => {
+    it('fails closed for unknown product node types', () => {
       const workflowDoc = {
         id: 'wf-1',
         nodes: [
@@ -1447,9 +1450,9 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
-
-      expect(result.nodes[0].type).toBe('customType');
+      expect(() => convertActionGraph(service, workflowDoc)).toThrow(
+        /unsupported product node type customType/,
+      );
     });
   });
 
@@ -1469,7 +1472,7 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
       expect(result.nodes[0].inputs).toEqual(['input1', 'input2']);
     });
@@ -1490,7 +1493,7 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
       expect(result.nodes[0].cachedOutput).toEqual(cachedOutput);
     });
@@ -1509,7 +1512,7 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
       expect(result.nodes[0].label).toBe('Custom Label');
     });
@@ -1528,7 +1531,7 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
       expect(result.nodes[0].label).toBe('imageGen');
     });
@@ -1598,7 +1601,7 @@ describe('WorkflowEngineAdapterService', () => {
       );
 
       const runNode = async (assetType: 'logo' | 'banner' | 'references') => {
-        const workflow = brandAssetService.convertToExecutableWorkflow({
+        const workflow = convertActionGraph(brandAssetService, {
           id: `wf-${assetType}`,
           nodes: [
             {
@@ -1649,7 +1652,7 @@ describe('WorkflowEngineAdapterService', () => {
         userId: 'user-1',
       };
 
-      const result = service.convertToExecutableWorkflow(workflowDoc);
+      const result = convertActionGraph(service, workflowDoc);
 
       expect(result.edges[0]).toEqual({
         id: 'e1',
@@ -1835,45 +1838,6 @@ describe('WorkflowEngineAdapterService', () => {
       const result = await service.buildDigestTrends(makeTrends(), 10, 0, []);
 
       expect(result).toHaveLength(2);
-    });
-  });
-
-  describe('convertStepsToExecutableWorkflow - multiple dependencies', () => {
-    it('should create edges for all dependencies', () => {
-      const steps = [
-        {
-          config: {},
-          id: 'step-1',
-          name: 'Step 1',
-          type: 'generate',
-        },
-        {
-          config: {},
-          id: 'step-2',
-          name: 'Step 2',
-          type: 'transform',
-        },
-        {
-          config: {},
-          dependsOn: ['step-1', 'step-2'],
-          id: 'step-3',
-          name: 'Step 3',
-          type: 'merge',
-        },
-      ];
-
-      const result = service.convertStepsToExecutableWorkflow(
-        'wf-1',
-        steps,
-        'user-1',
-        'org-1',
-      );
-
-      expect(result.edges).toHaveLength(2);
-      expect(result.edges[0].source).toBe('step-1');
-      expect(result.edges[0].target).toBe('step-3');
-      expect(result.edges[1].source).toBe('step-2');
-      expect(result.edges[1].target).toBe('step-3');
     });
   });
 });

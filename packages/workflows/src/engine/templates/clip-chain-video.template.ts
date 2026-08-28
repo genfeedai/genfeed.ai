@@ -1,6 +1,6 @@
 import type { ExecutableEdge, ExecutableNode } from '../types';
 import { getNodeCreditCost } from '../utils/credit-calculator';
-import type { WorkflowTemplate } from './cinematic-video.template';
+import type { WorkflowTemplate } from './workflow-template';
 
 export const DEFAULT_CLIP_CHAIN_SEGMENT_COUNT = 3;
 export const CLIP_CHAIN_VIDEO_TEMPLATE_ID = 'clip-chain-video';

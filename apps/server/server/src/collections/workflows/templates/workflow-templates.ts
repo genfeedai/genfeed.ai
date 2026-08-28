@@ -121,7 +121,7 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
     isScheduleEnabled: false,
     name: 'Instagram Remix And Review',
     nodes: [
-      createTemplateActionNode('ai-generate-video', {
+      createTemplateActionNode('videoGen', {
         data: {
           config: {
             aspectRatio: '9:16',

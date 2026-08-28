@@ -306,14 +306,6 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
       'videoGen',
       this.helper.wrapEngineExecutor(videoGenExecutor),
     );
-    engine.registerExecutor(
-      'generateVideo',
-      this.helper.wrapEngineExecutor(videoGenExecutor),
-    );
-    engine.registerExecutor(
-      'ai-generate-video',
-      this.helper.wrapEngineExecutor(videoGenExecutor),
-    );
   }
 
   private registerLipSyncExecutor(engine: WorkflowEngine): void {

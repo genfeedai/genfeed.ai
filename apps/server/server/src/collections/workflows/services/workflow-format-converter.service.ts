@@ -1,14 +1,10 @@
-import { UNIFIED_NODE_REGISTRY as NODE_REGISTRY } from '@server/collections/workflows/registry/node-registry-adapter';
+import {
+  getWorkflowActionIdForNodeType,
+  getWorkflowPresentationNodeType,
+} from '@genfeedai/workflows/nodes';
 import { Injectable } from '@nestjs/common';
+import { isEngineNativeWorkflowNodeType } from '@server/collections/workflows/workflow-version-definition';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
-/**
- * Core workflow format — the modern React Flow-based format used in
- * @genfeedai/workflows/ui and @genfeedai/workflows/nodes
- */
 export interface CoreWorkflowNode {
   id: string;
   type: string;
@@ -32,10 +28,6 @@ export interface CoreWorkflowFormat {
   version?: number;
 }
 
-/**
- * Cloud workflow format accepted by the canonical workflow registry.
- * Older kebab-case node types are normalized during conversion.
- */
 export interface CloudWorkflowNode {
   id: string;
   type: string;
@@ -47,13 +39,7 @@ export interface CloudWorkflowNode {
   };
 }
 
-export interface CloudWorkflowEdge {
-  id: string;
-  source: string;
-  target: string;
-  sourceHandle?: string;
-  targetHandle?: string;
-}
+export type CloudWorkflowEdge = CoreWorkflowEdge;
 
 export interface CloudWorkflowFormat {
   name?: string;
@@ -70,194 +56,95 @@ export interface ConversionResult {
   unmappedNodeTypes: string[];
 }
 
-// =============================================================================
-// FORMAT DETECTION
-// =============================================================================
+const MEDIA_INPUT_TYPES = {
+  audioInput: 'audio',
+  imageInput: 'image',
+  videoInput: 'video',
+} as const satisfies Readonly<Record<string, string>>;
 
-/**
- * Detect whether a workflow JSON is in core or cloud format.
- *
- * Core format: node types are camelCase editor/executor names
- *   (e.g., "imageGen", "brandContext")
- * Cloud format: node types map to the workflow registry, including legacy aliases
- *   (e.g., "ai-generate-image", "workflow-input")
- */
+const NODE_DATA_META_KEYS = new Set([
+  'cachedOutput',
+  'color',
+  'comment',
+  'config',
+  'error',
+  'inputVariableKeys',
+  'isLocked',
+  'label',
+  'lockTimestamp',
+  'progress',
+  'status',
+]);
+
+function readRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function readInputVariableKeys(data: Record<string, unknown>): string[] {
+  return Array.isArray(data.inputVariableKeys)
+    ? data.inputVariableKeys.filter(
+        (key): key is string => typeof key === 'string',
+      )
+    : [];
+}
+
+function extractParameters(
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  const parameters = { ...readRecord(data.config) };
+  for (const [key, value] of Object.entries(data)) {
+    if (!NODE_DATA_META_KEYS.has(key) && value !== undefined) {
+      parameters[key] = value;
+    }
+  }
+  return parameters;
+}
+
 export function detectFormat(
   workflow: CoreWorkflowFormat | CloudWorkflowFormat,
 ): WorkflowSourceFormat {
-  const nodeTypes = (workflow.nodes || []).map((n) => n.type);
-
-  if (nodeTypes.length === 0) {
-    return 'cloud';
-  }
-
-  const hasKebabCase = nodeTypes.some((t) => t.includes('-'));
-  const hasCamelCase = nodeTypes.some((t) => /^[a-z]+[A-Z]/.test(t));
-
-  if (hasKebabCase && !hasCamelCase) {
-    return 'cloud';
-  }
-
-  if (hasCamelCase && !hasKebabCase) {
-    return 'core';
-  }
-
-  // If the nodes match entries in NODE_REGISTRY, it's cloud format
-  const matchesRegistry = nodeTypes.some((t) => t in NODE_REGISTRY);
-  return matchesRegistry ? 'cloud' : 'core';
+  return workflow.nodes.some((node) => {
+    const config = readRecord(node.data?.config);
+    return node.type === 'genfeedAction' || typeof config.actionId === 'string';
+  })
+    ? 'cloud'
+    : 'core';
 }
-
-// =============================================================================
-// NODE TYPE MAPPING
-// =============================================================================
-
-/**
- * Maps core node types (camelCase) to legacy cloud node types.
- * We still serialize the legacy cloud spellings here to preserve compatibility
- * with existing persisted workflows and backend execution paths.
- */
-const CORE_TO_CLOUD_NODE_TYPE: Record<string, string> = {
-  beatAnalysis: 'process-extract-audio',
-  brand: 'input-template',
-  brandAsset: 'input-image',
-  brandContext: 'input-template',
-  captionGen: 'effect-captions',
-  colorGrade: 'effect-color-grade',
-  condition: 'control-branch',
-  delay: 'control-delay',
-  imageGen: 'ai-generate-image',
-  platformExport: 'output-export',
-  promptConstructor: 'ai-prompt-constructor',
-  castPrompt: 'cast-prompt-generator',
-  publish: 'output-publish',
-  videoInput: 'input-video',
-  workflowInput: 'workflow-input',
-  workflowOutput: 'workflow-output',
-};
-
-/**
- * Maps cloud node types (kebab-case) back to core executor types (camelCase).
- * This is the inverse of NODE_TYPE_TO_EXECUTOR in the adapter service.
- */
-const CLOUD_TO_CORE_NODE_TYPE: Record<string, string> = {
-  'ai-enhance': 'aiEnhance',
-  'ai-generate-image': 'imageGen',
-  'ai-generate-video': 'aiGenerateVideo',
-  'ai-prompt-constructor': 'promptConstructor',
-  'cast-prompt-generator': 'castPrompt',
-  'ai-transcribe': 'transcribe',
-  'ai-upscale': 'upscale',
-  'control-branch': 'condition',
-  'control-delay': 'delay',
-  'control-loop': 'loop',
-  'effect-captions': 'captionGen',
-  'effect-color-grade': 'colorGrade',
-  'effect-ken-burns': 'kenBurns',
-  'effect-portrait-blur': 'portraitBlur',
-  'effect-split-screen': 'splitScreen',
-  'effect-text-overlay': 'textOverlay',
-  'effect-watermark': 'watermark',
-  'input-image': 'imageInput',
-  'input-prompt': 'promptInput',
-  'input-template': 'templateInput',
-  'input-video': 'videoInput',
-  'output-export': 'export',
-  'output-notify': 'notify',
-  'output-publish': 'publish',
-  'output-save': 'save',
-  'output-webhook': 'webhook',
-  'process-compress': 'compress',
-  'process-extract-audio': 'extractAudio',
-  'process-merge-videos': 'mergeVideos',
-  'process-mirror': 'mirror',
-  'process-resize': 'resize',
-  'process-reverse': 'reverse',
-  'process-transform': 'transform',
-  'process-trim': 'trim',
-  'workflow-input': 'workflowInput',
-  'workflow-output': 'workflowOutput',
-};
-
-// =============================================================================
-// SERVICE
-// =============================================================================
 
 @Injectable()
 export class WorkflowFormatConverterService {
-  /**
-   * Convert a core-format workflow to cloud format.
-   * Handles node type mapping, handle format conversion, and config schema translation.
-   */
   convertCoreToCloud(workflow: CoreWorkflowFormat): ConversionResult {
-    const warnings: string[] = [];
-    const unmappedNodeTypes: string[] = [];
-
-    const nodes: CloudWorkflowNode[] = workflow.nodes.map((node) => {
-      const cloudType =
-        CORE_TO_CLOUD_NODE_TYPE[node.type] ?? this.camelToKebab(node.type);
-
-      if (
-        !CORE_TO_CLOUD_NODE_TYPE[node.type] &&
-        !(cloudType in NODE_REGISTRY)
-      ) {
-        unmappedNodeTypes.push(node.type);
-        warnings.push(
-          `Node type "${node.type}" has no cloud equivalent; using "${cloudType}"`,
-        );
-      }
-
-      const registryDef = NODE_REGISTRY[cloudType];
-      const label =
-        (node.data?.label as string) ?? registryDef?.label ?? node.type;
-
-      const config = this.extractConfig(node.data);
-
-      return {
-        data: {
-          config,
-          label,
-        },
-        id: node.id,
-        position: node.position,
-        type: cloudType,
-      };
-    });
-
-    const edges: CloudWorkflowEdge[] = workflow.edges.map((edge) => ({
-      id: edge.id,
-      source: edge.source,
-      sourceHandle: edge.sourceHandle,
-      target: edge.target,
-      targetHandle: edge.targetHandle,
-    }));
-
-    return {
-      unmappedNodeTypes,
-      warnings,
-      workflow: {
-        description: workflow.description,
-        edges,
-        name: workflow.name,
-        nodes,
-      },
-    };
+    return this.toActionGraph(workflow);
   }
 
-  /**
-   * Convert a cloud-format workflow to core format.
-   */
   convertCloudToCore(workflow: CloudWorkflowFormat): {
     workflow: CoreWorkflowFormat;
     warnings: string[];
   } {
-    const warnings: string[] = [];
+    const nodes = workflow.nodes.map((node): CoreWorkflowNode => {
+      if (node.type !== 'genfeedAction') {
+        return {
+          data: {
+            label: node.data.label,
+            status: 'idle',
+            ...readRecord(node.data.config),
+          },
+          id: node.id,
+          position: node.position,
+          type: node.type,
+        };
+      }
 
-    const nodes: CoreWorkflowNode[] = workflow.nodes.map((node) => {
-      const coreType = CLOUD_TO_CORE_NODE_TYPE[node.type] ?? node.type;
-
-      if (!CLOUD_TO_CORE_NODE_TYPE[node.type]) {
-        warnings.push(
-          `Cloud node type "${node.type}" has no core equivalent; passing through`,
+      const config = readRecord(node.data.config);
+      const actionId = config.actionId;
+      if (
+        typeof actionId !== 'string' ||
+        !getWorkflowActionIdForNodeType(actionId)
+      ) {
+        throw new Error(
+          `Workflow node ${node.id} references unknown Genfeed action ${String(actionId)}`,
         );
       }
 
@@ -265,27 +152,19 @@ export class WorkflowFormatConverterService {
         data: {
           label: node.data.label,
           status: 'idle',
-          ...(node.data.config ?? {}),
+          ...readRecord(config.parameters),
         },
         id: node.id,
         position: node.position,
-        type: coreType,
+        type: getWorkflowPresentationNodeType(actionId),
       };
     });
 
-    const edges: CoreWorkflowEdge[] = workflow.edges.map((edge) => ({
-      id: edge.id,
-      source: edge.source,
-      sourceHandle: edge.sourceHandle,
-      target: edge.target,
-      targetHandle: edge.targetHandle,
-    }));
-
     return {
-      warnings,
+      warnings: [],
       workflow: {
         description: workflow.description,
-        edges,
+        edges: workflow.edges,
         name: workflow.name,
         nodes,
         version: 1,
@@ -293,57 +172,117 @@ export class WorkflowFormatConverterService {
     };
   }
 
-  /**
-   * Auto-detect format and convert to cloud format if needed.
-   */
   ensureCloudFormat(
     workflow: CoreWorkflowFormat | CloudWorkflowFormat,
   ): ConversionResult {
-    const format = detectFormat(workflow);
+    return this.toActionGraph(workflow);
+  }
 
-    if (format === 'cloud') {
+  private toActionGraph(
+    workflow: CoreWorkflowFormat | CloudWorkflowFormat,
+  ): ConversionResult {
+    return {
+      unmappedNodeTypes: [],
+      warnings: [],
+      workflow: {
+        description: workflow.description,
+        edges: workflow.edges,
+        name: workflow.name,
+        nodes: workflow.nodes.map((node) => this.toActionNode(node)),
+      },
+    };
+  }
+
+  private toActionNode(
+    node: CoreWorkflowNode | CloudWorkflowNode,
+  ): CloudWorkflowNode {
+    const data = readRecord(node.data);
+    const label = typeof data.label === 'string' ? data.label : node.type;
+    const inputVariableKeys = readInputVariableKeys(data);
+
+    if (node.type === 'genfeedAction') {
+      const config = readRecord(data.config);
+      const actionId = config.actionId;
+      if (
+        typeof actionId !== 'string' ||
+        !getWorkflowActionIdForNodeType(actionId)
+      ) {
+        throw new Error(
+          `Workflow node ${node.id} references unknown Genfeed action ${String(actionId)}`,
+        );
+      }
+
       return {
-        unmappedNodeTypes: [],
-        warnings: [],
-        workflow: workflow as CloudWorkflowFormat,
+        ...node,
+        data: {
+          ...(inputVariableKeys.length > 0 ? { inputVariableKeys } : {}),
+          config: {
+            actionId,
+            parameters: readRecord(config.parameters),
+          },
+          label,
+        },
+        type: 'genfeedAction',
       };
     }
 
-    return this.convertCoreToCloud(workflow as CoreWorkflowFormat);
-  }
+    const mediaInputType = (
+      MEDIA_INPUT_TYPES as Readonly<Record<string, string>>
+    )[node.type];
+    if (mediaInputType) {
+      const parameters = extractParameters(data);
+      const defaultValue =
+        parameters[mediaInputType] ??
+        parameters.defaultValue ??
+        parameters.value;
 
-  /**
-   * Extract config from core node data, filtering out non-config fields.
-   */
-  private extractConfig(
-    data: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const nonConfigFields = new Set([
-      'label',
-      'status',
-      'error',
-      'progress',
-      'isLocked',
-      'cachedOutput',
-      'lockTimestamp',
-      'comment',
-      'color',
-    ]);
-
-    const config: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(data)) {
-      if (!nonConfigFields.has(key) && value !== undefined) {
-        config[key] = value;
-      }
+      return {
+        ...node,
+        data: {
+          config: {
+            ...(defaultValue !== undefined ? { defaultValue } : {}),
+            inputName:
+              typeof parameters.inputName === 'string'
+                ? parameters.inputName
+                : node.id,
+            inputType: mediaInputType,
+            required: parameters.required === true,
+          },
+          label,
+        },
+        type: 'workflowInput',
+      };
     }
 
-    return config;
-  }
+    if (isEngineNativeWorkflowNodeType(node.type)) {
+      return {
+        ...node,
+        data: {
+          ...(inputVariableKeys.length > 0 ? { inputVariableKeys } : {}),
+          config: extractParameters(data),
+          label,
+        },
+      };
+    }
 
-  /**
-   * Convert camelCase to kebab-case as fallback when no explicit mapping exists.
-   */
-  private camelToKebab(str: string): string {
-    return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+    const actionId = getWorkflowActionIdForNodeType(node.type);
+    if (!actionId) {
+      throw new Error(
+        `Workflow node ${node.id} uses unsupported product node type ${node.type}; use a registered Genfeed action node`,
+      );
+    }
+
+    return {
+      ...node,
+      data: {
+        ...(inputVariableKeys.length > 0 ? { inputVariableKeys } : {}),
+        config: {
+          actionId,
+          parameters: extractParameters(data),
+        },
+        label,
+      },
+      type: 'genfeedAction',
+    };
   }
 }

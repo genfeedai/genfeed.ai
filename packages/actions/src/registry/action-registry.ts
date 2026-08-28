@@ -73,48 +73,8 @@ const WORKFLOW_ACTIONS = [
     'Evaluate Agent Campaign Trigger',
     'Evaluates one agent campaign trigger.',
   ],
-  [
-    'ai-avatar-video',
-    'Avatar UGC Video',
-    'Generates a talking-head avatar video.',
-  ],
   ['ai-enhance', 'Enhance Media', 'Enhances media quality with AI.'],
-  [
-    'ai-generate-image',
-    'Generate Workflow Image',
-    'Generates an image from a workflow prompt.',
-  ],
-  [
-    'ai-generate-newsletter',
-    'Generate Workflow Newsletter',
-    'Generates a review-ready newsletter draft.',
-  ],
-  [
-    'ai-generate-post',
-    'Generate Workflow Post',
-    'Generates a review-ready social post draft.',
-  ],
-  [
-    'ai-generate-video',
-    'Generate Workflow Video',
-    'Generates a video from workflow inputs.',
-  ],
-  ['ai-lip-sync', 'Lip Sync Media', 'Generates lip-synced media.'],
-  [
-    'ai-llm',
-    'Generate Workflow Text',
-    'Runs one language-model text generation.',
-  ],
-  [
-    'ai-prompt-constructor',
-    'Construct AI Prompt',
-    'Constructs a prompt from workflow inputs.',
-  ],
-  ['ai-reframe', 'Reframe Media', 'Reframes media to a selected aspect ratio.'],
-  ['ai-text-to-speech', 'Generate Speech', 'Converts workflow text to speech.'],
   ['ai-transcribe', 'Transcribe Media', 'Transcribes workflow audio or video.'],
-  ['ai-upscale', 'Upscale Media', 'Upscales workflow media.'],
-  ['ai-voice-change', 'Change Voice', 'Changes the voice in workflow audio.'],
   ['aiAvatarVideo', 'Generate Avatar Video', 'Generates one avatar video.'],
   [
     'aiInfluencerDailyPosts',
@@ -148,11 +108,6 @@ const WORKFLOW_ACTIONS = [
   ],
   ['analyticsTwitterSync', 'Sync X Analytics', 'Synchronizes X analytics.'],
   [
-    'attach-post-ingredient',
-    'Attach Post Ingredient',
-    'Attaches a generated ingredient to a post draft.',
-  ],
-  [
     'attachPostIngredient',
     'Attach Post Ingredient',
     'Attaches a generated ingredient to a post draft.',
@@ -160,11 +115,6 @@ const WORKFLOW_ACTIONS = [
   ['brand', 'Read Brand', 'Reads one tenant brand for workflow context.'],
   ['brandAsset', 'Read Brand Asset', 'Reads one tenant brand asset.'],
   ['brandContext', 'Assemble Brand Context', 'Assembles tenant brand context.'],
-  [
-    'cast-prompt-generator',
-    'Generate Cast Prompt',
-    'Generates one cast-aware prompt.',
-  ],
   ['castPrompt', 'Generate Cast Prompt', 'Generates one cast-aware prompt.'],
   [
     'cinematicColorGrade',
@@ -184,11 +134,6 @@ const WORKFLOW_ACTIONS = [
   ],
   ['effect-captions', 'Add Captions', 'Burns captions into one video.'],
   [
-    'effect-color-grade',
-    'Color Grade Media',
-    'Applies a selected color grade.',
-  ],
-  [
     'effect-ken-burns',
     'Apply Ken Burns Effect',
     'Applies a zoom and pan effect.',
@@ -206,11 +151,6 @@ const WORKFLOW_ACTIONS = [
   ['effect-text-overlay', 'Add Text Overlay', 'Adds a text overlay to media.'],
   ['effect-watermark', 'Add Watermark', 'Adds a watermark to media.'],
   ['filmGrain', 'Apply Film Grain', 'Applies film grain to media.'],
-  [
-    'generateVideo',
-    'Generate Video',
-    'Generates one video from workflow inputs.',
-  ],
   [
     'harnessWinnerPromotionSweep',
     'Promote Harness Winners',
@@ -256,11 +196,6 @@ const WORKFLOW_ACTIONS = [
     'output-notify',
     'Notify Workflow Output',
     'Sends a workflow completion notification.',
-  ],
-  [
-    'output-publish',
-    'Publish Workflow Output',
-    'Publishes workflow content to configured social targets.',
   ],
   [
     'output-save',
@@ -337,11 +272,6 @@ const WORKFLOW_ACTIONS = [
     'Polls social trigger state.',
   ],
   ['soundOverlay', 'Overlay Sound', 'Overlays sound on one video.'],
-  [
-    'source-corpus',
-    'Build Source Corpus',
-    'Collects recent tenant source posts.',
-  ],
   [
     'sourceCorpus',
     'Build Source Corpus',

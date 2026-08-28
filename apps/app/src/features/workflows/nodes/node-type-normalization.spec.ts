@@ -76,46 +76,44 @@ describe('node type normalization', () => {
     expect(supportedNode.data).toEqual({ label: 'Caption Generator' });
   });
 
-  it('normalizes legacy template aliases to canonical editor node types', () => {
+  it('hydrates persisted action nodes into their editor presentation types', () => {
     const nodes = [
       {
+        data: {
+          config: { actionId: 'imageGen', parameters: { model: 'flux' } },
+          label: 'Image',
+        },
         id: '1',
         position: { x: 0, y: 0 },
-        type: 'workflow-input',
+        type: 'genfeedAction',
       },
       {
+        data: {
+          config: {
+            actionId: 'effect-captions',
+            parameters: { language: 'en' },
+          },
+          label: 'Captions',
+        },
         id: '2',
         position: { x: 0, y: 0 },
-        type: 'workflow-output',
-      },
-      {
-        id: '3',
-        position: { x: 0, y: 0 },
-        type: 'ai-generate-image',
-      },
-      {
-        id: '4',
-        position: { x: 0, y: 0 },
-        type: 'ai-prompt-constructor',
+        type: 'genfeedAction',
       },
     ] as WorkflowNodeLike[];
 
     const normalized = normalizeWorkflowNodeTypes(
       nodes,
-      new Set([
-        'workflowInput',
-        'workflowOutput',
-        'imageGen',
-        'promptConstructor',
-      ]),
+      new Set(['imageGen', 'captionGen', 'genfeedAction']),
     );
 
     expect(normalized.map((node) => node.type)).toEqual([
-      'workflowInput',
-      'workflowOutput',
       'imageGen',
-      'promptConstructor',
+      'captionGen',
     ]);
+    expect(normalized[0]?.data).toMatchObject({
+      actionId: 'imageGen',
+      model: 'flux',
+    });
   });
 
   it('injects a safe default position when persisted nodes are missing x/y', () => {
@@ -215,7 +213,7 @@ describe('node type normalization', () => {
     });
   });
 
-  it('restores the original type before save', () => {
+  it('fails closed instead of restoring an unsupported product node', () => {
     const nodes = [
       {
         data: {
@@ -228,14 +226,40 @@ describe('node type normalization', () => {
       },
     ] as WorkflowNodeLike[];
 
-    const restored = restoreWorkflowNodeTypes(nodes);
+    expect(() => restoreWorkflowNodeTypes(nodes)).toThrow(
+      'uses unsupported product node type legacy-node',
+    );
+  });
 
-    const restoredNode = restored[0];
+  it('fails closed when an unsupported node bypasses load normalization', () => {
+    expect(() =>
+      restoreWorkflowNodeTypes([
+        {
+          data: { label: 'Unsupported' },
+          id: 'unsupported',
+          position: { x: 0, y: 0 },
+          type: 'unsupported-product-operation',
+        },
+      ]),
+    ).toThrow(
+      'uses unsupported product node type unsupported-product-operation',
+    );
+  });
 
-    expect(restoredNode).toBeDefined();
-    expect(restoredNode.type).toBe('legacy-node');
-    expect(restoredNode.data?.originalType).toBeUndefined();
-    expect(restoredNode.data?.label).toBe('Legacy');
+  it('fails closed for a persisted action ID outside the action catalog', () => {
+    expect(() =>
+      restoreWorkflowNodeTypes([
+        {
+          data: {
+            actionId: 'missing.action',
+            label: 'Missing action',
+          },
+          id: 'missing-action',
+          position: { x: 0, y: 0 },
+          type: 'genfeedAction',
+        },
+      ]),
+    ).toThrow('uses unsupported product node type genfeedAction');
   });
 
   it('folds editor prompt text into data.config before save', () => {
@@ -256,18 +280,24 @@ describe('node type normalization', () => {
 
     expect(restored[0]).toMatchObject({
       data: {
-        config: { prompt: 'Write a FUD News brief' },
+        config: {
+          actionId: 'prompt',
+          parameters: { prompt: 'Write a FUD News brief' },
+        },
         label: 'Prompt',
       },
-      type: 'prompt',
+      type: 'genfeedAction',
     });
     expect(restored[0]?.data).not.toHaveProperty('prompt');
     expect(restored[1]).toMatchObject({
       data: {
-        config: { template: 'Hello {{topic}}' },
+        config: {
+          actionId: 'promptConstructor',
+          parameters: { template: 'Hello {{topic}}' },
+        },
         label: 'Constructor',
       },
-      type: 'ai-prompt-constructor',
+      type: 'genfeedAction',
     });
     expect(restored[1]?.data).not.toHaveProperty('template');
   });
@@ -277,21 +307,27 @@ describe('node type normalization', () => {
       [
         {
           data: {
-            config: { prompt: 'Write a FUD News brief' },
+            config: {
+              actionId: 'prompt',
+              parameters: { prompt: 'Write a FUD News brief' },
+            },
             label: 'Prompt',
           },
           id: 'PyHRz6uB',
           position: { x: 0, y: 0 },
-          type: 'prompt',
+          type: 'genfeedAction',
         },
         {
           data: {
-            config: { template: 'Hello {{topic}}' },
+            config: {
+              actionId: 'promptConstructor',
+              parameters: { template: 'Hello {{topic}}' },
+            },
             label: 'Constructor',
           },
           id: 'constructor-1',
           position: { x: 0, y: 0 },
-          type: 'ai-prompt-constructor',
+          type: 'genfeedAction',
         },
       ] as WorkflowNodeLike[],
       new Set(['prompt', 'promptConstructor']),
@@ -307,7 +343,7 @@ describe('node type normalization', () => {
     });
   });
 
-  it('restores canonical editor aliases to legacy api types before save', () => {
+  it('persists product editor nodes as action-backed nodes', () => {
     const nodes = [
       {
         data: { label: 'Input' },
@@ -335,11 +371,42 @@ describe('node type normalization', () => {
       },
     ] as WorkflowNodeLike[];
 
-    expect(restoreWorkflowNodeTypes(nodes).map((node) => node.type)).toEqual([
-      'workflow-input',
-      'workflow-output',
-      'ai-generate-image',
-      'ai-prompt-constructor',
+    const restored = restoreWorkflowNodeTypes(nodes);
+
+    expect(restored.map((node) => node.type)).toEqual([
+      'workflowInput',
+      'genfeedAction',
+      'genfeedAction',
+      'genfeedAction',
     ]);
+    expect(restored.slice(1).map((node) => node.data?.config)).toEqual([
+      { actionId: 'workflow.collect-output', parameters: {} },
+      { actionId: 'imageGen', parameters: {} },
+      { actionId: 'promptConstructor', parameters: {} },
+    ]);
+  });
+
+  it('persists media input presentation nodes as workflow inputs', () => {
+    const [restored] = restoreWorkflowNodeTypes([
+      {
+        data: { image: 'https://example.com/input.png', label: 'Reference' },
+        id: 'reference-image',
+        position: { x: 0, y: 0 },
+        type: 'imageInput',
+      },
+    ]);
+
+    expect(restored).toMatchObject({
+      data: {
+        config: {
+          defaultValue: 'https://example.com/input.png',
+          inputName: 'reference-image',
+          inputType: 'image',
+          required: false,
+        },
+        label: 'Reference',
+      },
+      type: 'workflowInput',
+    });
   });
 });

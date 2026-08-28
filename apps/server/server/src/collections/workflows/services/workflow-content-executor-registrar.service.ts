@@ -98,7 +98,6 @@ export class WorkflowContentExecutorRegistrarService {
     };
 
     engine.registerExecutor('prompt', executePrompt);
-    engine.registerExecutor('input-prompt', executePrompt);
   }
 
   private registerPromptConstructorExecutor(engine: WorkflowEngine): void {
@@ -111,9 +110,10 @@ export class WorkflowContentExecutorRegistrarService {
 
   private registerCastPromptExecutor(engine: WorkflowEngine): void {
     const castPromptExecutor = new CastPromptExecutor();
-    const wrapped = this.helper.wrapEngineExecutor(castPromptExecutor);
-    engine.registerExecutor('castPrompt', wrapped);
-    engine.registerExecutor('cast-prompt-generator', wrapped);
+    engine.registerExecutor(
+      'castPrompt',
+      this.helper.wrapEngineExecutor(castPromptExecutor),
+    );
   }
 
   private registerHookGeneratorExecutor(engine: WorkflowEngine): void {
