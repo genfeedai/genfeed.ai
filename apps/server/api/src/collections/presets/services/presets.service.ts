@@ -59,6 +59,7 @@ export class PresetsService extends BaseService<
     populate: PopulateOption[] = [],
   ): Promise<PresetDocument> {
     // Check for existing key
+    // tenant-scope-ignore: preset keys are a platform-wide catalog invariant and this superadmin-only create path must reject duplicates across organizations
     const existing = await this.prisma.preset.findFirst({
       where: {
         config: { equals: createDto.key, path: ['key'] },
@@ -85,6 +86,7 @@ export class PresetsService extends BaseService<
    * Find preset by key - specific to presets
    */
   async findByKey(key: string): Promise<PresetDocument> {
+    // tenant-scope-ignore: preset keys are globally unique catalog identifiers, so this internal key lookup intentionally resolves across organizations
     const preset = await this.prisma.preset.findFirst({
       where: {
         config: { equals: key, path: ['key'] },
@@ -152,6 +154,7 @@ export class PresetsService extends BaseService<
   ): Promise<PresetDocument> {
     // If updating key, check for duplicates
     if (updateDto.key) {
+      // tenant-scope-ignore: preset keys are a platform-wide catalog invariant and this superadmin-only update path must reject duplicates across organizations
       const existing = await this.prisma.preset.findFirst({
         where: {
           config: { equals: updateDto.key, path: ['key'] },

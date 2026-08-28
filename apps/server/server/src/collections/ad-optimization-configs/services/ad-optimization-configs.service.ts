@@ -80,6 +80,7 @@ export class AdOptimizationConfigsService {
   }
 
   async findAllEnabled(): Promise<AdOptimizationConfigDocument[]> {
+    // tenant-scope-ignore: platform worker inventory intentionally spans organizations so every enabled config can schedule its own tenant-scoped optimization cycle
     const docs = await this.prisma.adOptimizationConfig.findMany({
       where: {
         config: { equals: true, path: ['isEnabled'] },

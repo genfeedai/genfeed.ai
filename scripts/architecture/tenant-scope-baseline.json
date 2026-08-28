@@ -185,30 +185,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "preset",
-      "file": "apps/server/api/src/collections/presets/services/presets.service.ts",
-      "fingerprint": "51176b347bbe7e6383e6",
-      "method": "findMany",
-      "model": "Preset",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "preset",
-      "file": "apps/server/api/src/collections/presets/services/presets.service.ts",
-      "fingerprint": "f68022b3cd7f810391bf",
-      "method": "findMany",
-      "model": "Preset",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "preset",
-      "file": "apps/server/api/src/collections/presets/services/presets.service.ts",
-      "fingerprint": "fe8efbbbe1e63fe03ad6",
-      "method": "findMany",
-      "model": "Preset",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "profile",
       "file": "apps/server/api/src/collections/profiles/services/profiles.service.ts",
       "fingerprint": "ea3e9faea67c3b059f3c",
@@ -625,36 +601,12 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "adOptimizationConfig",
-      "file": "apps/server/server/src/collections/ad-optimization-configs/services/ad-optimization-configs.service.ts",
-      "fingerprint": "66ec2815a671f1806bd1",
-      "method": "findMany",
-      "model": "AdOptimizationConfig",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "adOptimizationRecommendation",
-      "file": "apps/server/server/src/collections/ad-optimization-recommendations/services/ad-optimization-recommendations.service.ts",
-      "fingerprint": "03a06c61c87f9b4059c6",
-      "method": "findMany",
-      "model": "AdOptimizationRecommendation",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "adPerformance",
       "file": "apps/server/server/src/collections/ad-performance/services/ad-performance.service.ts",
       "fingerprint": "eabf7261866e87b7a58e",
       "method": "findMany",
       "model": "AdPerformance",
       "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "agentStrategyOpportunity",
-      "file": "apps/server/server/src/collections/agent-strategies/services/agent-strategy-opportunities.service.ts",
-      "fingerprint": "0a8aeb1fca5d339230ce",
-      "method": "findMany",
-      "model": "AgentStrategyOpportunity",
-      "reason": "unresolved-where"
     },
     {
       "delegate": "article",
