@@ -203,8 +203,8 @@ describe('check-spec-typecheck', () => {
     it('replaces the absolute root so fingerprints survive a different checkout', () => {
       expect(
         normalizeDiagnosticMessage(
-          '/home/runner/work/genfeed.ai/genfeed.ai',
-          `Argument of type 'import("/home/runner/work/genfeed.ai/genfeed.ai/apps/server/api/src/shape").Shape' is not assignable.`,
+          '/workspace/genfeed.ai',
+          `Argument of type 'import("/workspace/genfeed.ai/apps/server/api/src/shape").Shape' is not assignable.`,
         ),
       ).toBe(
         `Argument of type 'import("<root>/apps/server/api/src/shape").Shape' is not assignable.`,
