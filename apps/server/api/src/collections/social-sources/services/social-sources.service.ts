@@ -344,10 +344,11 @@ export class SocialSourcesService {
         'Collected post is missing a stable external identifier',
       );
     }
+    const externalId = collectedPost.id.trim();
     const existing = await this.sourcePostsService.findByExternalIdScoped(
       context,
       reference.platform,
-      collectedPost.id,
+      externalId,
     );
 
     // Reuse the existing item's source; fall back to an import container when
@@ -364,7 +365,10 @@ export class SocialSourcesService {
       existingSource ??
       (await this.resolveImportContainer(reference, collectedPost, context));
 
-    const normalized = normalizeCollectedPost(source, collectedPost);
+    const normalized = normalizeCollectedPost(source, {
+      ...collectedPost,
+      id: externalId,
+    });
     const { posts } = await this.sourcePostsService.upsertCollectedPosts(
       source,
       [{ ...normalized, sourceUrl: normalized.sourceUrl ?? reference.url }],

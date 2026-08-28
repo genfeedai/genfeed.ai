@@ -465,7 +465,7 @@ describe('SocialSourcesService', () => {
       sourceCollector.collectPost.mockResolvedValue({
         handle: 'openai',
         platform: SocialSourcePlatform.TWITTER,
-        posts: [collectedTweet],
+        posts: [{ ...collectedTweet, id: ' 123 ' }],
         provider: 'apify',
       });
       sourcePostsService.findByExternalIdScoped.mockResolvedValue({
@@ -497,6 +497,10 @@ describe('SocialSourcesService', () => {
         context,
         SocialSourcePlatform.TWITTER,
         '123',
+      );
+      expect(sourcePostsService.upsertCollectedPosts).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'source-1' }),
+        [expect.objectContaining({ externalId: '123' })],
       );
       expect(result.deduplicated).toBe(true);
     });
