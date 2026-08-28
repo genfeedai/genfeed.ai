@@ -1,7 +1,17 @@
-import type { BrandsService } from '@server/collections/brands/services/brands.service';
+import { ClipProjectGenerationController } from '@api/collections/clip-projects/clip-project-generation.controller';
 import { ClipProjectHandoffsController } from '@api/collections/clip-projects/clip-project-handoffs.controller';
 import { ClipProjectReferenceFramesController } from '@api/collections/clip-projects/clip-project-reference-frames.controller';
 import { ClipProjectsController } from '@api/collections/clip-projects/clip-projects.controller';
+import { SelectClipReferenceFrameDto } from '@api/collections/clip-projects/dto/select-clip-reference-frame.dto';
+import type { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
+import type { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';
+import type {
+  AgentClipRunIdentity,
+  AgentClipRunIdentityField,
+} from '@genfeedai/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { BrandsService } from '@server/collections/brands/services/brands.service';
 import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
 import type { CreateClipProjectDto } from '@server/collections/clip-projects/dto/create-clip-project.dto';
 import {
@@ -9,9 +19,9 @@ import {
   GenerateClipsDto,
   SubmitHookClipDecisionDto,
 } from '@server/collections/clip-projects/dto/generate-clips.dto';
-import { SelectClipReferenceFrameDto } from '@api/collections/clip-projects/dto/select-clip-reference-frame.dto';
 import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
 import type { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
+import { ClipGenerationDispatchService } from '@server/collections/clip-projects/services/clip-generation-dispatch.service';
 import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
 import type {
   ClipIdentityResolutionService,
@@ -21,14 +31,6 @@ import type { ClipLibraryLinkService } from '@server/collections/clip-projects/s
 import type { HookClipApprovalService } from '@server/collections/clip-projects/services/hook-clip-approval.service';
 import type { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import type { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
-import type { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';
-import type {
-  AgentClipRunIdentity,
-  AgentClipRunIdentityField,
-} from '@genfeedai/interfaces';
-import { testId } from '@helpers/testing/test-id.helper';
-import type { LoggerService } from '@libs/logger/logger.service';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
 import type { Request } from 'express';
@@ -173,7 +175,8 @@ describe('ClipProjectsController', () => {
     userId: userId,
   };
 
-  let controller: ClipProjectsController;
+  let controller: ClipProjectGenerationController;
+  let crudController: ClipProjectsController;
   let handoffsController: ClipProjectHandoffsController;
   let referenceFramesController: ClipProjectReferenceFramesController;
   let clipProjectsService: ReturnType<typeof createMockClipProjectsService>;
@@ -243,21 +246,28 @@ describe('ClipProjectsController', () => {
       submitDecision: vi.fn(),
     };
 
-    controller = new ClipProjectsController(
+    const clipGenerationRequestService = new ClipGenerationRequestService(
+      clipProjectsService as ClipProjectsService,
+      clipIdentityResolutionService as ClipIdentityResolutionService,
+      brandsService as unknown as BrandsService,
+    );
+    controller = new ClipProjectGenerationController(
+      createMockLogger(),
+      new ClipGenerationDispatchService(
+        clipProjectsService as ClipProjectsService,
+        clipGenerationService as ClipGenerationService,
+        clipGenerationRequestService,
+        clipIdentityResolutionService as ClipIdentityResolutionService,
+        creditsUtilsService as unknown as CreditsUtilsService,
+        clipResultsService as unknown as ClipResultsService,
+      ),
+      hookClipApprovalService as unknown as HookClipApprovalService,
+    );
+    crudController = new ClipProjectsController(
       createMockLogger(),
       clipProjectsService as ClipProjectsService,
-      clipGenerationService as ClipGenerationService,
-      // Real request-preparation service over the same mocks: the validation
-      // logic simply moved out of the controller, so behaviour is unchanged.
-      new ClipGenerationRequestService(
-        clipProjectsService as ClipProjectsService,
-        clipIdentityResolutionService as ClipIdentityResolutionService,
-        brandsService as unknown as BrandsService,
-      ),
       clipIdentityResolutionService as ClipIdentityResolutionService,
-      creditsUtilsService as unknown as CreditsUtilsService,
       hookClipApprovalService as unknown as HookClipApprovalService,
-      clipResultsService as unknown as ClipResultsService,
     );
     handoffsController = new ClipProjectHandoffsController(
       createMockLogger(),
@@ -285,7 +295,7 @@ describe('ClipProjectsController', () => {
     );
 
     await expect(
-      controller.create({} as never, currentUser as never, dto),
+      crudController.create({} as never, currentUser as never, dto),
     ).rejects.toThrow('Brand not found');
 
     expect(clipIdentityResolutionService.resolve).toHaveBeenCalledWith({

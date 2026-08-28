@@ -10,15 +10,6 @@
 
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
-import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
-import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
-import { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
-import { ClipLibraryLinkService } from '@server/collections/clip-projects/services/clip-library-link.service';
-import { HighlightRewriteService } from '@server/collections/clip-projects/services/highlight-rewrite.service';
-import { HookClipApprovalService } from '@server/collections/clip-projects/services/hook-clip-approval.service';
-import { RawCutClipService } from '@server/collections/clip-projects/services/raw-cut-clip.service';
-import { RawCutClipCompletionService } from '@server/collections/clip-projects/services/raw-cut-clip-completion.service';
 import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
@@ -29,11 +20,22 @@ import { FilesClientModule } from '@api/services/files-microservice/client/files
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { Module } from '@nestjs/common';
+import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
+import { ClipGenerationDispatchService } from '@server/collections/clip-projects/services/clip-generation-dispatch.service';
+import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
+import { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
+import { ClipLibraryLinkService } from '@server/collections/clip-projects/services/clip-library-link.service';
+import { HighlightRewriteService } from '@server/collections/clip-projects/services/highlight-rewrite.service';
+import { HookClipApprovalService } from '@server/collections/clip-projects/services/hook-clip-approval.service';
+import { RawCutClipService } from '@server/collections/clip-projects/services/raw-cut-clip.service';
+import { RawCutClipCompletionService } from '@server/collections/clip-projects/services/raw-cut-clip-completion.service';
 
 @Module({
   exports: [
     ClipProjectsService,
     ClipGenerationService,
+    ClipGenerationDispatchService,
     ClipGenerationRequestService,
     ClipIdentityResolutionService,
     ClipLibraryLinkService,
@@ -58,6 +60,7 @@ import { Module } from '@nestjs/common';
   providers: [
     ClipProjectsService,
     ClipGenerationService,
+    ClipGenerationDispatchService,
     ClipGenerationRequestService,
     ClipIdentityResolutionService,
     ClipLibraryLinkService,
