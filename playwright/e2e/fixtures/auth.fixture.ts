@@ -439,6 +439,18 @@ export const test = base.extend<AuthFixtures>({
         status: 200,
       });
     });
+    await page.route(
+      /\/v1\/auth\/bootstrap(?:\/overview)?(?:\?.*)?$/,
+      async (route) => {
+        await route.fulfill({
+          body: JSON.stringify({
+            errors: [{ detail: 'Authentication required', status: '401' }],
+          }),
+          contentType: 'application/json',
+          status: 401,
+        });
+      },
+    );
 
     await runFixture(page);
     networkGuard.assertNoBlockedRequests();
