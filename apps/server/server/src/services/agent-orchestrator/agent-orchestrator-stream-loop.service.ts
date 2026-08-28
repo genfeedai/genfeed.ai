@@ -1,3 +1,12 @@
+import {
+  AgentMessageRole,
+  AgentType,
+  type RouterPriority,
+} from '@genfeedai/enums';
+import { AgentToolName, type AgentUIBlocksEvent } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
 import { type AgentMemoryDocument } from '@server/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
 import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
@@ -52,15 +61,6 @@ import {
 import { sanitizeAgentOutputText } from '@server/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
 import { SkillRuntimeService } from '@server/services/skill-runtime/skill-runtime.service';
-import {
-  AgentMessageRole,
-  AgentType,
-  type RouterPriority,
-} from '@genfeedai/enums';
-import { AgentToolName, type AgentUIBlocksEvent } from '@genfeedai/interfaces';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
 
 // During live token streaming, cancellation cannot be checked per token
@@ -712,6 +712,24 @@ export class AgentOrchestratorStreamLoopService {
         return;
       }
 
+      this.loggerService.error(
+        `${this.constructorName} streaming chat failed`,
+        {
+          error: error instanceof Error ? error.message : error,
+          organizationId: context.organizationId,
+          userId: context.userId,
+        },
+      );
+
+      // Queue-owned streams must reject so BullMQ retains responsibility for
+      // durable retries. chatStream's outer boundary publishes the failure
+      // once before the rejection reaches the processor. Legacy in-process
+      // streams still own their terminal event here because their caller has
+      // already received the immediate acknowledgement.
+      if (context.executionMode === 'background') {
+        throw error;
+      }
+
       await runEffectPromise(
         this.streamEffects.publishStreamFailureEffect({
           context,
@@ -720,15 +738,6 @@ export class AgentOrchestratorStreamLoopService {
           persistedError: classifyAgentRunFailure(error),
           threadId,
         }),
-      );
-
-      this.loggerService.error(
-        `${this.constructorName} streaming chat failed`,
-        {
-          error: error instanceof Error ? error.message : error,
-          organizationId: context.organizationId,
-          userId: context.userId,
-        },
       );
     } finally {
       this.activeStreams.delete(threadId);

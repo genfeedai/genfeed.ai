@@ -26,6 +26,7 @@ import {
 } from '@genfeedai/agent/stores/agent-preferred-model.store';
 import {
   isAutoAgentModel,
+  resolveAgentModelForBalance,
   toRuntimeAgentModel,
 } from '@genfeedai/agent/utils/agent-auto-model.util';
 import { findPendingGenerationAction } from '@genfeedai/agent/utils/find-pending-generation-action';
@@ -298,9 +299,17 @@ export function AgentChatContainer({
     settingsDefaultModel,
   ]);
 
-  // Auto → omit model on the wire so the server resolves via defaults + priority.
+  const effectiveSelectedModel = resolveAgentModelForBalance(
+    selectedModel,
+    creditsRemaining,
+    registryModels.map((entry) => entry.key),
+  );
+
+  // Auto normally omits model so the server resolves via defaults + priority.
+  // At zero balance the effective selection is the explicit free registry row.
   const runtimeModel =
-    toRuntimeAgentModel(selectedModel) || UNRESOLVED_RUNTIME_AGENT_MODEL;
+    toRuntimeAgentModel(effectiveSelectedModel) ||
+    UNRESOLVED_RUNTIME_AGENT_MODEL;
 
   const container = useAgentChatContainer({
     apiService,
@@ -545,7 +554,7 @@ export function AgentChatContainer({
             placeholder={placeholder}
             promptBarSuggestions={emptyStatePromptBarSuggestions}
             removeAttachment={container.removeAttachment}
-            selectedModel={selectedModel}
+            selectedModel={effectiveSelectedModel}
             onModelChange={handleModelChange}
             onPrioritizeChange={handlePrioritizeChange}
             prioritize={prioritize}
@@ -666,7 +675,7 @@ export function AgentChatContainer({
               prioritize={prioritize}
               promptBarSuggestions={promptBarSuggestions}
               removeAttachment={container.removeAttachment}
-              selectedModel={selectedModel}
+              selectedModel={effectiveSelectedModel}
               models={registryModels}
               isModelsLoading={isRegistryModelsLoading}
               showSuggestedActionsWhenNotEmpty={

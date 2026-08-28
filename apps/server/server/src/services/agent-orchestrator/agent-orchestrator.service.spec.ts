@@ -1,3 +1,23 @@
+import {
+  DEFAULT_AGENT_CHAT_MODEL_KEY,
+  getAgentChatModelRoundCredits,
+} from '@genfeedai/constants';
+import {
+  AgentAutonomyMode,
+  AgentType,
+  ApiKeyScope,
+  GenerationPriority,
+  RouterPriority,
+} from '@genfeedai/enums';
+import {
+  type AgentArtifactReference,
+  AgentToolName,
+} from '@genfeedai/interfaces';
+import { AgentScopeContextService } from '@genfeedai/server';
+import { testId } from '@helpers/testing/test-id.helper';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { AgentMemoriesService } from '@server/collections/agent-memories/services/agent-memories.service';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
 import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
@@ -33,26 +53,6 @@ import { AgentRuntimeSessionService } from '@server/services/agent-threading/ser
 import { AgentThreadEngineService } from '@server/services/agent-threading/services/agent-thread-engine.service';
 import { CacheService } from '@server/services/cache/cache.service';
 import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
-import {
-  DEFAULT_AGENT_CHAT_MODEL_KEY,
-  getAgentChatModelRoundCredits,
-} from '@genfeedai/constants';
-import {
-  AgentAutonomyMode,
-  AgentType,
-  ApiKeyScope,
-  GenerationPriority,
-  RouterPriority,
-} from '@genfeedai/enums';
-import {
-  type AgentArtifactReference,
-  AgentToolName,
-} from '@genfeedai/interfaces';
-import { AgentScopeContextService } from '@genfeedai/server';
-import { testId } from '@helpers/testing/test-id.helper';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
 import { Effect } from 'effect';
 
 const ORG_ID = testId('org');
@@ -2326,6 +2326,35 @@ describe('AgentOrchestratorService', () => {
         threadId: CONVERSATION_ID,
       }),
     );
+  });
+
+  it('rejects a queue-owned provider failure so BullMQ can retry it', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    configService.get.mockImplementation((key) =>
+      key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
+    );
+    llmDispatcher.streamChatCompletionAggregated.mockRejectedValueOnce(
+      new Error('Request failed with status code 429'),
+    );
+
+    await expect(
+      service.chatStream(
+        {
+          content: 'Retry this queued turn',
+          threadId: CONVERSATION_ID,
+        },
+        {
+          executionMode: 'background',
+          organizationId: ORG_ID,
+          userId: USER_ID,
+        },
+      ),
+    ).rejects.toThrow('Request failed with status code 429');
+
+    expect(agentRunsService.fail).toHaveBeenCalledOnce();
+    expect(streamPublisher.publishError).toHaveBeenCalledOnce();
   });
 
   it('streams real LLM deltas via agent:token when AGENT_TOKEN_STREAMING_ENABLED is on', async () => {
