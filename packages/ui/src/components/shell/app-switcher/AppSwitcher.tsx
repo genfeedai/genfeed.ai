@@ -415,8 +415,10 @@ function AppSwitcherGridItem({
             : undefined
         }
         onClick={() => onNavigateStart(navigationAnnouncement)}
+        onBlur={() => onPreviewChange(null)}
         onFocus={() => onPreviewChange(app)}
         onMouseEnter={() => onPreviewChange(app)}
+        onMouseLeave={() => onPreviewChange(null)}
         className={cn(
           'group grid min-h-[4.5rem] min-w-0 grid-rows-[2.25rem_1.125rem] place-items-center gap-1 rounded-lg px-1 py-1.5 text-center outline-none',
           'border-transparent !bg-transparent !shadow-none !ring-0 !ring-offset-0',
@@ -549,10 +551,9 @@ export function AppSwitcher({
   });
   const activeApp = apps.find((app) => app.itemKey === activeItemKey);
   const previewApp = apps.find((app) => app.itemKey === previewAppKey) ?? null;
-  const displayedApp = previewApp ?? activeApp ?? apps[0] ?? null;
-  const previewRowIndex = displayedApp
+  const previewRowIndex = previewApp
     ? Math.floor(
-        apps.findIndex((app) => app.itemKey === displayedApp.itemKey) / 3,
+        apps.findIndex((app) => app.itemKey === previewApp.itemKey) / 3,
       )
     : 0;
   const previewRowTopClass = [
@@ -561,8 +562,8 @@ export function AppSwitcher({
     'top-[13.125rem]',
     'top-[18rem]',
   ][previewRowIndex];
-  const PreviewIcon = displayedApp
-    ? (APP_SWITCHER_ICON_OVERRIDES[displayedApp.itemKey] ?? displayedApp.icon)
+  const PreviewIcon = previewApp
+    ? (APP_SWITCHER_ICON_OVERRIDES[previewApp.itemKey] ?? previewApp.icon)
     : null;
   const ActiveIcon = activeApp?.icon ?? LayoutGrid;
   const activeLabel = activeApp?.label ?? 'Apps';
@@ -614,7 +615,10 @@ export function AppSwitcher({
         align="end"
         sideOffset={8}
         collisionPadding={16}
-        className="w-[calc(100vw-2rem)] overflow-hidden p-0 sm:w-[35rem]"
+        className={cn(
+          'w-[calc(100vw-2rem)] overflow-hidden p-0 sm:w-[19rem]',
+          previewApp && 'sm:w-[35rem]',
+        )}
         onCloseAutoFocus={(event) => {
           if (!preventTriggerAutoFocusRef.current) {
             return;
@@ -624,32 +628,42 @@ export function AppSwitcher({
           preventTriggerAutoFocusRef.current = false;
         }}
       >
-        <div className="grid max-h-[min(80vh,30rem)] sm:grid-cols-[16rem_19rem]">
-          <div className="relative hidden min-h-0 bg-popover sm:block">
-            {displayedApp && PreviewIcon ? (
-              <div
-                aria-label={`${displayedApp.label}: ${displayedApp.description}`}
-                aria-live="polite"
-                className={cn(
-                  'absolute inset-x-0 flex h-[4.5rem] items-center gap-2.5 px-3 font-normal',
-                  previewRowTopClass,
-                )}
-                role="status"
-              >
-                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-background-secondary text-foreground">
-                  <PreviewIcon aria-hidden="true" className="size-[1.125rem]" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-sm font-semibold text-foreground">
-                    {displayedApp.label}
+        <div
+          className={cn(
+            'grid max-h-[min(80vh,30rem)]',
+            previewApp && 'sm:grid-cols-[16rem_19rem]',
+          )}
+        >
+          {previewApp ? (
+            <div className="relative hidden min-h-0 bg-popover sm:block">
+              {PreviewIcon ? (
+                <div
+                  aria-label={`${previewApp.label}: ${previewApp.description}`}
+                  aria-live="polite"
+                  className={cn(
+                    'absolute inset-x-0 flex h-[4.5rem] items-center gap-2.5 px-3 font-normal',
+                    previewRowTopClass,
+                  )}
+                  role="status"
+                >
+                  <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-background-secondary text-foreground">
+                    <PreviewIcon
+                      aria-hidden="true"
+                      className="size-[1.125rem]"
+                    />
                   </span>
-                  <span className="mt-0.5 block text-xs leading-4 text-muted-foreground">
-                    {displayedApp.description}
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-foreground">
+                      {previewApp.label}
+                    </span>
+                    <span className="mt-0.5 block text-xs leading-4 text-muted-foreground">
+                      {previewApp.description}
+                    </span>
                   </span>
-                </span>
-              </div>
-            ) : null}
-          </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <div className="min-h-0 overflow-y-auto">
             <div className="flex min-h-11 items-center justify-between gap-3 border-b border-border px-3 py-2">
               <div className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/52">

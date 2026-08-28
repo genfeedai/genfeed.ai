@@ -268,9 +268,7 @@ describe('AppSwitcher', () => {
   it('melts the hovered app details into the switcher left edge', () => {
     render(<AppSwitcher orgSlug="acme" />);
 
-    expect(
-      screen.getByRole('status', { name: 'Workspace: Plan and manage.' }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
     fireEvent.mouseEnter(screen.getByRole('link', { name: 'Agent' }));
 
     const tooltip = screen.getByRole('status', {
@@ -286,8 +284,8 @@ describe('AppSwitcher', () => {
 
     fireEvent.mouseLeave(screen.getByRole('link', { name: 'Agent' }));
     expect(
-      screen.getByRole('status', { name: 'Agent: Ask and execute.' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('status', { name: 'Agent: Ask and execute.' }),
+    ).not.toBeInTheDocument();
   });
 
   it('aligns hovered details with the app grid row', () => {
