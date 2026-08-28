@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseSlashCommand } from '../../src/tui/slash-command';
+import { parseSlashCommand } from '@/tui/slash-command';
 
 describe('TUI slash commands', () => {
   it.each([

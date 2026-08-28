@@ -6,13 +6,13 @@ const mockDel = vi.fn();
 const mockFlattenCollection = vi.fn();
 const mockFlattenSingle = vi.fn();
 
-vi.mock('../../src/api/client', () => ({
+vi.mock('@/api/client', () => ({
   del: (...args: unknown[]) => mockDel(...args),
   get: (...args: unknown[]) => mockGet(...args),
   post: (...args: unknown[]) => mockPost(...args),
 }));
 
-vi.mock('../../src/api/json-api', () => ({
+vi.mock('@/api/json-api', () => ({
   flattenCollection: (...args: unknown[]) => mockFlattenCollection(...args),
   flattenSingle: (...args: unknown[]) => mockFlattenSingle(...args),
 }));
@@ -26,7 +26,7 @@ describe('api/templates', () => {
     mockGet.mockResolvedValue({ data: [] });
     mockFlattenCollection.mockReturnValue([]);
 
-    const { listTemplates } = await import('../../src/api/templates');
+    const { listTemplates } = await import('@/api/templates');
     await listTemplates();
 
     expect(mockGet).toHaveBeenCalledWith('/templates');
@@ -36,7 +36,7 @@ describe('api/templates', () => {
     mockGet.mockResolvedValue({ data: [] });
     mockFlattenCollection.mockReturnValue([]);
 
-    const { listTemplates } = await import('../../src/api/templates');
+    const { listTemplates } = await import('@/api/templates');
     await listTemplates({ category: 'social', limit: 3, purpose: 'launch', sort: 'popular' });
 
     expect(mockGet).toHaveBeenCalledWith(
@@ -48,7 +48,7 @@ describe('api/templates', () => {
     mockGet.mockResolvedValue({ data: { id: 'tpl-1' } });
     mockFlattenSingle.mockReturnValue({ id: 'tpl-1', label: 'Launch post' });
 
-    const { getTemplate } = await import('../../src/api/templates');
+    const { getTemplate } = await import('@/api/templates');
     const result = await getTemplate('tpl-1');
 
     expect(mockGet).toHaveBeenCalledWith('/templates/tpl-1');
@@ -59,7 +59,7 @@ describe('api/templates', () => {
     mockPost.mockResolvedValue({ data: { id: 'tpl-2' } });
     mockFlattenSingle.mockReturnValue({ id: 'tpl-2', label: 'New' });
 
-    const { createTemplate } = await import('../../src/api/templates');
+    const { createTemplate } = await import('@/api/templates');
     const result = await createTemplate({ content: 'Hello {{name}}', label: 'New' });
 
     expect(mockPost).toHaveBeenCalledWith('/templates', {
@@ -73,7 +73,7 @@ describe('api/templates', () => {
     mockPost.mockResolvedValue({ data: { id: 'tpl-1' } });
     mockFlattenSingle.mockReturnValue({ content: 'Hello world' });
 
-    const { fillTemplate } = await import('../../src/api/templates');
+    const { fillTemplate } = await import('@/api/templates');
     const result = await fillTemplate('tpl-1', { variables: { name: 'world' } });
 
     expect(mockPost).toHaveBeenCalledWith('/templates/tpl-1/use', {
@@ -86,7 +86,7 @@ describe('api/templates', () => {
     mockGet.mockResolvedValue({ data: [] });
     mockFlattenCollection.mockReturnValue([{ id: 'tpl-1' }]);
 
-    const { getPopularTemplates } = await import('../../src/api/templates');
+    const { getPopularTemplates } = await import('@/api/templates');
     const result = await getPopularTemplates();
 
     expect(mockGet).toHaveBeenCalledWith('/templates?sort=popular&limit=10');
@@ -97,7 +97,7 @@ describe('api/templates', () => {
     mockPost.mockResolvedValue({ data: [] });
     mockFlattenCollection.mockReturnValue([{ id: 'tpl-3', label: 'Suggested' }]);
 
-    const { suggestTemplates } = await import('../../src/api/templates');
+    const { suggestTemplates } = await import('@/api/templates');
     const result = await suggestTemplates('announce a product');
 
     expect(mockPost).toHaveBeenCalledWith('/templates/suggest', { prompt: 'announce a product' });
@@ -107,7 +107,7 @@ describe('api/templates', () => {
   it('deletes a template', async () => {
     mockDel.mockResolvedValue(undefined);
 
-    const { deleteTemplate } = await import('../../src/api/templates');
+    const { deleteTemplate } = await import('@/api/templates');
     await deleteTemplate('tpl-1');
 
     expect(mockDel).toHaveBeenCalledWith('/templates/tpl-1');

@@ -6,7 +6,7 @@ const { mockCheckout, mockHistory, mockUsage } = vi.hoisted(() => ({
   mockUsage: vi.fn(),
 }));
 
-vi.mock('../../src/api/credits', () => ({
+vi.mock('@/api/credits', () => ({
   createCreditsCheckout: (credits: number) => mockCheckout(credits),
   getCreditUsage: () => mockUsage(),
   listCreditTransactions: (limit: number) => mockHistory(limit),
@@ -24,22 +24,20 @@ describe('credit operations', () => {
     [{}, 0],
   ])('reads the available balance from canonical response %o', async (usage, expected) => {
     mockUsage.mockResolvedValue(usage);
-    const { readCreditBalance } = await import('../../src/operations/credits');
+    const { readCreditBalance } = await import('@/operations/credits');
     await expect(readCreditBalance()).resolves.toEqual({ balance: expected, unit: 'credits' });
   });
 
   it.each([999, 1_000_001, 1_000.5, Number.NaN])(
     'rejects invalid quantity %s before Checkout',
     async (credits) => {
-      const { parseCreditQuantity } = await import('../../src/operations/credits');
+      const { parseCreditQuantity } = await import('@/operations/credits');
       expect(() => parseCreditQuantity(credits)).toThrow('whole number');
     }
   );
 
   it('creates Checkout and reads history', async () => {
-    const { readCreditHistory, startCreditsCheckout } = await import(
-      '../../src/operations/credits'
-    );
+    const { readCreditHistory, startCreditsCheckout } = await import('@/operations/credits');
     await expect(startCreditsCheckout(5_000)).resolves.toEqual({ url: 'https://checkout.test' });
     await expect(readCreditHistory(20)).resolves.toEqual([{ id: 'tx-1' }]);
   });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createProgram, resolveLaunchMode } from '../src/program';
+import { createProgram, resolveLaunchMode } from '@/program';
 
 describe('terminal program', () => {
   it('registers the canonical terminal content namespaces', () => {

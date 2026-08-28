@@ -6,11 +6,11 @@ import {
   getWorkflowExecution,
   listWorkflowExecutions,
   listWorkflows,
-} from '../../src/api/workflows';
+} from '@/api/workflows';
 
 const mockFetch = vi.fn();
 
-vi.mock('../../src/config/store', () => ({
+vi.mock('@/config/store', () => ({
   getApiKey: () => 'gf_test_key',
   getApiUrl: () => 'https://api.genfeed.ai/v1',
 }));

@@ -16,30 +16,30 @@ const {
   mockRequireAuth: vi.fn(),
 }));
 
-vi.mock('../../src/api/client', () => ({
+vi.mock('@/api/client', () => ({
   requireAuth: () => mockRequireAuth(),
 }));
 
-vi.mock('../../src/api/credits', () => ({
+vi.mock('@/api/credits', () => ({
   createCreditsCheckout: (credits: number) => mockCreateCreditsCheckout(credits),
   getCreditSummary: vi.fn(),
   getCreditUsage: () => mockGetCreditUsage(),
   listCreditTransactions: (limit: number) => mockListCreditTransactions(limit),
 }));
 
-vi.mock('../../src/utils/browser', () => ({
+vi.mock('@/utils/browser', () => ({
   openExternalUrl: (url: string) => mockOpenExternalUrl(url),
 }));
 
-vi.mock('../../src/ui/theme', () => ({
+vi.mock('@/ui/theme', () => ({
   formatHeader: (value: string) => value,
   formatLabel: (label: string, value: string) => `${label}: ${value}`,
   print: vi.fn(),
   printJson: (value: unknown) => mockPrintJson(value),
 }));
 
-vi.mock('../../src/utils/errors', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/utils/errors')>();
+vi.mock('@/utils/errors', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/utils/errors')>();
   return {
     ...actual,
     handleError: (error: unknown) => {
@@ -71,7 +71,7 @@ describe('credits command', () => {
   });
 
   it('prints canonical credit packs as JSON', async () => {
-    const { createCreditsCommand } = await import('../../src/commands/credits');
+    const { createCreditsCommand } = await import('@/commands/credits');
     const creditsCommand = createCreditsCommand();
 
     await creditsCommand.parseAsync(['packs', '--json'], { from: 'user' });
@@ -87,7 +87,7 @@ describe('credits command', () => {
   });
 
   it('creates hosted Checkout without opening a browser when requested', async () => {
-    const { createCreditsCommand } = await import('../../src/commands/credits');
+    const { createCreditsCommand } = await import('@/commands/credits');
     const creditsCommand = createCreditsCommand();
 
     await creditsCommand.parseAsync(['buy', '5000', '--no-open', '--json'], {
@@ -104,7 +104,7 @@ describe('credits command', () => {
   });
 
   it('returns bounded credit history', async () => {
-    const { createCreditsCommand } = await import('../../src/commands/credits');
+    const { createCreditsCommand } = await import('@/commands/credits');
     const creditsCommand = createCreditsCommand();
 
     await creditsCommand.parseAsync(['history', '--limit', '25', '--json'], {

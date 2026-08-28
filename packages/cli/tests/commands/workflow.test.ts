@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { workflowCommand } from '../../src/commands/workflow';
-import { GenfeedError } from '../../src/utils/errors';
+import { workflowCommand } from '@/commands/workflow';
+import { GenfeedError } from '@/utils/errors';
 
 const { mockGet, mockHandleError, mockPost, mockPrintJson, mockRequireAuth } = vi.hoisted(() => ({
   mockGet: vi.fn(),
@@ -12,21 +12,21 @@ const { mockGet, mockHandleError, mockPost, mockPrintJson, mockRequireAuth } = v
   mockRequireAuth: vi.fn(),
 }));
 
-vi.mock('../../src/api/client', () => ({
+vi.mock('@/api/client', () => ({
   get: (...args: unknown[]) => mockGet(...args),
   post: (...args: unknown[]) => mockPost(...args),
   requireAuth: () => mockRequireAuth(),
 }));
 
-vi.mock('../../src/ui/theme', () => ({
+vi.mock('@/ui/theme', () => ({
   formatHeader: (value: string) => value,
   formatLabel: (label: string, value: string) => `${label}: ${value}`,
   print: vi.fn(),
   printJson: (value: unknown) => mockPrintJson(value),
 }));
 
-vi.mock('../../src/utils/errors', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/utils/errors')>();
+vi.mock('@/utils/errors', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/utils/errors')>();
   return {
     ...actual,
     handleError: (error: unknown) => mockHandleError(error),
@@ -38,6 +38,15 @@ describe('workflow command', () => {
     vi.clearAllMocks();
     mockRequireAuth.mockResolvedValue('api-key');
     mockGet.mockImplementation((path: string) => {
+      if (path === '/workflows/workflow-1') {
+        return Promise.resolve({
+          data: {
+            attributes: { key: 'weekly-content', label: 'Weekly Content' },
+            id: 'workflow-1',
+            type: 'workflow',
+          },
+        });
+      }
       if (path.startsWith('/workflows?')) {
         return Promise.resolve({
           data: [
