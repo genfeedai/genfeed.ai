@@ -212,7 +212,7 @@
     "apps/app/app/(public)/login/login-better-auth.tsx": 13,
     "apps/app/app/(public)/logout/content.tsx": 1,
     "apps/app/app/(public)/managed-credits/success/success-content.tsx": 2,
-    "apps/app/app/(public)/oauth/cli/content.tsx": 4,
+    "apps/app/app/(public)/oauth/cli/content.tsx": 3,
     "apps/app/app/(public)/oauth/consent/content.tsx": 12,
     "apps/app/app/(public)/reset-password/content.tsx": 4,
     "apps/app/app/(public)/sign-up/sign-up-better-auth.tsx": 7,

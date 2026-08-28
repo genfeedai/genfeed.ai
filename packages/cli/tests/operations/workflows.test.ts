@@ -26,7 +26,7 @@ describe('workflow operations', () => {
   });
 
   it('resolves an entity ID without loading the workflow collection', async () => {
-    const workflow = { id: 'cm12345678901234567890123', label: 'Direct' };
+    const workflow = { id: 'workflow-direct', label: 'Direct' };
     mockGetWorkflow.mockResolvedValue(workflow);
     const { resolveWorkflow } = await import('@/operations/workflows');
 
