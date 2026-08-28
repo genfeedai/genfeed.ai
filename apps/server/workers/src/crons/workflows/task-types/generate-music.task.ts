@@ -1,7 +1,7 @@
-import { ByokService } from '@server/services/byok/byok.service';
 import { ByokProvider, MusicTaskModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { ByokService } from '@server/services/byok/byok.service';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
@@ -192,9 +192,7 @@ export class GenerateMusicTask {
       ByokProvider.ELEVENLABS,
     );
 
-    // ElevenLabs is primarily for voice, but can generate audio effects
-    // This might be used for voiceovers or sound effects in music
-    const result = await this.elevenlabsService.textToSpeech(
+    const { audioBase64 } = await this.elevenlabsService.textToSpeech(
       'default',
       config.prompt,
       organizationId,
@@ -202,7 +200,7 @@ export class GenerateMusicTask {
       byokKey?.apiKey,
     );
 
-    return result as unknown as string;
+    return `data:audio/mpeg;base64,${audioBase64}`;
   }
 
   /**
@@ -260,29 +258,6 @@ export class GenerateMusicTask {
     }
 
     return parts.join(', ');
-  }
-
-  /**
-   * Generate a title for the music based on config
-   */
-  private generateTitle(config: GenerateMusicConfig): string {
-    const parts: string[] = [];
-
-    if (config.genre) {
-      parts.push(config.genre);
-    }
-
-    if (config.mood) {
-      parts.push(config.mood);
-    }
-
-    parts.push('Music');
-
-    if (config.duration) {
-      parts.push(`(${config.duration}s)`);
-    }
-
-    return parts.join(' ');
   }
 
   /**
