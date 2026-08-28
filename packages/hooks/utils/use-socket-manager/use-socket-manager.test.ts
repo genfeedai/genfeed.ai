@@ -85,9 +85,18 @@ describe('useSocketManager', () => {
 
     expect(socketManagerGetInstanceMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        resolveToken: expect.any(Function),
         token: 'mock-token',
       }),
     );
+
+    const config = socketManagerGetInstanceMock.mock.calls[0]?.[0] as {
+      resolveToken: () => Promise<string | null>;
+    };
+    await config.resolveToken();
+    expect(resolveAuthTokenMock).toHaveBeenLastCalledWith(getTokenMock, {
+      forceRefresh: true,
+    });
   });
 
   it('stays offline until auth is loaded and signed in', async () => {

@@ -11,6 +11,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import {
   classifySocketDisconnect,
+  readSocketTokenExpiryMs,
   SocketService,
 } from '@services/core/socket.service';
 
@@ -21,6 +22,9 @@ export type SocketConnectionState =
   | 'offline';
 
 export class SocketManager {
+  private static readonly TOKEN_REFRESH_FALLBACK_MS = 10 * 60 * 1_000;
+  private static readonly TOKEN_REFRESH_RETRY_MS = 30_000;
+  private static readonly TOKEN_REFRESH_SKEW_MS = 60_000;
   private static instance: SocketManager | null = null;
   private static instanceToken: string | undefined = undefined;
   private socketService: SocketService;
@@ -37,6 +41,9 @@ export class SocketManager {
   private onReconnectAttemptHandler?: () => void;
   private manualReconnectAttempt = 0;
   private manualReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private currentToken?: string;
+  private resolveToken?: () => Promise<string | null>;
+  private tokenRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(config: ISocketManagerConfig = {}) {
     this.socketService = SocketService.getInstance(config.token);
@@ -46,6 +53,8 @@ export class SocketManager {
       errorMessage: 'Socket connection',
       ...config,
     };
+    this.currentToken = config.token;
+    this.resolveToken = config.resolveToken;
 
     if (this.config.autoConnect) {
       this.setConnectionState('connecting');
@@ -57,6 +66,8 @@ export class SocketManager {
     if (this.config.enableErrorHandling) {
       this.setupErrorHandler();
     }
+
+    this.scheduleTokenRefresh();
   }
 
   public static getInstance(config: ISocketManagerConfig = {}): SocketManager {
@@ -74,6 +85,8 @@ export class SocketManager {
       SocketManager.instanceToken = config.token;
     }
 
+    SocketManager.instance.configureTokenRefresh(config);
+
     return SocketManager.instance;
   }
 
@@ -82,6 +95,63 @@ export class SocketManager {
       SocketManager.instance.cleanup();
       SocketManager.instance = null;
       SocketManager.instanceToken = undefined;
+      SocketService.clearInstance();
+    }
+  }
+
+  private configureTokenRefresh(config: ISocketManagerConfig): void {
+    if (config.resolveToken) {
+      this.resolveToken = config.resolveToken;
+    }
+    if (config.token) {
+      this.currentToken = config.token;
+    }
+    this.scheduleTokenRefresh();
+  }
+
+  private scheduleTokenRefresh(delayOverrideMs?: number): void {
+    if (!this.resolveToken) {
+      return;
+    }
+    if (this.tokenRefreshTimer) {
+      clearTimeout(this.tokenRefreshTimer);
+    }
+
+    const expiresAt = readSocketTokenExpiryMs(this.currentToken);
+    const delayMs =
+      delayOverrideMs ??
+      (expiresAt
+        ? Math.max(
+            5_000,
+            expiresAt - Date.now() - SocketManager.TOKEN_REFRESH_SKEW_MS,
+          )
+        : SocketManager.TOKEN_REFRESH_FALLBACK_MS);
+
+    this.tokenRefreshTimer = setTimeout(() => {
+      this.tokenRefreshTimer = null;
+      void this.refreshToken();
+    }, delayMs);
+  }
+
+  private async refreshToken(): Promise<void> {
+    if (!this.resolveToken) {
+      return;
+    }
+
+    try {
+      const token = await this.resolveToken();
+      if (token) {
+        SocketService.getInstance(token);
+        SocketManager.instanceToken = token;
+        this.currentToken = token;
+      }
+      this.scheduleTokenRefresh();
+    } catch (error: unknown) {
+      logger.warn('Socket token refresh failed; retry scheduled', {
+        errorName: error instanceof Error ? error.name : 'UnknownError',
+        tags: { component: 'realtime' },
+      });
+      this.scheduleTokenRefresh(SocketManager.TOKEN_REFRESH_RETRY_MS);
     }
   }
 
@@ -243,6 +313,11 @@ export class SocketManager {
   public cleanup(): void {
     this.clearManualReconnectTimer();
     this.manualReconnectAttempt = 0;
+    if (this.tokenRefreshTimer) {
+      clearTimeout(this.tokenRefreshTimer);
+      this.tokenRefreshTimer = null;
+    }
+    this.resolveToken = undefined;
 
     // Remove all custom listeners
     this.listeners.forEach(({ event, handler }) => {

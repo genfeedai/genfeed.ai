@@ -114,6 +114,23 @@ describe('SocketManager', () => {
       expect(stateListener).not.toHaveBeenCalled();
       expect(i2.getSocketService().socket.auth).toEqual({ token: 'token-b' });
     });
+
+    it('refreshes an opaque socket token before the fallback window ends', async () => {
+      vi.useFakeTimers();
+      const resolveToken = vi.fn().mockResolvedValue('token-b');
+
+      const manager = SocketManager.getInstance({
+        resolveToken,
+        token: 'token-a',
+      });
+
+      await vi.advanceTimersByTimeAsync(10 * 60 * 1_000);
+
+      expect(resolveToken).toHaveBeenCalledOnce();
+      expect(manager.getSocketService().socket.auth).toEqual({
+        token: 'token-b',
+      });
+    });
   });
 
   describe('subscribe / unsubscribe', () => {

@@ -59,6 +59,8 @@ export function useSocketManager(
     }
 
     if (!effectiveIsAuthLoaded || !effectiveIsSignedIn) {
+      SocketManager.clearInstance();
+      socketManagerRef.current = null;
       setConnectionState('offline');
       setIsReady(false);
       return () => {
@@ -82,6 +84,8 @@ export function useSocketManager(
         if (isMounted) {
           socketManagerRef.current = SocketManager.getInstance({
             ...latestOptionsRef.current,
+            resolveToken: () =>
+              resolveAuthToken(getToken, { forceRefresh: true }),
             token,
           });
           unsubscribeConnectionState =

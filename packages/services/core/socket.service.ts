@@ -14,6 +14,20 @@ export interface SocketIdentityClaims {
   userId?: string;
 }
 
+export function readSocketTokenExpiryMs(token?: string): number | undefined {
+  if (!token) {
+    return undefined;
+  }
+
+  const payloadSegment = token.split('.')[1];
+  if (!payloadSegment) {
+    return undefined;
+  }
+
+  const payload = decodeJwtPayloadSegment(payloadSegment);
+  return typeof payload?.exp === 'number' ? payload.exp * 1000 : undefined;
+}
+
 /**
  * Read `sub` / `organizationId` from a JWT payload without verifying it.
  *
