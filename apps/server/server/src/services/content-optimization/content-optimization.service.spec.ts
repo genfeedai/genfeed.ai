@@ -4,6 +4,10 @@ vi.mock('openai', () => ({ default: vi.fn() }));
 
 import { ContentOptimizationService } from '@server/services/content-optimization/content-optimization.service';
 
+type ContentOptimizationDependencies = ConstructorParameters<
+  typeof ContentOptimizationService
+>;
+
 describe('ContentOptimizationService', () => {
   let service: ContentOptimizationService;
   let mockPerformanceSummary: {
@@ -201,12 +205,12 @@ describe('ContentOptimizationService', () => {
     };
 
     service = new ContentOptimizationService(
-      mockLogger,
-      mockPerformanceSummary,
-      mockOptimizationCycle,
-      mockOpenAiLlm,
-      mockBrandMemory,
-      mockTrendPreferences,
+      mockLogger as unknown as ContentOptimizationDependencies[0],
+      mockPerformanceSummary as unknown as ContentOptimizationDependencies[1],
+      mockOptimizationCycle as unknown as ContentOptimizationDependencies[2],
+      mockOpenAiLlm as unknown as ContentOptimizationDependencies[3],
+      mockBrandMemory as unknown as ContentOptimizationDependencies[4],
+      mockTrendPreferences as unknown as ContentOptimizationDependencies[5],
     );
   });
 
@@ -388,7 +392,7 @@ describe('ContentOptimizationService', () => {
 
       const videoRec = result.contentTypes.find((ct) => ct.type === 'video');
       expect(videoRec).toBeDefined();
-      expect(videoRec!.recommendation).toContain('performs well');
+      expect(videoRec?.recommendation).toContain('performs well');
     });
 
     it('should include A/B test suggestions', async () => {

@@ -1,11 +1,11 @@
+import { ReferenceImageCategory } from '@genfeedai/enums';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { BrandsService } from '@server/collections/brands/services/brands.service';
 import { CLIP_ORCHESTRATOR_EVENTS } from '@server/services/clip-orchestrator/clip-orchestrator.events';
 import { ClipOrchestratorService } from '@server/services/clip-orchestrator/clip-orchestrator.service';
 import { ClipOrchestratorStateStore } from '@server/services/clip-orchestrator/clip-orchestrator-state.store';
 import { ClipRunState } from '@server/services/clip-orchestrator/clip-run-state.enum';
 import type { StartClipRunDto } from '@server/services/clip-orchestrator/dto/start-clip-run.dto';
-import { ReferenceImageCategory } from '@genfeedai/enums';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 
 function makeDto(overrides: Partial<StartClipRunDto> = {}): StartClipRunDto {
   return {
@@ -332,7 +332,9 @@ describe('ClipOrchestratorService', () => {
   // -------------------------------------------------------------------------
   it('should emit state change events', async () => {
     const events: unknown[] = [];
-    emitter.on(CLIP_ORCHESTRATOR_EVENTS.STATE_CHANGED, (e) => events.push(e));
+    emitter.on(CLIP_ORCHESTRATOR_EVENTS.STATE_CHANGED, (e: unknown) =>
+      events.push(e),
+    );
 
     const run = await service.startRun(makeDto());
     await service.transition(run.id, ClipRunState.Generating);

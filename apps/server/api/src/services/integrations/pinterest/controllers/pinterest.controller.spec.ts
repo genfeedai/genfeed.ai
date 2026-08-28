@@ -1,8 +1,8 @@
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { PinterestController } from '@api/services/integrations/pinterest/controllers/pinterest.controller';
-import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
 
 describe('PinterestController', () => {
   let controller: PinterestController;
@@ -13,7 +13,7 @@ describe('PinterestController', () => {
     getPinAnalytics: vi.fn(),
     searchPins: vi.fn(),
   } as PinterestService;
-  const loggerMock = { log: vi.fn() } as LoggerService;
+  const loggerMock = { log: vi.fn() } as unknown as LoggerService;
   const brandsServiceMock = {
     findOne: vi.fn().mockResolvedValue({
       id: 'brand-id',
