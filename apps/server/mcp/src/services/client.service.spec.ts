@@ -987,38 +987,6 @@ describe('ClientService (MCP)', () => {
     });
   });
 
-  describe('executeWorkflow', () => {
-    it('should execute workflow', async () => {
-      const params = {
-        variables: { topic: 'AI trends' },
-        workflowId: 'workflow-123',
-      };
-
-      const mockResponse = {
-        data: {
-          data: {
-            attributes: { status: 'started' },
-            id: 'exec-456',
-          },
-        },
-      };
-
-      (mockAxiosInstance.post as Mock).mockResolvedValue(mockResponse);
-
-      const result = await service.executeWorkflow(params);
-
-      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-        '/workflow-executions',
-        {
-          inputValues: { topic: 'AI trends' },
-          workflowId: 'workflow-123',
-        },
-      );
-      expect(result.executionId).toBe('exec-456');
-      expect(result.status).toBe('started');
-    });
-  });
-
   describe('getWorkflowStatus', () => {
     it('should return workflow status', async () => {
       const mockResponse = {

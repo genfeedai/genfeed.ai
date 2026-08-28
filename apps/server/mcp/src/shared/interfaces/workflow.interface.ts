@@ -40,21 +40,6 @@ export interface WorkflowResponse {
   versionId?: string;
 }
 
-export interface WorkflowExecuteParams {
-  workflowId: string;
-  variables?: Record<string, unknown>;
-}
-
-export interface WorkflowExecutionResult {
-  executionId: string;
-  workflowId: string;
-  status: 'started' | 'running' | 'completed' | 'failed';
-  startedAt: string;
-  completedAt?: string;
-  results?: Record<string, unknown>;
-  error?: string;
-}
-
 export interface WorkflowListParams {
   status?: WorkflowStatus;
   limit?: number;

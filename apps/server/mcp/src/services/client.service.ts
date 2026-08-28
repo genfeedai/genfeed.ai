@@ -93,8 +93,6 @@ import type {
   SystemWorkflowCatalogListParams,
   SystemWorkflowInstallParams,
   WorkflowCreateParams,
-  WorkflowExecuteParams,
-  WorkflowExecutionResult,
   WorkflowListParams,
   WorkflowResponse,
   WorkflowRunListParams,
@@ -468,12 +466,6 @@ export class ClientService {
 
   createWorkflow(params: WorkflowCreateParams): Promise<WorkflowResponse> {
     return this.workflows.createWorkflow(params);
-  }
-
-  executeWorkflow(
-    params: WorkflowExecuteParams,
-  ): Promise<WorkflowExecutionResult> {
-    return this.workflows.executeWorkflow(params);
   }
 
   getWorkflowStatus(workflowId: string): Promise<WorkflowResponse> {

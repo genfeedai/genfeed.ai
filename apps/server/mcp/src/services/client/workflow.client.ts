@@ -4,8 +4,6 @@ import type {
   SystemWorkflowCatalogListParams,
   SystemWorkflowInstallParams,
   WorkflowCreateParams,
-  WorkflowExecuteParams,
-  WorkflowExecutionResult,
   WorkflowListParams,
   WorkflowResponse,
   WorkflowRunListParams,
@@ -165,35 +163,6 @@ export class WorkflowClient {
         };
       },
       this.base.failWithDetail('Failed to create workflow'),
-    );
-  }
-
-  executeWorkflow(
-    params: WorkflowExecuteParams,
-  ): Promise<WorkflowExecutionResult> {
-    this.base.logger.debug('Executing workflow', { params });
-
-    return this.base.request(
-      'executing workflow',
-      async (http) => {
-        const response = await http.post('/workflow-executions', {
-          inputValues: params.variables,
-          workflowId: params.workflowId,
-        });
-
-        const execution = response.data?.data;
-        return {
-          completedAt: execution?.attributes?.completedAt,
-          error: execution?.attributes?.error,
-          executionId: execution?.id || execution?.attributes?.id,
-          results: execution?.attributes?.results,
-          startedAt:
-            execution?.attributes?.startedAt || new Date().toISOString(),
-          status: execution?.attributes?.status || CONTENT_STATUS.STARTED,
-          workflowId: params.workflowId,
-        };
-      },
-      this.base.failWithDetail('Failed to execute workflow'),
     );
   }
 
