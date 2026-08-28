@@ -1,7 +1,7 @@
 import type { TrackSubscriptionDto } from '@api/collections/subscription-attributions/dto/track-subscription.dto';
 import type { SubscriptionAttributionDocument } from '@api/collections/subscription-attributions/schemas/subscription-attribution.schema';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SubscriptionAttributionsService } from './subscription-attributions.service';
 
@@ -9,6 +9,7 @@ type MockFn = ReturnType<typeof vi.fn>;
 
 interface AttributionDelegate {
   create: MockFn;
+  findFirst: MockFn;
   findMany: MockFn;
   update: MockFn;
 }
@@ -72,6 +73,7 @@ describe('SubscriptionAttributionsService', () => {
   beforeEach(() => {
     delegate = {
       create: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
     };
@@ -101,8 +103,14 @@ describe('SubscriptionAttributionsService', () => {
         ORGANIZATION_ID,
       );
 
-      expect(delegate.findMany).toHaveBeenCalledWith({
-        where: { organizationId: ORGANIZATION_ID },
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: {
+          metadata: {
+            equals: 'sub_1',
+            path: ['stripeSubscriptionId'],
+          },
+          organizationId: ORGANIZATION_ID,
+        },
       });
       const metadata = metadataFromCall(delegate.create.mock.calls[0]);
       expect(metadata).toEqual(
@@ -253,7 +261,7 @@ describe('SubscriptionAttributionsService', () => {
         sourceContentId: 'post_old',
         sourceLinkId: 'link_old',
       });
-      delegate.findMany.mockResolvedValue([existing]);
+      delegate.findFirst.mockResolvedValue(existing);
       delegate.update.mockImplementation(
         (args: { data: Record<string, unknown> }) =>
           Promise.resolve(
@@ -290,12 +298,12 @@ describe('SubscriptionAttributionsService', () => {
     });
 
     it('stamps subscribedAt on an existing row that never had one', async () => {
-      delegate.findMany.mockResolvedValue([
+      delegate.findFirst.mockResolvedValue(
         buildAttribution({
           id: 'attr_existing',
           metadata: { stripeSubscriptionId: 'sub_1' },
         }),
-      ]);
+      );
       delegate.update.mockImplementation(
         (args: { data: Record<string, unknown> }) =>
           Promise.resolve(
@@ -314,35 +322,13 @@ describe('SubscriptionAttributionsService', () => {
       );
     });
 
-    it('creates a new row when the stored attributions belong to other subscriptions', async () => {
-      delegate.findMany.mockResolvedValue([
-        buildAttribution({
-          id: 'attr_other',
-          metadata: { stripeSubscriptionId: 'sub_other' },
-        }),
-      ]);
+    it('creates a new row when no matching subscription exists', async () => {
       delegate.create.mockResolvedValue(buildAttribution());
 
       await service.trackSubscription(buildDto(), ORGANIZATION_ID);
 
       expect(delegate.create).toHaveBeenCalledTimes(1);
       expect(delegate.update).not.toHaveBeenCalled();
-    });
-
-    it('discards non-object stored metadata when merging', async () => {
-      delegate.findMany.mockResolvedValue([
-        buildAttribution({
-          id: 'attr_existing',
-          metadata: 'corrupted',
-        }),
-      ]);
-      delegate.create.mockResolvedValue(buildAttribution());
-
-      // A non-object metadata blob normalizes to `undefined`, so the row no
-      // longer matches by stripeSubscriptionId — it takes the create path.
-      await service.trackSubscription(buildDto(), ORGANIZATION_ID);
-
-      expect(delegate.create).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -557,44 +543,6 @@ describe('SubscriptionAttributionsService', () => {
         period: Timeframe.D30,
       });
       expect(monthly.map((row) => row.contentId)).toEqual(['post_recent']);
-    });
-  });
-
-  describe('updateSubscriptionStatus', () => {
-    it('updates only the attributions carrying the given Stripe subscription id', async () => {
-      delegate.findMany.mockResolvedValue([
-        buildAttribution({
-          id: 'match_1',
-          metadata: { stripeSubscriptionId: 'sub_1' },
-        }),
-        buildAttribution({
-          id: 'other',
-          metadata: { stripeSubscriptionId: 'sub_2' },
-        }),
-      ]);
-      delegate.update.mockResolvedValue(buildAttribution());
-
-      await service.updateSubscriptionStatus('sub_1', 'canceled');
-
-      expect(delegate.update).toHaveBeenCalledTimes(1);
-      const updateArgs = delegate.update.mock.calls[0] as [
-        { data: { metadata: Record<string, unknown> }; where: { id: string } },
-      ];
-      expect(updateArgs[0].where).toEqual({ id: 'match_1' });
-      expect(updateArgs[0].data.metadata).toEqual({
-        status: 'canceled',
-        stripeSubscriptionId: 'sub_1',
-      });
-    });
-
-    it('is a no-op when nothing matches', async () => {
-      delegate.findMany.mockResolvedValue([
-        buildAttribution({ metadata: { stripeSubscriptionId: 'sub_other' } }),
-      ]);
-
-      await service.updateSubscriptionStatus('sub_1', 'past_due');
-
-      expect(delegate.update).not.toHaveBeenCalled();
     });
   });
 });

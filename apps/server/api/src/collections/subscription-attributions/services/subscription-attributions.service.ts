@@ -1,10 +1,10 @@
 import type { TrackSubscriptionDto } from '@api/collections/subscription-attributions/dto/track-subscription.dto';
 import type { SubscriptionAttributionDocument } from '@api/collections/subscription-attributions/schemas/subscription-attribution.schema';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
 import type { ISubscriptionAttributionsService } from '@genfeedai/interfaces/billing';
 import type { Prisma } from '@genfeedai/prisma';
 import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 type SubscriptionAttribution = SubscriptionAttributionDocument;
 
@@ -113,16 +113,18 @@ export class SubscriptionAttributionsService
     const source = this.buildSourceFromDto(dto);
     const utm = this.buildUtmFromDto(dto);
 
-    const existingAttribution = (
-      await this.prisma.subscriptionAttribution.findMany({
-        where: { organizationId },
-      })
-    )
-      .map((attribution) => this.normalizeAttribution(attribution))
-      .find(
-        (attribution) =>
-          attribution.stripeSubscriptionId === dto.stripeSubscriptionId,
-      );
+    const existing = await this.prisma.subscriptionAttribution.findFirst({
+      where: {
+        metadata: {
+          equals: dto.stripeSubscriptionId,
+          path: ['stripeSubscriptionId'],
+        },
+        organizationId,
+      },
+    });
+    const existingAttribution = existing
+      ? this.normalizeAttribution(existing)
+      : undefined;
 
     const baseMetadata: SubscriptionAttributionMetadata = {
       amount: dto.amount,
@@ -392,39 +394,5 @@ export class SubscriptionAttributionsService
       medium,
       source,
     };
-  }
-
-  /**
-   * Update subscription status (when canceled, expired, etc.)
-   */
-  async updateSubscriptionStatus(
-    stripeSubscriptionId: string,
-    status: string,
-  ): Promise<void> {
-    const attributions = await this.prisma.subscriptionAttribution.findMany();
-
-    await Promise.all(
-      attributions
-        .map((attribution) => this.normalizeAttribution(attribution))
-        .filter(
-          (attribution) =>
-            attribution.stripeSubscriptionId === stripeSubscriptionId,
-        )
-        .map((attribution) =>
-          this.prisma.subscriptionAttribution.update({
-            data: {
-              metadata: this.mergeMetadata(attribution.metadata, {
-                status,
-              }),
-            },
-            where: { id: attribution.id },
-          }),
-        ),
-    );
-
-    this.logger.log(`Subscription status updated`, {
-      status,
-      subscriptionId: stripeSubscriptionId,
-    });
   }
 }
