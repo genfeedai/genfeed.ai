@@ -589,29 +589,35 @@ async function resolveActiveWorkspaceSlugs(
 ): Promise<SlugResolution | null> {
   const preferAvailableBrand = options?.preferAvailableBrand === true;
   const skipSlugCookie = options?.skipSlugCookie === true;
+  // Root/login recovery must come from the authenticated bootstrap. A scoped
+  // request, referrer, in-memory entry, or signed cookie proves only that the
+  // slug was syntactically valid when it was recorded; it does not prove the
+  // current session still belongs to that workspace. Letting one of those
+  // sources win here can permanently redirect `/` into an unauthorized scope.
+  const mayReuseCurrentWorkspace = !preferAvailableBrand;
   const fromRequestPath =
     req && !skipSlugCookie ? slugsFromPathname(req.nextUrl.pathname) : null;
-  if (fromRequestPath && (!preferAvailableBrand || fromRequestPath.brandSlug)) {
+  if (mayReuseCurrentWorkspace && fromRequestPath) {
     const cookieValue = await encodeSlugCookie(fromRequestPath);
     return { cookieValue, slugs: fromRequestPath };
   }
 
   const fromReferer = resolveRefererWorkspaceSlugs(req);
-  if (fromReferer && (!preferAvailableBrand || fromReferer.brandSlug)) {
+  if (mayReuseCurrentWorkspace && fromReferer) {
     const cookieValue = await encodeSlugCookie(fromReferer);
     return { cookieValue, slugs: fromReferer };
   }
 
   const cached = skipSlugCookie ? null : readWorkspaceSlugCache(cacheKey);
-  if (cached && (!preferAvailableBrand || cached.brandSlug)) {
+  if (mayReuseCurrentWorkspace && cached) {
     return { cookieValue: null, slugs: cached };
   }
 
-  if (req && !skipSlugCookie) {
+  if (mayReuseCurrentWorkspace && req && !skipSlugCookie) {
     const cookieRaw = req.cookies.get(WORKSPACE_SLUG_COOKIE_NAME)?.value;
     if (cookieRaw) {
       const fromCookie = await decodeSlugCookie(cookieRaw);
-      if (fromCookie && (!preferAvailableBrand || fromCookie.brandSlug)) {
+      if (fromCookie) {
         writeWorkspaceSlugCache(cacheKey, fromCookie);
         return { cookieValue: null, slugs: fromCookie };
       }
