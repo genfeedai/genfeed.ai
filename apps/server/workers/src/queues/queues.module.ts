@@ -6,15 +6,7 @@
  * registrations to ensure consistent retry/backoff behaviour.
  */
 
-import { WorkersDomainModule } from '@server/workers-domain.module';
-import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
-import { BatchGenerationQueueService } from '@server/queues/batch-generation/batch-generation-queue.service';
-import { CampaignQueueService } from '@server/queues/campaign/campaign-queue.service';
-import { QueueService } from '@server/queues/core/queue.service';
-import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
-import { ReplyInboundQueueService } from '@server/queues/reply-bot/reply-inbound-queue.service';
-import { SocialReplyCampaignQueueService } from '@server/queues/social-reply-campaign/social-reply-campaign-queue.service';
-import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/workspace-task-queue.service';
+import { OutreachCampaignsCoreModule } from '@api/collections/outreach-campaigns/outreach-campaigns-core.module';
 import {
   AD_BULK_UPLOAD_QUEUE,
   AD_OPTIMIZATION_QUEUE,
@@ -72,6 +64,14 @@ import {
 } from '@libs/redis/redis-connection.utils';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
+import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
+import { BatchGenerationQueueService } from '@server/queues/batch-generation/batch-generation-queue.service';
+import { CampaignQueueService } from '@server/queues/campaign/campaign-queue.service';
+import { QueueService } from '@server/queues/core/queue.service';
+import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
+import { ReplyInboundQueueService } from '@server/queues/reply-bot/reply-inbound-queue.service';
+import { SocialReplyCampaignQueueService } from '@server/queues/social-reply-campaign/social-reply-campaign-queue.service';
+import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/workspace-task-queue.service';
 import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
 import { PatternExtractionQueueService } from '@workers/queues/pattern-extraction-queue.service';
@@ -91,7 +91,7 @@ import { PatternExtractionQueueService } from '@workers/queues/pattern-extractio
   ],
   imports: [
     LoggerModule,
-    WorkersDomainModule,
+    OutreachCampaignsCoreModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

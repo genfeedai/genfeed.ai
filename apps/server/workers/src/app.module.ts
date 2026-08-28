@@ -1,3 +1,4 @@
+import { SharedModule } from '@api/shared/shared.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { RedisModule } from '@libs/redis/redis.module';
@@ -5,7 +6,6 @@ import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SentryModule } from '@sentry/nestjs/setup';
-import { WorkersDomainModule } from '@server/workers-domain.module';
 import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
 import { CronByokBillingModule } from '@workers/crons/byok-billing/cron.byok-billing.module';
@@ -37,7 +37,7 @@ import { SystemSweepsModule } from '@workers/scheduling/system-sweeps.module';
       configModule: ConfigModule,
       configService: ConfigService,
     }),
-    WorkersDomainModule,
+    SharedModule,
     EventEmitterModule.forRoot({
       delimiter: '.',
       ignoreErrors: false,
