@@ -100,12 +100,12 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
         userId: 'user-1',
       }),
     });
-    expect(tx.workflow.create.mock.calls[0][0].data.nodes).toEqual([
-      expect.objectContaining({
-        id: 'livestreamBotSessionProcessing',
-        type: 'livestreamBotSessionProcessing',
-      }),
-    ]);
+    expect(tx.workflow.create.mock.calls[0][0].data.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'begin', type: 'genfeedAction' }),
+        expect.objectContaining({ id: 'process-items', type: 'genfeedAction' }),
+      ]),
+    );
   });
 
   it('seeds the content loop autopilot workflow default-on for an organization (#3018)', async () => {
@@ -131,16 +131,18 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
         userId: 'user-1',
       }),
     });
-    expect(tx.workflow.create.mock.calls[0][0].data.nodes).toEqual([
-      expect.objectContaining({
-        id: 'analyticsGenericSync',
-        type: 'analyticsGenericSync',
-      }),
-      expect.objectContaining({
-        id: 'harnessWinnerPromotionSweep',
-        type: 'harnessWinnerPromotionSweep',
-      }),
-    ]);
+    expect(tx.workflow.create.mock.calls[0][0].data.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'resolveAnalyticsWindow',
+          type: 'genfeedAction',
+        }),
+        expect.objectContaining({
+          id: 'promoteHarnessWinners',
+          type: 'genfeedAction',
+        }),
+      ]),
+    );
   });
 
   it('seeds the outreach campaign dispatch workflow default-on for an organization (#3407)', async () => {
@@ -165,12 +167,18 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
         userId: 'user-1',
       }),
     });
-    expect(tx.workflow.create.mock.calls[0][0].data.nodes).toEqual([
-      expect.objectContaining({
-        id: 'outreachCampaignDispatch',
-        type: 'outreachCampaignDispatch',
-      }),
-    ]);
+    expect(tx.workflow.create.mock.calls[0][0].data.nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'discover-campaigns',
+          type: 'genfeedAction',
+        }),
+        expect.objectContaining({
+          id: 'finalize-dispatch',
+          type: 'genfeedAction',
+        }),
+      ]),
+    );
   });
 
   it('does not seed a duplicate livestream bot workflow', async () => {

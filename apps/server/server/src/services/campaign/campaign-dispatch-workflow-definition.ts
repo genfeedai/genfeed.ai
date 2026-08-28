@@ -112,7 +112,7 @@ export function buildCampaignDispatchWorkflowDefinition(): SystemWorkflowGraphDe
         {
           key: 'request',
           label: 'Active campaign dispatch request',
-          required: true,
+          required: false,
           type: 'json',
         },
       ],

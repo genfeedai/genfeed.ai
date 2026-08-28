@@ -49,7 +49,10 @@ describe('system workflow catalog', () => {
       sourceIssue: 3407,
     });
     expect(entry?.nodes.map((node) => node.type)).toEqual([
-      'outreachCampaignDispatch',
+      'genfeedAction',
+      'genfeedAction',
+      'genfeedAction',
+      'genfeedAction',
     ]);
     expect(
       listInstallableSystemWorkflowCatalog().some(

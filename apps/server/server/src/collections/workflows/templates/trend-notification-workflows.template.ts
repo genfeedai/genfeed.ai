@@ -1,4 +1,4 @@
-import { createTemplateActionNode } from '@server/collections/workflows/templates/template-action-node';
+import { buildTrendNotificationWorkflowDefinition } from '@server/collections/workflows/services/automation-workflow-definitions';
 import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 
 export type TrendNotificationCadence = 'daily' | 'hourly' | 'weekly';
@@ -8,61 +8,40 @@ export type TrendNotificationWorkflowTemplate = WorkflowTemplate & {
   schedule: string;
 };
 
-function actionTemplate(params: {
+function notificationTemplate(options: {
   cadence: TrendNotificationCadence;
-  description: string;
   id: string;
-  name: string;
-  nodeLabel: string;
   schedule: string;
 }): TrendNotificationWorkflowTemplate {
+  const workflow = buildTrendNotificationWorkflowDefinition(options.cadence);
   return {
-    cadence: params.cadence,
+    cadence: options.cadence,
     category: 'trends',
-    description: params.description,
+    description: workflow.description,
+    edges: workflow.definition.edges,
     icon: 'trending-up',
-    id: params.id,
-    name: params.name,
-    nodes: [
-      createTemplateActionNode('trendSummaryNotifications', {
-        data: {
-          config: { cadence: params.cadence },
-          label: params.nodeLabel,
-        },
-        id: 'trendSummaryNotifications',
-        position: { x: 0, y: 120 },
-      }),
-    ],
-    schedule: params.schedule,
+    id: options.id,
+    inputVariables: workflow.definition.inputVariables,
+    name: `${options.cadence[0].toUpperCase()}${options.cadence.slice(1)} ${workflow.label}`,
+    nodes: workflow.definition.nodes,
+    schedule: options.schedule,
   };
 }
 
 export const TREND_NOTIFICATION_WORKFLOW_TEMPLATES = [
-  actionTemplate({
+  notificationTemplate({
     cadence: 'hourly',
-    description:
-      'Hourly per-organization trend summary notifications using the owner trend notification settings.',
     id: 'trend-summary-notifications-hourly',
-    name: 'Hourly Trend Summary Notifications',
-    nodeLabel: 'Send Hourly Trend Summary',
     schedule: '0 * * * *',
   }),
-  actionTemplate({
+  notificationTemplate({
     cadence: 'daily',
-    description:
-      'Daily per-organization trend summary notifications using the owner trend notification settings.',
     id: 'trend-summary-notifications-daily',
-    name: 'Daily Trend Summary Notifications',
-    nodeLabel: 'Send Daily Trend Summary',
     schedule: '0 9 * * *',
   }),
-  actionTemplate({
+  notificationTemplate({
     cadence: 'weekly',
-    description:
-      'Weekly per-organization trend summary notifications using the owner trend notification settings.',
     id: 'trend-summary-notifications-weekly',
-    name: 'Weekly Trend Summary Notifications',
-    nodeLabel: 'Send Weekly Trend Summary',
     schedule: '0 9 * * 1',
   }),
 ] satisfies TrendNotificationWorkflowTemplate[];

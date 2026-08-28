@@ -81,6 +81,7 @@ export class WorkflowReviewGateService {
       workflowId,
       execution.workflowVersionId,
       organizationId,
+      execution.userId,
     );
     if (!normalizedWorkflowDoc) {
       throw new NotFoundException(
@@ -308,17 +309,19 @@ export class WorkflowReviewGateService {
       }
     }
 
-    await this.progressService.emitEvent(
-      input.workflow.id,
-      'review-gate-pending',
-      {
-        approvalId: input.executionId,
-        executionId: input.executionId,
-        inputCaption: pendingApproval.inputCaption,
-        inputMedia: pendingApproval.inputMedia,
-        nodeId: input.node.id,
-      },
-    );
+    if (input.workflow.emitSharedEvents !== false) {
+      await this.progressService.emitEvent(
+        input.workflow.id,
+        'review-gate-pending',
+        {
+          approvalId: input.executionId,
+          executionId: input.executionId,
+          inputCaption: pendingApproval.inputCaption,
+          inputMedia: pendingApproval.inputMedia,
+          nodeId: input.node.id,
+        },
+      );
+    }
 
     await this.progressService.updateExecutionEta(
       input.executionId,
@@ -330,7 +333,7 @@ export class WorkflowReviewGateService {
         progress: trackedExecution?.progress ?? 0,
         skippedNodeIds: input.skippedNodes,
         startedAt: input.startedAt,
-        userId: input.userId,
+        userId: input.execution.userId,
         workflowId: input.workflow.id,
         workflowLabel: input.options.workflowLabel,
       },

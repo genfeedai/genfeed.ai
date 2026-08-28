@@ -16,12 +16,6 @@ export function buildAgentToolWorkflowDefinition(
       edges: [],
       inputVariables: [
         {
-          key: 'context',
-          label: 'Agent tool context',
-          required: true,
-          type: 'json',
-        },
-        {
           key: 'parameters',
           label: 'Agent tool parameters',
           required: true,
@@ -32,7 +26,7 @@ export function buildAgentToolWorkflowDefinition(
         createGenfeedActionNode({
           actionId: toolName,
           id: 'execute-tool',
-          inputVariableKeys: ['context', 'parameters'],
+          inputVariableKeys: ['parameters'],
           position: { x: 0, y: 0 },
         }),
       ],

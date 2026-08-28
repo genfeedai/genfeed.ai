@@ -3,7 +3,6 @@ import {
   WorkflowExecutionTrigger,
   WorkflowStatus,
 } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
 import type { ExecutionRunResult } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
@@ -125,9 +124,12 @@ export class WorkflowExecutionFinalizerService {
       return;
     }
 
-    const workflow = await this.prisma.workflow.findFirst({
+    // tenant-scope-ignore: the tenant-owned execution row already proves
+    // authorization. Hidden executions reference a global workflow mirror, so
+    // label lookup must use that pinned identity instead of the run tenant.
+    const workflow = await this.prisma.workflow.findUnique({
       select: { label: true },
-      where: scopedWhere(organizationId, { id: input.workflowId }),
+      where: { id: input.workflowId },
     });
     const workflowLabel =
       typeof workflow?.label === 'string' && workflow.label.trim().length > 0

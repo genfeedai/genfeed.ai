@@ -36,77 +36,70 @@ export class ContentExecutionService {
     private readonly logger: LoggerService,
   ) {}
 
-  async executePlan(
+  async preparePlanExecution(
     organizationId: string,
     brandId: string,
     planId: string,
     userId: string,
   ): Promise<{
-    results: ExecutionResult[];
-    summary: { total: number; completed: number; failed: number };
+    baseInput: {
+      brandId: string;
+      organizationId: string;
+      planId: string;
+      userId: string;
+    };
+    items: ContentPlanItemDocument[];
+    planId: string;
   }> {
-    // Validate plan exists before executing
     await this.contentPlansService.getByIdOrFail(organizationId, planId);
-
     await this.contentPlansService.updateStatus(
       organizationId,
       planId,
       ContentPlanStatus.EXECUTING,
     );
-
-    const pendingItems = await this.contentPlanItemsService.listPendingByPlan(
+    const items = await this.contentPlanItemsService.listPendingByPlan(
       organizationId,
       planId,
     );
+    return {
+      baseInput: { brandId, organizationId, planId, userId },
+      items,
+      planId,
+    };
+  }
 
-    const results: ExecutionResult[] = [];
-    let completed = 0;
-    let failed = 0;
-
-    for (const item of pendingItems) {
-      const result = await this.executeItem(
-        organizationId,
-        brandId,
-        userId,
-        item,
-      );
-
-      results.push(result);
-
-      if (result.status === ContentPlanItemStatus.COMPLETED) {
-        completed++;
-        await this.contentPlansService.incrementExecutedCount(
-          organizationId,
-          planId,
-        );
-      } else {
-        failed++;
-      }
-    }
-
-    const finalStatus =
-      failed === pendingItems.length
-        ? ContentPlanStatus.ACTIVE
-        : ContentPlanStatus.COMPLETED;
-
+  async finalizePlanExecution(
+    organizationId: string,
+    brandId: string,
+    planId: string,
+    batch: unknown,
+  ): Promise<{
+    results: ExecutionResult[];
+    summary: { total: number; completed: number; failed: number };
+  }> {
+    const results = this.readBatchResults(batch);
+    const completed = results.filter(
+      (result) => result.status === ContentPlanItemStatus.COMPLETED,
+    ).length;
+    const failed = results.length - completed;
     await this.contentPlansService.updateStatus(
       organizationId,
       planId,
-      finalStatus,
+      failed === results.length && results.length > 0
+        ? ContentPlanStatus.ACTIVE
+        : ContentPlanStatus.COMPLETED,
     );
-
     this.logger.log(`${this.constructorName}: Plan execution completed`, {
       brandId,
       completed,
       failed,
       organizationId,
       planId,
-      total: pendingItems.length,
+      total: results.length,
     });
-
     return {
       results,
-      summary: { completed, failed, total: pendingItems.length },
+      summary: { completed, failed, total: results.length },
     };
   }
 
@@ -136,6 +129,27 @@ export class ContentExecutionService {
     }
 
     return result;
+  }
+
+  private readBatchResults(value: unknown): ExecutionResult[] {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      return [];
+    }
+    const results = (value as { results?: unknown }).results;
+    if (!Array.isArray(results)) {
+      return [];
+    }
+    return results.flatMap((entry) => {
+      if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+        return [];
+      }
+      const result = (entry as { result?: unknown }).result;
+      return result !== null &&
+        typeof result === 'object' &&
+        !Array.isArray(result)
+        ? [result as ExecutionResult]
+        : [];
+    });
   }
 
   private async executeItem(

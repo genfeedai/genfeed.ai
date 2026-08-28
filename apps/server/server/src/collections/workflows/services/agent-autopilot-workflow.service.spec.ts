@@ -1,223 +1,48 @@
-import { AgentRunFrequency } from '@genfeedai/enums';
 import { AgentAutopilotWorkflowService } from '@server/collections/workflows/services/agent-autopilot-workflow.service';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-describe('AgentAutopilotWorkflowService', () => {
-  const prisma = {
-    agentStrategy: {
-      findFirst: vi.fn(),
-      findMany: vi.fn(),
-      update: vi.fn(),
-    },
-  };
-  const agentRunsService = { create: vi.fn() };
-  const agentRunQueueService = { queueRun: vi.fn() };
-  const creditsUtilsService = { getOrganizationCreditsBalance: vi.fn() };
-  const organizationSettingsService = { findOne: vi.fn() };
-  const agentGoalsService = { getGoalSummary: vi.fn() };
-  const cacheService = {
-    acquireLock: vi.fn(),
-    releaseLock: vi.fn(),
-  };
-  const logger = {
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  };
-
-  let service: AgentAutopilotWorkflowService;
-
-  afterEach(() => {
-    vi.useRealTimers();
-    vi.restoreAllMocks();
-  });
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-06-24T09:00:00.000Z'));
-    cacheService.acquireLock.mockResolvedValue(true);
-    cacheService.releaseLock.mockResolvedValue(undefined);
-    agentRunsService.create.mockResolvedValue({ id: 'run-1' });
-    agentRunQueueService.queueRun.mockResolvedValue(undefined);
-    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(500);
-    organizationSettingsService.findOne.mockResolvedValue(null);
-    agentGoalsService.getGoalSummary.mockResolvedValue('Goal summary');
-    prisma.agentStrategy.findFirst.mockResolvedValue({
+describe('AgentAutopilotWorkflowService atomic actions', () => {
+  it('discovers and resets one due credit window without iterating strategies internally', async () => {
+    const strategy = {
       config: {
-        dailyResetAt: '2026-06-25T00:00:00.000Z',
-        nextRunAt: '2026-06-24T08:59:00.000Z',
-        weeklyResetAt: '2026-06-29T00:00:00.000Z',
+        creditsUsedThisWeek: 8,
+        dailyResetAt: '2020-01-01T00:00:00.000Z',
+        weeklyResetAt: '2020-01-01T00:00:00.000Z',
       },
       id: 'strategy-1',
+      isActive: true,
       organizationId: 'org-1',
-    });
-    prisma.agentStrategy.update.mockResolvedValue({});
-
-    service = new AgentAutopilotWorkflowService(
-      prisma as never,
-      agentRunsService as never,
-      agentRunQueueService as never,
-      creditsUtilsService as never,
-      organizationSettingsService as never,
-      agentGoalsService as never,
-      cacheService as never,
-      logger as never,
-    );
-  });
-
-  it('skips proactive strategy processing when the org lock already exists', async () => {
-    cacheService.acquireLock.mockResolvedValue(false);
-
-    const result = await service.runProactiveStrategies('org-1');
-
-    expect(result).toMatchObject({
-      action: 'proactiveAgentStrategies',
-      enqueued: 0,
-      organizationId: 'org-1',
-      reason: 'proactive_agent_already_running',
-      status: 'skipped',
-    });
-    expect(prisma.agentStrategy.findMany).not.toHaveBeenCalled();
-    expect(cacheService.releaseLock).not.toHaveBeenCalled();
-  });
-
-  it('queues due active proactive strategies for the organization', async () => {
-    prisma.agentStrategy.findMany
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([
-        {
-          brandId: null,
-          config: {
-            creditsUsedThisWeek: 0,
-            creditsUsedToday: 0,
-            dailyCreditBudget: 100,
-            dailyCreditsUsed: 0,
-            dailyResetAt: '2026-06-25T00:00:00.000Z',
-            minCreditThreshold: 10,
-            nextRunAt: '2026-06-24T08:59:00.000Z',
-            postsPerWeek: 3,
-            runFrequency: AgentRunFrequency.DAILY,
-            weeklyCreditBudget: 300,
-            weeklyResetAt: '2026-06-29T00:00:00.000Z',
-          },
-          goalId: null,
-          id: 'strategy-1',
-          label: 'Growth strategy',
-          organizationId: 'org-1',
-          userId: 'user-1',
-        },
-      ]);
-
-    const result = await service.runProactiveStrategies('org-1');
-
-    expect(prisma.agentStrategy.findMany).toHaveBeenNthCalledWith(2, {
-      take: 100,
-      where: {
-        isActive: true,
-        isDeleted: false,
-        organizationId: 'org-1',
+    };
+    const prisma = {
+      agentStrategy: {
+        findMany: vi.fn().mockResolvedValue([strategy]),
+        update: vi.fn().mockResolvedValue(strategy),
       },
+    };
+    const service = new AgentAutopilotWorkflowService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+
+    const discovery = await service.discoverCreditResetStrategies('org-1', {
+      state: { acquired: true },
     });
-    expect(agentRunsService.create).toHaveBeenCalledWith({
-      creditBudget: 100,
-      label: 'Proactive: Growth strategy',
-      objective: expect.stringContaining('Run proactive session'),
-      organizationId: 'org-1',
-      strategyId: 'strategy-1',
-      trigger: 'cron',
-      userId: 'user-1',
+    expect(discovery.items).toEqual([strategy]);
+
+    await service.resetCreditWindow('org-1', {
+      item: strategy,
+      now: '2026-08-28T00:00:00.000Z',
     });
-    expect(agentRunQueueService.queueRun).toHaveBeenCalledWith(
+    expect(prisma.agentStrategy.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        creditBudget: 100,
-        organizationId: 'org-1',
-        runId: 'run-1',
-        strategyId: 'strategy-1',
-        userId: 'user-1',
+        where: { id: 'strategy-1', isDeleted: false, organizationId: 'org-1' },
       }),
     );
-    expect(result).toMatchObject({
-      action: 'proactiveAgentStrategies',
-      enqueued: 1,
-      organizationId: 'org-1',
-      status: 'enqueued',
-    });
-  });
-
-  it('records workflow handoff provenance on queued proactive agent runs', async () => {
-    prisma.agentStrategy.findMany
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([
-        {
-          brandId: null,
-          config: {
-            creditsUsedThisWeek: 0,
-            creditsUsedToday: 0,
-            dailyCreditBudget: 100,
-            dailyCreditsUsed: 0,
-            dailyResetAt: '2026-06-25T00:00:00.000Z',
-            minCreditThreshold: 10,
-            nextRunAt: '2026-06-24T08:59:00.000Z',
-            postsPerWeek: 3,
-            runFrequency: AgentRunFrequency.DAILY,
-            weeklyCreditBudget: 300,
-            weeklyResetAt: '2026-06-29T00:00:00.000Z',
-          },
-          goalId: null,
-          id: 'strategy-1',
-          label: 'Growth strategy',
-          organizationId: 'org-1',
-          userId: 'user-1',
-        },
-      ]);
-
-    const result = await service.runProactiveStrategies('org-1', {
-      workflowExecutionId: 'exec-1',
-      workflowId: 'workflow-1',
-      workflowNodeId: 'node-1',
-      workflowNodeType: 'proactiveAgentStrategies',
-      workflowRunId: 'engine-run-1',
-    });
-
-    expect(agentRunsService.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        metadata: {
-          workflowHandoff: {
-            agentStrategyId: 'strategy-1',
-            workflowExecutionId: 'exec-1',
-            workflowId: 'workflow-1',
-            workflowNodeId: 'node-1',
-            workflowNodeType: 'proactiveAgentStrategies',
-            workflowRunId: 'engine-run-1',
-          },
-        },
-      }),
-    );
-    expect(result).toMatchObject({
-      agentRunIds: ['run-1'],
-      enqueued: 1,
-      status: 'enqueued',
-      workflowExecutionId: 'exec-1',
-      workflowId: 'workflow-1',
-      workflowRunId: 'engine-run-1',
-    });
-  });
-
-  it('returns skipped when no proactive strategies are due', async () => {
-    prisma.agentStrategy.findMany
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([]);
-
-    const result = await service.runProactiveStrategies('org-1');
-
-    expect(result).toMatchObject({
-      action: 'proactiveAgentStrategies',
-      enqueued: 0,
-      organizationId: 'org-1',
-      reason: 'no_due_strategies',
-      status: 'skipped',
-    });
-    expect(agentRunsService.create).not.toHaveBeenCalled();
   });
 });

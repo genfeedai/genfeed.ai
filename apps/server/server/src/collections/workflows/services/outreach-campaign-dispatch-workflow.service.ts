@@ -1,14 +1,11 @@
-import { CampaignType, WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { CampaignType } from '@genfeedai/enums';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
 import {
   type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
-import {
-  buildCampaignDispatchWorkflowDefinition,
-  CAMPAIGN_DISPATCH_ACTION_IDS,
-} from '@server/services/campaign/campaign-dispatch-workflow-definition';
+import { CAMPAIGN_DISPATCH_ACTION_IDS } from '@server/services/campaign/campaign-dispatch-workflow-definition';
 import { isCampaignOutreachPairExecutable } from '@server/services/campaign/outreach-capability.util';
 
 const MAX_ACTIVE_CAMPAIGNS_PER_DISPATCH = 20;
@@ -33,7 +30,7 @@ type ScheduledBatch = {
 };
 
 export interface OutreachCampaignDispatchWorkflowResult {
-  action: 'outreachCampaignDispatch';
+  action: 'campaign.dispatch.active';
   alreadyQueued: number;
   enqueued: number;
   failed: number;
@@ -61,68 +58,50 @@ export class OutreachCampaignDispatchWorkflowService implements OnModuleInit {
     );
   }
 
-  async runActiveCampaignDispatch(
-    organizationId: string,
-  ): Promise<OutreachCampaignDispatchWorkflowResult> {
-    const definition = buildCampaignDispatchWorkflowDefinition();
-    const { result } =
-      await this.workflowRunner.runWorkflow<OutreachCampaignDispatchWorkflowResult>(
-        {
-          actionType: definition.canonicalId,
-          canonicalId: definition.canonicalId,
-          inputValues: { request: { organizationId } },
-          organizationId,
-          source:
-            'OutreachCampaignDispatchWorkflowService.runActiveCampaignDispatch',
-          trigger: WorkflowExecutionTrigger.SCHEDULED,
-        },
-      );
-    return result;
-  }
-
   private async discoverAction(
     action: SystemWorkflowActionRequest,
   ): Promise<CampaignDispatchDiscovery> {
     const request = this.readRecord(action.input.request);
     const organizationId = this.requiredString(
-      request.organizationId,
+      request.organizationId ?? action.context.organizationId,
       'organizationId',
     );
     const campaigns =
       await this.campaignsService.findActiveForDispatch(organizationId);
     const bounded = campaigns.slice(0, MAX_ACTIVE_CAMPAIGNS_PER_DISPATCH);
-    const discovery: CampaignDispatchDiscovery = {
-      dmItems: [],
-      organizationId,
-      replyItems: [],
-      skipped: campaigns.length - bounded.length,
-      total: campaigns.length,
-    };
-
-    for (const campaign of bounded) {
-      if (
-        campaign.organizationId !== organizationId ||
-        campaign.isDeleted ||
-        !isCampaignOutreachPairExecutable({
-          campaignType: campaign.campaignType,
-          platform: campaign.platform,
-        })
-      ) {
-        discovery.skipped += 1;
-        continue;
-      }
-      const item = {
-        campaignId: campaign.id.toString(),
-        limit: 10,
+    return bounded.reduce<CampaignDispatchDiscovery>(
+      (discovery, campaign) => {
+        if (
+          campaign.organizationId !== organizationId ||
+          campaign.isDeleted ||
+          !isCampaignOutreachPairExecutable({
+            campaignType: campaign.campaignType,
+            platform: campaign.platform,
+          })
+        ) {
+          discovery.skipped += 1;
+          return discovery;
+        }
+        const item = {
+          campaignId: campaign.id.toString(),
+          limit: 10,
+          organizationId,
+        };
+        if (campaign.campaignType === CampaignType.DM_OUTREACH) {
+          discovery.dmItems.push(item);
+        } else {
+          discovery.replyItems.push(item);
+        }
+        return discovery;
+      },
+      {
+        dmItems: [],
         organizationId,
-      };
-      if (campaign.campaignType === CampaignType.DM_OUTREACH) {
-        discovery.dmItems.push(item);
-      } else {
-        discovery.replyItems.push(item);
-      }
-    }
-    return discovery;
+        replyItems: [],
+        skipped: campaigns.length - bounded.length,
+        total: campaigns.length,
+      },
+    );
   }
 
   private async finalizeAction(
@@ -134,12 +113,12 @@ export class OutreachCampaignDispatchWorkflowService implements OnModuleInit {
     const enqueued = replyBatch.count + dmBatch.count;
     const hasCampaigns = discovery.total > 0;
     return {
-      action: 'outreachCampaignDispatch',
+      action: 'campaign.dispatch.active',
       alreadyQueued: 0,
       enqueued,
       failed: 0,
       organizationId: discovery.organizationId,
-      reason: hasCampaigns ? undefined : 'no_active_campaigns',
+      ...(!hasCampaigns ? { reason: 'no_active_campaigns' } : {}),
       skipped: discovery.skipped,
       status: hasCampaigns ? 'completed' : 'skipped',
     };

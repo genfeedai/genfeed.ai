@@ -38,7 +38,6 @@ import { AgentAutopilotWorkflowService } from '@server/collections/workflows/ser
 import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
 import { ContentProductionWorkflowService } from '@server/collections/workflows/services/content-production-workflow.service';
 import { LivestreamBotWorkflowService } from '@server/collections/workflows/services/livestream-bot-workflow.service';
-import { OutreachCampaignDispatchWorkflowService } from '@server/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
 import { PaidCreativeResearchWorkflowService } from '@server/collections/workflows/services/paid-creative-research-workflow.service';
 import { ReplyPollingWorkflowService } from '@server/collections/workflows/services/reply-polling-workflow.service';
 import { TrendNotificationWorkflowService } from '@server/collections/workflows/services/trend-notification-workflow.service';
@@ -149,8 +148,6 @@ export class WorkflowEngineAdapterService {
     @Optional()
     private readonly paidCreativeResearchWorkflowService?: PaidCreativeResearchWorkflowService,
     @Optional()
-    private readonly outreachCampaignDispatchWorkflowService?: OutreachCampaignDispatchWorkflowService,
-    @Optional()
     private readonly postAccountFanoutService?: PostAccountFanoutService,
     @Optional()
     private readonly videoQaContinuityResolver?: VideoQaContinuityResolverService,
@@ -223,7 +220,6 @@ export class WorkflowEngineAdapterService {
       this.postAccountFanoutService,
     );
     const automationRegistrar = new WorkflowAutomationExecutorRegistrarService(
-      helper,
       this.adAutomationWorkflowService,
       this.agentAutopilotWorkflowService,
       this.analyticsSyncWorkflowService,
@@ -233,7 +229,6 @@ export class WorkflowEngineAdapterService {
       this.livestreamBotWorkflowService,
       this.winnerPromotionWorkflowService,
       this.paidCreativeResearchWorkflowService,
-      this.outreachCampaignDispatchWorkflowService,
       this.adBulkUploadWorkflowService,
     );
     this.trendPublishRegistrar =

@@ -752,12 +752,14 @@ export class WorkflowNodeGraphRunnerService {
       },
     );
 
-    await this.progressService.emitEvent(input.workflow.id, 'delayed', {
-      delayMs: delayMeta.delayMs,
-      delayNodeId: input.nodeId,
-      executionId: input.executionId,
-      resumeAt: delayMeta.resumeAt,
-    });
+    if (input.workflow.emitSharedEvents !== false) {
+      await this.progressService.emitEvent(input.workflow.id, 'delayed', {
+        delayMs: delayMeta.delayMs,
+        delayNodeId: input.nodeId,
+        executionId: input.executionId,
+        resumeAt: delayMeta.resumeAt,
+      });
+    }
 
     await this.progressService.updateExecutionEta(
       input.executionId,

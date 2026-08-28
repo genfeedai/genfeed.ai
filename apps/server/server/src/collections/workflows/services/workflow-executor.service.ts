@@ -280,6 +280,7 @@ export class WorkflowExecutorService {
       workflowId,
       execution.workflowVersionId,
       event.organizationId,
+      event.userId,
     );
     if (!normalizedWorkflow) {
       throw new Error(
@@ -481,6 +482,7 @@ export class WorkflowExecutorService {
           workflowId,
           delayedExecution.workflowVersionId,
           jobData.organizationId,
+          delayedExecution.userId,
         )
       : null;
 
@@ -741,10 +743,12 @@ export class WorkflowExecutorService {
         where: { id: workflowId },
       });
 
-      await this.progressService.emitEvent(workflowId, 'started', {
-        executionId,
-        status: 'started',
-      });
+      if (executableWorkflow.emitSharedEvents !== false) {
+        await this.progressService.emitEvent(workflowId, 'started', {
+          executionId,
+          status: 'started',
+        });
+      }
 
       const result = await this.graphRunner.executeNodeGraph(
         executableWorkflow,
@@ -788,16 +792,18 @@ export class WorkflowExecutorService {
           );
         }
 
-        await this.progressService.emitEvent(
-          workflowId,
-          finalStatus === WorkflowExecutionStatus.COMPLETED
-            ? 'completed'
-            : 'failed',
-          {
-            executionId,
-            status: finalStatus,
-          },
-        );
+        if (executableWorkflow.emitSharedEvents !== false) {
+          await this.progressService.emitEvent(
+            workflowId,
+            finalStatus === WorkflowExecutionStatus.COMPLETED
+              ? 'completed'
+              : 'failed',
+            {
+              executionId,
+              status: finalStatus,
+            },
+          );
+        }
 
         await this.progressService.publishWorkflowTaskUpdate({
           error: result.error,
@@ -816,10 +822,12 @@ export class WorkflowExecutorService {
           workflowLabel,
         });
       } else {
-        await this.progressService.emitEvent(workflowId, 'delayed', {
-          executionId,
-          status: finalStatus,
-        });
+        if (executableWorkflow.emitSharedEvents !== false) {
+          await this.progressService.emitEvent(workflowId, 'delayed', {
+            executionId,
+            status: finalStatus,
+          });
+        }
       }
 
       const delayJobData = (result as unknown as Record<string, unknown>)
@@ -856,10 +864,12 @@ export class WorkflowExecutorService {
         where: { id: workflowId },
       });
 
-      await this.progressService.emitEvent(workflowId, 'error', {
-        error: errorMessage,
-        executionId,
-      });
+      if (executableWorkflow.emitSharedEvents !== false) {
+        await this.progressService.emitEvent(workflowId, 'error', {
+          error: errorMessage,
+          executionId,
+        });
+      }
 
       await this.progressService.publishWorkflowTaskUpdate({
         error: errorMessage,

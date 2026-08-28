@@ -1,9 +1,4 @@
 import { createHash } from 'node:crypto';
-import { TrendsService } from '@server/collections/trends/services/trends.service';
-import type { TrendNotificationCadence } from '@server/collections/workflows/templates/trend-notification-workflows.template';
-import { CacheService } from '@server/services/cache/cache.service';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { ParseMode, TrendNotificationFrequency } from '@genfeedai/enums';
 import {
   buildTrendDigestHtml,
@@ -15,8 +10,15 @@ import type { Setting } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { TrendsService } from '@server/collections/trends/services/trends.service';
+import { AUTOMATION_WORKFLOW_IDS } from '@server/collections/workflows/services/automation-workflow-definitions';
+import type { TrendNotificationCadence } from '@server/collections/workflows/templates/trend-notification-workflows.template';
+import { CacheService } from '@server/services/cache/cache.service';
+import { NotificationsService } from '@server/services/notifications/notifications.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
-type TrendNotificationAction = 'trendSummaryNotifications';
+type TrendNotificationAction =
+  typeof AUTOMATION_WORKFLOW_IDS.TREND_NOTIFICATIONS;
 
 /**
  * Workflow templates speak lowercase cadence (`daily`), the
@@ -81,125 +83,229 @@ export class TrendNotificationWorkflowService {
     private readonly configService: ConfigService,
   ) {}
 
-  async runTrendSummaryNotifications(
+  async prepareTrendSummaryNotifications(
     organizationId: string,
     cadence: TrendNotificationCadence,
-  ): Promise<TrendNotificationWorkflowResult> {
-    const action: TrendNotificationAction = 'trendSummaryNotifications';
+  ): Promise<Record<string, unknown>> {
     const owner = await this.findOrganizationOwner(organizationId);
     if (!owner) {
-      return this.skipped(
+      return {
         cadence,
         organizationId,
-        'organization_owner_missing',
-      );
+        reason: 'organization_owner_missing',
+        status: 'skipped',
+      };
     }
 
     const setting = await this.findOwnerSetting(owner.userId, cadence);
     if (!setting) {
-      return this.skipped(cadence, organizationId, 'settings_missing');
+      return {
+        cadence,
+        organizationId,
+        reason: 'settings_missing',
+        status: 'skipped',
+      };
     }
 
     const recipients = this.resolveRecipients(setting);
     if (!recipients.email && !recipients.inApp && !recipients.telegram) {
-      return this.skipped(cadence, organizationId, 'recipients_missing');
+      return {
+        cadence,
+        organizationId,
+        reason: 'recipients_missing',
+        status: 'skipped',
+      };
     }
 
     const minViralScore = setting.trendNotificationsMinViralScore || 70;
-    const trends = await this.buildTrends(minViralScore);
-    if (trends.length === 0) {
-      this.logger.debug(
-        `${this.logContext} no trends above threshold for workflow notification`,
-        { cadence, minViralScore, organizationId, userId: owner.userId },
-      );
-      return this.skipped(cadence, organizationId, 'no_trends');
-    }
-
-    const markerKey = this.idempotencyKey(
-      organizationId,
+    return {
       cadence,
-      owner.userId,
-      setting,
-    );
+      channels: recipients,
+      emailAddress: setting.trendNotificationsEmailAddress,
+      markerKey: this.idempotencyKey(
+        organizationId,
+        cadence,
+        owner.userId,
+        setting,
+      ),
+      markerTtlSeconds: this.markerTtlSeconds(cadence),
+      minViralScore,
+      organizationId,
+      ownerUserId: owner.userId,
+      status: 'prepared',
+      telegramChatId: setting.trendNotificationsTelegramChatId,
+    };
+  }
+
+  async readTrendSummaryVideos(
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const state = this.readRecord(input.state);
+    return {
+      trends:
+        state.status === 'prepared'
+          ? await this.getViralVideos(
+              typeof state.minViralScore === 'number'
+                ? state.minViralScore
+                : 70,
+            )
+          : [],
+    };
+  }
+
+  async readTrendSummaryHashtags(
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const state = this.readRecord(input.state);
+    return {
+      trends:
+        state.status === 'prepared'
+          ? await this.getTrendingHashtags(
+              typeof state.minViralScore === 'number'
+                ? state.minViralScore
+                : 70,
+            )
+          : [],
+    };
+  }
+
+  async readTrendSummarySounds(
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const state = this.readRecord(input.state);
+    return {
+      trends: state.status === 'prepared' ? await this.getTrendingSounds() : [],
+    };
+  }
+
+  async renderTrendSummaryNotifications(
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const state = this.readRecord(input.state);
+    if (state.status !== 'prepared') return state;
+    const trends = ['videos', 'hashtags', 'sounds'].flatMap((key) => {
+      const result = this.readRecord(input[key]);
+      return Array.isArray(result.trends)
+        ? (result.trends as TrendDigestItem[])
+        : [];
+    });
+    const minViralScore =
+      typeof state.minViralScore === 'number' ? state.minViralScore : 70;
+    if (trends.length === 0) {
+      return { ...state, reason: 'no_trends', status: 'skipped', trends };
+    }
     const acquired = await this.cacheService.acquireLock(
-      markerKey,
-      this.markerTtlSeconds(cadence),
+      this.requiredString(state.markerKey, 'markerKey'),
+      typeof state.markerTtlSeconds === 'number'
+        ? state.markerTtlSeconds
+        : this.markerTtlSeconds(this.requiredCadence(state.cadence)),
     );
     if (!acquired) {
-      return this.skipped(
-        cadence,
-        organizationId,
-        'notification_window_already_sent',
-      );
+      return {
+        ...state,
+        reason: 'notification_window_already_sent',
+        status: 'skipped',
+        trends,
+      };
     }
+    return {
+      ...state,
+      trends,
+      summaryMessage: buildTrendDigestMessage(trends, { minViralScore }),
+      summaryHtml: buildTrendDigestHtml(trends, {
+        appUrl: String(this.configService.get('GENFEEDAI_APP_URL') ?? ''),
+        minViralScore,
+      }),
+      status: 'rendered',
+    };
+  }
 
-    const summaryMessage = buildTrendDigestMessage(trends, { minViralScore });
-    const summaryHtml = buildTrendDigestHtml(trends, {
-      appUrl: String(this.configService.get('GENFEEDAI_APP_URL') ?? ''),
-      minViralScore,
-    });
-
-    let sent = 0;
-    let errors = 0;
-
-    if (recipients.telegram && setting.trendNotificationsTelegramChatId) {
-      try {
+  async deliverTrendSummaryChannel(
+    channel: 'email' | 'inApp' | 'telegram',
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const state = this.readRecord(input.state);
+    if (state.status !== 'rendered') return { channel, sent: 0, skipped: true };
+    const channels = this.readRecord(state.channels);
+    if (channels[channel] !== true) return { channel, sent: 0, skipped: true };
+    const cadence = this.requiredCadence(state.cadence);
+    const organizationId = this.requiredString(
+      state.organizationId,
+      'organizationId',
+    );
+    try {
+      if (channel === 'telegram') {
         await this.notificationsService.sendTelegramMessage(
-          setting.trendNotificationsTelegramChatId,
-          summaryMessage,
+          this.requiredString(state.telegramChatId, 'telegramChatId'),
+          this.requiredString(state.summaryMessage, 'summaryMessage'),
           { parse_mode: ParseMode.MARKDOWN },
         );
-        sent += 1;
-      } catch (error) {
-        errors += 1;
-        this.logDeliveryError('telegram', error, cadence, organizationId);
-      }
-    }
-
-    if (recipients.email && setting.trendNotificationsEmailAddress) {
-      try {
+      } else if (channel === 'email') {
+        const trends = Array.isArray(state.trends) ? state.trends : [];
         await this.notificationsService.sendEmail(
-          setting.trendNotificationsEmailAddress,
+          this.requiredString(state.emailAddress, 'emailAddress'),
           `Your Trend Summary - ${trends.length} Trending Topics`,
-          summaryHtml,
+          this.requiredString(state.summaryHtml, 'summaryHtml'),
         );
-        sent += 1;
-      } catch (error) {
-        errors += 1;
-        this.logDeliveryError('email', error, cadence, organizationId);
-      }
-    }
-
-    if (recipients.inApp) {
-      try {
+      } else {
+        const trends = Array.isArray(state.trends)
+          ? (state.trends as TrendDigestItem[])
+          : [];
         await this.notificationsService.sendNotification({
           action: 'trend_summary',
           payload: {
             cadence,
-            minViralScore,
+            minViralScore:
+              typeof state.minViralScore === 'number'
+                ? state.minViralScore
+                : 70,
             organizationId,
             trends: trends.slice(0, 10),
           } satisfies ITrendSummaryPayload,
           type: 'discord',
-          userId: owner.userId,
+          userId: this.requiredString(state.ownerUserId, 'ownerUserId'),
         });
-        sent += 1;
-      } catch (error) {
-        errors += 1;
-        this.logDeliveryError('in_app', error, cadence, organizationId);
       }
+      return { channel, sent: 1 };
+    } catch (error) {
+      this.logDeliveryError(channel, error, cadence, organizationId);
+      return { channel, errors: 1, sent: 0 };
     }
+  }
 
+  finalizeTrendSummaryNotifications(
+    organizationId: string,
+    input: Record<string, unknown>,
+  ): TrendNotificationWorkflowResult {
+    const prepared = this.readRecord(input.prepared);
+    const cadence = this.requiredCadence(prepared.cadence);
+    if (prepared.status === 'skipped') {
+      return this.skipped(
+        cadence,
+        organizationId,
+        this.requiredString(prepared.reason, 'reason'),
+      );
+    }
+    const deliveries = ['telegram', 'email', 'inApp'].map((key) =>
+      this.readRecord(input[key]),
+    );
+    const sent = deliveries.reduce(
+      (sum, delivery) => sum + (delivery.sent === 1 ? 1 : 0),
+      0,
+    );
     return {
-      action,
+      action: AUTOMATION_WORKFLOW_IDS.TREND_NOTIFICATIONS,
       cadence,
-      channels: recipients,
-      errors,
+      channels: this.readRecord(prepared.channels) as DeliveryChannels,
+      errors: deliveries.reduce(
+        (sum, delivery) => sum + (delivery.errors === 1 ? 1 : 0),
+        0,
+      ),
       organizationId,
       sent,
       skipped: sent === 0 ? 1 : 0,
       status: 'completed',
-      trends: trends.length,
+      trends: Array.isArray(prepared.trends) ? prepared.trends.length : 0,
     };
   }
 
@@ -252,16 +358,6 @@ export class TrendNotificationWorkflowService {
         setting.isTrendNotificationsTelegram &&
         Boolean(setting.trendNotificationsTelegramChatId),
     };
-  }
-
-  private async buildTrends(minViralScore: number): Promise<TrendDigestItem[]> {
-    const [viralVideos, trendingHashtags, trendingSounds] = await Promise.all([
-      this.getViralVideos(minViralScore),
-      this.getTrendingHashtags(minViralScore),
-      this.getTrendingSounds(),
-    ]);
-
-    return [...viralVideos, ...trendingHashtags, ...trendingSounds];
   }
 
   private async getViralVideos(
@@ -406,7 +502,7 @@ export class TrendNotificationWorkflowService {
     reason: string,
   ): TrendNotificationWorkflowResult {
     return {
-      action: 'trendSummaryNotifications',
+      action: AUTOMATION_WORKFLOW_IDS.TREND_NOTIFICATIONS,
       cadence,
       channels: { email: false, inApp: false, telegram: false },
       errors: 0,
@@ -431,5 +527,23 @@ export class TrendNotificationWorkflowService {
       error: error instanceof Error ? error.message : String(error),
       organizationId,
     });
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private requiredCadence(value: unknown): TrendNotificationCadence {
+    if (value === 'hourly' || value === 'daily' || value === 'weekly')
+      return value;
+    throw new Error('cadence must be hourly, daily, or weekly');
+  }
+
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.length === 0)
+      throw new Error(`${field} is required`);
+    return value;
   }
 }

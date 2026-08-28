@@ -1,5 +1,12 @@
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import type { NodeExecutor } from '@genfeedai/workflows/engine';
+import {
+  buildHiddenSystemWorkflowMetadata,
+  HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+  SYSTEM_WORKFLOW_METADATA_KEY,
+  SYSTEM_WORKFLOW_PRINCIPAL_ID,
+} from '@server/collections/workflows/system-workflow.contract';
+import { buildWorkflowVersionDefinition } from '@server/collections/workflows/workflow-version-definition';
 import { describe, expect, it, vi } from 'vitest';
 import {
   type SystemWorkflowGraphDefinition,
@@ -144,6 +151,96 @@ describe('SystemWorkflowRunnerService definitions', () => {
     );
   });
 
+  it('executes one global hidden mirror with the invoking tenant context', async () => {
+    const immutableDefinition = buildWorkflowVersionDefinition(
+      definition.definition,
+    );
+    const mirror = {
+      currentVersion: {
+        contentHash: immutableDefinition.contentHash,
+        graph: immutableDefinition.graph,
+        id: 'global-version',
+        inputSchema: immutableDefinition.inputSchema,
+        version: 1,
+      },
+      currentVersionId: 'global-version',
+      id: 'global-workflow',
+      isDeleted: false,
+      label: definition.label,
+      metadata: {
+        sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+        [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata({
+          canonicalId: definition.canonicalId,
+        }),
+      },
+      organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+      userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+    };
+    const transaction = {
+      $executeRaw: vi.fn().mockResolvedValue(1),
+      workflow: {
+        findFirst: vi.fn().mockResolvedValue(mirror),
+      },
+    };
+    const prisma = {
+      $transaction: vi.fn((callback) => callback(transaction)),
+    };
+    const executeManualWorkflowDocument = vi.fn().mockResolvedValue({
+      executionId: 'execution-1',
+    });
+    const adapter = {
+      getRegisteredActionIds: vi.fn(),
+      registerExecutor: vi.fn(),
+    };
+    const moduleRef = {
+      get: (token: { name?: string }) =>
+        token.name === 'WorkflowExecutorService'
+          ? { executeManualWorkflowDocument }
+          : adapter,
+    };
+    const runner = new SystemWorkflowRunnerService(
+      prisma as never,
+      moduleRef as never,
+    );
+    runner.registerWorkflow(definition);
+
+    await runner.startWorkflow({
+      actionType: definition.canonicalId,
+      canonicalId: definition.canonicalId,
+      organizationId: 'tenant-org',
+      source: 'test',
+      userId: 'tenant-user',
+    });
+
+    expect(transaction.workflow.findFirst).toHaveBeenCalledWith({
+      include: { currentVersion: true },
+      where: {
+        isDeleted: false,
+        metadata: {
+          equals: definition.canonicalId,
+          path: [SYSTEM_WORKFLOW_METADATA_KEY, 'canonicalId'],
+        },
+        organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+      },
+    });
+    expect(executeManualWorkflowDocument).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'global-workflow',
+        organizationId: 'tenant-org',
+        userId: 'tenant-user',
+      }),
+      'tenant-user',
+      'tenant-org',
+      {},
+      expect.objectContaining({
+        canonicalId: definition.canonicalId,
+        isSystemAction: true,
+      }),
+      expect.anything(),
+    );
+  });
+
   it('runs one registered child with mapped inputs and parent provenance', async () => {
     const { executors, runner } = createRunner();
     runner.onModuleInit();
@@ -266,7 +363,12 @@ describe('SystemWorkflowRunnerService definitions', () => {
       },
       workflow: {
         findFirst: vi.fn().mockResolvedValue({
-          metadata: { sourceType: 'hidden-system-workflow' },
+          metadata: {
+            sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+            [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata({
+              canonicalId: 'parent-workflow',
+            }),
+          },
         }),
       },
     };
@@ -293,6 +395,16 @@ describe('SystemWorkflowRunnerService definitions', () => {
       ]),
       executionContext(),
     );
+
+    expect(prisma.workflow.findFirst).toHaveBeenCalledWith({
+      select: { metadata: true },
+      where: {
+        id: 'parent-workflow',
+        isDeleted: false,
+        organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+      },
+    });
 
     expect(runner.runWorkflow).toHaveBeenNthCalledWith(
       1,

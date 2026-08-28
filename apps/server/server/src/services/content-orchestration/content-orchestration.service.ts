@@ -126,13 +126,16 @@ export class ContentOrchestrationService {
     this.validateSteps(config.steps);
     const definition = buildContentPipelineWorkflowDefinition(config);
     const { result } =
-      await this.systemWorkflowRunner.runWorkflow<PipelineResultV2>({
-        actionType: 'content-pipeline',
-        canonicalId: definition.canonicalId,
-        organizationId: config.organizationId,
-        source: 'content-pipeline',
-        userId: config.userId,
-      });
+      await this.systemWorkflowRunner.runDefinition<PipelineResultV2>(
+        definition,
+        {
+          actionType: 'content-pipeline',
+          canonicalId: definition.canonicalId,
+          organizationId: config.organizationId,
+          source: 'content-pipeline',
+          userId: config.userId,
+        },
+      );
     return result;
   }
 
@@ -165,9 +168,10 @@ export class ContentOrchestrationService {
     hasCredentials: boolean;
     runReferences: PipelineConfig['runReferences'];
   }> {
-    const personaId = this.requireString(request.input.personaId, 'personaId');
-    const brandId = this.requireString(request.input.brandId, 'brandId');
-    const publishMode = this.readPublishMode(request.input.publishMode);
+    const input = this.normalizeActionInput(request.input);
+    const personaId = this.requireString(input.personaId, 'personaId');
+    const brandId = this.requireString(input.brandId, 'brandId');
+    const publishMode = this.readPublishMode(input.publishMode);
     const persona =
       publishMode === 'none'
         ? undefined
@@ -175,8 +179,8 @@ export class ContentOrchestrationService {
             personaId,
             request.context.organizationId,
           );
-    const configuredReferences = Array.isArray(request.input.runReferences)
-      ? (request.input.runReferences as PipelineConfig['runReferences'])
+    const configuredReferences = Array.isArray(input.runReferences)
+      ? (input.runReferences as PipelineConfig['runReferences'])
       : undefined;
     return {
       hasCredentials:
@@ -194,24 +198,23 @@ export class ContentOrchestrationService {
     request: SystemWorkflowActionRequest,
     expectedType: PipelineStep['type'],
   ): Promise<WorkflowStepOutcome> {
-    const step = this.requirePipelineStep(request.input.step, expectedType);
-    const stepIndex = this.requireNumber(request.input.stepIndex, 'stepIndex');
-    const brandId = this.requireString(request.input.brandId, 'brandId');
+    const input = this.normalizeActionInput(request.input);
+    const step = this.requirePipelineStep(input.step, expectedType);
+    const stepIndex = this.requireNumber(input.stepIndex, 'stepIndex');
+    const brandId = this.requireString(input.brandId, 'brandId');
     const startedAt = Date.now();
-    const previousResult = this.readPreviousStepResult(
-      request.input.previousOutcome,
-    );
-    const pipelineContext = this.readRecord(request.input.pipelineContext);
+    const previousResult = this.readPreviousStepResult(input.previousOutcome);
+    const pipelineContext = this.readRecord(input.pipelineContext);
     const runReferences = Array.isArray(pipelineContext.runReferences)
       ? (pipelineContext.runReferences as PipelineConfig['runReferences'])
       : undefined;
-    const globalPrompt = this.optionalString(request.input.prompt);
+    const globalPrompt = this.optionalString(input.prompt);
 
     const result = await Sentry.startSpan(
       {
         attributes: {
           'pipeline.persona_id': this.requireString(
-            request.input.personaId,
+            input.personaId,
             'personaId',
           ),
           'pipeline.step.index': stepIndex,
@@ -287,7 +290,8 @@ export class ContentOrchestrationService {
     request: SystemWorkflowActionRequest,
   ): Promise<PipelineResultV2> {
     const startedAt = Date.now();
-    const outcomes = Object.entries(request.input)
+    const input = this.normalizeActionInput(request.input);
+    const outcomes = Object.entries(input)
       .filter(([key]) => key.startsWith('stepOutcome'))
       .sort(([left], [right]) =>
         left.localeCompare(right, undefined, {
@@ -299,14 +303,11 @@ export class ContentOrchestrationService {
       throw new Error('Content pipeline publish action requires step outcomes');
     }
 
-    const publishMode = this.readPublishMode(request.input.publishMode);
+    const publishMode = this.readPublishMode(input.publishMode);
     let postIds: string[] = [];
     if (publishMode !== 'none') {
-      const personaId = this.requireString(
-        request.input.personaId,
-        'personaId',
-      );
-      const pipelineContext = this.readRecord(request.input.pipelineContext);
+      const personaId = this.requireString(input.personaId, 'personaId');
+      const pipelineContext = this.readRecord(input.pipelineContext);
       if (pipelineContext.hasCredentials === true) {
         const allIngredientIds = outcomes.map((outcome) =>
           this.requireString(outcome.ingredientId, 'ingredientId'),
@@ -320,7 +321,7 @@ export class ContentOrchestrationService {
                 ),
               ]
             : allIngredientIds;
-        const scheduledDate = this.optionalString(request.input.scheduledDate);
+        const scheduledDate = this.optionalString(input.scheduledDate);
         const publishResult = await Sentry.startSpan(
           {
             attributes: {
@@ -332,13 +333,13 @@ export class ContentOrchestrationService {
           },
           () =>
             this.personaPublisherService.publishToAll({
-              brandId: this.requireString(request.input.brandId, 'brandId'),
+              brandId: this.requireString(input.brandId, 'brandId'),
               category: PostCategory.POST,
-              description: this.optionalString(request.input.prompt) ?? '',
+              description: this.optionalString(input.prompt) ?? '',
               ingredientIds,
               organizationId: request.context.organizationId,
               personaId,
-              platforms: this.readStringArray(request.input.platforms),
+              platforms: this.readStringArray(input.platforms),
               scheduledDate: scheduledDate
                 ? new Date(scheduledDate)
                 : undefined,
@@ -413,6 +414,14 @@ export class ContentOrchestrationService {
     return value !== null && typeof value === 'object' && !Array.isArray(value)
       ? (value as Record<string, unknown>)
       : {};
+  }
+
+  private normalizeActionInput(
+    value: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const request = this.readRecord(value.request);
+    const { request: _request, ...direct } = value;
+    return { ...request, ...direct };
   }
 
   private readStringArray(value: unknown): string[] | undefined {

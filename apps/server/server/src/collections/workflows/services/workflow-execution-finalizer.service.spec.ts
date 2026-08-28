@@ -23,7 +23,7 @@ function failedRunResult(error = 'node exploded'): ExecutionRunResult {
 describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
   const prisma = {
     workflow: {
-      findFirst: vi.fn(),
+      findUnique: vi.fn(),
       update: vi.fn(),
     },
   };
@@ -49,7 +49,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
     vi.clearAllMocks();
     graphService.findFirstFailedNodeId.mockReturnValue('node-1');
     prisma.workflow.update.mockResolvedValue({});
-    prisma.workflow.findFirst.mockResolvedValue({ label: 'Morning digest' });
+    prisma.workflow.findUnique.mockResolvedValue({ label: 'Morning digest' });
     notificationsPublisher.publishNotification.mockResolvedValue(undefined);
     notificationsPublisher.publishWorkflowStatus.mockResolvedValue(undefined);
 

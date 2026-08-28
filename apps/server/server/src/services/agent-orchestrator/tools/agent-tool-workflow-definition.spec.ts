@@ -13,6 +13,9 @@ describe('agent tool workflow definitions', () => {
     for (const definition of AGENT_TOOL_WORKFLOW_DEFINITIONS) {
       expect(definition.definition.nodes).toHaveLength(1);
       expect(definition.definition.nodes[0]?.type).toBe('genfeedAction');
+      expect(
+        definition.definition.inputVariables?.map(({ key }) => key),
+      ).toEqual(['parameters']);
       expect(definition.resultNodeId).toBe('execute-tool');
     }
   });

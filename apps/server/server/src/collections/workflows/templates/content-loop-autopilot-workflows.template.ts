@@ -1,3 +1,4 @@
+import { AUTOMATION_WORKFLOW_IDS } from '@server/collections/workflows/services/automation-workflow-definitions';
 import {
   ANALYTICS_GENERIC_SYNC_ITEM_WORKFLOW_ID,
   ANALYTICS_SYNC_ACTION_IDS,
@@ -13,9 +14,8 @@ export type ContentLoopAutopilotWorkflowTemplate = WorkflowTemplate & {
  * #3018 — closes the analytics → winners loop without an operator: dispatch
  * the organization's incremental analytics sync, then sweep every connected
  * brand and promote its top performers into the harness performance-winners
- * context base. Both actions are org-scoped, idempotent (each locks its own
- * window and de-dupes inside `promoteTopPerformers`), and diagnosable per
- * node in the workflow's execution history.
+ * context base. Both child workflows are org-scoped, idempotent, and
+ * diagnosable at each atomic node in workflow execution history.
  *
  * Catalog-install only. Each analytics record is persisted through the same
  * item workflow used by the standalone analytics sync before promotion runs.
@@ -42,7 +42,7 @@ export const CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES = [
       {
         id: 'e-sync-promote',
         source: 'syncEachAnalyticsItem',
-        target: 'harnessWinnerPromotionSweep',
+        target: 'promoteHarnessWinners',
       },
     ],
     icon: 'trophy',
@@ -75,9 +75,14 @@ export const CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES = [
         id: 'syncEachAnalyticsItem',
         position: { x: 720, y: 120 },
       }),
-      createTemplateActionNode('harnessWinnerPromotionSweep', {
-        data: { config: {}, label: 'Promote Top Performers' },
-        id: 'harnessWinnerPromotionSweep',
+      createTemplateActionNode('workflow.run-child', {
+        data: {
+          config: {
+            childWorkflowId: AUTOMATION_WORKFLOW_IDS.HARNESS_WINNERS,
+          },
+          label: 'Promote Top Performers',
+        },
+        id: 'promoteHarnessWinners',
         position: { x: 1080, y: 120 },
       }),
     ],

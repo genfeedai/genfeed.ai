@@ -100,11 +100,13 @@ export class WorkflowNodeProgressTrackerService {
       },
     );
 
-    await this.progressService.emitEvent(input.workflow.id, 'node-started', {
-      executionId: input.executionId,
-      nodeId: input.node.id,
-      nodeType: input.node.type,
-    });
+    if (input.workflow.emitSharedEvents !== false) {
+      await this.progressService.emitEvent(input.workflow.id, 'node-started', {
+        executionId: input.executionId,
+        nodeId: input.node.id,
+        nodeType: input.node.type,
+      });
+    }
 
     await this.progressService.updateExecutionEta(
       input.executionId,
@@ -141,11 +143,17 @@ export class WorkflowNodeProgressTrackerService {
       },
     );
 
-    await this.progressService.emitEvent(input.workflow.id, 'node-completed', {
-      executionId: input.executionId,
-      nodeId: input.nodeId,
-      nodeType: input.node.type,
-    });
+    if (input.workflow.emitSharedEvents !== false) {
+      await this.progressService.emitEvent(
+        input.workflow.id,
+        'node-completed',
+        {
+          executionId: input.executionId,
+          nodeId: input.nodeId,
+          nodeType: input.node.type,
+        },
+      );
+    }
 
     await this.progressService.updateExecutionEta(
       input.executionId,
@@ -182,12 +190,14 @@ export class WorkflowNodeProgressTrackerService {
       },
     );
 
-    await this.progressService.emitEvent(input.workflow.id, 'node-failed', {
-      error: input.errorMessage,
-      executionId: input.executionId,
-      nodeId: input.nodeId,
-      nodeType: input.node.type,
-    });
+    if (input.workflow.emitSharedEvents !== false) {
+      await this.progressService.emitEvent(input.workflow.id, 'node-failed', {
+        error: input.errorMessage,
+        executionId: input.executionId,
+        nodeId: input.nodeId,
+        nodeType: input.node.type,
+      });
+    }
 
     await this.progressService.updateExecutionEta(
       input.executionId,

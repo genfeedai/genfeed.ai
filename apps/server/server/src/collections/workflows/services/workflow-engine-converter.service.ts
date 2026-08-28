@@ -10,6 +10,7 @@ import type {
   WorkflowVisualNode,
 } from '@server/collections/workflows/schemas/workflow.schema';
 import { VISUAL_TRIGGER_NODE_TYPE_TO_EXECUTOR } from '@server/collections/workflows/services/workflow-executor.constants';
+import { isHiddenSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
 import { isWorkflowInputNodeType } from '@server/collections/workflows/workflow-node-predicates';
 import { isPersistableWorkflowNodeType } from '@server/collections/workflows/workflow-version-definition';
 
@@ -20,6 +21,7 @@ export interface WorkflowDocumentShape {
   nodes?: WorkflowVisualNode[];
   edges?: WorkflowEdge[];
   lockedNodeIds?: string[];
+  metadata?: unknown;
   organizationId?: string;
   userId?: string;
 }
@@ -84,6 +86,7 @@ export class WorkflowEngineConverterService {
 
     return {
       edges,
+      emitSharedEvents: !isHiddenSystemWorkflowMetadata(workflowDoc.metadata),
       id: workflowDoc.id || '',
       lockedNodeIds: workflowDoc.lockedNodeIds || [],
       nodes,

@@ -1,72 +1,34 @@
 import { LivestreamBotWorkflowService } from '@server/collections/workflows/services/livestream-bot-workflow.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-describe('LivestreamBotWorkflowService', () => {
-  const botsLivestreamService = {
-    processActiveSessionsForOrganization: vi.fn(),
-  };
-  const cacheService = {
-    acquireLock: vi.fn(),
-    releaseLock: vi.fn(),
-  };
-
-  let service: LivestreamBotWorkflowService;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    cacheService.acquireLock.mockResolvedValue(true);
-    cacheService.releaseLock.mockResolvedValue(undefined);
-    botsLivestreamService.processActiveSessionsForOrganization.mockResolvedValue(
-      {
-        action: 'livestreamBotSessionProcessing',
-        failed: 0,
-        organizationId: 'org-1',
-        processed: 1,
-        sessions: 1,
-        skipped: 0,
-        status: 'completed',
-      },
+describe('LivestreamBotWorkflowService atomic actions', () => {
+  it('isolates one target delivery failure as an action result', async () => {
+    const livestream = {
+      deliverActiveSessionTarget: vi.fn().mockRejectedValue(new Error('down')),
+    };
+    const service = new LivestreamBotWorkflowService(
+      livestream as never,
+      {} as never,
     );
 
-    service = new LivestreamBotWorkflowService(
-      botsLivestreamService as never,
-      cacheService as never,
-    );
+    await expect(
+      service.deliverActiveSessionTarget('org-1', { item: { id: 'target-1' } }),
+    ).resolves.toEqual({ error: 'down', status: 'failed' });
   });
 
-  it('runs active-session processing behind a per-org lock', async () => {
-    const result = await service.runActiveSessionProcessing('org-1');
-
-    expect(cacheService.acquireLock).toHaveBeenCalledWith(
-      'livestreamBotSessionProcessing:org-1',
-      60,
-    );
-    expect(
-      botsLivestreamService.processActiveSessionsForOrganization,
-    ).toHaveBeenCalledWith('org-1');
-    expect(cacheService.releaseLock).toHaveBeenCalledWith(
-      'livestreamBotSessionProcessing:org-1',
-    );
-    expect(result).toMatchObject({
-      action: 'livestreamBotSessionProcessing',
-      processed: 1,
-      status: 'completed',
-    });
-  });
-
-  it('skips duplicate workflow executions when the lock is held', async () => {
-    cacheService.acquireLock.mockResolvedValue(false);
-
-    const result = await service.runActiveSessionProcessing('org-1');
+  it('aggregates per-target child results without delivering in the finalizer', () => {
+    const service = new LivestreamBotWorkflowService({} as never, {} as never);
 
     expect(
-      botsLivestreamService.processActiveSessionsForOrganization,
-    ).not.toHaveBeenCalled();
-    expect(cacheService.releaseLock).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
-      reason: 'livestream_bot_processing_locked',
-      skipped: 1,
-      status: 'skipped',
-    });
+      service.finalizeActiveSession({
+        batch: {
+          results: [
+            { result: { status: 'processed' } },
+            { result: { status: 'skipped' } },
+          ],
+        },
+        state: { sessionId: 'session-1', status: 'loaded' },
+      }),
+    ).toEqual({ sessionId: 'session-1', status: 'processed', targets: 2 });
   });
 });

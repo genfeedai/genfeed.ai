@@ -1,5 +1,5 @@
-import { BotsLivestreamService } from '@server/collections/bots/services/bots-livestream.service';
 import { BotPlatform } from '@genfeedai/enums';
+import { BotsLivestreamService } from '@server/collections/bots/services/bots-livestream.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('BotsLivestreamService', () => {
@@ -20,6 +20,7 @@ describe('BotsLivestreamService', () => {
   };
   const replicateService = {};
   const runtimeService = {
+    buildContextAwareQuestion: vi.fn(),
     getDeliveryEligibility: vi.fn(),
   };
 
@@ -38,6 +39,7 @@ describe('BotsLivestreamService', () => {
     );
     prisma.bot.findFirst.mockResolvedValue(null);
     runtimeService.getDeliveryEligibility.mockReturnValue({ allowed: false });
+    runtimeService.buildContextAwareQuestion.mockReturnValue('Say hello');
 
     service = new BotsLivestreamService(
       prisma as never,
@@ -63,7 +65,11 @@ describe('BotsLivestreamService', () => {
     ]);
     prisma.bot.findFirst.mockResolvedValue(botRow('bot-1'));
 
-    const result = await service.processActiveSessionsForOrganization('org-1');
+    const sessions =
+      await service.discoverActiveSessionsForOrganization('org-1');
+    const session = sessions[0];
+    if (!session) throw new Error('Expected an active session');
+    const result = await service.loadActiveSessionContext('org-1', session);
 
     expect(prisma.livestreamBotSession.findMany).toHaveBeenCalledWith({
       where: { isDeleted: false, organizationId: 'org-1' },
@@ -76,15 +82,8 @@ describe('BotsLivestreamService', () => {
         organizationId: 'org-1',
       },
     });
-    expect(result).toMatchObject({
-      action: 'livestreamBotSessionProcessing',
-      failed: 0,
-      organizationId: 'org-1',
-      processed: 1,
-      sessions: 1,
-      skipped: 0,
-      status: 'completed',
-    });
+    expect(sessions).toHaveLength(1);
+    expect(result).toMatchObject({ sessionId: 'session-1', status: 'loaded' });
   });
 
   it('skips active sessions whose bot is missing or deleted', async () => {
@@ -97,68 +96,44 @@ describe('BotsLivestreamService', () => {
     ]);
     prisma.bot.findFirst.mockResolvedValue(null);
 
-    const result = await service.processActiveSessionsForOrganization('org-1');
+    const [session] =
+      await service.discoverActiveSessionsForOrganization('org-1');
+    if (!session) throw new Error('Expected an active session');
+    const result = await service.loadActiveSessionContext('org-1', session);
 
-    expect(result).toMatchObject({
-      failed: 0,
-      processed: 0,
-      sessions: 1,
-      skipped: 1,
-      status: 'completed',
-    });
+    expect(result).toMatchObject({ sessionId: 'session-1', status: 'skipped' });
   });
 
-  it('isolates one session failure and continues processing the next session', async () => {
-    prisma.livestreamBotSession.findMany.mockResolvedValue([
-      sessionRow('session-1', {
+  it('discovers only eligible delivery targets for one loaded session', () => {
+    runtimeService.getDeliveryEligibility.mockReturnValue({ allowed: true });
+    const result = service.discoverActiveSessionTargets({
+      bot: botRow('bot-1', {
+        targets: [
+          {
+            channelId: 'channel-1',
+            isEnabled: true,
+            platform: BotPlatform.TWITCH,
+          },
+          {
+            channelId: 'disabled',
+            isEnabled: false,
+            platform: BotPlatform.YOUTUBE,
+          },
+        ],
+      }),
+      session: sessionRow('session-1', {
         botId: 'bot-1',
         organizationId: 'org-1',
         status: 'active',
       }),
-      sessionRow('session-2', {
-        botId: 'bot-2',
-        organizationId: 'org-1',
-        status: 'active',
-      }),
-    ]);
-    prisma.bot.findFirst
-      .mockResolvedValueOnce(
-        botRow('bot-1', {
-          targets: [
-            {
-              channelId: 'channel-1',
-              isEnabled: true,
-              platform: BotPlatform.TWITCH,
-            },
-          ],
-        }),
-      )
-      .mockResolvedValueOnce(botRow('bot-2'));
-    runtimeService.getDeliveryEligibility.mockImplementationOnce(() => {
-      throw new Error('provider failed');
+      status: 'loaded',
     });
 
-    const result = await service.processActiveSessionsForOrganization('org-1');
-
-    expect(loggerService.error).toHaveBeenCalledWith(
-      'Failed to process livestream session',
-      expect.any(Error),
-      {
-        botId: 'bot-1',
-        organizationId: 'org-1',
-        sessionId: 'session-1',
-      },
-    );
-    expect(result).toMatchObject({
-      failed: 1,
-      processed: 1,
-      sessions: 2,
-      skipped: 0,
-      status: 'completed',
-    });
+    expect(result.items).toHaveLength(1);
+    expect(result.baseInput).toMatchObject({ sessionId: 'session-1' });
   });
 
-  it('returns a skipped result when the organization has no active sessions', async () => {
+  it('returns no work when the organization has no active sessions', async () => {
     prisma.livestreamBotSession.findMany.mockResolvedValue([
       sessionRow('session-1', {
         botId: 'bot-1',
@@ -167,15 +142,10 @@ describe('BotsLivestreamService', () => {
       }),
     ]);
 
-    const result = await service.processActiveSessionsForOrganization('org-1');
+    const result = await service.discoverActiveSessionsForOrganization('org-1');
 
     expect(prisma.bot.findFirst).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
-      reason: 'no_active_livestream_sessions',
-      sessions: 0,
-      skipped: 1,
-      status: 'skipped',
-    });
+    expect(result).toEqual([]);
   });
 
   it('fails closed when creating a session without organizationId', async () => {

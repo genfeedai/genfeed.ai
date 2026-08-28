@@ -8,7 +8,6 @@ import { isPersistableWorkflowNodeType } from '@server/collections/workflows/wor
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowEngineAdapterService', () => {
-  const AGENT_AUTOPILOT_SERVICE_INDEX = 29;
   const SOCIAL_ADAPTER_FACTORY_INDEX = 2;
   const SOCIAL_INBOX_SERVICE_INDEX = 38;
   let service: WorkflowEngineAdapterService;
@@ -94,16 +93,6 @@ describe('WorkflowEngineAdapterService', () => {
     args[0] = { cdnUrl: 'https://cdn.example.com' };
     args[1] = loggerService;
     args[SOCIAL_INBOX_SERVICE_INDEX] = socialInboxService;
-    return new WorkflowEngineAdapterService(...args);
-  }
-
-  function createAdapterWithAgentAutopilot(agentAutopilotService: {
-    runProactiveStrategies?: ReturnType<typeof vi.fn>;
-  }): WorkflowEngineAdapterService {
-    const args = new Array(42).fill(undefined);
-    args[0] = { cdnUrl: 'https://cdn.example.com' };
-    args[1] = loggerService;
-    args[AGENT_AUTOPILOT_SERVICE_INDEX] = agentAutopilotService;
     return new WorkflowEngineAdapterService(...args);
   }
 
@@ -445,45 +434,6 @@ describe('WorkflowEngineAdapterService', () => {
       expect(replyToPost).not.toHaveBeenCalled();
     });
 
-    it('executes livestream bot session processing with workflow organization scope', async () => {
-      const livestreamBotWorkflowService = {
-        runActiveSessionProcessing: vi.fn().mockResolvedValue({
-          action: 'livestreamBotSessionProcessing',
-          failed: 0,
-          organizationId: 'org-1',
-          processed: 1,
-          sessions: 1,
-          skipped: 0,
-          status: 'completed',
-        }),
-      };
-      const args = new Array(42).fill(undefined);
-      args[0] = { cdnUrl: 'https://cdn.example.com' };
-      args[1] = loggerService;
-      args[35] = livestreamBotWorkflowService;
-      const livestreamAdapter = new WorkflowEngineAdapterService(...args);
-
-      const workflow = convertActionGraph(livestreamAdapter, {
-        id: 'wf-livestream',
-        nodes: [
-          {
-            data: { config: {}, label: 'Process Livestream Sessions' },
-            id: 'livestream-sessions',
-            type: 'livestreamBotSessionProcessing',
-          },
-        ],
-        organizationId: 'org-1',
-        userId: 'user-1',
-      });
-
-      const result = await livestreamAdapter.executeWorkflow(workflow);
-
-      expect(
-        livestreamBotWorkflowService.runActiveSessionProcessing,
-      ).toHaveBeenCalledWith('org-1');
-      expect(result.status).toBe('completed');
-    });
-
     it('executes a 1-node prompt workflow from editor node data', async () => {
       const workflow = convertActionGraph(service, {
         id: 'wf-prompt',
@@ -686,52 +636,6 @@ describe('WorkflowEngineAdapterService', () => {
         expect.stringContaining('fallback executor invoked'),
         expect.objectContaining({ nodeType: 'hookGenerator' }),
       );
-    });
-
-    it('passes workflow execution context into agent autopilot nodes', async () => {
-      const agentAutopilotService = {
-        runProactiveStrategies: vi.fn().mockResolvedValue({
-          action: 'proactiveAgentStrategies',
-          agentRunIds: ['run-1'],
-          enqueued: 1,
-          generated: 0,
-          organizationId: 'org-1',
-          skipped: 0,
-          status: 'enqueued',
-          workflowExecutionId: 'exec-1',
-        }),
-      };
-      const adapter = createAdapterWithAgentAutopilot(agentAutopilotService);
-      const workflow = convertActionGraph(adapter, {
-        id: 'wf-agent',
-        nodes: [
-          {
-            data: { config: {}, label: 'Proactive Agent Strategies' },
-            id: 'agent-node',
-            type: 'proactiveAgentStrategies',
-          },
-        ],
-        organizationId: 'org-1',
-        userId: 'user-1',
-      });
-
-      const result = await adapter.executeWorkflow(workflow, {
-        executionId: 'exec-1',
-      });
-
-      expect(agentAutopilotService.runProactiveStrategies).toHaveBeenCalledWith(
-        'org-1',
-        expect.objectContaining({
-          workflowExecutionId: 'exec-1',
-          workflowId: 'wf-agent',
-          workflowNodeId: 'agent-node',
-          workflowNodeType: 'proactiveAgentStrategies',
-        }),
-      );
-      expect(result.nodeResults.get('agent-node')?.output).toMatchObject({
-        agentRunIds: ['run-1'],
-        workflowExecutionId: 'exec-1',
-      });
     });
 
     it('executes trend trigger with analytics keywords when no social trend adapter is available', async () => {

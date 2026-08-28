@@ -103,7 +103,12 @@ describe('AgentToolExecutorService', () => {
               workflowId: 'workflow-1',
               workflowVersionId: 'workflow-version-1',
             },
-            input: request.inputValues ?? {},
+            input:
+              request.inputValues?.parameters &&
+              typeof request.inputValues.parameters === 'object' &&
+              !Array.isArray(request.inputValues.parameters)
+                ? (request.inputValues.parameters as Record<string, unknown>)
+                : {},
             provenance,
             runtimeContext: request.runtimeContext,
           });

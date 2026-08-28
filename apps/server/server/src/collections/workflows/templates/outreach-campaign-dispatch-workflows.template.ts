@@ -1,30 +1,22 @@
-import { createTemplateActionNode } from '@server/collections/workflows/templates/template-action-node';
 import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
+import { buildCampaignDispatchWorkflowDefinition } from '@server/services/campaign/campaign-dispatch-workflow-definition';
 
 export type OutreachCampaignDispatchWorkflowTemplate = WorkflowTemplate & {
   schedule: string;
 };
 
+const campaignDispatch = buildCampaignDispatchWorkflowDefinition();
+
 export const OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES = [
   {
     category: 'automation',
-    description:
-      'Per-organization scanner that queues processing work for active, non-deleted outreach campaigns.',
-    edges: [],
+    description: campaignDispatch.description,
+    edges: campaignDispatch.definition.edges,
     icon: 'send',
     id: 'outreach-campaign-dispatch',
-    inputVariables: [],
-    name: 'Outreach Campaign Dispatch',
-    nodes: [
-      createTemplateActionNode('outreachCampaignDispatch', {
-        data: {
-          config: {},
-          label: 'Dispatch Active Outreach Campaigns',
-        },
-        id: 'outreachCampaignDispatch',
-        position: { x: 0, y: 120 },
-      }),
-    ],
+    inputVariables: campaignDispatch.definition.inputVariables,
+    name: campaignDispatch.label,
+    nodes: campaignDispatch.definition.nodes,
     schedule: '*/1 * * * *',
   },
 ] satisfies OutreachCampaignDispatchWorkflowTemplate[];

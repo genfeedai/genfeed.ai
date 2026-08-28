@@ -25,7 +25,7 @@ describe('CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES', () => {
       'analytics.generic.resolve-window',
       'analytics.generic.discover',
       'workflow.for-each',
-      'harnessWinnerPromotionSweep',
+      'workflow.run-child',
     ]);
 
     expect(template?.edges).toEqual([
@@ -39,7 +39,7 @@ describe('CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES', () => {
       }),
       expect.objectContaining({
         source: 'syncEachAnalyticsItem',
-        target: 'harnessWinnerPromotionSweep',
+        target: 'promoteHarnessWinners',
       }),
     ]);
   });
@@ -53,7 +53,7 @@ describe('CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES', () => {
       'resolveAnalyticsWindow',
       'discoverAnalytics',
       'syncEachAnalyticsItem',
-      'harnessWinnerPromotionSweep',
+      'promoteHarnessWinners',
     ]);
   });
 });

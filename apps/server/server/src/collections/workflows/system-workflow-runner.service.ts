@@ -10,8 +10,10 @@ import {
   WorkflowStatus,
 } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import type { ExecutionContext } from '@genfeedai/workflows/engine';
+import {
+  buildActionExecutionInput,
+  type ExecutionContext,
+} from '@genfeedai/workflows/engine';
 import {
   Injectable,
   type OnApplicationBootstrap,
@@ -23,8 +25,11 @@ import { WorkflowExecutionQueueService } from '@server/collections/workflows/ser
 import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import type { WorkflowExecutionResult } from '@server/collections/workflows/services/workflow-executor.types';
 import {
-  buildSystemWorkflowMetadata,
+  buildHiddenSystemWorkflowMetadata,
+  HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+  isHiddenSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
+  SYSTEM_WORKFLOW_PRINCIPAL_ID,
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
 } from '@server/collections/workflows/system-workflow.contract';
@@ -166,16 +171,7 @@ export class SystemWorkflowRunnerService
       this.getEngineAdapter().registerExecutor(
         actionId,
         async (node, inputs, context) => {
-          const {
-            inputVariableKeys: _inputVariableKeys,
-            payload,
-            ...config
-          } = node.config;
-          const input = {
-            ...this.readRecord(payload),
-            ...config,
-            ...Object.fromEntries(inputs),
-          };
+          const input = buildActionExecutionInput(node.config, inputs);
           return executor({
             context,
             input,
@@ -202,15 +198,25 @@ export class SystemWorkflowRunnerService
         `Duplicate system workflow definition: ${definition.canonicalId}`,
       );
     }
-    const version = buildWorkflowVersionDefinition(definition.definition);
-    if (
-      !version.graph.nodes.some((node) => node.id === definition.resultNodeId)
-    ) {
+    this.validateDefinition(definition);
+    this.workflowDefinitions.set(definition.canonicalId, definition);
+  }
+
+  async runDefinition<T>(
+    definition: SystemWorkflowGraphDefinition,
+    input: RunSystemWorkflowInput,
+  ): Promise<{
+    provenance: SystemWorkflowProvenance;
+    result: T;
+  }> {
+    if (input.canonicalId !== definition.canonicalId) {
       throw new Error(
-        `System workflow ${definition.canonicalId} result node ${definition.resultNodeId} does not exist`,
+        `System workflow input ${input.canonicalId} does not match definition ${definition.canonicalId}`,
       );
     }
-    this.workflowDefinitions.set(definition.canonicalId, definition);
+    this.validateDefinition(definition);
+    this.assertDefinitionExecutors(definition);
+    return this.executeDefinition<T>(definition, input);
   }
 
   async runWorkflow<T>(input: RunSystemWorkflowInput): Promise<{
@@ -274,11 +280,13 @@ export class SystemWorkflowRunnerService
     userId: string;
   }> {
     const userId = await this.resolveUserId(input.organizationId, input.userId);
-    const workflow = await this.ensureSystemWorkflow(
-      definition,
-      input.organizationId,
+    const workflowMirror =
+      await this.ensureHiddenSystemWorkflowMirror(definition);
+    const workflow = {
+      ...workflowMirror,
+      organizationId: input.organizationId,
       userId,
-    );
+    };
     const parentDepth = this.workflowDepth.getStore() ?? 0;
     if (parentDepth >= MAX_NESTED_WORKFLOW_DEPTH) {
       throw new Error(
@@ -287,8 +295,8 @@ export class SystemWorkflowRunnerService
     }
     const execution = await this.workflowDepth.run(parentDepth + 1, () =>
       this.runtimeContext.run(input.runtimeContext, () =>
-        this.getWorkflowExecutor().executeManualWorkflow(
-          workflow.id,
+        this.getWorkflowExecutor().executeManualWorkflowDocument(
+          workflow,
           userId,
           input.organizationId,
           input.inputValues ?? {},
@@ -318,30 +326,45 @@ export class SystemWorkflowRunnerService
     return { execution, provenance, userId };
   }
 
-  private async ensureSystemWorkflow(
+  private async ensureHiddenSystemWorkflowMirror(
     definition: SystemWorkflowGraphDefinition,
-    organizationId: string,
-    userId: string,
-  ): Promise<{ id: string; label: string | null }> {
-    const where = scopedWhere(organizationId, {
+  ): Promise<Prisma.WorkflowGetPayload<{ include: { currentVersion: true } }>> {
+    const where = {
+      isDeleted: false,
       metadata: {
         equals: definition.canonicalId,
         path: [SYSTEM_WORKFLOW_METADATA_KEY, 'canonicalId'],
       },
-    });
+      organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+      userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+    } satisfies Prisma.WorkflowWhereInput;
     return this.prisma.$transaction(
       async (transaction) => {
+        await transaction.$executeRaw`
+          SELECT pg_advisory_xact_lock(
+            hashtextextended(${`hidden-system-workflow:${definition.canonicalId}`}, 0)
+          )
+        `;
         const existing = await transaction.workflow.findFirst({
           include: { currentVersion: true },
           where,
         });
         if (existing) {
+          if (!isHiddenSystemWorkflowMetadata(existing.metadata)) {
+            throw new Error(
+              `System workflow ${definition.canonicalId} collides with a non-hidden principal workflow`,
+            );
+          }
           const nextDefinition = buildWorkflowVersionDefinition(
             definition.definition,
           );
-          if (
-            existing.currentVersion?.contentHash === nextDefinition.contentHash
-          ) {
+          const currentVersion = existing.currentVersion;
+          if (!currentVersion) {
+            throw new Error(
+              `System workflow ${definition.canonicalId} has no immutable version pin`,
+            );
+          }
+          if (currentVersion.contentHash === nextDefinition.contentHash) {
             return existing;
           }
 
@@ -351,9 +374,9 @@ export class SystemWorkflowRunnerService
               graph: nextDefinition.graph as unknown as Prisma.InputJsonValue,
               inputSchema:
                 nextDefinition.inputSchema as unknown as Prisma.InputJsonValue,
-              organizationId,
-              userId,
-              version: (existing.currentVersion?.version ?? 0) + 1,
+              organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+              userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+              version: currentVersion.version + 1,
               workflowId: existing.id,
             },
           });
@@ -374,7 +397,10 @@ export class SystemWorkflowRunnerService
               `System workflow ${definition.canonicalId} changed concurrently`,
             );
           }
-          return { id: existing.id, label: definition.label };
+          return transaction.workflow.findUniqueOrThrow({
+            include: { currentVersion: true },
+            where: { id: existing.id },
+          });
         }
 
         return createVersionedWorkflow(
@@ -392,19 +418,21 @@ export class SystemWorkflowRunnerService
               sourceTemplateId: definition.canonicalId,
               sourceTemplateVersion:
                 definition.version ?? SYSTEM_WORKFLOW_TEMPLATE_VERSION,
-              sourceType: 'hidden-system-workflow',
-              [SYSTEM_WORKFLOW_METADATA_KEY]: buildSystemWorkflowMetadata({
-                canonicalId: definition.canonicalId,
-                changeSummary: definition.changeSummary,
-                version: definition.version,
-              }),
+              sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+              [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata(
+                {
+                  canonicalId: definition.canonicalId,
+                  changeSummary: definition.changeSummary,
+                  version: definition.version,
+                },
+              ),
             },
-            organizationId,
+            organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
             progress: 0,
             schedule: definition.schedule,
             status: WorkflowStatus.ACTIVE,
             timezone: 'UTC',
-            userId,
+            userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
           },
           definition.definition,
         );
@@ -423,6 +451,46 @@ export class SystemWorkflowRunnerService
       throw new Error(`Unknown Genfeed action: ${actionId}`);
     }
     return action;
+  }
+
+  private validateDefinition(definition: SystemWorkflowGraphDefinition): void {
+    const version = buildWorkflowVersionDefinition(definition.definition);
+    if (
+      !version.graph.nodes.some((node) => node.id === definition.resultNodeId)
+    ) {
+      throw new Error(
+        `System workflow ${definition.canonicalId} result node ${definition.resultNodeId} does not exist`,
+      );
+    }
+  }
+
+  private assertDefinitionExecutors(
+    definition: SystemWorkflowGraphDefinition,
+  ): void {
+    const registeredActionIds = new Set(
+      this.getEngineAdapter().getRegisteredActionIds(),
+    );
+    const missingActionIds = (definition.definition.nodes ?? []).flatMap(
+      (node) => {
+        if (node.type !== 'genfeedAction') {
+          return [];
+        }
+        const actionId = this.optionalString(
+          this.readRecord(node.data?.config).actionId,
+        );
+        return actionId && !registeredActionIds.has(actionId) ? [actionId] : [];
+      },
+    );
+    if (missingActionIds.length > 0) {
+      throw new Error(
+        `System workflow action executors missing: ${[
+          ...new Set(missingActionIds),
+        ]
+          .sort()
+          .map((actionId) => `${definition.canonicalId}:${actionId}`)
+          .join(', ')}`,
+      );
+    }
   }
 
   private async executeForEach(
@@ -727,12 +795,14 @@ export class SystemWorkflowRunnerService
   ): Promise<void> {
     const workflow = await this.prisma.workflow.findFirst({
       select: { metadata: true },
-      where: scopedWhere(request.context.organizationId, {
+      where: {
         id: request.provenance.workflowId,
-      }),
+        isDeleted: false,
+        organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+      },
     });
-    const metadata = this.readRecord(workflow?.metadata);
-    if (metadata.sourceType !== 'hidden-system-workflow') {
+    if (!isHiddenSystemWorkflowMetadata(workflow?.metadata)) {
       throw new Error(
         `${WORKFLOW_FOR_EACH_TENANT_ACTION_ID} requires a hidden system workflow parent`,
       );

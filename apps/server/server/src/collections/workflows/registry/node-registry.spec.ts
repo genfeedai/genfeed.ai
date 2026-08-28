@@ -45,7 +45,6 @@ describe('workflow presentation node registry', () => {
       'trendTrigger',
       'sendEmail',
       'trendDigest',
-      'trendSummaryNotifications',
       'output-export',
       'output-notify',
       'output-publish',

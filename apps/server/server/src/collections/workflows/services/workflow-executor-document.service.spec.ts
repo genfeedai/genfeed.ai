@@ -1,12 +1,21 @@
 import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
 import type { TriggerEvent } from '@server/collections/workflows/services/workflow-executor.types';
 import { WorkflowExecutorDocumentService } from '@server/collections/workflows/services/workflow-executor-document.service';
+import {
+  buildHiddenSystemWorkflowMetadata,
+  HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+  SYSTEM_WORKFLOW_METADATA_KEY,
+  SYSTEM_WORKFLOW_PRINCIPAL_ID,
+} from '@server/collections/workflows/system-workflow.contract';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowExecutorDocumentService', () => {
   const prisma = {
     workflow: {
       findMany: vi.fn(),
+    },
+    workflowVersion: {
+      findFirst: vi.fn(),
     },
   };
 
@@ -102,7 +111,98 @@ describe('WorkflowExecutorDocumentService', () => {
 
     expect(matches.map((workflow) => workflow.id)).toEqual(['wf-visual-alias']);
   });
+
+  it('loads an ordinary pinned version only for its owning tenant', async () => {
+    prisma.workflowVersion.findFirst.mockResolvedValue(
+      pinnedVersionRow('org-1', 'user-1'),
+    );
+
+    const workflow = await service.findPinnedWorkflow(
+      'workflow-1',
+      'version-1',
+      'org-1',
+      'actor-1',
+    );
+
+    expect(workflow).toMatchObject({
+      organizationId: 'org-1',
+      userId: 'user-1',
+      versionId: 'version-1',
+    });
+  });
+
+  it('projects a proven global hidden mirror into the execution tenant and actor', async () => {
+    prisma.workflowVersion.findFirst.mockResolvedValue(
+      pinnedVersionRow(
+        SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        {
+          sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+          [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata({
+            canonicalId: 'youtube-to-long-form-text',
+          }),
+        },
+      ),
+    );
+
+    const workflow = await service.findPinnedWorkflow(
+      'workflow-1',
+      'version-1',
+      'tenant-org',
+      'tenant-user',
+    );
+
+    expect(workflow).toMatchObject({
+      organizationId: 'tenant-org',
+      userId: 'tenant-user',
+      versionId: 'version-1',
+    });
+  });
+
+  it('rejects a principal-owned version without the exact hidden metadata proof', async () => {
+    prisma.workflowVersion.findFirst.mockResolvedValue(
+      pinnedVersionRow(
+        SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        { sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE },
+      ),
+    );
+
+    await expect(
+      service.findPinnedWorkflow(
+        'workflow-1',
+        'version-1',
+        'tenant-org',
+        'tenant-user',
+      ),
+    ).resolves.toBeNull();
+  });
 });
+
+function pinnedVersionRow(
+  organizationId: string,
+  userId: string,
+  metadata: Record<string, unknown> = {},
+) {
+  return {
+    graph: { edges: [], lockedNodeIds: [], nodes: [] },
+    id: 'version-1',
+    inputSchema: [],
+    organizationId,
+    userId,
+    version: 1,
+    workflow: {
+      brandId: null,
+      config: {},
+      description: null,
+      id: 'workflow-1',
+      label: 'Workflow',
+      metadata,
+      organizationId,
+      userId,
+    },
+  };
+}
 
 function commentEvent(): TriggerEvent {
   return {
@@ -129,22 +229,29 @@ function workflowRow(
 ) {
   return {
     config: {},
-    edges: [],
+    currentVersion: {
+      graph: {
+        edges: [],
+        lockedNodeIds: [],
+        nodes: [
+          {
+            data: {
+              config,
+              label: 'Comment trigger',
+            },
+            id: `${id}-trigger`,
+            position: { x: 0, y: 0 },
+            type: nodeType,
+          },
+        ],
+      },
+      id: `${id}-version`,
+      inputSchema: [],
+      version: 1,
+    },
     id,
-    inputVariables: [],
     label: id,
     metadata: {},
-    nodes: [
-      {
-        data: {
-          config,
-          label: 'Comment trigger',
-        },
-        id: `${id}-trigger`,
-        position: { x: 0, y: 0 },
-        type: nodeType,
-      },
-    ],
     organizationId: 'org-1',
     userId: 'user-1',
   };

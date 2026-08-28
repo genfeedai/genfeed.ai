@@ -8,13 +8,10 @@ import type { ReplyBotConfigDocument } from '@server/collections/reply-bot-confi
 import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { TwitterSocialAdapter } from '@server/collections/workflows/services/adapters/twitter-social.adapter';
 import { YoutubeSocialAdapter } from '@server/collections/workflows/services/adapters/youtube-social.adapter';
+import { AUTOMATION_WORKFLOW_IDS } from '@server/collections/workflows/services/automation-workflow-definitions';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import type { TriggerEvent } from '@server/collections/workflows/services/workflow-executor.service';
 import { CacheService } from '@server/services/cache/cache.service';
-import {
-  type ProcessingResult,
-  ReplyBotOrchestratorService,
-} from '@server/services/reply-bot/reply-bot-orchestrator.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const SOCIAL_TRIGGER_TYPES = [
@@ -28,7 +25,9 @@ const SOCIAL_TRIGGER_TYPES = [
 ] as const;
 
 type SocialTriggerType = (typeof SOCIAL_TRIGGER_TYPES)[number];
-type ReplyPollingAction = 'replyBotPolling' | 'socialTriggerPolling';
+type ReplyPollingAction =
+  | typeof AUTOMATION_WORKFLOW_IDS.REPLY_BOTS
+  | typeof AUTOMATION_WORKFLOW_IDS.SOCIAL_TRIGGERS;
 
 type WorkflowNode = {
   data?: { config?: Record<string, unknown>; label?: string };
@@ -71,7 +70,6 @@ export class ReplyPollingWorkflowService {
 
   constructor(
     private readonly replyBotConfigsService: ReplyBotConfigsService,
-    private readonly replyBotOrchestratorService: ReplyBotOrchestratorService,
     private readonly prisma: PrismaService,
     private readonly executionQueue: WorkflowExecutionQueueService,
     private readonly twitterAdapter: TwitterSocialAdapter,
@@ -81,114 +79,202 @@ export class ReplyPollingWorkflowService {
     private readonly logger: LoggerService,
   ) {}
 
-  async runReplyBotPolling(
+  async beginReplyBotPolling(
     organizationId: string,
-  ): Promise<ReplyPollingWorkflowResult> {
-    const action: ReplyPollingAction = 'replyBotPolling';
+  ): Promise<Record<string, unknown>> {
+    const action = AUTOMATION_WORKFLOW_IDS.REPLY_BOTS;
     const lockKey = this.lockKey(action, organizationId);
     const acquired = await this.cacheService.acquireLock(lockKey, 600);
-
-    if (!acquired) {
-      return this.skipped(action, organizationId, 'reply_bot_polling_locked');
-    }
-
-    let checked = 0;
-    let triggered = 0;
-    let errors = 0;
-    let skipped = 0;
-
-    try {
-      const targets = await this.findReplyBotTargets(organizationId);
-      skipped = targets.length === 0 ? 1 : 0;
-
-      for (const target of targets) {
-        checked += 1;
-        try {
-          const results =
-            await this.replyBotOrchestratorService.processOrganizationBots(
-              organizationId,
-              target.credentialId,
-            );
-
-          triggered += results.length;
-          errors += this.countReplyBotErrors(results);
-        } catch (error: unknown) {
-          errors += 1;
-          this.logger.error(`${this.logContext} reply bot polling failed`, {
-            credentialId: target.credentialId,
-            error: this.errorMessage(error),
-            organizationId,
-          });
-        }
-      }
-
-      return {
-        action,
-        checked,
-        errors,
-        organizationId,
-        skipped,
-        status: 'completed',
-        triggered,
-      };
-    } finally {
-      await this.cacheService.releaseLock(lockKey);
-    }
+    return { acquired, lockKey, organizationId };
   }
 
-  async runSocialTriggerPolling(
+  async discoverReplyBotTargets(
     organizationId: string,
-  ): Promise<ReplyPollingWorkflowResult> {
-    const action: ReplyPollingAction = 'socialTriggerPolling';
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    if (this.readRecord(input.state).acquired !== true)
+      return { baseInput: { organizationId }, items: [] };
+    const items = await this.findReplyBotTargets(organizationId);
+    return { baseInput: { organizationId }, items };
+  }
 
-    if (!this.configService.isDevSchedulersEnabled) {
-      return this.skipped(action, organizationId, 'local_schedulers_disabled');
+  prepareReplyBotTarget(
+    organizationId: string,
+    input: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const target = this.readRecord(input.item);
+    const credentialId = this.requiredString(
+      target.credentialId,
+      'credentialId',
+    );
+    return { credentialId, organizationId };
+  }
+
+  finalizeReplyBotTarget(
+    input: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const results = Array.isArray(input.results)
+      ? (input.results as Array<Record<string, unknown>>)
+      : [];
+    return {
+      errors: results.reduce(
+        (total, result) =>
+          total + (typeof result.errors === 'number' ? result.errors : 0),
+        0,
+      ),
+      status: 'processed',
+      triggered: results.reduce(
+        (total, result) =>
+          total +
+          (typeof result.repliesSent === 'number' ? result.repliesSent : 0),
+        0,
+      ),
+    };
+  }
+
+  async beginSocialTriggerPolling(
+    organizationId: string,
+  ): Promise<Record<string, unknown>> {
+    const enabled = this.configService.isDevSchedulersEnabled;
+    const lockKey = this.lockKey(
+      AUTOMATION_WORKFLOW_IDS.SOCIAL_TRIGGERS,
+      organizationId,
+    );
+    const acquired =
+      enabled && (await this.cacheService.acquireLock(lockKey, 300));
+    return { acquired, enabled, lockKey, organizationId };
+  }
+
+  async discoverSocialTriggerWorkflows(
+    organizationId: string,
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    if (this.readRecord(input.state).acquired !== true)
+      return { baseInput: { organizationId }, items: [] };
+    const workflows =
+      await this.findWorkflowsWithSocialTriggers(organizationId);
+    const items = workflows.flatMap((workflow) =>
+      workflow.nodes
+        .filter((node) =>
+          SOCIAL_TRIGGER_TYPES.includes(node.type as SocialTriggerType),
+        )
+        .map((node) => ({ node, workflow })),
+    );
+    return { baseInput: { organizationId }, items };
+  }
+
+  async processSocialTriggerWorkflow(
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const item = this.readRecord(input.item);
+    const workflow = item.workflow as WorkflowWithNodes | undefined;
+    const node = item.node as WorkflowNode | undefined;
+    if (!workflow || !node) {
+      throw new Error('Social trigger workflow and node are required');
     }
-
-    const lockKey = this.lockKey(action, organizationId);
-    const acquired = await this.cacheService.acquireLock(lockKey, 300);
-
-    if (!acquired) {
-      return this.skipped(action, organizationId, 'social_polling_locked');
-    }
-
-    let checked = 0;
-    let triggered = 0;
+    const wfConfig = (workflow.config as WorkflowConfig) ?? {};
+    const pollState: PollState = wfConfig.metadata?.pollState ?? {};
+    const workflowOrganizationId = this.requiredString(
+      workflow.organizationId,
+      'workflow.organizationId',
+    );
+    const workflowUserId = this.requiredString(
+      workflow.userId,
+      'workflow.userId',
+    );
+    let triggered = false;
     let errors = 0;
-
     try {
-      const workflows =
-        await this.findWorkflowsWithSocialTriggers(organizationId);
-
-      for (const workflow of workflows) {
-        checked += 1;
-        try {
-          const didTrigger = await this.pollWorkflow(workflow);
-          if (didTrigger) {
-            triggered += 1;
-          }
-        } catch (error: unknown) {
-          errors += 1;
-          this.logger.error(`${this.logContext} social polling failed`, {
-            error: this.errorMessage(error),
-            organizationId,
-            workflowId: workflow.id,
-          });
-        }
+      const previousEventId = pollState[node.id];
+      const result = await this.checkTrigger(
+        workflow,
+        node,
+        typeof previousEventId === 'string' ? previousEventId : null,
+      );
+      if (result) {
+        const triggerEvent: TriggerEvent = {
+          data: result.data,
+          organizationId: workflowOrganizationId,
+          platform: result.platform,
+          type: node.type,
+          userId: workflowUserId,
+        };
+        await this.executionQueue.queueTriggerEvent(triggerEvent);
+        triggered = true;
+        pollState[node.id] = result.lastEventId;
       }
-
-      return {
-        action,
-        checked,
-        errors,
-        organizationId,
-        skipped: workflows.length === 0 ? 1 : 0,
-        status: 'completed',
-        triggered,
-      };
-    } finally {
-      await this.cacheService.releaseLock(lockKey);
+    } catch (error) {
+      this.logger.error(`${this.logContext} social polling failed`, {
+        error,
+        workflowId: workflow.id,
+      });
+      errors = 1;
     }
+    pollState.lastPolledAt = new Date().toISOString();
+    await this.prisma.workflow.update({
+      data: {
+        config: toPrismaJson({
+          ...wfConfig,
+          metadata: { ...(wfConfig.metadata ?? {}), pollState },
+        }),
+      },
+      where: scopedWhere(workflowOrganizationId, { id: workflow.id }),
+    });
+    return {
+      errors,
+      status: errors === 0 ? 'processed' : 'failed',
+      triggered: triggered ? 1 : 0,
+    };
+  }
+
+  async finalizePolling(
+    action: ReplyPollingAction,
+    organizationId: string,
+    input: Record<string, unknown>,
+  ): Promise<ReplyPollingWorkflowResult> {
+    const state = this.readRecord(input.state);
+    const results = this.readBatchResults(input.batch).map((entry) =>
+      this.readRecord(entry.result),
+    );
+    if (state.acquired === true)
+      await this.cacheService.releaseLock(this.lockKey(action, organizationId));
+    if (state.acquired !== true) {
+      const reason =
+        action === AUTOMATION_WORKFLOW_IDS.REPLY_BOTS
+          ? 'reply_bot_polling_locked'
+          : state.enabled === false
+            ? 'local_schedulers_disabled'
+            : 'social_polling_locked';
+      return this.skipped(action, organizationId, reason);
+    }
+    return {
+      action,
+      checked: results.length,
+      errors: results.reduce(
+        (sum, result) =>
+          sum + (typeof result.errors === 'number' ? result.errors : 0),
+        0,
+      ),
+      organizationId,
+      skipped: results.length === 0 ? 1 : 0,
+      status: 'completed',
+      triggered: results.reduce(
+        (sum, result) =>
+          sum + (typeof result.triggered === 'number' ? result.triggered : 0),
+        0,
+      ),
+    };
+  }
+
+  async failPolling(
+    action: ReplyPollingAction,
+    organizationId: string,
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const acquired = this.readRecord(input.state).acquired === true;
+    if (acquired)
+      await this.cacheService.releaseLock(this.lockKey(action, organizationId));
+    return { organizationId, released: acquired };
   }
 
   private async findReplyBotTargets(
@@ -198,19 +284,15 @@ export class ReplyPollingWorkflowService {
       scopedWhere(organizationId, { isActive: true }),
     );
 
-    const targets = new Map<string, ReplyBotTarget>();
-
-    for (const config of configs) {
+    const targets = configs.reduce((result, config) => {
       const credentialId = this.readCredentialId(config);
-      if (!credentialId) {
-        continue;
-      }
-      const key = `${organizationId}:${credentialId}`;
-      if (!targets.has(key)) {
-        targets.set(key, { credentialId, organizationId });
-      }
-    }
-
+      if (!credentialId) return result;
+      result.set(`${organizationId}:${credentialId}`, {
+        credentialId,
+        organizationId,
+      });
+      return result;
+    }, new Map<string, ReplyBotTarget>());
     return [...targets.values()];
   }
 
@@ -222,10 +304,6 @@ export class ReplyPollingWorkflowService {
       this.optionalString(configRecord.credential) ??
       this.optionalString(configRecord.credentialId)
     );
-  }
-
-  private countReplyBotErrors(results: ProcessingResult[]): number {
-    return results.reduce((sum, result) => sum + result.errors, 0);
   }
 
   private async findWorkflowsWithSocialTriggers(
@@ -258,70 +336,6 @@ export class ReplyPollingWorkflowService {
           SOCIAL_TRIGGER_TYPES.includes(node.type as SocialTriggerType),
         );
       });
-  }
-
-  private async pollWorkflow(workflow: WorkflowWithNodes): Promise<boolean> {
-    const wfConfig = (workflow.config as WorkflowConfig) ?? {};
-    const pollState: PollState = wfConfig.metadata?.pollState ?? {};
-    let triggered = false;
-
-    const nodes = workflow.nodes;
-    const triggerNodes = nodes.filter((node) =>
-      SOCIAL_TRIGGER_TYPES.includes(node.type as SocialTriggerType),
-    );
-
-    for (const node of triggerNodes) {
-      try {
-        if (!workflow.organizationId || !workflow.userId) {
-          this.logger.warn(`${this.logContext} workflow missing ownership`, {
-            workflowId: workflow.id,
-          });
-          continue;
-        }
-
-        const previousEventId = pollState[node.id];
-        const lastEventId =
-          typeof previousEventId === 'string' ? previousEventId : null;
-        const result = await this.checkTrigger(workflow, node, lastEventId);
-
-        if (result) {
-          const triggerEvent: TriggerEvent = {
-            data: result.data,
-            organizationId: workflow.organizationId,
-            platform: result.platform,
-            type: node.type,
-            userId: workflow.userId,
-          };
-
-          await this.executionQueue.queueTriggerEvent(triggerEvent);
-          triggered = true;
-          pollState[node.id] = result.lastEventId;
-        }
-      } catch (error: unknown) {
-        this.logger.error(`${this.logContext} trigger check failed`, {
-          error: this.errorMessage(error),
-          nodeId: node.id,
-          nodeType: node.type,
-          workflowId: workflow.id,
-        });
-      }
-    }
-
-    pollState.lastPolledAt = new Date().toISOString();
-    const updatedConfig: WorkflowConfig = {
-      ...wfConfig,
-      metadata: {
-        ...(wfConfig.metadata ?? {}),
-        pollState,
-      },
-    };
-
-    await this.prisma.workflow.update({
-      data: { config: toPrismaJson(updatedConfig) },
-      where: scopedWhere(workflow.organizationId, { id: workflow.id }),
-    });
-
-    return triggered;
   }
 
   private checkTrigger(
@@ -678,7 +692,16 @@ export class ReplyPollingWorkflowService {
       : [];
   }
 
-  private errorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : 'Unknown error';
+  private readBatchResults(value: unknown): Array<{ result?: unknown }> {
+    const batch = this.readRecord(value);
+    return Array.isArray(batch.results)
+      ? (batch.results as Array<{ result?: unknown }>)
+      : [];
+  }
+
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.length === 0)
+      throw new Error(`${field} is required`);
+    return value;
   }
 }

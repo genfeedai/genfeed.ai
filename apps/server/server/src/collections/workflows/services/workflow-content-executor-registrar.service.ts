@@ -6,6 +6,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/enums';
 import {
+  buildActionExecutionInput,
   CastPromptExecutor,
   HookGeneratorExecutor,
   PromptConstructorExecutor,
@@ -72,12 +73,8 @@ export class WorkflowContentExecutorRegistrarService {
   }
 
   private registerWorkflowOutputCollector(engine: WorkflowEngine): void {
-    engine.registerExecutor(
-      'workflow.collect-output',
-      async (node, inputs) => ({
-        ...node.config,
-        ...Object.fromEntries(inputs),
-      }),
+    engine.registerExecutor('workflow.collect-output', async (node, inputs) =>
+      buildActionExecutionInput(node.config, inputs),
     );
   }
 

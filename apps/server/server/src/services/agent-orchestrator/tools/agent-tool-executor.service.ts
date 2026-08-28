@@ -177,29 +177,22 @@ export class AgentToolExecutorService implements OnModuleInit {
       runner.registerAction(
         toolName,
         async ({ context: workflowContext, input, runtimeContext }) => {
-          const persistedContext =
-            input.context &&
-            typeof input.context === 'object' &&
-            !Array.isArray(input.context)
-              ? (input.context as Partial<ToolExecutionContext>)
-              : {};
           const liveContext =
             runtimeContext &&
             typeof runtimeContext === 'object' &&
             !Array.isArray(runtimeContext)
               ? (runtimeContext as ToolExecutionContext)
               : undefined;
-          const parameters =
-            input.parameters &&
-            typeof input.parameters === 'object' &&
-            !Array.isArray(input.parameters)
-              ? (input.parameters as Record<string, unknown>)
-              : {};
+          if (!liveContext) {
+            throw new Error(
+              `Agent tool ${toolName} requires its authenticated runtime context`,
+            );
+          }
           const result = await this.executeToolWithActionOrigin(
             toolName,
-            parameters,
-            liveContext ?? {
-              ...persistedContext,
+            input,
+            {
+              ...liveContext,
               organizationId: workflowContext.organizationId,
               userId: workflowContext.userId,
             },
@@ -232,7 +225,6 @@ export class AgentToolExecutorService implements OnModuleInit {
               actionType: toolName,
               canonicalId: definition.canonicalId,
               inputValues: {
-                context: this.toPersistedContext(context),
                 parameters,
               },
               metadata: {
@@ -265,17 +257,6 @@ export class AgentToolExecutorService implements OnModuleInit {
       throw new Error('Workflow action runner is unavailable');
     }
     return this.systemWorkflowRunner;
-  }
-
-  private toPersistedContext(
-    context: ToolExecutionContext,
-  ): Omit<ToolExecutionContext, 'apiKeyContext' | 'authToken'> {
-    const {
-      apiKeyContext: _apiKeyContext,
-      authToken: _authToken,
-      ...persisted
-    } = context;
-    return persisted;
   }
 
   private async executeToolWithActionOrigin(
