@@ -65,31 +65,17 @@ export class NewslettersService
 
   onModuleInit(): void {
     const runner = this.requireWorkflowRunner();
-    runner.registerAction(
-      NEWSLETTER_TOPICS_ACTION_ID,
-      ({ context, input }) =>
-        this.executeGenerateTopicProposalsAction(
-          this.readTopicsDto(input.dto),
-          this.readTenantContext(input, context),
-        ),
-      {
-        description:
-          'Generates bounded newsletter topic proposals for one tenant brand.',
-        label: 'Generate Newsletter Topics',
-      },
+    runner.registerAction(NEWSLETTER_TOPICS_ACTION_ID, ({ context, input }) =>
+      this.executeGenerateTopicProposalsAction(
+        this.readTopicsDto(input.dto),
+        this.readTenantContext(input, context),
+      ),
     );
-    runner.registerAction(
-      NEWSLETTER_DRAFT_ACTION_ID,
-      ({ context, input }) =>
-        this.executeGenerateDraftAction(
-          this.readDraftDto(input.dto),
-          this.readTenantContext(input, context),
-        ),
-      {
-        description:
-          'Generates and persists one newsletter draft for one tenant brand.',
-        label: 'Generate Newsletter Draft',
-      },
+    runner.registerAction(NEWSLETTER_DRAFT_ACTION_ID, ({ context, input }) =>
+      this.executeGenerateDraftAction(
+        this.readDraftDto(input.dto),
+        this.readTenantContext(input, context),
+      ),
     );
   }
 

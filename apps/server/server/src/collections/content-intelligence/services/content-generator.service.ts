@@ -78,11 +78,6 @@ export class ContentGeneratorService implements OnModuleInit {
           context.organizationId,
           this.readGenerationDto(input.dto ?? input),
         ),
-      {
-        description:
-          'Generates platform-aware content variants from tenant context.',
-        label: 'Generate Content Intelligence Variants',
-      },
     );
     runner.registerAction(
       LINKEDIN_CONTENT_GENERATION_ACTION_ID,

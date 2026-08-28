@@ -10,10 +10,6 @@ import {
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
 } from '@server/collections/workflows/system-workflow.contract';
-import {
-  SYSTEM_WORKFLOW_ACTION_DEFINITIONS,
-  SYSTEM_WORKFLOW_ACTION_IDS,
-} from '@server/collections/workflows/system-workflow-runner.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => {
@@ -463,54 +459,6 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
         workflowId: 'foreign-duplicate',
       },
     );
-  });
-
-  it('seeds action-level system workflows for hardcoded product action replacements', async () => {
-    await service.ensureSystemActionWorkflows('user-1', 'org-1');
-
-    expect(tx.workflow.create).toHaveBeenCalledTimes(
-      SYSTEM_WORKFLOW_ACTION_DEFINITIONS.length,
-    );
-    expect(tx.workflow.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        // System action schedules are display metadata; firing happens in the
-        // workers sweep scheduler (issue #1092).
-        isScheduleEnabled: false,
-        label: 'Scheduled Post Publishing',
-        metadata: expect.objectContaining({
-          sourceIssue: 1011,
-          sourceTemplateChangeSummary:
-            'Initial scheduled publish system workflow action wrapper.',
-          sourceTemplateId:
-            SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
-          sourceTemplateVersion: SYSTEM_WORKFLOW_TEMPLATE_VERSION,
-          sourceType: 'system-action-workflow',
-          systemWorkflow: expect.objectContaining({
-            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
-            changeSummary:
-              'Initial scheduled publish system workflow action wrapper.',
-            immutable: true,
-            kind: 'system-workflow',
-            version: SYSTEM_WORKFLOW_TEMPLATE_VERSION,
-          }),
-        }),
-        organizationId: 'org-1',
-        schedule: '*/15 * * * *',
-        status: WorkflowStatus.ACTIVE,
-        userId: 'user-1',
-      }),
-    });
-    expect(tx.workflow.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        isScheduleEnabled: false,
-        label: 'Reply and DM Automation',
-        metadata: expect.objectContaining({
-          sourceTemplateId: SYSTEM_WORKFLOW_ACTION_IDS.REPLY_DM_AUTOMATION,
-          sourceType: 'system-action-workflow',
-        }),
-        schedule: undefined,
-      }),
-    });
   });
 
   it('loads workflow metadata when syncing organization schedulers', async () => {

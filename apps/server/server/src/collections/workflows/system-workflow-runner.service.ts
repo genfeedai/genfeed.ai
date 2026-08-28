@@ -1,5 +1,9 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { getToolByName } from '@genfeedai/actions';
+import {
+  createGenfeedActionNode,
+  type GenfeedActionDefinition,
+  getActionDefinition,
+} from '@genfeedai/actions';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
@@ -45,7 +49,7 @@ export const SYSTEM_WORKFLOW_ACTION_IDS = {
 export type SystemWorkflowActionId =
   (typeof SYSTEM_WORKFLOW_ACTION_IDS)[keyof typeof SYSTEM_WORKFLOW_ACTION_IDS];
 
-export type SystemWorkflowActionDefinition = {
+export type SystemWorkflowGraphMetadata = {
   canonicalId: string;
   changeSummary?: string;
   description: string;
@@ -54,96 +58,10 @@ export type SystemWorkflowActionDefinition = {
   version?: number;
 };
 
-export type SystemWorkflowGraphDefinition = SystemWorkflowActionDefinition & {
+export type SystemWorkflowGraphDefinition = SystemWorkflowGraphMetadata & {
   definition: WorkflowDefinitionInput;
   resultNodeId: string;
 };
-
-export const SYSTEM_WORKFLOW_ACTION_DEFINITIONS: readonly SystemWorkflowActionDefinition[] =
-  [
-    {
-      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_PAUSED_META_DRAFT,
-      description: 'Creates reviewed, paused-only Meta ad drafts.',
-      label: 'Brand Remix Paused Meta Draft',
-    },
-    {
-      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_PAUSED_X_ADS_DRAFT,
-      description: 'Creates reviewed, paused-only X Ads drafts.',
-      label: 'Brand Remix Paused X Ads Draft',
-    },
-    {
-      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_REVIEW_HANDOFF,
-      description: 'Creates canonical draft posts and routes them to Review.',
-      label: 'Brand Remix Review Handoff',
-    },
-    {
-      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
-      description: 'Publishes due posts through the connected brand account.',
-      label: 'Scheduled Post Publishing',
-      schedule: '*/15 * * * *',
-    },
-    {
-      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.REPLY_DM_AUTOMATION,
-      description: 'Generates and sends reply-bot replies and direct messages.',
-      label: 'Reply and DM Automation',
-    },
-    {
-      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.EVERGREEN_RELEASE_EXPANSION,
-      description: 'Materializes the next bounded evergreen release.',
-      label: 'Evergreen Release Expansion',
-    },
-    {
-      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TWITTER_PUBLISH_ACTION,
-      description: 'Publishes X originals, replies, quotes, and reposts.',
-      label: 'X Publish Action',
-    },
-    {
-      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_REPLY_AUTOMATION,
-      description: 'Generates and posts outreach-campaign replies.',
-      label: 'Campaign Reply Automation',
-    },
-    {
-      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_DM_AUTOMATION,
-      description: 'Generates and sends outreach-campaign direct messages.',
-      label: 'Campaign DM Automation',
-    },
-    {
-      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TIKTOK_STATUS_RECONCILIATION,
-      description: 'Reconciles pending TikTok publication status.',
-      label: 'TikTok Status Reconciliation',
-      schedule: '*/5 * * * *',
-    },
-    {
-      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.YOUTUBE_STATUS_RECONCILIATION,
-      description: 'Reconciles YouTube video visibility.',
-      label: 'YouTube Status Reconciliation',
-      schedule: '0 1 * * *',
-    },
-    {
-      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.STREAK_MAINTENANCE,
-      description: 'Processes daily streak reminders, freezes, and breaks.',
-      label: 'Streak Maintenance',
-      schedule: '30 0 * * *',
-    },
-    {
-      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.REVIEW_GATE_TIMEOUT,
-      description: 'Resolves workflow review gates whose timeout elapsed.',
-      label: 'Review Gate Timeout Resolution',
-      schedule: '*/15 * * * *',
-    },
-    {
-      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SOCIAL_REPLY_CAMPAIGN,
-      description: 'Dispatches one rate-limited inbox campaign message.',
-      label: 'Inbox Reply Campaign Dispatch',
-    },
-  ];
-
-const DEFINITIONS_BY_ID = new Map(
-  SYSTEM_WORKFLOW_ACTION_DEFINITIONS.map((definition) => [
-    definition.canonicalId,
-    definition,
-  ]),
-);
 
 const SWEEP_DRIVEN_SYSTEM_WORKFLOW_IDS = new Set<string>(
   Object.values(SYSTEM_WORKFLOW_ACTION_IDS),
@@ -202,7 +120,7 @@ export type RunSystemWorkflowInput = {
 export class SystemWorkflowRunnerService {
   private readonly actionDefinitions = new Map<
     string,
-    SystemWorkflowActionDefinition
+    GenfeedActionDefinition
   >();
   private readonly runtimeContext = new AsyncLocalStorage<unknown>();
   private readonly workflowDefinitions = new Map<
@@ -218,14 +136,11 @@ export class SystemWorkflowRunnerService {
   registerAction(
     actionId: string,
     executor: SystemWorkflowActionExecutor,
-    definitionOverride?: Omit<SystemWorkflowActionDefinition, 'canonicalId'>,
   ): void {
     if (this.actionDefinitions.has(actionId)) {
       throw new Error(`Duplicate Genfeed action definition: ${actionId}`);
     }
-    const definition = definitionOverride
-      ? { ...definitionOverride, canonicalId: actionId }
-      : this.resolveDefinition(actionId);
+    const definition = this.resolveDefinition(actionId);
     this.actionDefinitions.set(actionId, definition);
     try {
       this.getEngineAdapter().registerExecutor(
@@ -274,7 +189,7 @@ export class SystemWorkflowRunnerService {
   }> {
     const actionDefinition = this.resolveDefinition(input.canonicalId);
     const definition: SystemWorkflowGraphDefinition = {
-      ...actionDefinition,
+      canonicalId: actionDefinition.id,
       definition: {
         edges: [],
         inputVariables: [
@@ -286,21 +201,15 @@ export class SystemWorkflowRunnerService {
           },
         ],
         nodes: [
-          {
-            data: {
-              config: {
-                actionId: actionDefinition.canonicalId,
-                parameters: {},
-              },
-              inputVariableKeys: ['payload'],
-              label: actionDefinition.label,
-            },
+          createGenfeedActionNode({
+            actionId: actionDefinition.id,
             id: 'system-action',
-            position: { x: 0, y: 120 },
-            type: 'genfeedAction',
-          },
+            inputVariableKeys: ['payload'],
+          }),
         ],
       },
+      description: actionDefinition.description,
+      label: actionDefinition.label,
       resultNodeId: 'system-action',
     };
 
@@ -476,29 +385,16 @@ export class SystemWorkflowRunnerService {
     );
   }
 
-  private resolveDefinition(actionId: string): SystemWorkflowActionDefinition {
+  private resolveDefinition(actionId: string): GenfeedActionDefinition {
     const registeredDefinition = this.actionDefinitions.get(actionId);
     if (registeredDefinition) {
       return registeredDefinition;
     }
-    const systemDefinition = DEFINITIONS_BY_ID.get(actionId);
-    if (systemDefinition) {
-      return systemDefinition;
-    }
-    const action = getToolByName(actionId);
+    const action = getActionDefinition(actionId);
     if (!action) {
       throw new Error(`Unknown Genfeed action: ${actionId}`);
     }
-    return {
-      canonicalId: action.name,
-      description: action.description,
-      label: action.name
-        .split('_')
-        .map(
-          (part: string) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`,
-        )
-        .join(' '),
-    };
+    return action;
   }
 
   private async linkPostsToExecution(

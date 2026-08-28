@@ -143,10 +143,6 @@ export class ArticlesService
           context.organizationId,
           typeof input.focus === 'string' ? input.focus : undefined,
         ),
-      {
-        description: 'Reviews one tenant article with the configured rubric.',
-        label: 'Review Article',
-      },
     );
   }
 

@@ -13,6 +13,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import { createGenfeedActionNode } from '@genfeedai/actions';
 import {
   CLIP_AUDIO_EXTRACTION_JOB_TIMEOUT_MS,
   CLIP_REFERENCE_FRAME_JOB_TIMEOUT_MS,
@@ -157,50 +158,26 @@ export class ClipAnalyzeProcessor extends WorkerHost implements OnModuleInit {
     this.workflowRunner.registerAction(
       CLIP_ANALYSIS_ACTION_IDS.PREPARE_SOURCE,
       (request) => this.prepareSourceAction(request),
-      {
-        description: 'Prepares one clip-analysis source for transcription.',
-        label: 'Prepare Clip Analysis Source',
-      },
     );
     this.workflowRunner.registerAction(
       CLIP_ANALYSIS_ACTION_IDS.TRANSCRIBE,
       (request) => this.transcribeAction(request),
-      {
-        description: 'Transcribes one prepared clip-analysis source.',
-        label: 'Transcribe Clip Analysis Source',
-      },
     );
     this.workflowRunner.registerAction(
       CLIP_ANALYSIS_ACTION_IDS.DETECT_HIGHLIGHTS,
       (request) => this.detectHighlightsAction(request),
-      {
-        description: 'Detects and scores clip highlights in one transcript.',
-        label: 'Detect Clip Highlights',
-      },
     );
     this.workflowRunner.registerAction(
       CLIP_ANALYSIS_ACTION_IDS.REFERENCE_FRAMES,
       (request) => this.extractReferenceFramesAction(request),
-      {
-        description: 'Extracts bounded reference frames for clip highlights.',
-        label: 'Extract Clip Reference Frames',
-      },
     );
     this.workflowRunner.registerAction(
       CLIP_ANALYSIS_ACTION_IDS.PERSIST,
       (request) => this.persistAnalysisAction(request),
-      {
-        description: 'Persists one completed clip analysis.',
-        label: 'Persist Clip Analysis',
-      },
     );
     this.workflowRunner.registerAction(
       CLIP_ANALYSIS_ACTION_IDS.FAIL,
       (request) => this.failAnalysisAction(request),
-      {
-        description: 'Persists one failed clip analysis.',
-        label: 'Fail Clip Analysis',
-      },
     );
     this.workflowRunner.registerWorkflow({
       canonicalId: CLIP_ANALYSIS_WORKFLOW_ID,
@@ -515,16 +492,13 @@ export class ClipAnalyzeProcessor extends WorkerHost implements OnModuleInit {
     inputVariableKeys: string[],
     x: number,
   ) {
-    return {
-      data: {
-        config: { actionId, parameters: {} },
-        inputVariableKeys,
-        label,
-      },
+    return createGenfeedActionNode({
+      actionId,
       id,
       position: { x, y: 120 },
-      type: 'genfeedAction',
-    };
+      inputVariableKeys,
+      label,
+    });
   }
 
   private readJobData(value: unknown): ClipAnalyzeJobData {

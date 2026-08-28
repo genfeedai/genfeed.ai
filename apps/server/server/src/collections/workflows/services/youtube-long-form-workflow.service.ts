@@ -1,3 +1,4 @@
+import { createGenfeedActionNode } from '@genfeedai/actions';
 import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
 import { HttpService } from '@nestjs/axios';
@@ -86,35 +87,18 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
     this.runner.registerAction(
       YOUTUBE_LONG_FORM_ACTION_IDS.RESOLVE_SOURCE,
       (request) => this.resolveSource(request),
-      {
-        description: 'Validates and resolves one public YouTube source.',
-        label: 'Resolve YouTube Source',
-      },
     );
     this.runner.registerAction(
       YOUTUBE_LONG_FORM_ACTION_IDS.OBTAIN_TRANSCRIPT,
       (request) => this.obtainTranscript(request),
-      {
-        description: 'Extracts audio and transcribes one resolved video.',
-        label: 'Obtain YouTube Transcript',
-      },
     );
     this.runner.registerAction(
       YOUTUBE_LONG_FORM_ACTION_IDS.TRANSFORM_TEXT,
       (request) => this.transformText(request),
-      {
-        description:
-          'Transforms a transcript into one validated long-form document.',
-        label: 'Transform Long-form Text',
-      },
     );
     this.runner.registerAction(
       YOUTUBE_LONG_FORM_ACTION_IDS.PERSIST_OUTPUT,
       (request) => this.persistOutput(request),
-      {
-        description: 'Persists exactly one selected long-form output.',
-        label: 'Persist Long-form Output',
-      },
     );
     this.runner.registerWorkflow({
       canonicalId: YOUTUBE_LONG_FORM_WORKFLOW_ID,
@@ -401,16 +385,13 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
     inputVariableKeys: string[],
     x: number,
   ) {
-    return {
-      data: {
-        config: { actionId, parameters: {} },
-        inputVariableKeys,
-        label,
-      },
+    return createGenfeedActionNode({
+      actionId,
       id,
       position: { x, y: 120 },
-      type: 'genfeedAction',
-    };
+      inputVariableKeys,
+      label,
+    });
   }
 
   private normalizeYoutubeUrl(input: string): {

@@ -1,4 +1,5 @@
 import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
+import { createGenfeedActionNode } from '@genfeedai/actions';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import { JobState } from '@genfeedai/enums';
 import type {
@@ -80,44 +81,22 @@ export class PublicYoutubeClipsService implements OnModuleInit {
     this.runner.registerAction(
       PUBLIC_YOUTUBE_CLIP_ACTION_IDS.CREATE_SESSION,
       (request) => this.createSessionAction(request),
-      {
-        description:
-          'Creates or reuses one idempotent public YouTube clip session.',
-        label: 'Create Public Clip Session',
-      },
     );
     this.runner.registerAction(
       PUBLIC_YOUTUBE_CLIP_ACTION_IDS.DISPATCH_ANALYSIS,
       (request) => this.dispatchAnalysisAction(request),
-      {
-        description: 'Dispatches analysis for one new public clip session.',
-        label: 'Dispatch Public Clip Analysis',
-      },
     );
     this.runner.registerAction(
       PUBLIC_YOUTUBE_CLIP_ACTION_IDS.READ_SESSION,
       (request) => this.readSessionAction(request),
-      {
-        description:
-          'Reads one public clip session and reconciles its preview state.',
-        label: 'Read Public Clip Session',
-      },
     );
     this.runner.registerAction(
       PUBLIC_YOUTUBE_CLIP_ACTION_IDS.RESERVE_PREVIEW,
       (request) => this.reservePreviewAction(request),
-      {
-        description: 'Reserves one clip recommendation for preview rendering.',
-        label: 'Reserve Public Clip Preview',
-      },
     );
     this.runner.registerAction(
       PUBLIC_YOUTUBE_CLIP_ACTION_IDS.DISPATCH_PREVIEW,
       (request) => this.dispatchPreviewAction(request),
-      {
-        description: 'Dispatches one reserved clip preview render.',
-        label: 'Dispatch Public Clip Preview',
-      },
     );
 
     this.runner.registerWorkflow({
@@ -584,16 +563,13 @@ export class PublicYoutubeClipsService implements OnModuleInit {
     inputVariableKeys: string[],
     x: number,
   ) {
-    return {
-      data: {
-        config: { actionId, parameters: {} },
-        inputVariableKeys,
-        label,
-      },
+    return createGenfeedActionNode({
+      actionId,
       id,
       position: { x, y: 120 },
-      type: 'genfeedAction',
-    };
+      inputVariableKeys,
+      label,
+    });
   }
 
   private readSource(value: unknown): PublicYoutubeSource {

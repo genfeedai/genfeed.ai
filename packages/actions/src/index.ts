@@ -6,6 +6,16 @@ export {
   toMcpTools,
 } from './adapters/to-mcp-tool.js';
 export type {
+  ActionApprovalPolicy,
+  ActionCreditPolicy,
+  ActionIdempotencyPolicy,
+  ActionJsonSchema,
+  ActionVisibility,
+  CreateGenfeedActionNodeInput,
+  GenfeedActionDefinition,
+  GenfeedActionNodeDefinition,
+} from './interfaces/action-definition.interface.js';
+export type {
   ActionExecutionContext,
   ActionExecutionOrigin,
   ActionExecutionRequest,
@@ -20,6 +30,11 @@ export type {
   ToolRequiredRole,
   ToolSurfaceConfig,
 } from './interfaces/tool-definition.interface.js';
+export {
+  ALL_ACTIONS,
+  createGenfeedActionNode,
+  getActionDefinition,
+} from './registry/action-registry.js';
 export type {
   CuratedActionCatalogEntry,
   CuratedActionName,
