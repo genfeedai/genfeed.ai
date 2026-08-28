@@ -34,7 +34,7 @@ export interface CreditPacksResult {
 export async function readCreditBalance(): Promise<CreditBalanceResult> {
   const usage = await getCreditUsage();
   return {
-    balance: usage.currentBalance ?? usage.remaining ?? 0,
+    balance: usage.currentBalance ?? 0,
     unit: 'credits',
   };
 }

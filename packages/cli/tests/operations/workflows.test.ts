@@ -67,6 +67,25 @@ describe('workflow operations', () => {
     expect(mockCreateWorkflowExecution).not.toHaveBeenCalled();
   });
 
+  it('resolves a workflow label beyond the first page', async () => {
+    mockListWorkflows
+      .mockResolvedValueOnce(
+        Array.from({ length: 100 }, (_, index) => ({
+          id: `workflow-${index + 1}`,
+          label: `Workflow ${index + 1}`,
+        }))
+      )
+      .mockResolvedValueOnce([{ id: 'workflow-101', label: 'Deep workflow' }]);
+    const { resolveWorkflow } = await import('../../src/operations/workflows');
+
+    await expect(resolveWorkflow('DEEP WORKFLOW')).resolves.toEqual({
+      id: 'workflow-101',
+      label: 'Deep workflow',
+    });
+    expect(mockListWorkflows).toHaveBeenNthCalledWith(1, { limit: 100, page: 1 });
+    expect(mockListWorkflows).toHaveBeenNthCalledWith(2, { limit: 100, page: 2 });
+  });
+
   it('rejects a missing workflow and omits absent inputs', async () => {
     const { resolveWorkflow, runWorkflow } = await import('../../src/operations/workflows');
     await expect(resolveWorkflow('missing')).rejects.toThrow('No workflow matches');

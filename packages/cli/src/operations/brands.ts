@@ -15,12 +15,15 @@ export async function readBrands(): Promise<Brand[]> {
 }
 
 export function resolveBrandReference(brands: Brand[], reference: string): Brand {
-  const normalizedReference = reference.trim().toLocaleLowerCase();
+  const trimmedReference = reference.trim();
+  const exactIdMatch = brands.find((brand) => brand.id === trimmedReference);
+  if (exactIdMatch) return exactIdMatch;
+
+  const normalizedReference = trimmedReference.toLowerCase();
   const matches = brands.filter(
     (brand) =>
-      brand.id === reference ||
-      brand.slug?.toLocaleLowerCase() === normalizedReference ||
-      brand.label.toLocaleLowerCase() === normalizedReference
+      brand.slug?.toLowerCase() === normalizedReference ||
+      brand.label.toLowerCase() === normalizedReference
   );
 
   if (matches.length === 0) {

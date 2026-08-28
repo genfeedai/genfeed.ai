@@ -57,6 +57,17 @@ describe('brand operations', () => {
     expect(mockSetActiveBrand).not.toHaveBeenCalled();
   });
 
+  it('gives an exact brand ID precedence over another brand label', async () => {
+    mockListBrands.mockResolvedValue([
+      { id: 'brand-1', label: 'Primary' },
+      { id: 'brand-2', label: 'brand-1' },
+    ]);
+    const { activateBrand } = await import('../../src/operations/brands');
+
+    await expect(activateBrand('brand-1')).resolves.toEqual({ id: 'brand-1', label: 'Primary' });
+    expect(mockSetActiveBrand).toHaveBeenCalledWith('brand-1');
+  });
+
   it('rejects a missing organization or brand', async () => {
     const { activateBrand, readBrands } = await import('../../src/operations/brands');
     mockGetOrganizationId.mockResolvedValueOnce(undefined);

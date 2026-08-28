@@ -35,6 +35,14 @@ describe('api/workflows', () => {
     expect(result[0].id).toBe('workflow-1');
   });
 
+  it('requests a later workflow page when provided', async () => {
+    mockFetch.mockResolvedValue(collection('workflow-101'));
+
+    await listWorkflows({ limit: 100, page: 2 });
+
+    expect(mockFetch).toHaveBeenCalledWith('/workflows?limit=100&page=2', { method: 'GET' });
+  });
+
   it('gets a workflow', async () => {
     mockFetch.mockResolvedValue(single('workflow-1'));
     expect((await getWorkflow('workflow-1')).id).toBe('workflow-1');

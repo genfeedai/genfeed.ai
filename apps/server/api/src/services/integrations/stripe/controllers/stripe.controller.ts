@@ -24,6 +24,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -39,6 +40,7 @@ import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenti
 import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
 import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 import { UsersService } from '@server/collections/users/services/users.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
 import type { Request } from 'express';
 
@@ -240,16 +242,13 @@ export class StripeController {
 
     const dbUser = await this.usersService.findOne({ id: user.id });
     if (!dbUser) {
-      return returnNotFound('User', user.id);
+      throw new NotFoundException('User', user.id);
     }
 
     const email =
       user.emailAddresses?.[0]?.emailAddress ?? dbUser.email ?? undefined;
     if (!email) {
-      return returnBadRequest({
-        message: 'User email is required for checkout',
-        success: false,
-      });
+      throw new BadRequestException('User email is required for checkout');
     }
 
     const checkoutRequest = Object.create(request) as Request;

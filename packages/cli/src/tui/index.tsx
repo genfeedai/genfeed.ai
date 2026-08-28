@@ -1,5 +1,5 @@
 import { render } from 'ink';
-import { TerminalWorkspace, type WorkspaceExitAction } from './workspace';
+import TerminalWorkspace, { type WorkspaceExitAction } from './workspace';
 
 export async function runTerminalWorkspace(): Promise<WorkspaceExitAction> {
   let action: WorkspaceExitAction = 'exit';

@@ -9,7 +9,29 @@ import {
 import { ApiError, GenfeedError } from '@/utils/errors';
 
 function normalized(value: string | undefined): string {
-  return value?.trim().toLocaleLowerCase() ?? '';
+  return value?.trim().toLowerCase() ?? '';
+}
+
+const WORKFLOW_PAGE_SIZE = 100;
+
+async function findWorkflowMatches(reference: string): Promise<Workflow[]> {
+  const target = normalized(reference);
+  const matches: Workflow[] = [];
+  let page = 1;
+
+  while (true) {
+    const workflows = await listWorkflows({ limit: WORKFLOW_PAGE_SIZE, page });
+    matches.push(
+      ...workflows.filter(
+        (workflow) =>
+          normalized(workflow.id) === target ||
+          normalized(workflow.key) === target ||
+          normalized(workflow.label) === target
+      )
+    );
+    if (workflows.length < WORKFLOW_PAGE_SIZE) return matches;
+    page += 1;
+  }
 }
 
 export async function resolveWorkflow(reference: string): Promise<Workflow> {
@@ -21,14 +43,7 @@ export async function resolveWorkflow(reference: string): Promise<Workflow> {
     }
   }
 
-  const workflows = await listWorkflows({ limit: 100 });
-  const target = normalized(reference);
-  const matches = workflows.filter(
-    (workflow) =>
-      normalized(workflow.id) === target ||
-      normalized(workflow.key) === target ||
-      normalized(workflow.label) === target
-  );
+  const matches = await findWorkflowMatches(reference);
 
   if (matches.length === 0) {
     throw new GenfeedError(`No workflow matches "${reference}"`);

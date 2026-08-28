@@ -444,5 +444,17 @@ describe('utils/websocket', () => {
         transports: ['websocket'],
       });
     });
+
+    it('does not create a socket when already aborted', async () => {
+      const controller = new AbortController();
+      controller.abort(new Error('Operation cancelled'));
+
+      await expect(createWebSocketConnection(controller.signal)).rejects.toThrow(
+        'Operation cancelled'
+      );
+
+      const { io } = await import('socket.io-client');
+      expect(io).not.toHaveBeenCalled();
+    });
   });
 });

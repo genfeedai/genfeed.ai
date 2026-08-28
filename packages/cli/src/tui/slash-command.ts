@@ -49,5 +49,5 @@ export function parseSlashCommand(input: string): ParsedSlashCommand {
   if (!name) {
     throw new GenfeedError('Enter a command after /');
   }
-  return { args, name: name.toLocaleLowerCase() };
+  return { args, name: name.toLowerCase() };
 }

@@ -63,13 +63,14 @@ function messageColor(role: WorkspaceMessage['role']): string | undefined {
   return undefined;
 }
 
-export function TerminalWorkspace({ onDone }: WorkspaceProps) {
+export default function TerminalWorkspace({ onDone }: WorkspaceProps) {
   const { exit } = useApp();
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [messages, setMessages] = useState<WorkspaceMessage[]>([
     { id: 1, role: 'system', text: 'Type a request, or /help for workspace commands.' },
   ]);
+  const activeOperationController = useRef<AbortController | undefined>(undefined);
   const nextId = useRef(2);
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -106,15 +107,18 @@ export function TerminalWorkspace({ onDone }: WorkspaceProps) {
   }
 
   useEffect(() => {
+    const controller = new AbortController();
     const initialize = async () => {
       const [{ name, profile }, persistedThreadId] = await Promise.all([
         getActiveProfile(),
         getLastAgentThreadId(),
       ]);
+      if (controller.signal.aborted) return;
       setProfileLabel(profile.apiKey ? name : `${name} (signed out)`);
       setThreadId(persistedThreadId);
       if (profile.activeBrand) {
         const brands = await readBrands().catch(() => []);
+        if (controller.signal.aborted) return;
         setBrandLabel(
           brands.find((brand) => brand.id === profile.activeBrand)?.label ?? profile.activeBrand
         );
@@ -122,13 +126,19 @@ export function TerminalWorkspace({ onDone }: WorkspaceProps) {
     };
 
     void initialize().catch((error) => {
+      if (controller.signal.aborted) return;
       const id = nextId.current;
       nextId.current += 1;
       setMessages((items) => [...items, { id, role: 'error', text: stringifyError(error) }]);
     });
+    return () => {
+      controller.abort();
+      activeOperationController.current?.abort();
+    };
   }, []);
 
   function finish(action: WorkspaceExitAction): void {
+    activeOperationController.current?.abort();
     onDone(action);
     exit();
   }
@@ -318,28 +328,42 @@ export function TerminalWorkspace({ onDone }: WorkspaceProps) {
     }
   }
 
-  async function sendMessage(content: string): Promise<void> {
+  async function sendMessage(content: string, signal: AbortSignal): Promise<void> {
     await requireAuth();
     const assistantMessageId = append('assistant', '…');
     let streamed = '';
     const result =
       pendingInput && threadId
-        ? await answerPendingInput(threadId, content, pendingInput.requestId, 120_000, {
-            onAssistantDelta: (token) => {
-              streamed += token;
-              replaceMessage(assistantMessageId, streamed);
+        ? await answerPendingInput(
+            threadId,
+            content,
+            pendingInput.requestId,
+            120_000,
+            {
+              onAssistantDelta: (token) => {
+                streamed += token;
+                replaceMessage(assistantMessageId, streamed);
+              },
             },
-          })
-        : await runAgentTurn({ content, source: 'agent', threadId }, 120_000, {
-            onAssistantDelta: (token) => {
-              streamed += token;
-              replaceMessage(assistantMessageId, streamed);
+            signal
+          )
+        : await runAgentTurn(
+            { content, source: 'agent', threadId },
+            120_000,
+            {
+              onAssistantDelta: (token) => {
+                streamed += token;
+                replaceMessage(assistantMessageId, streamed);
+              },
+              onRunStarted: async (run) => {
+                signal.throwIfAborted();
+                setThreadId(run.threadId);
+                await setLastAgentThreadId(run.threadId, await getOrganizationId());
+              },
             },
-            onRunStarted: async (run) => {
-              setThreadId(run.threadId);
-              await setLastAgentThreadId(run.threadId, await getOrganizationId());
-            },
-          });
+            signal
+          );
+    signal.throwIfAborted();
     setPendingInput(result.pendingInputRequest);
     if (!streamed) {
       replaceMessage(assistantMessageId, result.assistantMessage ?? result.error ?? result.status);
@@ -354,14 +378,21 @@ export function TerminalWorkspace({ onDone }: WorkspaceProps) {
     setHistoryIndex(-1);
     append('user', trimmed);
     setBusy(true);
+    const controller = new AbortController();
+    activeOperationController.current = controller;
     try {
       await dispatchWorkspaceInput(trimmed, {
-        appendError: (message) => append('error', message),
-        runMessage: sendMessage,
+        appendError: (message) => {
+          if (!controller.signal.aborted) append('error', message);
+        },
+        runMessage: (message) => sendMessage(message, controller.signal),
         runOperation: handleSlashCommand,
       });
     } finally {
-      setBusy(false);
+      if (activeOperationController.current === controller) {
+        activeOperationController.current = undefined;
+      }
+      if (!controller.signal.aborted) setBusy(false);
     }
   }
 

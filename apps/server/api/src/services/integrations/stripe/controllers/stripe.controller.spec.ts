@@ -442,6 +442,38 @@ describe('StripeController', () => {
 
       expect(stripeService.createPaymentSession).not.toHaveBeenCalled();
     });
+
+    it('rejects checkout when the authenticated user no longer exists', async () => {
+      usersService.findOne.mockResolvedValueOnce(null);
+
+      await expect(
+        controller.createCreditsCheckoutSession(
+          mockUser,
+          { credits: 5_000 },
+          mockRequestNoOrigin,
+        ),
+      ).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
+
+      expect(stripeService.createPaymentSession).not.toHaveBeenCalled();
+    });
+
+    it('rejects checkout when neither identity source has an email', async () => {
+      usersService.findOne.mockResolvedValueOnce({ id: userId });
+      const noEmailUser = {
+        ...mockUser,
+        emailAddresses: [],
+      } as unknown as User;
+
+      await expect(
+        controller.createCreditsCheckoutSession(
+          noEmailUser,
+          { credits: 5_000 },
+          mockRequestNoOrigin,
+        ),
+      ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
+
+      expect(stripeService.createPaymentSession).not.toHaveBeenCalled();
+    });
   });
 
   describe('createSetupCheckout', () => {

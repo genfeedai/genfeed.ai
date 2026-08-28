@@ -88,4 +88,14 @@ describe('api/credits', () => {
     expect(mockFlattenCollection).toHaveBeenCalledWith(response);
     expect(result).toEqual([]);
   });
+
+  it('falls back to the default transaction limit for non-finite callers', async () => {
+    mockGet.mockResolvedValue({ data: [] });
+    mockFlattenCollection.mockReturnValue([]);
+
+    const { listCreditTransactions } = await import('../../src/api/credits');
+    await listCreditTransactions(Number.NaN);
+
+    expect(mockGet).toHaveBeenCalledWith('/credits/transactions?limit=50');
+  });
 });

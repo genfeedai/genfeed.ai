@@ -32,6 +32,10 @@ interface RunOptions {
   trigger: WorkflowExecutionTrigger;
 }
 
+interface JsonOutputOptions {
+  json?: boolean;
+}
+
 function parseExecutionStatus(value: string): WorkflowExecutionStatus {
   const normalized = value.trim().toUpperCase();
   if (!Object.values(WorkflowExecutionStatus).includes(normalized as WorkflowExecutionStatus)) {
@@ -179,7 +183,7 @@ export const workflowCommand = new Command('workflow')
       .description('Show one workflow run')
       .argument('<execution-id>', 'Workflow execution ID')
       .option('--json', 'Output as JSON')
-      .action((id: string, options: { json?: boolean }) =>
+      .action((id: string, options: JsonOutputOptions) =>
         withCommandError(async () => {
           const execution = await getWorkflowExecution(id);
           if (options.json) return printJson(execution);
@@ -196,7 +200,7 @@ export const workflowCommand = new Command('workflow')
       .description('Show workflow details')
       .argument('<id>', 'Workflow ID')
       .option('--json', 'Output as JSON')
-      .action((id: string, options: { json?: boolean }) =>
+      .action((id: string, options: JsonOutputOptions) =>
         withCommandError(async () => {
           const workflow = await getWorkflow(id);
           if (options.json) return printJson(workflow);

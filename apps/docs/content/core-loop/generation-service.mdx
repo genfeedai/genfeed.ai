@@ -62,7 +62,7 @@ These are the stable tool names callers should depend on for v1. Lower-level wor
 | Layer              | Files                                                                                         | Responsibility                                                                           |
 | ------------------ | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | Tool metadata      | `packages/tools/src/registry/source/index.ts`, `packages/tools/src/registry/tool-registry.ts` | Defines tool names, parameters, categories, and UI action card types                     |
-| Agent dispatch     | `apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`        | Converts tool calls into internal API requests and normalizes preview-card responses     |
+| Agent dispatch     | `apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`     | Converts tool calls into internal API requests and normalizes preview-card responses     |
 | Media APIs         | `/v1/images`, `/v1/videos`, `/v1/musics`, `/v1/voices/generate`                               | Own request validation, model selection, credits, persistence, and completion polling    |
 | Skill execution    | `apps/server/api/src/services/skill-executor/*`                                               | Runs content skills such as `image-generation` and records Content Runs                  |
 | Provider access    | `apps/server/api/src/services/byok/*`                                                         | Resolves organization BYOK keys before hosted fallback                                   |

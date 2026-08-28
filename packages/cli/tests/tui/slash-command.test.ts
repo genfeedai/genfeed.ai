@@ -8,6 +8,7 @@ describe('TUI slash commands', () => {
     ['/brand use "Acme Studio"', { args: ['use', 'Acme Studio'], name: 'brand' }],
     ['/workflow run weekly-content', { args: ['run', 'weekly-content'], name: 'workflow' }],
     ['/image cinematic launch poster', { args: ['cinematic', 'launch', 'poster'], name: 'image' }],
+    ['/IMAGE launch poster', { args: ['launch', 'poster'], name: 'image' }],
   ])('parses %s', (input, expected) => {
     expect(parseSlashCommand(input)).toEqual(expected);
   });

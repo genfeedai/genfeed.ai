@@ -43,19 +43,24 @@ export interface LoginOptions {
   interactive?: boolean;
 }
 
+interface AuthorizeUrlParams {
+  challenge: string;
+  intent?: 'login' | 'signup';
+  port: number;
+  state: string;
+}
+
+interface ExchangeAuthCodeParams {
+  code: string;
+  codeVerifier: string;
+  state: string;
+}
+
 /**
  * Build the authorization page URL the browser is sent to. The web app reads
  * `port` to know which localhost listener to redirect the one-time code back to.
  */
-export function buildAuthorizeUrl(
-  authUrl: string,
-  params: {
-    challenge: string;
-    intent?: 'login' | 'signup';
-    port: number;
-    state: string;
-  }
-): string {
+export function buildAuthorizeUrl(authUrl: string, params: AuthorizeUrlParams): string {
   const query = new URLSearchParams({
     code_challenge: params.challenge,
     code_challenge_method: 'S256',
@@ -76,7 +81,7 @@ export function buildAuthorizeUrl(
  */
 export async function exchangeAuthCode(
   apiBaseUrl: string,
-  params: { code: string; codeVerifier: string; state: string }
+  params: ExchangeAuthCodeParams
 ): Promise<ExchangeResponse> {
   const response = await fetch(`${apiBaseUrl}/auth/desktop/exchange`, {
     body: JSON.stringify({

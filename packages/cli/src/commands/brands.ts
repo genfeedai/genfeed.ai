@@ -16,13 +16,13 @@ import {
 } from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
 
+type BrandListItem = Pick<Brand, 'description' | 'id' | 'label' | 'slug'> & {
+  active: boolean;
+};
+
 interface BrandListResult {
   activeBrandId?: string;
-  brands: Array<
-    Pick<Brand, 'description' | 'id' | 'label' | 'slug'> & {
-      active: boolean;
-    }
-  >;
+  brands: BrandListItem[];
 }
 
 async function loadBrandList(): Promise<BrandListResult> {

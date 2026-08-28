@@ -128,9 +128,10 @@ export async function waitForCompletion<T>(
   });
 }
 
-export async function createWebSocketConnection(): Promise<Socket> {
-  const apiKey = await getApiKey();
-  const wsUrl = await getWebSocketUrl();
+export async function createWebSocketConnection(signal?: AbortSignal): Promise<Socket> {
+  signal?.throwIfAborted();
+  const [apiKey, wsUrl] = await Promise.all([getApiKey(), getWebSocketUrl()]);
+  signal?.throwIfAborted();
 
   return io(wsUrl, {
     auth: {

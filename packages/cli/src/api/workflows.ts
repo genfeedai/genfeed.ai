@@ -40,6 +40,7 @@ export interface WorkflowExecution {
 
 export interface ListWorkflowsOptions {
   limit?: number;
+  page?: number;
 }
 
 export interface ListWorkflowExecutionsOptions {
@@ -60,6 +61,9 @@ function boundedLimit(limit = 20): number {
 
 export async function listWorkflows(options: ListWorkflowsOptions = {}): Promise<Workflow[]> {
   const query = new URLSearchParams({ limit: String(boundedLimit(options.limit)) });
+  if (options.page && options.page > 1) {
+    query.set('page', String(Math.trunc(options.page)));
+  }
   const response = await get<JsonApiCollectionResponse>(`/workflows?${query.toString()}`);
   return flattenCollection<Workflow>(response);
 }

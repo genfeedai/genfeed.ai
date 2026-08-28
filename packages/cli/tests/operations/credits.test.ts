@@ -21,9 +21,8 @@ describe('credit operations', () => {
 
   it.each([
     [{ currentBalance: 250 }, 250],
-    [{ remaining: 125 }, 125],
     [{}, 0],
-  ])('reads the available balance from compatible response %o', async (usage, expected) => {
+  ])('reads the available balance from canonical response %o', async (usage, expected) => {
     mockUsage.mockResolvedValue(usage);
     const { readCreditBalance } = await import('../../src/operations/credits');
     await expect(readCreditBalance()).resolves.toEqual({ balance: expected, unit: 'credits' });

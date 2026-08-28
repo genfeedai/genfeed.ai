@@ -12,12 +12,6 @@ export interface CreditUsage {
   usage30Days?: number;
   trendPercentage?: number;
   breakdown?: Array<{ source: string; amount: number; count: number }>;
-  // Backward-compatible fields for older API responses
-  total?: number;
-  used?: number;
-  remaining?: number;
-  byCategory?: Record<string, number>;
-  period?: string;
 }
 
 export interface CreditSummary {
@@ -77,7 +71,10 @@ export async function createCreditsCheckout(credits: number): Promise<CreditsChe
 }
 
 export async function listCreditTransactions(limit = 50): Promise<CreditTransaction[]> {
-  const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 200);
+  const normalizedLimit = Math.trunc(limit);
+  const boundedLimit = Number.isFinite(normalizedLimit)
+    ? Math.min(Math.max(normalizedLimit, 1), 200)
+    : 50;
   const response = await get<JsonApiCollectionResponse>(
     `/credits/transactions?limit=${boundedLimit}`
   );

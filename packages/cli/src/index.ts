@@ -8,6 +8,14 @@ import { setReplMode } from '@/utils/errors';
 const program = createProgram();
 program.exitOverride();
 
+interface ExitCodeError extends Error {
+  code: string;
+}
+
+function hasExitCode(error: unknown): error is ExitCodeError {
+  return error instanceof Error && 'code' in error && typeof error.code === 'string';
+}
+
 async function startInteractiveWorkspace(): Promise<void> {
   while (true) {
     const action = await runTerminalWorkspace();
@@ -44,8 +52,8 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
-  if (error instanceof Error && 'code' in error) {
-    const code = (error as { code: string }).code;
+  if (hasExitCode(error)) {
+    const { code } = error;
     if (code === 'commander.helpDisplayed' || code === 'commander.version') {
       process.exit(0);
     }

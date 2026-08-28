@@ -15,6 +15,14 @@ interface AssetListOptions {
   type?: string;
 }
 
+interface AssetShowOptions {
+  json?: boolean;
+}
+
+interface AssetDownloadOptions {
+  output: string;
+}
+
 async function runAssetList(options: AssetListOptions): Promise<void> {
   await requireAuth();
   const spinner = options.json ? undefined : ora('Fetching assets...').start();
@@ -78,7 +86,7 @@ libraryCommand.addCommand(
     .description('Show one content asset')
     .argument('<id>', 'Asset ID')
     .option('--json', 'Output as JSON')
-    .action(async (id: string, options: { json?: boolean }) => {
+    .action(async (id: string, options: AssetShowOptions) => {
       try {
         await requireAuth();
         const asset = await readAsset(id);
@@ -101,7 +109,7 @@ libraryCommand.addCommand(
     .description('Download a generated asset')
     .argument('<id>', 'Asset ID')
     .requiredOption('-o, --output <path>', 'Destination path')
-    .action(async (id: string, options: { output: string }) => {
+    .action(async (id: string, options: AssetDownloadOptions) => {
       try {
         await requireAuth();
         const asset = await readAsset(id);
