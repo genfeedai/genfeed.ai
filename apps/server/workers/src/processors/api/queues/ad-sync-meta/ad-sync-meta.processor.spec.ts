@@ -30,7 +30,7 @@ describe('AdSyncMetaProcessor', () => {
       error: vi.fn(),
       log: vi.fn(),
       warn: vi.fn(),
-    } as LoggerService;
+    } as unknown as LoggerService;
     metaAdsService = {
       getCampaignInsights: vi.fn().mockResolvedValue([
         {
