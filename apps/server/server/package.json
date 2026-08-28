@@ -68,7 +68,7 @@
     "build": "rm -rf dist && tsc -p tsconfig.declarations.json",
     "clean": "rm -rf dist",
     "test": "vitest run --config vitest.config.ts",
-    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit -p tsconfig.typecheck.json"
+    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts --require-turbo && tsc --noEmit -p tsconfig.typecheck.json"
   },
   "sideEffects": false,
   "type": "module",

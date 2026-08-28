@@ -22,6 +22,13 @@ export type TypecheckPrerequisiteOptions = {
   workspaceDir?: string;
 };
 
+export function isMissingRequiredTurboInvocation(
+  arguments_: readonly string[],
+  turboHash: string | undefined,
+): boolean {
+  return arguments_.includes('--require-turbo') && !turboHash;
+}
+
 function findRepositoryRoot(startDir: string): string {
   let currentDir = path.resolve(startDir);
 
@@ -143,6 +150,18 @@ if (import.meta.main) {
   const workspaceManifest = readManifest(
     path.join(process.cwd(), 'package.json'),
   );
+  const supportedCommand = `bunx turbo run type-check --filter=${workspaceManifest.name ?? '<workspace>'} --concurrency=1`;
+
+  if (isMissingRequiredTurboInvocation(process.argv, process.env.TURBO_HASH)) {
+    console.error(
+      'This package typecheck requires Turbo to rebuild its own declarations first.',
+    );
+    console.error(
+      `Run the supported command from the repository root: ${supportedCommand}`,
+    );
+    process.exit(1);
+  }
+
   const violations = checkTypecheckPrerequisites();
 
   if (violations.length > 0) {
@@ -153,7 +172,7 @@ if (import.meta.main) {
       );
     }
     console.error(
-      `Run the supported command from the repository root: bunx turbo run type-check --filter=${workspaceManifest.name ?? '<workspace>'} --concurrency=1`,
+      `Run the supported command from the repository root: ${supportedCommand}`,
     );
     process.exit(1);
   }

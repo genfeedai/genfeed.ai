@@ -132,6 +132,40 @@ describe('check-spec-typecheck', () => {
       expect(result.findings[0]?.count).toBe(2);
     });
 
+    it('keeps fingerprints stable when declaration members are reordered', () => {
+      writeWorkspace('api');
+      writeFixture(
+        'apps/server/api/src/shape.ts',
+        'export type Shape = { alpha: string; beta: number; gamma: boolean };',
+      );
+      writeFixture(
+        'apps/server/api/src/shape.spec.ts',
+        `
+          import type { Shape } from './shape';
+
+          export const shape: Shape = {};
+        `,
+      );
+
+      const first = runSpecTypecheck({
+        rootDir: testDir,
+        workspacesDir: 'apps/server',
+      }).findings[0];
+
+      writeFixture(
+        'apps/server/api/src/shape.ts',
+        'export type Shape = { gamma: boolean; alpha: string; beta: number };',
+      );
+
+      const reordered = runSpecTypecheck({
+        rootDir: testDir,
+        workspacesDir: 'apps/server',
+      }).findings[0];
+
+      expect(first?.message).not.toBe(reordered?.message);
+      expect(first?.fingerprint).toBe(reordered?.fingerprint);
+    });
+
     it('keeps the checkout path out of every recorded finding', () => {
       writeWorkspace('api');
       writeFixture(
@@ -202,7 +236,7 @@ describe('check-spec-typecheck', () => {
 
       expect(
         parseSpecTypecheckBaseline(serializeSpecTypecheckBaseline(findings)),
-      ).toEqual({ entries: findings, version: 1 });
+      ).toEqual({ entries: findings, version: 2 });
     });
 
     it('rejects an unknown baseline version', () => {
@@ -218,7 +252,7 @@ describe('check-spec-typecheck', () => {
         parseSpecTypecheckBaseline(
           JSON.stringify({
             entries: [{ ...finding({}), reason: 'wontfix' }],
-            version: 1,
+            version: 2,
           }),
         ),
       ).toThrow(/Invalid spec-typecheck baseline/u);
@@ -229,7 +263,7 @@ describe('check-spec-typecheck', () => {
         parseSpecTypecheckBaseline(
           JSON.stringify({
             entries: [finding({}), finding({ file: 'other.spec.ts' })],
-            version: 1,
+            version: 2,
           }),
         ),
       ).toThrow(/duplicate fingerprint/u);

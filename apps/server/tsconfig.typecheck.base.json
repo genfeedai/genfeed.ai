@@ -92,7 +92,10 @@
     "node_modules",
     "dist",
     "**/*.spec.ts",
+    "**/*.spec.tsx",
     "**/*.test.ts",
-    "**/*.e2e-spec.ts"
+    "**/*.test.tsx",
+    "**/*.e2e-spec.ts",
+    "**/*.e2e-spec.tsx"
   ]
 }

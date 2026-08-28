@@ -1,10 +1,20 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { checkTypecheckPrerequisites } from './check-typecheck-prerequisites';
+import {
+  checkTypecheckPrerequisites,
+  isMissingRequiredTurboInvocation,
+} from './check-typecheck-prerequisites';
 
 const testDirs: string[] = [];
+const REPOSITORY_ROOT = path.resolve(import.meta.dirname, '../..');
 
 afterEach(() => {
   for (const testDir of testDirs.splice(0)) {
@@ -27,6 +37,38 @@ function fixture(files: Record<string, string>): string {
 }
 
 describe('typecheck prerequisite guard', () => {
+  it('requires Turbo only for workspaces with a self-declaration boundary', () => {
+    expect(
+      isMissingRequiredTurboInvocation(['--require-turbo'], undefined),
+    ).toBe(true);
+    expect(
+      isMissingRequiredTurboInvocation(['--require-turbo'], 'task-hash'),
+    ).toBe(false);
+    expect(isMissingRequiredTurboInvocation([], undefined)).toBe(false);
+  });
+
+  it('builds server declarations before its Turbo-managed typecheck', () => {
+    const manifest = JSON.parse(
+      readFileSync(
+        path.join(REPOSITORY_ROOT, 'apps/server/server/package.json'),
+        'utf8',
+      ),
+    ) as { scripts: Record<string, string> };
+    const turboConfig = JSON.parse(
+      readFileSync(
+        path.join(REPOSITORY_ROOT, 'apps/server/server/turbo.json'),
+        'utf8',
+      ),
+    ) as { tasks: { 'type-check': { dependsOn: string[] } } };
+
+    expect(manifest.scripts['type-check']).toContain('--require-turbo');
+    expect(manifest.scripts['type-check']).not.toContain('bun run build');
+    expect(turboConfig.tasks['type-check'].dependsOn).toEqual([
+      'build',
+      '^build',
+    ]);
+  });
+
   it('accepts a workspace with no declaration-producing dependencies', () => {
     const rootDir = fixture({
       'packages/consumer/package.json': JSON.stringify({
