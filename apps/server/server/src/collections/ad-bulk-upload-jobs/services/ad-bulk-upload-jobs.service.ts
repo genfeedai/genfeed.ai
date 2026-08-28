@@ -176,17 +176,20 @@ export class AdBulkUploadJobsService {
       offset?: number;
     },
   ): Promise<AdBulkUploadJobDocument[]> {
-    const jobs = await this.prisma.adBulkUploadJob.findMany({
-      orderBy: { createdAt: 'desc' },
-      where: scopedWhere(organizationId),
-    });
     const offset = params?.offset ?? 0;
     const limit = params?.limit ?? 50;
+    const jobs = await this.prisma.adBulkUploadJob.findMany({
+      orderBy: { createdAt: 'desc' },
+      skip: offset,
+      take: limit,
+      where: scopedWhere(organizationId, {
+        ...(params?.status
+          ? { data: { equals: params.status, path: ['status'] } }
+          : {}),
+      }),
+    });
 
-    return jobs
-      .map((job) => this.normalizeJob(job as Record<string, unknown>))
-      .filter((job) => !params?.status || job.status === params.status)
-      .slice(offset, offset + limit);
+    return jobs.map((job) => this.normalizeJob(job as Record<string, unknown>));
   }
 
   async incrementProgress(
