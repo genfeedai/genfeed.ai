@@ -470,6 +470,16 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Creates and dispatches exactly one clip result.',
   ),
   internalAction(
+    'clip.handoff.create-editor',
+    'Create Clip Editor Handoff',
+    'Creates one editor project from a ready clip.',
+  ),
+  internalAction(
+    'clip.handoff.link-library',
+    'Link Clip to Library',
+    'Links one completed clip to its canonical Library asset.',
+  ),
+  internalAction(
     'clip.handoff.prepare-publish',
     'Prepare Clip Publish Handoff',
     'Builds one user-confirmed publish handoff for a ready clip.',

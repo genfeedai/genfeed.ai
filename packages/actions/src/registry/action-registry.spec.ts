@@ -99,6 +99,8 @@ describe('Genfeed action registry', () => {
       getActionDefinition('clip.generation.collect-results'),
     ).toBeDefined();
     expect(getActionDefinition('clip.handoff.prepare-publish')).toBeDefined();
+    expect(getActionDefinition('clip.handoff.create-editor')).toBeDefined();
+    expect(getActionDefinition('clip.handoff.link-library')).toBeDefined();
   });
 
   it('owns workflow credit policy instead of delegating it to the engine', () => {

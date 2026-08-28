@@ -1,17 +1,13 @@
 import {
-  ClipPublishHandoffWorkflowService,
-  type PublishHandoffPayload,
-} from '@api/collections/clip-projects/services/clip-publish-handoff-workflow.service';
-import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
-import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
+  type ClipEditorHandoffResult,
+  ClipHandoffWorkflowService,
+  type ClipPublishHandoffResult,
+} from '@api/collections/clip-projects/services/clip-handoff-workflow.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { EditorTrackType, IngredientFormat } from '@genfeedai/enums';
-import type { ClipReadyAction } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
-  BadRequestException,
   Controller,
   HttpCode,
   HttpStatus,
@@ -21,31 +17,8 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
-import {
-  type ClipLibraryLinkResult,
-  ClipLibraryLinkService,
-} from '@server/collections/clip-projects/services/clip-library-link.service';
-import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
-import type { ClipResultDocument } from '@server/collections/clip-results/schemas/clip-result.schema';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
+import type { ClipLibraryLinkResult } from '@server/collections/clip-projects/services/clip-library-link.service';
 import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
-import { v4 as uuidv4 } from 'uuid';
-
-interface ClipEditorHandoffResponse {
-  clipProjectId: string;
-  clipResultId: string;
-  editorPath: string;
-  editorProjectId: string;
-  videoUrl: string;
-}
-
-interface ClipPublishHandoffResponse {
-  clipProjectId: string;
-  clipResultId: string;
-  payload: PublishHandoffPayload;
-}
 
 @AutoSwagger()
 @ApiTags('clip-projects')
@@ -55,11 +28,7 @@ interface ClipPublishHandoffResponse {
 export class ClipProjectHandoffsController {
   constructor(
     readonly _loggerService: LoggerService,
-    private readonly clipLibraryLinkService: ClipLibraryLinkService,
-    private readonly clipProjectsService: ClipProjectsService,
-    private readonly clipResultsService: ClipResultsService,
-    private readonly editorProjectsService: EditorProjectsService,
-    private readonly publishHandoffWorkflow: ClipPublishHandoffWorkflowService,
+    private readonly handoffWorkflow: ClipHandoffWorkflowService,
   ) {}
 
   @Post(':projectId/results/:clipResultId/editor-handoff')
@@ -74,83 +43,15 @@ export class ClipProjectHandoffsController {
     @CurrentUser() user: User,
     @Param('projectId') projectId: string,
     @Param('clipResultId') clipResultId: string,
-  ): Promise<ClipEditorHandoffResponse> {
-    const ownedProject = await this.resolveOwnedProject(
-      projectId,
-      user.organizationId,
-    );
-    await this.clipProjectsService.reconcileTerminalState(
-      projectId,
-      user.organizationId,
-      ownedProject,
-    );
-
-    const clipResult = await this.resolveReadyClipResult({
-      action: 'edit',
-      clipResultId,
-      organizationId: user.organizationId,
-      projectId,
-    });
-    const videoUrl = this.resolveClipVideoUrl(clipResult);
-    const ingredientId = this.requireLinkedIngredientId(clipResult);
-    const durationFrames = this.resolveClipDurationFrames(clipResult);
-    const editorProject = await this.editorProjectsService.create({
-      ...(user.brandId ? { brandId: user.brandId } : {}),
-      config: {
-        clipHandoff: {
-          clipProjectId: projectId,
-          clipResultId: String(clipResult.id),
-          ingredientId,
-          source: 'clip-result',
-        },
-        name: `${this.readString(clipResult.title) ?? 'Clip'} edit`,
-        settings: {
-          backgroundColor: '#000000',
-          format: IngredientFormat.PORTRAIT,
-          fps: 30,
-          height: 1920,
-          width: 1080,
-        },
-        status: 'draft',
-        totalDurationFrames: durationFrames,
+  ): Promise<ClipEditorHandoffResult> {
+    return this.handoffWorkflow.createEditorHandoff(
+      {
+        ...(user.brandId ? { brandId: user.brandId } : {}),
+        clipResultId,
+        projectId,
       },
-      organizationId: user.organizationId,
-      tracks: [
-        {
-          clips: [
-            {
-              durationFrames,
-              effects: [],
-              id: uuidv4(),
-              ingredientId,
-              ingredientUrl: videoUrl,
-              sourceEndFrame: durationFrames,
-              sourceStartFrame: 0,
-              startFrame: 0,
-              thumbnailUrl: this.readString(clipResult.thumbnailUrl),
-              volume: 100,
-            },
-          ],
-          id: uuidv4(),
-          isLocked: false,
-          isMuted: false,
-          name: 'Clip 1',
-          type: EditorTrackType.VIDEO,
-          volume: 100,
-        },
-      ],
-      userId: user.userId ?? user.id,
-    } as CreateEditorProjectDto);
-    const editorProjectId = String(editorProject.id);
-
-    return {
-      clipProjectId: projectId,
-      clipResultId: String(clipResult.id),
-      // Brand/org-scoped by the client; the editor is Studio's Edit surface.
-      editorPath: `/studio/edit/${editorProjectId}`,
-      editorProjectId,
-      videoUrl,
-    };
+      this.context(user),
+    );
   }
 
   @Post(':projectId/results/:clipResultId/publish-handoff')
@@ -165,57 +66,11 @@ export class ClipProjectHandoffsController {
     @CurrentUser() user: User,
     @Param('projectId') projectId: string,
     @Param('clipResultId') clipResultId: string,
-  ): Promise<ClipPublishHandoffResponse> {
-    const ownedProject = await this.resolveOwnedProject(
-      projectId,
-      user.organizationId,
+  ): Promise<ClipPublishHandoffResult> {
+    return this.handoffWorkflow.preparePublishHandoff(
+      { clipResultId, projectId },
+      this.context(user),
     );
-    await this.clipProjectsService.reconcileTerminalState(
-      projectId,
-      user.organizationId,
-      ownedProject,
-    );
-
-    const clipResult = await this.resolveReadyClipResult({
-      action: 'publish',
-      clipResultId,
-      organizationId: user.organizationId,
-      projectId,
-    });
-    const resolvedClipResultId = String(clipResult.id);
-    const ingredientId = this.requireLinkedIngredientId(clipResult);
-    const videoUrl = this.resolveClipVideoUrl(clipResult);
-    const payload = await this.publishHandoffWorkflow.preparePublishHandoff(
-      {
-        assetIds: [ingredientId],
-        clipProjectId: projectId,
-        options: {
-          assets: {
-            [ingredientId]: {
-              caption: this.readString(clipResult.summary) ?? undefined,
-              mediaUrl: videoUrl,
-              mimeType: 'video/mp4',
-            },
-          },
-          metadata: {
-            clipResultId: resolvedClipResultId,
-            ingredientId,
-            summary: this.readString(clipResult.summary),
-            title: this.readString(clipResult.title),
-          },
-        },
-      },
-      {
-        organizationId: user.organizationId,
-        userId: user.userId ?? user.id,
-      },
-    );
-
-    return {
-      clipProjectId: projectId,
-      clipResultId: resolvedClipResultId,
-      payload,
-    };
   }
 
   @Post(':projectId/results/:clipResultId/library-link')
@@ -231,129 +86,16 @@ export class ClipProjectHandoffsController {
     @Param('projectId') projectId: string,
     @Param('clipResultId') clipResultId: string,
   ): Promise<ClipLibraryLinkResult> {
-    await this.resolveOwnedProject(projectId, user.organizationId);
-    const clipResult =
-      await this.clipResultsService.findProjectResultForHandoff({
-        clipResultId,
-        organizationId: user.organizationId,
-        projectId,
-      });
+    return this.handoffWorkflow.retryLibraryLink(
+      { clipResultId, projectId },
+      this.context(user),
+    );
+  }
 
-    if (!clipResult) {
-      throw new NotFoundException('ClipResult', clipResultId);
-    }
-
-    if (this.readString(clipResult.status) !== 'completed') {
-      throw new BadRequestException(
-        `ClipResult ${clipResultId} is not ready for Library linking.`,
-      );
-    }
-
-    return this.clipLibraryLinkService.linkReadyClip({
-      clipResultId: String(clipResult.id),
+  private context(user: User): { organizationId: string; userId: string } {
+    return {
       organizationId: user.organizationId,
-    });
-  }
-
-  private async resolveOwnedProject(
-    projectId: string,
-    organizationId: string,
-  ): Promise<ClipProjectDocument> {
-    const project = await this.clipProjectsService.findOne({
-      id: projectId,
-      organizationId: organizationId,
-    });
-
-    if (!project) {
-      throw new NotFoundException('ClipProject', projectId);
-    }
-
-    return project;
-  }
-
-  private async resolveReadyClipResult(input: {
-    action: ClipReadyAction;
-    clipResultId: string;
-    organizationId: string;
-    projectId: string;
-  }): Promise<ClipResultDocument> {
-    const clipResult =
-      await this.clipResultsService.findProjectResultForHandoff({
-        clipResultId: input.clipResultId,
-        organizationId: input.organizationId,
-        projectId: input.projectId,
-      });
-
-    if (!clipResult) {
-      throw new NotFoundException('ClipResult', input.clipResultId);
-    }
-
-    if (!this.isClipReadyForAction(clipResult, input.action)) {
-      throw new BadRequestException(
-        `ClipResult ${input.clipResultId} is not ready for ${input.action} handoff.`,
-      );
-    }
-
-    this.resolveClipVideoUrl(clipResult);
-
-    return clipResult;
-  }
-
-  private isClipReadyForAction(
-    clipResult: ClipResultDocument,
-    action: ClipReadyAction,
-  ): boolean {
-    const readiness = this.readRecord(clipResult.readiness);
-    const readyActions = Array.isArray(readiness.readyActions)
-      ? readiness.readyActions
-      : [];
-
-    if (readyActions.length > 0) {
-      return readyActions.includes(action);
-    }
-
-    return this.readString(clipResult.status) === 'completed';
-  }
-
-  private requireLinkedIngredientId(clipResult: ClipResultDocument): string {
-    const ingredientId = this.readString(clipResult.ingredientId);
-    if (!ingredientId) {
-      throw new BadRequestException(
-        'Clip result is not linked to a Library asset. Retry Library linking first.',
-      );
-    }
-    return ingredientId;
-  }
-
-  private resolveClipVideoUrl(clipResult: ClipResultDocument): string {
-    const videoUrl =
-      this.readString(clipResult.captionedVideoUrl) ??
-      this.readString(clipResult.videoUrl);
-
-    if (!videoUrl) {
-      throw new BadRequestException('Clip result has no terminal video URL.');
-    }
-
-    return videoUrl;
-  }
-
-  private resolveClipDurationFrames(clipResult: ClipResultDocument): number {
-    const duration =
-      typeof clipResult.duration === 'number' &&
-      Number.isFinite(clipResult.duration)
-        ? clipResult.duration
-        : 10;
-
-    return Math.max(1, Math.round(duration * 30));
-  }
-
-  private readRecord(value: unknown): Record<string, unknown> {
-    return value !== null && typeof value === 'object' && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
-  }
-
-  private readString(value: unknown): string | null {
-    return typeof value === 'string' && value.length > 0 ? value : null;
+      userId: user.userId ?? user.id,
+    };
   }
 }
