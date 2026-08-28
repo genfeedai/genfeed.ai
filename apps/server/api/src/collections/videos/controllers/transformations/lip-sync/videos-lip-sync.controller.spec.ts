@@ -17,6 +17,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { VideosLipSyncController } from '@api/collections/videos/controllers/transformations/lip-sync/videos-lip-sync.controller';
@@ -139,6 +140,13 @@ describe('VideosLipSyncController', () => {
         {
           provide: CreditDeductionQueueService,
           useValue: { queueByokUsage: vi.fn(), queueDeduction: vi.fn() },
+        },
+        {
+          provide: CreditsUtilsService,
+          useValue: {
+            releaseReservation: vi.fn(),
+            reserveCredits: vi.fn(),
+          },
         },
         {
           provide: ConfigService,

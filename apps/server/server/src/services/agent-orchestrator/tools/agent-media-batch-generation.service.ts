@@ -330,7 +330,7 @@ export class AgentMediaBatchGenerationService {
       );
       recorded = false;
     }
-    if (this.batchCreditsService && recorded !== true) {
+    if (recorded !== true) {
       await this.compensateUnrecordedReservation({
         batchId,
         organizationId: ctx.organizationId,

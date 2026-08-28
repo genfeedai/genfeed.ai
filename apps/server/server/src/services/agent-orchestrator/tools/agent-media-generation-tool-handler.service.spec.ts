@@ -1068,6 +1068,51 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     expect(batchGenerationQueueService.queueBatch).not.toHaveBeenCalled();
   });
 
+  it('releases the hold and cancels when the reservation ledger service is unavailable', async () => {
+    const {
+      batchGenerationQueueService,
+      batchGenerationService,
+      creditsUtilsService,
+      logger,
+    } = createBatchHandler();
+    const batchOwner = new AgentMediaBatchGenerationService(
+      logger as never,
+      {} as never,
+      batchGenerationService as never,
+      undefined,
+      undefined,
+      creditsUtilsService as never,
+      undefined,
+      undefined,
+      batchGenerationQueueService as never,
+    );
+    const handler = new AgentMediaGenerationToolHandler(
+      {} as never,
+      {} as never,
+      batchOwner,
+    );
+
+    const result = await handler.generateContentBatch(
+      { brandId: 'brand-1', count: 3, platforms: ['instagram'] },
+      context,
+    );
+
+    expect(result).toEqual({
+      creditsUsed: 0,
+      error: 'Batch credit reservation could not be recorded',
+      success: false,
+    });
+    expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+      organizationId: 'organization-1',
+      reservationId: 'reservation-1',
+    });
+    expect(batchGenerationService.cancelBatch).toHaveBeenCalledWith(
+      'batch-1',
+      'organization-1',
+    );
+    expect(batchGenerationQueueService.queueBatch).not.toHaveBeenCalled();
+  });
+
   it('resolves a credential handle within the caller organization before creating the batch', async () => {
     const credentialsService = {
       findByHandle: vi.fn().mockResolvedValue({ brandId: 'brand-from-handle' }),

@@ -1,6 +1,7 @@
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ByokProvider, ModelProvider } from '@genfeedai/enums';
+import type { IReserveCreditsInput } from '@genfeedai/interfaces/billing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -34,7 +35,7 @@ describe('ImageGenerationCreditsService', () => {
       true,
     );
     creditsUtilsService.reserveCredits.mockImplementation(
-      (input: { amount: number }) =>
+      (input: IReserveCreditsInput) =>
         Promise.resolve({
           amount: input.amount,
           id: 'reservation-1',

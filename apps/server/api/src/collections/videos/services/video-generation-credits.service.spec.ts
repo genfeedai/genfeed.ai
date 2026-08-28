@@ -1,6 +1,7 @@
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ByokProvider, ModelProvider } from '@genfeedai/enums';
+import type { IReserveCreditsInput } from '@genfeedai/interfaces/billing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -29,7 +30,7 @@ describe('VideoGenerationCreditsService', () => {
       true,
     );
     creditsUtilsService.reserveCredits.mockImplementation(
-      (input: { amount: number }) =>
+      (input: IReserveCreditsInput) =>
         Promise.resolve({
           amount: input.amount,
           id: 'reservation-1',

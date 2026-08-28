@@ -8,6 +8,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+type CreditReservationServiceMock = {
+  expireDue: ReturnType<typeof vi.fn>;
+};
+
 /**
  * Stranded-batch detection (#2501). Before this, an API reload mid-batch left
  * the row PROCESSING with nothing alive to finish it and nothing that could see
@@ -25,7 +29,7 @@ describe('BatchGenerationReconcileService', () => {
     retrySettlementShortfall: ReturnType<typeof vi.fn>;
     settleBatchCredits: ReturnType<typeof vi.fn>;
   };
-  let reservationService: { expireDue: ReturnType<typeof vi.fn> };
+  let reservationService: CreditReservationServiceMock;
 
   const pendingItem = {
     format: ContentFormat.IMAGE,

@@ -290,6 +290,9 @@ describe('ImagesOperationsController', () => {
           useValue: {
             checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
             getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
+            reserveCredits: vi.fn().mockResolvedValue({
+              id: 'image-controller-reservation',
+            }),
           },
         },
         {

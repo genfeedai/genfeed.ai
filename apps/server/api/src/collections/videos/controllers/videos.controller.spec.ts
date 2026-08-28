@@ -249,6 +249,9 @@ describe('VideosController', () => {
             checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
             deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
             getOrganizationCreditsBalance: vi.fn().mockResolvedValue(1000),
+            reserveCredits: vi.fn().mockResolvedValue({
+              id: 'video-controller-reservation',
+            }),
           },
         },
         {

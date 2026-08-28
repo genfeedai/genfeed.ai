@@ -6,7 +6,11 @@ import { ActivitySource, BatchItemStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Optional,
+} from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import {
@@ -176,7 +180,9 @@ export class BatchGenerationCreditsService {
 
       if (config.credits?.reservationId) {
         if (!this.creditsUtilsService) {
-          throw new Error('Credit reservation settlement service unavailable');
+          throw new InternalServerErrorException(
+            'Credit reservation settlement service unavailable',
+          );
         }
 
         if (settledCredits > 0) {

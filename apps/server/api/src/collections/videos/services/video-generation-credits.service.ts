@@ -64,7 +64,7 @@ export class VideoGenerationCreditsService {
     model: string,
     organization: string,
     request: Request,
-    reserve: boolean,
+    isReservationEnabled: boolean,
   ): Promise<void> {
     const reqWithCredits = request as unknown as DeferredCreditsRequest;
     if (!isDeferredCreditsRequest(reqWithCredits)) {
@@ -106,7 +106,7 @@ export class VideoGenerationCreditsService {
       };
       return;
     }
-    if (reserve) {
+    if (isReservationEnabled) {
       await this.reserveResolvedCredits(requiredCredits, organization, request);
     }
   }
