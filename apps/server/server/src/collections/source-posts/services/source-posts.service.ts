@@ -223,6 +223,7 @@ export class SourcePostsService {
       }
 
       const postData = this.buildCollectedPostData(post, source);
+      // tenant-scope-ignore: sourceId is tenant-owned and globally unique; isDeleted is omitted so recollection reactivates a matching tombstoned post.
       const saved = await this.db.sourcePost.upsert({
         create: {
           ...postData,
