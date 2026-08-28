@@ -1,11 +1,13 @@
 /**
  * ClipProjectsCoreModule
  *
- * Minimal module providing ClipProjectsService + schema registration only.
- * Intentionally has NO dependency on ClipAnalyzeModule or ClipFactoryModule,
- * allowing queue modules to import it without creating circular references.
+ * Clip project persistence plus generation, dispatch, identity, rewrite,
+ * hook-approval, and raw-cut services. Intentionally has NO dependency on
+ * ClipAnalyzeModule or ClipFactoryModule, allowing queue modules to import
+ * it without creating circular references.
  *
- * ClipProjectsModule re-exports everything from here and adds the queue modules.
+ * ClipProjectsModule re-exports everything from here and adds the queue
+ * modules and HTTP controllers.
  */
 
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';

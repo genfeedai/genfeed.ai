@@ -183,6 +183,18 @@ describe('Clip Projects split controllers', () => {
         ClipProjectHighlightsController,
       ),
     ).toEqual([{ bearer: [] }]);
+    expect(
+      Reflect.getMetadata(
+        'swagger/apiUseTags',
+        ClipProjectGenerationController,
+      ),
+    ).toEqual(['clip-projects']);
+    expect(
+      Reflect.getMetadata(
+        'swagger/apiSecurity',
+        ClipProjectGenerationController,
+      ),
+    ).toEqual([{ bearer: [] }]);
   });
 
   it('registers static sibling controllers before the wildcard CRUD controller', () => {
