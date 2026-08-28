@@ -5,11 +5,10 @@ import {
   PersonaStatus,
   VideoTaskModel,
 } from '@genfeedai/enums';
-import { type Credential, type Persona, toPrismaJson } from '@genfeedai/prisma';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { AUTOMATION_WORKFLOW_IDS } from '@server/collections/workflows/services/automation-workflow-definitions';
 import { CacheService } from '@server/services/cache/cache.service';
@@ -41,9 +40,20 @@ type PersonaConfig = {
   profileImageUrl?: string;
 };
 
-type PersonaWithCredentials = Persona & {
+type ContentEngineBrandSnapshot = {
+  agentConfig: Record<string, unknown>;
+  id: string;
+  userId?: string;
+};
+
+type PersonaSnapshot = {
+  brandId?: string;
   config: PersonaConfig;
-  credentials: Credential[];
+  credentialCount: number;
+  id: string;
+  label: string;
+  organizationId: string;
+  userId: string;
 };
 
 export interface ContentProductionWorkflowResult {
@@ -101,7 +111,16 @@ export class ContentProductionWorkflowService {
           strategy.contentTypes.length > 0
         );
       })
-      .slice(0, MAX_BRANDS_PER_CYCLE);
+      .slice(0, MAX_BRANDS_PER_CYCLE)
+      .map(
+        (brand): ContentEngineBrandSnapshot => ({
+          agentConfig: this.readRecord(brand.agentConfig),
+          id: String(brand.id),
+          ...(this.optionalString(brand.userId)
+            ? { userId: String(brand.userId) }
+            : {}),
+        }),
+      );
     return {
       baseInput: { organizationId },
       items,
@@ -113,7 +132,9 @@ export class ContentProductionWorkflowService {
     organizationId: string,
     input: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
-    const brand = this.readRecord(input.item) as unknown as BrandDocument;
+    const brand = this.readRecord(
+      input.item,
+    ) as unknown as ContentEngineBrandSnapshot;
     try {
       const brandId = String(brand.id);
       const userId = this.optionalString(brand.userId);
@@ -216,28 +237,45 @@ export class ContentProductionWorkflowService {
       return { baseInput: { organizationId }, items: [] };
     }
     const now = new Date();
-    const items = (await this.prisma.persona.findMany({
-      include: { credentials: true },
+    const personas = await this.prisma.persona.findMany({
+      select: {
+        _count: { select: { credentials: true } },
+        brandId: true,
+        config: true,
+        id: true,
+        label: true,
+        organizationId: true,
+        userId: true,
+      },
       take: MAX_PERSONAS_PER_CYCLE,
       where: scopedWhere(organizationId, {
         isAutopilotEnabled: true,
         nextAutopilotRunAt: { lte: now },
         status: PersonaStatus.ACTIVE,
       }),
-    })) as PersonaWithCredentials[];
+    });
+    const items = personas.map(
+      (persona): PersonaSnapshot => ({
+        ...(persona.brandId ? { brandId: persona.brandId } : {}),
+        config: this.readRecord(persona.config) as PersonaConfig,
+        credentialCount: persona._count.credentials,
+        id: persona.id,
+        label: persona.label,
+        organizationId: persona.organizationId,
+        userId: persona.userId,
+      }),
+    );
     return { baseInput: { now: now.toISOString(), organizationId }, items };
   }
 
   async prepareContentPipelinePersona(
     input: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
-    const persona = this.readRecord(
-      input.item,
-    ) as unknown as PersonaWithCredentials;
+    const persona = this.readRecord(input.item) as unknown as PersonaSnapshot;
     const now = new Date(this.requiredString(input.now, 'now'));
     const personaId = persona.id;
     const config = (persona.config ?? {}) as PersonaConfig;
-    if (!persona.credentials?.length || !config.profileImageUrl) {
+    if (persona.credentialCount < 1 || !config.profileImageUrl) {
       return {
         imageItems: [],
         musicItems: [],
@@ -280,7 +318,7 @@ export class ContentProductionWorkflowService {
     input: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     const state = this.readRecord(input.state);
-    const persona = state.persona as PersonaWithCredentials | undefined;
+    const persona = state.persona as PersonaSnapshot | undefined;
     if (!persona) {
       throw new Error('persona is required');
     }
@@ -340,7 +378,7 @@ export class ContentProductionWorkflowService {
     return { organizationId, released: acquired };
   }
 
-  private buildPromptFromStrategy(persona: PersonaWithCredentials): string {
+  private buildPromptFromStrategy(persona: PersonaSnapshot): string {
     const config = (persona.config ?? {}) as PersonaConfig;
     const strategy = config.contentStrategy;
     if (!strategy?.topics?.length) {
@@ -355,7 +393,7 @@ export class ContentProductionWorkflowService {
   }
 
   private buildStepsFromStrategy(
-    persona: PersonaWithCredentials,
+    persona: PersonaSnapshot,
     prompt: string,
   ): PipelineStep[] {
     const config = (persona.config ?? {}) as PersonaConfig;
@@ -396,7 +434,7 @@ export class ContentProductionWorkflowService {
   }
 
   private async scheduleNextRun(
-    persona: PersonaWithCredentials,
+    persona: PersonaSnapshot,
     now: Date,
     updateLastRun = true,
   ): Promise<void> {
