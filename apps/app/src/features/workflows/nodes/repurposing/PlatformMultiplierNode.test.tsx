@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { WorkflowNodeStatus } from '@genfeedai/enums';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlatformMultiplierNode } from './PlatformMultiplierNode';
@@ -9,9 +9,14 @@ const mocks = vi.hoisted(() => ({
   appendChild: vi.fn(),
   click: vi.fn(),
   executeNode: vi.fn(),
+  loggerError: vi.fn(),
   removeChild: vi.fn(),
   updateNodeData: vi.fn(),
   writeText: vi.fn(),
+}));
+
+vi.mock('@services/core/logger.service', () => ({
+  logger: { error: mocks.loggerError },
 }));
 
 vi.mock('@genfeedai/workflows/ui/stores', () => ({
@@ -221,7 +226,7 @@ describe('PlatformMultiplierNode', () => {
     expect(mocks.executeNode).toHaveBeenCalledWith('multiplier-node');
   });
 
-  it('renders outputs, downloads media, copies captions, and shows processing/help states', () => {
+  it('renders outputs, downloads media, copies captions, and shows processing/help states', async () => {
     const { rerender } = renderMultiplier({
       outputs: [
         {
@@ -252,6 +257,12 @@ describe('PlatformMultiplierNode', () => {
 
     fireEvent.click(screen.getByText('Copy caption'));
     expect(mocks.writeText).toHaveBeenCalledWith('TikTok caption');
+    await waitFor(() =>
+      expect(mocks.updateNodeData).toHaveBeenCalledWith('multiplier-node', {
+        error: undefined,
+        status: WorkflowNodeStatus.IDLE,
+      }),
+    );
 
     rerender(
       <PlatformMultiplierNode
@@ -288,5 +299,33 @@ describe('PlatformMultiplierNode', () => {
       />,
     );
     expect(screen.getByText('Connect a video to multiply')).toBeVisible();
+  });
+
+  it('surfaces clipboard failures on the node', async () => {
+    const clipboardError = new Error('Clipboard denied');
+    mocks.writeText.mockRejectedValueOnce(clipboardError);
+    renderMultiplier({
+      outputs: [
+        {
+          caption: 'TikTok caption',
+          media: 'https://example.test/tiktok.mp4',
+          platform: 'tiktok',
+          status: WorkflowNodeStatus.COMPLETE,
+        },
+      ],
+    });
+
+    fireEvent.click(screen.getByText('Copy caption'));
+
+    await waitFor(() => {
+      expect(mocks.loggerError).toHaveBeenCalledWith(
+        'Platform caption copy failed',
+        { error: clipboardError, nodeId: 'multiplier-node' },
+      );
+      expect(mocks.updateNodeData).toHaveBeenCalledWith('multiplier-node', {
+        error: 'Failed to copy the platform caption.',
+        status: WorkflowNodeStatus.ERROR,
+      });
+    });
   });
 });

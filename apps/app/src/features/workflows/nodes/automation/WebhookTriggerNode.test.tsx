@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { WorkflowNodeStatus } from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,10 +8,15 @@ import { WebhookTriggerNode } from './WebhookTriggerNode';
 const mocks = vi.hoisted(() => ({
   createWebhook: vi.fn(),
   getService: vi.fn(),
+  loggerError: vi.fn(),
   regenerateWebhookSecret: vi.fn(),
   updateNodeData: vi.fn(),
   workflowId: 'workflow-1' as string | null,
   writeText: vi.fn(),
+}));
+
+vi.mock('@services/core/logger.service', () => ({
+  logger: { error: mocks.loggerError },
 }));
 
 vi.mock('@genfeedai/workflows/ui/stores', () => {
@@ -202,6 +208,10 @@ describe('WebhookTriggerNode', () => {
     mocks.createWebhook.mockClear();
     fireEvent.click(screen.getByText('Generate Webhook URL'));
     expect(mocks.createWebhook).not.toHaveBeenCalled();
+    expect(mocks.updateNodeData).toHaveBeenCalledWith('webhook-node', {
+      error: 'Save the workflow before generating a webhook.',
+      status: WorkflowNodeStatus.ERROR,
+    });
   });
 
   it('renders webhook details, copies values, changes auth, and regenerates secret', async () => {
@@ -251,7 +261,38 @@ describe('WebhookTriggerNode', () => {
       expect(mocks.regenerateWebhookSecret).toHaveBeenCalledWith('workflow-1');
     });
     expect(mocks.updateNodeData).toHaveBeenCalledWith('webhook-node', {
+      error: undefined,
+      status: WorkflowNodeStatus.IDLE,
       webhookSecret: 'secret-2',
     });
+  });
+
+  it('surfaces webhook action and clipboard failures', async () => {
+    mocks.createWebhook.mockRejectedValueOnce(new Error('generation failed'));
+    renderWebhook({ authType: 'secret' });
+
+    fireEvent.click(screen.getByText('Generate Webhook URL'));
+    await waitFor(() => {
+      expect(mocks.updateNodeData).toHaveBeenCalledWith('webhook-node', {
+        error: 'generation failed',
+        status: WorkflowNodeStatus.ERROR,
+      });
+    });
+
+    mocks.writeText.mockRejectedValueOnce(new Error('clipboard blocked'));
+    renderWebhook({
+      authType: 'secret',
+      webhookSecret: 'secret-1',
+      webhookUrl: 'https://hooks.example.test/workflow',
+    });
+    fireEvent.click(screen.getAllByLabelText('Copy URL')[0]);
+
+    await waitFor(() => {
+      expect(mocks.updateNodeData).toHaveBeenCalledWith('webhook-node', {
+        error: 'clipboard blocked',
+        status: WorkflowNodeStatus.ERROR,
+      });
+    });
+    expect(mocks.loggerError).toHaveBeenCalled();
   });
 });
