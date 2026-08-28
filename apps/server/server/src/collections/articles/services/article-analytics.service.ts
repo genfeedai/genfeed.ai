@@ -1,3 +1,6 @@
+import type { Prisma } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { CreateArticleAnalyticsDto } from '@server/collections/articles/dto/create-article-analytics.dto';
 import { UpdateArticleAnalyticsDto } from '@server/collections/articles/dto/update-article-analytics.dto';
 import { ArticleAnalyticsEntity } from '@server/collections/articles/entities/article-analytics.entity';
@@ -10,9 +13,6 @@ import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BaseService } from '@server/shared/services/base/base.service';
 import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
-import type { Prisma } from '@genfeedai/prisma';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ArticleAnalyticsService extends BaseService<
@@ -67,9 +67,7 @@ export class ArticleAnalyticsService extends BaseService<
     return new ArticleAnalyticsEntity(result);
   }
 
-  /**
-   * Update analytics for today, calculating increments from yesterday
-   */
+  /** Update today's analytics snapshot and engagement rate. */
   async updateTodayAnalytics(
     articleId: string,
     metrics: {
@@ -83,21 +81,6 @@ export class ArticleAnalyticsService extends BaseService<
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Find yesterday's analytics to calculate increments
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const yesterdayAnalytics = await this.findOne({
-      articleId,
-      date: yesterday,
-    });
-
-    // Get current values from yesterday or 0
-    const yesterdayViews = yesterdayAnalytics?.totalViews || 0;
-    const yesterdayLikes = yesterdayAnalytics?.totalLikes || 0;
-    const yesterdayComments = yesterdayAnalytics?.totalComments || 0;
-    const yesterdayShares = yesterdayAnalytics?.totalShares || 0;
-
     const todayAnalytics = await this.findOne({
       articleId,
       date: today,
@@ -109,12 +92,6 @@ export class ArticleAnalyticsService extends BaseService<
       metrics.totalComments ?? todayAnalytics?.totalComments ?? 0;
     const currentShares =
       metrics.totalShares ?? todayAnalytics?.totalShares ?? 0;
-    const increments = {
-      totalCommentsIncrement: Math.max(0, currentComments - yesterdayComments),
-      totalLikesIncrement: Math.max(0, currentLikes - yesterdayLikes),
-      totalSharesIncrement: Math.max(0, currentShares - yesterdayShares),
-      totalViewsIncrement: Math.max(0, currentViews - yesterdayViews),
-    };
 
     // Calculate engagement rate
     const engagementRate =
@@ -173,12 +150,26 @@ export class ArticleAnalyticsService extends BaseService<
     avgClickThroughRate: number;
     lastUpdated?: Date;
   }> {
-    const rows = await this.delegate.findMany({
-      where: { articleId, isDeleted: false },
-      orderBy: { date: 'desc' },
-    });
+    const where = { articleId, isDeleted: false };
+    const [summary, latest] = await Promise.all([
+      this.prisma.articleAnalytics.aggregate({
+        _avg: { engagementRate: true },
+        _max: {
+          totalComments: true,
+          totalLikes: true,
+          totalShares: true,
+          totalViews: true,
+        },
+        where,
+      }),
+      this.prisma.articleAnalytics.findFirst({
+        orderBy: { date: 'desc' },
+        select: { updatedAt: true },
+        where,
+      }),
+    ]);
 
-    if (rows.length === 0) {
+    if (!latest) {
       return {
         avgClickThroughRate: 0,
         avgEngagementRate: 0,
@@ -189,22 +180,14 @@ export class ArticleAnalyticsService extends BaseService<
       };
     }
 
-    const totalViews = Math.max(...rows.map((r) => r.totalViews ?? 0));
-    const totalLikes = Math.max(...rows.map((r) => r.totalLikes ?? 0));
-    const totalComments = Math.max(...rows.map((r) => r.totalComments ?? 0));
-    const totalShares = Math.max(...rows.map((r) => r.totalShares ?? 0));
-    const avgEngagementRate =
-      rows.reduce((sum, r) => sum + (r.engagementRate ?? 0), 0) / rows.length;
-    const lastUpdated = rows[0]?.updatedAt;
-
     return {
       avgClickThroughRate: 0,
-      avgEngagementRate,
-      lastUpdated,
-      totalComments,
-      totalLikes,
-      totalShares,
-      totalViews,
+      avgEngagementRate: summary._avg.engagementRate ?? 0,
+      lastUpdated: latest.updatedAt,
+      totalComments: summary._max.totalComments ?? 0,
+      totalLikes: summary._max.totalLikes ?? 0,
+      totalShares: summary._max.totalShares ?? 0,
+      totalViews: summary._max.totalViews ?? 0,
     };
   }
 
