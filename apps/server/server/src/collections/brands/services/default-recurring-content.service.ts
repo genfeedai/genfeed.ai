@@ -1,3 +1,9 @@
+import { WorkflowStatus } from '@genfeedai/enums';
+import { toPrismaJson } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
 import type { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
 import {
@@ -6,12 +12,6 @@ import {
 } from '@server/collections/workflows/utils/cron-schedule.util';
 import type { PrismaTransactionClient } from '@server/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { WorkflowStatus } from '@genfeedai/enums';
-import { toPrismaJson } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 
 // Prisma error codes used for race-condition handling.
 // P2034 — serialization failure (SQLSTATE 40001): the Serializable transaction
@@ -449,14 +449,11 @@ export class DefaultRecurringContentService {
     tx: PrismaTransactionClient;
     userId: string;
   }): Promise<void> {
-    const brandId = String(
-      params.brand.id ?? (params.brand as Record<string, unknown>).id,
-    );
-    const brandRecord = params.brand as unknown as Record<string, unknown>;
-    const scheduleConfig = this.resolveScheduleConfig(brandRecord.agentConfig);
+    const brandId = params.brand.id;
+    const scheduleConfig = this.resolveScheduleConfig(params.brand.agentConfig);
 
     const workflowLabel = this.buildWorkflowLabel(
-      params.brand.label as unknown as string,
+      params.brand.label,
       params.contentType,
     );
     const workflowDescription = this.buildWorkflowDescription(
@@ -495,7 +492,7 @@ export class DefaultRecurringContentService {
             data: {
               config: this.buildNodeConfig({
                 brandId,
-                brandLabel: params.brand.label as unknown as string,
+                brandLabel: params.brand.label,
                 contentType: params.contentType,
                 credentialId: params.credentialId ?? undefined,
                 timezone: scheduleConfig.timezone,
@@ -517,10 +514,7 @@ export class DefaultRecurringContentService {
       },
     });
 
-    const workflowId = String(
-      (workflow as Record<string, unknown>).id ??
-        (workflow as Record<string, unknown>).id,
-    );
+    const workflowId = workflow.id;
 
     this.logger.log(`${this.logContext} created default recurring workflow`, {
       brandId,
@@ -558,7 +552,6 @@ export class DefaultRecurringContentService {
           prompt: `Create the next daily newsletter issue for ${params.brandLabel}.`,
         };
       case 'image':
-      default:
         return {
           ...sharedConfig,
           model: 'genfeed-ai/flux2-dev',
@@ -575,7 +568,6 @@ export class DefaultRecurringContentService {
       case 'newsletter':
         return 'Generate Newsletter';
       case 'image':
-      default:
         return 'Generate Image';
     }
   }
@@ -587,7 +579,6 @@ export class DefaultRecurringContentService {
       case 'newsletter':
         return 'ai-generate-newsletter';
       case 'image':
-      default:
         return 'ai-generate-image';
     }
   }
@@ -602,7 +593,6 @@ export class DefaultRecurringContentService {
       case 'newsletter':
         return `Daily newsletter for ${brandLabel}`;
       case 'image':
-      default:
         return `Daily images for ${brandLabel}`;
     }
   }

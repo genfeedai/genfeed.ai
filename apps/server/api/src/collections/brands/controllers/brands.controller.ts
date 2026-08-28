@@ -1,33 +1,16 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
 import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-templates.constant';
 import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-access.helpers';
-import { CreateBrandDto } from '@server/collections/brands/dto/create-brand.dto';
-import { UpdateBrandDto } from '@server/collections/brands/dto/update-brand.dto';
-import { type BrandDocument } from '@server/collections/brands/schemas/brand.schema';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import { LinksService } from '@server/collections/links/services/links.service';
-import { MusicsService } from '@server/collections/musics/services/musics.service';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { VideosService } from '@server/collections/videos/services/videos.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { BaseService } from '@server/shared/services/base/base.service';
 import {
   ActivityKey,
   ActivitySource,
@@ -53,6 +36,23 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import { CreateBrandDto } from '@server/collections/brands/dto/create-brand.dto';
+import { UpdateBrandDto } from '@server/collections/brands/dto/update-brand.dto';
+import { type BrandDocument } from '@server/collections/brands/schemas/brand.schema';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { ImagesService } from '@server/collections/images/services/images.service';
+import { LinksService } from '@server/collections/links/services/links.service';
+import { MusicsService } from '@server/collections/musics/services/musics.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { VideosService } from '@server/collections/videos/services/videos.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { BaseService } from '@server/shared/services/base/base.service';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -347,7 +347,6 @@ export class BrandsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Query() query: BaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    // Call parent implementation
     return super.findAll(request, user, query);
   }
 
@@ -473,7 +472,6 @@ export class BrandsController extends BaseCRUDController<
   ): Promise<JsonApiSingleResponse> {
     await verifyBrandAccess(this.brandsService, brandId, user);
 
-    // Call parent implementation without caching
     return super.findOne(request, user, brandId);
   }
 }
