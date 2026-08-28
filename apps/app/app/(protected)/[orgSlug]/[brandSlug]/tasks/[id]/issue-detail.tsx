@@ -2,6 +2,8 @@
 
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
 import {
   type IssueComment,
   IssueCommentsService,
@@ -157,6 +159,7 @@ export default function IssueDetail({
   issueId,
   useIdentifier,
 }: IssueDetailProps) {
+  const notificationsService = NotificationsService.getInstance();
   const [state, dispatch] = useReducer(
     issueDetailReducer,
     initialIssueDetailState,
@@ -217,8 +220,9 @@ export default function IssueDetail({
           },
         });
       }
-    } catch {
+    } catch (error) {
       if (!controller.signal.aborted) {
+        logger.error('Failed to load task detail', { error, issueId });
         dispatch({ type: 'LOAD_ERROR' });
       }
     } finally {
@@ -246,11 +250,16 @@ export default function IssueDetail({
           status: newStatus,
         });
         dispatch({ type: 'SET_ISSUE', payload: updated });
-      } catch {
-        // Status update failed
+      } catch (error) {
+        logger.error('Failed to update task status', {
+          error,
+          status: newStatus,
+          taskId: issue.id,
+        });
+        notificationsService.error('Failed to update task status');
       }
     },
-    [getTasksService, issue],
+    [getTasksService, issue, notificationsService],
   );
 
   const handleAddComment = useCallback(async () => {
@@ -264,12 +273,23 @@ export default function IssueDetail({
       const newComment = await commentsService.addComment(commentBody.trim());
       dispatch({ type: 'APPEND_COMMENT', payload: newComment });
       dispatch({ type: 'SET_COMMENT_BODY', payload: '' });
-    } catch {
-      // Comment failed silently
+    } catch (error) {
+      logger.error('Failed to add task comment', {
+        error,
+        taskId: issue?.id ?? issueId,
+      });
+      notificationsService.error('Failed to add comment');
     } finally {
       dispatch({ type: 'SUBMIT_END' });
     }
-  }, [commentBody, getCommentsService, isSubmitting]);
+  }, [
+    commentBody,
+    getCommentsService,
+    isSubmitting,
+    issue?.id,
+    issueId,
+    notificationsService,
+  ]);
 
   const hiddenCommentCount = Math.max(
     0,
