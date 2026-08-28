@@ -204,6 +204,7 @@ export function AgentChatTimeline({
               key={`pending-ui-action-${action.id}`}
               action={action}
               apiService={apiService}
+              isDisabled={isBusy}
               isReadOnly={isReadOnly}
               onCopy={onCopy}
               onOAuthConnect={onOAuthConnect}

@@ -24,7 +24,7 @@ export type HandleUiActionDeps = {
   isBusy: boolean;
   isReadOnly: boolean;
   latestProposedPlan: AgentProposedPlan | null;
-  sendMessage: (content: string) => void;
+  sendMessage: (content: string) => Promise<void>;
   setActiveThread: (id: string | null) => void;
   setActiveUiAction: (action: string | null) => void;
   setCreditsRemaining: (credits: number) => void;
@@ -53,9 +53,25 @@ export async function handleAgentUiAction(
       return false;
     }
 
-    deps.followLatestTurn('smooth');
-    void deps.sendMessage(prompt);
-    return true;
+    if (deps.isBusy || deps.activeUiAction) {
+      return false;
+    }
+
+    deps.setActiveUiAction(action);
+    deps.setError(null);
+
+    try {
+      deps.followLatestTurn('smooth');
+      await deps.sendMessage(prompt);
+      return true;
+    } catch (err) {
+      deps.setError(
+        err instanceof Error ? err.message : 'Failed to send follow-up prompt',
+      );
+      return false;
+    } finally {
+      deps.setActiveUiAction(null);
+    }
   }
 
   if (action === 'apply_to_draft') {
@@ -105,7 +121,6 @@ export async function handleAgentUiAction(
   }
 
   if (deps.isBusy || deps.activeUiAction) {
-    deps.setError('A UI action is already in progress.');
     return false;
   }
 

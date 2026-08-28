@@ -629,6 +629,22 @@ describe('AppProtectedTopbar', () => {
     expect(mockPush).toHaveBeenCalledWith('/acme/~/agent/new');
   });
 
+  it('starts an explicit brandless conversation when clearing a brand-owned thread', () => {
+    mockPathname.value = `/acme/werwer/agent/${threadId}`;
+
+    render(
+      <AppProtectedTopbar
+        orgSlug="acme"
+        brandSlug="werwer"
+        currentApp="agent"
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('clear-brand-selection'));
+
+    expect(mockPush).toHaveBeenCalledWith('/acme/~/agent/new');
+  });
+
   it('routes clear-brand from brand-only settings to the org brands hub', () => {
     mockPathname.value = '/acme/brand/settings/publishing';
 
