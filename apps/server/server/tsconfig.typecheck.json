@@ -1,10 +1,11 @@
 {
   "compilerOptions": {
-    "types": ["node", "vitest/globals"]
+    "types": ["node"]
   },
   "exclude": [
     "node_modules",
     "dist",
+    "src/shared/testing/**/*",
     "**/*.spec.ts",
     "**/*.test.ts",
     "**/*.e2e-spec.ts"

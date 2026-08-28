@@ -225,13 +225,11 @@ jobs:
       - name: Run lint
         run: |
           if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
-            TURBO_SCM_BASE="$CI_BASE_SHA" bunx turbo run lint --affected
+            TURBO_SCM_BASE="$CI_BASE_SHA" bunx turbo run lint --affected --concurrency=1
           else
             bun run lint
           fi
       - name: Run typecheck
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
         run: |
           if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
             TURBO_SCM_BASE="$CI_BASE_SHA" bunx turbo run type-check --affected --concurrency=1
@@ -271,7 +269,7 @@ jobs:
       # @genfeedai/constants to their dist output, so the package graph has to
       # exist before any program is created.
       - name: Build packages
-        run: bunx turbo run build --filter='./packages/*'
+        run: bunx turbo run build --filter='./packages/*' --concurrency=1
       - name: Spec Typecheck Ratchet
         # Keep each TypeScript program in its own process. A single repo-wide
         # process retained enough compiler state to hit the runner shutdown

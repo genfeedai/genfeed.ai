@@ -1,4 +1,5 @@
 import { Readable } from 'node:stream';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -190,6 +191,178 @@ describe('OpenRouterService', () => {
         expect.stringContaining('chatCompletion failed'),
         expect.objectContaining({ status: 502 }),
       );
+    });
+
+    it('retries the synthetic free route once after an upstream rate limit', async () => {
+      const rateLimitError = Object.assign(new Error('Provider rate limited'), {
+        response: {
+          data: {
+            error: {
+              code: 429,
+              message: 'Provider returned an error',
+            },
+          },
+          status: 429,
+          statusText: 'Too Many Requests',
+        },
+      });
+      httpService.post
+        .mockReturnValueOnce(throwError(() => rateLimitError))
+        .mockReturnValueOnce(of(makeAxiosResponse(mockResponse)));
+
+      const result = await service.chatCompletion({
+        ...defaultParams,
+        model: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+      });
+
+      expect(result).toEqual(mockResponse);
+      expect(httpService.post).toHaveBeenCalledTimes(2);
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('retrying synthetic free route'),
+        expect.objectContaining({ status: 429 }),
+      );
+    });
+
+    it('does not retry an explicit model after an upstream rate limit', async () => {
+      const rateLimitError = Object.assign(new Error('Provider rate limited'), {
+        response: { status: 429, statusText: 'Too Many Requests' },
+      });
+      httpService.post.mockReturnValue(throwError(() => rateLimitError));
+
+      await expect(service.chatCompletion(defaultParams)).rejects.toMatchObject(
+        {
+          response: { status: 429 },
+        },
+      );
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not retry the synthetic free route for a non-retryable request error', async () => {
+      const badRequestError = Object.assign(new Error('Invalid request'), {
+        response: { status: 400, statusText: 'Bad Request' },
+      });
+      httpService.post.mockReturnValue(throwError(() => badRequestError));
+
+      await expect(
+        service.chatCompletion({
+          ...defaultParams,
+          model: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+        }),
+      ).rejects.toMatchObject({ response: { status: 400 } });
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries the synthetic free route when ZDR filtering leaves no endpoint', async () => {
+      const unavailableRouteError = Object.assign(
+        new Error('Request failed with status code 404'),
+        {
+          response: {
+            data: {
+              error: {
+                code: 404,
+                message:
+                  'No endpoints found matching your data policy (Zero data retention). Configure: https://openrouter.ai/settings/privacy',
+              },
+            },
+            status: 404,
+            statusText: 'Not Found',
+          },
+        },
+      );
+      httpService.post
+        .mockReturnValueOnce(throwError(() => unavailableRouteError))
+        .mockReturnValueOnce(of(makeAxiosResponse(mockResponse)));
+
+      const result = await service.chatCompletion({
+        ...defaultParams,
+        model: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+      });
+
+      expect(result).toEqual(mockResponse);
+      expect(httpService.post).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not retry an arbitrary 404 from the synthetic free route', async () => {
+      const notFoundError = Object.assign(new Error('Resource not found'), {
+        response: {
+          data: { error: { code: 404, message: 'Resource not found' } },
+          status: 404,
+          statusText: 'Not Found',
+        },
+      });
+      httpService.post.mockReturnValue(throwError(() => notFoundError));
+
+      await expect(
+        service.chatCompletion({
+          ...defaultParams,
+          model: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+        }),
+      ).rejects.toMatchObject({ response: { status: 404 } });
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not retry a route-unavailable 404 for an explicit model', async () => {
+      const unavailableRouteError = Object.assign(
+        new Error('Request failed with status code 404'),
+        {
+          response: {
+            data: {
+              error: {
+                code: 404,
+                message:
+                  'No endpoints found matching your data policy (Zero data retention).',
+              },
+            },
+            status: 404,
+            statusText: 'Not Found',
+          },
+        },
+      );
+      httpService.post.mockReturnValue(throwError(() => unavailableRouteError));
+
+      await expect(service.chatCompletion(defaultParams)).rejects.toMatchObject(
+        { response: { status: 404 } },
+      );
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+    });
+
+    it('preserves the nested upstream status after free-route retry exhaustion', async () => {
+      const exhaustedError = Object.assign(
+        new Error('Request failed with 404'),
+        {
+          response: {
+            data: {
+              error: {
+                code: 404,
+                message: 'No available provider',
+                metadata: {
+                  raw: JSON.stringify({
+                    error: {
+                      code: 429,
+                      message: 'Upstream provider rate limited',
+                    },
+                  }),
+                },
+              },
+            },
+            status: 404,
+            statusText: 'Not Found',
+          },
+        },
+      );
+      httpService.post.mockReturnValue(throwError(() => exhaustedError));
+
+      await expect(
+        service.chatCompletion({
+          ...defaultParams,
+          model: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+        }),
+      ).rejects.toMatchObject({
+        message: 'Upstream provider rate limited',
+        response: { status: 429 },
+        status: 429,
+      });
+      expect(httpService.post).toHaveBeenCalledTimes(2);
     });
 
     it('spreads original params into request body', async () => {
@@ -426,6 +599,61 @@ describe('OpenRouterService', () => {
         expect.stringContaining('streamChatCompletionAggregated failed'),
         expect.any(Object),
       );
+    });
+
+    it('retries a pre-token SSE rate limit from the synthetic free route once', async () => {
+      const rateLimitedStream = Readable.from([
+        'data: {"error":{"code":429,"message":"Provider rate limited"}}\n\n',
+        'data: [DONE]\n\n',
+      ]);
+      const successfulStream = Readable.from([
+        'data: {"id":"gen-retry","choices":[{"delta":{"content":"Recovered"},"finish_reason":"stop"}]}\n\n',
+        'data: [DONE]\n\n',
+      ]);
+      httpService.post
+        .mockReturnValueOnce(of(makeAxiosResponse(rateLimitedStream)))
+        .mockReturnValueOnce(of(makeAxiosResponse(successfulStream)));
+      const tokens: string[] = [];
+
+      const result = await service.streamChatCompletionAggregated(
+        {
+          ...defaultParams,
+          model: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+        },
+        undefined,
+        async (token) => {
+          tokens.push(token);
+        },
+      );
+
+      expect(result.choices[0]?.message.content).toBe('Recovered');
+      expect(tokens).toEqual(['Recovered']);
+      expect(httpService.post).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not retry a free-route SSE failure after forwarding a token', async () => {
+      const partialStream = Readable.from([
+        'data: {"id":"gen-partial","choices":[{"delta":{"content":"Partial"},"finish_reason":null}]}\n\n',
+        'data: {"error":{"code":429,"message":"Provider rate limited"}}\n\n',
+      ]);
+      httpService.post.mockReturnValue(of(makeAxiosResponse(partialStream)));
+      const tokens: string[] = [];
+
+      await expect(
+        service.streamChatCompletionAggregated(
+          {
+            ...defaultParams,
+            model: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+          },
+          undefined,
+          async (token) => {
+            tokens.push(token);
+          },
+        ),
+      ).rejects.toMatchObject({ response: { status: 429 } });
+
+      expect(tokens).toEqual(['Partial']);
+      expect(httpService.post).toHaveBeenCalledTimes(1);
     });
   });
 });

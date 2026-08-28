@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const sanitizeLayoutForPersistence = vi.fn();
 
-vi.mock('@genfeedai/agent/dashboard', () => ({
+vi.mock('@genfeedai/agent/server', () => ({
   sanitizeLayoutForPersistence: (input: unknown) =>
     sanitizeLayoutForPersistence(input),
 }));

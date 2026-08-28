@@ -32,6 +32,20 @@ type ReleaseProjectionRecord = {
 
 type ScheduleWindow = { gte: Date; lte: Date };
 
+type SchedulerPostTargetRow = Omit<
+  SchedulerPostTarget,
+  'credentialId' | 'platform'
+> & {
+  credentialId: string | null;
+  platform: string | null;
+};
+
+function isSchedulerPostTarget(
+  target: SchedulerPostTargetRow,
+): target is SchedulerPostTarget {
+  return Boolean(target.credentialId?.trim() && target.platform?.trim());
+}
+
 /** Exactly the columns the release projection consumes — nothing else. */
 const SCHEDULER_POST_GROUP_SELECT = {
   attachments: true,
@@ -347,7 +361,7 @@ export class PostGroupPersistenceService {
       ? await this.findGroupIdsInScheduleWindow(query, window)
       : undefined;
 
-    const [groups, targets] = await Promise.all([
+    const [groups, targetRows] = await Promise.all([
       this.prisma.postGroup.findMany({
         orderBy: { id: 'asc' },
         select: SCHEDULER_POST_GROUP_SELECT,
@@ -366,7 +380,9 @@ export class PostGroupPersistenceService {
         select: SCHEDULER_POST_TARGET_SELECT,
         where: scopedWhere(query.organizationId, {
           ...brandFilter,
+          credentialId: { not: null },
           parentId: null,
+          platform: { not: null },
           ...(window && windowGroupIds
             ? {
                 OR: [
@@ -376,8 +392,9 @@ export class PostGroupPersistenceService {
               }
             : {}),
         }),
-      }) as Promise<SchedulerPostTarget[]>,
+      }) as Promise<SchedulerPostTargetRow[]>,
     ]);
+    const targets = targetRows.filter(isSchedulerPostTarget);
 
     const groupsById = new Map(groups.map((group) => [group.id, group]));
     const targetsByGroup = new Map<string, SchedulerPostTarget[]>();
@@ -487,8 +504,10 @@ export class PostGroupPersistenceService {
         select: { groupId: true },
         where: scopedWhere(query.organizationId, {
           ...brandFilter,
+          credentialId: { not: null },
           groupId: { not: null },
           parentId: null,
+          platform: { not: null },
           scheduledDate: window,
         }),
       }),
@@ -836,11 +855,18 @@ export class PostGroupPersistenceService {
     organizationId: string,
     groupId: string,
   ): Promise<SchedulerPostTarget[]> {
-    return (await client.post.findMany({
+    const rows = (await client.post.findMany({
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
       select: SCHEDULER_POST_TARGET_SELECT,
-      where: scopedWhere(organizationId, { groupId, parentId: null }),
-    })) as SchedulerPostTarget[];
+      where: scopedWhere(organizationId, {
+        credentialId: { not: null },
+        groupId,
+        parentId: null,
+        platform: { not: null },
+      }),
+    })) as SchedulerPostTargetRow[];
+
+    return rows.filter(isSchedulerPostTarget);
   }
 
   async getLatestTargetAnalytics(

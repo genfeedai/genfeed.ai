@@ -387,7 +387,7 @@ describe('SocketService', () => {
       },
     );
 
-    it('keeps server-forced disconnects observable with bounded context', () => {
+    it('keeps server-rejected auth observable without retrying it', () => {
       SocketService.getInstance();
 
       socketState.active = false;
@@ -398,10 +398,10 @@ describe('SocketService', () => {
         {
           expected: false,
           reason: 'io server disconnect',
-          recovery: 'manual',
+          recovery: 'none',
           tags: {
             component: 'realtime',
-            recovery: 'manual',
+            recovery: 'none',
           },
         },
       );

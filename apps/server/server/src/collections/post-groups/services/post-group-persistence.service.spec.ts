@@ -1,13 +1,3 @@
-import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
-import type {
-  SchedulerPostGroup,
-  SchedulerPostTarget,
-} from '@server/collections/post-groups/services/post-group.types';
-import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
-import { PostGroupPersistenceService } from '@server/collections/post-groups/services/post-group-persistence.service';
-import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
-import { PublishingProviderSetupService } from '@server/collections/publishing-setup/services/publishing-provider-setup.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
   PostStatus,
@@ -20,6 +10,16 @@ import {
 } from '@genfeedai/enums';
 import type { ConfigService } from '@libs/config/config.service';
 import { BadRequestException } from '@nestjs/common';
+import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
+import type {
+  SchedulerPostGroup,
+  SchedulerPostTarget,
+} from '@server/collections/post-groups/services/post-group.types';
+import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
+import { PostGroupPersistenceService } from '@server/collections/post-groups/services/post-group-persistence.service';
+import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
+import { PublishingProviderSetupService } from '@server/collections/publishing-setup/services/publishing-provider-setup.service';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 /**
  * Setup signals are not what these tests exercise, so every provider reads as
@@ -291,10 +291,12 @@ describe('PostGroupPersistenceService', () => {
       select: { groupId: true },
       where: {
         brandId: 'brand-1',
+        credentialId: { not: null },
         groupId: { not: null },
         isDeleted: false,
         organizationId: 'org-1',
         parentId: null,
+        platform: { not: null },
         scheduledDate: window,
       },
     });
@@ -329,6 +331,7 @@ describe('PostGroupPersistenceService', () => {
         }),
         where: {
           brandId: 'brand-1',
+          credentialId: { not: null },
           isDeleted: false,
           OR: [
             { groupId: { in: ['group-target'] } },
@@ -336,6 +339,7 @@ describe('PostGroupPersistenceService', () => {
           ],
           organizationId: 'org-1',
           parentId: null,
+          platform: { not: null },
         },
       }),
     );
@@ -580,12 +584,28 @@ describe('PostGroupPersistenceService', () => {
     expect(prisma.post.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          credentialId: { not: null },
           isDeleted: false,
           organizationId: 'org-1',
           parentId: null,
+          platform: { not: null },
         },
       }),
     );
+  });
+
+  it('ignores legacy posts without a channel identity', async () => {
+    prisma.post.findMany.mockResolvedValue([
+      {
+        ...makeTarget({ groupId: null, id: 'legacy-post' }),
+        platform: null,
+      },
+    ]);
+
+    await expect(
+      service.listReleaseGroups({ organizationId: 'org-1' }),
+    ).resolves.toMatchObject({ docs: [], totalDocs: 0 });
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
   });
 
   it('copies independent lifecycle and visibility onto attachment posts', async () => {

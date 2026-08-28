@@ -13,15 +13,21 @@
     "vitest": "4.1.11"
   },
   "exports": {
+    "./server": {
+      "types": "./dist/server/server.d.ts",
+      "default": "./server.ts"
+    },
     "./*": "./*"
   },
   "name": "@genfeedai/utils",
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "tsc -p tsconfig.server.json",
+    "clean": "rm -rf dist",
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit"
   },
   "sideEffects": false,
   "version": "0.1.0"

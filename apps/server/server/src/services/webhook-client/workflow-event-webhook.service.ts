@@ -1,8 +1,4 @@
 import {
-  WebhookDispatchService,
-  WORKFLOW_WEBHOOK_JOB_ID_PREFIX,
-} from '@server/services/webhook-client/webhook-dispatch.service';
-import {
   classifyWorkflowWebhookError,
   createWorkflowWebhookEventId,
   redactWorkflowWebhookText,
@@ -16,6 +12,10 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import {
+  WebhookDispatchService,
+  WORKFLOW_WEBHOOK_JOB_ID_PREFIX,
+} from './webhook-dispatch.service';
 
 export interface WorkflowExecutionWebhookInput {
   completedAt?: Date | string | null;

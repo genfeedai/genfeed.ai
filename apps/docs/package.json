@@ -27,7 +27,7 @@
     "lint": "biome check app components content lib tests instrumentation-client.ts mdx-components.tsx next.config.mjs vitest.config.ts package.json tsconfig.json types styles README.md",
     "start": "next start",
     "test": "vitest run --config vitest.config.ts",
-    "type-check": "tsc --noEmit",
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit",
     "dev:process": "bun run ../../scripts/dev/run-service.ts docs -- next dev --turbopack",
     "dev:debug": "bun run dev:process"
   },

@@ -1,3 +1,7 @@
+import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { extractHashtags } from '@genfeedai/utils/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
 import { GenerateContentDto } from '@server/collections/content-intelligence/dto/generate-content.dto';
 import { type ContentPatternDocument } from '@server/collections/content-intelligence/schemas/content-pattern.schema';
 import { PatternStoreService } from '@server/collections/content-intelligence/services/pattern-store.service';
@@ -12,10 +16,6 @@ import {
 } from '@server/services/agent-context-assembly/brand-context-budget.util';
 import { HarnessGenerationService } from '@server/services/harness/harness-generation.service';
 import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { extractHashtags } from '@genfeedai/utils/data/extract.util';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
 
 export interface GeneratedContent {
   content: string;

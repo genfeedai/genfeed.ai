@@ -5,6 +5,7 @@ import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibrary
 import { useAgentChatInput } from '@genfeedai/agent/components/useAgentChatInput';
 import type {
   ConversationComposerGenerationMode,
+  ConversationComposerGenerationSettings,
   ConversationComposerSendOptions,
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
@@ -119,6 +120,31 @@ export function AgentChatInput({
   const isInspector = density === 'inspector';
   const [generationMode, setGenerationMode] =
     useState<ConversationComposerGenerationMode>('auto');
+  const [generationSettings, setGenerationSettings] =
+    useState<ConversationComposerGenerationSettings>({
+      aspectRatio: '1:1',
+      outputs: 1,
+    });
+  const handleConversationSend = useCallback(
+    async (
+      content: string,
+      mentions?: ExtractedMention[],
+      completedAttachments?: ChatAttachment[],
+      options?: ConversationComposerSendOptions,
+    ) => {
+      const accepted = await onSend(
+        content,
+        mentions,
+        completedAttachments,
+        options,
+      );
+      if (accepted !== false) {
+        setGenerationMode('auto');
+      }
+      return accepted;
+    },
+    [onSend],
+  );
   const {
     actionFeedback,
     canSendMessage,
@@ -154,10 +180,11 @@ export function AgentChatInput({
     dragState,
     getCompletedAttachments,
     generationMode,
+    generationSettings,
     hasQueuedFollowUps,
     isUploading,
     onPromoteQueuedFollowUp,
-    onSend,
+    onSend: handleConversationSend,
     onStop,
     placeholder,
     removeAttachment,
@@ -226,6 +253,7 @@ export function AgentChatInput({
         />
 
         <AgentChatInputToolbar
+          apiService={apiService}
           canSendMessage={canSendMessage}
           creditsAvailable={creditsAvailable}
           disabled={disabled}
@@ -235,10 +263,12 @@ export function AgentChatInput({
           isTranscribing={isTranscribing}
           isUploading={isUploading}
           generationMode={generationMode}
+          generationSettings={generationSettings}
           models={models}
           onAddFiles={addFiles}
           onInsertReference={handleInsertReference}
           onGenerationModeChange={setGenerationMode}
+          onGenerationSettingsChange={setGenerationSettings}
           onModelChange={onModelChange}
           onPrioritizeChange={onPrioritizeChange}
           onSelectAction={handleSelectAction}

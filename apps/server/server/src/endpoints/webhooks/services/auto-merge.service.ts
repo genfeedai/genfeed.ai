@@ -1,16 +1,3 @@
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { type IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
-import { extractUserIds } from '@server/helpers/utils/user-extraction/user-extraction.util';
-import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
-import { resolveRoom } from '@server/helpers/utils/websocket-room/websocket-room.util';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { JOB_TYPES } from '@files/queues/queue.constants';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -22,11 +9,24 @@ import {
   TransformationCategory,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { type IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { CategoryPrismaUtil } from '@server/helpers/utils/category-prisma/category-prisma.util';
+import { extractUserIds } from '@server/helpers/utils/user-extraction/user-extraction.util';
+import { WebSocketPaths } from '@server/helpers/utils/websocket/websocket.util';
+import { resolveRoom } from '@server/helpers/utils/websocket-room/websocket-room.util';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 
 @Injectable()
 export class AutoMergeService {

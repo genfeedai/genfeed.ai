@@ -1,8 +1,4 @@
 import {
-  GENERATION_WEBHOOK_JOB_ID_PREFIX,
-  WebhookDispatchService,
-} from '@server/services/webhook-client/webhook-dispatch.service';
-import {
   classifyGenerationWebhookError,
   createGenerationWebhookEventId,
   GENERATION_WEBHOOK_SCHEMA_VERSION,
@@ -15,6 +11,10 @@ import {
 } from '@api-types/contracts/generation-webhook-events.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import {
+  GENERATION_WEBHOOK_JOB_ID_PREFIX,
+  WebhookDispatchService,
+} from './webhook-dispatch.service';
 
 export interface GenerationWebhookOutcomeInput {
   brandId?: string | null;

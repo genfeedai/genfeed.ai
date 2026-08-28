@@ -1,3 +1,13 @@
+import type {
+  AgentDashboardOperation,
+  AgentUIBlock,
+  AgentUiAction,
+} from '@genfeedai/interfaces';
+import type { StructuredProgressDebugPayload } from '@genfeedai/utils/server';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { RedisService } from '@libs/redis/redis.service';
+import { Injectable, Optional } from '@nestjs/common';
 import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
 import {
   fromPromiseEffect,
@@ -8,16 +18,6 @@ import {
   AgentThreadEngineService,
   type AppendAgentThreadEventParams,
 } from '@server/services/agent-threading/services/agent-thread-engine.service';
-import type {
-  AgentDashboardOperation,
-  AgentUIBlock,
-  AgentUiAction,
-} from '@genfeedai/interfaces';
-import type { StructuredProgressDebugPayload } from '@genfeedai/utils/progress/structured-progress-event.util';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { RedisService } from '@libs/redis/redis.service';
-import { Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
 
 const CHANNEL = 'agent-chat';
