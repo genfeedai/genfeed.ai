@@ -6,21 +6,7 @@
  * worker slot only for the duration of a single outbound call and survives a
  * restart with nothing but its database rows.
  */
-import type { SocialInboxScope } from '@server/collections/social-inbox/services/social-inbox.types';
-import { SocialInboxActionService } from '@server/collections/social-inbox/services/social-inbox-action.service';
-import {
-  dayWindowStart,
-  decideThrottle,
-  hourWindowStart,
-  renderCampaignBody,
-} from '@server/collections/social-inbox/services/social-reply-campaign.helpers';
-import type { SocialReplyCampaign } from '@server/collections/social-inbox/services/social-reply-campaign.types';
-import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowProvenanceService,
-} from '@server/collections/workflows/system-workflow-provenance.service';
-import { SocialReplyCampaignQueueService } from '@server/queues/social-reply-campaign/social-reply-campaign-queue.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+
 import {
   SocialMessageType,
   SocialReplyCampaignRecipientStatus,
@@ -33,7 +19,26 @@ import type {
 } from '@genfeedai/queue-contracts';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  type OnModuleInit,
+} from '@nestjs/common';
+import type { SocialInboxScope } from '@server/collections/social-inbox/services/social-inbox.types';
+import { SocialInboxActionService } from '@server/collections/social-inbox/services/social-inbox-action.service';
+import {
+  dayWindowStart,
+  decideThrottle,
+  hourWindowStart,
+  renderCampaignBody,
+} from '@server/collections/social-inbox/services/social-reply-campaign.helpers';
+import type { SocialReplyCampaign } from '@server/collections/social-inbox/services/social-reply-campaign.types';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
+import { SocialReplyCampaignQueueService } from '@server/queues/social-reply-campaign/social-reply-campaign-queue.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 /**
  * Bounded per-recipient attempts before a transient provider error permanently
@@ -64,16 +69,39 @@ type ClaimResult =
   | { kind: 'lost-race' };
 
 @Injectable()
-export class SocialReplyCampaignDispatchService {
+export class SocialReplyCampaignDispatchService implements OnModuleInit {
   private readonly logContext = 'SocialReplyCampaignDispatchService';
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly actionService: SocialInboxActionService,
     private readonly queueService: SocialReplyCampaignQueueService,
-    private readonly provenanceService: SystemWorkflowProvenanceService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
     private readonly logger: LoggerService,
   ) {}
+
+  onModuleInit(): void {
+    this.workflowRunner.registerAction(
+      SYSTEM_WORKFLOW_ACTION_IDS.SOCIAL_REPLY_CAMPAIGN,
+      ({ input, provenance }) => {
+        const scope: SocialInboxScope = {
+          brandId:
+            typeof input.brandId === 'string' ? input.brandId : undefined,
+          organizationId: String(input.organizationId ?? ''),
+          userId: typeof input.userId === 'string' ? input.userId : undefined,
+        };
+        const conversationId = String(input.conversationId ?? '');
+        const request = {
+          idempotencyKey: String(input.idempotencyKey ?? ''),
+          text: String(input.body ?? ''),
+          workflowRunId: provenance.executionId,
+        };
+        return input.messageType === SocialMessageType.DM
+          ? this.actionService.sendDm(scope, conversationId, request)
+          : this.actionService.postReply(scope, conversationId, request);
+      },
+    );
+  }
 
   async dispatchTick(
     data: SocialReplyCampaignJobData,
@@ -344,38 +372,28 @@ export class SocialReplyCampaignDispatchService {
     });
 
     try {
-      const { result: message } = await this.provenanceService.runAction(
-        {
-          actionType: 'social-reply-campaign',
-          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SOCIAL_REPLY_CAMPAIGN,
-          description:
-            'Dispatches one throttled inbox reply or DM per tick, pacing a campaign across its rate-limit windows.',
-          inputValues: {
-            campaignId: campaign.id,
-            conversationId: recipient.conversationId,
-            messageType: campaign.messageType,
-            platform: campaign.platform,
-            recipientId,
-          },
-          label: 'Inbox Reply Campaign Dispatch',
+      const { result: message } = await this.workflowRunner.runAction<{
+        id: string;
+      }>({
+        actionType: 'social-reply-campaign',
+        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SOCIAL_REPLY_CAMPAIGN,
+        inputValues: {
+          body,
+          brandId: scope.brandId,
+          campaignId: campaign.id,
+          conversationId: recipient.conversationId,
+          idempotencyKey: recipient.idempotencyKey,
+          messageType: campaign.messageType,
           organizationId: campaign.organizationId,
-          source: 'SocialReplyCampaignDispatchService.dispatchTick',
-          trigger: WorkflowExecutionTrigger.SCHEDULED,
-          userId: campaign.userId ?? undefined,
+          platform: campaign.platform,
+          recipientId,
+          userId: scope.userId,
         },
-        (provenance) =>
-          campaign.messageType === SocialMessageType.DM
-            ? this.actionService.sendDm(scope, recipient.conversationId, {
-                idempotencyKey: recipient.idempotencyKey,
-                text: body,
-                workflowRunId: provenance.executionId,
-              })
-            : this.actionService.postReply(scope, recipient.conversationId, {
-                idempotencyKey: recipient.idempotencyKey,
-                text: body,
-                workflowRunId: provenance.executionId,
-              }),
-      );
+        organizationId: campaign.organizationId,
+        source: 'SocialReplyCampaignDispatchService.dispatchTick',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: campaign.userId ?? undefined,
+      });
 
       await this.markSent(
         campaign,

@@ -7,7 +7,7 @@ import { TRANSCRIPT_PURGE_SCHEDULE } from '@workers/crons/transcript-purge/trans
  * this queue instead of static @Cron decorators (issue #1092). BullMQ
  * guarantees exactly-one fire per scheduler id across worker replicas, and
  * each sweep records tenant-visible provenance through
- * SystemWorkflowProvenanceService.
+ * hidden system workflows.
  */
 
 export const SYSTEM_SWEEPS_QUEUE = 'system-sweeps';

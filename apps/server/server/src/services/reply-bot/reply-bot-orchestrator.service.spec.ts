@@ -1,8 +1,13 @@
+import { ReplyBotPlatform } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { BotActivitiesService } from '@server/collections/bot-activities/services/bot-activities.service';
 import { MonitoredAccountsService } from '@server/collections/monitored-accounts/services/monitored-accounts.service';
 import { ProcessedTweetsService } from '@server/collections/processed-tweets/services/processed-tweets.service';
 import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
-import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
 import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@server/services/reply-bot/rate-limit.service';
@@ -10,11 +15,6 @@ import { ReplyBotOrchestratorService } from '@server/services/reply-bot/reply-bo
 import { ReplyCandidatePrefilterService } from '@server/services/reply-bot/reply-candidate-prefilter.service';
 import { ReplyGenerationService } from '@server/services/reply-bot/reply-generation.service';
 import { SocialMonitorService } from '@server/services/reply-bot/social-monitor.service';
-import { ReplyBotPlatform } from '@genfeedai/enums';
-import { testId } from '@helpers/testing/test-id.helper';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ReplyBotOrchestratorService', () => {
   let service: ReplyBotOrchestratorService;
@@ -92,7 +92,7 @@ describe('ReplyBotOrchestratorService', () => {
     recordAuthorClosedLoop: vi.fn().mockResolvedValue(undefined),
   };
 
-  const mockSystemWorkflowProvenanceService = {
+  const mockSystemWorkflowRunner = {
     runAction: vi.fn(
       async (
         _input: unknown,
@@ -146,8 +146,8 @@ describe('ReplyBotOrchestratorService', () => {
           useValue: mockProcessedTweetsService,
         },
         {
-          provide: SystemWorkflowProvenanceService,
-          useValue: mockSystemWorkflowProvenanceService,
+          provide: SystemWorkflowRunnerService,
+          useValue: mockSystemWorkflowRunner,
         },
         {
           provide: AuthorReplyLoopService,

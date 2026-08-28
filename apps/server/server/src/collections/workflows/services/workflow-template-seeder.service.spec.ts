@@ -13,7 +13,7 @@ import {
 import {
   SYSTEM_WORKFLOW_ACTION_DEFINITIONS,
   SYSTEM_WORKFLOW_ACTION_IDS,
-} from '@server/collections/workflows/system-workflow-provenance.service';
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => {

@@ -8,30 +8,6 @@
  * - Tracks success/failure metrics
  */
 
-import { type CampaignTargetDocument } from '@server/collections/campaign-targets/schemas/campaign-target.schema';
-import { CampaignTargetsService } from '@server/collections/campaign-targets/services/campaign-targets.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import {
-  CampaignAiConfig,
-  type OutreachCampaignDocument,
-} from '@server/collections/outreach-campaigns/schemas/outreach-campaign.schema';
-import { readCampaignScheduleVersion } from '@server/collections/outreach-campaigns/services/outreach-campaign-schedule.util';
-import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
-import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowProvenanceService,
-} from '@server/collections/workflows/system-workflow-provenance.service';
-import { resolveCampaignScope } from '@server/services/campaign/campaign-scope.util';
-import {
-  isCampaignOutreachPairExecutable,
-  requireExecutableOutreachPair,
-} from '@server/services/campaign/outreach-capability.util';
-import { toReplyBotCredentialData } from '@server/services/campaign/reply-bot-credential.util';
-import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
-import {
-  type ReplyGenerationOptions,
-  ReplyGenerationService,
-} from '@server/services/reply-bot/reply-generation.service';
 import { getOutreachCapabilityRefusal } from '@api-types/contracts/outreach-capabilities.contract';
 import {
   CampaignPlatform,
@@ -49,7 +25,31 @@ import type {
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { type CampaignTargetDocument } from '@server/collections/campaign-targets/schemas/campaign-target.schema';
+import { CampaignTargetsService } from '@server/collections/campaign-targets/services/campaign-targets.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import {
+  CampaignAiConfig,
+  type OutreachCampaignDocument,
+} from '@server/collections/outreach-campaigns/schemas/outreach-campaign.schema';
+import { readCampaignScheduleVersion } from '@server/collections/outreach-campaigns/services/outreach-campaign-schedule.util';
+import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
+import { resolveCampaignScope } from '@server/services/campaign/campaign-scope.util';
+import {
+  isCampaignOutreachPairExecutable,
+  requireExecutableOutreachPair,
+} from '@server/services/campaign/outreach-capability.util';
+import { toReplyBotCredentialData } from '@server/services/campaign/reply-bot-credential.util';
+import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
+import {
+  type ReplyGenerationOptions,
+  ReplyGenerationService,
+} from '@server/services/reply-bot/reply-generation.service';
 
 export interface ExecutionResult {
   success: boolean;
@@ -61,7 +61,7 @@ export interface ExecutionResult {
 }
 
 @Injectable()
-export class CampaignExecutorService {
+export class CampaignExecutorService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
@@ -71,8 +71,15 @@ export class CampaignExecutorService {
     private readonly credentialsService: CredentialsService,
     private readonly replyGenerationService: ReplyGenerationService,
     private readonly botActionExecutorService: BotActionExecutorService,
-    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
   ) {}
+
+  onModuleInit(): void {
+    this.systemWorkflowRunner.registerAction(
+      SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_REPLY_AUTOMATION,
+      ({ input }) => this.executeCampaignReplyAction(input),
+    );
+  }
 
   /**
    * Execute a single target
@@ -227,38 +234,27 @@ export class CampaignExecutorService {
         };
       }
 
-      const { result: postResult } =
-        await this.systemWorkflowProvenanceService.runAction(
-          {
-            actionType: 'campaign-reply',
-            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_REPLY_AUTOMATION,
-            description:
-              'Generates and posts outreach campaign replies through connected brand credentials.',
-            failureMessage: (replyResult) =>
-              replyResult.success
-                ? undefined
-                : replyResult.error || 'Campaign reply failed',
-            inputValues: {
-              campaignId: campaign.id.toString(),
-              platform: campaign.platform,
-              targetId: target.id.toString(),
-            },
-            label: 'Campaign Reply Automation',
-            organizationId: scope.organizationId,
-            source: 'CampaignExecutorService.executeTarget',
-            trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId: scope.userId,
-          },
-          () =>
-            Promise.resolve(
-              this.postReply(
-                campaign.platform,
-                credentialData,
-                target,
-                replyText,
-              ),
-            ),
-        );
+      const { result: postResult } = await this.systemWorkflowRunner.runAction<{
+        error?: string;
+        success: boolean;
+        tweetId?: string;
+        tweetUrl?: string;
+      }>({
+        actionType: 'campaign-reply',
+        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_REPLY_AUTOMATION,
+        inputValues: {
+          campaignId: campaign.id.toString(),
+          credentialId: scope.credentialId,
+          organizationId: scope.organizationId,
+          platform: campaign.platform,
+          replyText,
+          targetId: target.id.toString(),
+        },
+        organizationId: scope.organizationId,
+        source: 'CampaignExecutorService.executeTarget',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: scope.userId,
+      });
 
       if (!postResult.success) {
         await this.campaignTargetsService.markAsFailed(
@@ -332,6 +328,36 @@ export class CampaignExecutorService {
         success: false,
       };
     }
+  }
+
+  private async executeCampaignReplyAction(input: Record<string, unknown>) {
+    const organizationId = String(input.organizationId ?? '');
+    const credentialRecord = await this.findCampaignCredential({
+      credentialId: String(input.credentialId ?? ''),
+      organizationId,
+    });
+    const credential = credentialRecord
+      ? toReplyBotCredentialData(
+          credentialRecord as unknown as Record<string, unknown>,
+          { organizationId },
+        )
+      : null;
+    if (!credential) {
+      throw new Error('Campaign reply credential is unavailable');
+    }
+    const target = await this.campaignTargetsService.findOne({
+      id: String(input.targetId ?? ''),
+      organizationId,
+    });
+    if (!target) {
+      throw new Error('Campaign reply target is unavailable');
+    }
+    return this.postReply(
+      input.platform as OutreachCampaignDocument['platform'],
+      credential,
+      target as CampaignTargetDocument,
+      String(input.replyText ?? ''),
+    );
   }
 
   /**

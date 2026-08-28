@@ -1,10 +1,3 @@
-import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowProvenanceService,
-} from '@server/collections/workflows/system-workflow-provenance.service';
-import type { XAdsRequestCredentials } from '@server/services/integrations/x-ads/interfaces/x-ads.interface';
-import { XAdsService } from '@server/services/integrations/x-ads/services/x-ads.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type {
   BrandRemixExecution,
   BrandRemixRunConfig,
@@ -17,8 +10,17 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  type OnModuleInit,
 } from '@nestjs/common';
 import { AdCreativeMappingsService } from '@server/collections/ad-creative-mappings/services/ad-creative-mappings.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  type SystemWorkflowProvenance,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
+import type { XAdsRequestCredentials } from '@server/services/integrations/x-ads/interfaces/x-ads.interface';
+import { XAdsService } from '@server/services/integrations/x-ads/services/x-ads.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 export interface PausedXAdsCampaignDraftInput {
   adAccountId: string;
@@ -58,16 +60,43 @@ export interface PausedXAdsCampaignDraftResult {
  * platform-intrinsic constraint of the X Ads API, not a Genfeed shortcut.
  */
 @Injectable()
-export class PausedXAdsCampaignDraftService {
+export class PausedXAdsCampaignDraftService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly xAdsService: XAdsService,
-    private readonly workflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     private readonly adCreativeMappingsService: AdCreativeMappingsService,
   ) {}
 
+  onModuleInit(): void {
+    this.systemWorkflowRunner.registerAction(
+      SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_PAUSED_X_ADS_DRAFT,
+      ({ input, provenance }) =>
+        this.prepareAction(
+          input as unknown as PausedXAdsCampaignDraftInput,
+          provenance,
+        ),
+    );
+  }
+
   async prepare(
     input: PausedXAdsCampaignDraftInput,
+  ): Promise<PausedXAdsCampaignDraftResult> {
+    const { result } =
+      await this.systemWorkflowRunner.runAction<PausedXAdsCampaignDraftResult>({
+        actionType: 'prepare-paused-x-ads-draft',
+        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_PAUSED_X_ADS_DRAFT,
+        inputValues: input as unknown as Record<string, unknown>,
+        organizationId: input.organizationId,
+        source: 'brand-remix-run',
+        userId: input.userId,
+      });
+    return result;
+  }
+
+  private async prepareAction(
+    input: PausedXAdsCampaignDraftInput,
+    provenance: SystemWorkflowProvenance,
   ): Promise<PausedXAdsCampaignDraftResult> {
     const credential = await this.prisma.credential.findFirst({
       select: {
@@ -176,115 +205,85 @@ export class PausedXAdsCampaignDraftService {
     const suffix = `${input.runId}-${input.config.revision}-${input.variant.id}`;
     const campaignName = `Genfeed Remix ${suffix}`;
     const lineItemName = `${campaignName} Line Item`;
-    const workflowRequest = this.workflowProvenanceService.runAction(
-      {
-        actionType: 'prepare-paused-x-ads-draft',
-        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_PAUSED_X_ADS_DRAFT,
-        description:
-          'Prepare reviewed X Ads promoted-tweet draft without enabling spend.',
-        inputValues: {
-          adAccountId: resolvedAdAccountId,
-          fundingInstrumentId: fundingInstrument.id,
-          runId: input.runId,
-          sourceTweetId: input.sourceTweetId,
-          variantId: input.variant.id,
-        },
-        label: 'Brand Remix Paused X Ads Draft',
-        organizationId: input.organizationId,
-        postIds: [post.id],
-        source: 'brand-remix-run',
-        userId: input.userId,
-      },
-      async () => {
-        const campaigns = await this.xAdsService.listCampaigns(
-          oauthCredentials,
-          resolvedAdAccountId,
-        );
-        const existingCampaign = campaigns.find(
-          (campaign) => campaign.name === campaignName,
-        );
-        let replayed = Boolean(existingCampaign);
-        const campaign =
-          existingCampaign ??
-          (await this.xAdsService.createCampaign(
-            oauthCredentials,
-            resolvedAdAccountId,
-            {
-              entityStatus: 'PAUSED',
-              fundingInstrumentId: fundingInstrument.id,
-              name: campaignName,
-            },
-          ));
-
-        const lineItems = await this.xAdsService.listLineItems(
-          oauthCredentials,
-          resolvedAdAccountId,
-          campaign.id,
-        );
-        const existingLineItem = lineItems.find(
-          (lineItem) => lineItem.name === lineItemName,
-        );
-        replayed ||= Boolean(existingLineItem);
-        const lineItem =
-          existingLineItem ??
-          (await this.xAdsService.createLineItem(
-            oauthCredentials,
-            resolvedAdAccountId,
-            {
-              campaignId: campaign.id,
-              entityStatus: 'PAUSED',
-              name: lineItemName,
-              objective: 'ENGAGEMENTS',
-              placements: ['ALL_ON_TWITTER'],
-              productType: 'PROMOTED_TWEETS',
-            },
-          ));
-
-        const promotedTweets = await this.xAdsService.listPromotedTweets(
-          oauthCredentials,
-          resolvedAdAccountId,
-          lineItem.id,
-        );
-        const existingPromotedTweet = promotedTweets.find(
-          (promotedTweet) => promotedTweet.tweetId === input.sourceTweetId,
-        );
-        replayed ||= Boolean(existingPromotedTweet);
-        const promotedTweet =
-          existingPromotedTweet ??
-          (await this.xAdsService.createPromotedTweet(
-            oauthCredentials,
-            resolvedAdAccountId,
-            {
-              lineItemId: lineItem.id,
-              tweetId: input.sourceTweetId,
-            },
-          ));
-
-        return {
-          adId: promotedTweet.id,
-          adSetId: lineItem.id,
-          campaignId: campaign.id,
-          replayed,
-        };
-      },
+    const campaigns = await this.xAdsService.listCampaigns(
+      oauthCredentials,
+      resolvedAdAccountId,
     );
-    const workflow = await workflowRequest;
+    const existingCampaign = campaigns.find(
+      (campaign) => campaign.name === campaignName,
+    );
+    let replayed = Boolean(existingCampaign);
+    const campaign =
+      existingCampaign ??
+      (await this.xAdsService.createCampaign(
+        oauthCredentials,
+        resolvedAdAccountId,
+        {
+          entityStatus: 'PAUSED',
+          fundingInstrumentId: fundingInstrument.id,
+          name: campaignName,
+        },
+      ));
+
+    const lineItems = await this.xAdsService.listLineItems(
+      oauthCredentials,
+      resolvedAdAccountId,
+      campaign.id,
+    );
+    const existingLineItem = lineItems.find(
+      (lineItem) => lineItem.name === lineItemName,
+    );
+    replayed ||= Boolean(existingLineItem);
+    const lineItem =
+      existingLineItem ??
+      (await this.xAdsService.createLineItem(
+        oauthCredentials,
+        resolvedAdAccountId,
+        {
+          campaignId: campaign.id,
+          entityStatus: 'PAUSED',
+          name: lineItemName,
+          objective: 'ENGAGEMENTS',
+          placements: ['ALL_ON_TWITTER'],
+          productType: 'PROMOTED_TWEETS',
+        },
+      ));
+
+    const promotedTweets = await this.xAdsService.listPromotedTweets(
+      oauthCredentials,
+      resolvedAdAccountId,
+      lineItem.id,
+    );
+    const existingPromotedTweet = promotedTweets.find(
+      (promotedTweet) => promotedTweet.tweetId === input.sourceTweetId,
+    );
+    replayed ||= Boolean(existingPromotedTweet);
+    const promotedTweet =
+      existingPromotedTweet ??
+      (await this.xAdsService.createPromotedTweet(
+        oauthCredentials,
+        resolvedAdAccountId,
+        {
+          lineItemId: lineItem.id,
+          tweetId: input.sourceTweetId,
+        },
+      ));
 
     const result: PausedXAdsCampaignDraftResult = {
       adAccountId: resolvedAdAccountId,
-      adId: workflow.result.adId,
-      adSetId: workflow.result.adSetId,
-      campaignId: workflow.result.campaignId,
+      adId: promotedTweet.id,
+      adSetId: lineItem.id,
+      campaignId: campaign.id,
       credentialId: input.credentialId,
       ingredientId,
       postId: post.id,
       recipeRevision: input.config.revision,
       recipeVersion: 1,
-      replayed: workflow.result.replayed,
+      replayed,
       status: 'PAUSED',
       variantId: input.variant.id,
-      workflowExecutionId: workflow.provenance.executionId,
-      workflowId: workflow.provenance.workflowId,
+      workflowExecutionId: provenance.executionId,
+      workflowId: provenance.workflowId,
     };
     const existingMapping =
       await this.adCreativeMappingsService.findByContentId(
@@ -303,6 +302,14 @@ export class PausedXAdsCampaignDraftService {
         status: 'paused',
       });
     }
+    await this.prisma.post.updateMany({
+      data: {
+        sourceWorkflowId: provenance.workflowId,
+        sourceWorkflowName: provenance.workflowLabel,
+        workflowExecutionId: provenance.executionId,
+      },
+      where: scopedWhere(input.organizationId, { id: post.id }),
+    });
     return result;
   }
 }

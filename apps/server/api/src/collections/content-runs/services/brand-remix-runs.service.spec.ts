@@ -104,7 +104,7 @@ describe('BrandRemixRunsService', () => {
     checkOrganizationCreditsAvailable: vi.fn(),
     getOrganizationCreditsBalance: vi.fn(),
   };
-  const systemWorkflowProvenanceService = { runAction: vi.fn() };
+  const systemWorkflowRunner = { runAction: vi.fn() };
   const byokService = {
     isByokActiveForProvider: vi.fn(),
     isByokBillingInGoodStanding: vi.fn(),
@@ -192,7 +192,7 @@ describe('BrandRemixRunsService', () => {
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(100);
     byokService.isByokActiveForProvider.mockResolvedValue(false);
     byokService.isByokBillingInGoodStanding.mockResolvedValue(true);
-    systemWorkflowProvenanceService.runAction.mockImplementation(
+    systemWorkflowRunner.runAction.mockImplementation(
       async (_input, action) => {
         const provenance = {
           executionId: 'workflow-execution-1',
@@ -217,7 +217,7 @@ describe('BrandRemixRunsService', () => {
       pausedXAdsCampaignDraftService: pausedXAdsCampaignDraftService as never,
       prisma,
       runtime,
-      systemWorkflowProvenanceService: systemWorkflowProvenanceService as never,
+      systemWorkflowRunner: systemWorkflowRunner as never,
       trendReferenceCorpusService: trendReferenceCorpusService as never,
       videoGenerationService: videoGenerationService as never,
     }).service;
@@ -2301,7 +2301,7 @@ describe('BrandRemixRunsService', () => {
         'org-1',
         'brand-remix:run-1:review:1:variant-1',
       );
-      expect(systemWorkflowProvenanceService.runAction).toHaveBeenCalledWith(
+      expect(systemWorkflowRunner.runAction).toHaveBeenCalledWith(
         expect.objectContaining({
           canonicalId: 'brand-remix-review-handoff',
         }),

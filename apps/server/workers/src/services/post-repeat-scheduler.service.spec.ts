@@ -1,5 +1,3 @@
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import {
   CredentialPlatform,
   PostCategory,
@@ -10,6 +8,8 @@ import {
 import { PublishApprovalsService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-recurrence-materializer.service';
 
@@ -31,7 +31,7 @@ describe('PostRepeatSchedulerService', () => {
     materializeNext: ReturnType<typeof vi.fn>;
     shouldMaterialize: ReturnType<typeof vi.fn>;
   };
-  let systemWorkflowProvenanceService: {
+  let systemWorkflowRunner: {
     runAction: ReturnType<typeof vi.fn>;
   };
 
@@ -73,7 +73,7 @@ describe('PostRepeatSchedulerService', () => {
       }),
       shouldMaterialize: vi.fn().mockResolvedValue(false),
     };
-    systemWorkflowProvenanceService = {
+    systemWorkflowRunner = {
       runAction: vi.fn(
         async (
           _input: unknown,
@@ -107,8 +107,8 @@ describe('PostRepeatSchedulerService', () => {
           useValue: publishApprovalsService,
         },
         {
-          provide: SystemWorkflowProvenanceService,
-          useValue: systemWorkflowProvenanceService,
+          provide: SystemWorkflowRunnerService,
+          useValue: systemWorkflowRunner,
         },
         {
           provide: ReleaseRecurrenceMaterializerService,
@@ -408,7 +408,7 @@ describe('PostRepeatSchedulerService', () => {
       userId: 'user-1',
     } as never);
 
-    expect(systemWorkflowProvenanceService.runAction).toHaveBeenCalledWith(
+    expect(systemWorkflowRunner.runAction).toHaveBeenCalledWith(
       expect.objectContaining({
         actionType: 'expand-evergreen-release',
         canonicalId: 'evergreen-release-expansion',

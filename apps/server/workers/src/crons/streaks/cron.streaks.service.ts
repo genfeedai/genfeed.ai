@@ -1,19 +1,30 @@
+import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { StreaksService } from '@server/collections/streaks/services/streaks.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowProvenanceService,
-} from '@server/collections/workflows/system-workflow-provenance.service';
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 
 @Injectable()
-export class CronStreaksService {
+export class CronStreaksService implements OnModuleInit {
   constructor(
     private readonly logger: LoggerService,
     private readonly streaksService: StreaksService,
-    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
   ) {}
+
+  onModuleInit(): void {
+    this.systemWorkflowRunner.registerAction(
+      SYSTEM_WORKFLOW_ACTION_IDS.STREAK_MAINTENANCE,
+      ({ input }) =>
+        this.streaksService.processStaleStreaks(
+          new Date(String(input.referenceDate ?? '')),
+          String(input.organizationId ?? ''),
+        ),
+    );
+  }
 
   /**
    * Processes daily streak state per organization: at-risk reminders,
@@ -30,27 +41,21 @@ export class CronStreaksService {
 
     for (const organizationId of organizationIds) {
       try {
-        const { result } = await this.systemWorkflowProvenanceService.runAction(
-          {
-            actionType: 'streak-maintenance',
-            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.STREAK_MAINTENANCE,
-            description:
-              'Processes daily streak state: at-risk reminders, streak freezes, and broken streaks.',
-            inputValues: {
-              referenceDate: referenceDate.toISOString(),
-            },
-            label: 'Streak Maintenance',
+        const { result } = await this.systemWorkflowRunner.runAction<{
+          atRisk: number;
+          broken: number;
+          frozen: number;
+        }>({
+          actionType: 'streak-maintenance',
+          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.STREAK_MAINTENANCE,
+          inputValues: {
             organizationId,
-            schedule: '30 0 * * *',
-            source: 'CronStreaksService.processStreaks',
-            trigger: WorkflowExecutionTrigger.SCHEDULED,
+            referenceDate: referenceDate.toISOString(),
           },
-          () =>
-            this.streaksService.processStaleStreaks(
-              referenceDate,
-              organizationId,
-            ),
-        );
+          organizationId,
+          source: 'CronStreaksService.processStreaks',
+          trigger: WorkflowExecutionTrigger.SCHEDULED,
+        });
 
         totals.atRisk += result.atRisk;
         totals.broken += result.broken;

@@ -2,6 +2,7 @@ import { ActivitiesModule } from '@api/collections/activities/activities.module'
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { PublishersModule } from '@api/services/integrations/publishers/publishers.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
@@ -16,7 +17,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
-import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
@@ -37,6 +37,7 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
     QuotaModule,
     PrismaModule,
     forwardRef(() => WorkersQueuesModule),
+    forwardRef(() => WorkflowsModule),
   ],
   exports: [CronPostsService],
   providers: [
@@ -46,7 +47,6 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
     ScheduledPostDeliveryService,
     ScheduledPostExecutionGuardService,
     ScheduledPostQueueService,
-    SystemWorkflowProvenanceService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
     {

@@ -9,15 +9,33 @@
  *
  * Supported platforms: Twitter/X, Instagram, TikTok, YouTube, Reddit
  */
+
+import {
+  BotActivitySkipReason,
+  BotActivityStatus,
+  ReplyBotActionType,
+  ReplyBotPlatform,
+  ReplyBotType,
+  ReplyLength,
+  ReplyTone,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
+import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { BotActivitiesService } from '@server/collections/bot-activities/services/bot-activities.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { MonitoredAccountsService } from '@server/collections/monitored-accounts/services/monitored-accounts.service';
 import { ProcessedTweetsService } from '@server/collections/processed-tweets/services/processed-tweets.service';
 import type { ReplyBotConfigDocument } from '@server/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowProvenanceService,
-} from '@server/collections/workflows/system-workflow-provenance.service';
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
+import { toReplyBotCredentialData } from '@server/services/campaign/reply-bot-credential.util';
 import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
 import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@server/services/reply-bot/rate-limit.service';
@@ -39,21 +57,6 @@ import {
   SocialMonitorService,
 } from '@server/services/reply-bot/social-monitor.service';
 import { requireRelationId } from '@server/shared/utils/relation-id/relation-id.util';
-import {
-  BotActivitySkipReason,
-  BotActivityStatus,
-  ReplyBotActionType,
-  ReplyBotPlatform,
-  ReplyBotType,
-  ReplyLength,
-  ReplyTone,
-  WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
-import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
 
 /**
  * Result of processing bots for an organization
@@ -69,7 +72,7 @@ export interface ProcessingResult {
 }
 
 @Injectable()
-export class ReplyBotOrchestratorService {
+export class ReplyBotOrchestratorService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
@@ -84,9 +87,17 @@ export class ReplyBotOrchestratorService {
     private readonly monitoredAccountsService: MonitoredAccountsService,
     private readonly botActivitiesService: BotActivitiesService,
     private readonly processedTweetsService: ProcessedTweetsService,
-    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly credentialsService: CredentialsService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     private readonly authorReplyLoopService: AuthorReplyLoopService,
   ) {}
+
+  onModuleInit(): void {
+    this.systemWorkflowRunner.registerAction(
+      SYSTEM_WORKFLOW_ACTION_IDS.REPLY_DM_AUTOMATION,
+      ({ input }) => this.executeReplyDmAction(input),
+    );
+  }
 
   /**
    * Main entry point - process all active bots for an organization
@@ -628,101 +639,45 @@ export class ReplyBotOrchestratorService {
         });
       }
 
-      // Execute actions
-      let replySent = false;
-      let dmSent = false;
-      let replyContentId: string | undefined;
-      let replyContentUrl: string | undefined;
-
-      const actionExecution =
-        await this.systemWorkflowProvenanceService.runAction(
-          {
-            actionType: String(botConfig.actionType ?? 'reply'),
-            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.REPLY_DM_AUTOMATION,
-            description:
-              'Generates and sends reply bot replies and optional DMs through connected social credentials.',
-            failureMessage: (actionResult) => actionResult.error,
-            inputValues: {
-              actionType: botConfig.actionType,
-              botConfigId,
-              contentId: content.id,
-              platform: credential.platform,
-            },
-            label: 'Reply and DM Automation',
-            metadata: {
-              activityId,
-              botType: botConfig.type,
-              triggerAuthorUsername: content.authorUsername,
-            },
-            organizationId,
-            source: 'ReplyBotOrchestratorService.processContent',
-            trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId: ownerUserId,
+      const actionExecution = await this.systemWorkflowRunner.runAction<{
+        dmSent: boolean;
+        error?: string;
+        replyContentId?: string;
+        replyContentUrl?: string;
+        replySent: boolean;
+      }>({
+        actionType: String(botConfig.actionType ?? 'reply'),
+        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.REPLY_DM_AUTOMATION,
+        inputValues: {
+          actionType: botConfig.actionType,
+          botConfigId,
+          content: {
+            authorId: content.authorId,
+            authorUsername: content.authorUsername,
+            createdAt: content.createdAt.toISOString(),
+            id: content.id,
+            text: content.text,
           },
-          async () => {
-            // Post reply (unless DM only)
-            if (botConfig.actionType !== ReplyBotActionType.DM_ONLY) {
-              const contentData = {
-                authorId: content.authorId,
-                authorUsername: content.authorUsername,
-                createdAt: content.createdAt,
-                id: content.id,
-                text: content.text,
-              };
-
-              const replyResult = await this.botActionExecutorService.postReply(
-                credential,
-                contentData,
-                replyText,
-              );
-
-              if (replyResult.success) {
-                replySent = true;
-                replyContentId = replyResult.contentId;
-                replyContentUrl = replyResult.contentUrl;
-              } else {
-                throw new Error(replyResult.error || 'Failed to post reply');
-              }
-            }
-
-            // Send DM if configured
-            if (
-              dmText &&
-              (botConfig.actionType === ReplyBotActionType.REPLY_AND_DM ||
-                botConfig.actionType === ReplyBotActionType.DM_ONLY)
-            ) {
-              // delaySeconds from IReplyBotDmConfig, convert to ms
-              const dmDelay = botConfig.dmConfig?.delaySeconds
-                ? botConfig.dmConfig.delaySeconds * 1000
-                : 60000;
-
-              await this.delay(dmDelay);
-
-              const dmResult = await this.botActionExecutorService.sendDm(
-                credential,
-                content.authorId,
-                dmText,
-              );
-
-              dmSent = dmResult.success;
-              return {
-                dmError: dmResult.success ? undefined : dmResult.error,
-                dmSent,
-                error: dmResult.success ? undefined : dmResult.error,
-                replyContentId,
-                replyContentUrl,
-                replySent,
-              };
-            }
-
-            return {
-              dmSent,
-              replyContentId,
-              replyContentUrl,
-              replySent,
-            };
-          },
-        );
+          credentialId: credential.id,
+          dmDelayMs: botConfig.dmConfig?.delaySeconds
+            ? botConfig.dmConfig.delaySeconds * 1000
+            : 60000,
+          dmText,
+          organizationId,
+          replyText,
+        },
+        metadata: {
+          activityId,
+          botType: botConfig.type,
+          triggerAuthorUsername: content.authorUsername,
+        },
+        organizationId,
+        source: 'ReplyBotOrchestratorService.processContent',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: ownerUserId,
+      });
+      const { dmSent, replyContentId, replyContentUrl, replySent } =
+        actionExecution.result;
 
       if (actionExecution.result.error) {
         this.loggerService.warn(`${url} social action completed with error`, {
@@ -806,6 +761,83 @@ export class ReplyBotOrchestratorService {
         skipped: false,
       };
     }
+  }
+
+  private async executeReplyDmAction(input: Record<string, unknown>): Promise<{
+    dmSent: boolean;
+    error?: string;
+    replyContentId?: string;
+    replyContentUrl?: string;
+    replySent: boolean;
+  }> {
+    const organizationId = String(input.organizationId ?? '');
+    const credentialId = String(input.credentialId ?? '');
+    const credentialRecord = await this.credentialsService.findOne({
+      id: credentialId,
+      organizationId,
+    });
+    const credential = credentialRecord
+      ? toReplyBotCredentialData(
+          credentialRecord as unknown as Record<string, unknown>,
+          { organizationId },
+        )
+      : null;
+    if (!credential) {
+      throw new Error(`Reply-bot credential ${credentialId} not found`);
+    }
+
+    const content = input.content as Record<string, unknown> | undefined;
+    if (!content) {
+      throw new Error('Reply and DM action requires content');
+    }
+    const actionType = input.actionType;
+    let replySent = false;
+    let dmSent = false;
+    let replyContentId: string | undefined;
+    let replyContentUrl: string | undefined;
+
+    if (actionType !== ReplyBotActionType.DM_ONLY) {
+      const replyResult = await this.botActionExecutorService.postReply(
+        credential,
+        {
+          authorId: String(content.authorId ?? ''),
+          authorUsername: String(content.authorUsername ?? ''),
+          createdAt: new Date(String(content.createdAt ?? '')),
+          id: String(content.id ?? ''),
+          text: String(content.text ?? ''),
+        },
+        String(input.replyText ?? ''),
+      );
+      if (!replyResult.success) {
+        throw new Error(replyResult.error || 'Failed to post reply');
+      }
+      replySent = true;
+      replyContentId = replyResult.contentId;
+      replyContentUrl = replyResult.contentUrl;
+    }
+
+    if (
+      typeof input.dmText === 'string' &&
+      (actionType === ReplyBotActionType.REPLY_AND_DM ||
+        actionType === ReplyBotActionType.DM_ONLY)
+    ) {
+      await this.delay(Number(input.dmDelayMs ?? 60000));
+      const dmResult = await this.botActionExecutorService.sendDm(
+        credential,
+        String(content.authorId ?? ''),
+        input.dmText,
+      );
+      dmSent = dmResult.success;
+      return {
+        dmSent,
+        error: dmResult.success ? undefined : dmResult.error,
+        replyContentId,
+        replyContentUrl,
+        replySent,
+      };
+    }
+
+    return { dmSent, replyContentId, replyContentUrl, replySent };
   }
 
   /**

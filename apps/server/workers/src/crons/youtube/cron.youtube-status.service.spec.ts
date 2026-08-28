@@ -1,8 +1,3 @@
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowProvenanceService,
-} from '@server/collections/workflows/system-workflow-provenance.service';
 import {
   PostStatus,
   PostVisibility,
@@ -10,9 +5,14 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
-import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
 import { PublishEventWebhookService } from '@server/services/webhook-client/publish-event-webhook.service';
+import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 describe('CronYoutubeStatusService', () => {
@@ -89,7 +89,7 @@ describe('CronYoutubeStatusService', () => {
           useValue: youtubeService,
         },
         {
-          provide: SystemWorkflowProvenanceService,
+          provide: SystemWorkflowRunnerService,
           useValue: provenanceService,
         },
         {

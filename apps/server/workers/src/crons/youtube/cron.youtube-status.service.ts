@@ -1,10 +1,3 @@
-import { PostEntity } from '@server/collections/posts/entities/post.entity';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  type SystemWorkflowProvenance,
-  SystemWorkflowProvenanceService,
-} from '@server/collections/workflows/system-workflow-provenance.service';
 import {
   CredentialPlatform,
   PostStatus,
@@ -14,7 +7,14 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { PostEntity } from '@server/collections/posts/entities/post.entity';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  type SystemWorkflowProvenance,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { customLabels } from '@server/helpers/utils/pagination.util';
 import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 import { PublishEventWebhookService } from '@server/services/webhook-client/publish-event-webhook.service';
@@ -27,17 +27,25 @@ const YOUTUBE_PRIVACY_STATUS_MAP: Record<string, PostVisibility> = {
 };
 
 @Injectable()
-export class CronYoutubeStatusService {
+export class CronYoutubeStatusService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
     private readonly logger: LoggerService,
     private readonly postsService: PostsService,
     private readonly youtubeService: YoutubeService,
-    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     private readonly publishEventWebhookService: PublishEventWebhookService,
     private readonly schedulerPublishStateService: SchedulerPublishStateService,
   ) {}
+
+  onModuleInit(): void {
+    this.systemWorkflowRunner.registerAction(
+      SYSTEM_WORKFLOW_ACTION_IDS.YOUTUBE_STATUS_RECONCILIATION,
+      ({ input, provenance }) =>
+        this.executeStatusTransition(input, provenance),
+    );
+  }
 
   /**
    * Checks status of non-public YouTube videos and syncs database status
@@ -145,53 +153,11 @@ export class CronYoutubeStatusService {
         (post.visibility !== targetStatus ||
           post.targetExecutionState !== TargetExecutionState.PUBLISHED)
       ) {
-        const updateData: Record<string, unknown> = {
-          visibility: targetStatus,
-        };
-
-        // Set publicationDate when video becomes public for the first time
-        if (targetStatus === PostVisibility.PUBLIC && !post.publicationDate) {
-          updateData.publicationDate = new Date();
-        }
-
         const transitioned = await this.recordStatusTransition(
           post,
           targetStatus,
           `YouTube reports ${videoStatus.privacyStatus} - syncing post from ${post.status} to ${targetStatus}`,
-          async (provenance) => {
-            const publishedAt =
-              (updateData.publicationDate as Date | undefined) ??
-              post.publicationDate ??
-              new Date();
-            const grouped =
-              await this.schedulerPublishStateService.transitionPost(
-                post,
-                {
-                  error: null,
-                  executionState: TargetExecutionState.PUBLISHED,
-                  publicationDate: publishedAt,
-                  publishedAt,
-                  url: `https://www.youtube.com/watch?v=${post.externalId}`,
-                  visibility: targetStatus,
-                  workflowExecutionId: provenance.executionId,
-                },
-                `YouTube reports ${videoStatus.privacyStatus}`,
-                {
-                  expectedWorkflowExecutionId: provenance.executionId,
-                  priorExecutionStates: [
-                    TargetExecutionState.PUBLISHING,
-                    TargetExecutionState.PUBLISHED,
-                  ],
-                },
-              );
-            if (!grouped) {
-              this.logger.warn('Ignored stale YouTube status transition', {
-                postId: post.id.toString(),
-                workflowExecutionId: provenance.executionId,
-              });
-            }
-            return grouped;
-          },
+          videoStatus.privacyStatus,
         );
         if (
           transitioned &&
@@ -258,12 +224,7 @@ export class CronYoutubeStatusService {
           post,
           'deleted',
           'Video no longer exists on YouTube - marking post as deleted',
-          async () => {
-            await this.postsService.patch(post.id.toString(), {
-              isDeleted: true,
-            });
-            return true;
-          },
+          'deleted',
         );
 
         return;
@@ -286,34 +247,27 @@ export class CronYoutubeStatusService {
     post: PostEntity,
     outcome: string,
     detail: string,
-    transition: (provenance: SystemWorkflowProvenance) => Promise<boolean>,
+    providerStatus: string,
   ): Promise<boolean> {
     try {
-      const { result } =
-        await this.systemWorkflowProvenanceService.runAction<boolean>(
-          {
-            actionType: 'youtube-status-reconciliation',
-            canonicalId:
-              SYSTEM_WORKFLOW_ACTION_IDS.YOUTUBE_STATUS_RECONCILIATION,
-            description:
-              'Syncs recent YouTube video visibility with the actual status reported by YouTube.',
-            inputValues: {
-              detail,
-              outcome,
-              postId: String(post.id),
-              videoId: post.externalId,
-            },
-            label: 'YouTube Status Reconciliation',
-            metadata: { platform: CredentialPlatform.YOUTUBE },
-            organizationId: post.organizationId,
-            postIds: [post.id.toString()],
-            schedule: '0 1 * * *',
-            source: 'CronYoutubeStatusService.checkPostStatus',
-            trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId: post.userId,
-          },
-          transition,
-        );
+      const { result } = await this.systemWorkflowRunner.runAction<boolean>({
+        actionType: 'youtube-status-reconciliation',
+        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.YOUTUBE_STATUS_RECONCILIATION,
+        inputValues: {
+          detail,
+          organizationId: post.organizationId,
+          outcome,
+          postId: String(post.id),
+          providerStatus,
+          videoId: post.externalId,
+        },
+        metadata: { platform: CredentialPlatform.YOUTUBE },
+        organizationId: post.organizationId,
+        postIds: [post.id.toString()],
+        source: 'CronYoutubeStatusService.checkPostStatus',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: post.userId,
+      });
       return result;
     } catch (error: unknown) {
       this.logger.error('Failed to record YouTube status transition', {
@@ -323,5 +277,57 @@ export class CronYoutubeStatusService {
       });
       return false;
     }
+  }
+
+  private async executeStatusTransition(
+    input: Record<string, unknown>,
+    provenance: SystemWorkflowProvenance,
+  ): Promise<boolean> {
+    const organizationId = String(input.organizationId ?? '');
+    const postId = String(input.postId ?? '');
+    const post = await this.postsService.findOne({
+      id: postId,
+      organizationId,
+    });
+    if (!post) {
+      throw new Error(`YouTube reconciliation post ${postId} not found`);
+    }
+    if (input.outcome === 'deleted') {
+      await this.postsService.patch(postId, { isDeleted: true });
+      return true;
+    }
+
+    const visibility = String(input.outcome ?? '') as PostVisibility;
+    if (!Object.values(PostVisibility).includes(visibility)) {
+      throw new Error(`Invalid YouTube visibility transition: ${visibility}`);
+    }
+    const publishedAt = post.publicationDate ?? new Date();
+    const grouped = await this.schedulerPublishStateService.transitionPost(
+      post as unknown as PostEntity,
+      {
+        error: null,
+        executionState: TargetExecutionState.PUBLISHED,
+        publicationDate: publishedAt,
+        publishedAt,
+        url: `https://www.youtube.com/watch?v=${String(input.videoId ?? '')}`,
+        visibility,
+        workflowExecutionId: provenance.executionId,
+      },
+      `YouTube reports ${String(input.providerStatus ?? '')}`,
+      {
+        expectedWorkflowExecutionId: provenance.executionId,
+        priorExecutionStates: [
+          TargetExecutionState.PUBLISHING,
+          TargetExecutionState.PUBLISHED,
+        ],
+      },
+    );
+    if (!grouped) {
+      this.logger.warn('Ignored stale YouTube status transition', {
+        postId,
+        workflowExecutionId: provenance.executionId,
+      });
+    }
+    return grouped;
   }
 }

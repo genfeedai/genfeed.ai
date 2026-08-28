@@ -46,13 +46,14 @@ export class GenfeedActionExecutor extends BaseExecutor {
       throw new Error('A registered Genfeed actionId is required');
     }
 
-    const configuredParameters = node.config.parameters;
+    const { actionId: _actionId, parameters, ...runtimeConfig } = node.config;
     const input = {
-      ...(typeof configuredParameters === 'object' &&
-      configuredParameters !== null &&
-      !Array.isArray(configuredParameters)
-        ? (configuredParameters as Record<string, unknown>)
+      ...(typeof parameters === 'object' &&
+      parameters !== null &&
+      !Array.isArray(parameters)
+        ? (parameters as Record<string, unknown>)
         : {}),
+      ...runtimeConfig,
       ...Object.fromEntries(inputs),
     };
     const result = await this.executor({

@@ -1,9 +1,3 @@
-import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowProvenanceService,
-} from '@server/collections/workflows/system-workflow-provenance.service';
-import { assertUrlNotPrivate } from '@server/helpers/utils/ssrf/ssrf.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type {
   BrandRemixExecution,
   BrandRemixRunConfig,
@@ -16,12 +10,20 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  type OnModuleInit,
 } from '@nestjs/common';
 import { AdCreativeMappingsService } from '@server/collections/ad-creative-mappings/services/ad-creative-mappings.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  type SystemWorkflowProvenance,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
+import { assertUrlNotPrivate } from '@server/helpers/utils/ssrf/ssrf.util';
 import {
   MetaAdsService,
   MetaGraphPaginationLimitError,
 } from '@server/services/integrations/meta-ads/services/meta-ads.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const PAUSED_DRAFT_DAILY_BUDGET = 5;
 
@@ -55,16 +57,51 @@ export interface PausedMetaCampaignDraftResult {
 }
 
 @Injectable()
-export class PausedMetaCampaignDraftService {
+export class PausedMetaCampaignDraftService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly metaAdsService: MetaAdsService,
-    private readonly workflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     private readonly adCreativeMappingsService: AdCreativeMappingsService,
   ) {}
 
+  onModuleInit(): void {
+    this.systemWorkflowRunner.registerAction(
+      SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_PAUSED_META_DRAFT,
+      ({ input, provenance }) =>
+        this.prepareAction(
+          input as unknown as PausedMetaCampaignDraftInput,
+          provenance,
+        ),
+    );
+  }
+
   async prepare(
     input: PausedMetaCampaignDraftInput,
+  ): Promise<PausedMetaCampaignDraftResult> {
+    return this.systemWorkflowRunner
+      .runAction<PausedMetaCampaignDraftResult>({
+        actionType: 'prepare-paused-meta-draft',
+        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_PAUSED_META_DRAFT,
+        inputValues: input as unknown as Record<string, unknown>,
+        organizationId: input.organizationId,
+        source: 'brand-remix-run',
+        userId: input.userId,
+      })
+      .then(({ result }) => result)
+      .catch((error: unknown) => {
+        if (error instanceof MetaGraphPaginationLimitError) {
+          throw new ConflictException(
+            'Meta replay lookup exceeded the safe pagination limit; no duplicate object was created.',
+          );
+        }
+        throw error;
+      });
+  }
+
+  private async prepareAction(
+    input: PausedMetaCampaignDraftInput,
+    provenance: SystemWorkflowProvenance,
   ): Promise<PausedMetaCampaignDraftResult> {
     this.assertHttpsUrl(input.linkUrl, 'campaign destination');
     const credential = await this.prisma.credential.findFirst({
@@ -154,165 +191,131 @@ export class PausedMetaCampaignDraftService {
     const campaignName = `Genfeed Remix ${suffix}`;
     const adSetName = `${campaignName} Ad Set`;
     const adName = `${campaignName} Ad`;
-    const workflowRequest = this.workflowProvenanceService.runAction(
-      {
-        actionType: 'prepare-paused-meta-draft',
-        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_PAUSED_META_DRAFT,
-        description: 'Prepare reviewed Meta creative without enabling spend.',
-        inputValues: {
-          adAccountId: resolvedAdAccountId,
-          budgetCurrency: selectedAccount.currency,
+    const campaigns = await this.metaAdsService.listCampaigns(
+      accessToken,
+      resolvedAdAccountId,
+      { limit: 1, name: campaignName },
+    );
+    const existingCampaign = campaigns.find(
+      (campaign) => campaign.name === campaignName,
+    );
+    let replayed = Boolean(existingCampaign);
+    const campaignId =
+      existingCampaign?.id ??
+      (await this.metaAdsService.createCampaign(
+        accessToken,
+        resolvedAdAccountId,
+        {
           dailyBudget: PAUSED_DRAFT_DAILY_BUDGET,
-          runId: input.runId,
-          variantId: input.variant.id,
+          name: campaignName,
+          objective: 'OUTCOME_TRAFFIC',
+          specialAdCategories: [],
+          status: 'PAUSED',
         },
-        label: 'Brand Remix Paused Meta Draft',
-        organizationId: input.organizationId,
-        postIds: [post.id],
-        source: 'brand-remix-run',
-        userId: input.userId,
-      },
-      async () => {
-        const campaigns = await this.metaAdsService.listCampaigns(
-          accessToken,
-          resolvedAdAccountId,
-          { limit: 1, name: campaignName },
-        );
-        const existingCampaign = campaigns.find(
-          (campaign) => campaign.name === campaignName,
-        );
-        let replayed = Boolean(existingCampaign);
-        const campaignId =
-          existingCampaign?.id ??
-          (await this.metaAdsService.createCampaign(
-            accessToken,
-            resolvedAdAccountId,
-            {
-              dailyBudget: PAUSED_DRAFT_DAILY_BUDGET,
-              name: campaignName,
-              objective: 'OUTCOME_TRAFFIC',
-              specialAdCategories: [],
-              status: 'PAUSED',
-            },
-          ));
+      ));
 
-        const adSets = await this.metaAdsService.listAdSets(
-          accessToken,
-          resolvedAdAccountId,
-          campaignId,
-          { name: adSetName },
-        );
-        const existingAdSet = adSets.find((adSet) => adSet.name === adSetName);
-        replayed ||= Boolean(existingAdSet);
-        const adSetId =
-          existingAdSet?.id ??
-          (await this.metaAdsService.createAdSet(
-            accessToken,
-            resolvedAdAccountId,
-            {
-              billingEvent: 'IMPRESSIONS',
-              campaignId,
-              name: adSetName,
-              optimizationGoal: 'LINK_CLICKS',
-              targeting: { geoLocations: { countries: ['US'] } },
-            },
-          ));
+    const adSets = await this.metaAdsService.listAdSets(
+      accessToken,
+      resolvedAdAccountId,
+      campaignId,
+      { name: adSetName },
+    );
+    const existingAdSet = adSets.find((adSet) => adSet.name === adSetName);
+    replayed ||= Boolean(existingAdSet);
+    const adSetId =
+      existingAdSet?.id ??
+      (await this.metaAdsService.createAdSet(accessToken, resolvedAdAccountId, {
+        billingEvent: 'IMPRESSIONS',
+        campaignId,
+        name: adSetName,
+        optimizationGoal: 'LINK_CLICKS',
+        targeting: { geoLocations: { countries: ['US'] } },
+      }));
 
-        const ads = await this.metaAdsService.listAds(
-          accessToken,
-          resolvedAdAccountId,
-          adSetId,
-          { name: adName },
-        );
-        const existingAd = ads.find((ad) => ad.name === adName);
-        replayed ||= Boolean(existingAd);
-        let adId = existingAd?.id;
-        if (!adId) {
-          const creative = await (async () => {
-            if (ingredient.category === IngredientCategory.IMAGE) {
-              return this.metaAdsService.uploadAdImage(
-                accessToken,
-                resolvedAdAccountId,
-                mediaUrl,
-              );
-            }
-            const uploadedVideos = await this.metaAdsService.listAdVideos(
-              accessToken,
-              resolvedAdAccountId,
-              { allPages: true },
-            );
-            const existingVideo = uploadedVideos.find(
-              (video) => video.title === adName,
-            );
-            replayed ||= Boolean(existingVideo);
-            return (
-              (existingVideo ? { videoId: existingVideo.id } : undefined) ??
-              (await this.metaAdsService.uploadAdVideo(
-                accessToken,
-                resolvedAdAccountId,
-                mediaUrl,
-                adName,
-              ))
-            );
-          })();
-          const thumbnailUrl =
-            'videoId' in creative
-              ? await this.metaAdsService.getAdVideoThumbnailUrl(
-                  accessToken,
-                  creative.videoId,
-                )
-              : undefined;
-          adId = await this.metaAdsService.createAd(
+    const ads = await this.metaAdsService.listAds(
+      accessToken,
+      resolvedAdAccountId,
+      adSetId,
+      { name: adName },
+    );
+    const existingAd = ads.find((ad) => ad.name === adName);
+    replayed ||= Boolean(existingAd);
+    let adId = existingAd?.id;
+    if (!adId) {
+      const creative = await (async () => {
+        if (ingredient.category === IngredientCategory.IMAGE) {
+          return this.metaAdsService.uploadAdImage(
             accessToken,
             resolvedAdAccountId,
-            {
-              adSetId,
-              creative: {
-                body: input.config.draft.intent.objective,
-                callToAction: 'LEARN_MORE',
-                ...('hash' in creative
-                  ? { imageHash: creative.hash }
-                  : { thumbnailUrl, videoId: creative.videoId }),
-                linkUrl: input.linkUrl,
-                pageId,
-                title: input.config.draft.intent.hook,
-              },
-              name: adName,
-            },
+            mediaUrl,
           );
         }
-        await Promise.all([
-          this.metaAdsService.pauseCampaign(accessToken, campaignId),
-          this.metaAdsService.pauseAdSet(accessToken, adSetId),
-          this.metaAdsService.pauseAd(accessToken, adId),
-        ]);
-        return { adId, adSetId, campaignId, replayed };
-      },
-    );
-    const workflow = await workflowRequest.catch((error: unknown) => {
-      if (error instanceof MetaGraphPaginationLimitError) {
-        throw new ConflictException(
-          'Meta replay lookup exceeded the safe pagination limit; no duplicate object was created.',
+        const uploadedVideos = await this.metaAdsService.listAdVideos(
+          accessToken,
+          resolvedAdAccountId,
+          { allPages: true },
         );
-      }
-      throw error;
-    });
+        const existingVideo = uploadedVideos.find(
+          (video) => video.title === adName,
+        );
+        replayed ||= Boolean(existingVideo);
+        return (
+          (existingVideo ? { videoId: existingVideo.id } : undefined) ??
+          (await this.metaAdsService.uploadAdVideo(
+            accessToken,
+            resolvedAdAccountId,
+            mediaUrl,
+            adName,
+          ))
+        );
+      })();
+      const thumbnailUrl =
+        'videoId' in creative
+          ? await this.metaAdsService.getAdVideoThumbnailUrl(
+              accessToken,
+              creative.videoId,
+            )
+          : undefined;
+      adId = await this.metaAdsService.createAd(
+        accessToken,
+        resolvedAdAccountId,
+        {
+          adSetId,
+          creative: {
+            body: input.config.draft.intent.objective,
+            callToAction: 'LEARN_MORE',
+            ...('hash' in creative
+              ? { imageHash: creative.hash }
+              : { thumbnailUrl, videoId: creative.videoId }),
+            linkUrl: input.linkUrl,
+            pageId,
+            title: input.config.draft.intent.hook,
+          },
+          name: adName,
+        },
+      );
+    }
+    await Promise.all([
+      this.metaAdsService.pauseCampaign(accessToken, campaignId),
+      this.metaAdsService.pauseAdSet(accessToken, adSetId),
+      this.metaAdsService.pauseAd(accessToken, adId),
+    ]);
 
     const result: PausedMetaCampaignDraftResult = {
       adAccountId: resolvedAdAccountId,
-      adId: workflow.result.adId,
-      adSetId: workflow.result.adSetId,
-      campaignId: workflow.result.campaignId,
+      adId,
+      adSetId,
+      campaignId,
       credentialId: input.credentialId,
       ingredientId,
       postId: post.id,
       recipeRevision: input.config.revision,
       recipeVersion: 1,
-      replayed: workflow.result.replayed,
+      replayed,
       status: 'PAUSED',
       variantId: input.variant.id,
-      workflowExecutionId: workflow.provenance.executionId,
-      workflowId: workflow.provenance.workflowId,
+      workflowExecutionId: provenance.executionId,
+      workflowId: provenance.workflowId,
     };
     const existingMapping =
       await this.adCreativeMappingsService.findByContentId(
@@ -331,6 +334,14 @@ export class PausedMetaCampaignDraftService {
         status: 'paused',
       });
     }
+    await this.prisma.post.updateMany({
+      data: {
+        sourceWorkflowId: provenance.workflowId,
+        sourceWorkflowName: provenance.workflowLabel,
+        workflowExecutionId: provenance.executionId,
+      },
+      where: scopedWhere(input.organizationId, { id: post.id }),
+    });
     return result;
   }
 

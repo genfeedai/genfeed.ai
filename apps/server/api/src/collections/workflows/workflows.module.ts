@@ -50,7 +50,7 @@ import {
 } from '@genfeedai/queue-contracts';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { InstagramSocialAdapter } from '@server/collections/workflows/services/adapters/instagram-social.adapter';
 import { SocialAdapterFactory } from '@server/collections/workflows/services/adapters/social-adapter.factory';
 import { TwitterSocialAdapter } from '@server/collections/workflows/services/adapters/twitter-social.adapter';
@@ -73,6 +73,7 @@ import { WorkflowRunControlService } from '@server/collections/workflows/service
 import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowTemplateSeederService } from '@server/collections/workflows/services/workflow-template-seeder.service';
 import { WorkflowWebhookService } from '@server/collections/workflows/services/workflow-webhook.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 
 @Module({
   // Order matters: controllers that own literal first-segment routes
@@ -92,6 +93,7 @@ import { WorkflowWebhookService } from '@server/collections/workflows/services/w
     BatchWorkflowQueueService,
     BatchWorkflowService,
     SystemWorkflowCatalogService,
+    SystemWorkflowRunnerService,
     WorkflowsCoreModule,
     WorkflowRunControlService,
     WorkflowSchedulerService,
@@ -125,8 +127,8 @@ import { WorkflowWebhookService } from '@server/collections/workflows/services/w
     OpenRouterModule,
     PostsModule,
     ReplyBotConfigsModule,
-    ReplyBotModule,
-    SocialInboxModule,
+    forwardRef(() => ReplyBotModule),
+    forwardRef(() => SocialInboxModule),
     SourcePostsModule,
     SharedModule,
     TrendsModule,
@@ -180,6 +182,7 @@ import { WorkflowWebhookService } from '@server/collections/workflows/services/w
     WorkflowRunControlService,
     WorkflowSchedulerService,
     SystemWorkflowCatalogService,
+    SystemWorkflowRunnerService,
     WorkflowTemplateSeederService,
     WorkflowWebhookService,
     PaidCreativeResearchWorkflowService,

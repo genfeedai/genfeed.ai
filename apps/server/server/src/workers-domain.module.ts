@@ -100,7 +100,7 @@ import { WorkflowRunControlService } from '@server/collections/workflows/service
 import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowTemplateSeederService } from '@server/collections/workflows/services/workflow-template-seeder.service';
 import { WorkflowWebhookService } from '@server/collections/workflows/services/workflow-webhook.service';
-import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { ManagedInferenceClientService } from '@server/endpoints/v1/managed-inference/managed-inference-client.service';
 import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
 import { TransactionUtil } from '@server/helpers/utils/transaction/transaction.util';
@@ -385,7 +385,7 @@ const WORKER_DOMAIN_SERVICES = [
   SocialReplyCampaignQueueService,
   StreaksService,
   SystemWorkflowCatalogService,
-  SystemWorkflowProvenanceService,
+  SystemWorkflowRunnerService,
   TaskDecompositionService,
   TaskOrchestratorService,
   TaskQueueClientService,

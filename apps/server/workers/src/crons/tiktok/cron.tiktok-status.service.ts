@@ -1,10 +1,3 @@
-import { PostEntity } from '@server/collections/posts/entities/post.entity';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  type SystemWorkflowProvenance,
-  SystemWorkflowProvenanceService,
-} from '@server/collections/workflows/system-workflow-provenance.service';
 import {
   CredentialPlatform,
   PostVisibility,
@@ -16,7 +9,14 @@ import { SERVER_TOKENS, type ServerCredentialStore } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { PostEntity } from '@server/collections/posts/entities/post.entity';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  type SystemWorkflowProvenance,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { customLabels } from '@server/helpers/utils/pagination.util';
 import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
 import { PublishEventWebhookService } from '@server/services/webhook-client/publish-event-webhook.service';
@@ -51,7 +51,7 @@ function readTiktokErrorCode(error: unknown): string | undefined {
 }
 
 @Injectable()
-export class CronTiktokStatusService {
+export class CronTiktokStatusService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
 
   // Max age for pending posts before marking as failed (24 hours)
@@ -72,10 +72,18 @@ export class CronTiktokStatusService {
     private readonly tiktokService: TiktokService,
     @Inject(SERVER_TOKENS.credentials)
     private readonly credentialsService: ServerCredentialStore,
-    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     private readonly publishEventWebhookService: PublishEventWebhookService,
     private readonly schedulerPublishStateService: SchedulerPublishStateService,
   ) {}
+
+  onModuleInit(): void {
+    this.systemWorkflowRunner.registerAction(
+      SYSTEM_WORKFLOW_ACTION_IDS.TIKTOK_STATUS_RECONCILIATION,
+      ({ input, provenance }) =>
+        this.executeStatusTransition(input, provenance),
+    );
+  }
 
   /**
    * Check if an error is an authentication error
@@ -253,35 +261,7 @@ export class CronTiktokStatusService {
           post,
           'published',
           `TikTok moderation completed - post ${postId} is live`,
-          async (provenance) => {
-            const publishedAt = new Date();
-            const grouped =
-              await this.schedulerPublishStateService.transitionPost(
-                post,
-                {
-                  error: null,
-                  executionState: TargetExecutionState.PUBLISHED,
-                  externalId: postId,
-                  publicationDate: publishedAt,
-                  publishedAt,
-                  url: postUrl,
-                  visibility: PostVisibility.PUBLIC,
-                  workflowExecutionId: provenance.executionId,
-                },
-                `TikTok moderation completed - post ${postId} is live`,
-                {
-                  expectedWorkflowExecutionId: provenance.executionId,
-                  priorExecutionStates: [TargetExecutionState.PUBLISHING],
-                },
-              );
-            if (!grouped) {
-              this.logger.warn('Ignored stale TikTok publish confirmation', {
-                postId: String(post.id),
-                workflowExecutionId: provenance.executionId,
-              });
-            }
-            return grouped;
-          },
+          { externalPostId: postId, postUrl },
         );
         if (transitioned) {
           void this.publishEventWebhookService.emitLegacyPostPublished({
@@ -391,34 +371,7 @@ export class CronTiktokStatusService {
       post,
       'failed',
       reason,
-      async (provenance) => {
-        const targetError: IChannelTargetError = {
-          code: 'tiktok_publish_failed',
-          failedAt: new Date().toISOString(),
-          isRetryable: false,
-          message: reason,
-        };
-        const grouped = await this.schedulerPublishStateService.transitionPost(
-          post,
-          {
-            error: targetError,
-            executionState: TargetExecutionState.FAILED,
-            workflowExecutionId: provenance.executionId,
-          },
-          reason,
-          {
-            expectedWorkflowExecutionId: provenance.executionId,
-            priorExecutionStates: [TargetExecutionState.PUBLISHING],
-          },
-        );
-        if (!grouped) {
-          this.logger.warn('Ignored stale TikTok publish failure', {
-            postId: String(post.id),
-            workflowExecutionId: provenance.executionId,
-          });
-        }
-        return grouped;
-      },
+      { reason },
     );
     if (transitioned) {
       void this.publishEventWebhookService.emitLegacyPostFailed({
@@ -443,35 +396,27 @@ export class CronTiktokStatusService {
     post: TiktokPost,
     outcome: 'published' | 'failed',
     detail: string,
-    transition: (provenance: SystemWorkflowProvenance) => Promise<boolean>,
+    transitionInput: Record<string, unknown>,
   ): Promise<boolean> {
     try {
-      const { result } =
-        await this.systemWorkflowProvenanceService.runAction<boolean>(
-          {
-            actionType: 'tiktok-status-reconciliation',
-            canonicalId:
-              SYSTEM_WORKFLOW_ACTION_IDS.TIKTOK_STATUS_RECONCILIATION,
-            description:
-              'Verifies pending TikTok publications and reconciles post status once moderation completes.',
-            failureMessage: () => (outcome === 'failed' ? detail : undefined),
-            inputValues: {
-              detail,
-              outcome,
-              postId: String(post.id),
-              publishId: post.externalId,
-            },
-            label: 'TikTok Status Reconciliation',
-            metadata: { platform: CredentialPlatform.TIKTOK },
-            organizationId: post.organizationId,
-            postIds: [String(post.id)],
-            schedule: '*/5 * * * *',
-            source: 'CronTiktokStatusService.checkPostStatus',
-            trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId: post.userId,
-          },
-          transition,
-        );
+      const { result } = await this.systemWorkflowRunner.runAction<boolean>({
+        actionType: 'tiktok-status-reconciliation',
+        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TIKTOK_STATUS_RECONCILIATION,
+        inputValues: {
+          detail,
+          organizationId: post.organizationId,
+          outcome,
+          postId: String(post.id),
+          publishId: post.externalId,
+          ...transitionInput,
+        },
+        metadata: { platform: CredentialPlatform.TIKTOK },
+        organizationId: post.organizationId,
+        postIds: [String(post.id)],
+        source: 'CronTiktokStatusService.checkPostStatus',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: post.userId,
+      });
       return result;
     } catch (error: unknown) {
       this.logger.error('Failed to record TikTok status transition', {
@@ -481,5 +426,65 @@ export class CronTiktokStatusService {
       });
       return false;
     }
+  }
+
+  private async executeStatusTransition(
+    input: Record<string, unknown>,
+    provenance: SystemWorkflowProvenance,
+  ): Promise<boolean> {
+    const organizationId = String(input.organizationId ?? '');
+    const postId = String(input.postId ?? '');
+    const post = await this.postsService.findOne({
+      id: postId,
+      organizationId,
+    });
+    if (!post) {
+      throw new Error(`TikTok reconciliation post ${postId} not found`);
+    }
+
+    const outcome = input.outcome;
+    const isPublished = outcome === 'published';
+    const detail = String(input.detail ?? 'TikTok status reconciliation');
+    const publishedAt = new Date();
+    const error: IChannelTargetError | null = isPublished
+      ? null
+      : {
+          code: 'tiktok_publish_failed',
+          failedAt: publishedAt.toISOString(),
+          isRetryable: false,
+          message: String(input.reason ?? detail),
+        };
+    const grouped = await this.schedulerPublishStateService.transitionPost(
+      post as unknown as TiktokPost,
+      isPublished
+        ? {
+            error: null,
+            executionState: TargetExecutionState.PUBLISHED,
+            externalId: String(input.externalPostId ?? ''),
+            publicationDate: publishedAt,
+            publishedAt,
+            url: String(input.postUrl ?? ''),
+            visibility: PostVisibility.PUBLIC,
+            workflowExecutionId: provenance.executionId,
+          }
+        : {
+            error,
+            executionState: TargetExecutionState.FAILED,
+            workflowExecutionId: provenance.executionId,
+          },
+      detail,
+      {
+        expectedWorkflowExecutionId: provenance.executionId,
+        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+      },
+    );
+    if (!grouped) {
+      this.logger.warn('Ignored stale TikTok status transition', {
+        outcome,
+        postId,
+        workflowExecutionId: provenance.executionId,
+      });
+    }
+    return grouped;
   }
 }

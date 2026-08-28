@@ -1,8 +1,3 @@
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
-import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
 import { TwitterPipelineService } from '@api/services/twitter-pipeline/twitter-pipeline.service';
 import type {
   ITwitterSearchResult,
@@ -10,6 +5,11 @@ import type {
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('TwitterPipelineService', () => {
@@ -47,7 +47,7 @@ describe('TwitterPipelineService', () => {
     ),
   };
 
-  const mockSystemWorkflowProvenanceService = {
+  const mockSystemWorkflowRunner = {
     runAction: vi.fn(
       async (
         _input: unknown,
@@ -113,8 +113,8 @@ describe('TwitterPipelineService', () => {
         },
         { provide: CredentialsService, useValue: mockCredentialsService },
         {
-          provide: SystemWorkflowProvenanceService,
-          useValue: mockSystemWorkflowProvenanceService,
+          provide: SystemWorkflowRunnerService,
+          useValue: mockSystemWorkflowRunner,
         },
       ],
     }).compile();
@@ -387,7 +387,7 @@ describe('TwitterPipelineService', () => {
 
       const result = await service.publish(orgId, brandId, {
         text: 'test',
-        type: 'unknown' as any,
+        type: 'unknown' as 'original',
       });
 
       expect(result.success).toBe(false);

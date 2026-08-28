@@ -1,24 +1,35 @@
-import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowProvenanceService,
-} from '@server/collections/workflows/system-workflow-provenance.service';
-import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 
 const MS_PER_HOUR = 60 * 60 * 1000;
-const REVIEW_GATE_TIMEOUT_SCHEDULE = '*/15 * * * *';
-
 @Injectable()
-export class CronReviewGateTimeoutService {
+export class CronReviewGateTimeoutService implements OnModuleInit {
   private readonly context = 'CronReviewGateTimeoutService';
 
   constructor(
     private readonly logger: LoggerService,
     private readonly executorService: WorkflowExecutorService,
-    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
   ) {}
+
+  onModuleInit(): void {
+    this.systemWorkflowRunner.registerAction(
+      SYSTEM_WORKFLOW_ACTION_IDS.REVIEW_GATE_TIMEOUT,
+      ({ input }) =>
+        this.executorService.resolveTimedOutReviewGate(
+          String(input.workflowId ?? ''),
+          String(input.executionId ?? ''),
+          String(input.organizationId ?? ''),
+          String(input.nodeId ?? ''),
+        ),
+    );
+  }
 
   /**
    * Auto-resolves review gates whose reviewer timeout has elapsed. Fired every
@@ -44,31 +55,22 @@ export class CronReviewGateTimeoutService {
       }
 
       try {
-        const { result } = await this.systemWorkflowProvenanceService.runAction(
-          {
-            actionType: 'review-gate-timeout',
-            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.REVIEW_GATE_TIMEOUT,
-            description:
-              'Auto-resolves review gates whose reviewer timeout elapsed.',
-            inputValues: {
-              autoApproveIfNoResponse: gate.autoApproveIfNoResponse,
-              executionId: gate.executionId,
-              nodeId: gate.nodeId,
-            },
-            label: 'Review Gate Timeout Resolution',
+        const { result } = await this.systemWorkflowRunner.runAction<{
+          resolution?: string;
+        } | null>({
+          actionType: 'review-gate-timeout',
+          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.REVIEW_GATE_TIMEOUT,
+          inputValues: {
+            autoApproveIfNoResponse: gate.autoApproveIfNoResponse,
+            executionId: gate.executionId,
+            nodeId: gate.nodeId,
             organizationId: gate.organizationId,
-            schedule: REVIEW_GATE_TIMEOUT_SCHEDULE,
-            source: 'CronReviewGateTimeoutService.resolveTimedOutReviewGates',
-            trigger: WorkflowExecutionTrigger.SCHEDULED,
+            workflowId: gate.workflowId,
           },
-          () =>
-            this.executorService.resolveTimedOutReviewGate(
-              gate.workflowId,
-              gate.executionId,
-              gate.organizationId,
-              gate.nodeId,
-            ),
-        );
+          organizationId: gate.organizationId,
+          source: 'CronReviewGateTimeoutService.resolveTimedOutReviewGates',
+          trigger: WorkflowExecutionTrigger.SCHEDULED,
+        });
 
         if (result?.resolution === 'approved') {
           totals.approved += 1;

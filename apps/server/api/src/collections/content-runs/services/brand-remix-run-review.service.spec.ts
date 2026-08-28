@@ -1,9 +1,9 @@
 import { BrandRemixRunReviewService } from '@api/collections/content-runs/services/brand-remix-run-review.service';
 import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/services/brand-remix-runs.factory';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { brandRemixRunConfigSchema } from '@api-types/contracts/brand-remix-run.contract';
 import { ContentRunStatus, IngredientStatus } from '@genfeedai/enums';
 import { ConflictException } from '@nestjs/common';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createdAt = new Date('2026-08-20T10:00:00.000Z');
@@ -19,12 +19,12 @@ describe('BrandRemixRunReviewService', () => {
     post: { findMany: vi.fn() },
   } as unknown as PrismaService;
   const batchGenerationService = { createManualReviewBatch: vi.fn() };
-  const systemWorkflowProvenanceService = { runAction: vi.fn() };
+  const systemWorkflowRunner = { runAction: vi.fn() };
   let review: BrandRemixRunReviewService;
 
   beforeEach(() => {
     vi.resetAllMocks();
-    systemWorkflowProvenanceService.runAction.mockImplementation(
+    systemWorkflowRunner.runAction.mockImplementation(
       async (_input, action) => {
         const provenance = {
           executionId: 'workflow-execution-1',
@@ -64,7 +64,7 @@ describe('BrandRemixRunReviewService', () => {
         now: () => new Date('2026-08-20T10:00:00.000Z'),
         randomId: () => 'unused',
       },
-      systemWorkflowProvenanceService: systemWorkflowProvenanceService as never,
+      systemWorkflowRunner: systemWorkflowRunner as never,
       trendReferenceCorpusService: {
         recordPostRemixLineage: vi.fn(),
       } as never,

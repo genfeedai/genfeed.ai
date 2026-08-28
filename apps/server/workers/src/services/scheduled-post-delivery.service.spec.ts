@@ -89,7 +89,7 @@ function createDeliveryMocks() {
     schedulerPublishStateService: {
       transitionPost: vi.fn().mockResolvedValue(true),
     },
-    systemWorkflowProvenanceService: {
+    systemWorkflowRunner: {
       runAction: vi.fn(
         async (
           _input: unknown,
@@ -120,7 +120,7 @@ function createDeliveryService(mocks: DeliveryMocks) {
     mocks.postsService as never,
     mocks.quotaService as never,
     mocks.publisherFactory as never,
-    mocks.systemWorkflowProvenanceService as never,
+    mocks.systemWorkflowRunner as never,
     mocks.publishEventWebhookService as never,
     mocks.schedulerPublishStateService as never,
     mocks.replyInboundQueueService as never,

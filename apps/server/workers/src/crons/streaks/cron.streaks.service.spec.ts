@@ -1,10 +1,10 @@
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { StreaksService } from '@server/collections/streaks/services/streaks.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowProvenanceService,
-} from '@server/collections/workflows/system-workflow-provenance.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { CronStreaksService } from '@workers/crons/streaks/cron.streaks.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -58,7 +58,7 @@ describe('CronStreaksService', () => {
           useValue: streaksService,
         },
         {
-          provide: SystemWorkflowProvenanceService,
+          provide: SystemWorkflowRunnerService,
           useValue: provenanceService,
         },
         {

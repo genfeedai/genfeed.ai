@@ -14,7 +14,7 @@ import {
   EXECUTABLE_WORKFLOW_SELECT,
   WorkflowExecutorService,
 } from '@server/collections/workflows/services/workflow-executor.service';
-import { isSweepDrivenSystemWorkflow } from '@server/collections/workflows/system-workflow-provenance.service';
+import { isSweepDrivenSystemWorkflow } from '@server/collections/workflows/system-workflow-runner.service';
 import {
   computeNextRunAtOrThrow,
   isSchedulableTimezone,

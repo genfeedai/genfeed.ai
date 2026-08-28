@@ -107,8 +107,8 @@ export type { Post, PostDocument } from './collections/posts/post.schema';
 export {
   isSweepDrivenSystemWorkflow,
   SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowProvenanceService,
-} from './collections/workflows/system-workflow-provenance.service';
+  SystemWorkflowRunnerService,
+} from './collections/workflows/system-workflow-runner.service';
 export { BaseEntity } from './entities/base.entity';
 export {
   BusinessLogicException,

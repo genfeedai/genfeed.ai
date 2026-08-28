@@ -5,23 +5,6 @@
  * to user IDs, sends DMs, and tracks status.
  */
 
-import { type CampaignTargetDocument } from '@server/collections/campaign-targets/schemas/campaign-target.schema';
-import { CampaignTargetsService } from '@server/collections/campaign-targets/services/campaign-targets.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import {
-  CampaignDmConfig,
-  type OutreachCampaignDocument,
-} from '@server/collections/outreach-campaigns/schemas/outreach-campaign.schema';
-import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
-import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowProvenanceService,
-} from '@server/collections/workflows/system-workflow-provenance.service';
-import { resolveCampaignScope } from '@server/services/campaign/campaign-scope.util';
-import { isCampaignOutreachPairExecutable } from '@server/services/campaign/outreach-capability.util';
-import { toReplyBotCredentialData } from '@server/services/campaign/reply-bot-credential.util';
-import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
-import { ReplyGenerationService } from '@server/services/reply-bot/reply-generation.service';
 import { getOutreachCapabilityRefusal } from '@api-types/contracts/outreach-capabilities.contract';
 import {
   CampaignSkipReason,
@@ -33,10 +16,27 @@ import type { ICampaignScope } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { type CampaignTargetDocument } from '@server/collections/campaign-targets/schemas/campaign-target.schema';
+import { CampaignTargetsService } from '@server/collections/campaign-targets/services/campaign-targets.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import {
+  CampaignDmConfig,
+  type OutreachCampaignDocument,
+} from '@server/collections/outreach-campaigns/schemas/outreach-campaign.schema';
+import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
+import { resolveCampaignScope } from '@server/services/campaign/campaign-scope.util';
+import { isCampaignOutreachPairExecutable } from '@server/services/campaign/outreach-capability.util';
+import { toReplyBotCredentialData } from '@server/services/campaign/reply-bot-credential.util';
+import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
+import { ReplyGenerationService } from '@server/services/reply-bot/reply-generation.service';
 
 @Injectable()
-export class DmCampaignExecutorService {
+export class DmCampaignExecutorService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
@@ -46,8 +46,15 @@ export class DmCampaignExecutorService {
     private readonly credentialsService: CredentialsService,
     private readonly replyGenerationService: ReplyGenerationService,
     private readonly botActionExecutorService: BotActionExecutorService,
-    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
   ) {}
+
+  onModuleInit(): void {
+    this.systemWorkflowRunner.registerAction(
+      SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_DM_AUTOMATION,
+      ({ input }) => this.executeCampaignDmAction(input),
+    );
+  }
 
   /**
    * Process pending DM targets for a campaign
@@ -304,33 +311,25 @@ export class DmCampaignExecutorService {
       );
 
       // Send DM
-      const { result: dmResult } =
-        await this.systemWorkflowProvenanceService.runAction(
-          {
-            actionType: 'campaign-dm',
-            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_DM_AUTOMATION,
-            description:
-              'Generates and sends outreach campaign DMs through connected brand credentials.',
-            failureMessage: (result) =>
-              result.success ? undefined : result.error || 'Campaign DM failed',
-            inputValues: {
-              campaignId,
-              recipientUserId,
-              targetId,
-            },
-            label: 'Campaign DM Automation',
-            organizationId: scope.organizationId,
-            source: 'DmCampaignExecutorService.executeDmTarget',
-            trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId: scope.userId,
-          },
-          () =>
-            this.botActionExecutorService.sendDm(
-              credentialData,
-              recipientUserId,
-              dmText,
-            ),
-        );
+      const { result: dmResult } = await this.systemWorkflowRunner.runAction<{
+        error?: string;
+        success: boolean;
+      }>({
+        actionType: 'campaign-dm',
+        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_DM_AUTOMATION,
+        inputValues: {
+          campaignId,
+          credentialId: scope.credentialId,
+          dmText,
+          organizationId: scope.organizationId,
+          recipientUserId,
+          targetId,
+        },
+        organizationId: scope.organizationId,
+        source: 'DmCampaignExecutorService.executeDmTarget',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: scope.userId,
+      });
 
       if (!dmResult.success) {
         const isDmNotAllowed =
@@ -412,6 +411,28 @@ export class DmCampaignExecutorService {
 
       return { error: errorMessage, success: false };
     }
+  }
+
+  private async executeCampaignDmAction(input: Record<string, unknown>) {
+    const organizationId = String(input.organizationId ?? '');
+    const credentialRecord = await this.findCampaignCredential({
+      credentialId: String(input.credentialId ?? ''),
+      organizationId,
+    });
+    const credential = credentialRecord
+      ? toReplyBotCredentialData(
+          credentialRecord as unknown as Record<string, unknown>,
+          { organizationId },
+        )
+      : null;
+    if (!credential) {
+      throw new Error('Campaign DM credential is unavailable');
+    }
+    return this.botActionExecutorService.sendDm(
+      credential,
+      String(input.recipientUserId ?? ''),
+      String(input.dmText ?? ''),
+    );
   }
 
   /**

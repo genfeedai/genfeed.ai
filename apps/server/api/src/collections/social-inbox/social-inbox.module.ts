@@ -1,21 +1,20 @@
 import { SocialInboxController } from '@api/collections/social-inbox/controllers/social-inbox.controller';
 import { SocialReplyCampaignController } from '@api/collections/social-inbox/controllers/social-reply-campaign.controller';
-import { SocialInboxService } from '@server/collections/social-inbox/services/social-inbox.service';
-import { SocialInboxActionService } from '@server/collections/social-inbox/services/social-inbox-action.service';
-import { SocialInboxIngestionService } from '@server/collections/social-inbox/services/social-inbox-ingestion.service';
-import { SocialInboxQueryService } from '@server/collections/social-inbox/services/social-inbox-query.service';
-import { SocialInboxRealtimeService } from '@server/collections/social-inbox/services/social-inbox-realtime.service';
 import { SocialReplyCampaignService } from '@api/collections/social-inbox/services/social-reply-campaign.service';
-import { SocialReplyCampaignDispatchService } from '@server/collections/social-inbox/services/social-reply-campaign-dispatch.service';
-import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
-import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
+import { SocialInboxService } from '@server/collections/social-inbox/services/social-inbox.service';
+import { SocialInboxActionService } from '@server/collections/social-inbox/services/social-inbox-action.service';
+import { SocialInboxIngestionService } from '@server/collections/social-inbox/services/social-inbox-ingestion.service';
+import { SocialInboxQueryService } from '@server/collections/social-inbox/services/social-inbox-query.service';
+import { SocialInboxRealtimeService } from '@server/collections/social-inbox/services/social-inbox-realtime.service';
+import { SocialReplyCampaignDispatchService } from '@server/collections/social-inbox/services/social-reply-campaign-dispatch.service';
 
 @Module({
   controllers: [SocialInboxController, SocialReplyCampaignController],
@@ -26,7 +25,7 @@ import { Module } from '@nestjs/common';
     NotificationsPublisherModule,
     QueuesModule,
     TwitterModule,
-    WorkflowsCoreModule,
+    forwardRef(() => WorkflowsModule),
     YoutubeModule,
   ],
   providers: [
@@ -37,10 +36,6 @@ import { Module } from '@nestjs/common';
     SocialInboxService,
     SocialReplyCampaignDispatchService,
     SocialReplyCampaignService,
-    // Declared directly rather than imported from WorkflowsModule: that module
-    // does not export it, and pulling in another edge would push this module
-    // further from the leaf-ward shape the module-graph guard ratchets on.
-    SystemWorkflowProvenanceService,
   ],
 })
 export class SocialInboxModule {}

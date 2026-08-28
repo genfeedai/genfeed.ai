@@ -1,10 +1,10 @@
-import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowProvenanceService,
-} from '@server/collections/workflows/system-workflow-provenance.service';
-import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { CronReviewGateTimeoutService } from '@workers/crons/review-gate/cron.review-gate-timeout.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -63,7 +63,7 @@ describe('CronReviewGateTimeoutService', () => {
         CronReviewGateTimeoutService,
         { provide: WorkflowExecutorService, useValue: executorService },
         {
-          provide: SystemWorkflowProvenanceService,
+          provide: SystemWorkflowRunnerService,
           useValue: provenanceService,
         },
         { provide: LoggerService, useValue: loggerService },

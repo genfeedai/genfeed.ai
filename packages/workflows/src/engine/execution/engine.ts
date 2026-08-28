@@ -745,11 +745,12 @@ export class WorkflowEngine {
       throw new Error(`No executor registered for Genfeed action: ${actionId}`);
     }
 
+    const { actionId: _actionId, parameters, ...runtimeConfig } = node.config;
     return {
       executor,
       node: {
         ...node,
-        config: readRecord(node.config.parameters),
+        config: { ...readRecord(parameters), ...runtimeConfig },
         type: actionId,
       },
     };

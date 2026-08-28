@@ -1,12 +1,12 @@
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
-import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { TwitterPipelineController } from '@api/services/twitter-pipeline/twitter-pipeline.controller';
 import { TwitterPipelineService } from '@api/services/twitter-pipeline/twitter-pipeline.service';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [TwitterPipelineController],
@@ -17,7 +17,8 @@ import { Module } from '@nestjs/common';
     OpenRouterModule,
     ReplyBotModule,
     TwitterModule,
+    forwardRef(() => WorkflowsModule),
   ],
-  providers: [TwitterPipelineService, SystemWorkflowProvenanceService],
+  providers: [TwitterPipelineService],
 })
 export class TwitterPipelineModule {}

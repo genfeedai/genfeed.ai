@@ -1,15 +1,3 @@
-import type { CampaignTargetDocument } from '@server/collections/campaign-targets/schemas/campaign-target.schema';
-import { CampaignTargetsService } from '@server/collections/campaign-targets/services/campaign-targets.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import type {
-  CampaignAiConfig,
-  OutreachCampaignDocument,
-} from '@server/collections/outreach-campaigns/schemas/outreach-campaign.schema';
-import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
-import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
-import { CampaignExecutorService } from '@server/services/campaign/campaign-executor.service';
-import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
-import { ReplyGenerationService } from '@server/services/reply-bot/reply-generation.service';
 import {
   CampaignPlatform,
   CampaignSkipReason,
@@ -21,6 +9,18 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { CampaignTargetDocument } from '@server/collections/campaign-targets/schemas/campaign-target.schema';
+import { CampaignTargetsService } from '@server/collections/campaign-targets/services/campaign-targets.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import type {
+  CampaignAiConfig,
+  OutreachCampaignDocument,
+} from '@server/collections/outreach-campaigns/schemas/outreach-campaign.schema';
+import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import { CampaignExecutorService } from '@server/services/campaign/campaign-executor.service';
+import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
+import { ReplyGenerationService } from '@server/services/reply-bot/reply-generation.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('CampaignExecutorService', () => {
@@ -66,7 +66,7 @@ describe('CampaignExecutorService', () => {
     postReply: vi.fn(),
   };
 
-  const mockSystemWorkflowProvenanceService = {
+  const mockSystemWorkflowRunner = {
     runAction: vi.fn(
       async (
         _input: unknown,
@@ -170,8 +170,8 @@ describe('CampaignExecutorService', () => {
           useValue: mockBotActionExecutorService,
         },
         {
-          provide: SystemWorkflowProvenanceService,
-          useValue: mockSystemWorkflowProvenanceService,
+          provide: SystemWorkflowRunnerService,
+          useValue: mockSystemWorkflowRunner,
         },
       ],
     }).compile();
@@ -229,9 +229,7 @@ describe('CampaignExecutorService', () => {
       expect(
         mockOutreachCampaignsService.reserveReplySlot,
       ).not.toHaveBeenCalled();
-      expect(
-        mockSystemWorkflowProvenanceService.runAction,
-      ).not.toHaveBeenCalled();
+      expect(mockSystemWorkflowRunner.runAction).not.toHaveBeenCalled();
       expect(mockBotActionExecutorService.postReply).not.toHaveBeenCalled();
     });
 
@@ -368,9 +366,7 @@ describe('CampaignExecutorService', () => {
       expect(
         mockOutreachCampaignsService.reserveReplySlot,
       ).toHaveBeenCalledWith(campaignId, orgId);
-      expect(
-        mockSystemWorkflowProvenanceService.runAction,
-      ).not.toHaveBeenCalled();
+      expect(mockSystemWorkflowRunner.runAction).not.toHaveBeenCalled();
       expect(mockBotActionExecutorService.postReply).not.toHaveBeenCalled();
       expect(mockCampaignTargetsService.markAsReplied).not.toHaveBeenCalled();
       expect(
@@ -403,7 +399,7 @@ describe('CampaignExecutorService', () => {
           return { reserved: true };
         },
       );
-      mockSystemWorkflowProvenanceService.runAction.mockImplementation(
+      mockSystemWorkflowRunner.runAction.mockImplementation(
         async (
           _input: unknown,
           action: (provenance: {
@@ -528,9 +524,7 @@ describe('CampaignExecutorService', () => {
         mockCampaignTargetsService.markAsProcessing,
       ).not.toHaveBeenCalled();
       expect(mockReplyGenerationService.generateReply).not.toHaveBeenCalled();
-      expect(
-        mockSystemWorkflowProvenanceService.runAction,
-      ).not.toHaveBeenCalled();
+      expect(mockSystemWorkflowRunner.runAction).not.toHaveBeenCalled();
       expect(mockBotActionExecutorService.postReply).not.toHaveBeenCalled();
       expect(mockCampaignTargetsService.markAsFailed).not.toHaveBeenCalled();
     });
@@ -554,9 +548,7 @@ describe('CampaignExecutorService', () => {
       ).not.toHaveBeenCalled();
       expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
       expect(mockReplyGenerationService.generateReply).not.toHaveBeenCalled();
-      expect(
-        mockSystemWorkflowProvenanceService.runAction,
-      ).not.toHaveBeenCalled();
+      expect(mockSystemWorkflowRunner.runAction).not.toHaveBeenCalled();
       expect(mockBotActionExecutorService.postReply).not.toHaveBeenCalled();
       expect(mockCampaignTargetsService.markAsSkipped).not.toHaveBeenCalled();
       expect(mockCampaignTargetsService.markAsFailed).not.toHaveBeenCalled();

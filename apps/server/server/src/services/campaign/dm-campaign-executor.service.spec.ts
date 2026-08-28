@@ -1,15 +1,3 @@
-import type { CampaignTargetDocument } from '@server/collections/campaign-targets/schemas/campaign-target.schema';
-import { CampaignTargetsService } from '@server/collections/campaign-targets/services/campaign-targets.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import type {
-  CampaignDmConfig,
-  OutreachCampaignDocument,
-} from '@server/collections/outreach-campaigns/schemas/outreach-campaign.schema';
-import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
-import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
-import { DmCampaignExecutorService } from '@server/services/campaign/dm-campaign-executor.service';
-import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
-import { ReplyGenerationService } from '@server/services/reply-bot/reply-generation.service';
 import {
   CampaignPlatform,
   CampaignSkipReason,
@@ -19,6 +7,18 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { CampaignTargetDocument } from '@server/collections/campaign-targets/schemas/campaign-target.schema';
+import { CampaignTargetsService } from '@server/collections/campaign-targets/services/campaign-targets.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import type {
+  CampaignDmConfig,
+  OutreachCampaignDocument,
+} from '@server/collections/outreach-campaigns/schemas/outreach-campaign.schema';
+import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import { DmCampaignExecutorService } from '@server/services/campaign/dm-campaign-executor.service';
+import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
+import { ReplyGenerationService } from '@server/services/reply-bot/reply-generation.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('DmCampaignExecutorService', () => {
@@ -61,7 +61,7 @@ describe('DmCampaignExecutorService', () => {
     sendDm: vi.fn(),
   };
 
-  const mockSystemWorkflowProvenanceService = {
+  const mockSystemWorkflowRunner = {
     runAction: vi.fn(
       async (
         _input: unknown,
@@ -161,8 +161,8 @@ describe('DmCampaignExecutorService', () => {
           useValue: mockBotActionExecutorService,
         },
         {
-          provide: SystemWorkflowProvenanceService,
-          useValue: mockSystemWorkflowProvenanceService,
+          provide: SystemWorkflowRunnerService,
+          useValue: mockSystemWorkflowRunner,
         },
       ],
     }).compile();
@@ -192,9 +192,7 @@ describe('DmCampaignExecutorService', () => {
       expect(mockOutreachCampaignsService.canReply).not.toHaveBeenCalled();
       expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
       expect(mockReplyGenerationService.generateDm).not.toHaveBeenCalled();
-      expect(
-        mockSystemWorkflowProvenanceService.runAction,
-      ).not.toHaveBeenCalled();
+      expect(mockSystemWorkflowRunner.runAction).not.toHaveBeenCalled();
       expect(mockBotActionExecutorService.sendDm).not.toHaveBeenCalled();
     });
 

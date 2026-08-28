@@ -8,9 +8,6 @@ import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/servi
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import type { PausedMetaCampaignDraftResult } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
 import type { PausedXAdsCampaignDraftResult } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
-import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
-import { XAdsAdapter } from '@server/services/ads-gateway/adapters/x-ads.adapter';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   createTestBrand,
   createTestCredential,
@@ -33,6 +30,9 @@ import {
 } from '@genfeedai/enums';
 import { CredentialPlatform, type Prisma } from '@genfeedai/prisma';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { AdsResearchService } from '@server/endpoints/ads-research/ads-research.service';
+import { XAdsAdapter } from '@server/services/ads-gateway/adapters/x-ads.adapter';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const describeWithDatabase =
   process.env.SKIP_PRISMA_DB === 'true' ? describe.skip : describe;
@@ -575,7 +575,7 @@ describeWithDatabase('Brand remix paid draft integration', () => {
         : {}) as never,
       prisma,
       runtime: { now: () => NOW, randomId: () => 'unused-random-id' },
-      systemWorkflowProvenanceService: {} as never,
+      systemWorkflowRunner: {} as never,
       trendReferenceCorpusService: {} as never,
       videoGenerationService: {} as never,
     }).service;
