@@ -1,10 +1,22 @@
 import { TrackedLinksService } from '@api/collections/tracked-links/services/tracked-links.service';
+import { BadRequestException } from '@nestjs/common';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BadRequestException } from '@nestjs/common';
 
 describe('TrackedLinksService', () => {
   const makeService = () => {
+    const transaction = {
+      $queryRaw: vi.fn(),
+      linkClick: {
+        create: vi.fn(),
+        findFirst: vi.fn(),
+      },
+      trackedLink: {
+        findFirst: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn(),
+      },
+    };
     const prisma = {
       brand: {
         findFirst: vi.fn(),
@@ -18,24 +30,43 @@ describe('TrackedLinksService', () => {
         update: vi.fn(),
         updateMany: vi.fn(),
       },
-      // Interactive-transaction stub: executes the callback with a tx object
-      // that shares the same mock handles as the top-level prisma mock so
-      // tests can assert on updateMany/findFirst calls without change.
-      $transaction: vi.fn().mockImplementation((fn: (tx: unknown) => unknown) =>
-        fn({
-          trackedLink: {
-            findFirst: vi.fn(),
-            updateMany: vi.fn(),
-          },
-        }),
-      ),
+      $transaction: vi
+        .fn()
+        .mockImplementation((fn: (tx: unknown) => unknown) => fn(transaction)),
     };
 
     return {
       prisma,
       service: new TrackedLinksService(prisma as unknown as PrismaService),
+      transaction,
     };
   };
+
+  it('aggregates click stats in the database without loading click rows', async () => {
+    const { prisma, service, transaction } = makeService();
+    prisma.trackedLink.findFirst.mockResolvedValue({
+      id: 'link-1',
+      organizationId: 'org-1',
+    });
+    transaction.linkClick.findFirst.mockResolvedValue(null);
+    transaction.linkClick.create.mockResolvedValue({ id: 'click-1' });
+    transaction.$queryRaw.mockResolvedValue([
+      { totalClicks: 12n, uniqueClicks: 7n },
+    ]);
+
+    await service.trackClick({ linkId: 'link-1', sessionId: 'session-1' });
+
+    expect(transaction.$queryRaw).toHaveBeenCalledOnce();
+    expect(transaction.trackedLink.update).toHaveBeenCalledWith({
+      data: {
+        stats: expect.objectContaining({
+          totalClicks: 12,
+          uniqueClicks: 7,
+        }),
+      },
+      where: expect.objectContaining({ id: 'link-1' }),
+    });
+  });
 
   it('rejects unsafe redirect URL schemes when creating tracked links', async () => {
     const { prisma, service } = makeService();

@@ -3,10 +3,7 @@ import process from 'node:process';
 import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-tracked-link.dto';
 import { TrackClickDto } from '@api/collections/tracked-links/dto/track-click.dto';
 import type { TrackedLinkDocument } from '@api/collections/tracked-links/schemas/tracked-link.schema';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
-import { toPrismaJson } from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import {
   BadRequestException,
@@ -15,6 +12,9 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
 import { nanoid } from 'nanoid';
 
 /** Fields a caller is allowed to mutate on an existing tracked link. */
@@ -27,6 +27,8 @@ type TrackedLinkUpdatePayload = {
 type TrackedLink = TrackedLinkDocument;
 type CountryCacheEntry = { country?: string; expiresAt: number };
 type ClickRateEntry = { count: number; resetAt: number };
+type ClickStatsRow = { totalClicks: bigint; uniqueClicks: bigint };
+type RequestHeaders = Record<string, string | string[] | undefined>;
 
 const CLICK_RATE_LIMIT = 120;
 const CLICK_RATE_WINDOW_MS = 60_000;
@@ -401,7 +403,7 @@ export class TrackedLinksService {
    */
   async trackClick(
     dto: TrackClickDto,
-    req?: { ip?: string; headers?: Record<string, string | undefined> },
+    req?: { ip?: string; headers?: RequestHeaders },
   ): Promise<void> {
     const link = await this.prisma.trackedLink.findFirst({
       where: { id: dto.linkId, isActive: true, isDeleted: false },
@@ -414,12 +416,10 @@ export class TrackedLinksService {
 
     this.assertClickRateLimit(dto.linkId, req?.ip);
 
-    // Get device type
-    const device = this.getDeviceType(
-      dto.userAgent || req?.headers?.['user-agent'],
-    );
+    const userAgent =
+      dto.userAgent || this.getHeader(req?.headers, 'user-agent');
+    const device = this.getDeviceType(userAgent);
 
-    // Get country from IP
     const country = await this.getCountryFromIP(req?.ip);
 
     let isUnique = false;
@@ -440,10 +440,10 @@ export class TrackedLinksService {
             gaClientId: dto.gaClientId,
             isUnique,
             linkId: dto.linkId,
-            referrer: dto.referrer || req?.headers?.referer,
+            referrer: dto.referrer || this.getHeader(req?.headers, 'referer'),
             sessionId,
             timestamp: new Date(),
-            userAgent: dto.userAgent || req?.headers?.['user-agent'],
+            userAgent,
           },
         });
 
@@ -457,6 +457,14 @@ export class TrackedLinksService {
       device,
       isUnique,
     });
+  }
+
+  private getHeader(
+    headers: RequestHeaders | undefined,
+    name: string,
+  ): string | undefined {
+    const value = headers?.[name];
+    return Array.isArray(value) ? value[0] : value;
   }
 
   private assertClickRateLimit(linkId: string, ip?: string): void {
@@ -490,26 +498,26 @@ export class TrackedLinksService {
   }
 
   private async refreshLinkStats(
-    tx: Pick<PrismaService, 'linkClick' | 'trackedLink'>,
+    tx: Pick<PrismaService, '$queryRaw' | 'trackedLink'>,
     linkId: string,
     organizationId: string,
   ): Promise<void> {
-    const clicks = await tx.linkClick.findMany({
-      select: { sessionId: true },
-      where: { linkId },
-    });
-    const uniqueClicks = new Set(
-      clicks
-        .map((click) => click.sessionId)
-        .filter((sessionId) => sessionId && !sessionId.startsWith('anon:')),
-    ).size;
+    const [stats] = await tx.$queryRaw<ClickStatsRow[]>(Prisma.sql`
+      SELECT
+        COUNT(*)::bigint AS "totalClicks",
+        COUNT(DISTINCT "sessionId") FILTER (
+          WHERE "sessionId" NOT LIKE 'anon:%'
+        )::bigint AS "uniqueClicks"
+      FROM "link_clicks"
+      WHERE "linkId" = ${linkId}
+    `);
 
     await tx.trackedLink.update({
       data: {
         stats: toPrismaJson({
           lastClickAt: new Date(),
-          totalClicks: clicks.length,
-          uniqueClicks,
+          totalClicks: Number(stats?.totalClicks ?? 0),
+          uniqueClicks: Number(stats?.uniqueClicks ?? 0),
         }),
       },
       where: scopedWhere(organizationId, { id: linkId }),
