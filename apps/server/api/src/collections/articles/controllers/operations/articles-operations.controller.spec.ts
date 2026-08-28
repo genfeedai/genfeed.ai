@@ -1,23 +1,23 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import { ArticlesOperationsController } from '@api/collections/articles/controllers/operations/articles-operations.controller';
+import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ArticleCategory, AssetScope, ModelCategory } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
+import { HttpStatus } from '@nestjs/common';
+import { Test, type TestingModule } from '@nestjs/testing';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { ArticlesOperationsController } from '@api/collections/articles/controllers/operations/articles-operations.controller';
 import type { GenerateArticlesDto } from '@server/collections/articles/dto/generate-articles.dto';
 import type { Article } from '@server/collections/articles/schemas/article.schema';
 import { ArticlesService } from '@server/collections/articles/services/articles.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@server/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ArticleCategory, AssetScope, ModelCategory } from '@genfeedai/enums';
-import { testId } from '@helpers/testing/test-id.helper';
-import { HttpStatus } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
 describe('ArticlesOperationsController', () => {
@@ -166,7 +166,10 @@ describe('ArticlesOperationsController', () => {
       };
 
       const generatedArticles = [mockArticle, mockArticle, mockArticle];
-      mockArticlesService.generateArticles.mockResolvedValue(generatedArticles);
+      mockArticlesService.generateArticles.mockResolvedValue({
+        articles: generatedArticles,
+        billedCredits: 0,
+      });
       mockArticlesService.resolveArticleCycleModelConfig.mockResolvedValue({
         generationModel: 'default-text-model',
         reviewModel: 'default-text-model',
@@ -190,7 +193,6 @@ describe('ArticlesOperationsController', () => {
         mockPublicMetadata.user,
         mockPublicMetadata.organization,
         mockPublicMetadata.brand,
-        expect.any(Function),
       );
       expect(result).toBeDefined();
     });
@@ -202,7 +204,10 @@ describe('ArticlesOperationsController', () => {
         prompt: 'AI Technology',
       };
 
-      mockArticlesService.generateArticles.mockResolvedValue([mockArticle]);
+      mockArticlesService.generateArticles.mockResolvedValue({
+        articles: [mockArticle],
+        billedCredits: 0,
+      });
       mockArticlesService.resolveArticleCycleModelConfig.mockResolvedValue({
         generationModel: 'default-text-model',
         reviewModel: 'default-text-model',
@@ -222,7 +227,6 @@ describe('ArticlesOperationsController', () => {
         mockPublicMetadata.user,
         mockPublicMetadata.organization,
         requestedBrandId,
-        expect.any(Function),
       );
       expect(mockActivitiesService.create).toHaveBeenNthCalledWith(
         1,
@@ -245,7 +249,10 @@ describe('ArticlesOperationsController', () => {
         cost: 1,
         key: MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
       });
-      mockArticlesService.generateArticles.mockResolvedValue([mockArticle]);
+      mockArticlesService.generateArticles.mockResolvedValue({
+        articles: [mockArticle],
+        billedCredits: 0,
+      });
       mockArticlesService.resolveArticleCycleModelConfig.mockResolvedValue({
         generationModel: MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
         reviewModel: 'default-text-model',
@@ -269,7 +276,6 @@ describe('ArticlesOperationsController', () => {
         mockPublicMetadata.user,
         mockPublicMetadata.organization,
         mockPublicMetadata.brand,
-        expect.any(Function),
       );
     });
 
@@ -338,7 +344,10 @@ describe('ArticlesOperationsController', () => {
         prompt: 'AI Technology',
       };
 
-      mockArticlesService.generateArticles.mockResolvedValue([mockArticle]);
+      mockArticlesService.generateArticles.mockResolvedValue({
+        articles: [mockArticle],
+        billedCredits: 0,
+      });
       mockArticlesService.resolveArticleCycleModelConfig.mockResolvedValue({
         generationModel: 'default-text-model',
         reviewModel: 'default-text-model',
@@ -395,7 +404,10 @@ describe('ArticlesOperationsController', () => {
         reviewModel: 'default-text-model',
         updateModel: 'default-text-model',
       });
-      mockArticlesService.reviewArticle.mockResolvedValue(review);
+      mockArticlesService.reviewArticle.mockResolvedValue({
+        billedCredits: 0,
+        review,
+      });
 
       const result = await controller.reviewArticle(
         mockRequest,
@@ -409,7 +421,6 @@ describe('ArticlesOperationsController', () => {
         mockPublicMetadata.user,
         mockPublicMetadata.organization,
         'clarity',
-        expect.any(Function),
       );
       expect(result).toEqual(review);
     });

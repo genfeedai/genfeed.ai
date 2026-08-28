@@ -165,7 +165,7 @@ describe('ArticlesService article cycle model config', () => {
       defaultModel: MODEL_KEYS.REPLICATE_ANTHROPIC_CLAUDE_4_5_SONNET,
     });
 
-    await service.generateArticles(
+    await service.executeArticleGenerationAction(
       {
         model: MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
         prompt: 'AI infrastructure trends',

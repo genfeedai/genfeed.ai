@@ -1,9 +1,19 @@
+import { LLM_DEFAULTS } from '@genfeedai/constants';
+import {
+  ContentIntelligencePlatform,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
+import { extractHashtags } from '@genfeedai/utils/data/extract.util';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { GenerateContentDto } from '@server/collections/content-intelligence/dto/generate-content.dto';
 import { type ContentPatternDocument } from '@server/collections/content-intelligence/schemas/content-pattern.schema';
 import { PatternStoreService } from '@server/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@server/collections/content-intelligence/services/playbook-builder.service';
 import { TopPerformerPromptContextService } from '@server/collections/content-intelligence/services/top-performer-prompt-context.service';
 import { PersonasService } from '@server/collections/personas/services/personas.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { SecurityUtil } from '@server/helpers/utils/security/security.util';
 import { AgentContextAssemblyService } from '@server/services/agent-context-assembly/agent-context-assembly.service';
 import {
@@ -12,10 +22,11 @@ import {
 } from '@server/services/agent-context-assembly/brand-context-budget.util';
 import { HarnessGenerationService } from '@server/services/harness/harness-generation.service';
 import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { extractHashtags } from '@genfeedai/utils/data/extract.util';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+
+export const CONTENT_INTELLIGENCE_GENERATION_ACTION_ID =
+  'content-intelligence.generate';
+export const LINKEDIN_CONTENT_GENERATION_ACTION_ID =
+  'generate_linkedin_content';
 
 export interface GeneratedContent {
   content: string;
@@ -38,7 +49,7 @@ type PlaybookInsightsView = {
 };
 
 @Injectable()
-export class ContentGeneratorService {
+export class ContentGeneratorService implements OnModuleInit {
   private readonly constructorName = this.constructor.name;
   private readonly defaultModel: string;
 
@@ -53,8 +64,61 @@ export class ContentGeneratorService {
     @Optional() private readonly personasService?: PersonasService,
     @Optional()
     private readonly harnessGenerationService?: HarnessGenerationService,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {
     this.defaultModel = LLM_DEFAULTS.background;
+  }
+
+  onModuleInit(): void {
+    const runner = this.requireWorkflowRunner();
+    runner.registerAction(
+      CONTENT_INTELLIGENCE_GENERATION_ACTION_ID,
+      ({ context, input }) =>
+        this.generateContent(
+          context.organizationId,
+          this.readGenerationDto(input.dto ?? input),
+        ),
+      {
+        description:
+          'Generates platform-aware content variants from tenant context.',
+        label: 'Generate Content Intelligence Variants',
+      },
+    );
+    runner.registerAction(
+      LINKEDIN_CONTENT_GENERATION_ACTION_ID,
+      ({ context, input }) =>
+        this.generateContent(context.organizationId, {
+          ...this.readGenerationDto(
+            input.dto ?? input,
+            ContentIntelligencePlatform.LINKEDIN,
+          ),
+          platform: ContentIntelligencePlatform.LINKEDIN,
+        }),
+    );
+  }
+
+  async generateContentWorkflow(
+    userId: string,
+    organizationId: string,
+    dto: GenerateContentDto,
+  ): Promise<GeneratedContent[]> {
+    const actionId =
+      dto.platform === ContentIntelligencePlatform.LINKEDIN
+        ? LINKEDIN_CONTENT_GENERATION_ACTION_ID
+        : CONTENT_INTELLIGENCE_GENERATION_ACTION_ID;
+    const { result } = await this.requireWorkflowRunner().runAction<
+      GeneratedContent[]
+    >({
+      actionType: actionId,
+      canonicalId: actionId,
+      inputValues: { dto },
+      metadata: { brandId: dto.brandId, origin: 'api' },
+      organizationId,
+      source: 'ContentGeneratorService.generateContentWorkflow',
+      trigger: WorkflowExecutionTrigger.API,
+      userId,
+    });
+    return result;
   }
 
   async generateContent(
@@ -501,5 +565,37 @@ Respond with JSON array:
       patternId: pattern.id?.toString(),
       patternUsed: pattern.extractedFormula ?? 'pattern',
     };
+  }
+
+  private readGenerationDto(
+    value: unknown,
+    defaultPlatform?: ContentIntelligencePlatform,
+  ): GenerateContentDto {
+    const input =
+      value !== null && typeof value === 'object' && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : {};
+    if (typeof input.topic !== 'string' || input.topic.trim().length === 0) {
+      throw new Error('Missing required content generation input: topic');
+    }
+    const platform =
+      Object.values(ContentIntelligencePlatform).find(
+        (candidate) => candidate === input.platform,
+      ) ?? defaultPlatform;
+    if (!platform) {
+      throw new Error('Missing required content generation input: platform');
+    }
+    return {
+      ...input,
+      platform,
+      topic: input.topic.trim(),
+    } as GenerateContentDto;
+  }
+
+  private requireWorkflowRunner(): SystemWorkflowRunnerService {
+    if (!this.moduleRef) {
+      throw new Error('Workflow action runner is unavailable');
+    }
+    return this.moduleRef.get(SystemWorkflowRunnerService, { strict: false });
   }
 }

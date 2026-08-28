@@ -200,6 +200,10 @@ export type RunSystemWorkflowInput = {
 
 @Injectable()
 export class SystemWorkflowRunnerService {
+  private readonly actionDefinitions = new Map<
+    string,
+    SystemWorkflowActionDefinition
+  >();
   private readonly runtimeContext = new AsyncLocalStorage<unknown>();
   private readonly workflowDefinitions = new Map<
     string,
@@ -216,34 +220,43 @@ export class SystemWorkflowRunnerService {
     executor: SystemWorkflowActionExecutor,
     definitionOverride?: Omit<SystemWorkflowActionDefinition, 'canonicalId'>,
   ): void {
+    if (this.actionDefinitions.has(actionId)) {
+      throw new Error(`Duplicate Genfeed action definition: ${actionId}`);
+    }
     const definition = definitionOverride
       ? { ...definitionOverride, canonicalId: actionId }
       : this.resolveDefinition(actionId);
-    this.getEngineAdapter().registerExecutor(
-      actionId,
-      async (node, inputs, context) => {
-        const {
-          inputVariableKeys: _inputVariableKeys,
-          payload,
-          ...config
-        } = node.config;
-        const input = {
-          ...this.readRecord(payload),
-          ...config,
-          ...Object.fromEntries(inputs),
-        };
-        return executor({
-          context,
-          input,
-          provenance: {
-            executionId: context.executionId ?? context.runId,
-            workflowId: context.workflowId,
-            workflowLabel: definition.label,
-          },
-          runtimeContext: this.runtimeContext.getStore(),
-        });
-      },
-    );
+    this.actionDefinitions.set(actionId, definition);
+    try {
+      this.getEngineAdapter().registerExecutor(
+        actionId,
+        async (node, inputs, context) => {
+          const {
+            inputVariableKeys: _inputVariableKeys,
+            payload,
+            ...config
+          } = node.config;
+          const input = {
+            ...this.readRecord(payload),
+            ...config,
+            ...Object.fromEntries(inputs),
+          };
+          return executor({
+            context,
+            input,
+            provenance: {
+              executionId: context.executionId ?? context.runId,
+              workflowId: context.workflowId,
+              workflowLabel: definition.label,
+            },
+            runtimeContext: this.runtimeContext.getStore(),
+          });
+        },
+      );
+    } catch (error) {
+      this.actionDefinitions.delete(actionId);
+      throw error;
+    }
   }
 
   registerWorkflow(definition: SystemWorkflowGraphDefinition): void {
@@ -464,6 +477,10 @@ export class SystemWorkflowRunnerService {
   }
 
   private resolveDefinition(actionId: string): SystemWorkflowActionDefinition {
+    const registeredDefinition = this.actionDefinitions.get(actionId);
+    if (registeredDefinition) {
+      return registeredDefinition;
+    }
     const systemDefinition = DEFINITIONS_BY_ID.get(actionId);
     if (systemDefinition) {
       return systemDefinition;

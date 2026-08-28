@@ -1,13 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { NewslettersService } from '@server/collections/newsletters/services/newsletters.service';
-import type { PostAccountTarget } from '@server/collections/posts/services/post-account-fanout.service';
-import { PostAccountFanoutService } from '@server/collections/posts/services/post-account-fanout.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { SourcePostsService } from '@server/collections/source-posts/services/source-posts.service';
-import { SOURCE_CORPUS_CONFIG_LIMITS } from '@server/collections/workflows/registry/node-registry';
-import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
-import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
 import { LLM_DEFAULTS } from '@genfeedai/constants';
 import {
   fromPrismaCredentialPlatform,
@@ -22,6 +13,15 @@ import {
   type TalkingHeadScriptGenerationRequest,
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { NewslettersService } from '@server/collections/newsletters/services/newsletters.service';
+import type { PostAccountTarget } from '@server/collections/posts/services/post-account-fanout.service';
+import { PostAccountFanoutService } from '@server/collections/posts/services/post-account-fanout.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { SourcePostsService } from '@server/collections/source-posts/services/source-posts.service';
+import { SOURCE_CORPUS_CONFIG_LIMITS } from '@server/collections/workflows/registry/node-registry';
+import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
+import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
 
 const POST_GEN_MODEL = LLM_DEFAULTS.fastText;
 const POST_GEN_TEMPERATURE = 0.6;
@@ -388,7 +388,7 @@ export class WorkflowContentExecutorRegistrarService {
         node.config,
         'instructions',
       );
-      const newsletter = await newslettersService.generateDraft(
+      const newsletter = await newslettersService.executeGenerateDraftAction(
         {
           instructions,
           topic: prompt,

@@ -1,3 +1,17 @@
+import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { WorkflowExecutionTrigger } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
+import { AgentArtifactReferenceService, scopedWhere } from '@genfeedai/server';
+import type { ExecutionContext } from '@genfeedai/workflows/engine';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  type OnModuleInit,
+  Optional,
+} from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { buildBrandVoiceSummary } from '@server/collections/brands/utils/brand-context.util';
 import { CreateNewsletterDto } from '@server/collections/newsletters/dto/create-newsletter.dto';
@@ -5,21 +19,13 @@ import { GenerateNewsletterDraftDto } from '@server/collections/newsletters/dto/
 import { GenerateNewsletterTopicsDto } from '@server/collections/newsletters/dto/generate-newsletter-topics.dto';
 import { UpdateNewsletterDto } from '@server/collections/newsletters/dto/update-newsletter.dto';
 import type { NewsletterDocument } from '@server/collections/newsletters/schemas/newsletter.schema';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { TEXT_GENERATION_LIMITS } from '@server/constants/text-generation-limits.constant';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BaseService } from '@server/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import type { Prisma } from '@genfeedai/prisma';
-import { AgentArtifactReferenceService, scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-} from '@nestjs/common';
 
 type TenantContext = {
   organizationId: string;
@@ -33,21 +39,58 @@ type TopicProposal = {
   reason: string;
 };
 
+export const NEWSLETTER_DRAFT_ACTION_ID = 'newsletter.generate-draft';
+export const NEWSLETTER_TOPICS_ACTION_ID = 'newsletter.generate-topics';
+
 @Injectable()
-export class NewslettersService extends BaseService<
-  NewsletterDocument,
-  CreateNewsletterDto,
-  UpdateNewsletterDto,
-  Prisma.NewsletterWhereInput
-> {
+export class NewslettersService
+  extends BaseService<
+    NewsletterDocument,
+    CreateNewsletterDto,
+    UpdateNewsletterDto,
+    Prisma.NewsletterWhereInput
+  >
+  implements OnModuleInit
+{
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly openRouterService: OpenRouterService,
     private readonly brandsService: BrandsService,
     private readonly agentArtifactReferenceService: AgentArtifactReferenceService,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {
     super(prisma, 'newsletter', logger);
+  }
+
+  onModuleInit(): void {
+    const runner = this.requireWorkflowRunner();
+    runner.registerAction(
+      NEWSLETTER_TOPICS_ACTION_ID,
+      ({ context, input }) =>
+        this.executeGenerateTopicProposalsAction(
+          this.readTopicsDto(input.dto),
+          this.readTenantContext(input, context),
+        ),
+      {
+        description:
+          'Generates bounded newsletter topic proposals for one tenant brand.',
+        label: 'Generate Newsletter Topics',
+      },
+    );
+    runner.registerAction(
+      NEWSLETTER_DRAFT_ACTION_ID,
+      ({ context, input }) =>
+        this.executeGenerateDraftAction(
+          this.readDraftDto(input.dto),
+          this.readTenantContext(input, context),
+        ),
+      {
+        description:
+          'Generates and persists one newsletter draft for one tenant brand.',
+        label: 'Generate Newsletter Draft',
+      },
+    );
   }
 
   buildListQuery(
@@ -321,6 +364,25 @@ export class NewslettersService extends BaseService<
     dto: GenerateNewsletterTopicsDto,
     ctx: TenantContext,
   ): Promise<TopicProposal[]> {
+    const { result } = await this.requireWorkflowRunner().runAction<
+      TopicProposal[]
+    >({
+      actionType: NEWSLETTER_TOPICS_ACTION_ID,
+      canonicalId: NEWSLETTER_TOPICS_ACTION_ID,
+      inputValues: { brandId: ctx.brandId, dto },
+      metadata: { brandId: ctx.brandId, origin: 'api' },
+      organizationId: ctx.organizationId,
+      source: 'NewslettersService.generateTopicProposals',
+      trigger: WorkflowExecutionTrigger.API,
+      userId: ctx.userId,
+    });
+    return result;
+  }
+
+  private async executeGenerateTopicProposalsAction(
+    dto: GenerateNewsletterTopicsDto,
+    ctx: TenantContext,
+  ): Promise<TopicProposal[]> {
     this.assertContext(ctx);
     const count = dto.count ?? 5;
     const brand = await this.getBrandContext(ctx);
@@ -368,6 +430,24 @@ export class NewslettersService extends BaseService<
   }
 
   async generateDraft(
+    dto: GenerateNewsletterDraftDto,
+    ctx: TenantContext,
+  ): Promise<NewsletterDocument> {
+    const { result } =
+      await this.requireWorkflowRunner().runAction<NewsletterDocument>({
+        actionType: NEWSLETTER_DRAFT_ACTION_ID,
+        canonicalId: NEWSLETTER_DRAFT_ACTION_ID,
+        inputValues: { brandId: ctx.brandId, dto },
+        metadata: { brandId: ctx.brandId, origin: 'api' },
+        organizationId: ctx.organizationId,
+        source: 'NewslettersService.generateDraft',
+        trigger: WorkflowExecutionTrigger.API,
+        userId: ctx.userId,
+      });
+    return result;
+  }
+
+  async executeGenerateDraftAction(
     dto: GenerateNewsletterDraftDto,
     ctx: TenantContext,
   ): Promise<NewsletterDocument> {
@@ -428,6 +508,40 @@ export class NewslettersService extends BaseService<
     }
 
     return await this.createScoped(payload as CreateNewsletterDto, ctx);
+  }
+
+  private readTopicsDto(value: unknown): GenerateNewsletterTopicsDto {
+    return this.readRecord(value) as unknown as GenerateNewsletterTopicsDto;
+  }
+
+  private readDraftDto(value: unknown): GenerateNewsletterDraftDto {
+    return this.readRecord(value) as unknown as GenerateNewsletterDraftDto;
+  }
+
+  private readTenantContext(
+    input: Record<string, unknown>,
+    context: ExecutionContext,
+  ): TenantContext {
+    const brandId =
+      typeof input.brandId === 'string' ? input.brandId.trim() : '';
+    return {
+      brandId,
+      organizationId: context.organizationId,
+      userId: context.userId,
+    };
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private requireWorkflowRunner(): SystemWorkflowRunnerService {
+    if (!this.moduleRef) {
+      throw new Error('Workflow action runner is unavailable');
+    }
+    return this.moduleRef.get(SystemWorkflowRunnerService, { strict: false });
   }
 
   private assertContext(ctx: TenantContext): void {

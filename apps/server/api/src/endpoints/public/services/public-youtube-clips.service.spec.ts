@@ -1,15 +1,14 @@
 import { PublicYoutubeClipsService } from '@api/endpoints/public/services/public-youtube-clips.service';
 import type { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
+import type { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import type { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
 import type {
   PublicClipToolStoreService,
   StoredPublicYoutubeClipSession,
 } from '@server/services/public-clip-tool/public-clip-tool-store.service';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
-import type { LoggerService } from '@libs/logger/logger.service';
-import type { HttpService } from '@nestjs/axios';
-import { BadRequestException } from '@nestjs/common';
-import { of } from 'rxjs';
 
 const token = 'a'.repeat(43);
 const storedSession: StoredPublicYoutubeClipSession = {
@@ -29,7 +28,6 @@ const storedSession: StoredPublicYoutubeClipSession = {
 describe('PublicYoutubeClipsService', () => {
   const queue = { enqueue: vi.fn() };
   const files = { getJobStatus: vi.fn(), processVideo: vi.fn() };
-  const http = { get: vi.fn() };
   const logger = { error: vi.fn(), warn: vi.fn() };
   const store = {
     createSession: vi.fn(),
@@ -41,10 +39,10 @@ describe('PublicYoutubeClipsService', () => {
     toWorkerProjectId: vi.fn(),
   };
   let service: PublicYoutubeClipsService;
+  let runner: SystemWorkflowRunnerService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    http.get.mockReturnValue(of({ data: { title: 'Public video' } }));
     store.createSession.mockResolvedValue({
       isNew: true,
       previewToken: token,
@@ -54,28 +52,93 @@ describe('PublicYoutubeClipsService', () => {
       `public-youtube-clip-session-${'f'.repeat(64)}`,
     );
     queue.enqueue.mockResolvedValue({ id: 'analysis-job' });
+    const actions = new Map<
+      string,
+      (request: { input: Record<string, unknown> }) => Promise<unknown>
+    >();
+    const actionRequest = (input: Record<string, unknown>) => ({ input });
+    runner = {
+      registerAction: vi.fn(
+        (
+          actionId: string,
+          executor: (request: {
+            input: Record<string, unknown>;
+          }) => Promise<unknown>,
+        ) => {
+          actions.set(actionId, executor);
+        },
+      ),
+      registerWorkflow: vi.fn(),
+      runWorkflow: vi.fn(
+        async (input: {
+          canonicalId: string;
+          inputValues?: Record<string, unknown>;
+        }) => {
+          if (input.canonicalId === 'public-youtube-clip.create') {
+            const youtubeUrl = String(input.inputValues?.youtubeUrl ?? '');
+            if (!youtubeUrl.includes('youtube.com/watch?v=')) {
+              throw new BadRequestException('Unsupported YouTube URL');
+            }
+            const sessionEnvelope = await actions.get(
+              'youtube.clip.create-session',
+            )?.(
+              actionRequest({
+                idempotencyKey: input.inputValues?.idempotencyKey,
+                source: {
+                  title: 'Public video',
+                  videoId: 'abc12345',
+                  youtubeUrl,
+                },
+              }),
+            );
+            return {
+              provenance: {},
+              result: await actions.get('youtube.clip.dispatch-analysis')?.(
+                actionRequest({ sessionEnvelope }),
+              ),
+            };
+          }
+          if (input.canonicalId === 'public-youtube-clip.preview') {
+            const previewEnvelope = await actions.get(
+              'youtube.clip.reserve-preview',
+            )?.(
+              actionRequest({
+                previewToken: input.inputValues?.previewToken,
+                recommendationId: input.inputValues?.recommendationId,
+              }),
+            );
+            return {
+              provenance: {},
+              result: await actions.get('youtube.clip.dispatch-preview')?.(
+                actionRequest({ previewEnvelope }),
+              ),
+            };
+          }
+          return {
+            provenance: {},
+            result: await actions.get('youtube.clip.read-session')?.(
+              actionRequest({ previewToken: input.inputValues?.previewToken }),
+            ),
+          };
+        },
+      ),
+    } as unknown as SystemWorkflowRunnerService;
     service = new PublicYoutubeClipsService(
       queue as unknown as ClipAnalyzeQueueService,
       files as unknown as FileQueueService,
-      http as unknown as HttpService,
       logger as unknown as LoggerService,
+      runner,
       store as unknown as PublicClipToolStoreService,
     );
+    service.onModuleInit();
   });
 
-  it('normalizes YouTube URLs before storage and uses the free model with fallback', async () => {
+  it('uses the workflow-resolved YouTube source and the free analysis model', async () => {
     await service.create(
-      'https://youtu.be/abc12345?si=tracking',
+      'https://www.youtube.com/watch?v=abc12345',
       'request-key-1',
     );
 
-    expect(http.get).toHaveBeenCalledWith('https://www.youtube.com/oembed', {
-      params: {
-        format: 'json',
-        url: 'https://www.youtube.com/watch?v=abc12345',
-      },
-      timeout: 5_000,
-    });
     expect(store.createSession).toHaveBeenCalledWith(
       expect.objectContaining({
         idempotencyKey: 'request-key-1',
@@ -103,7 +166,6 @@ describe('PublicYoutubeClipsService', () => {
       await expect(service.create(url)).rejects.toBeInstanceOf(
         BadRequestException,
       );
-      expect(http.get).not.toHaveBeenCalled();
       expect(queue.enqueue).not.toHaveBeenCalled();
     },
   );

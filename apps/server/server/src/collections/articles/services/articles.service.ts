@@ -1,9 +1,20 @@
-import { ArticleScope, PromptTemplateKey } from '@genfeedai/enums';
+import {
+  ArticleScope,
+  PromptTemplateKey,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  type OnModuleInit,
+  Optional,
+} from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { ViralityAnalysisResponse } from '@server/collections/articles/dto/analyze-virality.dto';
 import { TwitterThreadResponse } from '@server/collections/articles/dto/article-to-thread.dto';
 import { ArticlesQueryDto } from '@server/collections/articles/dto/articles-query.dto';
@@ -33,6 +44,7 @@ import {
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 import { UsersService } from '@server/collections/users/services/users.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
@@ -55,13 +67,29 @@ import {
   paginatedQueryCacheTag,
 } from '@server/shared/utils/query-cache/query-cache.util';
 
+export const ARTICLE_GENERATION_ACTION_ID = 'create_article';
+export const ARTICLE_REVIEW_ACTION_ID = 'article.review';
+
+export type ArticleGenerationActionResult = {
+  articles: ArticleDocument[];
+  billedCredits: number;
+};
+
+export type ArticleReviewActionResult = {
+  billedCredits: number;
+  review: ArticleReviewRubric;
+};
+
 @Injectable()
-export class ArticlesService extends BaseService<
-  ArticleDocument,
-  CreateArticleDto,
-  UpdateArticleDto,
-  Prisma.ArticleWhereInput
-> {
+export class ArticlesService
+  extends BaseService<
+    ArticleDocument,
+    CreateArticleDto,
+    UpdateArticleDto,
+    Prisma.ArticleWhereInput
+  >
+  implements OnModuleInit
+{
   private readonly constructorName = this.constructor.name;
 
   constructor(
@@ -83,8 +111,43 @@ export class ArticlesService extends BaseService<
     @Optional() private readonly organizationsService?: OrganizationsService,
     @Optional()
     private readonly cacheInvalidationService?: CacheInvalidationService,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {
     super(prisma, 'article', logger, undefined, cacheService);
+  }
+
+  onModuleInit(): void {
+    const runner = this.requireWorkflowRunner();
+    runner.registerAction(
+      ARTICLE_GENERATION_ACTION_ID,
+      async ({ context, input }) => {
+        const dto = this.readArticleGenerationInput(input);
+        const brandId = this.requiredString(
+          dto.brandId ?? input.brandId,
+          'brandId',
+        );
+        return this.executeArticleGenerationAction(
+          dto,
+          context.userId,
+          context.organizationId,
+          brandId,
+        );
+      },
+    );
+    runner.registerAction(
+      ARTICLE_REVIEW_ACTION_ID,
+      async ({ context, input }) =>
+        this.executeArticleReviewAction(
+          this.requiredString(input.articleId, 'articleId'),
+          context.userId,
+          context.organizationId,
+          typeof input.focus === 'string' ? input.focus : undefined,
+        ),
+      {
+        description: 'Reviews one tenant article with the configured rubric.',
+        label: 'Review Article',
+      },
+    );
   }
 
   /**
@@ -563,11 +626,34 @@ export class ArticlesService extends BaseService<
     userId: string,
     organizationId: string,
     brandId: string,
-    onBilling?: (amount: number) => void,
-  ): Promise<ArticleDocument[]> {
+  ): Promise<ArticleGenerationActionResult> {
+    const { result } =
+      await this.requireWorkflowRunner().runAction<ArticleGenerationActionResult>(
+        {
+          actionType: ARTICLE_GENERATION_ACTION_ID,
+          canonicalId: ARTICLE_GENERATION_ACTION_ID,
+          inputValues: { brandId, dto: generateDto },
+          metadata: { brandId, origin: 'api' },
+          organizationId,
+          source: 'ArticlesService.generateArticles',
+          trigger: WorkflowExecutionTrigger.API,
+          userId,
+        },
+      );
+    return result;
+  }
+
+  async executeArticleGenerationAction(
+    generateDto: GenerateArticlesDto,
+    userId: string,
+    organizationId: string,
+    brandId: string,
+  ): Promise<ArticleGenerationActionResult> {
     if (!this.articlesContentService) {
       throw new Error('ArticlesContentService not available');
     }
+
+    let billedCredits = 0;
 
     const modelConfig = await this.resolveArticleCycleModelConfig(
       organizationId,
@@ -585,7 +671,9 @@ export class ArticlesService extends BaseService<
               brandId,
               modelConfig,
               this.createArticle.bind(this),
-              (charge) => onBilling?.(charge.amount),
+              (charge) => {
+                billedCredits += charge.amount;
+              },
             ),
           ]
         : await this.articlesContentService.generateArticles(
@@ -595,7 +683,9 @@ export class ArticlesService extends BaseService<
             brandId,
             modelConfig,
             this.createArticle.bind(this),
-            (charge) => onBilling?.(charge.amount),
+            (charge) => {
+              billedCredits += charge.amount;
+            },
           );
 
     if (
@@ -639,7 +729,7 @@ export class ArticlesService extends BaseService<
       ]);
     }
 
-    return articles;
+    return { articles, billedCredits };
   }
 
   async reviewArticle(
@@ -647,8 +737,27 @@ export class ArticlesService extends BaseService<
     userId: string,
     organizationId: string,
     focus?: string,
-    onBilling?: (amount: number) => void,
-  ): Promise<ArticleReviewRubric> {
+  ): Promise<ArticleReviewActionResult> {
+    const { result } =
+      await this.requireWorkflowRunner().runAction<ArticleReviewActionResult>({
+        actionType: ARTICLE_REVIEW_ACTION_ID,
+        canonicalId: ARTICLE_REVIEW_ACTION_ID,
+        inputValues: { articleId, focus },
+        metadata: { origin: 'api' },
+        organizationId,
+        source: 'ArticlesService.reviewArticle',
+        trigger: WorkflowExecutionTrigger.API,
+        userId,
+      });
+    return result;
+  }
+
+  async executeArticleReviewAction(
+    articleId: string,
+    userId: string,
+    organizationId: string,
+    focus?: string,
+  ): Promise<ArticleReviewActionResult> {
     if (!this.articlesContentService) {
       throw new Error('ArticlesContentService not available');
     }
@@ -664,13 +773,17 @@ export class ArticlesService extends BaseService<
 
     const modelConfig =
       await this.resolveArticleCycleModelConfig(organizationId);
-    return this.articlesContentService.reviewExistingArticle(
+    let billedCredits = 0;
+    const review = await this.articlesContentService.reviewExistingArticle(
       article,
       organizationId,
       modelConfig,
       focus,
-      (charge) => onBilling?.(charge.amount),
+      (charge) => {
+        billedCredits += charge.amount;
+      },
     );
+    return { billedCredits, review };
   }
 
   /**
@@ -902,6 +1015,60 @@ export class ArticlesService extends BaseService<
       (dto, ownerUserId, ownerOrganizationId, ownerBrandId) =>
         this.createArticle(dto, ownerUserId, ownerOrganizationId, ownerBrandId),
     );
+  }
+
+  private readArticleGenerationInput(
+    input: Record<string, unknown>,
+  ): GenerateArticlesDto {
+    const nested = this.readRecord(input.dto);
+    const source = Object.keys(nested).length > 0 ? nested : input;
+    const prompt = this.requiredString(source.prompt ?? source.topic, 'prompt');
+    const length =
+      typeof source.length === 'string' ? source.length : undefined;
+    const targetWordCount =
+      typeof source.targetWordCount === 'number'
+        ? source.targetWordCount
+        : length === 'long'
+          ? 7_000
+          : length === 'short'
+            ? 2_500
+            : length
+              ? 4_000
+              : undefined;
+
+    return {
+      ...source,
+      brandId: typeof source.brandId === 'string' ? source.brandId : undefined,
+      count: typeof source.count === 'number' ? source.count : 1,
+      keywords: Array.isArray(source.keywords)
+        ? source.keywords.filter(
+            (keyword): keyword is string => typeof keyword === 'string',
+          )
+        : undefined,
+      prompt,
+      targetWordCount,
+      tone: typeof source.tone === 'string' ? source.tone : undefined,
+    } as GenerateArticlesDto;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new Error(`Missing required article action input: ${field}`);
+    }
+    return value.trim();
+  }
+
+  private requireWorkflowRunner(): SystemWorkflowRunnerService {
+    if (!this.moduleRef) {
+      throw new Error('Workflow action runner is unavailable');
+    }
+    return this.moduleRef.get(SystemWorkflowRunnerService, { strict: false });
   }
 
   /**

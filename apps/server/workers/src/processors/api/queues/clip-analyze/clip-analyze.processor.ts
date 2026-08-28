@@ -13,14 +13,11 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import type { IHighlight } from '@server/collections/clip-projects/schemas/clip-project.schema';
-import { PublicClipToolStoreService } from '@server/services/public-clip-tool/public-clip-tool-store.service';
-import { WhisperService } from '@server/services/whisper/whisper.service';
 import {
   CLIP_AUDIO_EXTRACTION_JOB_TIMEOUT_MS,
   CLIP_REFERENCE_FRAME_JOB_TIMEOUT_MS,
 } from '@genfeedai/constants';
+import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import {
   normalizeClipReferenceFrameSet,
   normalizeClipReferenceTimestamps,
@@ -41,6 +38,15 @@ import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options'
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import type { OnModuleInit } from '@nestjs/common';
+import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import type { IHighlight } from '@server/collections/clip-projects/schemas/clip-project.schema';
+import {
+  type SystemWorkflowActionRequest,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
+import { PublicClipToolStoreService } from '@server/services/public-clip-tool/public-clip-tool-store.service';
+import { WhisperService } from '@server/services/whisper/whisper.service';
 import { ClipHighlightDetector } from '@workers/processors/api/queues/shared/clip-highlight-detector.service';
 
 import type { Job } from 'bullmq';
@@ -95,6 +101,34 @@ interface AudioExtractionResult {
 }
 
 const PUBLIC_YOUTUBE_CLIP_PROJECT_PREFIX = 'public-youtube-clip-session-';
+const CLIP_ANALYSIS_WORKFLOW_ID = 'clip.analysis';
+const CLIP_ANALYSIS_ACTION_IDS = {
+  DETECT_HIGHLIGHTS: 'clip.analysis.detect-highlights',
+  FAIL: 'clip.analysis.fail',
+  PERSIST: 'clip.analysis.persist',
+  PREPARE_SOURCE: 'clip.analysis.prepare-source',
+  REFERENCE_FRAMES: 'clip.analysis.extract-reference-frames',
+  TRANSCRIBE: 'clip.analysis.transcribe',
+} as const;
+
+type PreparedClipAnalysis = {
+  audioUrl: string;
+  data: ClipAnalyzeJobData;
+  sourceArtifact?: ClipSourceArtifact;
+  sourceUrl: string;
+};
+
+type TranscribedClipAnalysis = PreparedClipAnalysis & {
+  transcription: Awaited<ReturnType<WhisperService['transcribeUrl']>>;
+};
+
+type HighlightedClipAnalysis = TranscribedClipAnalysis & {
+  highlights: IHighlight[];
+};
+
+type ReferencedClipAnalysis = HighlightedClipAnalysis & {
+  referenceFrames: ClipReferenceFrameSet;
+};
 
 @Processor(
   CLIP_ANALYZE_QUEUE,
@@ -103,7 +137,7 @@ const PUBLIC_YOUTUBE_CLIP_PROJECT_PREFIX = 'public-youtube-clip-session-';
     limiter: { duration: 60_000, max: 5 },
   }),
 )
-export class ClipAnalyzeProcessor extends WorkerHost {
+export class ClipAnalyzeProcessor extends WorkerHost implements OnModuleInit {
   private readonly logContext = 'ClipAnalyzeProcessor';
 
   constructor(
@@ -114,202 +148,416 @@ export class ClipAnalyzeProcessor extends WorkerHost {
     private readonly configService: ConfigService,
     private readonly highlightDetector: ClipHighlightDetector,
     private readonly publicClipToolStore: PublicClipToolStoreService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
   ) {
     super();
   }
 
+  onModuleInit(): void {
+    this.workflowRunner.registerAction(
+      CLIP_ANALYSIS_ACTION_IDS.PREPARE_SOURCE,
+      (request) => this.prepareSourceAction(request),
+      {
+        description: 'Prepares one clip-analysis source for transcription.',
+        label: 'Prepare Clip Analysis Source',
+      },
+    );
+    this.workflowRunner.registerAction(
+      CLIP_ANALYSIS_ACTION_IDS.TRANSCRIBE,
+      (request) => this.transcribeAction(request),
+      {
+        description: 'Transcribes one prepared clip-analysis source.',
+        label: 'Transcribe Clip Analysis Source',
+      },
+    );
+    this.workflowRunner.registerAction(
+      CLIP_ANALYSIS_ACTION_IDS.DETECT_HIGHLIGHTS,
+      (request) => this.detectHighlightsAction(request),
+      {
+        description: 'Detects and scores clip highlights in one transcript.',
+        label: 'Detect Clip Highlights',
+      },
+    );
+    this.workflowRunner.registerAction(
+      CLIP_ANALYSIS_ACTION_IDS.REFERENCE_FRAMES,
+      (request) => this.extractReferenceFramesAction(request),
+      {
+        description: 'Extracts bounded reference frames for clip highlights.',
+        label: 'Extract Clip Reference Frames',
+      },
+    );
+    this.workflowRunner.registerAction(
+      CLIP_ANALYSIS_ACTION_IDS.PERSIST,
+      (request) => this.persistAnalysisAction(request),
+      {
+        description: 'Persists one completed clip analysis.',
+        label: 'Persist Clip Analysis',
+      },
+    );
+    this.workflowRunner.registerAction(
+      CLIP_ANALYSIS_ACTION_IDS.FAIL,
+      (request) => this.failAnalysisAction(request),
+      {
+        description: 'Persists one failed clip analysis.',
+        label: 'Fail Clip Analysis',
+      },
+    );
+    this.workflowRunner.registerWorkflow({
+      canonicalId: CLIP_ANALYSIS_WORKFLOW_ID,
+      definition: {
+        edges: [
+          this.actionEdge(
+            'prepare-to-transcribe',
+            'prepare-source',
+            'transcribe',
+            'prepared',
+          ),
+          this.actionEdge(
+            'transcribe-to-highlights',
+            'transcribe',
+            'detect-highlights',
+            'transcribed',
+          ),
+          this.actionEdge(
+            'highlights-to-frames',
+            'detect-highlights',
+            'reference-frames',
+            'highlighted',
+          ),
+          this.actionEdge(
+            'frames-to-persist',
+            'reference-frames',
+            'persist-analysis',
+            'referenced',
+          ),
+        ],
+        inputVariables: [
+          {
+            key: 'job',
+            label: 'Clip analysis job',
+            required: true,
+            type: 'json',
+          },
+        ],
+        nodes: [
+          this.actionNode(
+            'prepare-source',
+            CLIP_ANALYSIS_ACTION_IDS.PREPARE_SOURCE,
+            'Prepare source',
+            ['job'],
+            0,
+          ),
+          this.actionNode(
+            'transcribe',
+            CLIP_ANALYSIS_ACTION_IDS.TRANSCRIBE,
+            'Transcribe source',
+            [],
+            280,
+          ),
+          this.actionNode(
+            'detect-highlights',
+            CLIP_ANALYSIS_ACTION_IDS.DETECT_HIGHLIGHTS,
+            'Detect highlights',
+            [],
+            560,
+          ),
+          this.actionNode(
+            'reference-frames',
+            CLIP_ANALYSIS_ACTION_IDS.REFERENCE_FRAMES,
+            'Extract reference frames',
+            [],
+            840,
+          ),
+          this.actionNode(
+            'persist-analysis',
+            CLIP_ANALYSIS_ACTION_IDS.PERSIST,
+            'Persist analysis',
+            [],
+            1120,
+          ),
+        ],
+      },
+      description:
+        'Prepares, transcribes, analyzes, enriches, and persists one clip source.',
+      label: 'Clip Analysis',
+      resultNodeId: 'persist-analysis',
+      version: 1,
+    });
+  }
+
   async process(job: Job<ClipAnalyzeJobData>): Promise<ClipAnalyzeJobResult> {
     const { data } = job;
-    const { projectId } = data;
-    let sourceCompleted = false;
-    let sourceArtifact = data.source?.artifact;
-
-    this.logger.log(`${this.logContext} starting analysis`, {
+    this.logger.log(`${this.logContext} starting analysis workflow`, {
       jobId: job.id,
-      projectId,
+      projectId: data.projectId,
     });
 
     try {
-      // Stage 1: Download audio via files microservice
-      await this.updateProject(
-        projectId,
-        {
-          progress: 5,
-          status: 'analyzing',
-        },
-        data.orgId,
-      );
-      await this.updateSource(
-        data,
-        data.source?.kind === 'youtube' ? 'downloading' : 'extracting',
-      );
-
-      const sourceUrl = sourceArtifact?.mediaUrl ?? data.youtubeUrl;
-      const extraction: AudioExtractionResult =
-        data.source?.contentType?.startsWith('audio/')
-          ? { audioUrl: sourceUrl }
-          : await this.downloadAudio(
-              sourceUrl,
-              data.orgId,
-              data.userId,
-              projectId,
-              data.source?.ingredientId,
-              sourceArtifact?.storageKey,
-            );
-      const { audioUrl } = extraction;
-      if (extraction.sourceArtifact) {
-        sourceArtifact = extraction.sourceArtifact;
-        await this.persistSourceArtifact(data, sourceArtifact);
-      }
-      await this.updateProject(projectId, { progress: 15 }, data.orgId);
-      await this.updateSource(data, 'ready-for-transcription');
-
-      this.logger.log(`${this.logContext} audio downloaded`, {
-        projectId,
-      });
-
-      // Stage 2: Transcribe
-      const transcription = await this.whisperService.transcribeUrl(
-        audioUrl,
-        data.language,
-      );
-
-      await this.updateProject(
-        projectId,
-        {
-          progress: 45,
-          transcriptSegments: transcription.segments,
-          transcriptSrt: transcription.srt,
-          transcriptText: transcription.text,
-        },
-        data.orgId,
-      );
-      await this.updateSource(data, 'completed');
-      sourceCompleted = true;
-
-      this.logger.log(`${this.logContext} transcription complete`, {
-        duration: transcription.duration,
-        projectId,
-        segments: transcription.segments.length,
-      });
-
-      // Stage 3: Detect highlights via LLM
-      const rawHighlights = await this.highlightDetector.detectHighlights(
-        transcription.text,
-        transcription.segments,
-        data.maxClips,
-        {
-          fallback: data.highlightFallback,
-          model: data.highlightModel,
-        },
-      );
-
-      // Stage 4: Filter by virality score and assign IDs
-      const highlights: IHighlight[] = rawHighlights
-        .filter((h) => h.virality_score >= data.minViralityScore)
-        .map((h) => ({
-          ...h,
-          id: randomUUID(),
-        }));
-
-      // Stage 5: Extract reference candidates without making analysis depend on
-      // source video availability.
-      const referenceTimestamps = deriveReferenceTimestamps(highlights);
-      let referenceFrames: ClipReferenceFrameSet;
-
-      if (
-        referenceTimestamps.length === 0 ||
-        data.source?.contentType?.startsWith('audio/')
-      ) {
-        referenceFrames = unavailableReferenceFrames(
-          referenceTimestamps.length === 0
-            ? 'clip_reference_no_timestamps'
-            : 'clip_reference_audio_source',
-          referenceTimestamps.length === 0
-            ? 'No eligible highlight timestamps were available for reference extraction.'
-            : 'Audio sources do not contain reference frames.',
-        );
-      } else {
-        await this.updateProject(
-          projectId,
-          {
-            highlights,
-            progress: 75,
-            referenceFrames: pendingReferenceFrames(referenceTimestamps),
-          },
-          data.orgId,
-        );
-
-        try {
-          referenceFrames = await this.extractReferenceFrames(
-            sourceArtifact?.mediaUrl ?? sourceUrl,
-            data.orgId,
-            data.userId,
-            projectId,
-            referenceTimestamps,
-          );
-        } catch (error: unknown) {
-          this.logger.warn(
-            `${this.logContext} reference extraction unavailable`,
-            { error, projectId },
-          );
-          referenceFrames = unavailableReferenceFrames(
-            'clip_reference_extraction_failed',
-            'Reference frames could not be extracted from the source video.',
-          );
-        }
-      }
-
-      // Stage 6: Save analysis output. Reference extraction failures are
-      // represented in the contract and do not discard transcript/highlights.
-      await this.updateProject(
-        projectId,
-        {
-          highlights,
-          progress: 100,
-          referenceFrames,
-          status: 'analyzed',
-        },
-        data.orgId,
-      );
-
-      this.logger.log(`${this.logContext} analysis complete`, {
-        highlightsCount: highlights.length,
-        projectId,
-      });
-      return { sourceArtifact };
+      const { result } =
+        await this.workflowRunner.runWorkflow<ClipAnalyzeJobResult>({
+          actionType: CLIP_ANALYSIS_WORKFLOW_ID,
+          canonicalId: CLIP_ANALYSIS_WORKFLOW_ID,
+          inputValues: { job: data },
+          metadata: { origin: 'worker', queueJobId: String(job.id ?? '') },
+          organizationId: data.orgId,
+          source: 'ClipAnalyzeProcessor.process',
+          trigger: WorkflowExecutionTrigger.EVENT,
+          userId: data.userId,
+        });
+      return result;
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown analysis error';
-
-      this.logger.error(`${this.logContext} analysis failed`, error);
-
-      await this.updateProject(
-        projectId,
-        {
-          error: errorMessage,
-          status: 'failed',
-        },
-        data.orgId,
-      ).catch((updateErr: unknown) => {
-        this.logger.error(
-          `${this.logContext} failed to update project status`,
-          updateErr,
-        );
-      });
-      if (!sourceCompleted) {
-        await this.updateSource(data, 'failed', errorMessage).catch(
-          (updateErr: unknown) => {
-            this.logger.error(
-              `${this.logContext} failed to update source status`,
-              updateErr,
-            );
-          },
-        );
-      }
-
+      this.logger.error(`${this.logContext} analysis workflow failed`, error);
+      await this.workflowRunner
+        .runAction({
+          actionType: CLIP_ANALYSIS_ACTION_IDS.FAIL,
+          canonicalId: CLIP_ANALYSIS_ACTION_IDS.FAIL,
+          inputValues: { errorMessage, job: data },
+          metadata: { origin: 'worker', queueJobId: String(job.id ?? '') },
+          organizationId: data.orgId,
+          source: 'ClipAnalyzeProcessor.process.failure',
+          trigger: WorkflowExecutionTrigger.EVENT,
+          userId: data.userId,
+        })
+        .catch((updateError: unknown) => {
+          this.logger.error(
+            `${this.logContext} failed to persist workflow failure`,
+            updateError,
+          );
+        });
       throw error;
     }
+  }
+
+  private async prepareSourceAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<PreparedClipAnalysis> {
+    const data = this.readJobData(request.input.job);
+    const sourceArtifact = data.source?.artifact;
+    await this.updateProject(
+      data.projectId,
+      { progress: 5, status: 'analyzing' },
+      data.orgId,
+    );
+    await this.updateSource(
+      data,
+      data.source?.kind === 'youtube' ? 'downloading' : 'extracting',
+    );
+    const sourceUrl = sourceArtifact?.mediaUrl ?? data.youtubeUrl;
+    const extraction: AudioExtractionResult =
+      data.source?.contentType?.startsWith('audio/')
+        ? { audioUrl: sourceUrl }
+        : await this.downloadAudio(
+            sourceUrl,
+            data.orgId,
+            data.userId,
+            data.projectId,
+            data.source?.ingredientId,
+            sourceArtifact?.storageKey,
+          );
+    const resolvedArtifact = extraction.sourceArtifact ?? sourceArtifact;
+    if (extraction.sourceArtifact) {
+      await this.persistSourceArtifact(data, extraction.sourceArtifact);
+    }
+    await this.updateProject(data.projectId, { progress: 15 }, data.orgId);
+    await this.updateSource(data, 'ready-for-transcription');
+    return {
+      audioUrl: extraction.audioUrl,
+      data,
+      sourceArtifact: resolvedArtifact,
+      sourceUrl,
+    };
+  }
+
+  private async transcribeAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<TranscribedClipAnalysis> {
+    const prepared = this.readPrepared(request.input.prepared);
+    const transcription = await this.whisperService.transcribeUrl(
+      prepared.audioUrl,
+      prepared.data.language,
+    );
+    await this.updateProject(
+      prepared.data.projectId,
+      {
+        progress: 45,
+        transcriptSegments: transcription.segments,
+        transcriptSrt: transcription.srt,
+        transcriptText: transcription.text,
+      },
+      prepared.data.orgId,
+    );
+    await this.updateSource(prepared.data, 'completed');
+    return { ...prepared, transcription };
+  }
+
+  private async detectHighlightsAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<HighlightedClipAnalysis> {
+    const transcribed = this.readTranscribed(request.input.transcribed);
+    const rawHighlights = await this.highlightDetector.detectHighlights(
+      transcribed.transcription.text,
+      transcribed.transcription.segments,
+      transcribed.data.maxClips,
+      {
+        fallback: transcribed.data.highlightFallback,
+        model: transcribed.data.highlightModel,
+      },
+    );
+    const highlights: IHighlight[] = rawHighlights
+      .filter(
+        (highlight) =>
+          highlight.virality_score >= transcribed.data.minViralityScore,
+      )
+      .map((highlight) => ({ ...highlight, id: randomUUID() }));
+    return { ...transcribed, highlights };
+  }
+
+  private async extractReferenceFramesAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<ReferencedClipAnalysis> {
+    const highlighted = this.readHighlighted(request.input.highlighted);
+    const { data, highlights } = highlighted;
+    const referenceTimestamps = deriveReferenceTimestamps(highlights);
+    let referenceFrames: ClipReferenceFrameSet;
+    if (
+      referenceTimestamps.length === 0 ||
+      data.source?.contentType?.startsWith('audio/')
+    ) {
+      referenceFrames = unavailableReferenceFrames(
+        referenceTimestamps.length === 0
+          ? 'clip_reference_no_timestamps'
+          : 'clip_reference_audio_source',
+        referenceTimestamps.length === 0
+          ? 'No eligible highlight timestamps were available for reference extraction.'
+          : 'Audio sources do not contain reference frames.',
+      );
+    } else {
+      await this.updateProject(
+        data.projectId,
+        {
+          highlights,
+          progress: 75,
+          referenceFrames: pendingReferenceFrames(referenceTimestamps),
+        },
+        data.orgId,
+      );
+      try {
+        referenceFrames = await this.extractReferenceFrames(
+          highlighted.sourceArtifact?.mediaUrl ?? highlighted.sourceUrl,
+          data.orgId,
+          data.userId,
+          data.projectId,
+          referenceTimestamps,
+        );
+      } catch (error: unknown) {
+        this.logger.warn(
+          `${this.logContext} reference extraction unavailable`,
+          { error, projectId: data.projectId },
+        );
+        referenceFrames = unavailableReferenceFrames(
+          'clip_reference_extraction_failed',
+          'Reference frames could not be extracted from the source video.',
+        );
+      }
+    }
+    return { ...highlighted, referenceFrames };
+  }
+
+  private async persistAnalysisAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<ClipAnalyzeJobResult> {
+    const referenced = this.readReferenced(request.input.referenced);
+    await this.updateProject(
+      referenced.data.projectId,
+      {
+        highlights: referenced.highlights,
+        progress: 100,
+        referenceFrames: referenced.referenceFrames,
+        status: 'analyzed',
+      },
+      referenced.data.orgId,
+    );
+    return { sourceArtifact: referenced.sourceArtifact };
+  }
+
+  private async failAnalysisAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<{ status: 'failed' }> {
+    const data = this.readJobData(request.input.job);
+    const errorMessage = this.requiredString(
+      request.input.errorMessage,
+      'errorMessage',
+    );
+    await this.updateProject(
+      data.projectId,
+      { error: errorMessage, status: 'failed' },
+      data.orgId,
+    );
+    await this.updateSource(data, 'failed', errorMessage);
+    return { status: 'failed' };
+  }
+
+  private actionEdge(
+    id: string,
+    source: string,
+    target: string,
+    targetHandle: string,
+  ) {
+    return { id, source, target, targetHandle };
+  }
+
+  private actionNode(
+    id: string,
+    actionId: string,
+    label: string,
+    inputVariableKeys: string[],
+    x: number,
+  ) {
+    return {
+      data: {
+        config: { actionId, parameters: {} },
+        inputVariableKeys,
+        label,
+      },
+      id,
+      position: { x, y: 120 },
+      type: 'genfeedAction',
+    };
+  }
+
+  private readJobData(value: unknown): ClipAnalyzeJobData {
+    return this.readRecord(value) as unknown as ClipAnalyzeJobData;
+  }
+
+  private readPrepared(value: unknown): PreparedClipAnalysis {
+    return this.readRecord(value) as unknown as PreparedClipAnalysis;
+  }
+
+  private readTranscribed(value: unknown): TranscribedClipAnalysis {
+    return this.readRecord(value) as unknown as TranscribedClipAnalysis;
+  }
+
+  private readHighlighted(value: unknown): HighlightedClipAnalysis {
+    return this.readRecord(value) as unknown as HighlightedClipAnalysis;
+  }
+
+  private readReferenced(value: unknown): ReferencedClipAnalysis {
+    return this.readRecord(value) as unknown as ReferencedClipAnalysis;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new Error(`Missing required clip analysis input: ${field}`);
+    }
+    return value.trim();
   }
 
   private async extractReferenceFrames(

@@ -1,10 +1,11 @@
-import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import type { PublicClipToolStoreService } from '@server/services/public-clip-tool/public-clip-tool-store.service';
-import type { WhisperService } from '@server/services/whisper/whisper.service';
 import type { ClipAnalyzeJobData } from '@genfeedai/queue-contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
+import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import type { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import type { PublicClipToolStoreService } from '@server/services/public-clip-tool/public-clip-tool-store.service';
+import type { WhisperService } from '@server/services/whisper/whisper.service';
 import { ClipAnalyzeProcessor } from '@workers/processors/api/queues/clip-analyze/clip-analyze.processor';
 import { ClipHighlightDetector } from '@workers/processors/api/queues/shared/clip-highlight-detector.service';
 import type { Job } from 'bullmq';
@@ -37,6 +38,7 @@ describe('ClipAnalyzeProcessor', () => {
   let publicClipToolStore: {
     patchByWorkerProjectId: ReturnType<typeof vi.fn>;
   };
+  let workflowRunner: SystemWorkflowRunnerService;
 
   const mockJobData: ClipAnalyzeJobData = {
     language: 'en',
@@ -126,6 +128,58 @@ describe('ClipAnalyzeProcessor', () => {
       patchByWorkerProjectId: vi.fn().mockResolvedValue(undefined),
     };
 
+    const actions = new Map<
+      string,
+      (request: { input: Record<string, unknown> }) => Promise<unknown>
+    >();
+    const actionRequest = (input: Record<string, unknown>) => ({ input });
+    workflowRunner = {
+      registerAction: vi.fn(
+        (
+          actionId: string,
+          executor: (request: {
+            input: Record<string, unknown>;
+          }) => Promise<unknown>,
+        ) => {
+          actions.set(actionId, executor);
+        },
+      ),
+      registerWorkflow: vi.fn(),
+      runAction: vi.fn(
+        async (input: {
+          canonicalId: string;
+          inputValues?: Record<string, unknown>;
+        }) => ({
+          provenance: {},
+          result: await actions.get(input.canonicalId)?.(
+            actionRequest(input.inputValues ?? {}),
+          ),
+        }),
+      ),
+      runWorkflow: vi.fn(
+        async (input: { inputValues?: Record<string, unknown> }) => {
+          const prepared = await actions.get('clip.analysis.prepare-source')?.(
+            actionRequest({ job: input.inputValues?.job }),
+          );
+          const transcribed = await actions.get('clip.analysis.transcribe')?.(
+            actionRequest({ prepared }),
+          );
+          const highlighted = await actions.get(
+            'clip.analysis.detect-highlights',
+          )?.(actionRequest({ transcribed }));
+          const referenced = await actions.get(
+            'clip.analysis.extract-reference-frames',
+          )?.(actionRequest({ highlighted }));
+          return {
+            provenance: {},
+            result: await actions.get('clip.analysis.persist')?.(
+              actionRequest({ referenced }),
+            ),
+          };
+        },
+      ),
+    } as unknown as SystemWorkflowRunnerService;
+
     processor = new ClipAnalyzeProcessor(
       logger,
       clipProjectsService as unknown as ClipProjectsService,
@@ -138,7 +192,9 @@ describe('ClipAnalyzeProcessor', () => {
         configService as unknown as ConfigService,
       ),
       publicClipToolStore as unknown as PublicClipToolStoreService,
+      workflowRunner,
     );
+    processor.onModuleInit();
   });
 
   function createMockJob(
