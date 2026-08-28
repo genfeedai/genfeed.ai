@@ -15,6 +15,7 @@ describe('CreditReservationService', () => {
       findFirst: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     creditTransaction: { updateMany: vi.fn() },
   };
@@ -112,6 +113,90 @@ describe('CreditReservationService', () => {
       }),
     ).rejects.toBeInstanceOf(BusinessLogicException);
     expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+  });
+
+  it('moves the wallet only after atomically claiming a reserved settlement', async () => {
+    prisma.creditReservation.findFirst.mockResolvedValue({
+      amount: 20,
+      billingAccountId: 'ba_1',
+      id: 'res_1',
+      organizationId: 'org_1',
+      status: CreditReservationStatus.RESERVED,
+    });
+
+    await service.settle({
+      actualAmount: 15,
+      actorUserId: 'user_1',
+      description: 'generation complete',
+      organizationId: 'org_1',
+      reservationId: 'res_1',
+    });
+
+    expect(prisma.creditReservation.updateMany).toHaveBeenCalledWith({
+      data: {
+        settledAmount: 15,
+        status: CreditReservationStatus.SETTLED,
+      },
+      where: {
+        id: 'res_1',
+        isDeleted: false,
+        organizationId: 'org_1',
+        status: CreditReservationStatus.RESERVED,
+      },
+    });
+    expect(creditBalanceService.applyDelta).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats a settlement claim lost to a concurrent caller as an idempotent replay', async () => {
+    prisma.creditReservation.findFirst
+      .mockResolvedValueOnce({
+        amount: 20,
+        billingAccountId: 'ba_1',
+        id: 'res_1',
+        organizationId: 'org_1',
+        status: CreditReservationStatus.RESERVED,
+      })
+      .mockResolvedValueOnce({
+        amount: 20,
+        billingAccountId: 'ba_1',
+        id: 'res_1',
+        organizationId: 'org_1',
+        status: CreditReservationStatus.SETTLED,
+      });
+    prisma.creditReservation.updateMany.mockResolvedValueOnce({ count: 0 });
+    creditBalanceService.getOrCreateBalance.mockResolvedValue({
+      balance: 85,
+      billingAccountId: 'ba_1',
+      heldAmount: 0,
+      id: 'bal_1',
+      isDeleted: false,
+      organizationId: 'org_1',
+      version: 3,
+    });
+    creditBalanceService.toSnapshot.mockReturnValue({
+      available: 85,
+      billingAccountId: 'ba_1',
+      held: 0,
+      id: 'bal_1',
+      organizationId: 'org_1',
+      settled: 85,
+      version: 3,
+    });
+
+    await expect(
+      service.settle({
+        actualAmount: 15,
+        actorUserId: 'user_1',
+        description: 'generation complete',
+        organizationId: 'org_1',
+        reservationId: 'res_1',
+      }),
+    ).resolves.toMatchObject({ settled: 85 });
+
+    expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+    expect(
+      creditTransactionsService.createTransactionEntry,
+    ).not.toHaveBeenCalled();
   });
 
   it.each([-1, Number.NaN, Number.POSITIVE_INFINITY])(

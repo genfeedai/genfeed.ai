@@ -1,4 +1,5 @@
 import { BATCH_MAX_RESUME_ATTEMPTS } from '@server/services/batch-generation/batch-generation.constants';
+import { CreditReservationService } from '@server/collections/credits/services/credit-reservation.service';
 import { BatchGenerationCreditsService } from '@server/services/batch-generation/batch-generation-credits.service';
 import { BatchGenerationReconcileService } from '@server/services/batch-generation/batch-generation-reconcile.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
@@ -24,6 +25,7 @@ describe('BatchGenerationReconcileService', () => {
     retrySettlementShortfall: ReturnType<typeof vi.fn>;
     settleBatchCredits: ReturnType<typeof vi.fn>;
   };
+  let reservationService: { expireDue: ReturnType<typeof vi.fn> };
 
   const pendingItem = {
     format: ContentFormat.IMAGE,
@@ -58,6 +60,7 @@ describe('BatchGenerationReconcileService', () => {
         settledCredits: 4,
       }),
     };
+    reservationService = { expireDue: vi.fn().mockResolvedValue(0) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -76,6 +79,10 @@ describe('BatchGenerationReconcileService', () => {
         {
           provide: BatchGenerationCreditsService,
           useValue: creditsService,
+        },
+        {
+          provide: CreditReservationService,
+          useValue: reservationService,
         },
       ],
     }).compile();
@@ -277,5 +284,13 @@ describe('BatchGenerationReconcileService', () => {
     await service.reconcileSettlementShortfalls();
 
     expect(creditsService.retrySettlementShortfall).not.toHaveBeenCalled();
+  });
+
+  it('expires stale reservations on the existing credit reconciliation sweep', async () => {
+    reservationService.expireDue.mockResolvedValue(3);
+
+    await service.reconcileSettlementShortfalls();
+
+    expect(reservationService.expireDue).toHaveBeenCalledOnce();
   });
 });

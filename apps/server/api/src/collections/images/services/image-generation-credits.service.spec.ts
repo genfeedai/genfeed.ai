@@ -8,6 +8,7 @@ describe('ImageGenerationCreditsService', () => {
   const creditsUtilsService = {
     checkOrganizationCreditsAvailable: vi.fn(),
     getOrganizationCreditsBalance: vi.fn(),
+    reserveCredits: vi.fn(),
   };
   const modelsService = {
     findOne: vi.fn(),
@@ -31,6 +32,9 @@ describe('ImageGenerationCreditsService', () => {
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       true,
     );
+    creditsUtilsService.reserveCredits.mockResolvedValue({
+      id: 'reservation-1',
+    });
     service = new ImageGenerationCreditsService(
       creditsUtilsService as never,
       modelsService as never,
@@ -96,6 +100,34 @@ describe('ImageGenerationCreditsService', () => {
         pricingType: null,
         providerCostUsd: null,
       },
+    });
+  });
+
+  it('reserves resolved generation credits before provider dispatch', async () => {
+    const request = {
+      body: { sourceActionId: 'image-action-1' },
+      creditsConfig: { deferred: true },
+      user: { userId: 'user-1' },
+    };
+
+    await service.ensureDeferredCredits(
+      { outputs: 2, height: 1080, width: 1920 } as never,
+      'fal/model',
+      'org-1',
+      request as never,
+    );
+
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith({
+      actorUserId: 'user-1',
+      amount: 20,
+      expiresAt: expect.any(Date),
+      idempotencyKey: 'generation:image-action-1',
+      organizationId: 'org-1',
+      workloadId: 'image-action-1',
+      workloadType: 'generation',
+    });
+    expect(request.creditsConfig).toMatchObject({
+      reservationId: 'reservation-1',
     });
   });
 

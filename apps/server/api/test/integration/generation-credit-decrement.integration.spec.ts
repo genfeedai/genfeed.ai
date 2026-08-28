@@ -80,6 +80,7 @@ import {
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
+  CreditReservationStatus,
   CreditTransactionCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
@@ -89,6 +90,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
 import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
+import { CreditReservationService } from '@server/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@server/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
@@ -353,6 +355,7 @@ describe('Credit decrement is real and idempotent (#334 real-backend E2E)', () =
   let billingAccountsService: BillingAccountsService;
   let dbHelper: TestDatabaseHelper;
   let creditsUtilsService: CreditsUtilsService;
+  let creditReservationService: CreditReservationService;
   let prisma: PrismaService;
 
   const STARTING_BALANCE = 5000;
@@ -396,6 +399,7 @@ describe('Credit decrement is real and idempotent (#334 real-backend E2E)', () =
     dbHelper = createTestDatabaseHelper(moduleRef);
     billingAccountsService = moduleRef.get(BillingAccountsService);
     creditsUtilsService = moduleRef.get(CreditsUtilsService);
+    creditReservationService = moduleRef.get(CreditReservationService);
     prisma = moduleRef.get(PrismaService);
   });
 
@@ -499,5 +503,102 @@ describe('Credit decrement is real and idempotent (#334 real-backend E2E)', () =
       },
     });
     expect(transactions).toHaveLength(1);
+  });
+
+  it('allows only the covered concurrent reservations and never makes available credits negative', async () => {
+    const organizationId = await seedOrganizationWithBalance();
+
+    const attempts = await Promise.allSettled([
+      creditsUtilsService.reserveCredits({
+        actorUserId: 'user-1',
+        amount: 3000,
+        idempotencyKey: 'generation:concurrent-1',
+        organizationId,
+      }),
+      creditsUtilsService.reserveCredits({
+        actorUserId: 'user-1',
+        amount: 3000,
+        idempotencyKey: 'generation:concurrent-2',
+        organizationId,
+      }),
+    ]);
+
+    expect(attempts.filter((attempt) => attempt.status === 'fulfilled')).toHaveLength(1);
+    const wallet = await creditsUtilsService.getWalletSnapshot(organizationId);
+    expect(wallet.settled).toBe(STARTING_BALANCE);
+    expect(wallet.held).toBe(3000);
+    expect(wallet.available).toBe(2000);
+  });
+
+  it('settles a concurrently replayed reservation exactly once', async () => {
+    const organizationId = await seedOrganizationWithBalance();
+    const reservation = await creditsUtilsService.reserveCredits({
+      actorUserId: 'user-1',
+      amount: 1000,
+      idempotencyKey: 'generation:settlement-replay',
+      organizationId,
+    });
+
+    const settlements = await Promise.allSettled([
+      creditsUtilsService.settleReservation({
+        actualAmount: 750,
+        actorUserId: 'user-1',
+        description: 'generation complete',
+        organizationId,
+        reservationId: reservation.id,
+      }),
+      creditsUtilsService.settleReservation({
+        actualAmount: 750,
+        actorUserId: 'user-1',
+        description: 'generation complete',
+        organizationId,
+        reservationId: reservation.id,
+      }),
+    ]);
+
+    expect(settlements.every((settlement) => settlement.status === 'fulfilled')).toBe(true);
+    const wallet = await creditsUtilsService.getWalletSnapshot(organizationId);
+    expect(wallet.settled).toBe(STARTING_BALANCE - 750);
+    expect(wallet.held).toBe(0);
+    expect(wallet.available).toBe(STARTING_BALANCE - 750);
+    const transactions = await prisma.creditTransaction.findMany({
+      where: {
+        isDeleted: false,
+        organizationId,
+        reservationId: reservation.id,
+      },
+    });
+    expect(transactions).toHaveLength(1);
+  });
+
+  it('expires an abandoned reservation without changing settled transaction totals', async () => {
+    const organizationId = await seedOrganizationWithBalance();
+    const before = await prisma.creditTransaction.aggregate({
+      _sum: { amount: true },
+      where: { isDeleted: false, organizationId },
+    });
+    const reservation = await creditsUtilsService.reserveCredits({
+      actorUserId: 'user-1',
+      amount: 1000,
+      expiresAt: new Date(Date.now() - 1_000),
+      idempotencyKey: 'generation:expired',
+      organizationId,
+    });
+
+    await expect(creditReservationService.expireDue()).resolves.toBeGreaterThanOrEqual(1);
+
+    const wallet = await creditsUtilsService.getWalletSnapshot(organizationId);
+    expect(wallet.settled).toBe(STARTING_BALANCE);
+    expect(wallet.held).toBe(0);
+    expect(wallet.available).toBe(STARTING_BALANCE);
+    const row = await prisma.creditReservation.findFirst({
+      where: { id: reservation.id, isDeleted: false, organizationId },
+    });
+    expect(row?.status).toBe(CreditReservationStatus.EXPIRED);
+    const after = await prisma.creditTransaction.aggregate({
+      _sum: { amount: true },
+      where: { isDeleted: false, organizationId },
+    });
+    expect(after._sum.amount).toBe(before._sum.amount);
   });
 });

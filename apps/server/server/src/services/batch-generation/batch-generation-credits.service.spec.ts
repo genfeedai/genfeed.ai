@@ -36,7 +36,9 @@ describe('BatchGenerationCreditsService', () => {
   };
   let creditsUtilsService: {
     deductCreditsFromOrganization: ReturnType<typeof vi.fn>;
+    releaseReservation: ReturnType<typeof vi.fn>;
     refundOrganizationCredits: ReturnType<typeof vi.fn>;
+    settleReservation: ReturnType<typeof vi.fn>;
   };
 
   const completedItem = {
@@ -51,6 +53,8 @@ describe('BatchGenerationCreditsService', () => {
     chargedCredits: number;
     items?: Array<Record<string, unknown>>;
     refundedCredits?: number;
+    reservationId?: string;
+    reservationSettledAt?: string;
     settlementSeq?: number;
   }) {
     return {
@@ -60,6 +64,12 @@ describe('BatchGenerationCreditsService', () => {
           refundedCredits: params.refundedCredits ?? 0,
           ...(params.settlementSeq
             ? { settlementSeq: params.settlementSeq }
+            : {}),
+          ...(params.reservationId
+            ? { reservationId: params.reservationId }
+            : {}),
+          ...(params.reservationSettledAt
+            ? { reservationSettledAt: params.reservationSettledAt }
             : {}),
         },
         pricing: PINNED_PRICING,
@@ -80,7 +90,12 @@ describe('BatchGenerationCreditsService', () => {
 
   /** The batch config written by the compare-and-swap on `updateMany`. */
   function writtenConfig(callIndex = 0): {
-    credits: { chargedCredits: number; refundedCredits: number };
+    credits: {
+      chargedCredits: number;
+      refundedCredits: number;
+      reservationId?: string;
+      reservationSettledAt?: string;
+    };
     pricing: Record<string, unknown>;
   } {
     const call = batchDelegate.updateMany.mock.calls[callIndex];
@@ -95,7 +110,9 @@ describe('BatchGenerationCreditsService', () => {
     };
     creditsUtilsService = {
       deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
+      releaseReservation: vi.fn().mockResolvedValue(undefined),
       refundOrganizationCredits: vi.fn().mockResolvedValue(undefined),
+      settleReservation: vi.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -123,6 +140,74 @@ describe('BatchGenerationCreditsService', () => {
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
     ).toHaveBeenCalledOnce();
+  });
+
+  it('settles a batch reservation to the price of only the drafts that landed', async () => {
+    batchDelegate.findFirst.mockResolvedValue(
+      batchWith({
+        chargedCredits: ONE_DRAFT * 2,
+        reservationId: 'reservation-1',
+      }),
+    );
+
+    const settlement = await settle();
+
+    expect(settlement.settledCredits).toBe(ONE_DRAFT);
+    expect(creditsUtilsService.settleReservation).toHaveBeenCalledWith({
+      actualAmount: ONE_DRAFT,
+      actorUserId: 'user-1',
+      description: 'Batch generation batch-1 settlement',
+      organizationId: 'org-1',
+      reservationId: 'reservation-1',
+      source: expect.anything(),
+    });
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.refundOrganizationCredits,
+    ).not.toHaveBeenCalled();
+    expect(writtenConfig().credits).toMatchObject({
+      chargedCredits: ONE_DRAFT,
+      reservationId: 'reservation-1',
+      reservationSettledAt: expect.any(String),
+    });
+  });
+
+  it('releases the reservation when a batch produces no usable drafts', async () => {
+    batchDelegate.findFirst.mockResolvedValue(
+      batchWith({
+        chargedCredits: ONE_DRAFT,
+        items: [],
+        reservationId: 'reservation-1',
+      }),
+    );
+
+    const settlement = await settle();
+
+    expect(settlement.settledCredits).toBe(0);
+    expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      reservationId: 'reservation-1',
+    });
+    expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
+  });
+
+  it('does not transition an already settled batch reservation twice', async () => {
+    batchDelegate.findFirst.mockResolvedValue(
+      batchWith({
+        chargedCredits: ONE_DRAFT,
+        reservationId: 'reservation-1',
+        reservationSettledAt: '2026-08-28T00:00:00.000Z',
+      }),
+    );
+
+    const settlement = await settle();
+
+    expect(settlement.isAlreadySettled).toBe(true);
+    expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
+    expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
+    expect(batchDelegate.updateMany).not.toHaveBeenCalled();
   });
 
   it('moves nothing when the batch is settled a second time', async () => {
@@ -509,10 +594,12 @@ describe('BatchGenerationCreditsService', () => {
       credits: 6,
       organizationId: 'org-1',
       pricingOptions: { includeMedia: false, qualityTier: 'high_quality' },
+      reservationId: 'reservation-1',
     });
 
     const config = writtenConfig();
     expect(config.credits.chargedCredits).toBe(10);
+    expect(config.credits.reservationId).toBe('reservation-1');
     expect(config.pricing).toEqual({
       includeMedia: false,
       qualityTier: 'high_quality',

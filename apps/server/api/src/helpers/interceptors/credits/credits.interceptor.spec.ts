@@ -6,6 +6,7 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { Observable, of, throwError } from 'rxjs';
 
 const organizationId = testId('org');
@@ -14,11 +15,12 @@ const userId = testId('user');
 describe('CreditsInterceptor', () => {
   let interceptor: CreditsInterceptor;
   let creditDeductionQueueService: CreditDeductionQueueService;
+  let creditsUtilsService: { releaseReservation: ReturnType<typeof vi.fn> };
   let loggerService: LoggerService;
 
   const mockRequest: {
     body?: { sourceActionId?: string };
-    creditsConfig?: CreditsConfig;
+    creditsConfig?: CreditsConfig & { reservationId?: string };
     user?: {
       id: string;
       organizationId: string;
@@ -49,9 +51,22 @@ describe('CreditsInterceptor', () => {
 
   beforeEach(async () => {
     delete mockRequest.body;
+    mockRequest.creditsConfig = {
+      amount: 10,
+      description: 'Test operation',
+      source: ActivitySource.SCRIPT,
+    };
+    mockRequest.user = {
+      id: 'user_123',
+      organizationId,
+      userId,
+    };
     const mockCreditDeductionQueueService = {
       queueByokUsage: vi.fn().mockResolvedValue(undefined),
       queueDeduction: vi.fn().mockResolvedValue(undefined),
+    };
+    creditsUtilsService = {
+      releaseReservation: vi.fn().mockResolvedValue(undefined),
     };
 
     const mockLoggerService = {
@@ -71,6 +86,10 @@ describe('CreditsInterceptor', () => {
         {
           provide: LoggerService,
           useValue: mockLoggerService,
+        },
+        {
+          provide: CreditsUtilsService,
+          useValue: creditsUtilsService,
         },
       ],
     }).compile();
@@ -176,8 +195,9 @@ describe('CreditsInterceptor', () => {
       mockRequest.creditsConfig = {
         amount: 10,
         description: 'Image generation',
+        reservationId: 'reservation-1',
         source: ActivitySource.IMAGE_GENERATION,
-      } as CreditsConfig;
+      };
       mockRequest.user = {
         id: 'user_123',
         organizationId,
@@ -195,6 +215,7 @@ describe('CreditsInterceptor', () => {
             idempotencyKey: 'agent-media-action-123-asset-123',
             referenceId: 'asset-123',
             referenceType: 'agent-media:generation',
+            reservationId: 'reservation-1',
             settlementAssetId: 'asset-123',
           }),
         ),
@@ -206,8 +227,9 @@ describe('CreditsInterceptor', () => {
       mockRequest.creditsConfig = {
         amount: 10,
         description: 'Image generation',
+        reservationId: 'reservation-1',
         source: ActivitySource.IMAGE_GENERATION,
-      } as CreditsConfig;
+      };
       mockRequest.user = {
         id: 'user_123',
         organizationId,
@@ -221,6 +243,10 @@ describe('CreditsInterceptor', () => {
           creditDeductionQueueService.queueDeduction,
         ).not.toHaveBeenCalled(),
       );
+      expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+        organizationId,
+        reservationId: 'reservation-1',
+      });
     });
 
     it('fails media acceptance when its durable settlement job cannot be persisted', async () => {
@@ -339,8 +365,9 @@ describe('CreditsInterceptor', () => {
       mockRequest.creditsConfig = {
         amount: 10,
         description: 'Test operation',
+        reservationId: 'reservation-1',
         source: ActivitySource.SCRIPT,
-      } as CreditsConfig;
+      };
       mockRequest.user = {
         id: 'user_123',
         organizationId,
@@ -371,6 +398,12 @@ describe('CreditsInterceptor', () => {
             expect(
               creditDeductionQueueService.queueDeduction,
             ).not.toHaveBeenCalled();
+            expect(
+              creditsUtilsService.releaseReservation,
+            ).toHaveBeenCalledWith({
+              organizationId,
+              reservationId: 'reservation-1',
+            });
             resolve();
           },
         });

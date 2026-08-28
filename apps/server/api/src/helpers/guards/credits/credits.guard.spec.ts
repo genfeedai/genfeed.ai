@@ -22,7 +22,7 @@ const createContext = (
   const req: Record<string, unknown> = {
     body,
     params: {},
-    user: { id: 'user-1', organizationId: orgId },
+    user: { id: 'user-1', organizationId: orgId, userId: 'user-1' },
   };
   return {
     getClass: vi.fn(),
@@ -44,6 +44,7 @@ describe('CreditsGuard', () => {
   let creditsUtilsService: {
     checkOrganizationCreditsAvailable: ReturnType<typeof vi.fn>;
     getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
+    reserveCredits: ReturnType<typeof vi.fn>;
   };
   let modelsService: { findOne: ReturnType<typeof vi.fn> };
   let byokService: {
@@ -56,6 +57,7 @@ describe('CreditsGuard', () => {
     creditsUtilsService = {
       checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
+      reserveCredits: vi.fn().mockResolvedValue({ id: 'reservation-1' }),
     };
     modelsService = { findOne: vi.fn() };
     byokService = {
@@ -94,6 +96,37 @@ describe('CreditsGuard', () => {
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).toHaveBeenCalledWith(orgId, 10);
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: 'user-1',
+        amount: 10,
+        organizationId: orgId,
+        workloadType: 'generation',
+      }),
+    );
+  });
+
+  it('stores the reservation identity for settlement after generation', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
+      amount: 10,
+      description: 'Image generation',
+    });
+    const ctx = createContext({ sourceActionId: 'action-1' });
+
+    await guard.canActivate(ctx);
+
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith({
+      actorUserId: 'user-1',
+      amount: 10,
+      expiresAt: expect.any(Date),
+      idempotencyKey: 'generation:action-1',
+      organizationId: orgId,
+      workloadId: 'action-1',
+      workloadType: 'generation',
+    });
+    expect(ctx.switchToHttp().getRequest().creditsConfig).toMatchObject({
+      reservationId: 'reservation-1',
+    });
   });
 
   it('multiplies a fixed per-output amount using a trusted guard override', async () => {
@@ -301,6 +334,7 @@ describe('CreditsGuard', () => {
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).not.toHaveBeenCalled();
+    expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
 
     const req = ctx.switchToHttp().getRequest() as Record<string, unknown>;
     expect(req.creditsConfig).toMatchObject({
