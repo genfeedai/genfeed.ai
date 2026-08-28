@@ -181,9 +181,10 @@ export class ReplyInboundProcessorService implements OnModuleInit {
     const results = Array.isArray(batch.results) ? batch.results : [];
     const first = this.readRecord(results[0]);
     const result = this.readRecord(first.result);
+    const error = typeof result.error === 'string' ? result.error : undefined;
     return {
       commentId: input.commentId,
-      error: typeof result.error === 'string' ? result.error : undefined,
+      ...(error === undefined ? {} : { error }),
       organizationId: input.organizationId,
       skipped: false,
       success: result.success === true,

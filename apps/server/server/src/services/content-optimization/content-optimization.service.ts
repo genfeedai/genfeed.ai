@@ -240,11 +240,20 @@ export class ContentOptimizationService implements OnModuleInit {
     brandId: string,
     options: AnalyzePerformanceOptions = {},
   ): Promise<PerformanceAnalysis> {
+    const normalizedOptions = {
+      ...(options.endDate
+        ? { endDate: this.toIsoDate(options.endDate, 'endDate') }
+        : {}),
+      ...(options.startDate
+        ? { startDate: this.toIsoDate(options.startDate, 'startDate') }
+        : {}),
+      ...(options.topN === undefined ? {} : { topN: options.topN }),
+    };
     return this.runWorkflow<PerformanceAnalysis>(
       CONTENT_OPTIMIZATION_WORKFLOW_IDS.ANALYZE,
       {
         brandId,
-        options,
+        options: normalizedOptions,
         organizationId,
       },
     );
@@ -574,7 +583,11 @@ export class ContentOptimizationService implements OnModuleInit {
     return this.optimizationCycleService.runOptimizationCycle(
       this.requiredString(request.organizationId, 'organizationId'),
       this.requiredString(request.brandId, 'brandId'),
-      { topN: options.topN ?? 10 },
+      {
+        ...(options.endDate ? { endDate: options.endDate } : {}),
+        ...(options.startDate ? { startDate: options.startDate } : {}),
+        topN: options.topN ?? 10,
+      },
     );
   }
 
@@ -768,11 +781,10 @@ export class ContentOptimizationService implements OnModuleInit {
     }
     const options = this.readRecord(value, 'options');
     return {
-      ...(typeof options.endDate === 'string' || options.endDate instanceof Date
+      ...(typeof options.endDate === 'string'
         ? { endDate: options.endDate }
         : {}),
-      ...(typeof options.startDate === 'string' ||
-      options.startDate instanceof Date
+      ...(typeof options.startDate === 'string'
         ? { startDate: options.startDate }
         : {}),
       ...(typeof options.topN === 'number' && Number.isFinite(options.topN)
@@ -930,6 +942,14 @@ export class ContentOptimizationService implements OnModuleInit {
 
   private normalizeToken(value: string | undefined): string {
     return typeof value === 'string' ? value.trim().toLowerCase() : '';
+  }
+
+  private toIsoDate(value: Date | string, field: string): string {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      throw new Error(`Content optimization requires a valid ${field}`);
+    }
+    return date.toISOString();
   }
 
   // ─── Private Helpers ─────────────────────────────────────────────

@@ -93,7 +93,9 @@ describe('LifecycleEmailDeliveryService workflow actions', () => {
 
   it('loads, checks, renders, delivers, and finalizes one email', async () => {
     const loaded = await service.loadLifecycleDelivery(request);
+    expect(loaded.delivery?.scheduledFor).toBe('2026-08-28T00:00:00.000Z');
     const checked = await service.checkLifecycleEligibility(loaded);
+    expect(checked.preference?.marketingUnsubscribedAt).toBeNull();
     const rendered = service.renderLifecycleDelivery(checked);
     const delivered = await service.deliverLifecycleEmail(rendered);
 
@@ -130,5 +132,16 @@ describe('LifecycleEmailDeliveryService workflow actions', () => {
       data: { marketingUnsubscribedAt: expect.any(Date) },
       where: { id: preference.id },
     });
+  });
+
+  it('omits absent optional fields from missing-delivery action outputs', async () => {
+    prisma.lifecycleEmailDelivery.findFirst.mockResolvedValueOnce(null);
+
+    const loaded = await service.loadLifecycleDelivery(request);
+    const finalized = await service.finalizeLifecycleDelivery(loaded);
+
+    expect(Object.hasOwn(loaded, 'delivery')).toBe(false);
+    expect(Object.hasOwn(finalized, 'skipped')).toBe(false);
+    expect(finalized).toEqual({ delivered: false });
   });
 });

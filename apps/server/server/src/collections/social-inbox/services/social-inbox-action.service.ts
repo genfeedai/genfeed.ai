@@ -193,15 +193,16 @@ export class SocialInboxActionService implements OnModuleInit {
   ): Promise<SocialMessageDocument> {
     const draft = await this.getDraftMessage(scope, conversationId, messageId);
     const draftMetadata = asRecord(draft.metadata);
+    const recipientId =
+      typeof draftMetadata.draftRecipientId === 'string'
+        ? draftMetadata.draftRecipientId
+        : undefined;
     const input: SocialActionInput = {
-      agentRunId: draft.agentRunId ?? undefined,
+      ...(draft.agentRunId ? { agentRunId: draft.agentRunId } : {}),
       idempotencyKey: `draft:${draft.id}:approve`,
-      recipientId:
-        typeof draftMetadata.draftRecipientId === 'string'
-          ? draftMetadata.draftRecipientId
-          : undefined,
+      ...(recipientId === undefined ? {} : { recipientId }),
       text: draft.body,
-      workflowRunId: draft.workflowRunId ?? undefined,
+      ...(draft.workflowRunId ? { workflowRunId: draft.workflowRunId } : {}),
     };
 
     const sent =
@@ -345,15 +346,19 @@ export class SocialInboxActionService implements OnModuleInit {
           inputValues: {
             request: {
               action: messageType === 'dm' ? 'send_dm' : 'post_reply',
-              agentRunId: input.agentRunId,
+              ...(input.agentRunId ? { agentRunId: input.agentRunId } : {}),
               body: input.text,
               conversationId,
-              idempotencyKey: input.idempotencyKey,
+              ...(input.idempotencyKey
+                ? { idempotencyKey: input.idempotencyKey }
+                : {}),
               messageType,
               organizationId: scope.organizationId,
-              recipientId: input.recipientId,
-              userId: scope.userId,
-              workflowRunId: input.workflowRunId,
+              ...(input.recipientId ? { recipientId: input.recipientId } : {}),
+              ...(scope.userId ? { userId: scope.userId } : {}),
+              ...(input.workflowRunId
+                ? { workflowRunId: input.workflowRunId }
+                : {}),
             },
           },
           organizationId: scope.organizationId,

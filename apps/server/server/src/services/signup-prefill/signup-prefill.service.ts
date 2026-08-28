@@ -114,12 +114,13 @@ export class SignupPrefillService {
     const config = this.brandDataMapper.readBrandAgentConfig(brand.agentConfig);
     const marker = this.readMarker(config);
     if (marker?.status === 'completed' || marker?.status === 'skipped') {
+      const hasHarnessProfile = marker.hasHarnessProfile;
       return {
         brandDomain: marker.brandDomain ?? null,
         brandLabel:
           typeof brand.label === 'string' ? brand.label : 'Your brand',
         config,
-        hasHarnessProfile: marker.hasHarnessProfile,
+        ...(hasHarnessProfile === undefined ? {} : { hasHarnessProfile }),
         request,
         status: marker.status,
       };
@@ -134,7 +135,7 @@ export class SignupPrefillService {
       typeof brand.label === 'string' ? brand.label : null,
     );
     await this.writeMarker(request.brandId, request.organizationId, config, {
-      brandDomain: resolved.domain ?? undefined,
+      ...(resolved.domain ? { brandDomain: resolved.domain } : {}),
       startedAt: new Date().toISOString(),
       status: 'running',
     });
@@ -144,7 +145,7 @@ export class SignupPrefillService {
       config,
       request,
       status: 'running',
-      websiteUrl: resolved.websiteUrl ?? undefined,
+      ...(resolved.websiteUrl ? { websiteUrl: resolved.websiteUrl } : {}),
     };
   }
 
@@ -161,13 +162,14 @@ export class SignupPrefillService {
 
   async analyzePrefill(state: SignupPrefillState): Promise<SignupPrefillState> {
     if (!state.scrapedData) return state;
+    const brandVoice = await this.analyzeBrandVoice(
+      state.scrapedData,
+      state.request.organizationId,
+      state.request.userId,
+    );
     return {
       ...state,
-      brandVoice: await this.analyzeBrandVoice(
-        state.scrapedData,
-        state.request.organizationId,
-        state.request.userId,
-      ),
+      ...(brandVoice ? { brandVoice } : {}),
     };
   }
 
@@ -251,7 +253,7 @@ export class SignupPrefillService {
       state.request.organizationId,
       state.config,
       {
-        brandDomain: state.brandDomain ?? undefined,
+        ...(state.brandDomain ? { brandDomain: state.brandDomain } : {}),
         completedAt: new Date().toISOString(),
         hasBrandVoice: Boolean(state.brandVoice),
         hasHarnessProfile: Boolean(state.hasHarnessProfile),

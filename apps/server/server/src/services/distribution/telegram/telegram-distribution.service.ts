@@ -159,7 +159,7 @@ export class TelegramDistributionService implements OnModuleInit {
 
       return {
         distributionId: distribution.id.toString(),
-        telegramMessageId,
+        ...(telegramMessageId === undefined ? {} : { telegramMessageId }),
       };
     } catch (error: unknown) {
       const errorMessage =
@@ -277,15 +277,23 @@ export class TelegramDistributionService implements OnModuleInit {
     });
 
     return {
-      brandId,
-      caption: distribution.caption ?? undefined,
+      ...(brandId === undefined ? {} : { brandId }),
+      ...(distribution.caption === undefined || distribution.caption === null
+        ? {}
+        : { caption: distribution.caption }),
       chatId,
       contentType: contentType as DistributionContentType,
-      credentialId: credentialId ?? undefined,
+      ...(credentialId === undefined || credentialId === null
+        ? {}
+        : { credentialId }),
       distributionId: distribution.id.toString(),
-      mediaUrl: distribution.mediaUrl ?? undefined,
+      ...(distribution.mediaUrl === undefined || distribution.mediaUrl === null
+        ? {}
+        : { mediaUrl: distribution.mediaUrl }),
       organizationId: deliveryOrganizationId,
-      text: distribution.text ?? undefined,
+      ...(distribution.text === undefined || distribution.text === null
+        ? {}
+        : { text: distribution.text }),
     };
   }
 
@@ -320,7 +328,8 @@ export class TelegramDistributionService implements OnModuleInit {
       delivery.mediaUrl,
       delivery.caption,
     );
-    return { telegramMessageId: result.result?.message_id?.toString() };
+    const telegramMessageId = result.result?.message_id?.toString();
+    return telegramMessageId === undefined ? {} : { telegramMessageId };
   }
 
   private async finalizeScheduled(

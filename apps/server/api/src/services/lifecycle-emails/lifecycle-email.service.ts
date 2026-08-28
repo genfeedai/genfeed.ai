@@ -111,10 +111,14 @@ export class LifecycleEmailService implements OnModuleInit {
   recordCheckoutStarted(input: CheckoutStartedInput): Promise<void> {
     return this.runSchedulingOperation('recordCheckoutStarted', {
       checkoutSessionId: input.checkoutSessionId,
-      checkoutUrl: input.checkoutUrl ?? undefined,
+      ...(input.checkoutUrl === undefined || input.checkoutUrl === null
+        ? {}
+        : { checkoutUrl: input.checkoutUrl }),
       operation: 'checkout-started',
-      organizationId: input.organizationId,
-      source: input.source,
+      ...(input.organizationId === undefined
+        ? {}
+        : { organizationId: input.organizationId }),
+      ...(input.source === undefined ? {} : { source: input.source }),
       userId: input.userId,
     });
   }
@@ -124,7 +128,9 @@ export class LifecycleEmailService implements OnModuleInit {
   ): Promise<void> {
     return this.runSchedulingOperation('recordManagedCheckoutStartedByEmail', {
       checkoutSessionId: input.checkoutSessionId,
-      checkoutUrl: input.checkoutUrl ?? undefined,
+      ...(input.checkoutUrl === undefined || input.checkoutUrl === null
+        ? {}
+        : { checkoutUrl: input.checkoutUrl }),
       email: input.email,
       operation: 'managed-checkout-started',
     });
@@ -319,13 +325,16 @@ export class LifecycleEmailService implements OnModuleInit {
     organizationId: string,
   ): Promise<LifecycleDeliveryScheduleItem> {
     this.assertOrganization(item.organizationId, organizationId);
+    const subscriptionId = item.metadata?.subscriptionId;
     await this.workflowService.scheduleEmail(
       {
-        checkoutSessionId: item.checkoutSessionId,
+        ...(item.checkoutSessionId === undefined
+          ? {}
+          : { checkoutSessionId: item.checkoutSessionId }),
         organizationId,
         sequence: item.sequence,
         step: item.step,
-        subscriptionId: item.metadata?.subscriptionId,
+        ...(subscriptionId === undefined ? {} : { subscriptionId }),
         triggerKey: item.triggerKey,
         userId: item.userId,
       },

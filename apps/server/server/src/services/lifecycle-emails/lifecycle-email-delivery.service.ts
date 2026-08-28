@@ -51,9 +51,16 @@ type LifecycleEmailDeliveryRecord = {
   step: string;
   triggerKey: string;
   status: string;
-  scheduledFor: Date;
+  scheduledFor: string;
   metadata: unknown;
   user: UserEmailTarget;
+};
+
+type StoredLifecycleEmailDeliveryRecord = Omit<
+  LifecycleEmailDeliveryRecord,
+  'scheduledFor'
+> & {
+  scheduledFor: Date;
 };
 
 type EmailTemplate = {
@@ -70,7 +77,7 @@ export type LifecycleEmailDeliveryState = {
   html?: string;
   preference?: {
     id: string;
-    marketingUnsubscribedAt: Date | null;
+    marketingUnsubscribedAt: string | null;
     unsubscribeToken: string;
   };
   request: LifecycleEmailWorkflowInput;
@@ -94,8 +101,16 @@ export class LifecycleEmailDeliveryService {
   async loadLifecycleDelivery(
     request: LifecycleEmailWorkflowInput,
   ): Promise<LifecycleEmailDeliveryState> {
+    const delivery = await this.findDelivery(request);
     return {
-      delivery: (await this.findDelivery(request)) ?? undefined,
+      ...(delivery
+        ? {
+            delivery: {
+              ...delivery,
+              scheduledFor: delivery.scheduledFor.toISOString(),
+            },
+          }
+        : {}),
       request,
     };
   }
@@ -120,7 +135,12 @@ export class LifecycleEmailDeliveryService {
     if (delivery.user.isDeleted || !delivery.user.email) {
       return { ...state, skipReason: 'recipient unavailable' };
     }
-    const preference = await this.ensurePreference(delivery.user.id);
+    const storedPreference = await this.ensurePreference(delivery.user.id);
+    const preference = {
+      ...storedPreference,
+      marketingUnsubscribedAt:
+        storedPreference.marketingUnsubscribedAt?.toISOString() ?? null,
+    };
     if (preference.marketingUnsubscribedAt) {
       return { ...state, preference, skipReason: 'marketing unsubscribed' };
     }
@@ -178,8 +198,12 @@ export class LifecycleEmailDeliveryService {
     state: LifecycleEmailDeliveryState | undefined,
     error?: string,
   ): Promise<{ delivered: boolean; skipped?: string }> {
-    if (!state?.delivery)
-      return { delivered: false, skipped: state?.skipReason };
+    if (!state?.delivery) {
+      return {
+        delivered: false,
+        ...(state?.skipReason ? { skipped: state.skipReason } : {}),
+      };
+    }
     if (error) {
       await this.prisma.lifecycleEmailDelivery.update({
         data: { failureReason: error, status: DELIVERY_STATUS.FAILED },
@@ -268,7 +292,7 @@ export class LifecycleEmailDeliveryService {
 
   private async findDelivery(
     data: LifecycleEmailWorkflowInput,
-  ): Promise<LifecycleEmailDeliveryRecord | null> {
+  ): Promise<StoredLifecycleEmailDeliveryRecord | null> {
     return await this.prisma.lifecycleEmailDelivery.findFirst({
       include: {
         user: {

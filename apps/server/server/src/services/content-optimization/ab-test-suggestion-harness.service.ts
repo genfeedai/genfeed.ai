@@ -317,12 +317,14 @@ export class AbTestSuggestionHarnessService implements OnModuleInit {
         if (!suggestionId || !groupId) {
           continue;
         }
+        const winnerPostId = entry.metadata.winnerPostId;
+        const winnerVariantId = entry.metadata.winnerVariantId;
         outcomes.push({
           groupId,
           status: 'resolved',
           suggestionId,
-          winnerPostId: entry.metadata.winnerPostId,
-          winnerVariantId: entry.metadata.winnerVariantId,
+          ...(winnerPostId ? { winnerPostId } : {}),
+          ...(winnerVariantId ? { winnerVariantId } : {}),
         });
       }
     }

@@ -59,6 +59,14 @@ type PerformanceEnvelope = {
   records: NormalizedAdPerformanceRecord[];
 };
 
+type SerializableAdOptimizationRecommendation = Omit<
+  Partial<AdOptimizationRecommendation>,
+  'expiresAt' | 'runDate'
+> & {
+  expiresAt: string;
+  runDate: string;
+};
+
 const DEFAULT_SYNC_DAYS = 30;
 const EXPIRY_HOURS = 72;
 
@@ -316,19 +324,20 @@ export class AdAutomationWorkflowService {
           const insight = this.readRecord(value);
           const spend = this.readNumber(insight.spend);
           const conversions = this.readNumber(insight.conversions);
+          const campaignObjective = this.readOptionalString(campaign.objective);
+          const campaignStatus = this.readOptionalString(campaign.status);
           return {
             campaignName: this.requiredString(
               campaign.campaignName,
               'campaignName',
             ),
-            campaignObjective: this.readOptionalString(campaign.objective),
-            campaignStatus: this.readOptionalString(campaign.status),
+            ...(campaignObjective ? { campaignObjective } : {}),
+            ...(campaignStatus ? { campaignStatus } : {}),
             clicks: this.readNumber(insight.clicks),
             conversions,
-            cpa:
-              conversions > 0
-                ? this.readNumber(insight.costPerConversion)
-                : undefined,
+            ...(conversions > 0
+              ? { cpa: this.readNumber(insight.costPerConversion) }
+              : {}),
             cpc: this.readNumber(insight.cpc),
             cpm: this.readNumber(insight.cpm),
             ctr: this.readNumber(insight.ctr),
@@ -440,7 +449,7 @@ export class AdAutomationWorkflowService {
     input: Record<string, unknown>,
   ): Promise<{
     adsAnalyzed: number;
-    recommendations: Partial<AdOptimizationRecommendation>[];
+    recommendations: SerializableAdOptimizationRecommendation[];
     runId: string;
   }> {
     const optimization = this.readRecord(input.optimization);
@@ -457,7 +466,7 @@ export class AdAutomationWorkflowService {
         ad.totalSpend >= config.minSpend &&
         ad.totalImpressions >= config.minImpressions,
     );
-    const recommendations: Partial<AdOptimizationRecommendation>[] = [];
+    const recommendations: SerializableAdOptimizationRecommendation[] = [];
     for (const ad of qualified) {
       const reasons: string[] = [];
       if (ad.avgCpm > config.maxCpm) {
@@ -554,7 +563,7 @@ export class AdAutomationWorkflowService {
   ): Promise<{ recommendationsGenerated: number }> {
     const analysis = this.readRecord(input.analysis);
     const recommendations = Array.isArray(analysis.recommendations)
-      ? (analysis.recommendations as Partial<AdOptimizationRecommendation>[])
+      ? (analysis.recommendations as SerializableAdOptimizationRecommendation[])
       : [];
     const recommendationsGenerated =
       recommendations.length > 0
@@ -674,14 +683,14 @@ export class AdAutomationWorkflowService {
     ad: AggregatedAdMetrics,
     reason: string,
     suggestedAction?: Record<string, unknown>,
-  ): Partial<AdOptimizationRecommendation> {
+  ): SerializableAdOptimizationRecommendation {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + EXPIRY_HOURS);
     return {
       entityId: ad.externalAdId,
       entityName: ad.entityName,
       entityType: 'ad',
-      expiresAt,
+      expiresAt: expiresAt.toISOString(),
       metrics: {
         clicks: ad.totalClicks,
         cpm: ad.avgCpm,
@@ -693,7 +702,7 @@ export class AdAutomationWorkflowService {
       organizationId,
       reason,
       recommendationType: type,
-      runDate: new Date(),
+      runDate: new Date().toISOString(),
       runId,
       status: 'pending',
       ...(suggestedAction ? { suggestedAction } : {}),

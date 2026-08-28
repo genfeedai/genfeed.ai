@@ -580,8 +580,8 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
         }
         next = {
           ...state,
-          replyContentId: result.contentId,
-          replyContentUrl: result.contentUrl,
+          ...(result.contentId ? { replyContentId: result.contentId } : {}),
+          ...(result.contentUrl ? { replyContentUrl: result.contentUrl } : {}),
           replySent: true,
         };
       } catch (error: unknown) {
@@ -599,9 +599,13 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
             dmText: next.dmText,
             organizationId: next.organizationId,
             recipientId: next.content.authorId,
-            replyContentId: next.replyContentId,
-            replyContentUrl: next.replyContentUrl,
-            replyText: next.replyText,
+            ...(next.replyContentId
+              ? { replyContentId: next.replyContentId }
+              : {}),
+            ...(next.replyContentUrl
+              ? { replyContentUrl: next.replyContentUrl }
+              : {}),
+            ...(next.replyText ? { replyText: next.replyText } : {}),
           },
         ],
       };
@@ -693,10 +697,10 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
       );
       return {
         ...request,
-        dmContentId: result.contentId,
-        error: result.success
-          ? undefined
-          : (result.error ?? 'Failed to send DM'),
+        ...(result.contentId ? { dmContentId: result.contentId } : {}),
+        ...(result.success
+          ? {}
+          : { error: result.error ?? 'Failed to send DM' }),
         success: result.success,
       };
     } catch (error: unknown) {
@@ -776,7 +780,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     const state = this.readContentState(action.input);
     if (state.error) throw new Error(state.error);
     return {
-      dmText: state.dmText,
+      ...(state.dmText ? { dmText: state.dmText } : {}),
       replyText: this.requiredString(state.replyText, 'replyText'),
     };
   }
@@ -980,21 +984,24 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
 
   private readDmRequest(value: unknown): ReplyBotDmRequest {
     const request = this.readRecord(value);
+    const replyContentId =
+      typeof request.replyContentId === 'string'
+        ? request.replyContentId
+        : undefined;
+    const replyContentUrl =
+      typeof request.replyContentUrl === 'string'
+        ? request.replyContentUrl
+        : undefined;
+    const replyText =
+      typeof request.replyText === 'string' ? request.replyText : undefined;
     return {
       ...this.readBotRequest(request),
       activityId: this.requiredString(request.activityId, 'activityId'),
       dmText: this.requiredString(request.dmText, 'dmText'),
       recipientId: this.requiredString(request.recipientId, 'recipientId'),
-      replyContentId:
-        typeof request.replyContentId === 'string'
-          ? request.replyContentId
-          : undefined,
-      replyContentUrl:
-        typeof request.replyContentUrl === 'string'
-          ? request.replyContentUrl
-          : undefined,
-      replyText:
-        typeof request.replyText === 'string' ? request.replyText : undefined,
+      ...(replyContentId === undefined ? {} : { replyContentId }),
+      ...(replyContentUrl === undefined ? {} : { replyContentUrl }),
+      ...(replyText === undefined ? {} : { replyText }),
     };
   }
 

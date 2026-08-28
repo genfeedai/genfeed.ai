@@ -438,10 +438,12 @@ export class CampaignExecutorService implements OnModuleInit {
       state.campaignId,
       state.organizationId,
     );
+    const replyExternalId = postResult.tweetId;
+    const replyUrl = postResult.tweetUrl;
     return {
-      replyExternalId: postResult.tweetId,
       replyText,
-      replyUrl: postResult.tweetUrl,
+      ...(replyExternalId === undefined ? {} : { replyExternalId }),
+      ...(replyUrl === undefined ? {} : { replyUrl }),
       success: true,
     };
   }
@@ -669,16 +671,21 @@ export class CampaignExecutorService implements OnModuleInit {
             },
             replyText,
           )
-          .then((replyResult) => ({
-            error: replyResult.error,
-            success: replyResult.success,
-            tweetId:
+          .then((replyResult) => {
+            const error = replyResult.error;
+            const tweetId =
               replyResult.contentId ??
-              (replyResult as unknown as { tweetId?: string }).tweetId,
-            tweetUrl:
+              (replyResult as unknown as { tweetId?: string }).tweetId;
+            const tweetUrl =
               replyResult.contentUrl ??
-              (replyResult as unknown as { tweetUrl?: string }).tweetUrl,
-          }));
+              (replyResult as unknown as { tweetUrl?: string }).tweetUrl;
+            return {
+              ...(error === undefined ? {} : { error }),
+              success: replyResult.success,
+              ...(tweetId === undefined ? {} : { tweetId }),
+              ...(tweetUrl === undefined ? {} : { tweetUrl }),
+            };
+          });
 
       case CampaignPlatform.REDDIT:
         // Reddit reply would be implemented similarly
