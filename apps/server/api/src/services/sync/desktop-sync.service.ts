@@ -49,13 +49,6 @@ type DesktopSyncOpPushResult = {
   status: 'accepted' | 'rejected';
 };
 
-type DesktopThreadVersionRow = {
-  id: string;
-  organizationId: string | null;
-  updatedAt: Date;
-  userId: string | null;
-};
-
 const MAX_DESKTOP_ASSET_BYTES = 500 * 1024 * 1024; // 500 MB
 const MAX_PROXY_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB (body-based upload)
 const MAX_ORGANIZATION_DESKTOP_STORAGE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
@@ -163,29 +156,6 @@ export class DesktopSyncService {
       .replace(/-+/g, '-');
 
     return `${organizationId}/${asset.sha256}/${safeName}`;
-  }
-
-  private async loadDesktopThreadVersions(
-    threadIds: string[],
-  ): Promise<Map<string, DesktopThreadVersionRow> | null> {
-    if (threadIds.length === 0) {
-      return new Map();
-    }
-
-    try {
-      const existingThreads = await this.prisma.desktopThread.findMany({
-        select: {
-          id: true,
-          organizationId: true,
-          updatedAt: true,
-          userId: true,
-        },
-        where: { id: { in: threadIds } },
-      });
-      return new Map(existingThreads.map((thread) => [thread.id, thread]));
-    } catch {
-      return null;
-    }
   }
 
   private normalizeLimit(
@@ -297,80 +267,67 @@ export class DesktopSyncService {
     const { organizationId, userId } = this.getCloudContext(user);
     let accepted = 0;
     let rejected = 0;
-    const threadIds = [...new Set(dto.threads.map((thread) => thread.id))];
-    const existingThreadsById = await this.loadDesktopThreadVersions(threadIds);
 
     for (const thread of dto.threads) {
       try {
-        const existing = existingThreadsById
-          ? existingThreadsById.get(thread.id)
-          : await this.prisma.desktopThread.findUnique({
-              select: { organizationId: true, updatedAt: true, userId: true },
-              where: { id: thread.id },
-            });
+        const updatedAt = new Date(thread.updatedAt);
+        const data = {
+          createdAt: new Date(thread.createdAt),
+          localUserId: dto.localUserId,
+          organizationId,
+          status: thread.status ?? 'idle',
+          title: thread.title,
+          updatedAt,
+          userId,
+          workspaceId: thread.workspaceId,
+        };
+        const updateIfNewer = () =>
+          this.prisma.desktopThread.updateMany({
+            data,
+            where: {
+              id: thread.id,
+              organizationId,
+              updatedAt: { lt: updatedAt },
+              userId,
+            },
+          });
 
-        if (
-          existing &&
-          (existing.userId !== userId ||
-            existing.organizationId !== organizationId)
-        ) {
+        let writeApplied = (await updateIfNewer()).count === 1;
+        if (!writeApplied) {
+          try {
+            await this.prisma.desktopThread.create({
+              data: { id: thread.id, ...data },
+            });
+            writeApplied = true;
+          } catch (error: unknown) {
+            if ((error as { code?: unknown }).code !== 'P2002') {
+              throw error;
+            }
+            writeApplied = (await updateIfNewer()).count === 1;
+          }
+        }
+
+        if (!writeApplied) {
           rejected++;
           continue;
         }
 
-        if (!existing || thread.updatedAt > existing.updatedAt.toISOString()) {
-          const createdAt = new Date(thread.createdAt);
-          const updatedAt = new Date(thread.updatedAt);
-          await this.prisma.desktopThread.upsert({
-            create: {
-              createdAt,
-              id: thread.id,
-              localUserId: dto.localUserId,
-              organizationId,
-              status: thread.status ?? 'idle',
-              title: thread.title,
-              updatedAt,
-              userId,
-              workspaceId: thread.workspaceId,
-            },
-            update: {
-              createdAt,
-              localUserId: dto.localUserId,
-              organizationId,
-              status: thread.status ?? 'idle',
-              title: thread.title,
-              updatedAt,
-              userId,
-              workspaceId: thread.workspaceId,
-            },
-            where: { id: thread.id },
+        if (thread.messages.length > 0) {
+          await this.prisma.desktopMessage.createMany({
+            data: thread.messages.map((msg) => ({
+              content: msg.content,
+              createdAt: new Date(msg.createdAt),
+              draftId: msg.draftId,
+              generatedContent: msg.generatedContent ?? undefined,
+              id: msg.id,
+              role: msg.role,
+              threadId: thread.id,
+            })),
+            skipDuplicates: true,
           });
-          existingThreadsById?.set(thread.id, {
-            id: thread.id,
-            organizationId,
-            updatedAt,
-            userId,
-          });
-
-          if (thread.messages.length > 0) {
-            await this.prisma.desktopMessage.createMany({
-              data: thread.messages.map((msg) => ({
-                content: msg.content,
-                createdAt: new Date(msg.createdAt),
-                draftId: msg.draftId,
-                generatedContent: msg.generatedContent ?? undefined,
-                id: msg.id,
-                role: msg.role,
-                threadId: thread.id,
-              })),
-              skipDuplicates: true,
-            });
-          }
-
-          accepted++;
-        } else {
-          rejected++;
         }
+
+        accepted++;
       } catch {
         rejected++;
       }
