@@ -38,17 +38,6 @@ Content-Type: application/json
 }
 
 
-### Generate Persona Caption
-POST {{apiBaseUrl}}/personas/{{testPersonaId}}/generate/caption
-Authorization: Bearer {{bearerToken}}
-Content-Type: application/json
-
-{
-  "topic": "AI content creation trends",
-  "platform": "instagram"
-}
-
-
 ########################################
 # Content Planning & Publishing
 ########################################
