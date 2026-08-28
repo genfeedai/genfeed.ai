@@ -43,7 +43,7 @@ describe('CreativePatternsService.findAll', () => {
     await service.findAll({
       brandId: 'brand-1',
       organizationId: 'org-1',
-      patternType: 'hook',
+      patternType: 'hook_formula',
       platform: 'instagram',
       scope: 'private',
     });
@@ -52,7 +52,7 @@ describe('CreativePatternsService.findAll', () => {
       where: {
         AND: [
           { data: { equals: 'instagram', path: ['platform'] } },
-          { data: { equals: 'hook', path: ['patternType'] } },
+          { data: { equals: 'hook_formula', path: ['patternType'] } },
           { data: { equals: 'private', path: ['scope'] } },
         ],
         brandId: 'brand-1',
@@ -66,7 +66,7 @@ describe('CreativePatternsService.findAll', () => {
     const service = new CreativePatternsService(prisma as never);
 
     await service.findTopForBrand('org-1', 'brand-1', {
-      patternTypes: ['hook'],
+      patternTypes: ['hook_formula'],
     });
 
     expect(prisma.creativePattern.findMany).toHaveBeenCalledWith({
@@ -79,7 +79,7 @@ describe('CreativePatternsService.findAll', () => {
             ],
           },
           {
-            OR: [{ data: { equals: 'hook', path: ['patternType'] } }],
+            OR: [{ data: { equals: 'hook_formula', path: ['patternType'] } }],
           },
         ],
         brandId: 'brand-1',
