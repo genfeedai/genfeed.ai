@@ -294,7 +294,7 @@ describe('AdSyncMetaProcessor', () => {
     it('resolves the inter-account backoff timer', async () => {
       const fresh = new AdSyncMetaProcessor(
         adPerformanceService as unknown as AdPerformanceService,
-        logger,
+        logger as unknown as LoggerService,
         metaAdsService as unknown as MetaAdsService,
       );
       const delayable = fresh as unknown as {
