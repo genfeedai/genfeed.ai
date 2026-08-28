@@ -325,7 +325,7 @@ describe('MenuShared', () => {
     ).toBeTruthy();
   });
 
-  it('keeps a stable collapse icon instead of morphing on hover or focus', () => {
+  it('keeps the Genfeed mark visible when the sidebar is expanded', () => {
     const onToggleCollapse = vi.fn();
 
     render(<MenuShared config={config} onToggleCollapse={onToggleCollapse} />);
@@ -334,11 +334,11 @@ describe('MenuShared', () => {
       name: 'Collapse sidebar',
     });
 
-    expect(collapseButton).not.toHaveTextContent('G');
-    expect(collapseButton.querySelectorAll('svg')).toHaveLength(1);
+    expect(collapseButton).toHaveTextContent('G');
+    expect(collapseButton.querySelectorAll('svg')).toHaveLength(0);
     fireEvent.mouseEnter(collapseButton);
-    expect(collapseButton.querySelectorAll('svg')).toHaveLength(1);
-    expect(collapseButton).not.toHaveTextContent('G');
+    expect(collapseButton.querySelectorAll('svg')).toHaveLength(0);
+    expect(collapseButton).toHaveTextContent('G');
     fireEvent.click(collapseButton);
     expect(onToggleCollapse).toHaveBeenCalledTimes(1);
   });

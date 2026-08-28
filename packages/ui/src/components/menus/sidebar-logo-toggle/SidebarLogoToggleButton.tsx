@@ -5,7 +5,6 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import Image from 'next/image';
 import type { CSSProperties } from 'react';
 
@@ -25,8 +24,6 @@ export default function SidebarLogoToggleButton({
   style,
 }: SidebarLogoToggleButtonProps) {
   const logoUrl = useThemeLogo();
-  const DirectionIcon =
-    direction === 'collapse' ? PanelLeftClose : PanelLeftOpen;
 
   return (
     <Button
@@ -47,9 +44,7 @@ export default function SidebarLogoToggleButton({
       style={style}
       tooltip={ariaLabel}
     >
-      {direction === 'collapse' ? (
-        <DirectionIcon className="size-4 stroke-[1.75]" />
-      ) : logoUrl ? (
+      {logoUrl ? (
         <Image
           src={logoUrl}
           alt={EnvironmentService.LOGO_ALT}

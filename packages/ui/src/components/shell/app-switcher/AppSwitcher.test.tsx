@@ -115,24 +115,6 @@ vi.mock('../../../primitives/dropdown-menu', () => ({
   ),
 }));
 
-vi.mock('../../../primitives/tooltip', () => ({
-  Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
-  TooltipContent: ({
-    children,
-    side,
-    ...props
-  }: React.HTMLAttributes<HTMLDivElement> & {
-    children: ReactNode;
-    side?: string;
-  }) => (
-    <div role="tooltip" data-side={side} {...props}>
-      {children}
-    </div>
-  ),
-  TooltipProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
-  TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
-}));
-
 vi.mock('@genfeedai/enums', () => ({
   ButtonSize: { ICON: 'icon', SM: 'sm', DEFAULT: 'default' },
   ButtonVariant: { GHOST: 'ghost', UNSTYLED: 'unstyled' },
@@ -283,17 +265,29 @@ describe('AppSwitcher', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('explains each app with a left-side icon, label, and description tooltip', () => {
+  it('melts the hovered app details into the switcher left edge', () => {
     render(<AppSwitcher orgSlug="acme" />);
+
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    fireEvent.mouseEnter(screen.getByRole('link', { name: 'Agent' }));
 
     const tooltip = screen.getByRole('tooltip', {
       name: 'Agent: Ask and execute.',
     });
 
-    expect(tooltip).toHaveAttribute('data-side', 'left');
+    expect(tooltip).toHaveClass(
+      'right-full',
+      'rounded-l-md',
+      'rounded-r-none',
+      'border-r-0',
+      'bg-secondary',
+    );
     expect(tooltip.querySelector('svg')).toBeInTheDocument();
     expect(tooltip).toHaveTextContent('Agent');
     expect(tooltip).toHaveTextContent('Ask and execute.');
+
+    fireEvent.mouseLeave(screen.getByRole('link', { name: 'Agent' }));
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
   it('hides Studio when its app-switcher discovery flag is disabled', () => {

@@ -41,12 +41,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../../../primitives/dropdown-menu';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '../../../primitives/tooltip';
 
 type LifecycleAppSwitcherItemConfig = AppSwitcherItemConfig & {
   /**
@@ -398,6 +392,7 @@ function AppSwitcherGridItem({
   href,
   navigationAnnouncement,
   onNavigateStart,
+  onPreviewChange,
 }: {
   app: LifecycleAppSwitcherItemConfig;
   isActive: boolean;
@@ -405,82 +400,61 @@ function AppSwitcherGridItem({
   href: string;
   navigationAnnouncement?: string;
   onNavigateStart: (announcement?: string) => void;
+  onPreviewChange: (app: LifecycleAppSwitcherItemConfig | null) => void;
 }) {
   const Icon = APP_SWITCHER_ICON_OVERRIDES[app.itemKey] ?? app.icon;
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <DropdownMenuItem asChild>
-          <Link
-            href={href}
-            aria-current={isActive ? 'page' : undefined}
-            aria-label={
-              isLocked
-                ? `${app.label} — locked. Generate your first asset to unlock.`
-                : undefined
-            }
-            onClick={() => onNavigateStart(navigationAnnouncement)}
-            className={cn(
-              'group grid min-h-[4.5rem] min-w-0 grid-rows-[2.25rem_1.125rem] place-items-center gap-1 rounded-lg px-1 py-1.5 text-center outline-none',
-              'border-transparent !bg-transparent !shadow-none !ring-0 !ring-offset-0',
-              'focus:text-inherit data-[highlighted]:text-inherit',
-            )}
-          >
-            <span
-              className={cn(
-                'relative inline-flex size-9 items-center justify-center rounded-lg bg-background-secondary text-foreground/58 transition-colors',
-                isActive
-                  ? 'bg-foreground text-background'
-                  : 'group-hover:bg-foreground group-hover:text-background group-focus-visible:bg-foreground group-focus-visible:text-background',
-                isLocked && 'opacity-60',
-              )}
-            >
-              <Icon aria-hidden="true" className="size-[1.125rem]" />
-              {isLocked ? (
-                <span className="absolute -right-1 -top-1 inline-flex size-4 items-center justify-center rounded-full bg-background text-foreground/70 shadow-border">
-                  <Lock aria-hidden="true" className="size-2.5" />
-                </span>
-              ) : null}
-            </span>
-            <span
-              className={cn(
-                'block whitespace-nowrap text-xs font-semibold leading-[1.125rem]',
-                isActive
-                  ? 'text-foreground'
-                  : 'text-foreground/58 group-hover:text-foreground group-focus-visible:text-foreground',
-                // No label underline — active state is the filled icon tile only.
-                isLocked && 'text-foreground/45',
-              )}
-            >
-              {app.label}
-            </span>
-          </Link>
-        </DropdownMenuItem>
-      </TooltipTrigger>
-      <TooltipContent
-        side="left"
-        align="center"
-        sideOffset={12}
-        collisionPadding={12}
-        aria-label={`${app.label}: ${app.description}`}
-        className="w-64 p-3 font-normal"
+    <DropdownMenuItem asChild>
+      <Link
+        href={href}
+        aria-current={isActive ? 'page' : undefined}
+        aria-label={
+          isLocked
+            ? `${app.label} — locked. Generate your first asset to unlock.`
+            : undefined
+        }
+        onBlur={() => onPreviewChange(null)}
+        onClick={() => onNavigateStart(navigationAnnouncement)}
+        onFocus={() => onPreviewChange(app)}
+        onMouseEnter={() => onPreviewChange(app)}
+        onMouseLeave={() => onPreviewChange(null)}
+        className={cn(
+          'group grid min-h-[4.5rem] min-w-0 grid-rows-[2.25rem_1.125rem] place-items-center gap-1 rounded-lg px-1 py-1.5 text-center outline-none',
+          'border-transparent !bg-transparent !shadow-none !ring-0 !ring-offset-0',
+          'focus:text-inherit data-[highlighted]:text-inherit',
+        )}
       >
-        <div className="flex items-start gap-2.5">
-          <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-background-secondary text-foreground">
-            <Icon aria-hidden="true" className="size-4" />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-sm font-semibold text-foreground">
-              {app.label}
+        <span
+          className={cn(
+            'relative inline-flex size-9 items-center justify-center rounded-lg bg-background-secondary text-foreground/58 transition-colors',
+            isActive
+              ? 'bg-foreground text-background'
+              : 'group-hover:bg-foreground group-hover:text-background group-focus-visible:bg-foreground group-focus-visible:text-background',
+            isLocked && 'opacity-60',
+          )}
+        >
+          <Icon aria-hidden="true" className="size-[1.125rem]" />
+          {isLocked ? (
+            <span className="absolute -right-1 -top-1 inline-flex size-4 items-center justify-center rounded-full bg-background text-foreground/70 shadow-border">
+              <Lock aria-hidden="true" className="size-2.5" />
             </span>
-            <span className="mt-0.5 block text-xs leading-4 text-muted-foreground">
-              {app.description}
-            </span>
-          </span>
-        </div>
-      </TooltipContent>
-    </Tooltip>
+          ) : null}
+        </span>
+        <span
+          className={cn(
+            'block whitespace-nowrap text-xs font-semibold leading-[1.125rem]',
+            isActive
+              ? 'text-foreground'
+              : 'text-foreground/58 group-hover:text-foreground group-focus-visible:text-foreground',
+            // No label underline — active state is the filled icon tile only.
+            isLocked && 'text-foreground/45',
+          )}
+        >
+          {app.label}
+        </span>
+      </Link>
+    </DropdownMenuItem>
   );
 }
 
@@ -498,6 +472,7 @@ export function AppSwitcher({
   const appSwitcherVisibility = useAppSwitcherVisibility();
   const preventTriggerAutoFocusRef = useRef(false);
   const [navigationAnnouncement, setNavigationAnnouncement] = useState('');
+  const [previewAppKey, setPreviewAppKey] = useState<string | null>(null);
 
   function getRouteBrandSlug(app: AppSwitcherItemConfig) {
     if (app.id === 'agent') {
@@ -575,6 +550,10 @@ export function AppSwitcher({
     currentPath,
   });
   const activeApp = apps.find((app) => app.itemKey === activeItemKey);
+  const previewApp = apps.find((app) => app.itemKey === previewAppKey) ?? null;
+  const PreviewIcon = previewApp
+    ? (APP_SWITCHER_ICON_OVERRIDES[previewApp.itemKey] ?? previewApp.icon)
+    : null;
   const ActiveIcon = activeApp?.icon ?? LayoutGrid;
   const activeLabel = activeApp?.label ?? 'Apps';
   const tenantLabel = humanizeSlug(brandSlug || orgSlug);
@@ -586,7 +565,14 @@ export function AppSwitcher({
   }
 
   return (
-    <DropdownMenu modal={false}>
+    <DropdownMenu
+      modal={false}
+      onOpenChange={(open) => {
+        if (!open) {
+          setPreviewAppKey(null);
+        }
+      }}
+    >
       <DropdownMenuTrigger asChild>
         {variant === 'labeled' ? (
           <Button
@@ -617,7 +603,7 @@ export function AppSwitcher({
       <DropdownMenuContent
         align="end"
         sideOffset={8}
-        className="max-h-[min(80vh,30rem)] w-[calc(100vw-2rem)] overflow-y-auto p-0 sm:w-[19rem]"
+        className="relative w-[calc(100vw-2rem)] !overflow-visible p-0 sm:w-[19rem]"
         onCloseAutoFocus={(event) => {
           if (!preventTriggerAutoFocusRef.current) {
             return;
@@ -627,16 +613,37 @@ export function AppSwitcher({
           preventTriggerAutoFocusRef.current = false;
         }}
       >
-        <div className="flex min-h-11 items-center justify-between gap-3 border-b border-border px-3 py-2">
-          <div className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/52">
-            Apps
+        {previewApp && PreviewIcon ? (
+          <div
+            aria-label={`${previewApp.label}: ${previewApp.description}`}
+            className="absolute right-full top-11 z-[10002] w-64 rounded-l-md rounded-r-none border border-r-0 border-border bg-secondary p-3 font-normal shadow-dropdown"
+            role="tooltip"
+          >
+            <div className="flex items-start gap-2.5">
+              <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-background-secondary text-foreground">
+                <PreviewIcon aria-hidden="true" className="size-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-foreground">
+                  {previewApp.label}
+                </span>
+                <span className="mt-0.5 block text-xs leading-4 text-muted-foreground">
+                  {previewApp.description}
+                </span>
+              </span>
+            </div>
           </div>
-          <div className="min-w-0 truncate text-sm font-semibold text-foreground/58">
-            {tenantLabel}
+        ) : null}
+        <div className="max-h-[min(80vh,30rem)] overflow-y-auto rounded-md">
+          <div className="flex min-h-11 items-center justify-between gap-3 border-b border-border px-3 py-2">
+            <div className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/52">
+              Apps
+            </div>
+            <div className="min-w-0 truncate text-sm font-semibold text-foreground/58">
+              {tenantLabel}
+            </div>
           </div>
-        </div>
 
-        <TooltipProvider delayDuration={200}>
           <div
             className="grid grid-cols-3 gap-1 px-2.5 py-2.5"
             role="group"
@@ -654,19 +661,22 @@ export function AppSwitcher({
                   href={navigation.href}
                   navigationAnnouncement={navigation.announcement}
                   onNavigateStart={handleNavigateStart}
+                  onPreviewChange={(preview) =>
+                    setPreviewAppKey(preview?.itemKey ?? null)
+                  }
                 />
               );
             })}
           </div>
-        </TooltipProvider>
 
-        <div className="sr-only" aria-live="polite">
-          {activeApp ? (
-            <>
-              Current app:
-              <span className="truncate">{activeLabel}</span>
-            </>
-          ) : null}
+          <div className="sr-only" aria-live="polite">
+            {activeApp ? (
+              <>
+                Current app:
+                <span className="truncate">{activeLabel}</span>
+              </>
+            ) : null}
+          </div>
         </div>
       </DropdownMenuContent>
       <span aria-live="polite" className="sr-only" role="status">
