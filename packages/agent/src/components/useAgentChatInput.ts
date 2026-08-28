@@ -23,6 +23,7 @@ import type {
   ConversationComposerActionName,
   ConversationComposerArtifactReference,
   ConversationComposerGenerationMode,
+  ConversationComposerGenerationSettings,
   ConversationComposerSendOptions,
   PersistedConversationComposerContentReference,
 } from '@genfeedai/agent/models/conversation-composer.model';
@@ -156,6 +157,7 @@ export {
 
 interface UseAgentChatInputParams {
   generationMode?: ConversationComposerGenerationMode;
+  generationSettings?: ConversationComposerGenerationSettings;
   onSend: (
     content: string,
     mentions?: ExtractedMention[],
@@ -181,6 +183,7 @@ interface UseAgentChatInputParams {
 
 export function useAgentChatInput({
   generationMode = 'auto',
+  generationSettings,
   onSend,
   onPromoteQueuedFollowUp,
   hasQueuedFollowUps = false,
@@ -643,6 +646,9 @@ export function useAgentChatInput({
           : {}),
         ...(composerShell?.brandId ? { brandId: composerShell.brandId } : {}),
         generationMode,
+        ...(generationMode !== 'auto' && generationSettings
+          ? { generationSettings }
+          : {}),
         planModeEnabled: false,
       },
     );
@@ -670,6 +676,7 @@ export function useAgentChatInput({
     hasCompletedAttachments,
     getCompletedAttachments,
     generationMode,
+    generationSettings,
     clearAllAttachments,
     surfaceArtifactReferences,
     translate,

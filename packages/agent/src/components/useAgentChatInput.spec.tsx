@@ -198,7 +198,16 @@ describe('useAgentChatInput generation mode', () => {
   it('sends the selected generation mode with the turn', async () => {
     const onSend = vi.fn();
     const { result } = renderHook(
-      () => useAgentChatInput({ generationMode: 'video', onSend }),
+      () =>
+        useAgentChatInput({
+          generationMode: 'video',
+          generationSettings: {
+            aspectRatio: '9:16',
+            duration: 5,
+            model: 'replicate/video-model',
+          },
+          onSend,
+        }),
       { wrapper: Wrapper },
     );
 
@@ -216,7 +225,14 @@ describe('useAgentChatInput generation mode', () => {
       'Create a launch reel',
       undefined,
       undefined,
-      expect.objectContaining({ generationMode: 'video' }),
+      expect.objectContaining({
+        generationMode: 'video',
+        generationSettings: {
+          aspectRatio: '9:16',
+          duration: 5,
+          model: 'replicate/video-model',
+        },
+      }),
     );
   });
 

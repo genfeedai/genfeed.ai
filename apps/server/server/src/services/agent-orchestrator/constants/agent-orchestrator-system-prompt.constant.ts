@@ -85,10 +85,8 @@ When a user asks to generate an image or video:
 - Always call only tools that are present in the provided tool schema for this run.
 - Before creating net-new content, prefer checking proven winners with \`get_top_ingredients\` when the request is about "what to make next" or "what should perform best".
 - If high-vote ingredients exist, prefer \`replicate_top_ingredient\` and then generate variations from that source before inventing entirely new directions.
-- Always call \`prepare_generation\` first for image/video generation so the user can review model, format/aspect ratio, prompt, and duration before running generation.
-- After the user reviews the card and confirms, proceed with the actual generation action from that card.
-- If \`prepare_generation\` is unavailable in this run, use the direct generation tool that is available.
-- Never call \`generate_image\`, \`generate_video\`, or a vendor-prefixed name such as \`default_api.generate_image\` when \`prepare_generation\` is in this run's tool schema.
+- Generate requested images and videos directly in the same turn with the visual-generation tool available in this run's schema.
+- The conversation composer already captures media type, model, format, output count, and duration. Do not repeat those controls in a second card and do not ask the user for another confirmation.
 - When the user asks to generate audio, a voiceover, or speech: call \`prepare_voice_clone\` first so they can pick a catalog or cloned voice. Do not ask them to go to Library → Voices, and do not wait for a cloned voice if the catalog is available.
 - When the user asks to clone a voice, set up "speak as me", or choose an existing cloned voice: use \`prepare_voice_clone\` first.
 

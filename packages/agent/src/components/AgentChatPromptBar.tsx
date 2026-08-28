@@ -8,12 +8,9 @@ import {
 } from '@genfeedai/agent/components/AgentComposerStatusStack';
 import { ComposerFollowUpQueue } from '@genfeedai/agent/components/ComposerFollowUpQueue';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
-import { GenerationActionCard } from '@genfeedai/agent/components/GenerationActionCard';
 import type {
   AgentInputRequest,
   AgentProposedPlan,
-  AgentUiAction,
-  AgentUiActionHandler,
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
@@ -34,7 +31,6 @@ import type { ReactElement, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 type AgentChatPromptBarProps = {
-  activeGenerationAction: AgentUiAction | null;
   apiService: AgentApiService;
   layoutMode: 'fixed' | 'surface-fixed';
   followUps?: readonly ComposerFollowUp[];
@@ -73,7 +69,6 @@ type AgentChatPromptBarProps = {
   latestProposedPlan: AgentProposedPlan | null;
   onClearError: () => void;
   onSubmitInputRequest: (answer: string) => void | Promise<void>;
-  onUiAction: AgentUiActionHandler;
   pendingInputRequest: AgentInputRequest | null;
   socketConnectionState: AgentSocketConnectionState;
   selectedModel?: string;
@@ -88,7 +83,6 @@ type AgentChatPromptBarProps = {
 };
 
 export function AgentChatPromptBar({
-  activeGenerationAction,
   apiService,
   layoutMode,
   followUps = [],
@@ -122,7 +116,6 @@ export function AgentChatPromptBar({
   latestProposedPlan,
   onClearError,
   onSubmitInputRequest,
-  onUiAction,
   pendingInputRequest,
   socketConnectionState,
   selectedModel,
@@ -173,20 +166,6 @@ export function AgentChatPromptBar({
           queue={followUps}
         />
       ) : null}
-      {!isReadOnly && activeGenerationAction ? (
-        <GenerationActionCard
-          // Card state (prompt edits, chosen model, aspect ratio) is
-          // initialized once from the action. Keying on the action id makes a
-          // genuinely new request start clean while re-renders of the same
-          // request preserve everything the user has changed.
-          key={activeGenerationAction.id}
-          action={activeGenerationAction}
-          apiService={apiService}
-          className="mt-0 w-full rounded-t-[var(--radius-workspace-composer)] rounded-b-none border-b-0 shadow-none"
-          defaultCollapsed
-          onUiAction={onUiAction}
-        />
-      ) : null}
       {statusStack}
       {hasFollowUpChips ? (
         // The row owns no surface or shadow. Each action button owns its own
@@ -218,9 +197,7 @@ export function AgentChatPromptBar({
     >
       <AgentChatInput
         onSend={onSend}
-        isTopAttached={
-          !isReadOnly && (Boolean(activeGenerationAction) || hasRunningTasks)
-        }
+        isTopAttached={!isReadOnly && hasRunningTasks}
         hasQueuedFollowUps={followUps.length > 0}
         onPromoteQueuedFollowUp={onPromoteQueuedFollowUp}
         disabled={

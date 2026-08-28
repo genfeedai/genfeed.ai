@@ -199,16 +199,19 @@ describe('AgentChatInput', () => {
     render(<AgentChatInput onModelChange={onModelChange} onSend={vi.fn()} />);
 
     expect(
-      screen.getByRole('button', { name: 'Generation settings: Auto' }),
+      screen.getByRole('button', { name: 'Composer mode: Conversation' }),
     ).toBeInTheDocument();
     expect(screen.getByTestId('model-catalog-size')).toHaveTextContent('0');
     expect(
       screen.queryByRole('button', { name: 'Use Auto' }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Image' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Composer mode: Conversation' }),
+    );
+    fireEvent.click(screen.getByRole('menuitem', { name: /Image/i }));
     expect(
-      screen.getByRole('button', { name: 'Generation settings: Image' }),
+      screen.getByRole('button', { name: 'Composer mode: Image' }),
     ).toBeInTheDocument();
     expect(onModelChange).not.toHaveBeenCalled();
   });
@@ -244,16 +247,50 @@ describe('AgentChatInput', () => {
     );
 
     expect(
-      screen.getByRole('button', { name: 'Generation settings: Auto' }),
+      screen.getByRole('button', { name: 'Composer mode: Conversation' }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /Generation mode:/i }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Video' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Composer mode: Conversation' }),
+    );
+    fireEvent.click(screen.getByRole('menuitem', { name: /Video/i }));
     expect(
-      screen.getByRole('button', { name: 'Generation settings: Video' }),
+      screen.getByRole('button', { name: 'Composer mode: Video' }),
     ).toBeInTheDocument();
+  });
+
+  it('returns the same composer to Conversation after a media turn is accepted', async () => {
+    const onSend = vi.fn().mockResolvedValue(true);
+    storeState.composerSeed = {
+      content: 'Create a square launch image',
+      nonce: 1,
+      threadId: null,
+    };
+
+    render(<AgentChatInput onSend={onSend} />);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Composer mode: Conversation' }),
+    );
+    fireEvent.click(screen.getByRole('menuitem', { name: /Image/i }));
+    fireEvent.click(await screen.findByLabelText('Generate image'));
+
+    await waitFor(() => {
+      expect(onSend).toHaveBeenCalledWith(
+        'Create a square launch image',
+        undefined,
+        undefined,
+        expect.objectContaining({
+          generationMode: 'image',
+          generationSettings: { aspectRatio: '1:1', outputs: 1 },
+        }),
+      );
+      expect(
+        screen.getByRole('button', { name: 'Composer mode: Conversation' }),
+      ).toBeInTheDocument();
+    });
   });
 
   it('renders the stop action within the shell footer when a run is active', () => {
