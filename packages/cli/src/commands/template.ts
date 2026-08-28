@@ -6,11 +6,11 @@ import { requireAuth } from '@/api/client';
 import {
   createTemplate,
   deleteTemplate,
+  fillTemplate,
   getPopularTemplates,
   getTemplate,
   listTemplates,
   suggestTemplates,
-  useTemplate,
 } from '@/api/templates';
 import { formatHeader, formatLabel, formatSuccess, print, printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
@@ -175,7 +175,7 @@ templateCommand
       }
 
       const spinner = ora('Filling template...').start();
-      const result = await useTemplate(id, { variables });
+      const result = await fillTemplate(id, { variables });
       spinner.succeed('Template filled');
 
       if (options.json) {

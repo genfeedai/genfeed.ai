@@ -73,8 +73,8 @@ describe('api/templates', () => {
     mockPost.mockResolvedValue({ data: { id: 'tpl-1' } });
     mockFlattenSingle.mockReturnValue({ content: 'Hello world' });
 
-    const { useTemplate } = await import('../../src/api/templates');
-    const result = await useTemplate('tpl-1', { variables: { name: 'world' } });
+    const { fillTemplate } = await import('../../src/api/templates');
+    const result = await fillTemplate('tpl-1', { variables: { name: 'world' } });
 
     expect(mockPost).toHaveBeenCalledWith('/templates/tpl-1/use', {
       variables: { name: 'world' },
