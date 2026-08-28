@@ -1,6 +1,7 @@
 export const SYSTEM_WORKFLOW_METADATA_KEY = 'systemWorkflow';
 export const SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY =
   'duplicatedFromSystemWorkflow';
+export const HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE = 'hidden-system-workflow';
 export const SYSTEM_WORKFLOW_OWNER = 'genfeed';
 export const SYSTEM_WORKFLOW_PRINCIPAL_ID = 'genfeed-public-tools';
 export const SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE = 1011;
@@ -113,6 +114,17 @@ export function getSystemWorkflowDuplicateMetadata(
 
 export function isProtectedSystemWorkflowMetadata(metadata: unknown): boolean {
   return getSystemWorkflowMetadata(metadata)?.immutable === true;
+}
+
+export function isHiddenSystemWorkflowMetadata(metadata: unknown): boolean {
+  const metadataRecord = getMetadataRecord(metadata);
+  const systemWorkflow = getSystemWorkflowMetadata(metadataRecord);
+
+  return (
+    metadataRecord.sourceType === HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE &&
+    systemWorkflow?.duplicable === false &&
+    systemWorkflow.visibility === 'internal'
+  );
 }
 
 export function buildSystemWorkflowDuplicateMetadata(
