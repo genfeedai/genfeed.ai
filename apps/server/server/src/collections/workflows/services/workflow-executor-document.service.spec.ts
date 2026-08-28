@@ -1,6 +1,6 @@
+import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
 import type { TriggerEvent } from '@server/collections/workflows/services/workflow-executor.types';
 import { WorkflowExecutorDocumentService } from '@server/collections/workflows/services/workflow-executor-document.service';
-import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowExecutorDocumentService', () => {
@@ -146,7 +146,6 @@ function workflowRow(
       },
     ],
     organizationId: 'org-1',
-    steps: [],
     userId: 'user-1',
   };
 }

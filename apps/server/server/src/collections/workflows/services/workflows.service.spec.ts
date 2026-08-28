@@ -1,14 +1,10 @@
+import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { WorkflowEntity } from '@server/collections/workflows/entities/workflow.entity';
 import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import { buildSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
-import {
-  WorkflowExecutionTrigger,
-  WorkflowStatus,
-  WorkflowStepStatus,
-} from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const emptyModuleRef = { get: vi.fn(() => undefined) };
@@ -37,7 +33,6 @@ describe('WorkflowsService template creation', () => {
       label: 'Workflow: release-loop',
       metadata: {},
       nodes: [],
-      steps: [],
     } as never);
     vi.spyOn(service, 'executeWorkflow').mockResolvedValue({
       mode: 'node',
@@ -68,7 +63,6 @@ describe('WorkflowsService template creation', () => {
       organizationId?: string;
       schedule?: string;
       status?: WorkflowStatus;
-      steps?: Array<{ id: string; status: WorkflowStepStatus }>;
       timezone?: string;
       user?: string;
       userId?: string;
@@ -108,10 +102,6 @@ describe('WorkflowsService template creation', () => {
     expect(createInput.nodes?.map((node) => node.type)).toEqual(
       expect.arrayContaining(['llm', 'reviewGate', 'workflow-output']),
     );
-    expect(createInput.steps?.map((step) => step.status)).toEqual([
-      WorkflowStepStatus.PENDING,
-      WorkflowStepStatus.PENDING,
-    ]);
   });
 
   it('keeps caller schedule overrides while preserving routine metadata', async () => {
@@ -463,7 +453,6 @@ describe('WorkflowsService system workflow guardrails', () => {
       organizationId: 'org-1',
       brandId: 'source-brand',
       schedule: '0 7 * * *',
-      steps: [],
       userId: 'owner-user',
     } as never);
     vi.spyOn(service, 'create').mockResolvedValue({
@@ -471,7 +460,6 @@ describe('WorkflowsService system workflow guardrails', () => {
       label: 'Daily Trends Digest (Copy)',
       metadata: {},
       nodes: [],
-      steps: [],
     } as never);
 
     await service.cloneWorkflow(
@@ -530,7 +518,6 @@ describe('WorkflowsService system workflow guardrails', () => {
       nodes: [],
       organizationId: 'org-1',
       schedule: '0 9 * * *',
-      steps: [],
       userId: 'owner-user',
     } as never);
     vi.spyOn(service, 'create').mockResolvedValue({
@@ -538,7 +525,6 @@ describe('WorkflowsService system workflow guardrails', () => {
       label: 'Launch Workflow (Copy)',
       metadata: {},
       nodes: [],
-      steps: [],
     } as never);
 
     await service.cloneWorkflow('workflow-1', 'user-1', 'org-1', 'brand-2');
@@ -619,7 +605,6 @@ describe('WorkflowsService system workflow guardrails', () => {
       inputVariables: [],
       label: 'Launch Workflow',
       nodes: [],
-      steps: [],
     } as never);
     vi.spyOn(service, 'create').mockResolvedValue({} as never);
     brandFindFirst.mockResolvedValue(null);

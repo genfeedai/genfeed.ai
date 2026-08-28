@@ -1,13 +1,13 @@
-import { WorkflowEngineConverterService } from '@server/collections/workflows/services/workflow-engine-converter.service';
-import {
-  EXECUTABLE_WORKFLOW_SELECT,
-  WorkflowExecutorService,
-} from '@server/collections/workflows/services/workflow-executor.service';
 import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import type {
   ExecutableWorkflow,
   NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
+import { WorkflowEngineConverterService } from '@server/collections/workflows/services/workflow-engine-converter.service';
+import {
+  EXECUTABLE_WORKFLOW_SELECT,
+  WorkflowExecutorService,
+} from '@server/collections/workflows/services/workflow-executor.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const converter = new WorkflowEngineConverterService();
@@ -113,7 +113,6 @@ describe('WorkflowExecutorService', () => {
       metadata: {},
       nodes: [],
       organizationId: 'org-1',
-      steps: [],
       userId: 'user-1',
     });
     prisma.workflow.update.mockResolvedValue({ id: 'workflow-1' });
@@ -261,7 +260,6 @@ describe('WorkflowExecutorService', () => {
         },
       ],
       organizationId: 'org-1',
-      steps: [],
       userId: 'user-1',
     };
 
@@ -381,7 +379,6 @@ describe('WorkflowExecutorService', () => {
       metadata: {},
       nodes: [],
       organizationId: 'org-1',
-      steps: [],
       userId: 'user-1',
     });
     engineAdapter.convertToExecutableWorkflow.mockReturnValue(
@@ -694,7 +691,6 @@ describe('WorkflowExecutorService', () => {
         metadata: {},
         nodes: [],
         organizationId: 'org-1',
-        steps: [],
         userId: 'user-1',
       });
       engineAdapter.convertToExecutableWorkflow.mockReturnValue(
@@ -777,7 +773,6 @@ describe('WorkflowExecutorService', () => {
         metadata: {},
         nodes: [],
         organizationId: 'org-1',
-        steps: [],
         userId: 'user-1',
       });
       engineAdapter.convertToExecutableWorkflow.mockReturnValue(
