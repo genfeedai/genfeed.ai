@@ -617,6 +617,7 @@ export function AgentChatContainer({
             <AgentChatPromptBar
               activeGenerationAction={pendingGenerationAction}
               activeWorkEvent={activeWorkEvent}
+              workEvents={container.workEvents}
               addFiles={container.addFiles}
               apiService={apiService}
               chatAttachments={container.chatAttachments}

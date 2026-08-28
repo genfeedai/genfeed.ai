@@ -27,6 +27,7 @@ vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
 
 vi.mock('@genfeedai/agent/components/AgentComposerStatusStack', () => ({
   AgentComposerStatusStack: () => null,
+  hasRenderableComposerTasks: () => false,
 }));
 
 vi.mock('@genfeedai/agent/components/ConversationComposerShellContext', () => ({
@@ -92,6 +93,7 @@ function renderPromptBar(
     <AgentChatPromptBar
       activeGenerationAction={activeGenerationAction}
       activeWorkEvent={null}
+      workEvents={[]}
       addFiles={vi.fn()}
       apiService={{} as never}
       chatAttachments={[]}

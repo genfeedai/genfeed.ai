@@ -2,7 +2,10 @@ import {
   AgentChatInput,
   type ExtractedMention,
 } from '@genfeedai/agent/components/AgentChatInput';
-import { AgentComposerStatusStack } from '@genfeedai/agent/components/AgentComposerStatusStack';
+import {
+  AgentComposerStatusStack,
+  hasRenderableComposerTasks,
+} from '@genfeedai/agent/components/AgentComposerStatusStack';
 import { ComposerFollowUpQueue } from '@genfeedai/agent/components/ComposerFollowUpQueue';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { GenerationActionCard } from '@genfeedai/agent/components/GenerationActionCard';
@@ -64,6 +67,7 @@ type AgentChatPromptBarProps = {
   onSendFollowUpNow?: (id: string) => void;
   isInterruptingFollowUps?: boolean;
   activeWorkEvent: AgentWorkEvent | null;
+  workEvents: readonly AgentWorkEvent[];
   error: string | null;
   isSubmittingInputRequest: boolean;
   latestProposedPlan: AgentProposedPlan | null;
@@ -112,6 +116,7 @@ export function AgentChatPromptBar({
   onSendFollowUpNow,
   isInterruptingFollowUps = false,
   activeWorkEvent,
+  workEvents,
   error,
   isSubmittingInputRequest,
   latestProposedPlan,
@@ -135,16 +140,23 @@ export function AgentChatPromptBar({
     <AgentComposerStatusStack
       activeWorkEvent={activeWorkEvent}
       error={error}
+      isRunActive={isRunActive}
       isSubmittingInputRequest={isSubmittingInputRequest}
       latestProposedPlan={latestProposedPlan}
       onClearError={onClearError}
       onSubmitInputRequest={onSubmitInputRequest}
       pendingInputRequest={pendingInputRequest}
       socketConnectionState={socketConnectionState}
+      workEvents={workEvents}
     />
   );
   const hasFollowUpChips =
     showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions);
+  const hasRunningTasks = hasRenderableComposerTasks({
+    isRunActive,
+    latestProposedPlan,
+    workEvents,
+  });
   const topContent = (
     <>
       {followUps.length > 0 &&
@@ -203,7 +215,9 @@ export function AgentChatPromptBar({
     >
       <AgentChatInput
         onSend={onSend}
-        isTopAttached={!isReadOnly && Boolean(activeGenerationAction)}
+        isTopAttached={
+          !isReadOnly && (Boolean(activeGenerationAction) || hasRunningTasks)
+        }
         hasQueuedFollowUps={followUps.length > 0}
         onPromoteQueuedFollowUp={onPromoteQueuedFollowUp}
         disabled={
