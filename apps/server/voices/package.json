@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@genfeedai/libs": "workspace:*",
     "@genfeedai/config": "workspace:*",
     "tsconfig-paths": "4.2.0"
   },
@@ -23,7 +24,7 @@
     "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/voices/main",
     "test": "vitest run --config vitest.config.ts",
     "test:cov": "vitest run --coverage --config vitest.config.ts",
-    "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
+    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit -p tsconfig.typecheck.json"
   },
   "version": "1.0.0",
   "type": "module"

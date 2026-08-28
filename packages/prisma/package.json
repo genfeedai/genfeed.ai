@@ -7,9 +7,18 @@
   },
   "description": "Prisma schema, client, and migrations for Genfeed PostgreSQL",
   "exports": {
-    ".": "./src/index.ts",
-    "./client": "./src/client.ts",
-    "./testing": "./src/testing.ts"
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./src/index.ts"
+    },
+    "./client": {
+      "types": "./dist/src/client.d.ts",
+      "default": "./src/client.ts"
+    },
+    "./testing": {
+      "types": "./dist/src/testing.d.ts",
+      "default": "./src/testing.ts"
+    }
   },
   "name": "@genfeedai/prisma",
   "private": true,
@@ -18,14 +27,18 @@
     "@types/pg": "8.23.1"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "check:model-metadata": "node scripts/generate-model-metadata.mjs && bunx biome check --write src/enum-field-map.ts && git diff --exit-code src/enum-field-map.ts",
     "db:generate": "prisma generate && node scripts/generate-model-metadata.mjs && bunx biome check --write src/enum-field-map.ts",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:validate": "prisma validate",
+    "clean": "rm -rf dist",
     "postinstall": "prisma generate",
-    "test": "vitest run"
+    "test": "vitest run",
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit -p tsconfig.build.json"
   },
+  "types": "./dist/src/index.d.ts",
   "version": "0.1.0"
 }

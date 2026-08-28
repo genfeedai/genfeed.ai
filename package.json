@@ -165,8 +165,8 @@
     "test:e2e:routes": "node scripts/e2e-route-coverage.mjs",
     "test:e2e:release": "bunx playwright test --config=playwright/configs/playwright-release-e2e.config.ts",
     "readme:capture": "bun run scripts/capture-readme-assets.ts",
-    "type-check": "bunx turbo run type-check",
-    "type-check:cli": "bunx turbo run type-check --filter=@genfeedai/cli",
+    "type-check": "bunx turbo run type-check --concurrency=1",
+    "type-check:cli": "bunx turbo run type-check --filter=@genfeedai/cli --concurrency=1",
     "secretlint": "secretlint '**/*'",
     "check:type-assertions": "bun run scripts/architecture/check-type-assertions.ts",
     "check:untranslated-strings": "bun run scripts/architecture/check-untranslated-strings.ts"

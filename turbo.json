@@ -14,7 +14,7 @@
   "globalPassThroughEnv": ["GITHUB_REF_NAME"],
   "tasks": {
     "build": {
-      "dependsOn": ["//#env:check", "^build"],
+      "dependsOn": ["^build"],
       "env": ["API_URL", "E2E_COVERAGE", "NEXT_PUBLIC_*"],
       "inputs": [
         "$TURBO_DEFAULT$",
@@ -46,7 +46,7 @@
       "dependsOn": ["^build"]
     },
     "type-check": {
-      "dependsOn": ["//#env:check", "^build"],
+      "dependsOn": ["^build"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/apps/server/tsconfig.typecheck.base.json"

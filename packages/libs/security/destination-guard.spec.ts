@@ -28,7 +28,11 @@ import {
   safeFetch,
 } from '@libs/security/destination-guard';
 
-function mockHttpResponse(status: number, headers: string[] = []): void {
+function mockHttpResponse(
+  status: number,
+  headers: string[] = [],
+  chunks: Array<string | Uint8Array> = [],
+): void {
   httpRequestMock.mockImplementation(
     (_url: URL, _options: unknown, callback: (response: Readable) => void) => {
       const request = new EventEmitter() as EventEmitter & {
@@ -40,7 +44,7 @@ function mockHttpResponse(status: number, headers: string[] = []): void {
       };
       request.end = vi.fn();
 
-      const response = Readable.from([]);
+      const response = Readable.from(chunks);
       Object.assign(response, {
         rawHeaders: headers,
         statusCode: status,
@@ -171,6 +175,15 @@ describe('destination guard', () => {
         'content-length': '5',
       },
     });
+  });
+
+  it('streams byte and string response chunks through the Fetch response', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(200, [], [new TextEncoder().encode('hello '), 'world']);
+
+    const response = await safeFetch('http://public.example/asset');
+
+    await expect(response.text()).resolves.toBe('hello world');
   });
 
   it('rechecks redirect destinations before issuing the next request', async () => {

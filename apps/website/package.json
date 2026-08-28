@@ -48,7 +48,7 @@
     "test": "vitest run --config ../vitest.config.mts",
     "test:cov": "vitest run --coverage --config ../vitest.config.mts",
     "test:watch": "vitest --config ../vitest.config.mts",
-    "type-check": "tsc --noEmit",
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit",
     "dev:process": "NODE_OPTIONS='--max-old-space-size=4096 --disable-warning=DEP0169' bun run ../../scripts/dev/run-service.ts website -- next dev --turbopack",
     "dev:debug": "bun run dev:process"
   },
