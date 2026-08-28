@@ -11,7 +11,7 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   DropdownDirection,
   ModelCategory,
-  type RouterPriority,
+  RouterPriority,
 } from '@genfeedai/enums';
 import { resolveGenerationModelControls } from '@helpers/generation-controls.helper';
 import {
@@ -136,7 +136,7 @@ export function AgentGenerationComposerControls({
       role="group"
     >
       <ModelSelectorPopover
-        autoLabel={getAutoModelLabel(prioritize)}
+        autoLabel={getAutoModelLabel(prioritize ?? RouterPriority.BALANCED)}
         className="max-w-44 border-0 bg-transparent shadow-none hover:bg-hover"
         favoriteModelKeys={favoriteModelKeys}
         isDisabled={
