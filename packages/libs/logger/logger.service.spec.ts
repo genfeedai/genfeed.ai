@@ -176,6 +176,21 @@ describe('LoggerService', () => {
         undefined,
       );
     });
+
+    it('redacts secrets from messages and nested context values', () => {
+      service.log('Connected with access_token=raw-token', {
+        nested: { oauthTokenSecret: 'raw-secret' },
+        platform: 'twitter',
+      });
+
+      expect(mockWinston.info).toHaveBeenCalledWith(
+        'Connected with access_token=[REDACTED]',
+        {
+          nested: { oauthTokenSecret: '[REDACTED]' },
+          platform: 'twitter',
+        },
+      );
+    });
   });
 
   describe('error serialization', () => {
@@ -236,6 +251,35 @@ describe('LoggerService', () => {
         'Axios network failure',
         expect.objectContaining({
           error: expect.objectContaining({ message: 'Network down' }),
+        }),
+      );
+    });
+
+    it('redacts secrets from serialized errors and provider responses', () => {
+      const axiosError = new Error(
+        'Provider rejected api_key=raw-provider-key',
+      ) as Error & {
+        isAxiosError?: boolean;
+        response?: { data?: unknown; status?: number };
+      };
+      axiosError.isAxiosError = true;
+      axiosError.response = {
+        data: { accessToken: 'raw-access-token' },
+        status: 401,
+      };
+
+      service.error('OAuth failed with Bearer raw-bearer-token', axiosError);
+
+      expect(mockWinston.error).toHaveBeenCalledWith(
+        'OAuth failed with Bearer [REDACTED]',
+        expect.objectContaining({
+          error: expect.objectContaining({
+            message: 'Provider rejected api_key=[REDACTED]',
+            response: {
+              data: { accessToken: '[REDACTED]' },
+              status: 401,
+            },
+          }),
         }),
       );
     });
