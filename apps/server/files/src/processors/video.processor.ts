@@ -783,12 +783,12 @@ export class VideoProcessor extends WorkerHost {
     const { ingredientId, params, metadata, userId, room } = job.data;
     this.logger.log(`Processing video-to-audio conversion for ${ingredientId}`);
 
-    try {
-      const tempPath = this.ffmpegService.getTempPath('audio', ingredientId);
-      const inputPath = path.join(tempPath, 'input.mp4');
-      const outputPath = path.join(tempPath, 'output.mp3');
+    const tempPath = this.ffmpegService.getTempPath('audio', ingredientId);
+    const inputPath = path.join(tempPath, 'input.mp4');
+    const outputPath = path.join(tempPath, 'output.mp3');
+    let sourceS3Key: string | undefined;
 
-      let sourceS3Key: string | undefined;
+    try {
       let sourceDurationSeconds: number | undefined;
       let sourceUrl: string | undefined;
       if (isYoutubeUrl(params.inputPath)) {
@@ -828,7 +828,6 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
 
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'audio');
       return {
         outputPath,
         s3Key,
@@ -841,6 +840,15 @@ export class VideoProcessor extends WorkerHost {
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       this.logger.error(`Video-to-audio conversion failed: ${message}`);
+      if (sourceS3Key) {
+        try {
+          await this.s3Service.deleteFile(sourceS3Key);
+        } catch (cleanupError: unknown) {
+          this.logger.error(
+            `Failed to delete orphaned YouTube source ${sourceS3Key}: ${getErrorMessage(cleanupError)}`,
+          );
+        }
+      }
       this.webSocketService.emitError(
         metadata.websocketUrl,
         message,
@@ -848,6 +856,8 @@ export class VideoProcessor extends WorkerHost {
         room,
       );
       throw error;
+    } finally {
+      await this.ffmpegService.cleanupTempFiles(inputPath, outputPath);
     }
   }
 

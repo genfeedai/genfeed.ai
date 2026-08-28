@@ -1,10 +1,14 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type {
   IPublicYoutubeLongFormToolResult,
   PublicYoutubeLongFormOutputType,
 } from '@genfeedai/interfaces';
+import { YoutubeLongFormService } from '@services/content/youtube-long-form.service';
+import { EnvironmentService } from '@services/core/environment.service';
 import { PublicService } from '@services/external/public.service';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -13,6 +17,7 @@ import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import PageLayout from '@web-components/PageLayout';
 import { FileText, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
   WEBSITE_ANALYTICS_EVENTS,
@@ -59,7 +64,14 @@ function captureLongFormEvent<E extends LongFormEvent>(
   captureWebsiteAnalyticsEvent(event, properties);
 }
 
+const createYoutubeLongFormService = (token: string) =>
+  YoutubeLongFormService.getInstance(token);
+
 export default function YoutubeLongFormContent(): React.ReactElement {
+  const { isSignedIn } = useAuthIdentity();
+  const getAuthenticatedService = useAuthedService(
+    createYoutubeLongFormService,
+  );
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [outputType, setOutputType] =
     useState<PublicYoutubeLongFormOutputType>('article');
@@ -67,6 +79,8 @@ export default function YoutubeLongFormContent(): React.ReactElement {
     null,
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingSource, setIsSavingSource] = useState(false);
+  const [savedSourceId, setSavedSourceId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const viewedRef = useRef(false);
@@ -90,16 +104,21 @@ export default function YoutubeLongFormContent(): React.ReactElement {
     setError(null);
     setResult(null);
     setCopied(false);
+    setSavedSourceId(null);
     captureLongFormEvent(WEBSITE_ANALYTICS_EVENTS.YOUTUBE_LONG_FORM_SUBMITTED, {
       outputType,
     });
 
     try {
-      const generated =
-        await PublicService.getInstance().createPublicYoutubeLongForm(
-          youtubeUrl.trim(),
-          outputType,
-        );
+      const generated = isSignedIn
+        ? await (await getAuthenticatedService()).create(
+            youtubeUrl.trim(),
+            outputType,
+          )
+        : await PublicService.getInstance().createPublicYoutubeLongForm(
+            youtubeUrl.trim(),
+            outputType,
+          );
       setResult(generated);
       captureLongFormEvent(
         WEBSITE_ANALYTICS_EVENTS.YOUTUBE_LONG_FORM_COMPLETED,
@@ -126,6 +145,26 @@ export default function YoutubeLongFormContent(): React.ReactElement {
       `# ${result.title}\n\n${result.summary}\n\n${result.content}`,
     );
     setCopied(true);
+  };
+
+  const saveSourceToLibrary = async () => {
+    if (!result?.sourceArtifactId || isSavingSource) {
+      return;
+    }
+    setIsSavingSource(true);
+    setError(null);
+    try {
+      const saved = await (
+        await getAuthenticatedService()
+      ).promoteSourceToLibrary(result.sourceArtifactId);
+      setSavedSourceId(saved.ingredientId);
+    } catch {
+      setError(
+        'The source could not be saved. It remains available temporarily, so please try again.',
+      );
+    } finally {
+      setIsSavingSource(false);
+    }
   };
 
   return (
@@ -239,6 +278,36 @@ export default function YoutubeLongFormContent(): React.ReactElement {
                 variant={ButtonVariant.SECONDARY}
                 withWrapper={false}
               />
+              {result.sourceArtifactId ? (
+                <Button
+                  ariaLabel="Save YouTube source to Library"
+                  isDisabled={Boolean(savedSourceId) || isSavingSource}
+                  isLoading={isSavingSource}
+                  label={
+                    savedSourceId ? 'Source saved' : 'Save source to Library'
+                  }
+                  onClick={() => void saveSourceToLibrary()}
+                  size={ButtonSize.PUBLIC}
+                  withWrapper={false}
+                />
+              ) : (
+                <div className="grid gap-3 bg-fill/[0.04] p-4">
+                  <Text className="text-sm leading-6 text-surface/65">
+                    Sign in before your next run to save the generated text and
+                    optionally keep the source video in your Library.
+                  </Text>
+                  <Button
+                    asChild
+                    size={ButtonSize.PUBLIC}
+                    variant={ButtonVariant.SECONDARY}
+                    withWrapper={false}
+                  >
+                    <Link href={`${EnvironmentService.apps.app}/login`}>
+                      Sign in to save future results
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </article>
           ) : null}
         </div>
@@ -250,7 +319,9 @@ export default function YoutubeLongFormContent(): React.ReactElement {
           </Heading>
           <Text className="mt-3 text-sm leading-6 text-surface/65">
             Every format uses the same source and transcription actions. Only
-            the selected output is generated and saved.
+            the selected output is generated. Signed-in results are saved;
+            temporary media expires unless you explicitly keep the source in
+            your Library.
           </Text>
         </aside>
       </section>
