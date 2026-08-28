@@ -5,6 +5,7 @@ import {
 } from '@api/services/source-collector/providers/twitter-official.provider';
 import type { SourceTimelineProvider } from '@api/services/source-collector/source-collector.interface';
 import type {
+  CollectedSourcePost,
   SourceCollectContext,
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
@@ -12,6 +13,12 @@ import type { SocialPostUrlReference } from '@genfeedai/enums';
 import { SocialSourcePlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+function hasExternalPostId(
+  post: CollectedSourcePost,
+): post is CollectedSourcePost & { id: string } {
+  return typeof post.id === 'string' && post.id.trim().length > 0;
+}
 
 /**
  * SourceCollector — ordered provider chain for Following / social-source sync.
@@ -65,13 +72,23 @@ export class SourceCollectorService {
           handle,
           context,
         );
+        const validPosts = result.posts.filter(hasExternalPostId);
+        const discardedCount = result.posts.length - validPosts.length;
+        if (discardedCount > 0) {
+          this.logger.warn('SourceCollector discarded posts without ids', {
+            discardedCount,
+            handle,
+            platform,
+            provider: result.provider,
+          });
+        }
         this.logger.log('SourceCollector collected timeline', {
-          count: result.posts.length,
+          count: validPosts.length,
           handle,
           platform,
           provider: result.provider,
         });
-        return result;
+        return { ...result, posts: validPosts };
       } catch (error: unknown) {
         const message = (error as Error)?.message ?? 'unknown error';
         errors.push(`${provider.name}: ${message}`);
@@ -121,7 +138,8 @@ export class SourceCollectorService {
           continue;
         }
         const result = await provider.collectPost(reference, context);
-        if (!result.posts.length) {
+        const validPosts = result.posts.filter(hasExternalPostId);
+        if (!validPosts.length) {
           throw new Error('post not found');
         }
         this.logger.log('SourceCollector collected post', {
@@ -129,7 +147,7 @@ export class SourceCollectorService {
           postId: reference.postId,
           provider: result.provider,
         });
-        return result;
+        return { ...result, posts: validPosts };
       } catch (error: unknown) {
         const message = (error as Error)?.message ?? 'unknown error';
         errors.push(`${provider.name}: ${message}`);
