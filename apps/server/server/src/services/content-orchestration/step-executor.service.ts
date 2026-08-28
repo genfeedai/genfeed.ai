@@ -1,14 +1,3 @@
-import { ByokService } from '@server/services/byok/byok.service';
-import type {
-  ImageToVideoStep,
-  PipelineStep,
-  StepResult,
-  TextToImageStep,
-  TextToMusicStep,
-  TextToSpeechStep,
-} from '@server/services/content-orchestration/pipeline.interfaces';
-import { FleetService } from '@server/services/integrations/fleet/fleet.service';
-import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
 import type { GenerationBriefReference } from '@api-types/contracts/generation-brief.contract';
 import {
   ByokProvider,
@@ -19,8 +8,19 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
+import { ByokService } from '@server/services/byok/byok.service';
+import type {
+  ImageToVideoStep,
+  PipelineStep,
+  StepResult,
+  TextToImageStep,
+  TextToMusicStep,
+  TextToSpeechStep,
+} from '@server/services/content-orchestration/pipeline.interfaces';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
+import { FleetService } from '@server/services/integrations/fleet/fleet.service';
+import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export interface StepExecutionContext {
@@ -163,18 +163,11 @@ export class StepExecutorService {
 
     switch (step.model) {
       case MusicTaskModel.ELEVENLABS: {
-        const result = await this.elevenLabsService.textToSpeech(
+        const { audioBase64 } = await this.elevenLabsService.textToSpeech(
           step.voiceId,
           text,
           context.organizationId,
         );
-        // ElevenLabs returns AudioWithTimestampsResponse; extract audio
-        const audioBase64 =
-          typeof (result as unknown as Record<string, unknown>).audio_base64 ===
-          'string'
-            ? ((result as unknown as Record<string, unknown>)
-                .audio_base64 as string)
-            : '';
         return {
           contentType: 'audio/mpeg',
           url: `data:audio/mpeg;base64,${audioBase64}`,

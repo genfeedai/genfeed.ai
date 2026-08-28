@@ -1,16 +1,16 @@
-import { ByokService } from '@server/services/byok/byok.service';
-import type { StepExecutionContext } from '@server/services/content-orchestration/step-executor.service';
-import { StepExecutorService } from '@server/services/content-orchestration/step-executor.service';
-import { FleetService } from '@server/services/integrations/fleet/fleet.service';
-import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
 import {
   ImageTaskModel,
   MusicTaskModel,
   VideoTaskModel,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ByokService } from '@server/services/byok/byok.service';
+import type { StepExecutionContext } from '@server/services/content-orchestration/step-executor.service';
+import { StepExecutorService } from '@server/services/content-orchestration/step-executor.service';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
+import { FleetService } from '@server/services/integrations/fleet/fleet.service';
+import { HiggsFieldService } from '@server/services/integrations/higgsfield/higgsfield.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 describe('StepExecutorService', () => {
@@ -203,7 +203,7 @@ describe('StepExecutorService', () => {
   describe('text-to-speech', () => {
     it('should route ELEVENLABS to ElevenLabsService', async () => {
       mockElevenLabsService.textToSpeech.mockResolvedValue({
-        audio_base64: 'dGVzdA==',
+        audioBase64: 'dGVzdA==',
       });
 
       const result = await service.execute(
@@ -217,7 +217,7 @@ describe('StepExecutorService', () => {
       );
 
       expect(result.contentType).toBe('audio/mpeg');
-      expect(result.url).toContain('data:audio/mpeg;base64,');
+      expect(result.url).toBe('data:audio/mpeg;base64,dGVzdA==');
       expect(mockElevenLabsService.textToSpeech).toHaveBeenCalledWith(
         'voice-1',
         'Hello world',
@@ -576,7 +576,7 @@ describe('StepExecutorService', () => {
   describe('text-to-speech - configuration options', () => {
     it('should use step text over global prompt', async () => {
       mockElevenLabsService.textToSpeech.mockResolvedValue({
-        audio_base64: 'dGVzdA==',
+        audioBase64: 'dGVzdA==',
       });
 
       await service.execute(
@@ -598,7 +598,7 @@ describe('StepExecutorService', () => {
 
     it('should use global prompt when step text is missing', async () => {
       mockElevenLabsService.textToSpeech.mockResolvedValue({
-        audio_base64: 'dGVzdA==',
+        audioBase64: 'dGVzdA==',
       });
 
       await service.execute(
