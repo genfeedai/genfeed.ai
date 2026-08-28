@@ -1,3 +1,7 @@
+import type {
+  ExecutionContext,
+  WorkflowEngine,
+} from '@genfeedai/workflows/engine';
 import { WinnerPromotionWorkflowService } from '@server/collections/content-performance/services/winner-promotion-workflow.service';
 import { AdAutomationWorkflowService } from '@server/collections/workflows/services/ad-automation-workflow.service';
 import { AgentAutopilotWorkflowService } from '@server/collections/workflows/services/agent-autopilot-workflow.service';
@@ -11,10 +15,6 @@ import { ReplyPollingWorkflowService } from '@server/collections/workflows/servi
 import { TrendNotificationWorkflowService } from '@server/collections/workflows/services/trend-notification-workflow.service';
 import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
 import type { TrendNotificationCadence } from '@server/collections/workflows/templates/trend-notification-workflows.template';
-import type {
-  ExecutionContext,
-  WorkflowEngine,
-} from '@genfeedai/workflows/engine';
 
 export class WorkflowAutomationExecutorRegistrarService {
   constructor(
@@ -195,10 +195,8 @@ export class WorkflowAutomationExecutorRegistrarService {
 
         const cadence = this.helper.readConfigString(node.config, 'cadence');
         if (!this.isTrendNotificationCadence(cadence)) {
-          return this.trendNotificationUnavailable(
-            'trendSummaryNotifications',
-            context,
-            'trend_notification_cadence_invalid',
+          throw new Error(
+            'trendSummaryNotifications requires cadence hourly, daily, or weekly',
           );
         }
 
@@ -253,13 +251,7 @@ export class WorkflowAutomationExecutorRegistrarService {
         (typeof triggerData.botId === 'string' ? triggerData.botId : '');
 
       if (!botId) {
-        return Promise.resolve({
-          action: 'restreamChatIngest',
-          ingested: 0,
-          organizationId: context.organizationId,
-          reason: 'botId_required',
-          status: 'failed',
-        });
+        throw new Error('restreamChatIngest requires botId');
       }
 
       return this.livestreamBotWorkflowService.runRestreamChatIngest(
@@ -320,172 +312,131 @@ export class WorkflowAutomationExecutorRegistrarService {
     action: string,
     context: ExecutionContext,
   ) {
-    return {
+    throw this.unavailableServiceError(
       action,
-      brandsEligible: 0,
-      brandsFailed: 0,
-      brandsPromoted: 0,
-      organizationId: context.organizationId,
-      promoted: 0,
-      reason: 'winner_promotion_service_unavailable',
-      status: 'skipped',
-    };
+      'WinnerPromotionWorkflowService',
+      context,
+    );
   }
 
   private async paidCreativeResearchUnavailable(
     action: string,
     context: ExecutionContext,
   ) {
-    return {
+    throw this.unavailableServiceError(
       action,
-      advertisersChecked: 0,
-      errors: 0,
-      organizationId: context.organizationId,
-      reason: 'paid_creative_research_service_unavailable',
-      recordsIngested: 0,
-      skipped: 1,
-      status: 'skipped',
-    };
+      'PaidCreativeResearchWorkflowService',
+      context,
+    );
   }
 
   private async outreachCampaignDispatchUnavailable(
     action: string,
     context: ExecutionContext,
   ) {
-    return {
+    throw this.unavailableServiceError(
       action,
-      alreadyQueued: 0,
-      enqueued: 0,
-      failed: 0,
-      organizationId: context.organizationId,
-      reason: 'outreach_campaign_dispatch_service_unavailable',
-      skipped: 1,
-      status: 'skipped',
-    };
+      'OutreachCampaignDispatchWorkflowService',
+      context,
+    );
   }
 
   private async adAutomationUnavailable(
     action: string,
     context: ExecutionContext,
   ) {
-    return {
+    throw this.unavailableServiceError(
       action,
-      enqueued: 0,
-      organizationId: context.organizationId,
-      reason: 'ad_automation_service_unavailable',
-      skipped: 0,
-      status: 'skipped',
-    };
+      'AdAutomationWorkflowService',
+      context,
+    );
   }
 
   private async campaignOrchestrationUnavailable(
     action: string,
     context: ExecutionContext,
   ) {
-    return {
+    throw this.unavailableServiceError(
       action,
-      enqueued: 0,
-      organizationId: context.organizationId,
-      reason: 'campaign_orchestration_service_unavailable',
-      skipped: 0,
-      status: 'skipped',
-    };
+      'CampaignOrchestrationWorkflowService',
+      context,
+    );
   }
 
   private async agentAutopilotUnavailable(
     action: string,
     context: ExecutionContext,
   ) {
-    return {
+    throw this.unavailableServiceError(
       action,
-      enqueued: 0,
-      generated: 0,
-      organizationId: context.organizationId,
-      reason: 'agent_autopilot_service_unavailable',
-      skipped: 0,
-      status: 'skipped',
-    };
+      'AgentAutopilotWorkflowService',
+      context,
+    );
   }
 
   private async analyticsSyncUnavailable(
     action: string,
     context: ExecutionContext,
   ) {
-    return {
+    throw this.unavailableServiceError(
       action,
-      enqueued: 0,
-      organizationId: context.organizationId,
-      posts: 0,
-      queueName: '',
-      reason: 'analytics_sync_service_unavailable',
-      skipped: 0,
-      status: 'skipped',
-    };
+      'AnalyticsSyncWorkflowService',
+      context,
+    );
   }
 
   private async contentProductionUnavailable(
     action: string,
     context: ExecutionContext,
-    reason = 'content_production_service_unavailable',
   ) {
-    return {
+    throw this.unavailableServiceError(
       action,
-      failed: 0,
-      organizationId: context.organizationId,
-      processed: 0,
-      reason,
-      skipped: 1,
-      status: 'skipped',
-    };
+      'ContentProductionWorkflowService',
+      context,
+    );
   }
 
   private async replyPollingUnavailable(
     action: string,
     context: ExecutionContext,
   ) {
-    return {
+    throw this.unavailableServiceError(
       action,
-      checked: 0,
-      errors: 0,
-      organizationId: context.organizationId,
-      reason: 'reply_polling_service_unavailable',
-      skipped: 1,
-      status: 'skipped',
-      triggered: 0,
-    };
+      'ReplyPollingWorkflowService',
+      context,
+    );
   }
 
   private async trendNotificationUnavailable(
     action: string,
     context: ExecutionContext,
-    reason = 'trend_notification_service_unavailable',
   ) {
-    return {
+    throw this.unavailableServiceError(
       action,
-      errors: 0,
-      organizationId: context.organizationId,
-      reason,
-      sent: 0,
-      skipped: 1,
-      status: 'skipped',
-      trends: 0,
-    };
+      'TrendNotificationWorkflowService',
+      context,
+    );
   }
 
   private async livestreamBotUnavailable(
     action: string,
     context: ExecutionContext,
   ) {
-    return {
+    throw this.unavailableServiceError(
       action,
-      failed: 0,
-      organizationId: context.organizationId,
-      processed: 0,
-      reason: 'livestream_bot_service_unavailable',
-      sessions: 0,
-      skipped: 1,
-      status: 'skipped',
-    };
+      'LivestreamBotWorkflowService',
+      context,
+    );
+  }
+
+  private unavailableServiceError(
+    action: string,
+    service: string,
+    context: ExecutionContext,
+  ): Error {
+    return new Error(
+      `${action} cannot execute for organization ${context.organizationId}: ${service} is unavailable`,
+    );
   }
 
   private isTrendNotificationCadence(

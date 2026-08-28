@@ -1,6 +1,10 @@
 import { createHash } from 'node:crypto';
-import { getActionDefinition } from '@genfeedai/actions';
+import {
+  GENFEED_ACTION_NODE_TYPE,
+  getActionDefinition,
+} from '@genfeedai/actions';
 import { Prisma } from '@genfeedai/prisma';
+import { isEngineNativeNodeType } from '@genfeedai/workflows/engine';
 import type {
   WorkflowDocument,
   WorkflowEdge,
@@ -10,25 +14,6 @@ import type {
   WorkflowVisualNode,
 } from '@server/collections/workflows/schemas/workflow.schema';
 
-const ENGINE_NATIVE_NODE_TYPES = new Set([
-  'commentTrigger',
-  'condition',
-  'control-branch',
-  'control-delay',
-  'control-loop',
-  'delay',
-  'engagementTrigger',
-  'genfeedAction',
-  'keywordTrigger',
-  'mentionTrigger',
-  'newFollowerTrigger',
-  'newLikeTrigger',
-  'newRepostTrigger',
-  'postPublishTrigger',
-  'reviewGate',
-  'workflowInput',
-]);
-
 export interface WorkflowDefinitionInput {
   edges?: WorkflowEdge[];
   inputVariables?: WorkflowInputVariable[];
@@ -36,12 +21,9 @@ export interface WorkflowDefinitionInput {
   nodes?: WorkflowVisualNode[];
 }
 
-export function isEngineNativeWorkflowNodeType(nodeType: string): boolean {
+export function isPersistableWorkflowNodeType(nodeType: string): boolean {
   return (
-    ENGINE_NATIVE_NODE_TYPES.has(nodeType) ||
-    nodeType.startsWith('trigger-') ||
-    nodeType === 'input-image' ||
-    nodeType === 'input-video'
+    nodeType === GENFEED_ACTION_NODE_TYPE || isEngineNativeNodeType(nodeType)
   );
 }
 
@@ -54,7 +36,7 @@ function readRecord(value: unknown): Record<string, unknown> {
 function validateActionBackedNode(
   node: WorkflowVisualNode,
 ): WorkflowVisualNode {
-  if (!isEngineNativeWorkflowNodeType(node.type)) {
+  if (!isPersistableWorkflowNodeType(node.type)) {
     throw new Error(
       `Workflow node ${node.id} uses unsupported product node type ${node.type}; use a registered Genfeed action node`,
     );

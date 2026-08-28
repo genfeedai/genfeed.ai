@@ -4,7 +4,7 @@ import { getWorkflowActionIdForNodeType } from '@genfeedai/workflows/nodes';
 import { testId } from '@helpers/testing/test-id.helper';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { GENERATION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/generation-templates';
-import { isEngineNativeWorkflowNodeType } from '@server/collections/workflows/workflow-version-definition';
+import { isPersistableWorkflowNodeType } from '@server/collections/workflows/workflow-version-definition';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowEngineAdapterService', () => {
@@ -31,7 +31,7 @@ describe('WorkflowEngineAdapterService', () => {
         const nodeType = String(node.type ?? '');
         if (
           nodeType === 'genfeedAction' ||
-          isEngineNativeWorkflowNodeType(nodeType)
+          isPersistableWorkflowNodeType(nodeType)
         ) {
           return node;
         }

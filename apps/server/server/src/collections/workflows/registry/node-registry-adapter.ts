@@ -12,7 +12,7 @@ import {
   NODE_REGISTRY as PRESENTATION_NODE_REGISTRY,
   type NodeDefinition as RegistryNodeDefinition,
 } from '@server/collections/workflows/registry/node-registry';
-import { isEngineNativeWorkflowNodeType } from '@server/collections/workflows/workflow-version-definition';
+import { isPersistableWorkflowNodeType } from '@server/collections/workflows/workflow-version-definition';
 
 export type { RegistryNodeDefinition as NodeDefinition };
 
@@ -119,7 +119,7 @@ const WORKFLOW_INPUT_PRESENTATION_NODE_TYPES = new Set([
 function isPersistablePresentationNodeType(type: string): boolean {
   return (
     WORKFLOW_INPUT_PRESENTATION_NODE_TYPES.has(type) ||
-    isEngineNativeWorkflowNodeType(type) ||
+    isPersistableWorkflowNodeType(type) ||
     getWorkflowActionIdForNodeType(type) !== undefined
   );
 }

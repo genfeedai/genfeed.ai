@@ -1,8 +1,8 @@
-import { CampaignQueueService } from '@server/queues/campaign/campaign-queue.service';
-import { CacheService } from '@server/services/cache/cache.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional, type Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { CampaignQueueService } from '@server/queues/campaign/campaign-queue.service';
+import { CacheService } from '@server/services/cache/cache.service';
 
 const LOCK_TTL_SECONDS = 60;
 
@@ -52,10 +52,7 @@ export class OutreachCampaignDispatchWorkflowService {
           organizationId,
           reason: 'campaign_queue_service_unavailable',
         });
-        return this.skipped(
-          organizationId,
-          'campaign_queue_service_unavailable',
-        );
+        throw new Error('CampaignQueueService is unavailable');
       }
 
       const result =

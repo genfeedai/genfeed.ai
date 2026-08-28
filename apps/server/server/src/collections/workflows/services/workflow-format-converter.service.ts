@@ -3,7 +3,7 @@ import {
   getWorkflowPresentationNodeType,
 } from '@genfeedai/workflows/nodes';
 import { Injectable } from '@nestjs/common';
-import { isEngineNativeWorkflowNodeType } from '@server/collections/workflows/workflow-version-definition';
+import { isPersistableWorkflowNodeType } from '@server/collections/workflows/workflow-version-definition';
 
 export interface CoreWorkflowNode {
   id: string;
@@ -56,9 +56,10 @@ export interface ConversionResult {
   unmappedNodeTypes: string[];
 }
 
-const MEDIA_INPUT_TYPES = {
+const WORKFLOW_INPUT_TYPES = {
   audioInput: 'audio',
   imageInput: 'image',
+  'input-prompt': 'text',
   videoInput: 'video',
 } as const satisfies Readonly<Record<string, string>>;
 
@@ -226,15 +227,13 @@ export class WorkflowFormatConverterService {
       };
     }
 
-    const mediaInputType = (
-      MEDIA_INPUT_TYPES as Readonly<Record<string, string>>
+    const inputType = (
+      WORKFLOW_INPUT_TYPES as Readonly<Record<string, string>>
     )[node.type];
-    if (mediaInputType) {
+    if (inputType) {
       const parameters = extractParameters(data);
       const defaultValue =
-        parameters[mediaInputType] ??
-        parameters.defaultValue ??
-        parameters.value;
+        parameters[inputType] ?? parameters.defaultValue ?? parameters.value;
 
       return {
         ...node,
@@ -245,7 +244,7 @@ export class WorkflowFormatConverterService {
               typeof parameters.inputName === 'string'
                 ? parameters.inputName
                 : node.id,
-            inputType: mediaInputType,
+            inputType,
             required: parameters.required === true,
           },
           label,
@@ -254,7 +253,7 @@ export class WorkflowFormatConverterService {
       };
     }
 
-    if (isEngineNativeWorkflowNodeType(node.type)) {
+    if (isPersistableWorkflowNodeType(node.type)) {
       return {
         ...node,
         data: {

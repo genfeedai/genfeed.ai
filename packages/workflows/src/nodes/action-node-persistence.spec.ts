@@ -16,6 +16,7 @@ describe('workflow action-node persistence', () => {
   });
 
   it('returns no action for unsupported presentation types', () => {
+    expect(getWorkflowActionIdForNodeType('input-prompt')).toBeUndefined();
     expect(getWorkflowActionIdForNodeType('workflow-ref')).toBeUndefined();
     expect(getWorkflowActionIdForNodeType('not-an-action')).toBeUndefined();
   });

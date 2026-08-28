@@ -1,3 +1,5 @@
+import { Injectable, Optional, type Type } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { BotsService } from '@server/collections/bots/services/bots.service';
 import {
   BotsLivestreamService,
@@ -5,8 +7,6 @@ import {
 } from '@server/collections/bots/services/bots-livestream.service';
 import { BotsRestreamChatService } from '@server/collections/bots/services/bots-restream-chat.service';
 import { CacheService } from '@server/services/cache/cache.service';
-import { Injectable, Optional, type Type } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 
 const LIVESTREAM_BOT_LOCK_TTL_SECONDS = 60;
 
@@ -50,16 +50,7 @@ export class LivestreamBotWorkflowService {
         BotsLivestreamService,
       );
       if (!botsLivestreamService) {
-        return {
-          action,
-          failed: 0,
-          organizationId,
-          processed: 0,
-          reason: 'livestream_bot_service_unavailable',
-          sessions: 0,
-          skipped: 1,
-          status: 'skipped',
-        };
+        throw new Error('BotsLivestreamService is unavailable');
       }
       return await botsLivestreamService.processActiveSessionsForOrganization(
         organizationId,
@@ -82,13 +73,9 @@ export class LivestreamBotWorkflowService {
       BotsRestreamChatService,
     );
     if (!botsService || !restreamChatService) {
-      return {
-        action: 'restreamChatIngest',
-        ingested: 0,
-        organizationId,
-        reason: 'restream_chat_service_unavailable',
-        status: 'skipped',
-      };
+      throw new Error(
+        'restreamChatIngest requires BotsService and BotsRestreamChatService',
+      );
     }
 
     const bot = await botsService.findOne({

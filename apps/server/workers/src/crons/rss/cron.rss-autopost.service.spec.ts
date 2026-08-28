@@ -1,5 +1,9 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { RssSourcesService } from '@server/collections/rss-sources/services/rss-sources.service';
+import type {
+  SystemWorkflowActionExecutor,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { CronRssAutopostService } from '@workers/crons/rss/cron.rss-autopost.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -11,6 +15,32 @@ describe('CronRssAutopostService', () => {
   const logger = {
     error: vi.fn(),
     log: vi.fn(),
+  };
+  let actionExecutor: SystemWorkflowActionExecutor;
+  const systemWorkflowRunner = {
+    registerAction: vi.fn(
+      (_actionId: string, executor: SystemWorkflowActionExecutor) => {
+        actionExecutor = executor;
+      },
+    ),
+    runAction: vi.fn(
+      async (input: { inputValues: Record<string, unknown> }) => ({
+        provenance: {
+          executionId: 'execution-1',
+          workflowId: 'workflow-1',
+          workflowLabel: 'Poll RSS Source',
+        },
+        result: await actionExecutor({
+          context: {} as never,
+          input: input.inputValues,
+          provenance: {
+            executionId: 'execution-1',
+            workflowId: 'workflow-1',
+            workflowLabel: 'Poll RSS Source',
+          },
+        }),
+      }),
+    ),
   };
   let service: CronRssAutopostService;
 
@@ -34,6 +64,7 @@ describe('CronRssAutopostService', () => {
     service = new CronRssAutopostService(
       logger as unknown as LoggerService,
       rssSourcesService as unknown as RssSourcesService,
+      systemWorkflowRunner as unknown as SystemWorkflowRunnerService,
     );
   });
 
@@ -58,5 +89,6 @@ describe('CronRssAutopostService', () => {
       'RSS autopost poll failed for source',
       expect.objectContaining({ sourceId: 'rss-1' }),
     );
+    expect(systemWorkflowRunner.runAction).toHaveBeenCalledTimes(2);
   });
 });

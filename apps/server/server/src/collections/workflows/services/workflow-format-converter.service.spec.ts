@@ -112,6 +112,31 @@ describe('WorkflowFormatConverterService', () => {
     });
   });
 
+  it('converts prompt presentation nodes to workflow inputs', () => {
+    const result = service.convertCoreToCloud(
+      coreWorkflow([
+        {
+          data: { label: 'Brief', text: 'Write a launch article' },
+          id: 'brief',
+          position: { x: 0, y: 0 },
+          type: 'input-prompt',
+        },
+      ]),
+    );
+
+    expect(result.workflow.nodes[0]).toMatchObject({
+      data: {
+        config: {
+          defaultValue: 'Write a launch article',
+          inputName: 'brief',
+          inputType: 'text',
+          required: false,
+        },
+      },
+      type: 'workflowInput',
+    });
+  });
+
   it('preserves engine-native control nodes', () => {
     const result = service.convertCoreToCloud(
       coreWorkflow([

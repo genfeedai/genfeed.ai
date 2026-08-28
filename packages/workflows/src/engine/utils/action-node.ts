@@ -29,8 +29,8 @@ export const ENGINE_NATIVE_NODE_TYPES: ReadonlySet<string> = new Set([
   'newLikeTrigger',
   'newRepostTrigger',
   'postPublishTrigger',
-  'prompt',
   'reviewGate',
+  'workflowInput',
 ]);
 
 export function isEngineNativeNodeType(nodeType: string): boolean {

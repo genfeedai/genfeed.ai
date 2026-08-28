@@ -1,10 +1,11 @@
-import { WorkflowCoreExecutorRegistrarService } from '@server/collections/workflows/services/workflow-core-executor-registrar.service';
-import type { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
 import {
+  createExecutableActionNode,
   type INodeExecutor,
   type NodeExecutor,
   WorkflowEngine,
 } from '@genfeedai/workflows/engine';
+import { WorkflowCoreExecutorRegistrarService } from '@server/collections/workflows/services/workflow-core-executor-registrar.service';
+import type { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -37,7 +38,7 @@ describe('WorkflowCoreExecutorRegistrarService', () => {
       logger,
       brandsService as never,
     ).register(engine);
-    return engine.getRegisteredNodeTypes();
+    return engine.getRegisteredActionIds();
   }
 
   it('registers brand-scoped executors when BrandsService is available', () => {
@@ -97,21 +98,21 @@ describe('WorkflowCoreExecutorRegistrarService', () => {
       brandsService as never,
     ).register(engine);
 
-    const executor = engine.getExecutor('brandContext');
+    const executor = engine.getExecutor('genfeedAction');
     const result = await executor?.(
-      {
-        config: { brandId: 'brand-1' },
+      createExecutableActionNode({
+        actionId: 'brandContext',
         id: 'node-1',
-        inputs: [],
         label: 'Brand Context',
-        type: 'brandContext',
-      },
+        parameters: { brandId: 'brand-1' },
+      }),
       new Map(),
       {
         organizationId: 'org-1',
         runId: 'run-1',
         userId: 'user-1',
         workflowId: 'workflow-1',
+        workflowVersionId: 'version-1',
       },
     );
 

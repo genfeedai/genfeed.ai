@@ -45,6 +45,24 @@ export interface IAIScheduleRecommendation {
   }>;
 }
 
+export interface IWorkflowExecution {
+  completedAt?: Date;
+  creditsUsed: number;
+  durationMs?: number;
+  error?: string;
+  failedNodeId?: string;
+  id: string;
+  organizationId: string;
+  progress: number;
+  result?: unknown;
+  startedAt?: Date;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  trigger?: string;
+  userId: string;
+  workflowId: string;
+  workflowVersionId: string;
+}
+
 export interface IScheduleOptimizationRequest {
   contentId: string;
   contentType: 'video' | 'image' | 'article' | 'post';
@@ -57,116 +75,6 @@ export interface IScheduleOptimizationRequest {
     excludeDays?: string[];
     excludeHours?: number[];
   };
-}
-
-export interface IMultiPlatformWorkflow {
-  id: string;
-  organizationId: string;
-  name: string;
-  description?: string;
-  trigger: IWorkflowTrigger;
-  steps: IWorkflowStep[];
-  platforms: IAutomationPlatformConfig[];
-  scheduling: IWorkflowScheduling;
-  status: 'active' | 'paused' | 'archived';
-  stats: IWorkflowStats;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface IWorkflowTrigger {
-  type: WorkflowTriggerType;
-  config: Record<string, unknown>;
-}
-
-export type WorkflowTriggerType =
-  | 'manual'
-  | 'schedule'
-  | 'content-ready'
-  | 'webhook'
-  | 'event';
-
-export interface IWorkflowStep {
-  id: string;
-  order: number;
-  name: string;
-  type: WorkflowStepType;
-  config: Record<string, unknown>;
-  conditions?: IStepCondition[];
-  retryPolicy?: {
-    maxAttempts: number;
-    backoff: 'linear' | 'exponential';
-  };
-}
-
-export type WorkflowStepType =
-  | 'generate'
-  | 'optimize'
-  | 'schedule'
-  | 'publish'
-  | 'notify'
-  | 'wait'
-  | 'conditional';
-
-export interface IStepCondition {
-  field: string;
-  operator: 'equals' | 'contains' | 'greater' | 'less';
-  value: unknown;
-}
-
-export interface IAutomationPlatformConfig {
-  platform: string;
-  brandId: string;
-  enabled: boolean;
-  customizations?: {
-    caption?: string;
-    hashtags?: string[];
-    aspectRatio?: string;
-    thumbnail?: string;
-  };
-  scheduleOffset?: number;
-}
-
-export interface IWorkflowScheduling {
-  type: 'immediate' | 'scheduled' | 'ai-optimized' | 'recurring';
-  startDate?: Date;
-  recurrence?: {
-    frequency: 'daily' | 'weekly' | 'monthly';
-    interval: number;
-    dayOfWeek?: number[];
-    time?: string;
-  };
-  aiOptimization?: {
-    enabled: boolean;
-    goal: 'reach' | 'engagement' | 'conversions';
-    learnFromResults: boolean;
-  };
-}
-
-export interface IWorkflowStats {
-  totalRuns: number;
-  successfulRuns: number;
-  failedRuns: number;
-  avgDuration: number;
-  lastRunAt?: Date;
-  nextRunAt?: Date;
-  performance: {
-    avgEngagement?: number;
-    avgReach?: number;
-    totalConversions?: number;
-  };
-}
-
-export interface IWorkflowExecution {
-  id: string;
-  workflowId: string;
-  status: 'running' | 'completed' | 'failed' | 'cancelled';
-  currentStep: number;
-  results: Record<string, unknown>;
-  errors?: string[];
-  startedAt: Date;
-  completedAt?: Date;
-  duration?: number;
 }
 
 export type AutoPostingTriggerType =

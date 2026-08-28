@@ -265,7 +265,7 @@ describe('filterByBudget', () => {
     const nodes = [makeNode('n1', 'effect-captions')];
 
     // Default caption = 1, custom = 200
-    const result = filterByBudget(nodes, [], 50, { caption: 200 });
+    const result = filterByBudget(nodes, [], 50, { 'effect-captions': 200 });
 
     expect(result).toHaveLength(0);
   });

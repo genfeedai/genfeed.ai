@@ -79,18 +79,15 @@ describe('OutreachCampaignDispatchWorkflowService', () => {
     );
   });
 
-  it('skips diagnosably when the queue service is unavailable', async () => {
+  it('fails closed when the queue service is unavailable', async () => {
     service = new OutreachCampaignDispatchWorkflowService(
       cacheService as never,
       logger as never,
     );
 
-    const result = await service.runActiveCampaignDispatch('org-1');
-
-    expect(result).toMatchObject({
-      reason: 'campaign_queue_service_unavailable',
-      status: 'skipped',
-    });
+    await expect(service.runActiveCampaignDispatch('org-1')).rejects.toThrow(
+      'CampaignQueueService is unavailable',
+    );
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining('queue service unavailable'),
       expect.objectContaining({

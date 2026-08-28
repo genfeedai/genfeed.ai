@@ -78,4 +78,18 @@ describe('Genfeed action registry', () => {
       visibility: 'internal',
     });
   });
+
+  it('owns workflow credit policy instead of delegating it to the engine', () => {
+    expect(getActionDefinition('imageGen')?.credits).toEqual({
+      amount: 5,
+      mode: 'fixed',
+    });
+    expect(getActionDefinition('videoGen')?.credits).toEqual({
+      amount: 10,
+      mode: 'fixed',
+    });
+    expect(getActionDefinition('long-form.transform-text')?.credits).toEqual({
+      mode: 'dynamic',
+    });
+  });
 });

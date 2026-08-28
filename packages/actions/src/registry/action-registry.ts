@@ -1,4 +1,5 @@
 import type {
+  ActionCreditPolicy,
   CreateGenfeedActionNodeInput,
   GenfeedActionDefinition,
   GenfeedActionNodeDefinition,
@@ -134,6 +135,11 @@ const WORKFLOW_ACTIONS = [
   ],
   ['effect-captions', 'Add Captions', 'Burns captions into one video.'],
   [
+    'engagement-rule-evaluation',
+    'Evaluate Engagement Rule',
+    'Evaluates and applies one tenant engagement rule.',
+  ],
+  [
     'effect-ken-burns',
     'Apply Ken Burns Effect',
     'Applies a zoom and pan effect.',
@@ -257,6 +263,11 @@ const WORKFLOW_ACTIONS = [
     'Ingest Restream Chat',
     'Ingests one Restream chat batch.',
   ],
+  [
+    'rss-source-poll',
+    'Poll RSS Source',
+    'Polls one tenant RSS source and applies its configured workflow behavior.',
+  ],
   ['sendDm', 'Send Direct Message', 'Sends one social direct message.'],
   ['sendEmail', 'Send Email', 'Sends one email.'],
   ['seoRewrite', 'Rewrite for SEO', 'Rewrites content using SEO guidance.'],
@@ -326,8 +337,47 @@ const WORKFLOW_ACTIONS = [
   ],
 ] as const;
 
+const WORKFLOW_ACTION_CREDIT_POLICIES: Readonly<
+  Record<string, ActionCreditPolicy>
+> = {
+  cinematicColorGrade: { amount: 2, mode: 'fixed' },
+  colorGrade: { amount: 1, mode: 'fixed' },
+  'effect-captions': { amount: 1, mode: 'fixed' },
+  filmGrain: { amount: 1, mode: 'fixed' },
+  hookGenerator: { amount: 1, mode: 'fixed' },
+  imageGen: { amount: 5, mode: 'fixed' },
+  iterativeSeoRefine: { amount: 15, mode: 'fixed' },
+  lensEffects: { amount: 1, mode: 'fixed' },
+  lipSync: { amount: 8, mode: 'fixed' },
+  postReply: { amount: 1, mode: 'fixed' },
+  'process-resize': { amount: 1, mode: 'fixed' },
+  'process-transform': { amount: 1, mode: 'fixed' },
+  reframe: { amount: 3, mode: 'fixed' },
+  seoRewrite: { amount: 3, mode: 'fixed' },
+  seoScore: { amount: 2, mode: 'fixed' },
+  socialRead: { amount: 1, mode: 'fixed' },
+  soundOverlay: { amount: 1, mode: 'fixed' },
+  talkingHeadScript: { amount: 3, mode: 'fixed' },
+  textToSpeech: { amount: 3, mode: 'fixed' },
+  trendHashtagInspiration: { amount: 1, mode: 'fixed' },
+  trendSoundInspiration: { amount: 1, mode: 'fixed' },
+  trendVideoInspiration: { amount: 1, mode: 'fixed' },
+  upscale: { amount: 2, mode: 'fixed' },
+  videoFrameExtract: { amount: 2, mode: 'fixed' },
+  videoGen: { amount: 10, mode: 'fixed' },
+  videoQa: { amount: 1, mode: 'fixed' },
+  videoStitch: { amount: 1, mode: 'fixed' },
+  voiceChange: { amount: 5, mode: 'fixed' },
+};
+
 const WORKFLOW_ACTION_DEFINITIONS = WORKFLOW_ACTIONS.map(
-  ([id, label, description]) => internalAction(id, label, description),
+  ([id, label, description]) =>
+    internalAction(id, label, description, {
+      credits: WORKFLOW_ACTION_CREDIT_POLICIES[id] ?? {
+        amount: 0,
+        mode: 'fixed',
+      },
+    }),
 );
 
 const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [

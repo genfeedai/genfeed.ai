@@ -18,6 +18,10 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
+import type {
+  SystemWorkflowActionExecutor,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { PublisherFactoryService } from '@server/services/integrations/publishers/publisher-factory.service';
 import { CronEngagementTriggersService } from '@workers/crons/engagement/cron.engagement-triggers.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -47,6 +51,7 @@ function makeRule(overrides: Record<string, unknown> = {}) {
 
 describe('CronEngagementTriggersService', () => {
   const engagementRule = {
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     update: vi.fn(),
   };
@@ -76,11 +81,38 @@ describe('CronEngagementTriggersService', () => {
     error: vi.fn(),
     log: vi.fn(),
   };
+  let actionExecutor: SystemWorkflowActionExecutor;
+  const systemWorkflowRunner = {
+    registerAction: vi.fn(
+      (_actionId: string, executor: SystemWorkflowActionExecutor) => {
+        actionExecutor = executor;
+      },
+    ),
+    runAction: vi.fn(
+      async (input: { inputValues: Record<string, unknown> }) => ({
+        provenance: {
+          executionId: 'execution-1',
+          workflowId: 'workflow-1',
+          workflowLabel: 'Evaluate Engagement Rule',
+        },
+        result: await actionExecutor({
+          context: {} as never,
+          input: input.inputValues,
+          provenance: {
+            executionId: 'execution-1',
+            workflowId: 'workflow-1',
+            workflowLabel: 'Evaluate Engagement Rule',
+          },
+        }),
+      }),
+    ),
+  };
   let service: CronEngagementTriggersService;
 
   beforeEach(() => {
     vi.clearAllMocks();
     engagementRule.findMany.mockResolvedValue([makeRule()]);
+    engagementRule.findFirst.mockResolvedValue(makeRule());
     engagementRule.update.mockResolvedValue({});
     post.findFirst.mockResolvedValue({
       brandId: 'brand-1',
@@ -109,6 +141,7 @@ describe('CronEngagementTriggersService', () => {
       prisma as unknown as PrismaService,
       postGroupsService as unknown as PostGroupsService,
       publisherFactory as unknown as PublisherFactoryService,
+      systemWorkflowRunner as unknown as SystemWorkflowRunnerService,
     );
   });
 
@@ -131,6 +164,9 @@ describe('CronEngagementTriggersService', () => {
     engagementRule.findMany.mockResolvedValue([
       makeRule({ windowEndsAt: new Date('2020-01-01T00:00:00.000Z') }),
     ]);
+    engagementRule.findFirst.mockResolvedValue(
+      makeRule({ windowEndsAt: new Date('2020-01-01T00:00:00.000Z') }),
+    );
 
     await service.processArmedRules();
 
@@ -194,6 +230,9 @@ describe('CronEngagementTriggersService', () => {
       makeRule({ id: 'rule-1' }),
       makeRule({ id: 'rule-2' }),
     ]);
+    engagementRule.findFirst
+      .mockResolvedValueOnce(makeRule({ id: 'rule-1' }))
+      .mockResolvedValueOnce(makeRule({ id: 'rule-2' }));
     post.findFirst
       .mockRejectedValueOnce(new Error('db down'))
       .mockResolvedValueOnce({

@@ -1,13 +1,31 @@
+import {
+  createExecutableActionNode,
+  type NodeExecutor,
+  WorkflowEngine,
+} from '@genfeedai/workflows/engine';
 import { WorkflowAutomationExecutorRegistrarService } from '@server/collections/workflows/services/workflow-automation-executor-registrar.service';
 import type { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
-import { WorkflowEngine } from '@genfeedai/workflows/engine';
 import { describe, expect, it, vi } from 'vitest';
+
+function getActionExecutor(
+  engine: WorkflowEngine,
+  actionId: string,
+): NodeExecutor | undefined {
+  const executor = engine.getExecutor('genfeedAction');
+  return executor
+    ? (_node, inputs, context) =>
+        executor(
+          createExecutableActionNode({ actionId, id: actionId }),
+          inputs,
+          context,
+        )
+    : undefined;
+}
 
 /**
  * #3018: the content loop autopilot workflow's `harnessWinnerPromotionSweep`
- * node must be wired to `WinnerPromotionWorkflowService`, and degrade to a
- * diagnosable skip (never a thrown "no executor registered") when the
- * service is unavailable — same contract as every sibling automation node.
+ * node must be wired to `WinnerPromotionWorkflowService` and fail closed when
+ * that required service is unavailable.
  */
 describe('WorkflowAutomationExecutorRegistrarService — winner promotion', () => {
   const helper = {
@@ -36,7 +54,7 @@ describe('WorkflowAutomationExecutorRegistrarService — winner promotion', () =
       runOrganizationWinnerPromotion: vi.fn(),
     });
 
-    expect(engine.getRegisteredNodeTypes()).toContain(
+    expect(engine.getRegisteredActionIds()).toContain(
       'harnessWinnerPromotionSweep',
     );
   });
@@ -53,7 +71,7 @@ describe('WorkflowAutomationExecutorRegistrarService — winner promotion', () =
     });
     const engine = register({ runOrganizationWinnerPromotion });
 
-    const executor = engine.getExecutor('harnessWinnerPromotionSweep');
+    const executor = getActionExecutor(engine, 'harnessWinnerPromotionSweep');
     const output = await executor?.(
       {
         config: {},
@@ -68,6 +86,7 @@ describe('WorkflowAutomationExecutorRegistrarService — winner promotion', () =
         runId: 'run-1',
         userId: 'user-1',
         workflowId: 'wf-1',
+        workflowVersionId: 'version-1',
       },
     );
 
@@ -75,39 +94,36 @@ describe('WorkflowAutomationExecutorRegistrarService — winner promotion', () =
     expect(output).toMatchObject({ promoted: 3, status: 'completed' });
   });
 
-  it('skips diagnosably instead of throwing when the service is unavailable', async () => {
+  it('fails closed when the service is unavailable', async () => {
     const engine = register(undefined);
 
-    const executor = engine.getExecutor('harnessWinnerPromotionSweep');
-    const output = await executor?.(
-      {
-        config: {},
-        id: 'n1',
-        inputs: [],
-        label: 'n1',
-        type: 'harnessWinnerPromotionSweep',
-      },
-      new Map(),
-      {
-        organizationId: 'org-1',
-        runId: 'run-1',
-        userId: 'user-1',
-        workflowId: 'wf-1',
-      },
-    );
-
-    expect(output).toMatchObject({
-      reason: 'winner_promotion_service_unavailable',
-      status: 'skipped',
-    });
+    const executor = getActionExecutor(engine, 'harnessWinnerPromotionSweep');
+    await expect(
+      executor?.(
+        {
+          config: {},
+          id: 'n1',
+          inputs: [],
+          label: 'n1',
+          type: 'harnessWinnerPromotionSweep',
+        },
+        new Map(),
+        {
+          organizationId: 'org-1',
+          runId: 'run-1',
+          userId: 'user-1',
+          workflowId: 'wf-1',
+          workflowVersionId: 'version-1',
+        },
+      ),
+    ).rejects.toThrow('WinnerPromotionWorkflowService is unavailable');
   });
 });
 
 /**
  * #3537: the competitor ad research workflow's `paidCreativeResearchIngestion`
- * node must be wired to `PaidCreativeResearchWorkflowService`, and degrade to a
- * diagnosable skip (never a thrown "no executor registered") when the
- * service is unavailable — same contract as every sibling automation node.
+ * node must be wired to `PaidCreativeResearchWorkflowService` and fail closed
+ * when that required service is unavailable.
  */
 describe('WorkflowAutomationExecutorRegistrarService — paid creative research', () => {
   const helper = {
@@ -139,7 +155,7 @@ describe('WorkflowAutomationExecutorRegistrarService — paid creative research'
       runPaidCreativeResearchIngestion: vi.fn(),
     });
 
-    expect(engine.getRegisteredNodeTypes()).toContain(
+    expect(engine.getRegisteredActionIds()).toContain(
       'paidCreativeResearchIngestion',
     );
   });
@@ -156,7 +172,7 @@ describe('WorkflowAutomationExecutorRegistrarService — paid creative research'
     });
     const engine = register({ runPaidCreativeResearchIngestion });
 
-    const executor = engine.getExecutor('paidCreativeResearchIngestion');
+    const executor = getActionExecutor(engine, 'paidCreativeResearchIngestion');
     const output = await executor?.(
       {
         config: {},
@@ -171,6 +187,7 @@ describe('WorkflowAutomationExecutorRegistrarService — paid creative research'
         runId: 'run-1',
         userId: 'user-1',
         workflowId: 'wf-1',
+        workflowVersionId: 'version-1',
       },
     );
 
@@ -178,38 +195,36 @@ describe('WorkflowAutomationExecutorRegistrarService — paid creative research'
     expect(output).toMatchObject({ recordsIngested: 5, status: 'completed' });
   });
 
-  it('skips diagnosably instead of throwing when the service is unavailable', async () => {
+  it('fails closed when the service is unavailable', async () => {
     const engine = register(undefined);
 
-    const executor = engine.getExecutor('paidCreativeResearchIngestion');
-    const output = await executor?.(
-      {
-        config: {},
-        id: 'n1',
-        inputs: [],
-        label: 'n1',
-        type: 'paidCreativeResearchIngestion',
-      },
-      new Map(),
-      {
-        organizationId: 'org-1',
-        runId: 'run-1',
-        userId: 'user-1',
-        workflowId: 'wf-1',
-      },
-    );
-
-    expect(output).toMatchObject({
-      reason: 'paid_creative_research_service_unavailable',
-      status: 'skipped',
-    });
+    const executor = getActionExecutor(engine, 'paidCreativeResearchIngestion');
+    await expect(
+      executor?.(
+        {
+          config: {},
+          id: 'n1',
+          inputs: [],
+          label: 'n1',
+          type: 'paidCreativeResearchIngestion',
+        },
+        new Map(),
+        {
+          organizationId: 'org-1',
+          runId: 'run-1',
+          userId: 'user-1',
+          workflowId: 'wf-1',
+          workflowVersionId: 'version-1',
+        },
+      ),
+    ).rejects.toThrow('PaidCreativeResearchWorkflowService is unavailable');
   });
 });
 
 /**
  * #3407: outreach campaign dispatch must be wired to
- * `OutreachCampaignDispatchWorkflowService`, and degrade to a diagnosable skip
- * when the service is unavailable — never a thrown "no executor registered".
+ * `OutreachCampaignDispatchWorkflowService` and fail closed when that required
+ * service is unavailable.
  */
 describe('WorkflowAutomationExecutorRegistrarService — outreach campaign dispatch', () => {
   const helper = {
@@ -242,7 +257,7 @@ describe('WorkflowAutomationExecutorRegistrarService — outreach campaign dispa
       runActiveCampaignDispatch: vi.fn(),
     });
 
-    expect(engine.getRegisteredNodeTypes()).toContain(
+    expect(engine.getRegisteredActionIds()).toContain(
       'outreachCampaignDispatch',
     );
   });
@@ -259,7 +274,7 @@ describe('WorkflowAutomationExecutorRegistrarService — outreach campaign dispa
     });
     const engine = register({ runActiveCampaignDispatch });
 
-    const executor = engine.getExecutor('outreachCampaignDispatch');
+    const executor = getActionExecutor(engine, 'outreachCampaignDispatch');
     const output = await executor?.(
       {
         config: {},
@@ -274,6 +289,7 @@ describe('WorkflowAutomationExecutorRegistrarService — outreach campaign dispa
         runId: 'run-1',
         userId: 'user-1',
         workflowId: 'wf-1',
+        workflowVersionId: 'version-1',
       },
     );
 
@@ -281,30 +297,28 @@ describe('WorkflowAutomationExecutorRegistrarService — outreach campaign dispa
     expect(output).toMatchObject({ enqueued: 2, status: 'completed' });
   });
 
-  it('skips diagnosably instead of throwing when the service is unavailable', async () => {
+  it('fails closed when the service is unavailable', async () => {
     const engine = register(undefined);
 
-    const executor = engine.getExecutor('outreachCampaignDispatch');
-    const output = await executor?.(
-      {
-        config: {},
-        id: 'n1',
-        inputs: [],
-        label: 'n1',
-        type: 'outreachCampaignDispatch',
-      },
-      new Map(),
-      {
-        organizationId: 'org-1',
-        runId: 'run-1',
-        userId: 'user-1',
-        workflowId: 'wf-1',
-      },
-    );
-
-    expect(output).toMatchObject({
-      reason: 'outreach_campaign_dispatch_service_unavailable',
-      status: 'skipped',
-    });
+    const executor = getActionExecutor(engine, 'outreachCampaignDispatch');
+    await expect(
+      executor?.(
+        {
+          config: {},
+          id: 'n1',
+          inputs: [],
+          label: 'n1',
+          type: 'outreachCampaignDispatch',
+        },
+        new Map(),
+        {
+          organizationId: 'org-1',
+          runId: 'run-1',
+          userId: 'user-1',
+          workflowId: 'wf-1',
+          workflowVersionId: 'version-1',
+        },
+      ),
+    ).rejects.toThrow('OutreachCampaignDispatchWorkflowService is unavailable');
   });
 });

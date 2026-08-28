@@ -1,3 +1,4 @@
+import { ALL_ACTIONS } from '@genfeedai/actions';
 import type {
   CreditCostConfig,
   CreditEstimate,
@@ -5,95 +6,40 @@ import type {
 } from '../types';
 import { getExecutableNodeOperationId } from './action-node';
 
-/**
- * Credit costs per node type execution.
- *
- * Every node type registered with the engine (via the API executor registrars)
- * must have an entry here. The coverage spec (credit-calculator-coverage.spec.ts)
- * enforces that every cost is a non-negative number.
- *
- * Costs marked [ESTIMATED] were inferred from comparable node types and should
- * be reviewed by the product team before billing goes live.
- */
-export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
-  // ----- context / input (free) -----
-  brand: 0,
-  brandAsset: 0,
-  brandContext: 0,
+/** Engine-native graph primitives are free; product-operation costs live on actions. */
+const ENGINE_NATIVE_CREDIT_COSTS: CreditCostConfig = {
   commentTrigger: 0,
-  engagementTrigger: 0, // trigger nodes are free
-  keywordTrigger: 0,
-  mentionTrigger: 0,
-  musicSource: 0, // resolver; cost is in the underlying generation
-  // Private report delivery is free at the node level (notification/email path).
-  reportDelivery: 0,
-  socialRead: 1, // [ESTIMATED] on-demand X read via platform API
-  newFollowerTrigger: 0,
-  newLikeTrigger: 0,
-  newRepostTrigger: 0,
-  postPublishTrigger: 0, // trigger node — the optimization workflow it starts bills itself
-  promptConstructor: 0,
-  castPrompt: 0,
-  trendTrigger: 0,
-  // Engine-native media inputs are free.
+  engagementTrigger: 0,
   'input-image': 0,
   'input-video': 0,
-
-  // ----- control flow (free) -----
   'control-branch': 0,
   'control-delay': 0,
   'control-loop': 0,
   condition: 0,
   delay: 0,
+  keywordTrigger: 0,
+  mentionTrigger: 0,
+  newFollowerTrigger: 0,
+  newLikeTrigger: 0,
+  newRepostTrigger: 0,
+  postPublishTrigger: 0,
   reviewGate: 0,
+  workflowInput: 0,
+};
 
-  // ----- publish / output (free — billed by platform API limits, not credits) -----
-  publish: 0,
-  sendDm: 0,
-  // sendEmail is free at the node level; the trends digest is charged explicitly
-  // by the workflow adapter post-run hook after a confirmed send (see trendDigest).
-  sendEmail: 0,
-  // trendDigest assembles the email payload only; the credit is deducted by the
-  // adapter post-run hook on a confirmed send, not via the engine accumulator.
-  trendDigest: 0,
-  'output-webhook': 0,
-
-  // ----- text / content generation -----
-  'effect-captions': 1,
-  hookGenerator: 1, // [ESTIMATED] deterministic content generation; comparable to caption
-  iterativeSeoRefine: 15, // [ESTIMATED] default maxIterations(3) x (score 2 + rewrite 3) -> ~15; the engine reads this flat value for budgeting, while executor.estimateCost scales with the configured maxIterations
-  postReply: 1, // [ESTIMATED] comparable to caption
-  seoRewrite: 3, // [ESTIMATED] full LLM rewrite
-  seoScore: 2, // [ESTIMATED] LLM-assisted scoring pass; lighter than a full rewrite
-  talkingHeadScript: 3, // Full structured script generation
-  trendHashtagInspiration: 1, // [ESTIMATED] lightweight prompt synthesis from trend context
-  trendSoundInspiration: 1, // [ESTIMATED] cached trend lookup / sound selection
-  trendVideoInspiration: 1, // [ESTIMATED] lightweight prompt synthesis from trend context
-
-  // ----- image generation / processing -----
-  imageGen: 5,
-  'process-resize': 1,
-  'process-transform': 1,
-
-  // ----- video generation / processing -----
-  cinematicColorGrade: 2, // [ESTIMATED] heavier FFmpeg pass than colorGrade
-  colorGrade: 1, // [ESTIMATED] FFmpeg filter pass; comparable to resize
-  filmGrain: 1, // [ESTIMATED] FFmpeg noise filter; comparable to colorGrade
-  lensEffects: 1, // [ESTIMATED] FFmpeg composite; comparable to colorGrade
-  lipSync: 8, // [ESTIMATED] AI video synthesis
-  reframe: 3, // [ESTIMATED] AI reframe; heavier than colorGrade, cheaper than full gen
-  soundOverlay: 1, // [ESTIMATED] simple FFmpeg audio mux
-  videoQa: 1, // FFmpeg-pass tier: ffprobe + blackdetect/freezedetect/ebur128
-  videoFrameExtract: 2,
-  videoStitch: 1, // FFmpeg concat pass
-  upscale: 2,
-  // Pilot runs reuse this videoGen cost at min duration — there is no
-  // `videoPilot` key. VideoGenerationGateService scales by duration.
-  videoGen: 10,
-
-  // ----- audio / voice -----
-  textToSpeech: 3, // [ESTIMATED] TTS synthesis
-  voiceChange: 5, // [ESTIMATED] AI voice conversion; comparable to imageGen
+/**
+ * Engine billing view generated from the action catalog. Dynamic actions bill
+ * inside their executor and therefore have no flat estimate here.
+ */
+export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
+  ...Object.fromEntries(
+    ALL_ACTIONS.flatMap((action) =>
+      action.credits.mode === 'fixed'
+        ? [[action.id, action.credits.amount] as const]
+        : [],
+    ),
+  ),
+  ...ENGINE_NATIVE_CREDIT_COSTS,
 };
 
 export function calculateCreditEstimate(
@@ -249,6 +195,7 @@ const NODE_CATEGORY_MAP: Record<string, string> = {
   trendTrigger: 'input',
   'input-image': 'input',
   'input-video': 'input',
+  workflowInput: 'input',
 
   // control
   'control-branch': 'control',

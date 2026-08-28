@@ -148,6 +148,22 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
         'Outreach campaign DMs are wrapped by campaign-dm-automation system workflow executions.',
       systemWorkflowIds: ['campaign-dm-automation'],
     },
+    {
+      classification: 'workflow-adapter',
+      file: 'apps/server/workers/src/crons/engagement/cron.engagement-triggers.service.ts',
+      id: 'engagement-rule-evaluation',
+      reason:
+        'The sweep discovers armed rules; each rule is reloaded and applied by the engagement-rule-evaluation action through a hidden workflow run.',
+      systemWorkflowIds: ['engagement-rule-evaluation'],
+    },
+    {
+      classification: 'workflow-adapter',
+      file: 'apps/server/workers/src/crons/rss/cron.rss-autopost.service.ts',
+      id: 'rss-source-poll',
+      reason:
+        'The sweep discovers enabled sources; each source poll runs through the rss-source-poll hidden workflow action.',
+      systemWorkflowIds: ['rss-source-poll'],
+    },
   ];
 
 const PRODUCT_CRON_PATH_SEGMENTS = ['/content-pipeline/', '/posts/'];
@@ -187,6 +203,25 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
         )),
     message:
       'Social inbox reply/DM platform actions must run through workflow execution or be documented as a bounded migration exception.',
+  },
+  {
+    id: 'engagement-rule-direct-action',
+    matches: (file, source) =>
+      file ===
+        'apps/server/workers/src/crons/engagement/cron.engagement-triggers.service.ts' &&
+      (/\bpostGroupsService\s*\.\s*(?:create|publishNow)\s*\(/.test(source) ||
+        /\bpostComment\s*\(/.test(source)),
+    message:
+      'Engagement rule product actions must be isolated inside a registered workflow action.',
+  },
+  {
+    id: 'rss-source-direct-poll',
+    matches: (file, source) =>
+      file ===
+        'apps/server/workers/src/crons/rss/cron.rss-autopost.service.ts' &&
+      /\brssSourcesService\s*\.\s*pollSource\s*\(/.test(source),
+    message:
+      'RSS source polling must be isolated inside a registered workflow action.',
   },
   {
     id: 'product-cron-service',

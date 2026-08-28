@@ -4401,14 +4401,6 @@
       "workspace": "workers"
     },
     {
-      "code": 2503,
-      "count": 2,
-      "file": "apps/server/workers/src/crons/workflows/cron.workflows.service.spec.ts",
-      "fingerprint": "c457c29ce5aa7d36e1fb",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "apps/server/workers/src/processors/api/queues/ad-sync-meta/ad-sync-meta.processor.spec.ts",

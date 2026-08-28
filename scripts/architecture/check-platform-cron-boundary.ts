@@ -251,7 +251,7 @@ export const SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST: CronBoundaryEntry[] = [
     id: 'engagement-triggers-sweep',
     methodName: 'processArmedRules',
     reason:
-      'System sweep invoked by SystemSweepsProcessor; engagement-trigger follow-ups.',
+      'System sweep discovery adapter invoked by SystemSweepsProcessor; every tenant rule runs through engagement-rule-evaluation.',
   },
   {
     file: 'apps/server/workers/src/crons/posts/cron.posts.service.ts',
@@ -265,7 +265,7 @@ export const SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST: CronBoundaryEntry[] = [
     id: 'rss-autopost-sweep',
     methodName: 'pollEnabledSources',
     reason:
-      'System sweep invoked by SystemSweepsProcessor; RSS feed import into drafts/releases.',
+      'System sweep discovery adapter invoked by SystemSweepsProcessor; every tenant source runs through rss-source-poll.',
   },
   {
     file: 'apps/server/workers/src/crons/review-gate/cron.review-gate-timeout.service.ts',
@@ -304,16 +304,7 @@ export const SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST: CronBoundaryEntry[] = [
   },
 ];
 
-export const PENDING_TENANT_CRON_MIGRATIONS: PendingCronMigrationEntry[] = [
-  {
-    file: 'apps/server/workers/src/crons/workflows/cron.workflows.service.ts',
-    id: 'legacy-step-workflow-executor',
-    issue: 1091,
-    methodName: 'checkScheduledWorkflows',
-    reason:
-      'Legacy step-workflow executor. Deletion blocked on #1091 (BullMQ Job Schedulers); config.trigger=SCHEDULED rows and ads-research drafts still depend on it.',
-  },
-];
+export const PENDING_TENANT_CRON_MIGRATIONS: PendingCronMigrationEntry[] = [];
 
 function normalizePath(filePath: string): string {
   return filePath.replaceAll('\\', '/');

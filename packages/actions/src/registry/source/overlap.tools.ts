@@ -183,11 +183,6 @@ export const OVERLAP_TOOLS: SourceTool[] = [
             'Optional source asset ID to attach to a recurring workflow brief.',
           type: 'string',
         },
-        steps: {
-          description: 'Optional legacy step definitions',
-          items: { type: 'object' },
-          type: 'array',
-        },
         styleNotes: {
           description:
             'Optional creative direction or brand guardrails for recurring workflows.',

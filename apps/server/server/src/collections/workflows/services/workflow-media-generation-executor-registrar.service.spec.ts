@@ -1,6 +1,7 @@
 import { QWEN_IMAGE_MODEL_KEY } from '@api-types/contracts/generation-capability-profile.contract';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
+  createExecutableActionNode,
   type INodeExecutor,
   type NodeExecutor,
   WorkflowEngine,
@@ -21,6 +22,26 @@ const wrapEngineExecutor =
         node: args[0],
       })
     ).data;
+
+function getActionExecutor(
+  engine: WorkflowEngine,
+  actionId: string,
+): NodeExecutor | undefined {
+  const executor = engine.getExecutor('genfeedAction');
+  return executor
+    ? (node, inputs, context) =>
+        executor(
+          createExecutableActionNode({
+            actionId,
+            id: node.id,
+            label: node.label,
+            parameters: node.config,
+          }),
+          inputs,
+          context,
+        )
+    : undefined;
+}
 
 describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
   it('persists native video extension lineage and dispatches the Seedance extension contract', async () => {
@@ -68,7 +89,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       filesClientService as never,
     ).register(engine);
 
-    await engine.getExecutor('videoGen')?.(
+    await getActionExecutor(engine, 'videoGen')?.(
       {
         config: {
           actionVerb: 'extend',
@@ -89,6 +110,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         runId: 'run-1',
         userId: 'user-1',
         workflowId: 'workflow-1',
+        workflowVersionId: 'version-1',
       },
     );
 
@@ -152,7 +174,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       replicateService as never,
     ).register(engine);
 
-    const result = await engine.getExecutor('imageGen')?.(
+    const result = await getActionExecutor(engine, 'imageGen')?.(
       {
         config: {
           brandId: 'brand-1',
@@ -173,6 +195,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         runId: 'run-1',
         userId: 'user-1',
         workflowId: 'workflow-1',
+        workflowVersionId: 'version-1',
       },
     );
 
@@ -241,7 +264,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
 
     try {
       await expect(
-        engine.getExecutor('imageGen')?.(
+        getActionExecutor(engine, 'imageGen')?.(
           {
             config: {
               brandId: 'brand-1',
@@ -259,6 +282,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
             runId: 'run-1',
             userId: 'user-1',
             workflowId: 'workflow-1',
+            workflowVersionId: 'version-1',
           },
         ),
       ).rejects.toBeInstanceOf(ServiceUnavailableException);
@@ -306,7 +330,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       replicateService as never,
     ).register(engine);
 
-    await engine.getExecutor('videoGen')?.(
+    await getActionExecutor(engine, 'videoGen')?.(
       {
         config: {
           brandId: 'brand-1',
@@ -326,6 +350,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         runId: 'run-1',
         userId: 'user-1',
         workflowId: 'workflow-1',
+        workflowVersionId: 'version-1',
       },
     );
 

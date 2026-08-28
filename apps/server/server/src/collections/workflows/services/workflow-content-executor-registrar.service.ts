@@ -59,7 +59,6 @@ export class WorkflowContentExecutorRegistrarService {
   ) {}
 
   register(engine: WorkflowEngine): void {
-    this.registerPromptExecutor(engine);
     this.registerPromptConstructorExecutor(engine);
     this.registerCastPromptExecutor(engine);
     this.registerHookGeneratorExecutor(engine);
@@ -80,24 +79,6 @@ export class WorkflowContentExecutorRegistrarService {
         ...Object.fromEntries(inputs),
       }),
     );
-  }
-
-  private registerPromptExecutor(engine: WorkflowEngine): void {
-    const executePrompt = async (node: { config: Record<string, unknown> }) => {
-      const prompt =
-        this.helper.readConfigString(node.config, 'prompt') ??
-        this.helper.readConfigString(node.config, 'template') ??
-        this.helper.readConfigString(node.config, 'text');
-
-      if (!prompt || prompt.trim().length === 0) {
-        throw new Error('Prompt text is required');
-      }
-
-      // Node results persist as jsonb objects (`WorkflowNodeResult.output`).
-      return { prompt, text: prompt };
-    };
-
-    engine.registerExecutor('prompt', executePrompt);
   }
 
   private registerPromptConstructorExecutor(engine: WorkflowEngine): void {
@@ -291,15 +272,8 @@ export class WorkflowContentExecutorRegistrarService {
       const timezone =
         this.helper.readConfigString(node.config, 'timezone') ?? 'UTC';
 
-      // A node that names neither an account nor a platform has no target. It
-      // used to fall back to whichever credential the brand happened to have
-      // first, which stops being a single answer the moment a brand runs more
-      // than one account — so it skips instead of guessing.
       if (!credentialId && !platform) {
-        return {
-          reason: 'no_target_account',
-          status: 'skipped',
-        };
+        throw new Error('postGen requires credentialId or platform');
       }
 
       const completion = await openRouterService.chatCompletion({
@@ -331,10 +305,7 @@ export class WorkflowContentExecutorRegistrarService {
           });
 
       if (targets.length === 0) {
-        return {
-          reason: 'missing_connected_credential',
-          status: 'skipped',
-        };
+        throw new Error('postGen found no connected target credential');
       }
 
       const groupId = randomUUID();

@@ -19,7 +19,6 @@ const PRESENTATION_NODE_TYPE_TO_ACTION_ID = {
   download: 'workflow.collect-output',
   'effect-color-grade': 'colorGrade',
   generateVideo: 'videoGen',
-  'input-prompt': 'prompt',
   'output-publish': 'publish',
   outputGallery: 'workflow.collect-output',
   'source-corpus': 'sourceCorpus',

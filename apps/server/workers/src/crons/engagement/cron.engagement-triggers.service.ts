@@ -18,11 +18,15 @@ import {
   ReleaseStatus,
 } from '@genfeedai/enums';
 import { toPrismaJson } from '@genfeedai/prisma';
-import type { IPublisher } from '@genfeedai/server';
+import { type IPublisher, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { PublisherFactoryService } from '@server/services/integrations/publishers/publisher-factory.service';
 
 const REPOST_PLATFORMS = new Set<string>([
@@ -75,7 +79,21 @@ export class CronEngagementTriggersService {
     private readonly prisma: PrismaService,
     private readonly postGroupsService: PostGroupsService,
     private readonly publisherFactory: PublisherFactoryService,
-  ) {}
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
+  ) {
+    this.systemWorkflowRunner.registerAction(
+      SYSTEM_WORKFLOW_ACTION_IDS.ENGAGEMENT_RULE_EVALUATION,
+      async ({ input }) => {
+        const ruleId = this.readRequiredString(input.ruleId, 'ruleId');
+        const organizationId = this.readRequiredString(
+          input.organizationId,
+          'organizationId',
+        );
+        await this.processRuleById(ruleId, organizationId);
+        return { ruleId };
+      },
+    );
+  }
 
   /**
    * Evaluates armed engagement rules. Fired every 15 minutes by the
@@ -97,7 +115,17 @@ export class CronEngagementTriggersService {
 
     for (const rule of rules) {
       try {
-        await this.processRule(rule);
+        await this.systemWorkflowRunner.runAction({
+          actionType: SYSTEM_WORKFLOW_ACTION_IDS.ENGAGEMENT_RULE_EVALUATION,
+          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.ENGAGEMENT_RULE_EVALUATION,
+          inputValues: {
+            organizationId: rule.organizationId,
+            ruleId: rule.id,
+          },
+          organizationId: rule.organizationId,
+          source: 'engagement_rule_sweep',
+          userId: rule.userId,
+        });
       } catch (error: unknown) {
         this.logger.error('Engagement trigger failed for rule', {
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -105,6 +133,22 @@ export class CronEngagementTriggersService {
           ruleId: rule.id,
         });
       }
+    }
+  }
+
+  private async processRuleById(
+    ruleId: string,
+    organizationId: string,
+  ): Promise<void> {
+    const rule = (await this.prisma.engagementRule.findFirst({
+      where: scopedWhere(organizationId, {
+        id: ruleId,
+        isEnabled: true,
+        state: EngagementRuleState.ARMED,
+      }),
+    })) as StoredRule | null;
+    if (rule) {
+      await this.processRule(rule);
     }
   }
 
@@ -434,5 +478,12 @@ export class CronEngagementTriggersService {
       return undefined;
     }
     return candidate.bind(publisher);
+  }
+
+  private readRequiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new Error(`Engagement rule evaluation requires ${field}`);
+    }
+    return value;
   }
 }

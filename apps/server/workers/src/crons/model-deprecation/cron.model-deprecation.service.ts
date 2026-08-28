@@ -13,9 +13,6 @@ const SUCCESSOR_MATURITY_DAYS = 30;
 /** Maximum usage percentage (of total category usage) for deprecation eligibility */
 const MAX_USAGE_PERCENTAGE = 5;
 
-/** Number of days to look back for usage analysis */
-const USAGE_LOOKBACK_DAYS = 30;
-
 interface DeprecationCandidate {
   model: ServerModelRecord;
   reason: string;
@@ -29,13 +26,15 @@ interface DeprecationResult {
   evaluated: number;
 }
 
-type WorkflowStep = {
+type WorkflowGraphNode = {
   config?: {
-    model?: string;
+    parameters?: {
+      model?: string;
+    };
   };
 };
 
-type WorkflowNodes = WorkflowStep[];
+type WorkflowNodes = WorkflowGraphNode[];
 
 @Injectable()
 export class CronModelDeprecationService {
@@ -258,7 +257,7 @@ export class CronModelDeprecationService {
 
   /**
    * Check if a model key is referenced in any active (non-deleted, non-completed) workflows.
-   * Workflows reference model keys in their step configs via `steps.config.model`.
+   * Workflow versions reference model keys in action-node parameters.
    * Since Prisma cannot query JSON deeply, we fetch active workflows and filter in-memory.
    */
   private async isModelInActiveWorkflows(modelKey: string): Promise<boolean> {
@@ -280,7 +279,7 @@ export class CronModelDeprecationService {
             ? (graph as { nodes?: unknown }).nodes
             : [];
         return (Array.isArray(nodes) ? (nodes as WorkflowNodes) : []).some(
-          (node) => node.config?.model === modelKey,
+          (node) => node.config?.parameters?.model === modelKey,
         );
       });
     } catch (error: unknown) {

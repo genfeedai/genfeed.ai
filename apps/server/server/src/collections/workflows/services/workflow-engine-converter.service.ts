@@ -11,7 +11,7 @@ import type {
 } from '@server/collections/workflows/schemas/workflow.schema';
 import { VISUAL_TRIGGER_NODE_TYPE_TO_EXECUTOR } from '@server/collections/workflows/services/workflow-executor.constants';
 import { isWorkflowInputNodeType } from '@server/collections/workflows/workflow-node-predicates';
-import { isEngineNativeWorkflowNodeType } from '@server/collections/workflows/workflow-version-definition';
+import { isPersistableWorkflowNodeType } from '@server/collections/workflows/workflow-version-definition';
 
 export interface WorkflowDocumentShape {
   brandId?: string | null;
@@ -226,7 +226,7 @@ export class WorkflowEngineConverterService {
       };
     }
 
-    if (!isEngineNativeWorkflowNodeType(node.type)) {
+    if (!isPersistableWorkflowNodeType(node.type)) {
       throw new Error(
         `Workflow node ${node.id} uses unsupported product node type ${node.type}; use a registered Genfeed action node`,
       );
