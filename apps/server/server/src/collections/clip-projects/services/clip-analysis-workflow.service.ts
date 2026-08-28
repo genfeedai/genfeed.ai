@@ -195,7 +195,7 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
     return {
       audioUrl: extraction.audioUrl,
       data,
-      sourceArtifact: resolvedArtifact,
+      ...(resolvedArtifact ? { sourceArtifact: resolvedArtifact } : {}),
       sourceUrl,
     };
   }
@@ -309,7 +309,9 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
       },
       referenced.data.orgId,
     );
-    return { sourceArtifact: referenced.sourceArtifact };
+    return referenced.sourceArtifact
+      ? { sourceArtifact: referenced.sourceArtifact }
+      : {};
   }
 
   private async failAnalysisAction(

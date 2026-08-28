@@ -288,12 +288,16 @@ export class PublicYoutubeClipsService implements OnModuleInit {
     youtubeUrl: string,
     idempotencyKey?: string,
   ): Promise<IPublicYoutubeClipToolSession> {
+    const normalizedIdempotencyKey =
+      this.normalizeIdempotencyKey(idempotencyKey);
     const { result } =
       await this.runner.runWorkflow<IPublicYoutubeClipToolSession>({
         actionType: 'public-youtube-clip-create',
         canonicalId: PUBLIC_YOUTUBE_CLIP_CREATE_WORKFLOW_ID,
         inputValues: {
-          idempotencyKey: this.normalizeIdempotencyKey(idempotencyKey),
+          ...(normalizedIdempotencyKey
+            ? { idempotencyKey: normalizedIdempotencyKey }
+            : {}),
           youtubeUrl,
         },
         metadata: { origin: 'website-free-tool' },
@@ -347,7 +351,7 @@ export class PublicYoutubeClipsService implements OnModuleInit {
         ? request.input.idempotencyKey
         : undefined;
     const created = await this.store.createSession({
-      idempotencyKey,
+      ...(idempotencyKey ? { idempotencyKey } : {}),
       language: 'en',
       sourceFingerprint: hashToken(source.youtubeUrl),
       sourceVideoUrl: source.youtubeUrl,
@@ -368,7 +372,7 @@ export class PublicYoutubeClipsService implements OnModuleInit {
             },
           ]
         : [],
-      idempotencyKey,
+      ...(idempotencyKey ? { idempotencyKey } : {}),
       isNew: created.isNew,
       previewToken: created.previewToken,
       session: created.session,
