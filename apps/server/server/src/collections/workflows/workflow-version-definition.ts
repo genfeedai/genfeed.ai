@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { getActionDefinition } from '@genfeedai/actions';
 import { Prisma } from '@genfeedai/prisma';
 import type {
   WorkflowDocument,
@@ -10,13 +11,22 @@ import type {
 } from '@server/collections/workflows/schemas/workflow.schema';
 
 const ENGINE_NATIVE_NODE_TYPES = new Set([
+  'commentTrigger',
   'condition',
   'control-branch',
   'control-delay',
   'control-loop',
   'delay',
+  'engagementTrigger',
   'genfeedAction',
+  'keywordTrigger',
+  'mentionTrigger',
+  'newFollowerTrigger',
+  'newLikeTrigger',
+  'newRepostTrigger',
+  'postPublishTrigger',
   'reviewGate',
+  'workflowInput',
 ]);
 
 export interface WorkflowDefinitionInput {
@@ -30,7 +40,6 @@ export function isEngineNativeWorkflowNodeType(nodeType: string): boolean {
   return (
     ENGINE_NATIVE_NODE_TYPES.has(nodeType) ||
     nodeType.startsWith('trigger-') ||
-    nodeType.endsWith('Trigger') ||
     nodeType === 'input-image' ||
     nodeType === 'input-video'
   );
@@ -42,23 +51,25 @@ function readRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function toActionBackedNode(node: WorkflowVisualNode): WorkflowVisualNode {
-  if (isEngineNativeWorkflowNodeType(node.type)) {
+function validateActionBackedNode(
+  node: WorkflowVisualNode,
+): WorkflowVisualNode {
+  if (!isEngineNativeWorkflowNodeType(node.type)) {
+    throw new Error(
+      `Workflow node ${node.id} uses unsupported product node type ${node.type}; use a registered Genfeed action node`,
+    );
+  }
+  if (node.type !== 'genfeedAction') {
     return node;
   }
 
-  const parameters = readRecord(node.data?.config);
-  return {
-    ...node,
-    data: {
-      ...node.data,
-      config: {
-        actionId: node.type,
-        parameters,
-      },
-    },
-    type: 'genfeedAction',
-  };
+  const actionId = readRecord(node.data?.config).actionId;
+  if (typeof actionId !== 'string' || !getActionDefinition(actionId)) {
+    throw new Error(
+      `Workflow node ${node.id} references unknown Genfeed action ${String(actionId)}`,
+    );
+  }
+  return node;
 }
 
 function stableStringify(value: unknown): string {
@@ -85,7 +96,7 @@ export function buildWorkflowVersionDefinition(
   const graph: WorkflowVersionGraph = {
     edges: input.edges ?? [],
     lockedNodeIds: input.lockedNodeIds ?? [],
-    nodes: (input.nodes ?? []).map(toActionBackedNode),
+    nodes: (input.nodes ?? []).map(validateActionBackedNode),
   };
   const inputSchema = input.inputVariables ?? [];
   const contentHash = `sha256:v1:${createHash('sha256')

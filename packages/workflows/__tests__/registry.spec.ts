@@ -4,8 +4,6 @@ import * as path from 'node:path';
 import {
   getAllWorkflows,
   getWorkflow,
-  getWorkflowIds,
-  getWorkflowMetadata,
   getWorkflowsByCategory,
   searchWorkflowsByTag,
   WORKFLOW_REGISTRY,
@@ -20,10 +18,9 @@ describe('Workflow Registry', () => {
       'image-to-video',
       'lora-dataset-generator',
       'full-pipeline',
-      'ugc-factory',
     ];
 
-    const workflowIds = getWorkflowIds();
+    const workflowIds = Object.keys(WORKFLOW_REGISTRY);
     expectedWorkflows.forEach((id) => {
       expect(workflowIds).toContain(id);
     });
@@ -31,7 +28,7 @@ describe('Workflow Registry', () => {
 
   test('getAllWorkflows should return all workflow metadata', () => {
     const workflows = getAllWorkflows();
-    expect(workflows).toHaveLength(7);
+    expect(workflows).toHaveLength(6);
 
     workflows.forEach((workflow) => {
       expect(workflow).toHaveProperty('slug');
@@ -57,12 +54,6 @@ describe('Workflow Registry', () => {
 
     const nonExistent = getWorkflow('non-existent');
     expect(nonExistent).toBeUndefined();
-  });
-
-  test('getWorkflowMetadata should work for legacy compatibility', () => {
-    const workflow = getWorkflowMetadata('single-image');
-    expect(workflow).toBeDefined();
-    expect(workflow?.slug).toBe('single-image');
   });
 
   test('getWorkflowsByCategory should filter workflows correctly', () => {
@@ -130,7 +121,7 @@ describe('Workflow Registry', () => {
 
   test('all workflows should have required fields for marketplace', () => {
     const workflows = Object.values(WORKFLOW_REGISTRY);
-    expect(workflows.length).toBe(7);
+    expect(workflows.length).toBe(6);
 
     workflows.forEach((workflow) => {
       // Required marketplace fields

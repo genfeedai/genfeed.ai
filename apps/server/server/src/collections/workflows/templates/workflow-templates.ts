@@ -3,6 +3,7 @@ import { CONTENT_LOOP_TEMPLATE } from '@server/collections/workflows/templates/c
 import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@server/collections/workflows/templates/daily-trends-digest.template';
 import { GENERATION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/generation-templates';
 import { PRODUCTIZED_DAILY_ROUTINE_TEMPLATES } from '@server/collections/workflows/templates/productized-routines.template';
+import { createTemplateActionNode } from '@server/collections/workflows/templates/template-action-node';
 import { WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE } from '@server/collections/workflows/templates/weekly-brand-content-workflow.template';
 
 export type RoutineReviewDefaults = {
@@ -120,7 +121,7 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
     isScheduleEnabled: false,
     name: 'Instagram Remix And Review',
     nodes: [
-      {
+      createTemplateActionNode('ai-generate-video', {
         data: {
           config: {
             aspectRatio: '9:16',
@@ -131,8 +132,7 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         },
         id: 'generate-instagram-remix',
         position: { x: 80, y: 120 },
-        type: 'ai-generate-video',
-      },
+      }),
       {
         data: {
           config: {
@@ -194,7 +194,7 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         },
         id: 'workflow-input-product-name',
         position: { x: 0, y: 40 },
-        type: 'workflow-input',
+        type: 'workflowInput',
       },
       {
         data: {
@@ -207,7 +207,7 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         },
         id: 'workflow-input-channel',
         position: { x: 0, y: 180 },
-        type: 'workflow-input',
+        type: 'workflowInput',
       },
       {
         data: {
@@ -220,9 +220,9 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         },
         id: 'workflow-input-description',
         position: { x: 0, y: 320 },
-        type: 'workflow-input',
+        type: 'workflowInput',
       },
-      {
+      createTemplateActionNode('promptConstructor', {
         data: {
           config: {
             template:
@@ -233,9 +233,8 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         },
         id: 'prompt-constructor-launch-kit',
         position: { x: 360, y: 180 },
-        type: 'ai-prompt-constructor',
-      },
-      {
+      }),
+      createTemplateActionNode('llm', {
         data: {
           config: {
             maxTokens: 1400,
@@ -246,8 +245,7 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         },
         id: 'llm-launch-assets',
         position: { x: 720, y: 180 },
-        type: 'llm',
-      },
+      }),
       {
         data: {
           config: {
@@ -263,7 +261,7 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         position: { x: 1080, y: 180 },
         type: 'reviewGate',
       },
-      {
+      createTemplateActionNode('workflow.collect-output', {
         data: {
           config: {
             outputName: 'launchKit',
@@ -272,8 +270,7 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         },
         id: 'workflow-output-launch-kit',
         position: { x: 1440, y: 180 },
-        type: 'workflow-output',
-      },
+      }),
     ],
     edges: [
       {
@@ -411,7 +408,7 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         position: { x: 0, y: 320 },
         type: 'workflowInput',
       },
-      {
+      createTemplateActionNode('promptConstructor', {
         data: {
           config: {
             template:
@@ -422,9 +419,8 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         },
         id: 'ai-prompt-constructor-ad-pattern',
         position: { x: 320, y: 180 },
-        type: 'promptConstructor',
-      },
-      {
+      }),
+      createTemplateActionNode('workflow.collect-output', {
         data: {
           config: {
             outputName: 'adPack',
@@ -433,9 +429,8 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         },
         id: 'workflow-output-ad-pack',
         position: { x: 720, y: 120 },
-        type: 'workflowOutput',
-      },
-      {
+      }),
+      createTemplateActionNode('workflow.collect-output', {
         data: {
           config: {
             outputName: 'launchPrep',
@@ -444,8 +439,7 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         },
         id: 'workflow-output-launch-prep',
         position: { x: 720, y: 280 },
-        type: 'workflowOutput',
-      },
+      }),
     ],
   },
   'content-clips': {

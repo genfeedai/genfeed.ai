@@ -69,6 +69,17 @@ export class WorkflowContentExecutorRegistrarService {
     this.registerPostExecutor(engine);
     this.registerNewsletterExecutor(engine);
     this.registerAttachPostIngredientExecutor(engine);
+    this.registerWorkflowOutputCollector(engine);
+  }
+
+  private registerWorkflowOutputCollector(engine: WorkflowEngine): void {
+    engine.registerExecutor(
+      'workflow.collect-output',
+      async (node, inputs) => ({
+        ...node.config,
+        ...Object.fromEntries(inputs),
+      }),
+    );
   }
 
   private registerPromptExecutor(engine: WorkflowEngine): void {

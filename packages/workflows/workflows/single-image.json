@@ -29,56 +29,83 @@
   "nodes": [
     {
       "data": {
-        "dimensions": null,
-        "filename": null,
-        "image": null,
-        "label": "Source Image",
-        "source": "upload",
-        "status": "idle"
+        "config": {
+          "inputName": "imageInput-1",
+          "inputType": "image",
+          "required": true
+        },
+        "label": "Source Image"
       },
       "id": "imageInput-1",
-      "position": { "x": 50, "y": 150 },
-      "type": "imageInput"
+      "position": {
+        "x": 50,
+        "y": 150
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "Style Prompt",
-        "prompt": "A cinematic, detailed version of this image with enhanced lighting",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "A cinematic, detailed version of this image with enhanced lighting",
+          "inputName": "prompt-1",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Style Prompt"
       },
       "id": "prompt-1",
-      "position": { "x": 50, "y": 350 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 350
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "aspectRatio": "1:1",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Image Generator",
-        "model": "nano-banana-pro",
-        "outputFormat": "jpg",
-        "outputImage": null,
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "1:1",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Image Generator",
+            "model": "nano-banana-pro",
+            "outputFormat": "jpg",
+            "outputImage": null,
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Image Generator"
       },
       "id": "imageGen-1",
-      "position": { "x": 400, "y": 200 },
-      "type": "imageGen"
+      "position": {
+        "x": 400,
+        "y": 200
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "inputMedia": null,
-        "inputType": "image",
-        "label": "Final Output",
-        "outputName": "generated-image",
-        "status": "idle"
+        "config": {
+          "actionId": "workflow.collect-output",
+          "parameters": {
+            "inputMedia": null,
+            "inputType": "image",
+            "label": "Final Output",
+            "outputName": "generated-image",
+            "status": "idle"
+          }
+        },
+        "label": "Final Output"
       },
       "id": "output-1",
-      "position": { "x": 750, "y": 200 },
-      "type": "output"
+      "position": {
+        "x": 750,
+        "y": 200
+      },
+      "type": "genfeedAction"
     }
   ],
   "updatedAt": "2025-01-19T00:00:00.000Z",

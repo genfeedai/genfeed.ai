@@ -1,4 +1,6 @@
 import { TelegramBotService } from '@api/services/telegram-bot/telegram-bot.service';
+import type { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { Bot } from 'grammy';
 
 // Mock grammy
@@ -21,23 +23,6 @@ vi.mock('grammy', () => ({
   InputFile: vi.fn(),
 }));
 
-// Mock workflow engine
-vi.mock('@genfeedai/workflows/engine', () => ({
-  createWorkflowEngine: vi.fn().mockReturnValue({
-    execute: vi.fn().mockResolvedValue({
-      completedAt: new Date(),
-      nodeResults: new Map(),
-      runId: 'test-run',
-      startedAt: new Date(),
-      status: 'completed',
-      totalCreditsUsed: 0,
-      workflowId: 'test',
-    }),
-    registerExecutor: vi.fn(),
-  }),
-  WorkflowEngine: vi.fn(),
-}));
-
 describe('TelegramBotService', () => {
   let service: TelegramBotService;
   let mockConfigService: {
@@ -49,10 +34,11 @@ describe('TelegramBotService', () => {
     warn: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
   };
-  let mockReplicateService: {
-    runModel: ReturnType<typeof vi.fn>;
-    getPrediction: ReturnType<typeof vi.fn>;
+  let mockSystemWorkflowRunner: {
+    registerWorkflow: ReturnType<typeof vi.fn>;
+    runWorkflow: ReturnType<typeof vi.fn>;
   };
+  let mockPrisma: { brand: { findFirst: ReturnType<typeof vi.fn> } };
 
   beforeEach(() => {
     mockConfigService = {
@@ -73,18 +59,17 @@ describe('TelegramBotService', () => {
       warn: vi.fn(),
     };
 
-    mockReplicateService = {
-      getPrediction: vi.fn().mockResolvedValue({
-        output: 'https://example.com/output.png',
-        status: 'succeeded',
-      }),
-      runModel: vi.fn().mockResolvedValue('pred-123'),
+    mockSystemWorkflowRunner = {
+      registerWorkflow: vi.fn(),
+      runWorkflow: vi.fn(),
     };
+    mockPrisma = { brand: { findFirst: vi.fn() } };
 
     service = new TelegramBotService(
       mockConfigService,
       mockLoggerService,
-      mockReplicateService,
+      mockSystemWorkflowRunner as unknown as SystemWorkflowRunnerService,
+      mockPrisma as unknown as PrismaService,
     );
   });
 
@@ -133,15 +118,10 @@ describe('TelegramBotService', () => {
         return config[key];
       });
 
-      const loadWorkflowsSpy = vi.spyOn(service as any, 'loadWorkflows');
-      const initializeEngineSpy = vi.spyOn(service as any, 'initializeEngine');
-      const startPollingSpy = vi.spyOn(service as any, 'startPolling');
-
       await service.onModuleInit();
 
-      expect(loadWorkflowsSpy).not.toHaveBeenCalled();
-      expect(initializeEngineSpy).not.toHaveBeenCalled();
-      expect(startPollingSpy).not.toHaveBeenCalled();
+      expect(service.getStatus().workflowsLoaded).toBe(0);
+      expect(Bot).not.toHaveBeenCalled();
       expect(mockLoggerService.log).toHaveBeenCalledWith(
         'TelegramBotService: polling disabled for local development',
       );
@@ -149,6 +129,8 @@ describe('TelegramBotService', () => {
 
     it('registers audio and video workflow input handlers', async () => {
       await service.onModuleInit();
+
+      expect(mockSystemWorkflowRunner.registerWorkflow).toHaveBeenCalled();
 
       const botInstance = vi.mocked(Bot).mock.results.at(-1)?.value as
         | { on: ReturnType<typeof vi.fn> }
@@ -170,37 +152,6 @@ describe('TelegramBotService', () => {
         'message:document',
         expect.any(Function),
       );
-    });
-  });
-
-  describe('imageGen fal routing', () => {
-    it('should fail fast when fal model is selected but fal is not configured', async () => {
-      (service as any).initializeEngine();
-
-      const engine = (service as any).engine as {
-        registerExecutor: ReturnType<typeof vi.fn>;
-      };
-      const imageGenExecutor = engine.registerExecutor.mock.calls.find(
-        ([name]) => name === 'imageGen',
-      )?.[1] as
-        | ((
-            node: { id: string; config: Record<string, unknown> },
-            inputs: Map<string, unknown>,
-            ctx: unknown,
-          ) => Promise<unknown>)
-        | undefined;
-
-      expect(imageGenExecutor).toBeDefined();
-
-      await expect(
-        imageGenExecutor?.(
-          { config: { model: 'fal-flux-dev' }, id: 'node-1' },
-          new Map<string, unknown>(),
-          {},
-        ),
-      ).rejects.toThrow('fal.ai is not configured');
-
-      expect(mockReplicateService.runModel).not.toHaveBeenCalled();
     });
   });
 });

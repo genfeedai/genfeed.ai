@@ -1,4 +1,5 @@
 import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
+import { createTemplateActionNode } from '@server/collections/workflows/templates/template-action-node';
 import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 
 /**
@@ -26,7 +27,7 @@ export const DAILY_TRENDS_DIGEST_TEMPLATE: WorkflowTemplate = {
   schedule: '0 7 * * *',
   timezone: 'UTC',
   nodes: [
-    {
+    createTemplateActionNode('trendDigest', {
       data: {
         config: {
           creditCost: TREND_DIGEST_CREDIT_COST,
@@ -38,17 +39,15 @@ export const DAILY_TRENDS_DIGEST_TEMPLATE: WorkflowTemplate = {
       },
       id: 'trend-digest',
       position: { x: 0, y: 120 },
-      type: 'trendDigest',
-    },
-    {
+    }),
+    createTemplateActionNode('sendEmail', {
       data: {
         config: {},
         label: 'Email Digest to Owner',
       },
       id: 'send-email',
       position: { x: 360, y: 120 },
-      type: 'sendEmail',
-    },
+    }),
   ],
   edges: [
     {

@@ -7,7 +7,7 @@ describe('WorkflowTemplates', () => {
 
     expect(template?.isScheduleEnabled).toBe(false);
     expect(template?.nodes?.map((node) => node.type)).toEqual([
-      'ai-generate-video',
+      'genfeedAction',
       'reviewGate',
     ]);
     expect(template?.edges).toEqual([
@@ -38,9 +38,12 @@ describe('WorkflowTemplates', () => {
     expect(launchKit?.routine).toBeUndefined();
 
     const nodeTypes = (launchKit?.nodes ?? []).map((node) => node.type);
+    const actionIds = (launchKit?.nodes ?? []).map(
+      (node) => node.data.config.actionId,
+    );
     expect(nodeTypes).toContain('reviewGate');
-    expect(nodeTypes).toContain('ai-prompt-constructor');
-    expect(nodeTypes).toContain('workflow-output');
+    expect(actionIds).toContain('promptConstructor');
+    expect(actionIds).toContain('workflow.collect-output');
   });
 
   it('includes the weekly brand AI content loop with source collection and post image attachment', () => {
@@ -50,15 +53,18 @@ describe('WorkflowTemplates', () => {
     expect(template?.category).toBe('content');
     expect(template?.schedule).toBe('0 9 * * 1');
 
-    const nodeTypes = new Set((template?.nodes ?? []).map((node) => node.type));
-    expect(nodeTypes).toContain('source-corpus');
-    expect(nodeTypes).toContain('ai-generate-newsletter');
-    expect(nodeTypes).toContain('ai-generate-post');
-    expect(nodeTypes).toContain('ai-generate-image');
-    expect(nodeTypes).toContain('attach-post-ingredient');
+    const actionIds = new Set(
+      (template?.nodes ?? []).map((node) => node.data.config.actionId),
+    );
+    expect(actionIds).toContain('sourceCorpus');
+    expect(actionIds).toContain('newsletterGen');
+    expect(actionIds).toContain('postGen');
+    expect(actionIds).toContain('imageGen');
+    expect(actionIds).toContain('attachPostIngredient');
 
     expect(
-      template?.nodes.find((node) => node.id === 'x-post-draft')?.data.config,
+      template?.nodes.find((node) => node.id === 'x-post-draft')?.data.config
+        .parameters,
     ).toMatchObject({ platform: 'twitter' });
 
     expect(template?.edges).toEqual(

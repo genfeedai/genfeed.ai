@@ -29,60 +29,87 @@
   "nodes": [
     {
       "data": {
-        "dimensions": null,
-        "filename": null,
-        "image": null,
-        "label": "Starting Frame",
-        "source": "upload",
-        "status": "idle"
+        "config": {
+          "inputName": "imageInput-1",
+          "inputType": "image",
+          "required": true
+        },
+        "label": "Starting Frame"
       },
       "id": "imageInput-1",
-      "position": { "x": 50, "y": 150 },
-      "type": "imageInput"
+      "position": {
+        "x": 50,
+        "y": 150
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "Motion Prompt",
-        "prompt": "Cinematic slow motion with subtle camera movement",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "Cinematic slow motion with subtle camera movement",
+          "inputName": "prompt-1",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Motion Prompt"
       },
       "id": "prompt-1",
-      "position": { "x": 50, "y": 350 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 350
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "aspectRatio": "16:9",
-        "duration": 8,
-        "generateAudio": false,
-        "inputImage": null,
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Video Generator",
-        "lastFrame": null,
-        "model": "veo-3.1-fast",
-        "negativePrompt": "blurry, distorted, artifacts",
-        "outputVideo": null,
-        "referenceImages": [],
-        "resolution": "1080p",
-        "status": "idle"
+        "config": {
+          "actionId": "videoGen",
+          "parameters": {
+            "aspectRatio": "16:9",
+            "duration": 8,
+            "generateAudio": false,
+            "inputImage": null,
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Video Generator",
+            "lastFrame": null,
+            "model": "veo-3.1-fast",
+            "negativePrompt": "blurry, distorted, artifacts",
+            "outputVideo": null,
+            "referenceImages": [],
+            "resolution": "1080p",
+            "status": "idle"
+          }
+        },
+        "label": "Video Generator"
       },
       "id": "videoGen-1",
-      "position": { "x": 400, "y": 200 },
-      "type": "videoGen"
+      "position": {
+        "x": 400,
+        "y": 200
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "inputMedia": null,
-        "inputType": "video",
-        "label": "Final Output",
-        "outputName": "generated-video",
-        "status": "idle"
+        "config": {
+          "actionId": "workflow.collect-output",
+          "parameters": {
+            "inputMedia": null,
+            "inputType": "video",
+            "label": "Final Output",
+            "outputName": "generated-video",
+            "status": "idle"
+          }
+        },
+        "label": "Final Output"
       },
       "id": "output-1",
-      "position": { "x": 750, "y": 200 },
-      "type": "output"
+      "position": {
+        "x": 750,
+        "y": 200
+      },
+      "type": "genfeedAction"
     }
   ],
   "updatedAt": "2025-01-19T00:00:00.000Z",

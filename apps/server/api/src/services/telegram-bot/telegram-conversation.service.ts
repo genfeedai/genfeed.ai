@@ -16,8 +16,6 @@ import type {
 import { extractWorkflowInputs } from '@api/services/telegram-bot/telegram-workflow-loader';
 import type { TelegramWorkflowRunnerService } from '@api/services/telegram-bot/telegram-workflow-runner.service';
 import { ParseMode } from '@genfeedai/enums';
-import type { WorkflowEngine } from '@genfeedai/workflows/engine';
-import type { LoggerService } from '@libs/logger/logger.service';
 import { type Context, InlineKeyboard } from 'grammy';
 
 export class TelegramConversationService {
@@ -25,12 +23,8 @@ export class TelegramConversationService {
   private readonly pendingGenerationImages: Map<number, string> = new Map();
   private readonly recentPhotoTimestamps: Map<number, number> = new Map();
   private workflows: Map<string, WorkflowJson> = new Map();
-  private engine: WorkflowEngine | null = null;
 
-  constructor(
-    private readonly loggerService: LoggerService,
-    private readonly runner: TelegramWorkflowRunnerService,
-  ) {}
+  constructor(private readonly runner: TelegramWorkflowRunnerService) {}
 
   setWorkflows(workflows: Map<string, WorkflowJson>): void {
     this.workflows = workflows;
@@ -42,14 +36,6 @@ export class TelegramConversationService {
 
   workflowsLoaded(): number {
     return this.workflows.size;
-  }
-
-  attachEngine(engine: WorkflowEngine): void {
-    this.engine = engine;
-  }
-
-  hasEngine(): boolean {
-    return !!this.engine;
   }
 
   getActiveCount(): number {
@@ -366,19 +352,13 @@ export class TelegramConversationService {
   /** Execute the workflow with collected inputs via the workflow runner. */
   private async handleConfirmRun(ctx: Context, chatId: number): Promise<void> {
     const state = this.conversations.get(chatId);
-    if (!state || !state.workflow) {
+    if (!state?.workflow) {
       await ctx.reply('❌ No workflow to run. Send /workflows to start.');
       return;
     }
 
-    if (!this.engine) {
-      await ctx.reply('❌ Workflow engine is not initialized.');
-      this.conversations.delete(chatId);
-      return;
-    }
-
     try {
-      await this.runner.execute(ctx, chatId, state, this.engine);
+      await this.runner.execute(ctx, chatId, state);
     } finally {
       this.conversations.delete(chatId);
     }

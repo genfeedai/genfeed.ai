@@ -1,11 +1,8 @@
 /**
  * Telegram Workflow Loader
  *
- * Loads workflow JSON definitions from the core workflows package and converts
- * them between the bot's JSON shape, the collected-input requirements, and the
- * engine's ExecutableWorkflow shape. The node-type → input-kind mapping lives
- * here in exactly one place (consumed by both input extraction and executable
- * conversion).
+ * Loads action-backed workflow JSON definitions from the workflows package and
+ * adapts them into hidden, immutable system workflow definitions.
  */
 
 import { existsSync } from 'node:fs';
@@ -19,47 +16,13 @@ import type {
   WorkflowInputVariable,
   WorkflowJson,
 } from '@api/services/telegram-bot/telegram-bot.types';
-import type {
-  ExecutableNode,
-  ExecutableWorkflow,
-} from '@genfeedai/workflows/engine';
+import {
+  createGenfeedActionNode,
+  getActionDefinition,
+} from '@genfeedai/actions';
 import type { LoggerService } from '@libs/logger/logger.service';
-
-/**
- * Canonical node-type → input descriptor mapping. Single source of truth for
- * both `extractWorkflowInputs` (what to collect) and `toExecutableWorkflow`
- * (where to inject the collected value).
- */
-const TELEGRAM_INPUT_NODE_TYPES: Record<
-  string,
-  {
-    inputType: WorkflowInput['inputType'];
-    configField: 'image' | 'prompt' | 'audio' | 'video';
-    defaultLabel: string;
-  }
-> = {
-  audioInput: {
-    configField: 'audio',
-    defaultLabel: 'Audio',
-    inputType: 'audio',
-  },
-  imageInput: {
-    configField: 'image',
-    defaultLabel: 'Image',
-    inputType: 'image',
-  },
-  prompt: { configField: 'prompt', defaultLabel: 'Prompt', inputType: 'text' },
-  telegramInput: {
-    configField: 'image',
-    defaultLabel: 'Image',
-    inputType: 'image',
-  },
-  videoInput: {
-    configField: 'video',
-    defaultLabel: 'Video',
-    inputType: 'video',
-  },
-};
+import type { WorkflowVisualNode } from '@server/collections/workflows/schemas/workflow.schema';
+import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-runner.service';
 
 const WORKFLOW_INPUT_NODE_TYPES = new Set(['workflowInput', 'workflow-input']);
 
@@ -69,8 +32,9 @@ const TELEGRAM_WORKFLOW_FILES: TelegramWorkflowName[] = [
   'image-to-video',
   'single-video',
   'full-pipeline',
-  'ugc-factory',
 ];
+
+export const TELEGRAM_SYSTEM_WORKFLOW_PREFIX = 'telegram.';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -221,22 +185,103 @@ export function resolveWorkflowFallbackPath(name: string): string | null {
       if (existsSync(candidatePath)) {
         return candidatePath;
       }
-
-      const legacyCandidatePath = join(
-        candidateRoot,
-        'core',
-        'packages',
-        'workflows',
-        'workflows',
-        `${name}.json`,
-      );
-      if (existsSync(legacyCandidatePath)) {
-        return legacyCandidatePath;
-      }
     }
   }
 
   return null;
+}
+
+export function toTelegramSystemWorkflowDefinition(
+  workflowId: string,
+  workflow: WorkflowJson,
+): SystemWorkflowGraphDefinition {
+  const inputs = extractWorkflowInputs(workflow);
+  const resultNodes = workflow.nodes.filter((node) => {
+    const config = getNodeConfig(node);
+    return config.actionId === 'workflow.collect-output';
+  });
+  if (resultNodes.length !== 1) {
+    throw new Error(
+      `Telegram workflow ${workflowId} must contain exactly one workflow.collect-output action`,
+    );
+  }
+  const resultNode = resultNodes[0];
+  if (!resultNode) {
+    throw new Error(`Telegram workflow ${workflowId} has no output action`);
+  }
+
+  const nodes: WorkflowVisualNode[] = workflow.nodes.map((node, index) => {
+    const position = node.position ?? { x: index * 280, y: 120 };
+    const label = readString(node.data, 'label') ?? node.type;
+    if (isWorkflowInputNode(node.type)) {
+      return {
+        data: { config: getNodeConfig(node), label },
+        id: node.id,
+        position,
+        type: 'workflowInput',
+      };
+    }
+    if (node.type !== 'genfeedAction') {
+      throw new Error(
+        `Telegram workflow ${workflowId} contains unsupported product node ${node.type}`,
+      );
+    }
+
+    const config = getNodeConfig(node);
+    const actionId = readString(config, 'actionId');
+    if (!actionId || !getActionDefinition(actionId)) {
+      throw new Error(
+        `Telegram workflow ${workflowId} references unknown Genfeed action ${String(actionId)}`,
+      );
+    }
+    const generated = createGenfeedActionNode({
+      actionId,
+      id: node.id,
+      inputVariableKeys:
+        actionId === 'workflow.collect-output' ? [] : ['brandId'],
+      label,
+      position,
+    });
+    return {
+      ...generated,
+      data: {
+        ...generated.data,
+        config: {
+          ...generated.data.config,
+          parameters: readRecord(config.parameters),
+        },
+      },
+    };
+  });
+
+  return {
+    canonicalId: `${TELEGRAM_SYSTEM_WORKFLOW_PREFIX}${workflowId}`,
+    changeSummary:
+      'Run the Telegram media recipe through shared Genfeed actions.',
+    definition: {
+      edges: workflow.edges,
+      inputVariables: [
+        ...inputs.map((input) => ({
+          defaultValue: input.defaultValue,
+          key: input.inputKey ?? input.nodeId,
+          label: input.label,
+          required: input.required,
+          type: 'string',
+        })),
+        {
+          key: 'brandId',
+          label: 'Execution brand',
+          required: true,
+          type: 'string',
+        },
+      ],
+      nodes,
+    },
+    description: workflow.description,
+    label: workflow.name,
+    resultNodeId: resultNode.id,
+    version: workflow.version,
+  };
 }
 
 /**
@@ -267,120 +312,14 @@ export function extractWorkflowInputs(workflow: WorkflowJson): WorkflowInput[] {
       }
       continue;
     }
-
-    const descriptor = TELEGRAM_INPUT_NODE_TYPES[node.type];
-    if (!descriptor) {
+    if (node.type === 'genfeedAction') {
       continue;
     }
 
-    const input: WorkflowInput = {
-      inputType: descriptor.inputType,
-      label: (node.data.label as string) || descriptor.defaultLabel,
-      nodeId: node.id,
-      nodeType: node.type,
-      required: true,
-    };
-
-    if (descriptor.inputType === 'text') {
-      input.defaultValue = node.data[descriptor.configField] as string;
-    }
-
-    inputs.push(input);
+    throw new Error(
+      `Telegram workflow ${workflow.name} contains unsupported non-action node ${node.type}`,
+    );
   }
 
   return inputs;
-}
-
-/**
- * Convert a workflow JSON to an ExecutableWorkflow for the engine, injecting the
- * collected inputs into each input node's config.
- */
-export function toExecutableWorkflow(
-  workflow: WorkflowJson,
-  collectedInputs: Map<string, string>,
-  workflowId: string,
-  organizationId?: string,
-  userId?: string,
-): ExecutableWorkflow {
-  const inputDefaultsByKey = new Map(
-    (workflow.inputVariables ?? []).map((variable) => [
-      variable.key,
-      variable.defaultValue,
-    ]),
-  );
-  const lockedNodeIds = new Set<string>();
-
-  const nodes: ExecutableNode[] = workflow.nodes.map((node) => {
-    const config = { ...getNodeConfig(node) };
-
-    // Inject collected inputs into node config
-    const collectedValue = collectedInputs.get(node.id);
-    if (isWorkflowInputNode(node.type)) {
-      const inputKey = workflowInputKey(node);
-      const runtimeValue =
-        collectedInputs.get(inputKey) ??
-        collectedValue ??
-        inputDefaultsByKey.get(inputKey) ??
-        config.defaultValue;
-      if (runtimeValue !== undefined) {
-        lockedNodeIds.add(node.id);
-        config.value = runtimeValue;
-      }
-    } else if (collectedValue) {
-      const descriptor = TELEGRAM_INPUT_NODE_TYPES[node.type];
-      if (descriptor) {
-        config[descriptor.configField] = collectedValue;
-      }
-    }
-
-    const inputVariableKeys = Array.isArray(node.data.inputVariableKeys)
-      ? node.data.inputVariableKeys.filter(
-          (key): key is string => typeof key === 'string',
-        )
-      : Array.isArray(config.inputVariableKeys)
-        ? config.inputVariableKeys.filter(
-            (key): key is string => typeof key === 'string',
-          )
-        : [];
-    for (const inputKey of inputVariableKeys) {
-      const runtimeValue =
-        collectedInputs.get(inputKey) ?? inputDefaultsByKey.get(inputKey);
-      if (runtimeValue !== undefined) {
-        config[inputKey] = runtimeValue;
-      }
-    }
-
-    // Find input edges for this node
-    const inputEdges = workflow.edges.filter((e) => e.target === node.id);
-    const inputs = inputEdges.map((e) => e.source);
-
-    return {
-      config,
-      cachedOutput: lockedNodeIds.has(node.id) ? config.value : undefined,
-      id: node.id,
-      inputs,
-      isLocked: lockedNodeIds.has(node.id),
-      label: (node.data.label as string) || node.type,
-      type: node.type,
-    };
-  });
-
-  const edges = workflow.edges.map((edge) => ({
-    id: edge.id,
-    source: edge.source,
-    sourceHandle: edge.sourceHandle,
-    target: edge.target,
-    targetHandle: edge.targetHandle,
-  }));
-
-  return {
-    edges,
-    id: workflowId,
-    lockedNodeIds: Array.from(lockedNodeIds),
-    nodes,
-    // Execute under the connected chat's real tenant when available; fall back
-    // to the bot sentinel only for unauthenticated (no /connect) chats.
-    organizationId: organizationId ?? 'telegram-bot',
-    userId: userId ?? 'telegram-bot',
-  };
 }

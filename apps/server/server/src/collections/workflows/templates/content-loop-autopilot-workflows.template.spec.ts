@@ -13,10 +13,10 @@ describe('CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES', () => {
     });
 
     const nodeTypes = (template?.nodes ?? []).map((node) => node.type);
-    expect(nodeTypes).toEqual([
-      'analyticsGenericSync',
-      'harnessWinnerPromotionSweep',
-    ]);
+    expect(nodeTypes).toEqual(['genfeedAction', 'genfeedAction']);
+    expect(
+      (template?.nodes ?? []).map((node) => node.data.config.actionId),
+    ).toEqual(['analyticsGenericSync', 'harnessWinnerPromotionSweep']);
 
     expect(template?.edges).toEqual([
       expect.objectContaining({

@@ -1,3 +1,4 @@
+import { createTemplateActionNode } from '@server/collections/workflows/templates/template-action-node';
 import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 
 export type TrendNotificationCadence = 'daily' | 'hourly' | 'weekly';
@@ -23,15 +24,14 @@ function actionTemplate(params: {
     id: params.id,
     name: params.name,
     nodes: [
-      {
+      createTemplateActionNode('trendSummaryNotifications', {
         data: {
           config: { cadence: params.cadence },
           label: params.nodeLabel,
         },
         id: 'trendSummaryNotifications',
         position: { x: 0, y: 120 },
-        type: 'trendSummaryNotifications',
-      },
+      }),
     ],
     schedule: params.schedule,
   };

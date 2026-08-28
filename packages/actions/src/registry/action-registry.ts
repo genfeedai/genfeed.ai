@@ -282,6 +282,11 @@ const WORKFLOW_ACTIONS = [
     'Generate Post Draft',
     'Generates and persists one social post draft.',
   ],
+  [
+    'promptConstructor',
+    'Construct Prompt',
+    'Constructs one prompt from workflow inputs.',
+  ],
   ['postReply', 'Post Social Reply', 'Posts one social reply.'],
   [
     'proactiveAgentStrategies',
@@ -363,6 +368,11 @@ const WORKFLOW_ACTIONS = [
     'trendSummaryNotifications',
     'Send Trend Notifications',
     'Sends trend-summary notifications.',
+  ],
+  [
+    'trendTrigger',
+    'Resolve Matching Trend',
+    'Resolves one matching trend for workflow execution.',
   ],
   [
     'trendVideoInspiration',
@@ -577,6 +587,12 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'youtube-status-reconciliation',
     'YouTube Status Reconciliation',
     'Reconciles YouTube video visibility.',
+  ),
+  internalAction(
+    'workflow.collect-output',
+    'Collect Workflow Output',
+    'Collects terminal workflow inputs into one structured result.',
+    { authorization: 'user' },
   ),
 ];
 

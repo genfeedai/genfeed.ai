@@ -39,19 +39,58 @@ LANGUAGE SQL
 IMMUTABLE
 AS $$
     SELECT
-        node_type = 'genfeedAction'
-        OR node_type LIKE 'trigger-%'
-        OR node_type LIKE '%Trigger'
+        node_type LIKE 'trigger-%'
         OR node_type IN (
+            'commentTrigger',
             'condition',
             'control-branch',
             'control-delay',
             'control-loop',
             'delay',
+            'engagementTrigger',
             'input-image',
             'input-video',
-            'reviewGate'
+            'keywordTrigger',
+            'mentionTrigger',
+            'newFollowerTrigger',
+            'newLikeTrigger',
+            'newRepostTrigger',
+            'postPublishTrigger',
+            'reviewGate',
+            'workflowInput'
         );
+$$;
+
+CREATE FUNCTION workflow_node_action_id(node_type TEXT)
+RETURNS TEXT
+LANGUAGE SQL
+IMMUTABLE
+AS $$
+    SELECT CASE node_type
+        WHEN 'ai-avatar-video' THEN 'aiAvatarVideo'
+        WHEN 'ai-generate-image' THEN 'imageGen'
+        WHEN 'ai-generate-newsletter' THEN 'newsletterGen'
+        WHEN 'ai-generate-post' THEN 'postGen'
+        WHEN 'ai-lip-sync' THEN 'lipSync'
+        WHEN 'ai-llm' THEN 'llm'
+        WHEN 'ai-prompt-constructor' THEN 'promptConstructor'
+        WHEN 'ai-reframe' THEN 'reframe'
+        WHEN 'ai-text-to-speech' THEN 'textToSpeech'
+        WHEN 'ai-upscale' THEN 'upscale'
+        WHEN 'ai-voice-change' THEN 'voiceChange'
+        WHEN 'analytics-feedback' THEN 'analyticsFeedback'
+        WHEN 'attach-post-ingredient' THEN 'attachPostIngredient'
+        WHEN 'effect-color-grade' THEN 'colorGrade'
+        WHEN 'input-prompt' THEN 'prompt'
+        WHEN 'output-publish' THEN 'publish'
+        WHEN 'social-post-reply' THEN 'postReply'
+        WHEN 'social-send-dm' THEN 'sendDm'
+        WHEN 'source-corpus' THEN 'sourceCorpus'
+        WHEN 'workflow-output' THEN 'workflow.collect-output'
+        WHEN 'workflow_output' THEN 'workflow.collect-output'
+        WHEN 'workflowOutput' THEN 'workflow.collect-output'
+        ELSE node_type
+    END;
 $$;
 
 CREATE FUNCTION workflow_action_node(source_node JSONB)
@@ -60,7 +99,8 @@ LANGUAGE PLPGSQL
 IMMUTABLE
 AS $$
 DECLARE
-    action_id TEXT := source_node->>'type';
+    node_type TEXT := source_node->>'type';
+    action_id TEXT;
     node_data JSONB := COALESCE(source_node->'data', '{}'::jsonb);
     parameters JSONB := COALESCE(
         source_node->'data'->'config',
@@ -68,12 +108,37 @@ DECLARE
         '{}'::jsonb
     );
 BEGIN
-    IF action_id IS NULL OR action_id = '' THEN
+    IF node_type IS NULL OR node_type = '' THEN
         RAISE EXCEPTION 'Workflow node % has no type', source_node->>'id';
     END IF;
 
-    IF workflow_node_is_engine_native(action_id) THEN
+    IF node_type = 'workflow-input' THEN
+        RETURN jsonb_set(
+            source_node,
+            '{type}',
+            to_jsonb('workflowInput'::text),
+            true
+        );
+    END IF;
+
+    IF workflow_node_is_engine_native(node_type) THEN
         RETURN source_node;
+    END IF;
+
+    IF node_type = 'genfeedAction' THEN
+        action_id := workflow_node_action_id(
+            source_node->'data'->'config'->>'actionId'
+        );
+        parameters := COALESCE(
+            source_node->'data'->'config'->'parameters',
+            '{}'::jsonb
+        );
+    ELSE
+        action_id := workflow_node_action_id(node_type);
+    END IF;
+
+    IF action_id IS NULL OR action_id = '' THEN
+        RAISE EXCEPTION 'Workflow action node % has no actionId', source_node->>'id';
     END IF;
 
     RETURN jsonb_set(
@@ -107,7 +172,6 @@ BEGIN
         WHEN 'webhook' THEN 'output-webhook'
         WHEN 'generate-image' THEN 'imageGen'
         WHEN 'generate-video' THEN 'videoGen'
-        WHEN 'generate-music' THEN 'musicGen'
         WHEN 'generate-article' THEN 'create_article'
         WHEN 'color-grade' THEN 'colorGrade'
         WHEN 'generate-hook' THEN 'hookGenerator'
@@ -279,4 +343,5 @@ ALTER TABLE "workflows"
 
 DROP FUNCTION workflow_step_action_id(TEXT);
 DROP FUNCTION workflow_action_node(JSONB);
+DROP FUNCTION workflow_node_action_id(TEXT);
 DROP FUNCTION workflow_node_is_engine_native(TEXT);

@@ -43,4 +43,12 @@ describe('Genfeed action registry', () => {
       }),
     ).toThrow('Unknown Genfeed action: not-an-action');
   });
+
+  it('owns the shared terminal output collector definition', () => {
+    expect(getActionDefinition('workflow.collect-output')).toMatchObject({
+      authorization: 'user',
+      id: 'workflow.collect-output',
+      visibility: 'internal',
+    });
+  });
 });

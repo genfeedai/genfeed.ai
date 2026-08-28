@@ -1,20 +1,14 @@
 import type { WorkflowJson } from '@api/services/telegram-bot/telegram-bot.types';
 import { TelegramConversationService } from '@api/services/telegram-bot/telegram-conversation.service';
 import type { TelegramWorkflowRunnerService } from '@api/services/telegram-bot/telegram-workflow-runner.service';
-import type { LoggerService } from '@libs/logger/logger.service';
 import type { Context } from 'grammy';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function buildService() {
-  const logger = {
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  } as unknown as LoggerService;
   const runner = {
     execute: vi.fn(),
   } as unknown as TelegramWorkflowRunnerService;
-  return new TelegramConversationService(logger, runner);
+  return new TelegramConversationService(runner);
 }
 
 describe('TelegramConversationService', () => {
@@ -59,9 +53,8 @@ describe('TelegramConversationService', () => {
   });
 
   describe('accessors', () => {
-    it('starts with no active conversations, engine, or workflows', () => {
+    it('starts with no active conversations or workflows', () => {
       expect(service.getActiveCount()).toBe(0);
-      expect(service.hasEngine()).toBe(false);
       expect(service.workflowsLoaded()).toBe(0);
       expect(service.isExecuting(1)).toBe(false);
     });

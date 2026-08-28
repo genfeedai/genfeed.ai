@@ -63,21 +63,27 @@ const DEFAULT_ENGINE_CONFIG: EngineConfig = {
 };
 
 const ENGINE_NATIVE_NODE_TYPES = new Set([
+  'commentTrigger',
   'condition',
   'control-branch',
   'control-delay',
   'control-loop',
   'delay',
+  'engagementTrigger',
   'input-image',
   'input-video',
+  'keywordTrigger',
+  'mentionTrigger',
+  'newFollowerTrigger',
+  'newLikeTrigger',
+  'newRepostTrigger',
+  'postPublishTrigger',
   'reviewGate',
 ]);
 
 function isEngineNativeNodeType(nodeType: string): boolean {
   return (
-    ENGINE_NATIVE_NODE_TYPES.has(nodeType) ||
-    nodeType.startsWith('trigger-') ||
-    nodeType.endsWith('Trigger')
+    ENGINE_NATIVE_NODE_TYPES.has(nodeType) || nodeType.startsWith('trigger-')
   );
 }
 
@@ -647,18 +653,36 @@ export class WorkflowEngine {
             typeof sourceOutput === 'object' &&
             sourceKey in (sourceOutput as Record<string, unknown>)
           ) {
-            inputs.set(
+            this.addInput(
+              inputs,
               handleKey,
               (sourceOutput as Record<string, unknown>)[sourceKey],
             );
           } else {
-            inputs.set(handleKey, sourceOutput);
+            this.addInput(inputs, handleKey, sourceOutput);
           }
         }
       }
     }
 
     return inputs;
+  }
+
+  private addInput(
+    inputs: Map<string, unknown>,
+    handle: string,
+    value: unknown,
+  ): void {
+    if (!inputs.has(handle)) {
+      inputs.set(handle, value);
+      return;
+    }
+
+    const existing = inputs.get(handle);
+    inputs.set(
+      handle,
+      Array.isArray(existing) ? [...existing, value] : [existing, value],
+    );
   }
 
   private topologicalSort(workflow: ExecutableWorkflow): string[] {

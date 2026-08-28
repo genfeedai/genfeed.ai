@@ -1,3 +1,4 @@
+import { createTemplateActionNode } from '@server/collections/workflows/templates/template-action-node';
 import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 
 export type LivestreamBotWorkflowTemplate = WorkflowTemplate & {
@@ -15,15 +16,14 @@ export const LIVESTREAM_BOT_WORKFLOW_TEMPLATES = [
     inputVariables: [],
     name: 'Livestream Bot Session Processing',
     nodes: [
-      {
+      createTemplateActionNode('livestreamBotSessionProcessing', {
         data: {
           config: {},
           label: 'Process Livestream Sessions',
         },
         id: 'livestreamBotSessionProcessing',
         position: { x: 0, y: 120 },
-        type: 'livestreamBotSessionProcessing',
-      },
+      }),
     ],
     schedule: '*/1 * * * *',
   },
@@ -53,7 +53,7 @@ export const LIVESTREAM_BOT_WORKFLOW_TEMPLATES = [
     ],
     name: 'Restream Chat Context Ingest',
     nodes: [
-      {
+      createTemplateActionNode('restreamChatIngest', {
         data: {
           config: {},
           inputVariableKeys: ['botId', 'maxMessages'],
@@ -61,8 +61,7 @@ export const LIVESTREAM_BOT_WORKFLOW_TEMPLATES = [
         },
         id: 'restreamChatIngest',
         position: { x: 0, y: 120 },
-        type: 'restreamChatIngest',
-      },
+      }),
     ],
     schedule: '*/2 * * * *',
   },

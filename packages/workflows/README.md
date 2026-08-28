@@ -11,9 +11,9 @@ npm i @genfeedai/workflows
 ## Usage
 
 ```ts
-import { WORKFLOW_REGISTRY, getWorkflowMetadata } from '@genfeedai/workflows';
+import { WORKFLOW_REGISTRY, getWorkflow } from '@genfeedai/workflows';
 
-const meta = getWorkflowMetadata('single-image');
+const meta = getWorkflow('single-image');
 console.log(meta?.title, WORKFLOW_REGISTRY['single-image']?.slug);
 ```
 

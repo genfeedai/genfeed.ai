@@ -42,15 +42,17 @@ describe('GenerationTemplates', () => {
       (node) => node.id === 'sound-overlay',
     );
 
-    expect(avatarNode?.data.config.aspectRatio).toBe('16:9');
-    expect(captionsNode?.data.config).toMatchObject({
+    expect(avatarNode?.data.config.parameters.aspectRatio).toBe('16:9');
+    expect(captionsNode?.data.config.parameters).toMatchObject({
       fontColor: '#FFFFFF',
       fontSize: 'large',
       position: 'bottom',
       style: 'dynamic',
     });
-    expect(musicNode?.data.config.sourceType).toBe(MusicSourceType.LIBRARY);
-    expect(soundOverlayNode?.data.config).toMatchObject({
+    expect(musicNode?.data.config.parameters.sourceType).toBe(
+      MusicSourceType.LIBRARY,
+    );
+    expect(soundOverlayNode?.data.config.parameters).toMatchObject({
       audioVolume: 30,
       mixMode: 'background',
       videoVolume: 100,
@@ -93,7 +95,9 @@ describe('GenerationTemplates', () => {
       'listingTier',
     ]);
     expect(
-      template.nodes?.filter((node) => node.type === 'imageGen'),
+      template.nodes?.filter(
+        (node) => node.data.config.actionId === 'imageGen',
+      ),
     ).toHaveLength(2);
   });
 
@@ -110,7 +114,9 @@ describe('GenerationTemplates', () => {
       'stylePreset',
     ]);
     expect(
-      template.nodes?.filter((node) => node.type === 'imageGen'),
+      template.nodes?.filter(
+        (node) => node.data.config.actionId === 'imageGen',
+      ),
     ).toHaveLength(3);
     expect(template.description).toContain('layout-faithful');
   });
@@ -139,9 +145,13 @@ describe('GenerationTemplates', () => {
       'topicContext',
     ]);
     expect(
-      template.nodes?.filter((node) => node.type === 'imageGen'),
+      template.nodes?.filter(
+        (node) => node.data.config.actionId === 'imageGen',
+      ),
     ).toHaveLength(3);
-    expect(template.nodes?.some((node) => node.type === 'llm')).toBe(true);
+    expect(
+      template.nodes?.some((node) => node.data.config.actionId === 'llm'),
+    ).toBe(true);
     expect(template.edges).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

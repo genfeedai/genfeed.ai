@@ -6,9 +6,8 @@
  */
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { RunsModule } from '@api/collections/runs/runs.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
-import { FalModule } from '@api/services/integrations/fal/fal.module';
-import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { TelegramBotController } from '@api/services/telegram-bot/telegram-bot.controller';
 import { TelegramBotService } from '@api/services/telegram-bot/telegram-bot.service';
 import { ConfigModule } from '@libs/config/config.module';
@@ -21,11 +20,10 @@ import { Module } from '@nestjs/common';
   imports: [
     ApiKeysModule,
     ConfigModule,
-    FalModule,
     FilesClientModule,
     LoggerModule,
-    ReplicateModule,
     RunsModule,
+    WorkflowsModule,
   ],
   providers: [TelegramBotService],
 })

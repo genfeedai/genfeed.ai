@@ -1,3 +1,4 @@
+import { createTemplateActionNode } from '@server/collections/workflows/templates/template-action-node';
 import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 
 export type OutreachCampaignDispatchWorkflowTemplate = WorkflowTemplate & {
@@ -15,15 +16,14 @@ export const OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES = [
     inputVariables: [],
     name: 'Outreach Campaign Dispatch',
     nodes: [
-      {
+      createTemplateActionNode('outreachCampaignDispatch', {
         data: {
           config: {},
           label: 'Dispatch Active Outreach Campaigns',
         },
         id: 'outreachCampaignDispatch',
         position: { x: 0, y: 120 },
-        type: 'outreachCampaignDispatch',
-      },
+      }),
     ],
     schedule: '*/1 * * * *',
   },

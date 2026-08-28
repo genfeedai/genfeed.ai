@@ -1,3 +1,4 @@
+import { createTemplateActionNode } from '@server/collections/workflows/templates/template-action-node';
 import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 
 export type PaidCreativeResearchWorkflowTemplate = WorkflowTemplate & {
@@ -22,15 +23,14 @@ export const PAID_CREATIVE_RESEARCH_WORKFLOW_TEMPLATES = [
     id: 'paid-creative-research-ingestion',
     name: 'Competitor Ad Research',
     nodes: [
-      {
+      createTemplateActionNode('paidCreativeResearchIngestion', {
         data: {
           config: {},
           label: 'Ingest Competitor Ads',
         },
         id: 'paidCreativeResearchIngestion',
         position: { x: 0, y: 120 },
-        type: 'paidCreativeResearchIngestion',
-      },
+      }),
     ],
     schedule: '0 6 * * *',
   },

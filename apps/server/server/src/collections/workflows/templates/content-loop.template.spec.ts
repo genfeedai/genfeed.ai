@@ -65,17 +65,21 @@ describe('CONTENT_LOOP_TEMPLATE', () => {
 
   it('keeps prompt and publish steps dependent on analytics feedback', () => {
     expect(
-      CONTENT_LOOP_TEMPLATE.steps.find((step) => step.id === 'step-prompt')
-        ?.dependsOn,
-    ).toEqual(['step-analytics-feedback', 'step-trend-trigger']);
+      CONTENT_LOOP_TEMPLATE.edges?.filter(
+        (edge) => edge.target === 'prompt-constructor',
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: 'analytics-feedback' }),
+        expect.objectContaining({ source: 'trend-trigger' }),
+      ]),
+    );
+    const promptConfig = CONTENT_LOOP_TEMPLATE.nodes?.find(
+      (node) => node.id === 'prompt-constructor',
+    )?.data.config;
     expect(
-      CONTENT_LOOP_TEMPLATE.steps.find((step) => step.id === 'step-publish')
-        ?.dependsOn,
-    ).toEqual(['step-analytics-feedback', 'step-generate']);
-    expect(
-      CONTENT_LOOP_TEMPLATE.nodes?.find(
-        (node) => node.id === 'prompt-constructor',
-      )?.data.config.template,
+      (promptConfig?.parameters as Record<string, unknown> | undefined)
+        ?.template,
     ).toBe(CONTENT_LOOP_PROMPT_TEMPLATE);
   });
 

@@ -1,4 +1,5 @@
 import { MusicSourceType } from '@genfeedai/enums';
+import { createTemplateActionNode } from '@server/collections/workflows/templates/template-action-node';
 
 export const AVATAR_UGC_X_LANDSCAPE_WORKFLOW_TEMPLATE = {
   category: 'generation',
@@ -144,7 +145,7 @@ export const AVATAR_UGC_X_LANDSCAPE_WORKFLOW_TEMPLATE = {
       position: { x: 0, y: 420 },
       type: 'workflowInput',
     },
-    {
+    createTemplateActionNode('aiAvatarVideo', {
       data: {
         config: {
           aspectRatio: '16:9',
@@ -155,9 +156,8 @@ export const AVATAR_UGC_X_LANDSCAPE_WORKFLOW_TEMPLATE = {
       },
       id: 'ai-avatar-video',
       position: { x: 320, y: 180 },
-      type: 'ai-avatar-video',
-    },
-    {
+    }),
+    createTemplateActionNode('effect-captions', {
       data: {
         config: {
           fontColor: '#FFFFFF',
@@ -169,9 +169,8 @@ export const AVATAR_UGC_X_LANDSCAPE_WORKFLOW_TEMPLATE = {
       },
       id: 'effect-captions',
       position: { x: 620, y: 180 },
-      type: 'effect-captions',
-    },
-    {
+    }),
+    createTemplateActionNode('musicSource', {
       data: {
         config: {
           libraryCategory: 'cinematic',
@@ -182,9 +181,8 @@ export const AVATAR_UGC_X_LANDSCAPE_WORKFLOW_TEMPLATE = {
       },
       id: 'music-source',
       position: { x: 620, y: 360 },
-      type: 'musicSource',
-    },
-    {
+    }),
+    createTemplateActionNode('soundOverlay', {
       data: {
         config: {
           audioVolume: 30,
@@ -197,9 +195,8 @@ export const AVATAR_UGC_X_LANDSCAPE_WORKFLOW_TEMPLATE = {
       },
       id: 'sound-overlay',
       position: { x: 940, y: 220 },
-      type: 'soundOverlay',
-    },
-    {
+    }),
+    createTemplateActionNode('workflow.collect-output', {
       data: {
         config: {
           outputName: 'video',
@@ -208,7 +205,6 @@ export const AVATAR_UGC_X_LANDSCAPE_WORKFLOW_TEMPLATE = {
       },
       id: 'workflow-output-video',
       position: { x: 1240, y: 220 },
-      type: 'workflowOutput',
-    },
+    }),
   ],
 } as const;

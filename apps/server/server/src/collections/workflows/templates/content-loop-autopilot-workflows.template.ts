@@ -1,3 +1,4 @@
+import { createTemplateActionNode } from '@server/collections/workflows/templates/template-action-node';
 import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 
 export type ContentLoopAutopilotWorkflowTemplate = WorkflowTemplate & {
@@ -32,18 +33,16 @@ export const CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES = [
     id: 'content-loop-autopilot',
     name: 'Content Loop Autopilot',
     nodes: [
-      {
+      createTemplateActionNode('analyticsGenericSync', {
         data: { config: {}, label: 'Sync Analytics' },
         id: 'analyticsGenericSync',
         position: { x: 0, y: 120 },
-        type: 'analyticsGenericSync',
-      },
-      {
+      }),
+      createTemplateActionNode('harnessWinnerPromotionSweep', {
         data: { config: {}, label: 'Promote Top Performers' },
         id: 'harnessWinnerPromotionSweep',
         position: { x: 360, y: 120 },
-        type: 'harnessWinnerPromotionSweep',
-      },
+      }),
     ],
     schedule: '0 8 * * *',
   },

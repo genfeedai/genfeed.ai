@@ -3,16 +3,16 @@ import { RunsService } from '@api/collections/runs/services/runs.service';
 import { TelegramBotService } from '@api/services/telegram-bot/telegram-bot.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { FalService } from '@server/services/integrations/fal/services/fal.service';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import type { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('TelegramBotService', () => {
   let service: TelegramBotService;
   let configService: ConfigService;
   let logger: LoggerService;
-  let replicateService: ReplicateService;
-  let falService: FalService;
+  let systemWorkflowRunner: SystemWorkflowRunnerService;
+  let prisma: PrismaService;
   let runsService: RunsService;
   let apiKeysService: ApiKeysService;
 
@@ -38,13 +38,11 @@ describe('TelegramBotService', () => {
       warn: vi.fn(),
     } as unknown as LoggerService;
 
-    replicateService = {
-      runPrediction: vi.fn(),
-    } as unknown as ReplicateService;
-
-    falService = {
-      generateImage: vi.fn(),
-    } as unknown as FalService;
+    systemWorkflowRunner = {
+      registerWorkflow: vi.fn(),
+      runWorkflow: vi.fn(),
+    } as unknown as SystemWorkflowRunnerService;
+    prisma = {} as PrismaService;
 
     runsService = {
       createRun: vi.fn(),
@@ -55,12 +53,11 @@ describe('TelegramBotService', () => {
       validateApiKey: vi.fn(),
     } as unknown as ApiKeysService;
 
-    // Constructor signature: (configService, loggerService, replicateService, falService?, runsService?, apiKeysService?)
     service = new TelegramBotService(
       configService,
       logger,
-      replicateService,
-      falService,
+      systemWorkflowRunner,
+      prisma,
       runsService,
       apiKeysService,
     );
@@ -90,7 +87,8 @@ describe('TelegramBotService', () => {
       const serviceWithoutOptionals = new TelegramBotService(
         configService,
         logger,
-        replicateService,
+        systemWorkflowRunner,
+        prisma,
       );
       expect(serviceWithoutOptionals).toBeDefined();
     });
@@ -142,8 +140,7 @@ describe('TelegramBotService', () => {
     it('should have workflow execution capabilities', () => {
       // The service depends on runs service for workflow execution
       expect(runsService).toBeDefined();
-      expect(replicateService).toBeDefined();
-      expect(falService).toBeDefined();
+      expect(systemWorkflowRunner).toBeDefined();
     });
   });
 
@@ -157,7 +154,8 @@ describe('TelegramBotService', () => {
       const newService = new TelegramBotService(
         configService,
         logger,
-        replicateService,
+        systemWorkflowRunner,
+        prisma,
       );
       expect(newService).toBeDefined();
     });

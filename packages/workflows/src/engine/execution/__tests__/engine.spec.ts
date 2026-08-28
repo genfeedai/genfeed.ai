@@ -273,6 +273,31 @@ describe('WorkflowEngine', () => {
 
       expect(capturedInputs[0].get('keywords')).toEqual(['ai tools']);
     });
+
+    it('collects repeated target handles into an ordered array', async () => {
+      const targetExecutor: NodeExecutor = vi.fn(async (_node, inputs) => ({
+        videos: inputs.get('videos'),
+      }));
+      engine.registerExecutor('stitch', targetExecutor);
+
+      const workflow = makeWorkflow(
+        [
+          makeNode('source-1', 'generate'),
+          makeNode('source-2', 'upscale'),
+          makeNode('target', 'stitch'),
+        ],
+        [
+          makeEdge('source-1', 'target', { targetHandle: 'videos' }),
+          makeEdge('source-2', 'target', { targetHandle: 'videos' }),
+        ],
+      );
+
+      const result = await engine.execute(workflow);
+
+      expect(result.nodeResults.get('target')?.output).toEqual({
+        videos: [{ result: 'ok' }, { result: 'ok' }],
+      });
+    });
   });
 
   describe('execute — failure handling', () => {

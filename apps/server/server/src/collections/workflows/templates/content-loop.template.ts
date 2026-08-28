@@ -1,4 +1,5 @@
 import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { createTemplateActionNode } from '@server/collections/workflows/templates/template-action-node';
 import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 
 export const CONTENT_LOOP_PROMPT_TEMPLATE =
@@ -112,19 +113,17 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
   ],
   name: 'Content Loop',
   nodes: [
-    {
+    createTemplateActionNode('analyticsFeedback', {
       data: { config: { topN: 5, worstN: 3 }, label: 'Analytics Feedback' },
       id: 'analytics-feedback',
       position: { x: 0, y: 0 },
-      type: 'analytics-feedback',
-    },
-    {
+    }),
+    createTemplateActionNode('brandContext', {
       data: { config: {}, label: 'Brand Context' },
       id: 'brand-context',
       position: { x: 0, y: 200 },
-      type: 'brandContext',
-    },
-    {
+    }),
+    createTemplateActionNode('trendTrigger', {
       data: {
         config: {
           checkFrequency: '6hr',
@@ -137,9 +136,8 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       },
       id: 'trend-trigger',
       position: { x: 400, y: 0 },
-      type: 'trendTrigger',
-    },
-    {
+    }),
+    createTemplateActionNode('promptConstructor', {
       data: {
         config: {
           includeHashtags: true,
@@ -151,9 +149,8 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       },
       id: 'prompt-constructor',
       position: { x: 800, y: 100 },
-      type: 'ai-prompt-constructor',
-    },
-    {
+    }),
+    createTemplateActionNode('llm', {
       data: {
         config: {
           maxTokens: 1024,
@@ -164,9 +161,8 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       },
       id: 'text-gen',
       position: { x: 1200, y: 100 },
-      type: 'ai-llm',
-    },
-    {
+    }),
+    createTemplateActionNode('publish', {
       data: {
         config: {
           platforms: {
@@ -184,7 +180,6 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       },
       id: 'publish',
       position: { x: 1600, y: 100 },
-      type: 'output-publish',
-    },
+    }),
   ],
 };

@@ -1,4 +1,5 @@
 import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { createTemplateActionNode } from '@server/collections/workflows/templates/template-action-node';
 import type {
   ProductizedRoutineMetadata,
   WorkflowTemplate,
@@ -92,7 +93,7 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
     isScheduleEnabled: true,
     name: 'Daily Trend Loop',
     nodes: [
-      {
+      createTemplateActionNode('trendDigest', {
         data: {
           config: {
             minViralScore: 70,
@@ -103,8 +104,7 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
         },
         id: 'trend-digest',
         position: { x: 0, y: 120 },
-        type: 'trendDigest',
-      },
+      }),
       {
         data: {
           config: DAILY_REVIEW_DEFAULTS,
@@ -114,16 +114,15 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
         position: { x: 360, y: 120 },
         type: 'reviewGate',
       },
-      {
+      createTemplateActionNode('sendEmail', {
         data: {
           config: {},
           label: 'Email Approved Digest',
         },
         id: 'send-approved-digest',
         position: { x: 720, y: 120 },
-        type: 'sendEmail',
-      },
-      {
+      }),
+      createTemplateActionNode('workflow.collect-output', {
         data: {
           config: {
             outputName: 'trendBrief',
@@ -132,8 +131,7 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
         },
         id: 'workflow-output-trend-brief',
         position: { x: 1080, y: 120 },
-        type: 'workflow-output',
-      },
+      }),
     ],
     edges: [
       {
@@ -254,7 +252,7 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
         },
         id: 'workflow-input-release-name',
         position: { x: 0, y: 40 },
-        type: 'workflow-input',
+        type: 'workflowInput',
       },
       {
         data: {
@@ -267,7 +265,7 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
         },
         id: 'workflow-input-audience',
         position: { x: 0, y: 180 },
-        type: 'workflow-input',
+        type: 'workflowInput',
       },
       {
         data: {
@@ -280,9 +278,9 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
         },
         id: 'workflow-input-release-notes',
         position: { x: 0, y: 320 },
-        type: 'workflow-input',
+        type: 'workflowInput',
       },
-      {
+      createTemplateActionNode('promptConstructor', {
         data: {
           config: {
             template:
@@ -293,9 +291,8 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
         },
         id: 'prompt-constructor-release-loop',
         position: { x: 360, y: 180 },
-        type: 'ai-prompt-constructor',
-      },
-      {
+      }),
+      createTemplateActionNode('llm', {
         data: {
           config: {
             maxTokens: 1400,
@@ -306,8 +303,7 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
         },
         id: 'llm-release-assets',
         position: { x: 720, y: 180 },
-        type: 'llm',
-      },
+      }),
       {
         data: {
           config: DAILY_REVIEW_DEFAULTS,
@@ -317,7 +313,7 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
         position: { x: 1080, y: 180 },
         type: 'reviewGate',
       },
-      {
+      createTemplateActionNode('workflow.collect-output', {
         data: {
           config: {
             outputName: 'releaseAssets',
@@ -326,8 +322,7 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
         },
         id: 'workflow-output-release-assets',
         position: { x: 1440, y: 180 },
-        type: 'workflow-output',
-      },
+      }),
     ],
     edges: [
       {

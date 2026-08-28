@@ -85,8 +85,7 @@ export type TelegramWorkflowName =
   | 'image-series'
   | 'image-to-video'
   | 'single-image'
-  | 'single-video'
-  | 'ugc-factory';
+  | 'single-video';
 
 export interface ReplicatePredictionResult {
   status?: string;

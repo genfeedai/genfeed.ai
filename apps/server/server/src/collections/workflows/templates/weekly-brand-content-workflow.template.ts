@@ -1,4 +1,5 @@
 import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { createTemplateActionNode } from '@server/collections/workflows/templates/template-action-node';
 import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 
 export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
@@ -43,7 +44,7 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
   isScheduleEnabled: false,
   name: 'Weekly Brand AI Content Loop',
   nodes: [
-    {
+    createTemplateActionNode('sourceCorpus', {
       data: {
         config: { brandId: '', days: 7, limit: 50 },
         inputVariableKeys: ['brandId'],
@@ -51,9 +52,8 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'source-corpus',
       position: { x: 0, y: 220 },
-      type: 'source-corpus',
-    },
-    {
+    }),
+    createTemplateActionNode('promptConstructor', {
       data: {
         config: {
           template:
@@ -64,9 +64,8 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'prompt-thesis-brief',
       position: { x: 360, y: 220 },
-      type: 'ai-prompt-constructor',
-    },
-    {
+    }),
+    createTemplateActionNode('llm', {
       data: {
         config: {
           maxTokens: 1800,
@@ -77,9 +76,8 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'llm-thesis-brief',
       position: { x: 720, y: 220 },
-      type: 'ai-llm',
-    },
-    {
+    }),
+    createTemplateActionNode('newsletterGen', {
       data: {
         config: {
           brandId: '',
@@ -94,9 +92,8 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'newsletter-draft',
       position: { x: 1080, y: 60 },
-      type: 'ai-generate-newsletter',
-    },
-    {
+    }),
+    createTemplateActionNode('promptConstructor', {
       data: {
         config: {
           template:
@@ -107,9 +104,8 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'prompt-x-post',
       position: { x: 1080, y: 380 },
-      type: 'ai-prompt-constructor',
-    },
-    {
+    }),
+    createTemplateActionNode('postGen', {
       data: {
         config: {
           brandId: '',
@@ -129,9 +125,8 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'x-post-draft',
       position: { x: 1440, y: 380 },
-      type: 'ai-generate-post',
-    },
-    {
+    }),
+    createTemplateActionNode('promptConstructor', {
       data: {
         config: {
           template:
@@ -142,9 +137,8 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'prompt-image',
       position: { x: 1800, y: 380 },
-      type: 'ai-prompt-constructor',
-    },
-    {
+    }),
+    createTemplateActionNode('llm', {
       data: {
         config: {
           maxTokens: 500,
@@ -155,9 +149,8 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'llm-image-prompt',
       position: { x: 2160, y: 380 },
-      type: 'ai-llm',
-    },
-    {
+    }),
+    createTemplateActionNode('imageGen', {
       data: {
         config: {
           brandId: '',
@@ -171,9 +164,8 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'image-ingredient',
       position: { x: 2520, y: 380 },
-      type: 'ai-generate-image',
-    },
-    {
+    }),
+    createTemplateActionNode('attachPostIngredient', {
       data: {
         config: { brandId: '' },
         inputVariableKeys: ['brandId'],
@@ -181,17 +173,15 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'attach-image-to-post',
       position: { x: 2880, y: 380 },
-      type: 'attach-post-ingredient',
-    },
-    {
+    }),
+    createTemplateActionNode('workflow.collect-output', {
       data: {
         config: { outputName: 'weeklyBrandContent' },
         label: 'Weekly Content Output',
       },
       id: 'workflow-output-weekly-content',
       position: { x: 3240, y: 380 },
-      type: 'workflow-output',
-    },
+    }),
   ],
   edges: [
     {
