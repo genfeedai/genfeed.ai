@@ -1,11 +1,11 @@
-import { BATCH_MAX_RESUME_ATTEMPTS } from '@server/services/batch-generation/batch-generation.constants';
-import { CreditReservationService } from '@server/collections/credits/services/credit-reservation.service';
-import { BatchGenerationCreditsService } from '@server/services/batch-generation/batch-generation-credits.service';
-import { BatchGenerationReconcileService } from '@server/services/batch-generation/batch-generation-reconcile.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BatchItemStatus, BatchStatus, ContentFormat } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { CreditReservationService } from '@server/collections/credits/services/credit-reservation.service';
+import { BATCH_MAX_RESUME_ATTEMPTS } from '@server/services/batch-generation/batch-generation.constants';
+import { BatchGenerationCreditsService } from '@server/services/batch-generation/batch-generation-credits.service';
+import { BatchGenerationReconcileService } from '@server/services/batch-generation/batch-generation-reconcile.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type CreditReservationServiceMock = {
