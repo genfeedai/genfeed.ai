@@ -1639,13 +1639,17 @@ export const GENERATION_WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         position: { x: 0, y: 0 },
         data: {
           label: 'Generate Quote',
+          inputVariableKeys: ['brandId'],
           config: {
-            actionId: 'create_article',
+            actionId: 'workflow.run-child',
             parameters: {
-              length: 'short',
-              model: 'gpt-4-turbo-preview',
-              tone: 'inspirational',
-              topic: 'motivational quote',
+              childWorkflowId: 'article.generation',
+              dto: {
+                count: 1,
+                prompt: 'Write one original motivational quote',
+                targetWordCount: 2500,
+                tone: 'inspirational',
+              },
             },
           },
         },
@@ -1925,17 +1929,20 @@ export const GENERATION_WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         position: { x: 0, y: 0 },
         data: {
           label: 'Generate AI Article',
+          inputVariableKeys: ['brandId'],
           config: {
-            actionId: 'create_article',
+            actionId: 'workflow.run-child',
             parameters: {
-              includeImages: true,
-              keywords: [],
-              length: 'medium', // short, medium, long
-              model: 'gpt-4-turbo-preview',
-              seoOptimized: true,
-              tone: 'professional',
-              // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-              topic: '${topic}',
+              childWorkflowId: 'article.generation',
+              dto: {
+                count: 1,
+                generateHeaderImage: true,
+                keywords: [],
+                // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
+                prompt: '${topic}',
+                targetWordCount: 4000,
+                tone: 'professional',
+              },
             },
           },
         },
