@@ -102,7 +102,9 @@ test.describe('Agents — Content Team', () => {
     ).toBeVisible();
     await expect(authenticatedPage.getByText('Growth Autopilot')).toBeVisible();
   });
+});
 
+test.describe('Agents — Content Team — Unauthenticated Access', () => {
   test('unauthenticated user is redirected from content team routes', async ({
     unauthenticatedPage,
   }) => {
@@ -111,7 +113,9 @@ test.describe('Agents — Content Team', () => {
     await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.ROOT, {
       waitUntil: 'domcontentloaded',
     });
-    await unauthenticatedPage.waitForURL(/\/login/, { timeout: 15000 });
-    expect(unauthenticatedPage.url()).toMatch(/\/login/);
+    await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
+      timeout: 15000,
+    });
+    expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
   });
 });
