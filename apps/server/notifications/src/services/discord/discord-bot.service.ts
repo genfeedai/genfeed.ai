@@ -36,7 +36,9 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit(): Promise<void> {
     if (!this.configService.isDiscordEnabled()) {
       this.loggerService.warn(
-        'Discord bot not configured - notifications disabled',
+        this.configService.isDevelopment
+          ? 'Discord bot disabled for local development (set GF_DEV_ENABLE_DISCORD=true to enable)'
+          : 'Discord bot not configured - notifications disabled',
       );
       return;
     }
