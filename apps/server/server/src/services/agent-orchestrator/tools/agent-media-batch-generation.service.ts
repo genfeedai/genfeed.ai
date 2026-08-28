@@ -453,11 +453,21 @@ export class AgentMediaBatchGenerationService {
     let streamedTranscript =
       `Creating ${execution.batch.totalCount} ${execution.platformLabel} post${execution.batch.totalCount === 1 ? '' : 's'}. ` +
       'I will stream each draft as soon as it is ready.';
-    await this.publishBatchStarted(
-      streamedTranscript,
-      execution.batch.totalCount,
-      streamContext,
-    );
+    try {
+      await this.publishBatchStarted(
+        streamedTranscript,
+        execution.batch.totalCount,
+        streamContext,
+      );
+    } catch (error: unknown) {
+      // Streaming failed before processing claimed the batch. Hand it to the
+      // durable queue so the recorded reservation still has an execution owner.
+      this.loggerService.warn(
+        `${this.logContext} batch stream unavailable; using durable execution`,
+        { batchId: execution.batchId, error },
+      );
+      return this.queueOrRunBatch(execution, ctx);
+    }
 
     const summary = await this.batchGenerationService.processBatch(
       execution.batchId,
@@ -742,13 +752,28 @@ export class AgentMediaBatchGenerationService {
     execution: BatchExecution,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const queuedJobId = await this.batchGenerationQueueService?.queueBatch({
-      batchId: execution.batchId,
-      organizationId: ctx.organizationId,
-      runId: ctx.runId,
-      threadId: ctx.threadId,
-      userId: ctx.userId,
-    });
+    let queuedJobId: string | null | undefined;
+    try {
+      queuedJobId = await this.batchGenerationQueueService?.queueBatch({
+        batchId: execution.batchId,
+        organizationId: ctx.organizationId,
+        runId: ctx.runId,
+        threadId: ctx.threadId,
+        userId: ctx.userId,
+      });
+    } catch (error: unknown) {
+      // BatchGenerationQueueService only rejects before it records durable
+      // ownership. No worker can race this compensation path.
+      await this.compensateFailedBatchHandoff(execution.batchId, ctx);
+      return {
+        creditsUsed: 0,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Batch generation could not be started',
+        success: false,
+      };
+    }
     if (!queuedJobId) {
       // #2501: the queue owns durable execution. Only self-hosted deployments
       // without a queue fall back to the legacy in-process path.
@@ -772,6 +797,36 @@ export class AgentMediaBatchGenerationService {
       isBillingDelegated: true,
       success: true,
     };
+  }
+
+  private async compensateFailedBatchHandoff(
+    batchId: string,
+    ctx: ToolExecutionContext,
+  ): Promise<void> {
+    try {
+      await this.batchGenerationService?.cancelBatch(
+        batchId,
+        ctx.organizationId,
+      );
+    } catch (cancelError: unknown) {
+      this.loggerService.warn(
+        `${this.logContext} failed to cancel a batch without execution ownership`,
+        { batchId, cancelError, organizationId: ctx.organizationId },
+      );
+    }
+
+    try {
+      await this.batchCreditsService?.settleBatchCredits({
+        batchId,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+      });
+    } catch (settlementError: unknown) {
+      this.loggerService.warn(
+        `${this.logContext} failed to release a batch reservation after hand-off failure`,
+        { batchId, organizationId: ctx.organizationId, settlementError },
+      );
+    }
   }
 
   private runBatchInProcess(context: {

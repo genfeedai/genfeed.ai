@@ -1,11 +1,11 @@
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { BatchGenerationCreditsService } from '@server/services/batch-generation/batch-generation-credits.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { chargeBatchGenerationCredits } from '@genfeedai/constants';
 import { BatchItemStatus, ContentFormat } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as Sentry from '@sentry/nestjs';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { BatchGenerationCreditsService } from '@server/services/batch-generation/batch-generation-credits.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@sentry/nestjs', () => ({
@@ -172,6 +172,45 @@ describe('BatchGenerationCreditsService', () => {
       reservationId: 'reservation-1',
       reservationSettledAt: expect.any(String),
     });
+  });
+
+  it('settles the held estimate and collects media overage idempotently', async () => {
+    const completedMediaItem = { ...completedItem, mediaUrl: 'media.jpg' };
+    const landedCredits = chargeBatchGenerationCredits(
+      [{ format: ContentFormat.IMAGE, hasMedia: true }],
+      PINNED_PRICING,
+    );
+    batchDelegate.findFirst.mockResolvedValue(
+      batchWith({
+        chargedCredits: ONE_DRAFT,
+        items: [completedMediaItem],
+        reservationId: 'reservation-1',
+      }),
+    );
+
+    const settlement = await settle();
+
+    expect(settlement).toMatchObject({
+      additionalCredits: landedCredits - ONE_DRAFT,
+      settledCredits: landedCredits,
+    });
+    expect(creditsUtilsService.settleReservation).toHaveBeenCalledWith(
+      expect.objectContaining({ actualAmount: ONE_DRAFT }),
+    );
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      landedCredits - ONE_DRAFT,
+      expect.any(String),
+      expect.anything(),
+      expect.objectContaining({
+        referenceId: 'batch-1:1',
+        referenceType: 'batch-generation:settlement',
+      }),
+    );
+    expect(writtenConfig().credits.chargedCredits).toBe(landedCredits);
   });
 
   it('releases the reservation when a batch produces no usable drafts', async () => {

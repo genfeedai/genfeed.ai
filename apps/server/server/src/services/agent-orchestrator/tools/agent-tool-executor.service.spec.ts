@@ -411,6 +411,7 @@ describe('AgentToolExecutorService', () => {
     };
     const batchCreditsService = {
       recordUpfrontCharge: vi.fn().mockResolvedValue(true),
+      settleBatchCredits: vi.fn().mockResolvedValue({ settledCredits: 0 }),
     };
     const streamPublisher = {
       publishDone: vi.fn().mockResolvedValue(undefined),

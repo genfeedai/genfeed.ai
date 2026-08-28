@@ -8,8 +8,7 @@
  * redelivers it — and the batch's own row records that it was handed over, so
  * the reconciliation sweep can recover an enqueue that never landed.
  */
-import type { BatchConfig } from '@server/services/batch-generation/batch-generation.types';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+
 import { ActionOrigin } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import {
@@ -26,6 +25,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Optional } from '@nestjs/common';
+import type { BatchConfig } from '@server/services/batch-generation/batch-generation.types';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { Queue } from 'bullmq';
 
 /** One job per batch, so a redelivery or a resume never forks a second run. */
@@ -71,10 +72,23 @@ export class BatchGenerationQueueService {
       ),
     };
 
-    const reservation = await reserveIdempotentJob(
-      this.batchGenerationQueue,
-      jobId,
-    );
+    let reservation: Awaited<ReturnType<typeof reserveIdempotentJob>>;
+    try {
+      reservation = await reserveIdempotentJob(
+        this.batchGenerationQueue,
+        jobId,
+      );
+    } catch (error: unknown) {
+      // Redis could have accepted this deterministic job before the lookup
+      // failed. Persist recovery ownership before reporting it accepted.
+      await this.markBatchQueued(data.batchId, data.organizationId);
+      this.logger.warn(
+        `${url} queue lookup deferred to stranded-batch recovery`,
+        { batchId: data.batchId, error, jobId },
+      );
+      return jobId;
+    }
+
     if (reservation.alreadyQueued) {
       this.logger.warn(
         `${url} batch ${data.batchId} already queued (${reservation.state})`,
@@ -82,25 +96,41 @@ export class BatchGenerationQueueService {
       return jobId;
     }
 
+    // Persist ownership before `add`. Any error after this point is recoverable
+    // by the stranded-batch sweep, so the caller must retain the reservation.
     await this.markBatchQueued(data.batchId, data.organizationId);
 
-    const job = await this.batchGenerationQueue.add('process-batch', payload, {
-      // One attempt: the processor is the retry boundary. A batch that dies
-      // mid-run is re-claimed by the resume path, which skips items already
-      // persisted — replaying the whole job instead would regenerate them.
-      attempts: 1,
-      jobId,
-      removeOnComplete: 100,
-      removeOnFail: 50,
-    });
+    try {
+      const job = await this.batchGenerationQueue.add(
+        'process-batch',
+        payload,
+        {
+          // One attempt: the processor is the retry boundary. A batch that dies
+          // mid-run is re-claimed by the resume path, which skips items already
+          // persisted — replaying the whole job instead would regenerate them.
+          attempts: 1,
+          jobId,
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+      );
 
-    this.logger.log(`${url} queued batch generation`, {
-      batchId: data.batchId,
-      isResume: data.isResume === true,
-      jobId: job.id,
-    });
+      this.logger.log(`${url} queued batch generation`, {
+        batchId: data.batchId,
+        isResume: data.isResume === true,
+        jobId: job.id,
+      });
 
-    return job.id ?? jobId;
+      return job.id ?? jobId;
+    } catch (error: unknown) {
+      // `queuedAt` is already durable. Returning the deterministic id reports
+      // accepted ownership while the sweep retries the Redis hand-off.
+      this.logger.warn(
+        `${url} queue hand-off deferred to stranded-batch recovery`,
+        { batchId: data.batchId, error, jobId },
+      );
+      return jobId;
+    }
   }
 
   /** Record the hand-off on the batch row so the sweep can see it. */

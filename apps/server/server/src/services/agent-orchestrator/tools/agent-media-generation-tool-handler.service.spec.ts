@@ -3,6 +3,7 @@ import { AgentMediaAssetGenerationService } from '@server/services/agent-orchest
 import { AgentMediaBatchGenerationService } from '@server/services/agent-orchestrator/tools/agent-media-batch-generation.service';
 import { AgentMediaGenerationToolHandler } from '@server/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMediaTextGenerationService } from '@server/services/agent-orchestrator/tools/agent-media-text-generation.service';
+import { Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
 function createHandler() {
@@ -1035,6 +1036,86 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     );
     // Settlement is deferred to the worker on the async path.
     expect(batchCreditsService.settleBatchCredits).not.toHaveBeenCalled();
+  });
+
+  it('cancels and releases when durable queue ownership cannot be recorded', async () => {
+    const {
+      batchCreditsService,
+      batchGenerationQueueService,
+      batchGenerationService,
+      handler,
+    } = createBatchHandler();
+    batchGenerationQueueService.queueBatch.mockRejectedValue(
+      new Error('database unavailable'),
+    );
+    batchCreditsService.settleBatchCredits.mockResolvedValue({
+      settledCredits: 0,
+    });
+
+    const result = await handler.generateContentBatch(
+      { brandId: 'brand-1', count: 3, platforms: ['instagram'] },
+      context,
+    );
+
+    expect(result).toEqual({
+      creditsUsed: 0,
+      error: 'database unavailable',
+      success: false,
+    });
+    expect(batchGenerationService.cancelBatch).toHaveBeenCalledWith(
+      'batch-1',
+      'organization-1',
+    );
+    expect(batchCreditsService.settleBatchCredits).toHaveBeenCalledWith({
+      batchId: 'batch-1',
+      organizationId: 'organization-1',
+      userId: 'user-1',
+    });
+  });
+
+  it('hands a batch to durable execution when streaming fails before processing', async () => {
+    const processBatch = vi.fn();
+    const queueBatch = vi.fn().mockResolvedValue('job-stream-fallback');
+    const publishTokenEffect = vi.fn(() =>
+      Effect.fail(new Error('stream unavailable')),
+    );
+    const batchOwner = new AgentMediaBatchGenerationService(
+      { error: vi.fn(), warn: vi.fn() } as never,
+      {} as never,
+      {
+        cancelBatch: vi.fn(),
+        createBatch: vi.fn().mockResolvedValue({
+          id: 'batch-stream-1',
+          status: 'PENDING',
+          totalCount: 2,
+        }),
+        processBatch,
+      } as never,
+      undefined,
+      { publishTokenEffect } as never,
+      {
+        reserveCredits: vi.fn().mockResolvedValue({ id: 'res-stream' }),
+      } as never,
+      { recordUpfrontCharge: vi.fn().mockResolvedValue(true) } as never,
+      undefined,
+      { queueBatch } as never,
+    );
+
+    const result = await batchOwner.generateContentBatch(
+      { brandId: 'brand-1', count: 2, platforms: ['instagram'] },
+      {
+        ...context,
+        streamBatchToUser: true,
+        threadId: 'thread-1',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(publishTokenEffect).toHaveBeenCalledOnce();
+    expect(processBatch).not.toHaveBeenCalled();
+    expect(queueBatch).toHaveBeenCalledWith(
+      expect.objectContaining({ batchId: 'batch-stream-1' }),
+    );
   });
 
   it('releases the hold and cancels when the reservation ledger cannot be pinned', async () => {

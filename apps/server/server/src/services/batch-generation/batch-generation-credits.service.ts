@@ -186,8 +186,14 @@ export class BatchGenerationCreditsService {
         }
 
         if (settledCredits > 0) {
+          // A reservation may only settle up to its held amount. Batch pricing
+          // starts caption-only, so media attached during processing can make
+          // the final cost higher. Settle the hold itself, then collect the
+          // reviewed overage through the existing idempotent shortfall path.
+          const reservationSettlement =
+            additionalCredits > 0 ? alreadyCharged : settledCredits;
           await this.creditsUtilsService.settleReservation({
-            actualAmount: settledCredits,
+            actualAmount: reservationSettlement,
             actorUserId: params.userId,
             description: `Batch generation ${params.batchId} settlement`,
             organizationId: params.organizationId,
@@ -202,6 +208,7 @@ export class BatchGenerationCreditsService {
         }
 
         const reservationSettledAt = new Date().toISOString();
+        const settlementSeq = (config.credits.settlementSeq ?? 0) + 1;
         const reservationLedger: BatchCreditsLedger = {
           ...config.credits,
           chargedCredits: settledCredits,
@@ -209,7 +216,7 @@ export class BatchGenerationCreditsService {
             (config.credits.refundedCredits ?? 0) + refundCredits,
           reservationSettledAt,
           settledAt: reservationSettledAt,
-          settlementSeq: (config.credits.settlementSeq ?? 0) + 1,
+          settlementSeq,
         };
         const reservationConfig: BatchConfig = {
           ...config,
@@ -229,8 +236,19 @@ export class BatchGenerationCreditsService {
           continue;
         }
 
+        if (additionalCredits > 0) {
+          await this.moveSettlementCredits({
+            additionalCredits,
+            batchId: params.batchId,
+            organizationId: params.organizationId,
+            refundCredits: 0,
+            settlementSeq,
+            userId: params.userId,
+          });
+        }
+
         return {
-          additionalCredits: 0,
+          additionalCredits,
           isAlreadySettled: false,
           refundCredits,
           settledCredits,
