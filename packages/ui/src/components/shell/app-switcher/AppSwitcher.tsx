@@ -551,6 +551,17 @@ export function AppSwitcher({
   });
   const activeApp = apps.find((app) => app.itemKey === activeItemKey);
   const previewApp = apps.find((app) => app.itemKey === previewAppKey) ?? null;
+  const previewRowIndex = previewApp
+    ? Math.floor(
+        apps.findIndex((app) => app.itemKey === previewApp.itemKey) / 3,
+      )
+    : 0;
+  const previewRowTopClass = [
+    'top-[3.375rem]',
+    'top-[8.25rem]',
+    'top-[13.125rem]',
+    'top-[18rem]',
+  ][previewRowIndex];
   const PreviewIcon = previewApp
     ? (APP_SWITCHER_ICON_OVERRIDES[previewApp.itemKey] ?? previewApp.icon)
     : null;
@@ -616,22 +627,23 @@ export function AppSwitcher({
         {previewApp && PreviewIcon ? (
           <div
             aria-label={`${previewApp.label}: ${previewApp.description}`}
-            className="absolute right-full top-11 z-[10002] w-64 rounded-l-md rounded-r-none border border-r-0 border-border bg-secondary p-3 font-normal shadow-dropdown"
+            className={cn(
+              'absolute right-[calc(100%-1px)] z-[10002] flex min-h-[4.5rem] w-64 items-start gap-2.5 rounded-l-md rounded-r-none border border-r-0 border-border bg-popover px-3 py-1.5 font-normal shadow-dropdown',
+              previewRowTopClass,
+            )}
             role="tooltip"
           >
-            <div className="flex items-start gap-2.5">
-              <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-background-secondary text-foreground">
-                <PreviewIcon aria-hidden="true" className="size-4" />
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-background-secondary text-foreground">
+              <PreviewIcon aria-hidden="true" className="size-[1.125rem]" />
+            </span>
+            <span className="min-w-0 pt-0.5">
+              <span className="block text-sm font-semibold text-foreground">
+                {previewApp.label}
               </span>
-              <span className="min-w-0">
-                <span className="block text-sm font-semibold text-foreground">
-                  {previewApp.label}
-                </span>
-                <span className="mt-0.5 block text-xs leading-4 text-muted-foreground">
-                  {previewApp.description}
-                </span>
+              <span className="mt-0.5 block text-xs leading-4 text-muted-foreground">
+                {previewApp.description}
               </span>
-            </div>
+            </span>
           </div>
         ) : null}
         <div className="max-h-[min(80vh,30rem)] overflow-y-auto rounded-md">

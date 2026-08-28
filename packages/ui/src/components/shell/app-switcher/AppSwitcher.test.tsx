@@ -276,11 +276,12 @@ describe('AppSwitcher', () => {
     });
 
     expect(tooltip).toHaveClass(
-      'right-full',
+      'right-[calc(100%-1px)]',
+      'top-[3.375rem]',
       'rounded-l-md',
       'rounded-r-none',
       'border-r-0',
-      'bg-secondary',
+      'bg-popover',
     );
     expect(tooltip.querySelector('svg')).toBeInTheDocument();
     expect(tooltip).toHaveTextContent('Agent');
@@ -288,6 +289,16 @@ describe('AppSwitcher', () => {
 
     fireEvent.mouseLeave(screen.getByRole('link', { name: 'Agent' }));
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('aligns hovered details with the app grid row', () => {
+    render(<AppSwitcher orgSlug="acme" />);
+
+    fireEvent.mouseEnter(screen.getByRole('link', { name: 'Discover' }));
+
+    expect(
+      screen.getByRole('tooltip', { name: 'Discover: Find winners.' }),
+    ).toHaveClass('top-[13.125rem]');
   });
 
   it('hides Studio when its app-switcher discovery flag is disabled', () => {

@@ -1,7 +1,12 @@
 import { BrandVoiceProfileCard } from '@genfeedai/agent/components/BrandVoiceProfileCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+beforeEach(() => {
+  useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
+});
 
 describe('BrandVoiceProfileCard', () => {
   it('renders the structured brand voice fields', () => {
@@ -116,11 +121,14 @@ describe('BrandVoiceProfileCard', () => {
   });
 
   it('renders a store-persisted completed action as saved after remount', () => {
+    useAgentChatStore
+      .getState()
+      .setUiActionStatus('brand-voice-completed', 'completed');
+
     render(
       <BrandVoiceProfileCard
         action={{
           id: 'brand-voice-completed',
-          status: 'completed',
           title: 'Brand Voice Draft',
           type: 'brand_voice_profile_card',
         }}

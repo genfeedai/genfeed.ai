@@ -111,6 +111,19 @@ describe('agent-chat.store messages and plans', () => {
       'completed',
     );
     expect(state.stream.pendingUiActions[0]?.status).toBe('completed');
+    expect(state.uiActionStatusById['brand-voice-card-1']).toBe('completed');
+  });
+
+  it('retains a completed UI action even after its message is replaced', () => {
+    useAgentChatStore
+      .getState()
+      .setUiActionStatus('brand-voice-card-removed', 'completed');
+
+    expect(
+      useAgentChatStore.getState().uiActionStatusById[
+        'brand-voice-card-removed'
+      ],
+    ).toBe('completed');
   });
 
   it('setMessages derives the latest proposed plan from the newest message', () => {

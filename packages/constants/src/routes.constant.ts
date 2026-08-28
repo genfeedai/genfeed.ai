@@ -216,7 +216,6 @@ export const APP_ROUTES = {
     ROOT: '/edit',
   },
   LAB: {
-    ARTICLES: '/lab/articles',
     LIBRARY_PREVIEW: '/lab/library-preview',
     TWITTER_ENGAGE: '/lab/twitter-engage',
   },

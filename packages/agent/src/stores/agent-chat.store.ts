@@ -289,6 +289,8 @@ interface AgentChatState {
   stream: AgentStreamState;
   composerSeed: AgentComposerSeed | null;
   threadUiBusyById: Record<string, boolean>;
+  /** Client-confirmed action status, retained when a message row is rebuilt. */
+  uiActionStatusById: Record<string, string>;
   /** Per-thread terminal sessions. Key = threadId | "global". */
   terminalSessionsByThread: TerminalSessionsByThread;
   /** Per-thread active session id. Key = threadId | "global". */
@@ -537,14 +539,12 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
     })),
   setUiActionStatus: (actionId, status) =>
     set((state) => {
-      let messagesChanged = false;
       const messages = state.messages.map((message) => {
         const uiActions = message.metadata?.uiActions;
         if (!uiActions?.some((action) => action.id === actionId)) {
           return message;
         }
 
-        messagesChanged = true;
         return {
           ...message,
           metadata: {
@@ -562,15 +562,15 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
         (action, index) => action !== state.stream.pendingUiActions[index],
       );
 
-      if (!messagesChanged && !pendingChanged) {
-        return state;
-      }
-
       return {
         messages,
         stream: pendingChanged
           ? { ...state.stream, pendingUiActions }
           : state.stream,
+        uiActionStatusById: {
+          ...state.uiActionStatusById,
+          [actionId]: status,
+        },
       };
     }),
   addPendingUiActions: (actions) =>
@@ -1107,6 +1107,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
   threadPrompts: {},
   threads: [],
   threadUiBusyById: {},
+  uiActionStatusById: {},
   terminalSessionsByThread: loadPersistedSessionsByThread(),
   activeTerminalSessionByThread: {},
   setTerminalSessionsByThread: (map) => {
