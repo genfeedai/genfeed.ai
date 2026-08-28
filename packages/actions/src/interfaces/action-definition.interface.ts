@@ -2,7 +2,7 @@ import type { ToolRequiredRole } from './tool-definition.interface.js';
 
 export type ActionApprovalPolicy = 'none' | 'required';
 export type ActionIdempotencyPolicy = 'none' | 'run-node';
-export type ActionVisibility = 'internal' | 'public' | 'tool';
+export type ActionVisibility = 'internal' | 'public' | 'tool' | 'workflow';
 export type ActionJsonSchema = object;
 
 export type ActionCreditPolicy =

@@ -205,12 +205,14 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(registrar).toContain('socialRead twitter rate limited');
     expect(registrar).toContain('wireSocialReadExecutor');
     expect(registrar).toContain('wireReportDeliveryExecutor');
-    expect(palette).toContain('socialRead');
-    expect(palette).toContain('reportDelivery');
-    expect(credits).toContain('socialRead: 1');
-    expect(credits).toContain('reportDelivery: 0');
-    expect(canvas).toContain('socialRead: TemplateCompatibilityNode');
-    expect(canvas).toContain('reportDelivery: TemplateCompatibilityNode');
+    expect(palette).toContain('ALL_ACTIONS');
+    expect(palette).toContain("action.visibility === 'workflow'");
+    expect(palette).toContain("type: 'genfeedAction'");
+    expect(credits).toContain('ALL_ACTIONS');
+    expect(credits).toContain('action.credits.amount');
+    expect(canvas).toContain('genfeedAction: coreNodeTypes.genfeedAction');
+    expect(canvas).not.toContain('socialRead:');
+    expect(canvas).not.toContain('reportDelivery:');
   });
 
   it('agent executeWorkflow is organization-scoped before the executor runs', () => {

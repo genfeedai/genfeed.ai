@@ -255,7 +255,6 @@
     "apps/app/src/features/workflows/nodes/saas/BrandNode.tsx": 5,
     "apps/app/src/features/workflows/nodes/saas/HookGeneratorNode.tsx": 3,
     "apps/app/src/features/workflows/nodes/saas/PublishNode.tsx": 5,
-    "apps/app/src/features/workflows/nodes/TemplateCompatibilityNode.tsx": 3,
     "apps/app/src/features/workflows/nodes/UnknownWorkflowNode.tsx": 3,
     "apps/app/src/features/workflows/pages/batch/BatchComposer.tsx": 16,
     "apps/app/src/features/workflows/pages/batch/BatchDetail.tsx": 24,

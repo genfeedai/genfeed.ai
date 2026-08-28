@@ -631,12 +631,12 @@ export class WorkflowNodeGraphRunnerService {
       const virtualNodeId = `__input_${key}`;
       singleNodeWorkflow.nodes.unshift({
         cachedOutput: value,
-        config: {},
+        config: { inputKey: key, inputType: 'json' },
         id: virtualNodeId,
         inputs: [],
         isLocked: true,
         label: `Input: ${key}`,
-        type: 'noop',
+        type: 'workflowInput',
       });
       singleNodeWorkflow.lockedNodeIds.push(virtualNodeId);
       virtualEdges.push({

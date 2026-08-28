@@ -92,4 +92,12 @@ describe('Genfeed action registry', () => {
       mode: 'dynamic',
     });
   });
+
+  it('marks editor-installable workflow actions explicitly', () => {
+    expect(getActionDefinition('imageGen')?.visibility).toBe('workflow');
+    expect(getActionDefinition('socialRead')?.visibility).toBe('workflow');
+    expect(
+      ALL_ACTIONS.filter((action) => action.visibility === 'workflow').length,
+    ).toBeGreaterThan(0);
+  });
 });

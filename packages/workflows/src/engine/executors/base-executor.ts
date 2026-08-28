@@ -99,20 +99,6 @@ export abstract class BaseExecutor implements INodeExecutor {
   }
 }
 
-export class NoopExecutor extends BaseExecutor {
-  readonly nodeType = 'noop';
-
-  execute(input: ExecutorInput): Promise<ExecutorOutput> {
-    const firstInput = input.inputs.values().next().value;
-    return Promise.resolve({
-      data: firstInput ?? null,
-      metadata: {
-        passthrough: true,
-      },
-    });
-  }
-}
-
 export function createSimpleExecutor(
   nodeType: string,
   executeFn: (input: ExecutorInput) => Promise<unknown>,

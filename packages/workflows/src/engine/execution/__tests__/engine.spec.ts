@@ -338,26 +338,26 @@ describe('WorkflowEngine', () => {
       const result = await engine.execute(workflow);
 
       expect(result.status).toBe('failed');
-      expect(result.error).toContain('No executor registered');
+      expect(result.error).toContain('has no executor for unknownType');
     });
 
-    it('should fail when node is not found in workflow', async () => {
-      // Create a scenario where executionOrder has a nodeId not in nodes
-      // This is hard to trigger directly; instead test missing dependency
+    it('fails executor coverage before running an earlier valid action', async () => {
+      const firstExecutor = vi.fn().mockResolvedValue({ result: 'ok' });
+      const coverageEngine = new WorkflowEngine();
+      coverageEngine.registerExecutor('imageGen', firstExecutor);
       const workflow = makeWorkflow(
-        [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
+        [makeNode('n1', 'imageGen'), makeNode('n2', 'videoStitch')],
         [makeEdge('n1', 'n2')],
       );
 
-      // Remove n1 executor to force failure
-      engine.registerExecutor(
-        'imageGen',
-        vi.fn().mockRejectedValue(new Error('fail')),
-      );
-
-      const result = await engine.execute(workflow);
+      const result = await coverageEngine.execute(workflow);
 
       expect(result.status).toBe('failed');
+      expect(result.error).toContain(
+        'No executor registered for Genfeed action: videoStitch',
+      );
+      expect(firstExecutor).not.toHaveBeenCalled();
+      expect(result.nodeResults.size).toBe(0);
     });
   });
 

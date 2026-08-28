@@ -1,40 +1,27 @@
 import { nodeTypes as coreNodeTypes } from '@genfeedai/workflows/ui/nodes';
 import type { NodeTypes } from '@xyflow/react';
-import { extendedNodeTypes } from '@/features/workflows/nodes';
 import { CloudImageInputNode } from '@/features/workflows/nodes/input/CloudImageInputNode';
 import { CloudVideoInputNode } from '@/features/workflows/nodes/input/CloudVideoInputNode';
-import { saasNodeTypes } from '@/features/workflows/nodes/saas';
-import { TemplateCompatibilityNode } from '@/features/workflows/nodes/TemplateCompatibilityNode';
+import { RegisteredWorkflowNode } from '@/features/workflows/nodes/RegisteredWorkflowNode';
 import { UnknownWorkflowNode } from '@/features/workflows/nodes/UnknownWorkflowNode';
 
 /**
  * Merged node types for Genfeed Cloud workflow canvas
  *
- * Combines:
- * - 29 core OSS nodes (input, AI, processing, output, composition)
- * - 7 premium extended nodes (effects, distribution, automation, repurposing)
- * - 5 SaaS nodes (brand management, hooks, publishing)
+ * Product behavior always renders through `genfeedAction`. Only workflow-engine
+ * primitives retain their own React Flow node type.
  */
 const fallbackNodeType = UnknownWorkflowNode;
 
 export const cloudNodeTypes: NodeTypes = Object.fromEntries(
   Object.entries({
-    ...coreNodeTypes, // 29 core nodes
-    'ai-avatar-video': TemplateCompatibilityNode,
-    analyticsGenericSync: TemplateCompatibilityNode,
-    commentTrigger: TemplateCompatibilityNode,
-    harnessWinnerPromotionSweep: TemplateCompatibilityNode,
-    'effect-captions': TemplateCompatibilityNode,
+    genfeedAction: coreNodeTypes.genfeedAction,
+    commentTrigger: RegisteredWorkflowNode,
+    engagementTrigger: RegisteredWorkflowNode,
     'input-image': CloudImageInputNode,
     'input-video': CloudVideoInputNode,
-    musicSource: TemplateCompatibilityNode,
-    postReply: TemplateCompatibilityNode,
-    reportDelivery: TemplateCompatibilityNode,
-    sendDm: TemplateCompatibilityNode,
-    socialRead: TemplateCompatibilityNode,
-    soundOverlay: TemplateCompatibilityNode,
-    ...extendedNodeTypes, // 7 premium nodes
-    ...saasNodeTypes, // 5 SaaS nodes
+    keywordTrigger: RegisteredWorkflowNode,
+    workflowInput: coreNodeTypes.workflowInput,
     unknown: fallbackNodeType,
   }).map(([nodeType, component]) => [nodeType, component ?? fallbackNodeType]),
 ) as NodeTypes;

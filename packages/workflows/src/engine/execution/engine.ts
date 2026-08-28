@@ -230,6 +230,23 @@ export class WorkflowEngine {
       );
     }
 
+    const missingExecutorError = this.validateExecutorCoverage(
+      workflow,
+      nodesToExecute,
+    );
+    if (missingExecutorError) {
+      return {
+        completedAt: new Date(),
+        error: missingExecutorError,
+        nodeResults,
+        runId,
+        startedAt,
+        status: 'failed',
+        totalCreditsUsed: 0,
+        workflowId: workflow.id,
+      };
+    }
+
     if (options.availableCredits !== undefined) {
       const estimatedCredits = this.estimateCredits(
         nodesToExecute
@@ -722,6 +739,30 @@ export class WorkflowEngine {
         (this.config.creditCosts[getExecutableNodeOperationId(node)] ?? 0),
       0,
     );
+  }
+
+  private validateExecutorCoverage(
+    workflow: ExecutableWorkflow,
+    nodeIds: string[],
+  ): string | undefined {
+    const missing = nodeIds.flatMap((nodeId) => {
+      const node = workflow.nodes.find((candidate) => candidate.id === nodeId);
+      if (!node) {
+        return [`node ${nodeId} is missing from the workflow graph`];
+      }
+
+      try {
+        return this.resolveNodeExecutor(node)
+          ? []
+          : [`node ${node.id} has no executor for ${node.type}`];
+      } catch (error) {
+        return [error instanceof Error ? error.message : String(error)];
+      }
+    });
+
+    return missing.length > 0
+      ? `Workflow executor coverage failed: ${missing.join('; ')}`
+      : undefined;
   }
 
   private resolveNodeExecutor(

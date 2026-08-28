@@ -377,6 +377,7 @@ const WORKFLOW_ACTION_DEFINITIONS = WORKFLOW_ACTIONS.map(
         amount: 0,
         mode: 'fixed',
       },
+      visibility: 'workflow',
     }),
 );
 

@@ -116,6 +116,35 @@ describe('node type normalization', () => {
     });
   });
 
+  it('keeps persisted product operations in the action envelope when aliases are hidden', () => {
+    const normalized = normalizeWorkflowNodeTypes(
+      [
+        {
+          data: {
+            config: {
+              actionId: 'socialRead',
+              parameters: { platform: 'twitter' },
+            },
+            label: 'Read social posts',
+          },
+          id: 'read-social',
+          position: { x: 0, y: 0 },
+          type: 'genfeedAction',
+        },
+      ],
+      new Set(['genfeedAction']),
+    );
+
+    expect(normalized[0]).toMatchObject({
+      data: {
+        actionId: 'socialRead',
+        label: 'Read social posts',
+        parameters: { platform: 'twitter' },
+      },
+      type: 'genfeedAction',
+    });
+  });
+
   it('injects a safe default position when persisted nodes are missing x/y', () => {
     const nodes = [
       {
