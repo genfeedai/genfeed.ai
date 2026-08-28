@@ -2,7 +2,7 @@ import type { TrackSubscriptionDto } from '@api/collections/subscription-attribu
 import type { SubscriptionAttributionDocument } from '@api/collections/subscription-attributions/schemas/subscription-attribution.schema';
 import { Timeframe } from '@genfeedai/enums';
 import type { ISubscriptionAttributionsService } from '@genfeedai/interfaces/billing';
-import type { Prisma } from '@genfeedai/prisma';
+import { Prisma } from '@genfeedai/prisma';
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
@@ -48,6 +48,23 @@ type NormalizedSubscriptionAttribution = Omit<
   stripeSubscriptionId?: string;
   subscribedAt?: Date;
   utm?: SubscriptionAttributionUtm;
+};
+
+type ContentStatsAggregateRow = {
+  bucket: string;
+  contentType: string | null;
+  count: bigint;
+  currency: string | null;
+  dimension: 'date' | 'plan' | 'summary';
+  revenue: number;
+};
+
+type TopContentAggregateRow = {
+  contentId: string;
+  contentType: string;
+  currency: string | null;
+  revenue: number;
+  subscriptions: bigint;
 };
 
 @Injectable()
@@ -222,47 +239,77 @@ export class SubscriptionAttributionsService
     timeline: Record<string, number>;
     currency: string | null;
   }> {
-    const docs = (
-      await this.prisma.subscriptionAttribution.findMany({
-        where: {
-          organizationId,
-          sourceContentId: contentId,
-        },
-      })
-    ).map((attribution) => this.normalizeAttribution(attribution));
-
-    const totalSubscriptions = docs.length;
-    const totalRevenue = docs.reduce(
-      (sum, attr) => sum + (attr.amount ?? 0),
-      0,
+    const rows = await this.prisma.$queryRaw<ContentStatsAggregateRow[]>(
+      Prisma.sql`
+        WITH normalized AS (
+          SELECT
+            "createdAt" AS created_at,
+            COALESCE(metadata->>'plan', 'unknown') AS plan,
+            metadata->>'currency' AS currency,
+            COALESCE(metadata#>>'{source,contentType}', 'unknown') AS content_type,
+            CASE
+              WHEN JSONB_TYPEOF(metadata->'amount') = 'number'
+                THEN (metadata->>'amount')::double precision
+              ELSE 0
+            END AS amount,
+            CASE
+              WHEN metadata->>'subscribedAt' ~
+                '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$'
+                THEN (metadata->>'subscribedAt')::timestamptz
+              ELSE "createdAt"
+            END AS subscribed_at
+          FROM "subscription_attributions"
+          WHERE "organizationId" = ${organizationId}
+            AND "sourceContentId" = ${contentId}
+        )
+        SELECT
+          breakdown.dimension,
+          breakdown.bucket,
+          COUNT(*)::bigint AS "count",
+          COALESCE(SUM(normalized.amount), 0)::double precision AS "revenue",
+          (ARRAY_AGG(normalized.currency ORDER BY normalized.created_at))[1] AS "currency",
+          (ARRAY_AGG(normalized.content_type ORDER BY normalized.created_at))[1] AS "contentType"
+        FROM normalized
+        CROSS JOIN LATERAL (
+          VALUES
+            ('summary', 'all'),
+            ('plan', normalized.plan),
+            ('date', TO_CHAR(normalized.subscribed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD'))
+        ) AS breakdown(dimension, bucket)
+        GROUP BY breakdown.dimension, breakdown.bucket
+      `,
     );
+
+    let contentType = 'unknown';
+    let currency: string | null = null;
+    let totalRevenue = 0;
+    let totalSubscriptions = 0;
+    const byPlan: Record<string, { count: number; revenue: number }> = {};
+    const timeline: Record<string, number> = {};
+
+    for (const row of rows) {
+      const count = Number(row.count);
+      if (row.dimension === 'summary') {
+        contentType = row.contentType ?? 'unknown';
+        currency = row.currency;
+        totalRevenue = row.revenue;
+        totalSubscriptions = count;
+      } else if (row.dimension === 'plan') {
+        byPlan[row.bucket] = { count, revenue: row.revenue };
+      } else {
+        timeline[row.bucket] = count;
+      }
+    }
+
     const avgOrderValue =
       totalSubscriptions > 0 ? totalRevenue / totalSubscriptions : 0;
-
-    const byPlan: Record<string, { count: number; revenue: number }> = {};
-    docs.forEach((attr) => {
-      const plan = attr.plan ?? 'unknown';
-      if (!byPlan[plan]) {
-        byPlan[plan] = { count: 0, revenue: 0 };
-      }
-      byPlan[plan].count++;
-      byPlan[plan].revenue += attr.amount ?? 0;
-    });
-
-    const timeline: Record<string, number> = {};
-    docs.forEach((attr) => {
-      const date = (attr.subscribedAt ?? attr.createdAt)
-        .toISOString()
-        .split('T')[0];
-      timeline[date] = (timeline[date] || 0) + 1;
-    });
 
     return {
       avgOrderValue,
       byPlan,
       contentId,
-      contentType: docs[0]?.source?.contentType ?? 'unknown',
-      currency: docs[0]?.currency ?? null,
+      contentType,
+      currency,
       timeline,
       totalRevenue,
       totalSubscriptions,
@@ -300,63 +347,55 @@ export class SubscriptionAttributionsService
         )
       : undefined;
 
-    const docs = (
-      await this.prisma.subscriptionAttribution.findMany({
-        where: {
-          organizationId: params.organizationId,
-          sourceContentId: { not: null },
-        },
-      })
-    )
-      .map((attribution) => this.normalizeAttribution(attribution))
-      .filter(
-        (attribution) =>
-          !dateFilter ||
-          (attribution.subscribedAt?.getTime() ?? 0) >= dateFilter.getTime(),
-      );
+    const limit = Math.max(1, params.limit || 10);
+    const periodFilter = dateFilter
+      ? Prisma.sql`AND subscribed_at >= ${dateFilter}`
+      : Prisma.empty;
+    const rows = await this.prisma.$queryRaw<TopContentAggregateRow[]>(
+      Prisma.sql`
+        WITH normalized AS (
+          SELECT
+            "sourceContentId" AS content_id,
+            "createdAt" AS created_at,
+            COALESCE(metadata#>>'{source,contentType}', 'unknown') AS content_type,
+            metadata->>'currency' AS currency,
+            CASE
+              WHEN JSONB_TYPEOF(metadata->'amount') = 'number'
+                THEN (metadata->>'amount')::double precision
+              ELSE 0
+            END AS amount,
+            CASE
+              WHEN metadata->>'subscribedAt' IS NULL THEN "createdAt"
+              WHEN metadata->>'subscribedAt' ~
+                '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$'
+                THEN (metadata->>'subscribedAt')::timestamptz
+              ELSE NULL
+            END AS subscribed_at
+          FROM "subscription_attributions"
+          WHERE "organizationId" = ${params.organizationId}
+            AND "sourceContentId" IS NOT NULL
+        )
+        SELECT
+          normalized.content_id AS "contentId",
+          (ARRAY_AGG(normalized.content_type ORDER BY normalized.created_at))[1] AS "contentType",
+          (ARRAY_AGG(normalized.currency ORDER BY normalized.created_at))[1] AS "currency",
+          COALESCE(SUM(normalized.amount), 0)::double precision AS "revenue",
+          COUNT(*)::bigint AS "subscriptions"
+        FROM normalized
+        WHERE TRUE ${periodFilter}
+        GROUP BY normalized.content_id
+        ORDER BY COUNT(*) DESC, MIN(normalized.created_at) ASC
+        LIMIT ${limit}
+      `,
+    );
 
-    const grouped = new Map<
-      string,
-      {
-        contentType: string;
-        currency: string | null;
-        revenue: number;
-        subscriptions: number;
-      }
-    >();
-
-    for (const doc of docs) {
-      const contentId = doc.sourceContentId;
-      if (!contentId) {
-        continue;
-      }
-
-      const existing = grouped.get(contentId);
-      if (existing) {
-        existing.subscriptions++;
-        existing.revenue += doc.amount ?? 0;
-      } else {
-        grouped.set(contentId, {
-          contentType: doc.source?.contentType ?? 'unknown',
-          currency: doc.currency ?? null,
-          revenue: doc.amount ?? 0,
-          subscriptions: 1,
-        });
-      }
-    }
-
-    const limit = params.limit || 10;
-
-    return Array.from(grouped.entries())
-      .sort((a, b) => b[1].subscriptions - a[1].subscriptions)
-      .slice(0, limit)
-      .map(([contentId, data]) => ({
-        contentId,
-        contentType: data.contentType,
-        currency: data.currency,
-        revenue: data.revenue,
-        subscriptions: data.subscriptions,
-      }));
+    return rows.map((row) => ({
+      contentId: row.contentId,
+      contentType: row.contentType,
+      currency: row.currency,
+      revenue: row.revenue,
+      subscriptions: Number(row.subscriptions),
+    }));
   }
 
   private buildSourceFromDto(
