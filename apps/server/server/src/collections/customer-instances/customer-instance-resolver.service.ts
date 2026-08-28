@@ -25,19 +25,23 @@ export class CustomerInstanceResolverService
     orgId: string,
     role: FleetRole,
   ): Promise<{ apiUrl?: string | null } | null> {
-    const instances = await this.prisma.customerInstance.findMany({
+    const instance = await this.prisma.customerInstance.findFirst({
       orderBy: { createdAt: 'desc' },
-      where: scopedWhere(orgId, { status: 'running' }),
+      where: scopedWhere(orgId, {
+        AND: [
+          { config: { equals: 'dedicated', path: ['tier'] } },
+          {
+            OR: [
+              { config: { equals: role, path: ['role'] } },
+              { config: { equals: 'full', path: ['role'] } },
+            ],
+          },
+        ],
+        status: 'running',
+      }),
     });
 
-    const match = instances
-      .map((instance) => this.readInstance(instance))
-      .find(
-        (instance) =>
-          instance.tier === 'dedicated' &&
-          (instance.role === role || instance.role === 'full'),
-      );
-
+    const match = instance ? this.readInstance(instance) : null;
     return match ? { apiUrl: match.apiUrl } : null;
   }
 
