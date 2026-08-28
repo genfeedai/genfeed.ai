@@ -30,6 +30,7 @@ interface UploadedFile {
 }
 
 const BATCH_POLL_INTERVAL_MS = 2000;
+const BATCH_UPLOAD_CONCURRENCY = 4;
 
 function mapBatchCategoryToIngredientCategory(
   category?: string,
@@ -402,31 +403,45 @@ export function useBatchWorkflowPage() {
       try {
         const ingredientsService = await getIngredientsService();
 
-        for (const pendingFile of pendingFiles) {
-          try {
-            const formData = new FormData();
-            formData.append('file', pendingFile.file);
-            formData.append('category', 'images');
+        for (
+          let offset = 0;
+          offset < pendingFiles.length;
+          offset += BATCH_UPLOAD_CONCURRENCY
+        ) {
+          const batch = pendingFiles.slice(
+            offset,
+            offset + BATCH_UPLOAD_CONCURRENCY,
+          );
 
-            const ingredient = await ingredientsService.postUpload(formData);
-            const ingredientId = ingredient.id;
+          await Promise.all(
+            batch.map(async (pendingFile) => {
+              try {
+                const formData = new FormData();
+                formData.append('file', pendingFile.file);
+                formData.append('category', 'images');
 
-            setFiles((previousFiles) =>
-              previousFiles.map((file) =>
-                file.preview === pendingFile.preview
-                  ? {
-                      ...file,
-                      ingredientId,
-                    }
-                  : file,
-              ),
-            );
-          } catch (uploadError) {
-            logger.error('Failed to upload batch image ingredient', {
-              error: uploadError,
-              fileName: pendingFile.file.name,
-            });
-          }
+                const ingredient =
+                  await ingredientsService.postUpload(formData);
+                const ingredientId = ingredient.id;
+
+                setFiles((previousFiles) =>
+                  previousFiles.map((file) =>
+                    file.preview === pendingFile.preview
+                      ? {
+                          ...file,
+                          ingredientId,
+                        }
+                      : file,
+                  ),
+                );
+              } catch (uploadError) {
+                logger.error('Failed to upload batch image ingredient', {
+                  error: uploadError,
+                  fileName: pendingFile.file.name,
+                });
+              }
+            }),
+          );
         }
       } catch (ingredientsError) {
         logger.error('Failed to access ingredients service', {
