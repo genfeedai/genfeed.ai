@@ -144,7 +144,7 @@ export default function YoutubeLongFormContent(): React.ReactElement {
             onSubmit={(event) => void handleSubmit(event)}
           >
             <Field
-              description="Public YouTube videos with spoken audio only. One workflow resolves, transcribes, transforms, and saves your selected format."
+              description="Public YouTube videos with spoken audio only. One workflow resolves, transcribes, and transforms your selected format into a copyable preview."
               label="YouTube URL"
             >
               <Input

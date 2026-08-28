@@ -1,8 +1,20 @@
+import { createHash } from 'node:crypto';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
+import {
+  ArticleCategory,
+  ArticleStatus,
+  AssetScope,
+  IngredientCategory,
+  IngredientStatus,
+  MetadataExtension,
+  PromptCategory,
+  PromptStatus,
+} from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { WORKFLOW_ARTIFACT_ACTION_IDS } from '@server/collections/workflows/services/workflow-artifact-lifecycle.service';
 import {
   type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
@@ -14,11 +26,15 @@ import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { firstValueFrom } from 'rxjs';
 
 export const YOUTUBE_LONG_FORM_WORKFLOW_ID = 'youtube-to-long-form-text';
+export const YOUTUBE_SOURCE_LIBRARY_WORKFLOW_ID = 'youtube-source-to-library';
 
 export const YOUTUBE_LONG_FORM_ACTION_IDS = {
-  OBTAIN_TRANSCRIPT: 'youtube.obtain-transcript',
+  CREATE_SOURCE_LIBRARY_ASSET: 'youtube.create-source-library-asset',
+  EXTRACT_AUDIO: 'youtube.extract-audio',
   PERSIST_OUTPUT: 'long-form.persist-output',
+  PLAN_SOURCE_LIBRARY_ASSET: 'youtube.plan-source-library-asset',
   RESOLVE_SOURCE: 'youtube.resolve-source',
+  TRANSCRIBE_AUDIO: 'youtube.transcribe-audio',
   TRANSFORM_TEXT: 'long-form.transform-text',
 } as const;
 
@@ -37,13 +53,27 @@ export type YoutubeLongFormOutputType =
 
 export type YoutubeLongFormResult = {
   content: string;
-  contentId: string;
+  contentId?: string;
   outputType: YoutubeLongFormOutputType;
   summary: string;
+  sourceArtifactId?: string;
   title: string;
   videoId: string;
   youtubeUrl: string;
 };
+
+export type PersistedYoutubeLongFormResult = YoutubeLongFormResult & {
+  contentId: string;
+  sourceArtifactId: string;
+};
+
+export type YoutubeSourceLibraryResult = {
+  artifactId: string;
+  ingredientId: string;
+  status: 'linked';
+};
+
+type YoutubeLongFormPersistence = 'account' | 'preview';
 
 type ResolvedYoutubeSource = {
   title: string;
@@ -51,12 +81,24 @@ type ResolvedYoutubeSource = {
   youtubeUrl: string;
 };
 
+type ExtractedYoutubeMedia = ResolvedYoutubeSource & {
+  audioStorageKey: string;
+  audioUrl: string;
+  sourceArtifactMetadata: {
+    resolvedUrl: string;
+    sourceTitle: string;
+    videoId: string;
+    youtubeUrl: string;
+  };
+  sourceStorageKey: string;
+};
+
 type TranscriptOutput = ResolvedYoutubeSource & {
   language: string;
   transcript: string;
 };
 
-type LongFormDocument = TranscriptOutput & {
+type LongFormDocument = ResolvedYoutubeSource & {
   content: string;
   outputType: YoutubeLongFormOutputType;
   summary: string;
@@ -89,8 +131,12 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
       (request) => this.resolveSource(request),
     );
     this.runner.registerAction(
-      YOUTUBE_LONG_FORM_ACTION_IDS.OBTAIN_TRANSCRIPT,
-      (request) => this.obtainTranscript(request),
+      YOUTUBE_LONG_FORM_ACTION_IDS.EXTRACT_AUDIO,
+      (request) => this.extractAudio(request),
+    );
+    this.runner.registerAction(
+      YOUTUBE_LONG_FORM_ACTION_IDS.TRANSCRIBE_AUDIO,
+      (request) => this.transcribeAudio(request),
     );
     this.runner.registerAction(
       YOUTUBE_LONG_FORM_ACTION_IDS.TRANSFORM_TEXT,
@@ -100,29 +146,88 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
       YOUTUBE_LONG_FORM_ACTION_IDS.PERSIST_OUTPUT,
       (request) => this.persistOutput(request),
     );
+    this.runner.registerAction(
+      YOUTUBE_LONG_FORM_ACTION_IDS.PLAN_SOURCE_LIBRARY_ASSET,
+      (request) => this.planSourceLibraryAssetAction(request),
+    );
+    this.runner.registerAction(
+      YOUTUBE_LONG_FORM_ACTION_IDS.CREATE_SOURCE_LIBRARY_ASSET,
+      (request) => this.createSourceLibraryAssetAction(request),
+    );
     this.runner.registerWorkflow({
       canonicalId: YOUTUBE_LONG_FORM_WORKFLOW_ID,
       changeSummary:
-        'Resolve YouTube, transcribe once, transform to the selected long-form format, and persist exactly that output.',
+        'Resolve YouTube once, keep processing media ephemeral, transform the transcript, and persist only authenticated account output.',
       definition: {
         edges: [
           {
-            id: 'source-to-transcript',
+            id: 'source-to-extraction',
             source: 'resolve-source',
-            target: 'obtain-transcript',
+            target: 'extract-audio',
             targetHandle: 'source',
           },
           {
             id: 'transcript-to-transform',
-            source: 'obtain-transcript',
+            source: 'transcribe-audio',
             target: 'transform-text',
             targetHandle: 'transcript',
+          },
+          {
+            id: 'audio-to-register',
+            source: 'extract-audio',
+            sourceHandle: 'audioStorageKey',
+            target: 'register-audio',
+            targetHandle: 'storageKey',
+          },
+          {
+            id: 'source-to-register',
+            source: 'extract-audio',
+            sourceHandle: 'sourceStorageKey',
+            target: 'register-source',
+            targetHandle: 'storageKey',
+          },
+          {
+            id: 'source-metadata-to-register',
+            source: 'extract-audio',
+            sourceHandle: 'sourceArtifactMetadata',
+            target: 'register-source',
+            targetHandle: 'metadata',
+          },
+          {
+            id: 'extraction-to-transcription',
+            source: 'extract-audio',
+            target: 'transcribe-audio',
+            targetHandle: 'media',
+          },
+          {
+            id: 'audio-registration-to-transcription',
+            source: 'register-audio',
+            target: 'transcribe-audio',
+            targetHandle: 'audioArtifact',
+          },
+          {
+            id: 'source-registration-to-transcription',
+            source: 'register-source',
+            target: 'transcribe-audio',
+            targetHandle: 'sourceArtifact',
           },
           {
             id: 'transform-to-persist',
             source: 'transform-text',
             target: 'persist-output',
             targetHandle: 'document',
+          },
+          {
+            id: 'audio-registration-to-persist',
+            source: 'register-audio',
+            target: 'persist-output',
+            targetHandle: 'audioArtifact',
+          },
+          {
+            id: 'source-registration-to-persist',
+            source: 'register-source',
+            target: 'persist-output',
+            targetHandle: 'sourceArtifact',
           },
         ],
         inputVariables: [
@@ -139,6 +244,26 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
             type: 'string',
             validation: { options: [...YOUTUBE_LONG_FORM_OUTPUT_TYPES] },
           },
+          {
+            key: 'persistence',
+            label: 'Persistence',
+            required: true,
+            type: 'string',
+            validation: { options: ['account', 'preview'] },
+          },
+          {
+            key: 'retentionPolicy',
+            label: 'Source retention policy',
+            required: true,
+            type: 'string',
+            validation: { options: ['terminal', 'ttl'] },
+          },
+          {
+            key: 'brandId',
+            label: 'Brand ID',
+            required: false,
+            type: 'string',
+          },
         ],
         nodes: [
           this.actionNode(
@@ -149,32 +274,122 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
             0,
           ),
           this.actionNode(
-            'obtain-transcript',
-            YOUTUBE_LONG_FORM_ACTION_IDS.OBTAIN_TRANSCRIPT,
-            'Obtain transcript',
+            'extract-audio',
+            YOUTUBE_LONG_FORM_ACTION_IDS.EXTRACT_AUDIO,
+            'Extract YouTube audio',
             [],
             280,
+          ),
+          this.actionNode(
+            'register-audio',
+            WORKFLOW_ARTIFACT_ACTION_IDS.REGISTER,
+            'Register temporary audio',
+            [],
+            560,
+            {
+              kind: 'audio',
+              producerNodeId: 'extract-audio',
+              retentionPolicy: 'terminal',
+            },
+          ),
+          this.actionNode(
+            'register-source',
+            WORKFLOW_ARTIFACT_ACTION_IDS.REGISTER,
+            'Register temporary source video',
+            ['retentionPolicy'],
+            560,
+            {
+              kind: 'source-video',
+              producerNodeId: 'extract-audio',
+            },
+          ),
+          this.actionNode(
+            'transcribe-audio',
+            YOUTUBE_LONG_FORM_ACTION_IDS.TRANSCRIBE_AUDIO,
+            'Transcribe YouTube audio',
+            [],
+            840,
           ),
           this.actionNode(
             'transform-text',
             YOUTUBE_LONG_FORM_ACTION_IDS.TRANSFORM_TEXT,
             'Transform long-form text',
             ['outputType'],
-            560,
+            1120,
           ),
           this.actionNode(
             'persist-output',
             YOUTUBE_LONG_FORM_ACTION_IDS.PERSIST_OUTPUT,
             'Persist selected output',
-            [],
-            840,
+            ['brandId', 'persistence'],
+            1400,
           ),
         ],
       },
       description:
-        'Transforms one public YouTube video into one selected long-form text output.',
+        'Transforms one public YouTube video into a preview or tenant-owned long-form text output.',
       label: 'YouTube to Long-form Text',
       resultNodeId: 'persist-output',
+      version: 2,
+    });
+    this.runner.registerWorkflow({
+      canonicalId: YOUTUBE_SOURCE_LIBRARY_WORKFLOW_ID,
+      changeSummary:
+        'Promote one explicitly selected YouTube source into the authenticated tenant Library.',
+      definition: {
+        edges: [
+          {
+            id: 'plan-to-promotion',
+            source: 'plan-source-asset',
+            sourceHandle: 'ingredientId',
+            target: 'promote-artifact',
+            targetHandle: 'targetId',
+          },
+          {
+            id: 'promotion-to-asset',
+            source: 'promote-artifact',
+            sourceHandle: 'targetId',
+            target: 'create-source-asset',
+            targetHandle: 'ingredientId',
+          },
+        ],
+        inputVariables: [
+          {
+            key: 'artifactId',
+            label: 'Source artifact ID',
+            required: true,
+            type: 'string',
+          },
+        ],
+        nodes: [
+          this.actionNode(
+            'plan-source-asset',
+            YOUTUBE_LONG_FORM_ACTION_IDS.PLAN_SOURCE_LIBRARY_ASSET,
+            'Plan source Library asset',
+            ['artifactId'],
+            0,
+          ),
+          this.actionNode(
+            'promote-artifact',
+            WORKFLOW_ARTIFACT_ACTION_IDS.PROMOTE,
+            'Retain source artifact',
+            ['artifactId'],
+            280,
+            { targetType: 'ingredient' },
+          ),
+          this.actionNode(
+            'create-source-asset',
+            YOUTUBE_LONG_FORM_ACTION_IDS.CREATE_SOURCE_LIBRARY_ASSET,
+            'Create source Library asset',
+            ['artifactId'],
+            560,
+          ),
+        ],
+      },
+      description:
+        'Promotes one retained YouTube source from a completed long-form execution into the tenant Library.',
+      label: 'YouTube Source to Library',
+      resultNodeId: 'create-source-asset',
       version: 1,
     });
   }
@@ -185,15 +400,85 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
   ): Promise<YoutubeLongFormResult & { executionId: string }> {
     const { provenance, result } =
       await this.runner.runWorkflow<YoutubeLongFormResult>({
-        actionType: 'youtube-long-form',
+        actionType: YOUTUBE_LONG_FORM_WORKFLOW_ID,
         canonicalId: YOUTUBE_LONG_FORM_WORKFLOW_ID,
-        inputValues: { outputType, youtubeUrl },
-        metadata: { origin: 'website-free-tool', outputType },
+        inputValues: {
+          outputType,
+          persistence: 'preview',
+          retentionPolicy: 'terminal',
+          youtubeUrl,
+        },
+        metadata: {
+          executionRetention: {
+            purgeAfterHours: 24,
+            scrubNodePayloads: 'all',
+          },
+          origin: 'website-free-tool',
+          outputType,
+        },
         organizationId: PUBLIC_LONG_FORM_ORGANIZATION_ID,
         source: 'YoutubeLongFormWorkflowService.runPublic',
         userId: PUBLIC_LONG_FORM_USER_ID,
       });
     return { ...result, executionId: provenance.executionId };
+  }
+
+  async runAuthenticated(input: {
+    brandId?: string;
+    organizationId: string;
+    outputType: YoutubeLongFormOutputType;
+    userId: string;
+    youtubeUrl: string;
+  }): Promise<PersistedYoutubeLongFormResult & { executionId: string }> {
+    this.assertAuthenticatedPrincipal(input.organizationId, input.userId);
+    const { provenance, result } =
+      await this.runner.runWorkflow<PersistedYoutubeLongFormResult>({
+        actionType: YOUTUBE_LONG_FORM_WORKFLOW_ID,
+        canonicalId: YOUTUBE_LONG_FORM_WORKFLOW_ID,
+        inputValues: {
+          brandId: input.brandId,
+          outputType: input.outputType,
+          persistence: 'account',
+          retentionPolicy: 'ttl',
+          youtubeUrl: input.youtubeUrl,
+        },
+        metadata: {
+          executionRetention: {
+            scrubNodePayloads: [
+              'extract-audio',
+              'register-audio',
+              'register-source',
+              'transcribe-audio',
+              'transform-text',
+            ],
+          },
+          origin: 'api',
+          outputType: input.outputType,
+        },
+        organizationId: input.organizationId,
+        source: 'YoutubeLongFormWorkflowService.runAuthenticated',
+        userId: input.userId,
+      });
+    return { ...result, executionId: provenance.executionId };
+  }
+
+  async promoteSourceToLibrary(input: {
+    artifactId: string;
+    organizationId: string;
+    userId: string;
+  }): Promise<YoutubeSourceLibraryResult> {
+    this.assertAuthenticatedPrincipal(input.organizationId, input.userId);
+    const { result } =
+      await this.runner.runWorkflow<YoutubeSourceLibraryResult>({
+        actionType: YOUTUBE_SOURCE_LIBRARY_WORKFLOW_ID,
+        canonicalId: YOUTUBE_SOURCE_LIBRARY_WORKFLOW_ID,
+        inputValues: { artifactId: input.artifactId },
+        metadata: { origin: 'api' },
+        organizationId: input.organizationId,
+        source: 'YoutubeLongFormWorkflowService.promoteSourceToLibrary',
+        userId: input.userId,
+      });
+    return result;
   }
 
   private async resolveSource(
@@ -223,13 +508,14 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
     }
   }
 
-  private async obtainTranscript(
+  private async extractAudio(
     request: SystemWorkflowActionRequest,
-  ): Promise<TranscriptOutput> {
+  ): Promise<ExtractedYoutubeMedia> {
     const source = this.readSource(request.input.source);
+    const executionId = request.context.executionId ?? request.context.runId;
     const extraction = await this.fileQueueService.processVideo({
-      id: `workflow-audio-${request.context.executionId ?? request.context.runId}`,
-      ingredientId: request.context.workflowId,
+      id: `workflow-audio-${executionId}`,
+      ingredientId: `workflow-media-${executionId}`,
       organizationId: request.context.organizationId,
       params: { inputPath: source.youtubeUrl },
       type: 'video-to-audio',
@@ -245,12 +531,37 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
         'YouTube audio extraction completed without an audio URL',
       );
     }
-    const transcription = await this.whisperService.transcribeUrl(audioUrl);
+    const audioStorageKey = this.requiredString(result, 's3Key');
+    const sourceStorageKey = this.requiredString(result, 'sourceS3Key');
+    const sourceUrl = this.requiredString(result, 'sourceUrl');
+    return {
+      ...source,
+      audioStorageKey,
+      audioUrl,
+      sourceArtifactMetadata: {
+        resolvedUrl: sourceUrl,
+        sourceTitle: source.title,
+        videoId: source.videoId,
+        youtubeUrl: source.youtubeUrl,
+      },
+      sourceStorageKey,
+    };
+  }
+
+  private async transcribeAudio(
+    request: SystemWorkflowActionRequest,
+  ): Promise<TranscriptOutput> {
+    const media = this.readExtractedMedia(request.input.media);
+    const transcription = await this.whisperService.transcribeUrl(
+      media.audioUrl,
+    );
     if (!transcription.text.trim()) {
       throw new Error('No transcript was available for this YouTube video');
     }
     return {
-      ...source,
+      title: media.title,
+      videoId: media.videoId,
+      youtubeUrl: media.youtubeUrl,
       language: transcription.language,
       transcript: transcription.text.trim(),
     };
@@ -317,7 +628,13 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
       );
       try {
         const document = this.parseDocument(toolCall?.function.arguments);
-        return { ...document, ...transcript, outputType };
+        return {
+          ...document,
+          outputType,
+          title: document.title,
+          videoId: transcript.videoId,
+          youtubeUrl: transcript.youtubeUrl,
+        };
       } catch (error) {
         validationFeedback = `Previous output failed validation: ${error instanceof Error ? error.message : String(error)}. Return a corrected tool call.`;
       }
@@ -330,9 +647,22 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
     request: SystemWorkflowActionRequest,
   ): Promise<YoutubeLongFormResult> {
     const document = this.readDocument(request.input.document);
+    const persistence = this.readPersistence(request.input.persistence);
+    if (persistence === 'preview') {
+      return document;
+    }
+
+    this.assertAuthenticatedPrincipal(
+      request.context.organizationId,
+      request.context.userId,
+    );
+    const brandId = this.optionalString(request.input.brandId);
+    const sourceArtifactId = this.readArtifactId(request.input.sourceArtifact);
+    await this.assertBrandScope(brandId, request.context.organizationId);
     if (document.outputType === 'newsletter') {
       const newsletter = await this.prisma.newsletter.create({
         data: {
+          ...(brandId ? { brandId } : {}),
           content: document.content,
           generationPrompt: `YouTube transcript: ${document.youtubeUrl}`,
           isDeleted: false,
@@ -352,7 +682,7 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
         },
         select: { id: true },
       });
-      return { ...document, contentId: newsletter.id };
+      return { ...document, contentId: newsletter.id, sourceArtifactId };
     }
 
     const category =
@@ -361,21 +691,180 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
         : document.outputType === 'linkedin-article'
           ? ArticleCategory.LINKEDIN_ARTICLE
           : ArticleCategory.ARTICLE;
-    const article = await this.prisma.article.create({
-      data: {
-        category,
-        content: document.content,
-        isDeleted: false,
-        label: document.title,
-        organizationId: request.context.organizationId,
-        scope: 'private',
-        status: ArticleStatus.DRAFT,
-        summary: document.summary,
-        userId: request.context.userId,
-      },
-      select: { id: true },
+    const articleId = await this.prisma.$transaction(async (transaction) => {
+      const article = await transaction.article.create({
+        data: {
+          ...(brandId ? { brandId } : {}),
+          category,
+          content: document.content,
+          isDeleted: false,
+          label: document.title,
+          organizationId: request.context.organizationId,
+          scope: 'private',
+          status: ArticleStatus.DRAFT,
+          summary: document.summary,
+          userId: request.context.userId,
+        },
+        select: { id: true },
+      });
+      await transaction.prompt.create({
+        data: {
+          articleId: article.id,
+          ...(brandId ? { brandId } : {}),
+          category: PromptCategory.ARTICLE,
+          enhanced: document.title,
+          isDeleted: false,
+          isFavorite: false,
+          isSkipEnhancement: false,
+          organizationId: request.context.organizationId,
+          original: document.youtubeUrl,
+          scope: AssetScope.USER,
+          status: PromptStatus.GENERATED,
+          userId: request.context.userId,
+        },
+      });
+      return article.id;
     });
-    return { ...document, contentId: article.id };
+    return { ...document, contentId: articleId, sourceArtifactId };
+  }
+
+  private async planSourceLibraryAssetAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<{ artifactId: string; ingredientId: string }> {
+    this.assertAuthenticatedPrincipal(
+      request.context.organizationId,
+      request.context.userId,
+    );
+    const artifactId = this.requiredString(request.input, 'artifactId');
+    const artifact = await this.prisma.workflowArtifact.findFirst({
+      include: { execution: { select: { userId: true } } },
+      where: scopedWhere(request.context.organizationId, {
+        id: artifactId,
+        kind: 'source-video',
+        OR: [
+          {
+            expiresAt: { gt: new Date() },
+            state: { in: ['ACTIVE', 'CLEANUP_FAILED'] },
+          },
+          { state: 'PROMOTED' },
+        ],
+      }),
+    });
+    if (!artifact || artifact.execution.userId !== request.context.userId) {
+      throw new Error('YouTube source artifact was not found');
+    }
+    if (artifact.state === 'PROMOTED') {
+      if (
+        artifact.promotionTargetType !== 'ingredient' ||
+        !artifact.promotionTargetId
+      ) {
+        throw new Error('YouTube source artifact has invalid promotion state');
+      }
+      return {
+        artifactId,
+        ingredientId: artifact.promotionTargetId,
+      };
+    }
+    const source = this.readSourceArtifactMetadata(artifact.metadata);
+    const ingredientId = this.sourceIngredientId(
+      request.context.organizationId,
+      request.context.userId,
+      source.videoId,
+    );
+    return { artifactId, ingredientId };
+  }
+
+  private async createSourceLibraryAssetAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<YoutubeSourceLibraryResult> {
+    this.assertAuthenticatedPrincipal(
+      request.context.organizationId,
+      request.context.userId,
+    );
+    const artifactId = this.requiredString(request.input, 'artifactId');
+    const ingredientId = this.requiredString(request.input, 'ingredientId');
+    const artifact = await this.prisma.workflowArtifact.findFirst({
+      include: { execution: { select: { userId: true } } },
+      where: scopedWhere(request.context.organizationId, {
+        id: artifactId,
+        kind: 'source-video',
+        promotionTargetId: ingredientId,
+        promotionTargetType: 'ingredient',
+        state: 'PROMOTED',
+      }),
+    });
+    if (!artifact || artifact.execution.userId !== request.context.userId) {
+      throw new Error('Promoted YouTube source artifact was not found');
+    }
+    const source = this.readSourceArtifactMetadata(artifact.metadata);
+    const existing = await this.prisma.ingredient.findFirst({
+      where: scopedWhere(request.context.organizationId, { id: ingredientId }),
+    });
+    if (existing) {
+      return { artifactId, ingredientId, status: 'linked' };
+    }
+
+    try {
+      await this.prisma.$transaction(async (transaction) => {
+        const winner = await transaction.ingredient.findFirst({
+          where: scopedWhere(request.context.organizationId, {
+            id: ingredientId,
+          }),
+        });
+        if (winner) {
+          return;
+        }
+        const metadata = await transaction.metadata.create({
+          data: {
+            description: `YouTube source for ${source.title}`,
+            extension: MetadataExtension.MP4,
+            externalId: source.videoId,
+            externalProvider: 'youtube',
+            hasAudio: true,
+            label: source.title,
+            result: source.url,
+          },
+          select: { id: true },
+        });
+        await transaction.ingredient.create({
+          data: {
+            category: IngredientCategory.VIDEO,
+            cdnUrl: source.url,
+            generationCompletedAt: new Date(),
+            generationPrompt: source.title,
+            generationSource: `youtube:${source.videoId}`,
+            id: ingredientId,
+            isDeleted: false,
+            metadataId: metadata.id,
+            mimeType: 'video/mp4',
+            organizationId: request.context.organizationId,
+            providerData: {
+              artifactId,
+              sourceExecutionId: artifact.executionId,
+              videoId: source.videoId,
+              youtubeUrl: source.youtubeUrl,
+            },
+            s3Key: artifact.storageKey,
+            scope: AssetScope.USER,
+            sourceActionId:
+              YOUTUBE_LONG_FORM_ACTION_IDS.CREATE_SOURCE_LIBRARY_ASSET,
+            status: IngredientStatus.GENERATED,
+            userId: request.context.userId,
+            workflowUsed: YOUTUBE_LONG_FORM_WORKFLOW_ID,
+          },
+        });
+      });
+    } catch (error: unknown) {
+      const winner = await this.prisma.ingredient.findFirst({
+        where: scopedWhere(request.context.organizationId, {
+          id: ingredientId,
+        }),
+      });
+      if (!winner) {
+        throw error;
+      }
+    }
+    return { artifactId, ingredientId, status: 'linked' };
   }
 
   private actionNode(
@@ -384,10 +873,12 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
     label: string,
     inputVariableKeys: string[],
     x: number,
+    parameters?: Record<string, unknown>,
   ) {
     return createGenfeedActionNode({
       actionId,
       id,
+      parameters,
       position: { x, y: 120 },
       inputVariableKeys,
       label,
@@ -482,10 +973,23 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
     };
   }
 
+  private readExtractedMedia(value: unknown): ExtractedYoutubeMedia {
+    const record = this.readRecord(value);
+    return {
+      ...this.readSource(record),
+      audioStorageKey: this.requiredString(record, 'audioStorageKey'),
+      audioUrl: this.requiredString(record, 'audioUrl'),
+      sourceArtifactMetadata: this.readSourceArtifactMetadata(
+        record.sourceArtifactMetadata,
+      ),
+      sourceStorageKey: this.requiredString(record, 'sourceStorageKey'),
+    };
+  }
+
   private readDocument(value: unknown): LongFormDocument {
     const record = this.readRecord(value);
     return {
-      ...this.readTranscript(record),
+      ...this.readSource(record),
       content: this.requiredString(record, 'content'),
       outputType: this.readOutputType(record.outputType),
       summary: this.requiredString(record, 'summary'),
@@ -501,6 +1005,68 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
       throw new Error('Unsupported long-form output type');
     }
     return value as YoutubeLongFormOutputType;
+  }
+
+  private readPersistence(value: unknown): YoutubeLongFormPersistence {
+    if (value !== 'account' && value !== 'preview') {
+      throw new Error('Unsupported long-form persistence mode');
+    }
+    return value;
+  }
+
+  private readArtifactId(value: unknown): string {
+    return this.requiredString(this.readRecord(value), 'artifactId');
+  }
+
+  private readSourceArtifactMetadata(
+    value: unknown,
+  ): ResolvedYoutubeSource & { url: string } {
+    const record = this.readRecord(value);
+    return {
+      title: this.requiredString(record, 'sourceTitle'),
+      url: this.requiredString(record, 'resolvedUrl'),
+      videoId: this.requiredString(record, 'videoId'),
+      youtubeUrl: this.requiredString(record, 'youtubeUrl'),
+    };
+  }
+
+  private assertAuthenticatedPrincipal(
+    organizationId: string,
+    userId: string,
+  ): void {
+    if (
+      organizationId === PUBLIC_LONG_FORM_ORGANIZATION_ID ||
+      userId === PUBLIC_LONG_FORM_USER_ID
+    ) {
+      throw new Error('Authenticated account ownership is required');
+    }
+  }
+
+  private async assertBrandScope(
+    brandId: string | undefined,
+    organizationId: string,
+  ): Promise<void> {
+    if (!brandId) {
+      return;
+    }
+    const brand = await this.prisma.brand.findFirst({
+      select: { id: true },
+      where: scopedWhere(organizationId, { id: brandId }),
+    });
+    if (!brand) {
+      throw new Error('Brand is unavailable in this organization');
+    }
+  }
+
+  private sourceIngredientId(
+    organizationId: string,
+    userId: string,
+    videoId: string,
+  ): string {
+    const digest = createHash('sha256')
+      .update(`${organizationId}:${userId}:${videoId}`)
+      .digest('hex');
+    return `y${digest.slice(0, 23)}`;
   }
 
   private readRecord(value: unknown): Record<string, unknown> {

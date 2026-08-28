@@ -31,6 +31,7 @@ import { WorkflowMarketplaceController } from '@api/collections/workflows/contro
 import { WorkflowWebhookManagementController } from '@api/collections/workflows/controllers/workflow-webhook-management.controller';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
+import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
@@ -66,6 +67,7 @@ import { ReplyPollingWorkflowService } from '@server/collections/workflows/servi
 import { ReviewGateNotificationService } from '@server/collections/workflows/services/review-gate-notification.service';
 import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
 import { VideoQaContinuityResolverService } from '@server/collections/workflows/services/video-qa-continuity-resolver.service';
+import { WorkflowArtifactLifecycleService } from '@server/collections/workflows/services/workflow-artifact-lifecycle.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionAuthorizationService } from '@server/collections/workflows/services/workflow-execution-authorization.service';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
@@ -107,6 +109,7 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     WorkflowExecutionAuthorizationService,
     WorkflowExecutorService,
     WorkflowExecutionQueueService,
+    WorkflowArtifactLifecycleService,
     WorkflowFormatConverterService,
     WorkflowGenerationService,
     YoutubeLongFormWorkflowService,
@@ -121,6 +124,7 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     CreditsModule,
     ElevenLabsModule,
     FileQueueModule,
+    FilesClientModule,
     HeyGenModule,
     IngredientsModule,
     InstagramModule,
@@ -180,6 +184,7 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     WorkflowExecutionAuthorizationService,
     WorkflowExecutorService,
     WorkflowExecutionQueueService,
+    WorkflowArtifactLifecycleService,
     WorkflowFormatConverterService,
     WorkflowGenerationService,
     YoutubeLongFormWorkflowService,

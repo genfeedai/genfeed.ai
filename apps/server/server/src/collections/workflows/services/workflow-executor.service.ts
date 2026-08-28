@@ -24,6 +24,7 @@ import {
 } from '@server/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
 import { ReviewGateNotificationService } from '@server/collections/workflows/services/review-gate-notification.service';
+import { WorkflowArtifactLifecycleService } from '@server/collections/workflows/services/workflow-artifact-lifecycle.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionFinalizerService } from '@server/collections/workflows/services/workflow-execution-finalizer.service';
 import { WorkflowExecutionGraphService } from '@server/collections/workflows/services/workflow-execution-graph.service';
@@ -91,6 +92,8 @@ export class WorkflowExecutorService {
     private readonly agentScopeContextService?: AgentScopeContextService,
     @Optional()
     private readonly nodeClaimService?: WorkflowNodeClaimService,
+    @Optional()
+    private readonly artifactLifecycleService?: WorkflowArtifactLifecycleService,
   ) {
     this.documentService = new WorkflowExecutorDocumentService(this.prisma);
     this.graphService = new WorkflowExecutionGraphService();
@@ -105,6 +108,7 @@ export class WorkflowExecutorService {
       this.graphService,
       this.websocketService,
       this.logger,
+      this.artifactLifecycleService,
     );
     this.reviewGateService = new WorkflowReviewGateService(
       this.prisma,

@@ -10,7 +10,6 @@ export type PublicYoutubeLongFormOutputType =
 
 export interface IPublicYoutubeLongFormToolResult {
   readonly content: string;
-  readonly contentId: string;
   readonly executionId: string;
   readonly id: string;
   readonly outputType: PublicYoutubeLongFormOutputType;

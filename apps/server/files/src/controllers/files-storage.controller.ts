@@ -121,6 +121,20 @@ export class FilesStorageController {
     @Inject(UploadService) private readonly uploadService: UploadService,
   ) {}
 
+  /** Delete one full storage key. Missing objects are treated as deleted. */
+  @Post('delete')
+  async deleteStoredObject(
+    @Body() body: { storageKey?: string },
+  ): Promise<{ deleted: true; storageKey: string }> {
+    const storageKey = body.storageKey?.trim();
+    if (!storageKey) {
+      throw new HttpException('storageKey is required', HttpStatus.BAD_REQUEST);
+    }
+
+    await this.uploadService.deleteStoredObject(storageKey);
+    return { deleted: true, storageKey };
+  }
+
   /**
    * Upload file to S3 with metadata extraction and image processing
    */

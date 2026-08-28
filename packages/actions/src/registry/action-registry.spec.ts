@@ -131,6 +131,38 @@ describe('Genfeed action registry', () => {
     ).toBe(true);
   });
 
+  it('owns the internal workflow artifact lifecycle actions', () => {
+    for (const actionId of [
+      'workflow.artifact.cleanup',
+      'workflow.artifact.cleanup-expired',
+      'workflow.artifact.promote',
+      'workflow.artifact.register',
+    ]) {
+      const definition = getActionDefinition(actionId);
+      expect(definition).toBeDefined();
+      expect(definition?.visibility).toBe('internal');
+    }
+  });
+
+  it('hard-cuts YouTube transcription into atomic workflow actions', () => {
+    expect(getActionDefinition('youtube.obtain-transcript')).toBeUndefined();
+    expect(
+      [
+        'youtube.create-source-library-asset',
+        'youtube.extract-audio',
+        'youtube.plan-source-library-asset',
+        'youtube.transcribe-audio',
+      ].every((actionId) => getActionDefinition(actionId)),
+    ).toBe(true);
+    expect(getActionDefinition('youtube.extract-audio')?.credits).toEqual({
+      amount: 0,
+      mode: 'fixed',
+    });
+    expect(getActionDefinition('youtube.transcribe-audio')?.credits).toEqual({
+      mode: 'dynamic',
+    });
+  });
+
   it('owns workflow credit policy instead of delegating it to the engine', () => {
     expect(getActionDefinition('imageGen')?.credits).toEqual({
       amount: 5,

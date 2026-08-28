@@ -6,6 +6,7 @@ export const publicYoutubeLongFormToolAttributes = createEntityAttributes([
   'executionId',
   'outputType',
   'summary',
+  'sourceArtifactId',
   'title',
   'videoId',
   'youtubeUrl',

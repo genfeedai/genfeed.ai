@@ -644,14 +644,28 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     { authorization: 'public', visibility: 'public' },
   ),
   internalAction(
-    'youtube.obtain-transcript',
-    'Obtain YouTube Transcript',
-    'Extracts audio and transcribes one resolved video.',
-    {
-      authorization: 'public',
-      credits: { mode: 'dynamic' },
-      visibility: 'public',
-    },
+    'youtube.create-source-library-asset',
+    'Save YouTube Source to Library',
+    'Promotes one trusted temporary YouTube source into a durable Library asset.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'youtube.extract-audio',
+    'Extract YouTube Audio',
+    'Downloads one resolved YouTube source and extracts its temporary audio.',
+    { authorization: 'public' },
+  ),
+  internalAction(
+    'youtube.plan-source-library-asset',
+    'Plan YouTube Source Library Asset',
+    'Validates one retained YouTube source and derives its deterministic Library identity.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'youtube.transcribe-audio',
+    'Transcribe YouTube Audio',
+    'Transcribes one temporary YouTube audio artifact.',
+    { authorization: 'public', credits: { mode: 'dynamic' } },
   ),
   internalAction(
     'youtube.resolve-source',
@@ -668,6 +682,28 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'youtube-comments-ingest',
     'Ingest YouTube Comments',
     'Ingests one connected YouTube account into the social inbox.',
+  ),
+  internalAction(
+    'workflow.artifact.cleanup',
+    'Clean Up Workflow Artifacts',
+    'Deletes temporary storage objects owned by one workflow execution.',
+  ),
+  internalAction(
+    'workflow.artifact.cleanup-expired',
+    'Clean Up Expired Workflow Artifacts',
+    'Processes one bounded batch of expired workflow storage and execution payloads.',
+  ),
+  internalAction(
+    'workflow.artifact.promote',
+    'Promote Workflow Artifact',
+    'Marks one temporary workflow artifact as retained by a durable Library record.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'workflow.artifact.register',
+    'Register Workflow Artifact',
+    'Registers one temporary workflow storage object for terminal and TTL cleanup.',
+    { authorization: 'public' },
   ),
   internalAction(
     'workflow.collect-output',

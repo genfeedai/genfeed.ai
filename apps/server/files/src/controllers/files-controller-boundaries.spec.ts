@@ -85,6 +85,11 @@ const routes = [
   ],
   [FilesStorageController.prototype.uploadFile, RequestMethod.POST, 'upload'],
   [
+    FilesStorageController.prototype.deleteStoredObject,
+    RequestMethod.POST,
+    'delete',
+  ],
+  [
     FilesStorageController.prototype.uploadMultipart,
     RequestMethod.POST,
     'upload/multipart',

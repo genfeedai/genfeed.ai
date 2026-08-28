@@ -406,8 +406,11 @@ AS $$
         'youtube.clip.dispatch-preview',
         'youtube.clip.read-session',
         'youtube.clip.reserve-preview',
-        'youtube.obtain-transcript',
+        'youtube.create-source-library-asset',
+        'youtube.extract-audio',
+        'youtube.plan-source-library-asset',
         'youtube.resolve-source',
+        'youtube.transcribe-audio',
         'youtubeAnalyticsSync'
     );
 $$;

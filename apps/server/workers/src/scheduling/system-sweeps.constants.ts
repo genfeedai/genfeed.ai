@@ -23,6 +23,7 @@ export const SYSTEM_SWEEP_JOBS = {
   STREAK_MAINTENANCE: 'streak-maintenance-sweep',
   TIKTOK_STATUS: 'tiktok-status-sweep',
   TRANSCRIPT_PURGE: 'transcript-purge-sweep',
+  WORKFLOW_ARTIFACT_CLEANUP: 'workflow-artifact-cleanup-sweep',
   YOUTUBE_MESSAGES: 'youtube-messages-sweep',
   YOUTUBE_STATUS: 'youtube-status-sweep',
 } as const;
@@ -97,6 +98,13 @@ export const SYSTEM_SWEEP_DEFINITIONS: SystemSweepDefinition[] = [
     // instead of forever.
     jobName: SYSTEM_SWEEP_JOBS.BATCH_GENERATION_RECONCILE,
     pattern: '*/5 * * * *',
+    timezone: 'UTC',
+  },
+  {
+    // Terminal cleanup handles short-lived intermediates; this hourly pass is
+    // the 24-hour source-media and ephemeral-execution backstop.
+    jobName: SYSTEM_SWEEP_JOBS.WORKFLOW_ARTIFACT_CLEANUP,
+    pattern: '17 * * * *',
     timezone: 'UTC',
   },
   {

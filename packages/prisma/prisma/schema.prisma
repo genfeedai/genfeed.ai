@@ -362,6 +362,14 @@ enum WorkflowExecutionStatus {
   CANCELLED
 }
 
+enum WorkflowArtifactState {
+  ACTIVE
+  DELETING
+  DELETED
+  CLEANUP_FAILED
+  PROMOTED
+}
+
 enum ArticleStatus {
   DRAFT
   PUBLISHED
@@ -601,6 +609,7 @@ model User {
   workflows                Workflow[]
   workflowVersions         WorkflowVersion[]
   workflowExecutions       WorkflowExecution[]
+  promotedWorkflowArtifacts WorkflowArtifact[]       @relation("workflow_artifact_promoted_by")
   bots                     Bot[]
   livestreamBotSessions    LivestreamBotSession[]
   botActivities            BotActivity[]
@@ -725,6 +734,7 @@ model Organization {
   workflows                     Workflow[]
   workflowVersions              WorkflowVersion[]
   workflowExecutions            WorkflowExecution[]
+  workflowArtifacts             WorkflowArtifact[]
   notificationEvents            NotificationEvent[]
   notificationDeliveries        NotificationDelivery[]
   batchWorkflowJobs             BatchWorkflowJob[]
@@ -4095,9 +4105,15 @@ model WorkflowExecution {
   etaConfidence       String?
   etaCurrentPhase     String?
   etaUpdatedAt        DateTime?
+  scrubAllNodePayloads Boolean    @default(false)
+  scrubNodeIds         String[]   @default([])
+  payloadScrubbedAt    DateTime?
+  purgeAfterHours      Int?
+  purgeAt              DateTime?
 
   posts        Post[]
   nodeResults  WorkflowExecutionNodeResult[]
+  artifacts    WorkflowArtifact[]
   clipGenerationProject ClipProject? @relation("clip_generation_workflow_execution")
   clipContinuityProject ClipProject? @relation("clip_continuity_workflow_execution")
 
@@ -4105,6 +4121,7 @@ model WorkflowExecution {
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, workflowVersionId, createdAt(sort: Desc)])
+  @@index([purgeAt, payloadScrubbedAt, isDeleted], map: "workflow_executions_purgeAt_idx")
   @@map("workflow_executions")
 }
 
@@ -4132,6 +4149,43 @@ model WorkflowExecutionNodeResult {
   @@unique([executionId, nodeId])
   @@index([organizationId, executionId])
   @@map("workflow_execution_node_results")
+}
+
+/// Internal lifecycle metadata for temporary objects produced by workflow
+/// nodes. Durable Library assets remain in Asset/Ingredient; this row only
+/// owns deletion or an explicit promotion handoff for temporary storage.
+model WorkflowArtifact {
+  id               String                @id @default(cuid())
+  organizationId   String
+  organization     Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  executionId      String
+  execution        WorkflowExecution     @relation(fields: [executionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  nodeId           String
+  storageProvider  String                @default("primary")
+  storageKey       String
+  kind             String
+  retentionPolicy  String                @default("terminal")
+  metadata         Json                  @default("{}")
+  state            WorkflowArtifactState @default(ACTIVE)
+  expiresAt        DateTime
+  cleanupClaimedAt DateTime?
+  cleanupAttempts  Int                   @default(0)
+  deletedAt        DateTime?
+  lastError        String?
+  promotedAt       DateTime?
+  promotedByUserId String?
+  promotedByUser   User?                 @relation("workflow_artifact_promoted_by", fields: [promotedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  promotionTargetType String?
+  promotionTargetId   String?
+  isDeleted        Boolean               @default(false)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@unique([executionId, nodeId, storageProvider, storageKey], map: "workflow_artifacts_storage_identity_key")
+  @@index([organizationId, executionId, state, isDeleted], map: "workflow_artifacts_execution_state_idx")
+  @@index([state, retentionPolicy, expiresAt], map: "workflow_artifacts_expiry_idx")
+  @@index([state, cleanupClaimedAt], map: "workflow_artifacts_cleanup_lease_idx")
+  @@map("workflow_artifacts")
 }
 
 /// Durable per-node idempotency claims for workflow execution (#2359).

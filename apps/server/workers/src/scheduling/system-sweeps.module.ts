@@ -11,6 +11,7 @@ import { CronRssModule } from '@workers/crons/rss/cron.rss.module';
 import { CronStreaksModule } from '@workers/crons/streaks/cron.streaks.module';
 import { CronTiktokModule } from '@workers/crons/tiktok/cron.tiktok.module';
 import { CronTranscriptPurgeModule } from '@workers/crons/transcript-purge/cron.transcript-purge.module';
+import { CronWorkflowArtifactsModule } from '@workers/crons/workflow-artifacts/cron.workflow-artifacts.module';
 import { CronYoutubeModule } from '@workers/crons/youtube/cron.youtube.module';
 import { SystemSweepSchedulerService } from '@workers/scheduling/system-sweep-scheduler.service';
 import { SYSTEM_SWEEPS_QUEUE } from '@workers/scheduling/system-sweeps.constants';
@@ -37,6 +38,7 @@ import { SystemSweepsProcessor } from '@workers/scheduling/system-sweeps.process
     CronStreaksModule,
     CronTiktokModule,
     CronTranscriptPurgeModule,
+    CronWorkflowArtifactsModule,
     CronYoutubeModule,
   ],
   providers: [SystemSweepSchedulerService, SystemSweepsProcessor],

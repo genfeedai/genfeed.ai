@@ -23,6 +23,7 @@ import type {
   WorkflowExecutionDocument,
   WorkflowNodeResult,
 } from '@server/collections/workflow-executions/schemas/workflow-execution.schema';
+import { parseWorkflowExecutionRetention } from '@server/collections/workflows/workflow-execution-retention.contract';
 import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 import { WorkflowNotificationOutboxService } from '@server/services/notifications/workflow-notifications/workflow-notification-outbox.service';
 import { WorkflowEventWebhookService } from '@server/services/webhook-client/workflow-event-webhook.service';
@@ -411,6 +412,7 @@ export class WorkflowExecutionsService extends BaseService<
     dto: WorkflowExecutionCreateInput,
   ): Promise<WorkflowExecutionDocument> {
     const metadata = withActionOriginMetadata(dto.metadata);
+    const retention = parseWorkflowExecutionRetention(metadata);
     const executionResult = {
       inputValues: dto.inputValues ?? {},
       metadata,
@@ -425,9 +427,12 @@ export class WorkflowExecutionsService extends BaseService<
       etaUpdatedAt: dto.etaCurrentPhase ? new Date() : null,
       organizationId,
       progress: 0,
+      purgeAfterHours: retention.purgeAfterHours,
       remainingDurationMs: dto.remainingDurationMs ?? null,
       result: executionResult,
       status: PrismaWorkflowExecutionStatus.PENDING,
+      scrubAllNodePayloads: retention.scrubAllNodePayloads,
+      scrubNodeIds: retention.scrubNodeIds,
       totalNodes: dto.totalNodes ?? null,
       trigger: dto.trigger ?? null,
       userId,

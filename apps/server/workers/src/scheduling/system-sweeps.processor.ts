@@ -11,6 +11,7 @@ import { CronRssAutopostService } from '@workers/crons/rss/cron.rss-autopost.ser
 import { CronStreaksService } from '@workers/crons/streaks/cron.streaks.service';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
 import { CronTranscriptPurgeService } from '@workers/crons/transcript-purge/cron.transcript-purge.service';
+import { CronWorkflowArtifactsService } from '@workers/crons/workflow-artifacts/cron.workflow-artifacts.service';
 import { CronYoutubeMessagesService } from '@workers/crons/youtube/cron.youtube-messages.service';
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
 import {
@@ -40,6 +41,7 @@ export class SystemSweepsProcessor extends WorkerHost {
     private readonly cronStreaksService: CronStreaksService,
     private readonly cronTiktokStatusService: CronTiktokStatusService,
     private readonly cronTranscriptPurgeService: CronTranscriptPurgeService,
+    private readonly cronWorkflowArtifactsService: CronWorkflowArtifactsService,
     private readonly cronYoutubeMessagesService: CronYoutubeMessagesService,
     private readonly cronYoutubeStatusService: CronYoutubeStatusService,
     private readonly logger: LoggerService,
@@ -103,6 +105,10 @@ export class SystemSweepsProcessor extends WorkerHost {
 
       case SYSTEM_SWEEP_JOBS.TRANSCRIPT_PURGE:
         await this.cronTranscriptPurgeService.purgeExpiredTranscripts();
+        return;
+
+      case SYSTEM_SWEEP_JOBS.WORKFLOW_ARTIFACT_CLEANUP:
+        await this.cronWorkflowArtifactsService.queueExpiredArtifactCleanup();
         return;
 
       default:

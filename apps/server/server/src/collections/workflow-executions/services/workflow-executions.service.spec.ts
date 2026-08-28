@@ -153,6 +153,30 @@ describe('WorkflowExecutionsService', () => {
     );
   });
 
+  it('persists execution retention as indexed scalar state', async () => {
+    const { prisma, service } = makeService();
+
+    await service.createExecution('user-1', 'org-1', {
+      metadata: {
+        executionRetention: {
+          purgeAfterHours: 24,
+          scrubNodePayloads: 'all',
+        },
+      },
+      workflowId: 'workflow-1',
+    });
+
+    expect(prisma.workflowExecution.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          purgeAfterHours: 24,
+          scrubAllNodePayloads: true,
+          scrubNodeIds: [],
+        }),
+      }),
+    );
+  });
+
   it('serializes executions without provenance with explicit unknown origin', async () => {
     const { prisma, service } = makeService();
     prisma.workflowExecution.findFirst.mockResolvedValue({

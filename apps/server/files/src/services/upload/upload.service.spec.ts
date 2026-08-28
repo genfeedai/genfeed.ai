@@ -102,6 +102,7 @@ describe('UploadService', () => {
     } as unknown as Mocked<LoggerService>;
 
     mockStorage = {
+      delete: vi.fn().mockResolvedValue(undefined),
       getUrl: vi.fn().mockReturnValue('https://s3.example.com/test-key'),
       upload: vi.fn().mockResolvedValue('ingredients/images/test-key'),
       uploadFromFile: vi.fn().mockResolvedValue('ingredients/videos/test-key'),
@@ -142,6 +143,12 @@ describe('UploadService', () => {
     (fs.readFileSync as Mock).mockReturnValue(Buffer.from('file-content'));
     (fs.statSync as Mock).mockReturnValue({ size: 17 });
     pipelineMock.mockResolvedValue(undefined);
+  });
+
+  it('deletes a validated full storage key through the configured provider', async () => {
+    await service.deleteStoredObject('videos/source.mp4');
+
+    expect(mockStorage.delete).toHaveBeenCalledWith('videos/source.mp4');
   });
 
   describe('initialization', () => {

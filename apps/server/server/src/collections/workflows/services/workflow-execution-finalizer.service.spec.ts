@@ -1,10 +1,10 @@
-import { WorkflowExecutionFinalizerService } from '@server/collections/workflows/services/workflow-execution-finalizer.service';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
   WorkflowStatus,
 } from '@genfeedai/enums';
 import type { ExecutionRunResult } from '@genfeedai/workflows/engine';
+import { WorkflowExecutionFinalizerService } from '@server/collections/workflows/services/workflow-execution-finalizer.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function failedRunResult(error = 'node exploded'): ExecutionRunResult {
@@ -61,7 +61,6 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       logger as never,
     );
   });
-
   it('publishes an in-app notice and workflow-status email path on scheduled failure', async () => {
     executionsService.completeExecution.mockResolvedValue({
       id: 'exec-1',
@@ -178,5 +177,46 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
     ).resolves.toMatchObject({ id: 'exec-4' });
 
     expect(logger.error).toHaveBeenCalled();
+  });
+
+  it('scrubs terminal payloads before queueing terminal artifact cleanup', async () => {
+    const artifactLifecycle = {
+      applyTerminalRetention: vi.fn().mockResolvedValue(true),
+      scheduleTerminalCleanup: vi.fn().mockResolvedValue(true),
+    };
+    service = new WorkflowExecutionFinalizerService(
+      prisma as never,
+      executionsService as never,
+      graphService as never,
+      notificationsPublisher as never,
+      logger as never,
+      artifactLifecycle as never,
+    );
+    executionsService.completeExecution.mockResolvedValue({
+      id: 'exec-retained',
+      organizationId: 'org-1',
+      trigger: WorkflowExecutionTrigger.MANUAL,
+      userId: 'user-1',
+      workflowId: 'wf-1',
+    });
+
+    await service.finalizeExecution({
+      completedAt: new Date('2026-08-14T08:00:00.000Z'),
+      executionId: 'exec-retained',
+      finalStatus: WorkflowExecutionStatus.COMPLETED,
+      result: { ...failedRunResult(), error: undefined, status: 'completed' },
+      workflowId: 'wf-1',
+      workflowStatus: WorkflowStatus.COMPLETED,
+    });
+
+    expect(artifactLifecycle.applyTerminalRetention).toHaveBeenCalledOnce();
+    expect(artifactLifecycle.scheduleTerminalCleanup).toHaveBeenCalledOnce();
+    expect(
+      artifactLifecycle.applyTerminalRetention.mock.invocationCallOrder[0] ??
+        Number.MAX_SAFE_INTEGER,
+    ).toBeLessThan(
+      artifactLifecycle.scheduleTerminalCleanup.mock.invocationCallOrder[0] ??
+        Number.MIN_SAFE_INTEGER,
+    );
   });
 });

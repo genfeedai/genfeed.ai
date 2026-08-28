@@ -55,6 +55,14 @@ describe('immutable workflow version migration', () => {
     expect(migrationSource).toContain('DROP COLUMN "edges"');
   });
 
+  it('hard-cuts the combined YouTube transcript action into atomic actions', () => {
+    expect(migrationSource).not.toContain("'youtube.obtain-transcript'");
+    expect(migrationSource).toContain("'youtube.create-source-library-asset'");
+    expect(migrationSource).toContain("'youtube.extract-audio'");
+    expect(migrationSource).toContain("'youtube.plan-source-library-asset'");
+    expect(migrationSource).toContain("'youtube.transcribe-audio'");
+  });
+
   it('pins every existing execution to the migrated immutable version', () => {
     expect(migrationSource).toContain(
       'ALTER TABLE "workflow_executions" ADD COLUMN "workflowVersionId" TEXT',
