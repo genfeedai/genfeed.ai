@@ -1,5 +1,3 @@
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { baseModelKey } from '@server/collections/models/utils/model-key.util';
 import { AnalyzeToneDto } from '@api/collections/profiles/dto/analyze-tone.dto';
 import { ApplyProfileDto } from '@api/collections/profiles/dto/apply-profile.dto';
 import { CreateProfileDto } from '@api/collections/profiles/dto/create-profile.dto';
@@ -12,18 +10,20 @@ import type {
   IVoiceProfile,
   ProfileDocument,
 } from '@api/collections/profiles/schemas/profile.schema';
-import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { JsonParserUtil } from '@server/helpers/utils/json-parser.util';
-import { calculateEstimatedTextCredits } from '@server/helpers/utils/text-pricing/text-pricing.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { baseModelKey } from '@server/collections/models/utils/model-key.util';
+import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
+import { JsonParserUtil } from '@server/helpers/utils/json-parser.util';
+import { calculateEstimatedTextCredits } from '@server/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
 
 type Profile = ProfileDocument;
 
@@ -50,12 +50,6 @@ export class ProfilesService {
 
   private readString(value: unknown): string | undefined {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
-  }
-
-  private readStringArray(value: unknown): string[] {
-    return Array.isArray(value)
-      ? value.filter((item): item is string => typeof item === 'string')
-      : [];
   }
 
   private readViolations(value: unknown): Array<{
@@ -133,23 +127,24 @@ export class ProfilesService {
     excludeId?: string,
   ) {
     const profiles = await this.prisma.profile.findMany({
-      where: scopedWhere(organizationId, {}),
+      where: scopedWhere(organizationId, {
+        data: { equals: true, path: ['isDefault'] },
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      }),
     });
 
     await Promise.all(
-      profiles
-        .filter((profile) => profile.id !== excludeId)
-        .map((profile) =>
-          this.prisma.profile.update({
-            data: {
-              data: this.serializeProfileData({
-                ...this.readObjectRecord(profile.data),
-                isDefault: false,
-              }) as Prisma.InputJsonValue,
-            },
-            where: { id: profile.id },
-          }),
-        ),
+      profiles.map((profile) =>
+        this.prisma.profile.update({
+          data: {
+            data: this.serializeProfileData({
+              ...this.readObjectRecord(profile.data),
+              isDefault: false,
+            }) as Prisma.InputJsonValue,
+          },
+          where: { id: profile.id },
+        }),
+      ),
     );
   }
 
@@ -242,15 +237,15 @@ export class ProfilesService {
    * Get default profile
    */
   async getDefault(organizationId: string): Promise<Profile | null> {
-    const results = await this.prisma.profile.findMany({
-      where: scopedWhere(organizationId, {}),
+    const profile = await this.prisma.profile.findFirst({
+      where: scopedWhere(organizationId, {
+        data: { equals: true, path: ['isDefault'] },
+      }),
     });
 
-    const profile = results
-      .map((item) => this.normalizeProfile(item as unknown as ProfileDocument))
-      .find((item) => item.isDefault);
-
-    return profile ?? null;
+    return profile
+      ? this.normalizeProfile(profile as unknown as ProfileDocument)
+      : null;
   }
 
   /**
