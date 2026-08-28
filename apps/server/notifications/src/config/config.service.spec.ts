@@ -97,6 +97,20 @@ describe('ConfigService (Notifications)', () => {
       delete process.env.DISCORD_GUILD_ID;
     });
 
+    it('keeps Discord disabled by default in local development', () => {
+      vi.stubEnv('NODE_ENV', 'development');
+      process.env.DISCORD_BOT_TOKEN = 'discord-token';
+      process.env.DISCORD_CLIENT_ID = 'client-1';
+      process.env.DISCORD_GUILD_ID = 'guild-1';
+
+      service = new ConfigService();
+      expect(service.isDiscordEnabled()).toBe(false);
+
+      process.env.GF_DEV_ENABLE_DISCORD = 'true';
+      service = new ConfigService();
+      expect(service.isDiscordEnabled()).toBe(true);
+    });
+
     it('reports Resend enabled from the setup api key', () => {
       // RESEND_API_KEY is set in test/setup-unit.ts
       service = new ConfigService();
@@ -152,6 +166,7 @@ describe('ConfigService (Notifications)', () => {
       'SLACK_NOTIFICATION_BOT_TOKEN', // slack.service
       'GENFEED_CLOUD', // terminal.service cloud gate
       'NEXT_PUBLIC_GENFEED_CLOUD', // terminal.service cloud gate
+      'GF_DEV_ENABLE_DISCORD', // explicit local Discord login opt-in
       // The `VALIDATION_*` keys were removed with the service-local
       // `ValidationConfigService` copy — notifications reads none of them.
     ] as const;

@@ -100,9 +100,9 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
   const [prompt, setPrompt] = useState('');
   const [search, setSearch] = useState('');
-  const [resultsView, setResultsView] = useState<
-    ViewType.GRID | ViewType.MASONRY
-  >(ViewType.MASONRY);
+  const [resultsView, setResultsView] = useState<ViewType.GRID | ViewType.LIST>(
+    ViewType.GRID,
+  );
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [isContentLibraryOpen, setIsContentLibraryOpen] = useState(false);
   const [contentLibraryRole, setContentLibraryRole] =
@@ -766,15 +766,15 @@ export default function StudioGenerateWorkspace(): ReactElement {
             <ViewToggle
               activeView={resultsView}
               onChange={(view) => {
-                if (view === ViewType.GRID || view === ViewType.MASONRY) {
+                if (view === ViewType.GRID || view === ViewType.LIST) {
                   setResultsView(view);
                 }
               }}
               options={[
                 {
                   icon: <Rows3 className="size-4" />,
-                  label: translate('viewMasonry'),
-                  type: ViewType.MASONRY,
+                  label: translate('viewList'),
+                  type: ViewType.LIST,
                 },
                 {
                   icon: <LayoutGrid className="size-4" />,
@@ -792,7 +792,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="flex-1 overflow-auto px-6 py-6">
-          <div className="mx-auto flex max-w-5xl flex-col gap-4">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
             {remixRun ? (
               <StudioRemixRunPanel
                 error={remixError}

@@ -170,8 +170,17 @@ describe('AppLayout', () => {
     });
 
     expect(expandToggle).toBeInTheDocument();
-    expect(expandToggle.querySelector('img')).not.toBeNull();
+    const logoImage = expandToggle.querySelector('img');
+    expect(logoImage).not.toBeNull();
     expect(expandToggle.querySelectorAll('svg')).toHaveLength(0);
+
+    fireEvent.error(logoImage as HTMLImageElement);
+
+    await waitFor(() => {
+      expect(expandToggle.querySelector('img')?.getAttribute('src')).toContain(
+        'logo.svg',
+      );
+    });
 
     fireEvent.click(expandToggle);
 

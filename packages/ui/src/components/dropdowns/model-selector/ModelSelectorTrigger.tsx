@@ -23,6 +23,7 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
   shouldFlash,
   className,
   autoLabel,
+  context,
   ...buttonProps
 }: ModelSelectorTriggerProps &
   ButtonHTMLAttributes<HTMLButtonElement> & { ref?: Ref<HTMLButtonElement> }) {
@@ -38,6 +39,41 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
     className,
   );
   const labelClassName = 'min-w-0 flex-1 truncate text-xs font-medium';
+
+  if (context) {
+    const ContextIcon = context.icon;
+    const selectionLabel = isAutoSelected
+      ? (autoLabel ?? 'Auto')
+      : selectedModels[0]?.label;
+
+    return (
+      <Button
+        ref={ref}
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
+        className={cn(triggerClassName, 'text-foreground')}
+        textTransform="none"
+        {...buttonProps}
+      >
+        {ContextIcon ? (
+          <ContextIcon className={cn(SHELL_ICON_CLASS, 'text-primary')} />
+        ) : (
+          <Sparkles className={cn(SHELL_ICON_CLASS, 'text-primary')} />
+        )}
+        <span className={labelClassName}>
+          {selectionLabel
+            ? `${context.label} · ${selectionLabel}`
+            : context.label}
+        </span>
+        {selectedModels.length === 1 ? (
+          <ModelSelectorCostBadge costTier={selectedModels[0]?.costTier} />
+        ) : null}
+        <ChevronsUpDown
+          className={cn(SHELL_ICON_CLASS, 'text-muted-foreground')}
+        />
+      </Button>
+    );
+  }
 
   // Auto wins over any residual concrete model list — otherwise a stale
   // values[] entry keeps the last model label after the user picks Auto.

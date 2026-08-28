@@ -214,6 +214,17 @@ describe('AgentRunProcessor', () => {
 
     await expect(processor.process(job)).rejects.toThrow();
 
+    expect(logger.error).toHaveBeenCalledWith(
+      'AgentRunProcessor accepted chat turn failed',
+      expect.objectContaining({
+        attempt: 3,
+        attempts: 3,
+        errorMessage: 'connect ECONNREFUSED 127.0.0.1:4635',
+        errorName: 'Error',
+        runId: 'run-1',
+        threadId: 'thread-1',
+      }),
+    );
     expect(agentRunsService.fail).toHaveBeenCalledWith(
       'run-1',
       'org-1',

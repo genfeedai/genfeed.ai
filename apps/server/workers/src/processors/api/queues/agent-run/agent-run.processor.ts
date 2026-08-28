@@ -8,6 +8,15 @@
  * 4. Update strategy state (recordRun, failures) after execution
  * 5. Publish stream events for real-time UI updates
  */
+
+import { ActionOrigin, AgentRunStatus } from '@genfeedai/enums';
+import { AGENT_RUN_QUEUE, AgentRunJobData } from '@genfeedai/queue-contracts';
+import { runWithActionOrigin } from '@genfeedai/server';
+import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
+import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { forwardRef, Inject, Optional } from '@nestjs/common';
 import { AgentCampaignExecutionService } from '@server/collections/agent-campaigns/services/agent-campaign-execution.service';
 import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { AgentStrategiesService } from '@server/collections/agent-strategies/services/agent-strategies.service';
@@ -18,14 +27,6 @@ import { AgentOrchestratorService } from '@server/services/agent-orchestrator/ag
 import { AgentStreamPublisherService } from '@server/services/agent-orchestrator/agent-stream-publisher.service';
 import type { AgentChatRequest } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { TaskOrchestratorService } from '@server/services/task-orchestration/task-orchestrator.service';
-import { ActionOrigin, AgentRunStatus } from '@genfeedai/enums';
-import { AGENT_RUN_QUEUE, AgentRunJobData } from '@genfeedai/queue-contracts';
-import { runWithActionOrigin } from '@genfeedai/server';
-import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
-import { LoggerService } from '@libs/logger/logger.service';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { forwardRef, Inject, Optional } from '@nestjs/common';
 import { Job } from 'bullmq';
 
 const FAILURES_BEFORE_PAUSE = 3;
@@ -437,7 +438,20 @@ export class AgentRunProcessor extends WorkerHost {
       });
     } catch (error: unknown) {
       const attempts = Number(job.opts.attempts) || 1;
+      const attempt = job.attemptsMade + 1;
       const isLastAttempt = job.attemptsMade + 1 >= attempts;
+      const errorRecord = readObjectRecord(error);
+      this.logger.error(`${this.logContext} accepted chat turn failed`, {
+        attempt,
+        attempts,
+        errorCode: readString(errorRecord?.code),
+        errorMessage:
+          error instanceof Error ? error.message : 'Unknown agent run error',
+        errorName: error instanceof Error ? error.name : undefined,
+        organizationId: data.organizationId,
+        runId: data.runId,
+        threadId: data.threadId,
+      });
       if (isLastAttempt) {
         const persistedError =
           'Agent generation could not be completed after durable retries.';

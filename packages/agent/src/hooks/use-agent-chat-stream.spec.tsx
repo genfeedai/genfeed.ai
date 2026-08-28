@@ -754,6 +754,38 @@ describe('useAgentChatStream', () => {
     expect(() => JSON.stringify(payload)).not.toThrow();
   });
 
+  it('sends composer media settings through the supported page context', async () => {
+    const chatStream = vi.fn().mockResolvedValue({
+      runId: 'run-image-settings',
+      startedAt: '2026-03-09T10:00:00.000Z',
+      threadId: 'thread-image-settings',
+    });
+    const apiService = createApiService({ chatStream });
+    const { result } = renderHook(() => useAgentChatStream({ apiService }));
+
+    await act(async () => {
+      await result.current.sendMessage('Create a portrait campaign visual', {
+        generationMode: 'image',
+        generationSettings: {
+          aspectRatio: '4:5',
+          model: 'replicate/image-model',
+          outputs: 2,
+        },
+      });
+    });
+
+    expect(chatStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        generationMode: 'image',
+        pageContext: expect.objectContaining({
+          draftInstructions:
+            'Use these operator-selected generation settings exactly: {"aspectRatio":"4:5","model":"replicate/image-model","outputs":2}',
+        }),
+      }),
+      expect.any(AbortSignal),
+    );
+  });
+
   it('preserves an explicit model override for streaming sends', async () => {
     const startedAt = '2026-03-09T10:00:00.000Z';
     const apiService = createApiService({

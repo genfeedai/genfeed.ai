@@ -6,7 +6,9 @@ import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo'
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
-import type { CSSProperties } from 'react';
+import { type CSSProperties, useState } from 'react';
+
+const BUNDLED_GENFEED_LOGO_URL = '/logo.svg';
 
 type SidebarLogoToggleButtonProps = {
   ariaLabel: string;
@@ -24,6 +26,9 @@ export default function SidebarLogoToggleButton({
   style,
 }: SidebarLogoToggleButtonProps) {
   const logoUrl = useThemeLogo();
+  const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
+  const visibleLogoUrl =
+    !logoUrl || failedLogoUrl === logoUrl ? BUNDLED_GENFEED_LOGO_URL : logoUrl;
 
   return (
     <Button
@@ -44,18 +49,19 @@ export default function SidebarLogoToggleButton({
       style={style}
       tooltip={ariaLabel}
     >
-      {logoUrl ? (
-        <Image
-          src={logoUrl}
-          alt={EnvironmentService.LOGO_ALT}
-          className="size-4 object-contain dark:invert"
-          width={16}
-          height={16}
-          sizes="16px"
-        />
-      ) : (
-        <span className="text-sm font-bold leading-none">G</span>
-      )}
+      <Image
+        src={visibleLogoUrl}
+        alt={EnvironmentService.LOGO_ALT}
+        className="size-4 object-contain dark:invert"
+        width={16}
+        height={16}
+        sizes="16px"
+        onError={() => {
+          if (visibleLogoUrl !== BUNDLED_GENFEED_LOGO_URL) {
+            setFailedLogoUrl(visibleLogoUrl);
+          }
+        }}
+      />
     </Button>
   );
 }

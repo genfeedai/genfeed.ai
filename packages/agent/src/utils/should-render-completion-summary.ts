@@ -113,11 +113,19 @@ export function hasProductResultCard(
  */
 export function shouldRenderCompletionSummary(
   action: AgentUiAction,
-  // Kept for call-site stability; product-card suppression is now covered by
-  // the outcome-signal gate (generic Done never renders on its own).
-  _siblingActions: readonly AgentUiAction[],
+  siblingActions: readonly AgentUiAction[],
 ): boolean {
   if (action.type !== 'completion_summary_card') {
+    return false;
+  }
+
+  // A concrete preview/result is the outcome. Repeating the same text/media
+  // in a generic Done card creates two competing surfaces for one result.
+  if (
+    hasProductResultCard(
+      siblingActions.filter((sibling) => sibling.id !== action.id),
+    )
+  ) {
     return false;
   }
 

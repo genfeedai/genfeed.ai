@@ -9,12 +9,14 @@ import { AgentComposerStatusStack } from './AgentComposerStatusStack';
 
 const baseProps = {
   error: null,
+  isRunActive: false,
   isSubmittingInputRequest: false,
   latestProposedPlan: null,
   onClearError: vi.fn(),
   onSubmitInputRequest: vi.fn(),
   pendingInputRequest: null,
   socketConnectionState: 'connected' as const,
+  workEvents: [],
 };
 
 describe('AgentComposerStatusStack', () => {
@@ -22,6 +24,7 @@ describe('AgentComposerStatusStack', () => {
     render(
       <AgentComposerStatusStack
         {...baseProps}
+        isRunActive
         activeWorkEvent={{
           createdAt: '2026-07-13T00:00:00.000Z',
           event: AgentWorkEventType.TOOL_STARTED,
@@ -31,6 +34,17 @@ describe('AgentComposerStatusStack', () => {
           status: AgentWorkEventStatus.RUNNING,
           threadId: 'thread-1',
         }}
+        workEvents={[
+          {
+            createdAt: '2026-07-13T00:00:00.000Z',
+            event: AgentWorkEventType.TOOL_STARTED,
+            id: 'event-1',
+            label: 'Rendering frames',
+            progress: 42,
+            status: AgentWorkEventStatus.RUNNING,
+            threadId: 'thread-1',
+          },
+        ]}
       />,
     );
 
@@ -43,6 +57,7 @@ describe('AgentComposerStatusStack', () => {
     render(
       <AgentComposerStatusStack
         {...baseProps}
+        isRunActive
         activeWorkEvent={{
           createdAt: '2026-07-13T00:00:00.000Z',
           event: AgentWorkEventType.TOOL_STARTED,
@@ -52,10 +67,21 @@ describe('AgentComposerStatusStack', () => {
           threadId: 'thread-1',
           toolName: 'research',
         }}
+        workEvents={[
+          {
+            createdAt: '2026-07-13T00:00:00.000Z',
+            event: AgentWorkEventType.TOOL_STARTED,
+            id: 'event-1',
+            label: 'Researching sources',
+            status: AgentWorkEventStatus.RUNNING,
+            threadId: 'thread-1',
+            toolName: 'research',
+          },
+        ]}
       />,
     );
 
-    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Researching sources')).toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     expect(screen.queryByText(/%/)).not.toBeInTheDocument();
   });
@@ -64,6 +90,7 @@ describe('AgentComposerStatusStack', () => {
     const { container } = render(
       <AgentComposerStatusStack
         {...baseProps}
+        isRunActive
         activeWorkEvent={{
           createdAt: '2026-07-13T00:00:00.000Z',
           event: AgentWorkEventType.STARTED,
@@ -95,5 +122,33 @@ describe('AgentComposerStatusStack', () => {
     const card = notice.closest('[role="status"]');
     expect(card?.className).toMatch(/bg-warning/);
     expect(card?.className).toMatch(/border-warning/);
+  });
+
+  it('renders approved plan steps as a compact running task list', () => {
+    render(
+      <AgentComposerStatusStack
+        {...baseProps}
+        activeWorkEvent={null}
+        isRunActive
+        latestProposedPlan={{
+          createdAt: '2026-07-13T00:00:00.000Z',
+          id: 'plan-1',
+          status: 'approved',
+          steps: [
+            { status: 'completed', step: 'Inspect the current surface' },
+            { status: 'in_progress', step: 'Implement the fix' },
+            { status: 'pending', step: 'Verify the result' },
+          ],
+          updatedAt: '2026-07-13T00:00:00.000Z',
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('region', { name: 'Tasks 1 of 3' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Inspect the current surface')).toBeInTheDocument();
+    expect(screen.getByText('Implement the fix')).toBeInTheDocument();
+    expect(screen.getByText('Verify the result')).toBeInTheDocument();
   });
 });

@@ -103,6 +103,45 @@ describe('SourceCollectorService', () => {
     ).rejects.toThrow(/All source collectors failed/);
   });
 
+  it('discards provider rows that do not have an external post id', async () => {
+    apify.canCollect.mockResolvedValue(true);
+    apify.collectTimeline.mockResolvedValue({
+      handle: 'creator',
+      platform: SocialSourcePlatform.TIKTOK,
+      posts: [
+        {
+          id: undefined,
+          platform: SocialSourcePlatform.TIKTOK,
+          text: '',
+        },
+        {
+          id: 'video-1',
+          platform: SocialSourcePlatform.TIKTOK,
+          text: 'valid video',
+        },
+      ],
+      provider: 'apify',
+    });
+
+    const result = await service.collectTimeline(
+      SocialSourcePlatform.TIKTOK,
+      'creator',
+      {},
+    );
+
+    expect(result.posts).toEqual([
+      {
+        id: 'video-1',
+        platform: SocialSourcePlatform.TIKTOK,
+        text: 'valid video',
+      },
+    ]);
+    expect(logger.warn).toHaveBeenCalledWith(
+      'SourceCollector discarded posts without ids',
+      expect.objectContaining({ discardedCount: 1, provider: 'apify' }),
+    );
+  });
+
   describe('collectPost', () => {
     const reference = {
       authorHandle: 'openai',
@@ -159,6 +198,28 @@ describe('SourceCollectorService', () => {
         handle: 'openai',
         platform: SocialSourcePlatform.TWITTER,
         posts: [],
+        provider: 'apify',
+      });
+
+      await expect(service.collectPost(reference, {})).rejects.toThrow(
+        /All single-post collectors failed/,
+      );
+    });
+
+    it('treats a provider post without an external id as not found', async () => {
+      brandOAuth.canCollect.mockResolvedValue(false);
+      appBearer.canCollect.mockResolvedValue(false);
+      apify.canCollect.mockResolvedValue(true);
+      apify.collectPost.mockResolvedValue({
+        handle: 'openai',
+        platform: SocialSourcePlatform.TWITTER,
+        posts: [
+          {
+            id: '',
+            platform: SocialSourcePlatform.TWITTER,
+            text: 'missing identity',
+          },
+        ],
         provider: 'apify',
       });
 

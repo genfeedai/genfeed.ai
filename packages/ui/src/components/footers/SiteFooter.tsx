@@ -84,9 +84,9 @@ export default function SiteFooter({
   variant = 'default',
 }: SiteFooterProps): React.ReactElement {
   return (
-    <footer className={cn(VARIANT_CLASSES[variant], 'pt-20 relative z-20')}>
-      <div className="container mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_3fr] gap-16 mb-24">
+    <footer className={cn(VARIANT_CLASSES[variant], 'relative z-20 pt-14')}>
+      <div className="container mx-auto px-6">
+        <div className="mb-14 grid grid-cols-1 gap-12 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,2.2fr)]">
           {/* Brand Column */}
           <div>
             <Image
@@ -94,26 +94,26 @@ export default function SiteFooter({
               alt="Genfeed"
               width={120}
               height={20}
-              className="mb-10 h-5 w-auto dark:invert"
+              className="mb-6 h-5 w-auto dark:invert"
             />
 
-            <p className="mb-12 max-w-sm font-medium leading-relaxed text-muted-foreground">
+            <p className="mb-8 max-w-sm text-sm font-medium leading-6 text-muted-foreground">
               {brandTagline}
             </p>
 
             {/* Social icons */}
-            <div className="flex gap-5">
+            <div className="flex gap-2">
               {socialLinks.map((social) => (
                 <Link
                   key={social.label}
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group"
+                  className="group rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                   aria-label={social.label}
                 >
-                  <div className="flex size-12 items-center justify-center border border-border transition-all duration-300 ease-out group-hover:border-foreground group-hover:bg-foreground">
-                    <social.icon className="size-5 text-muted-foreground transition-colors duration-300 ease-out group-hover:text-background" />
+                  <div className="flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors group-hover:bg-foreground/[0.06] group-hover:text-foreground">
+                    <social.icon className="size-4" />
                   </div>
                 </Link>
               ))}
@@ -121,13 +121,13 @@ export default function SiteFooter({
           </div>
 
           {/* Navigation + Newsletter */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-12">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5">
             {sections.map((section) => (
               <div key={section.title}>
-                <h4 className="text-2xs font-semibold uppercase tracking-[0.3em] mb-10">
+                <h4 className="mb-4 text-xs font-semibold text-foreground">
                   {section.title}
                 </h4>
-                <ul className="space-y-6 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                <ul className="space-y-3 text-sm text-muted-foreground">
                   {section.links.map((link) => (
                     <li key={link.href}>
                       <Link
@@ -149,11 +149,11 @@ export default function SiteFooter({
             {/* Newsletter Column */}
             {showNewsletter && (
               <div>
-                <h4 className="text-2xs font-semibold uppercase tracking-[0.3em] mb-10 flex items-center gap-2">
+                <h4 className="mb-4 flex items-center gap-2 text-xs font-semibold text-foreground">
                   <Mail className="size-4" />
                   Newsletter
                 </h4>
-                <p className="mb-6 text-sm font-medium leading-relaxed text-muted-foreground">
+                <p className="mb-4 text-sm leading-6 text-muted-foreground">
                   AI content tips and product updates delivered weekly.
                 </p>
 
@@ -208,14 +208,14 @@ export default function SiteFooter({
         )}
 
         {/* Bottom Bar */}
-        <div className="flex flex-col items-center justify-between border-t border-border py-10 text-xs font-black text-foreground/30 md:flex-row">
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-border py-6 text-xs text-muted-foreground md:flex-row">
           <p>
             &copy;{' '}
             <ClientDateTime format={(date) => date.getFullYear().toString()} />{' '}
             GENFEED.AI. ALL RIGHTS RESERVED.
           </p>
 
-          <div className="flex flex-wrap justify-center gap-10">
+          <div className="flex flex-wrap justify-center gap-6">
             <Link
               href="/terms"
               className="transition-colors hover:text-foreground"

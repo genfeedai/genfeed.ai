@@ -94,22 +94,43 @@ vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
 
 vi.mock('@ui/dropdowns/model-selector/ModelSelectorPopover', () => ({
   default: function MockModelSelectorPopover(props: {
+    contextOptions?: readonly { label: string; value: string }[];
+    contextValue?: string;
     models: readonly unknown[];
     name?: string;
     onChange: (name: string, values: string[]) => void;
+    onContextChange?: (value: string) => void;
   }) {
+    const activeContext = props.contextOptions?.find(
+      (option) => option.value === props.contextValue,
+    );
     return (
       <div>
-        <button type="button">Select model</button>
-        <span data-testid="model-catalog-size">{props.models.length}</span>
-        <button
-          type="button"
-          onClick={() =>
-            props.onChange(props.name ?? 'models', ['__auto_model__'])
-          }
-        >
-          Use Auto
+        <button type="button">
+          {activeContext
+            ? `Generation settings: ${activeContext.label}`
+            : 'Select model'}
         </button>
+        <span data-testid="model-catalog-size">{props.models.length}</span>
+        {props.contextOptions?.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => props.onContextChange?.(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+        {props.models.length > 0 ? (
+          <button
+            type="button"
+            onClick={() =>
+              props.onChange(props.name ?? 'models', ['__auto_model__'])
+            }
+          >
+            Use Auto
+          </button>
+        ) : null}
       </div>
     );
   },
@@ -152,8 +173,9 @@ describe('AgentChatInput', () => {
       'utf8',
     );
     expect(source).toContain("useTranslations('agent.composerToolbar')");
-    expect(source).toContain("translate('noModelsEnabled')");
+    expect(source).toContain("translate('generationMode')");
     expect(source).toContain("{translate('actions')}");
+    expect(source).toContain("translate('actionsDescription')");
     expect(source).not.toContain('const COPY =');
   });
 
@@ -172,18 +194,26 @@ describe('AgentChatInput', () => {
     expect(shell).not.toHaveClass('opacity-50');
   });
 
-  it('does not offer Auto when the required registry catalog is empty', () => {
+  it('keeps generation type switching available when the model catalog is empty', async () => {
     const onModelChange = vi.fn();
 
     render(<AgentChatInput onModelChange={onModelChange} onSend={vi.fn()} />);
 
     expect(
-      screen.getByRole('button', { name: /no models enabled/i }),
+      screen.getByRole('button', { name: 'Composer mode: Conversation' }),
     ).toBeInTheDocument();
+    expect(screen.getByTestId('model-catalog-size')).toHaveTextContent('0');
     expect(
       screen.queryByRole('button', { name: 'Use Auto' }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByTestId('model-catalog-size')).not.toBeInTheDocument();
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Composer mode: Conversation' }),
+    );
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Image/i }));
+    expect(
+      screen.getByRole('button', { name: 'Composer mode: Image' }),
+    ).toBeInTheDocument();
     expect(onModelChange).not.toHaveBeenCalled();
   });
 
@@ -200,6 +230,68 @@ describe('AgentChatInput', () => {
     expect(
       screen.queryByRole('button', { name: /no models enabled/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('uses one generation settings control for mode and model selection', async () => {
+    render(
+      <AgentChatInput
+        models={[
+          {
+            id: 'image-1',
+            key: 'replicate/image-1',
+            label: 'Image One',
+          } as never,
+        ]}
+        onModelChange={vi.fn()}
+        onSend={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Composer mode: Conversation' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Generation mode:/i }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Composer mode: Conversation' }),
+    );
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Video/i }));
+    expect(
+      screen.getByRole('button', { name: 'Composer mode: Video' }),
+    ).toBeInTheDocument();
+  });
+
+  it('returns the same composer to Conversation after a media turn is accepted', async () => {
+    const onSend = vi.fn().mockResolvedValue(true);
+    storeState.composerSeed = {
+      content: 'Create a square launch image',
+      nonce: 1,
+      threadId: null,
+    };
+
+    render(<AgentChatInput onSend={onSend} />);
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Composer mode: Conversation' }),
+    );
+    fireEvent.click(await screen.findByRole('menuitem', { name: /Image/i }));
+    fireEvent.click(await screen.findByLabelText('Generate image'));
+
+    await waitFor(() => {
+      expect(onSend).toHaveBeenCalledWith(
+        'Create a square launch image',
+        undefined,
+        undefined,
+        expect.objectContaining({
+          generationMode: 'image',
+          generationSettings: { aspectRatio: '1:1', outputs: 1 },
+        }),
+      );
+      expect(
+        screen.getByRole('button', { name: 'Composer mode: Conversation' }),
+      ).toBeInTheDocument();
+    });
   });
 
   it('renders the stop action within the shell footer when a run is active', () => {
@@ -332,7 +424,9 @@ describe('AgentChatInput', () => {
 
     expect(screen.queryByText(/Plan mode/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText('Add context')).toBeInTheDocument();
-    expect(screen.getByLabelText('Open composer actions')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Open workspace shortcuts'),
+    ).toBeInTheDocument();
   });
 
   it('uses the inspector rail treatment without duplicating shell context', () => {
@@ -356,7 +450,9 @@ describe('AgentChatInput', () => {
     ).not.toBeInTheDocument();
     // Inspector density is compact: actions control is icon-only (no "Actions" label).
     expect(screen.queryByText('Actions')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Open composer actions')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Open workspace shortcuts'),
+    ).toBeInTheDocument();
     expect(getComputedStyle(screen.getByRole('textbox')).minHeight).toBe(
       '56px',
     );
@@ -494,7 +590,7 @@ describe('AgentChatInput', () => {
 
     // Actions are a Radix dropdown: the trigger opens on pointerdown and the
     // entries are menuitems, not buttons.
-    fireEvent.pointerDown(screen.getByLabelText('Open composer actions'));
+    fireEvent.pointerDown(screen.getByLabelText('Open workspace shortcuts'));
     fireEvent.click(
       await screen.findByRole('menuitem', { name: /\/publish/i }),
     );

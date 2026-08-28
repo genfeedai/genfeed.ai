@@ -2,15 +2,15 @@ import {
   AgentChatInput,
   type ExtractedMention,
 } from '@genfeedai/agent/components/AgentChatInput';
-import { AgentComposerStatusStack } from '@genfeedai/agent/components/AgentComposerStatusStack';
+import {
+  AgentComposerStatusStack,
+  hasRenderableComposerTasks,
+} from '@genfeedai/agent/components/AgentComposerStatusStack';
 import { ComposerFollowUpQueue } from '@genfeedai/agent/components/ComposerFollowUpQueue';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
-import { GenerationActionCard } from '@genfeedai/agent/components/GenerationActionCard';
 import type {
   AgentInputRequest,
   AgentProposedPlan,
-  AgentUiAction,
-  AgentUiActionHandler,
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
@@ -31,7 +31,6 @@ import type { ReactElement, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 type AgentChatPromptBarProps = {
-  activeGenerationAction: AgentUiAction | null;
   apiService: AgentApiService;
   layoutMode: 'fixed' | 'surface-fixed';
   followUps?: readonly ComposerFollowUp[];
@@ -64,12 +63,12 @@ type AgentChatPromptBarProps = {
   onSendFollowUpNow?: (id: string) => void;
   isInterruptingFollowUps?: boolean;
   activeWorkEvent: AgentWorkEvent | null;
+  workEvents: readonly AgentWorkEvent[];
   error: string | null;
   isSubmittingInputRequest: boolean;
   latestProposedPlan: AgentProposedPlan | null;
   onClearError: () => void;
   onSubmitInputRequest: (answer: string) => void | Promise<void>;
-  onUiAction: AgentUiActionHandler;
   pendingInputRequest: AgentInputRequest | null;
   socketConnectionState: AgentSocketConnectionState;
   selectedModel?: string;
@@ -84,7 +83,6 @@ type AgentChatPromptBarProps = {
 };
 
 export function AgentChatPromptBar({
-  activeGenerationAction,
   apiService,
   layoutMode,
   followUps = [],
@@ -112,12 +110,12 @@ export function AgentChatPromptBar({
   onSendFollowUpNow,
   isInterruptingFollowUps = false,
   activeWorkEvent,
+  workEvents,
   error,
   isSubmittingInputRequest,
   latestProposedPlan,
   onClearError,
   onSubmitInputRequest,
-  onUiAction,
   pendingInputRequest,
   socketConnectionState,
   selectedModel,
@@ -135,16 +133,23 @@ export function AgentChatPromptBar({
     <AgentComposerStatusStack
       activeWorkEvent={activeWorkEvent}
       error={error}
+      isRunActive={isRunActive}
       isSubmittingInputRequest={isSubmittingInputRequest}
       latestProposedPlan={latestProposedPlan}
       onClearError={onClearError}
       onSubmitInputRequest={onSubmitInputRequest}
       pendingInputRequest={pendingInputRequest}
       socketConnectionState={socketConnectionState}
+      workEvents={workEvents}
     />
   );
   const hasFollowUpChips =
     showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions);
+  const hasRunningTasks = hasRenderableComposerTasks({
+    isRunActive,
+    latestProposedPlan,
+    workEvents,
+  });
   const topContent = (
     <>
       {followUps.length > 0 &&
@@ -161,24 +166,13 @@ export function AgentChatPromptBar({
           queue={followUps}
         />
       ) : null}
-      {!isReadOnly && activeGenerationAction ? (
-        <GenerationActionCard
-          // Card state (prompt edits, chosen model, aspect ratio) is
-          // initialized once from the action. Keying on the action id makes a
-          // genuinely new request start clean while re-renders of the same
-          // request preserve everything the user has changed.
-          key={activeGenerationAction.id}
-          action={activeGenerationAction}
-          apiService={apiService}
-          className="mt-0 w-full rounded-t-[var(--radius-workspace-composer)] rounded-b-none border-b-0 shadow-none"
-          defaultCollapsed
-          onUiAction={onUiAction}
-        />
-      ) : null}
       {statusStack}
       {hasFollowUpChips ? (
-        // Chips carry their own solid fill + shadow — no full-width black strip.
-        <div className="relative z-10">{promptBarSuggestions}</div>
+        // The row owns no surface or shadow. Each action button owns its own
+        // elevation, and the padding keeps it visually separate from composer.
+        <div className="relative z-10 bg-transparent pb-3 shadow-none">
+          {promptBarSuggestions}
+        </div>
       ) : null}
     </>
   );
@@ -190,7 +184,7 @@ export function AgentChatPromptBar({
       layoutMode={isPortaled ? 'inflow' : layoutMode}
       // Portal already owns max-w-4xl + matching px; fill it without re-padding.
       maxWidth={isPortaled ? 'full' : '4xl'}
-      showTopFade
+      showTopFade={!hasFollowUpChips}
       topContent={topContent}
       zIndex={40}
       containerRef={onOverlayElement}
@@ -203,7 +197,7 @@ export function AgentChatPromptBar({
     >
       <AgentChatInput
         onSend={onSend}
-        isTopAttached={!isReadOnly && Boolean(activeGenerationAction)}
+        isTopAttached={!isReadOnly && hasRunningTasks}
         hasQueuedFollowUps={followUps.length > 0}
         onPromoteQueuedFollowUp={onPromoteQueuedFollowUp}
         disabled={

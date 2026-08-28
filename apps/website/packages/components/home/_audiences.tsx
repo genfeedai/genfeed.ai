@@ -36,7 +36,7 @@ export default function HomeAudiences(): React.ReactElement {
   return (
     <section
       id="audiences"
-      className="gen-section-spacing-lg border-b border-edge/5"
+      className="gen-section-spacing border-b border-edge/5"
     >
       <div className="container mx-auto px-6">
         <div className="flex flex-col mb-12 max-w-3xl gap-4">

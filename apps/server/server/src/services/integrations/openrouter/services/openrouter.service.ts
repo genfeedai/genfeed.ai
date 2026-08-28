@@ -1,3 +1,4 @@
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -11,6 +12,57 @@ import {
   type OpenRouterToolCallResponse,
 } from '@server/services/integrations/openrouter/dto/openrouter.dto';
 import { firstValueFrom } from 'rxjs';
+
+const RETRYABLE_OPENROUTER_STATUSES = new Set([
+  408, 429, 502, 503, 504, 524, 529,
+]);
+const FREE_ROUTE_UNAVAILABLE_MESSAGE_PATTERNS = [
+  'no endpoints found matching your data policy',
+  'no endpoints found that support',
+  'no allowed providers are available for the selected model',
+  'no compatible endpoints available',
+] as const;
+
+interface OpenRouterErrorDetails {
+  message: string;
+  providerMessage?: string;
+  status?: number;
+  statusText?: string;
+  transportStatus?: number;
+}
+
+type UnknownRecord = Record<string, unknown>;
+
+function asRecord(value: unknown): UnknownRecord | undefined {
+  return typeof value === 'object' && value !== null
+    ? (value as UnknownRecord)
+    : undefined;
+}
+
+function asHttpStatus(value: unknown): number | undefined {
+  const status = typeof value === 'string' ? Number(value) : value;
+  return typeof status === 'number' && Number.isInteger(status)
+    ? status
+    : undefined;
+}
+
+function asNonEmptyString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0
+    ? value
+    : undefined;
+}
+
+function parseRawProviderError(value: unknown): UnknownRecord | undefined {
+  if (typeof value !== 'string') {
+    return asRecord(value);
+  }
+
+  try {
+    return asRecord(JSON.parse(value));
+  } catch {
+    return undefined;
+  }
+}
 
 @Injectable()
 export class OpenRouterService {
@@ -50,31 +102,112 @@ export class OpenRouterService {
     };
   }
 
-  private getSafeErrorDetails(error: unknown): Record<string, unknown> {
-    const errorRecord = error as {
-      message?: string;
-      response?: {
-        data?: unknown;
-        status?: number;
-        statusText?: string;
-      };
-    };
-
-    const responseData = errorRecord?.response?.data;
+  private getSafeErrorDetails(error: unknown): OpenRouterErrorDetails {
+    const errorRecord = asRecord(error);
+    const response = asRecord(errorRecord?.response);
+    const responseData = response?.data;
+    const envelope = asRecord(responseData);
+    const envelopeError = asRecord(envelope?.error);
+    const metadata = asRecord(envelopeError?.metadata);
+    const rawEnvelope = parseRawProviderError(metadata?.raw);
+    const rawError = asRecord(rawEnvelope?.error) ?? rawEnvelope;
+    const transportStatus =
+      asHttpStatus(response?.status) ?? asHttpStatus(errorRecord?.status);
+    const status =
+      asHttpStatus(rawError?.code) ??
+      asHttpStatus(envelopeError?.code) ??
+      transportStatus;
     const providerMessage =
-      typeof responseData === 'string'
-        ? responseData
-        : typeof responseData === 'object' && responseData
-          ? (responseData as Record<string, unknown>).message
-          : undefined;
+      asNonEmptyString(rawError?.message) ??
+      asNonEmptyString(envelopeError?.message) ??
+      (typeof responseData === 'string' ? responseData : undefined) ??
+      asNonEmptyString(envelope?.message);
 
     return {
-      message: errorRecord?.message ?? 'Unknown OpenRouter error',
-      providerMessage:
-        typeof providerMessage === 'string' ? providerMessage : undefined,
-      status: errorRecord?.response?.status,
-      statusText: errorRecord?.response?.statusText,
+      message:
+        providerMessage ??
+        asNonEmptyString(errorRecord?.message) ??
+        'Unknown OpenRouter error',
+      providerMessage,
+      status,
+      statusText: asNonEmptyString(response?.statusText),
+      transportStatus,
     };
+  }
+
+  private normalizeError(error: unknown): unknown {
+    const details = this.getSafeErrorDetails(error);
+    if (!details.status || details.status === details.transportStatus) {
+      return error;
+    }
+
+    const errorRecord = asRecord(error);
+    const response = asRecord(errorRecord?.response);
+    return Object.assign(new Error(details.message), {
+      cause: error,
+      response: {
+        ...response,
+        status: details.status,
+        statusText: details.statusText,
+      },
+      status: details.status,
+    });
+  }
+
+  private isRetryableFreeRouteError(
+    params: OpenRouterChatCompletionParams,
+    error: unknown,
+  ): boolean {
+    if (params.model !== AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE) {
+      return false;
+    }
+
+    const details = this.getSafeErrorDetails(error);
+    if (
+      details.status !== undefined &&
+      RETRYABLE_OPENROUTER_STATUSES.has(details.status)
+    ) {
+      return true;
+    }
+
+    if (details.status !== 404) {
+      return false;
+    }
+
+    const message = details.message.toLowerCase();
+    return FREE_ROUTE_UNAVAILABLE_MESSAGE_PATTERNS.some((pattern) =>
+      message.includes(pattern),
+    );
+  }
+
+  private async withFreeRouteFallback<T>(
+    operation: string,
+    params: OpenRouterChatCompletionParams,
+    run: () => Promise<T>,
+    canRetry: () => boolean = () => true,
+  ): Promise<T> {
+    try {
+      return await run();
+    } catch (error: unknown) {
+      if (!canRetry() || !this.isRetryableFreeRouteError(params, error)) {
+        throw error;
+      }
+
+      const details = this.getSafeErrorDetails(error);
+      this.loggerService.warn(
+        `${this.constructorName}.${operation} retrying synthetic free route after retryable upstream failure`,
+        { status: details.status },
+      );
+
+      try {
+        // `openrouter/free` randomly chooses a compatible free model for every
+        // request, so one fresh request gives the router one bounded chance to
+        // avoid the saturated route without ever crossing into a paid model.
+        return await run();
+      } catch (retryError: unknown) {
+        throw this.normalizeError(retryError);
+      }
+    }
   }
 
   async chatCompletion(
@@ -84,22 +217,28 @@ export class OpenRouterService {
     const apiKey = this.resolveApiKey(apiKeyOverride);
 
     try {
-      const response = await firstValueFrom(
-        this.httpService.post<OpenRouterChatCompletionResponse>(
-          this.apiUrl,
-          { ...this.withRetentionPolicy(params), stream: false },
-          {
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-              'HTTP-Referer': 'https://genfeed.ai',
-              'X-Title': 'Genfeed AI',
-            },
-          },
-        ),
-      );
+      return await this.withFreeRouteFallback(
+        'chatCompletion',
+        params,
+        async () => {
+          const response = await firstValueFrom(
+            this.httpService.post<OpenRouterChatCompletionResponse>(
+              this.apiUrl,
+              { ...this.withRetentionPolicy(params), stream: false },
+              {
+                headers: {
+                  Authorization: `Bearer ${apiKey}`,
+                  'Content-Type': 'application/json',
+                  'HTTP-Referer': 'https://genfeed.ai',
+                  'X-Title': 'Genfeed AI',
+                },
+              },
+            ),
+          );
 
-      return response.data;
+          return response.data;
+        },
+      );
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName}.chatCompletion failed`,
@@ -116,20 +255,25 @@ export class OpenRouterService {
     const apiKey = this.resolveApiKey(apiKeyOverride);
 
     try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          this.apiUrl,
-          { ...this.withRetentionPolicy(params), stream: true },
-          {
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-              'HTTP-Referer': 'https://genfeed.ai',
-              'X-Title': 'Genfeed AI',
-            },
-            responseType: 'stream',
-          },
-        ),
+      const response = await this.withFreeRouteFallback(
+        'streamChatCompletion',
+        params,
+        async () =>
+          firstValueFrom(
+            this.httpService.post(
+              this.apiUrl,
+              { ...this.withRetentionPolicy(params), stream: true },
+              {
+                headers: {
+                  Authorization: `Bearer ${apiKey}`,
+                  'Content-Type': 'application/json',
+                  'HTTP-Referer': 'https://genfeed.ai',
+                  'X-Title': 'Genfeed AI',
+                },
+                responseType: 'stream',
+              },
+            ),
+          ),
       );
 
       const stream = response.data as AsyncIterable<Uint8Array | string>;
@@ -228,7 +372,39 @@ export class OpenRouterService {
     onToken?: OpenRouterStreamTokenHandler,
   ): Promise<OpenRouterChatCompletionResponse> {
     const apiKey = this.resolveApiKey(apiKeyOverride);
+    let emittedToken = false;
 
+    try {
+      return await this.withFreeRouteFallback(
+        'streamChatCompletionAggregated',
+        params,
+        () =>
+          this.streamChatCompletionAggregatedOnce(
+            params,
+            apiKey,
+            onToken
+              ? async (token) => {
+                  emittedToken = true;
+                  await onToken(token);
+                }
+              : undefined,
+          ),
+        () => !emittedToken,
+      );
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName}.streamChatCompletionAggregated failed`,
+        this.getSafeErrorDetails(error),
+      );
+      throw error;
+    }
+  }
+
+  private async streamChatCompletionAggregatedOnce(
+    params: OpenRouterChatCompletionParams,
+    apiKey: string,
+    onToken?: OpenRouterStreamTokenHandler,
+  ): Promise<OpenRouterChatCompletionResponse> {
     let content = '';
     let reasoningContent: string | null = null;
     let finishReason = 'stop';
@@ -288,111 +464,120 @@ export class OpenRouterService {
       }
     };
 
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(
-          this.apiUrl,
-          {
-            ...this.withRetentionPolicy(params),
-            stream: true,
-            usage: { include: true },
+    const response = await firstValueFrom(
+      this.httpService.post(
+        this.apiUrl,
+        {
+          ...this.withRetentionPolicy(params),
+          stream: true,
+          usage: { include: true },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://genfeed.ai',
+            'X-Title': 'Genfeed AI',
           },
-          {
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-              'HTTP-Referer': 'https://genfeed.ai',
-              'X-Title': 'Genfeed AI',
+          responseType: 'stream',
+        },
+      ),
+    );
+
+    const stream = response.data as AsyncIterable<Uint8Array | string>;
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    const drainEvent = async (rawEvent: string): Promise<void> => {
+      const lines = rawEvent
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.startsWith('data:'));
+
+      for (const line of lines) {
+        const payload = line.slice(5).trim();
+        if (!payload || payload === '[DONE]') {
+          continue;
+        }
+
+        const parsed: unknown = JSON.parse(payload);
+        const envelope = asRecord(parsed);
+        const streamError = asRecord(envelope?.error);
+        if (streamError) {
+          const status = asHttpStatus(streamError.code) ?? 502;
+          throw Object.assign(
+            new Error(
+              asNonEmptyString(streamError.message) ??
+                'OpenRouter stream failed',
+            ),
+            {
+              response: { data: envelope, status },
+              status,
             },
-            responseType: 'stream',
-          },
-        ),
-      );
+          );
+        }
 
-      const stream = response.data as AsyncIterable<Uint8Array | string>;
-      const decoder = new TextDecoder();
-      let buffer = '';
+        const chunk = parsed as OpenRouterStreamChunk;
+        applyChunk(chunk);
 
-      const drainEvent = async (rawEvent: string): Promise<void> => {
-        const lines = rawEvent
-          .split('\n')
-          .map((line) => line.trim())
-          .filter((line) => line.startsWith('data:'));
-
-        for (const line of lines) {
-          const payload = line.slice(5).trim();
-          if (!payload || payload === '[DONE]') {
-            continue;
-          }
-
-          const parsed = JSON.parse(payload) as OpenRouterStreamChunk;
-          applyChunk(parsed);
-
-          const token = parsed.choices[0]?.delta?.content;
-          if (token) {
-            content += token;
-            if (onToken) {
-              await onToken(token);
-            }
+        const token = chunk.choices[0]?.delta?.content;
+        if (token) {
+          content += token;
+          if (onToken) {
+            await onToken(token);
           }
         }
-      };
-
-      for await (const chunk of stream) {
-        buffer +=
-          typeof chunk === 'string'
-            ? chunk
-            : decoder.decode(chunk, { stream: true });
-
-        let boundaryIndex = buffer.indexOf('\n\n');
-        while (boundaryIndex >= 0) {
-          const rawEvent = buffer.slice(0, boundaryIndex);
-          buffer = buffer.slice(boundaryIndex + 2);
-          boundaryIndex = buffer.indexOf('\n\n');
-          await drainEvent(rawEvent);
-        }
       }
+    };
 
-      const flushed = decoder.decode();
-      if (flushed) {
-        buffer += flushed;
+    for await (const chunk of stream) {
+      buffer +=
+        typeof chunk === 'string'
+          ? chunk
+          : decoder.decode(chunk, { stream: true });
+
+      let boundaryIndex = buffer.indexOf('\n\n');
+      while (boundaryIndex >= 0) {
+        const rawEvent = buffer.slice(0, boundaryIndex);
+        buffer = buffer.slice(boundaryIndex + 2);
+        boundaryIndex = buffer.indexOf('\n\n');
+        await drainEvent(rawEvent);
       }
-      if (buffer.trim().length > 0) {
-        await drainEvent(buffer);
-      }
-
-      const toolCalls: OpenRouterToolCallResponse[] = Array.from(
-        toolCallsByIndex.entries(),
-      )
-        .sort(([a], [b]) => a - b)
-        .map(([, tc]) => ({
-          function: { arguments: tc.arguments, name: tc.name },
-          id: tc.id,
-          type: 'function' as const,
-        }));
-
-      return {
-        choices: [
-          {
-            finish_reason: finishReason,
-            message: {
-              content: content || null,
-              reasoning_content: reasoningContent,
-              role: 'assistant',
-              tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
-            },
-          },
-        ],
-        id: streamId,
-        model: params.model,
-        usage,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${this.constructorName}.streamChatCompletionAggregated failed`,
-        this.getSafeErrorDetails(error),
-      );
-      throw error;
     }
+
+    const flushed = decoder.decode();
+    if (flushed) {
+      buffer += flushed;
+    }
+    if (buffer.trim().length > 0) {
+      await drainEvent(buffer);
+    }
+
+    const toolCalls: OpenRouterToolCallResponse[] = Array.from(
+      toolCallsByIndex.entries(),
+    )
+      .sort(([a], [b]) => a - b)
+      .map(([, tc]) => ({
+        function: { arguments: tc.arguments, name: tc.name },
+        id: tc.id,
+        type: 'function' as const,
+      }));
+
+    return {
+      choices: [
+        {
+          finish_reason: finishReason,
+          message: {
+            content: content || null,
+            reasoning_content: reasoningContent,
+            role: 'assistant',
+            tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+          },
+        },
+      ],
+      id: streamId,
+      model: params.model,
+      usage,
+    };
   }
 }

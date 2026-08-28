@@ -1,3 +1,24 @@
+import {
+  DEFAULT_AGENT_CHAT_MODEL_KEY,
+  getAgentChatModelRoundCredits,
+} from '@genfeedai/constants';
+import {
+  AgentAutonomyMode,
+  AgentMessageRole,
+  AgentType,
+  ApiKeyScope,
+  GenerationPriority,
+  RouterPriority,
+} from '@genfeedai/enums';
+import {
+  type AgentArtifactReference,
+  AgentToolName,
+} from '@genfeedai/interfaces';
+import { AgentScopeContextService } from '@genfeedai/server';
+import { testId } from '@helpers/testing/test-id.helper';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { AgentMemoriesService } from '@server/collections/agent-memories/services/agent-memories.service';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
 import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
@@ -33,26 +54,6 @@ import { AgentRuntimeSessionService } from '@server/services/agent-threading/ser
 import { AgentThreadEngineService } from '@server/services/agent-threading/services/agent-thread-engine.service';
 import { CacheService } from '@server/services/cache/cache.service';
 import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
-import {
-  DEFAULT_AGENT_CHAT_MODEL_KEY,
-  getAgentChatModelRoundCredits,
-} from '@genfeedai/constants';
-import {
-  AgentAutonomyMode,
-  AgentType,
-  ApiKeyScope,
-  GenerationPriority,
-  RouterPriority,
-} from '@genfeedai/enums';
-import {
-  type AgentArtifactReference,
-  AgentToolName,
-} from '@genfeedai/interfaces';
-import { AgentScopeContextService } from '@genfeedai/server';
-import { testId } from '@helpers/testing/test-id.helper';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
 import { Effect } from 'effect';
 
 const ORG_ID = testId('org');
@@ -1656,9 +1657,8 @@ describe('AgentOrchestratorService', () => {
     );
 
     expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
-      'prepare_generation',
+      'generate_image',
       expect.objectContaining({
-        generationType: 'image',
         prompt: 'a cat',
       }),
       expect.objectContaining({
@@ -1720,9 +1720,8 @@ describe('AgentOrchestratorService', () => {
     );
 
     expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
-      'prepare_generation',
+      'generate_image',
       expect.objectContaining({
-        generationType: 'image',
         prompt: 'a dog',
       }),
       expect.objectContaining({
@@ -1797,7 +1796,7 @@ describe('AgentOrchestratorService', () => {
     );
   });
 
-  it('should gate on the requested tool cost when the call is remapped to prepare_generation', async () => {
+  it('should gate on the requested tool cost when a direct generation call is recovered', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
@@ -1843,8 +1842,8 @@ describe('AgentOrchestratorService', () => {
       { organizationId: ORG_ID, userId: USER_ID },
     );
 
-    // generate_image is remapped to prepare_generation (cost 0); the gate
-    // must still use the requested tool's cost of 50.
+    // The tool was not in the exposed schema, but recovery must still gate on
+    // the concrete generate_image cost of 50.
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).toHaveBeenCalledWith(ORG_ID, 50);
@@ -2095,7 +2094,7 @@ describe('AgentOrchestratorService', () => {
       { ...LLM_CALL_CONTEXT, brandId: String(strategyBrandId) },
     );
     expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
-      'prepare_generation',
+      'generate_image',
       expect.any(Object),
       expect.objectContaining({
         brandId: String(strategyBrandId),
@@ -2187,7 +2186,7 @@ describe('AgentOrchestratorService', () => {
       LLM_CALL_CONTEXT,
     );
     expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
-      'prepare_generation',
+      'generate_image',
       expect.any(Object),
       expect.objectContaining({
         generationPriority: RouterPriority.COST,
@@ -2289,7 +2288,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
     llmDispatcher.streamChatCompletionAggregated.mockRejectedValueOnce(
@@ -2328,11 +2327,40 @@ describe('AgentOrchestratorService', () => {
     );
   });
 
+  it('rejects a queue-owned provider failure so BullMQ can retry it', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    configService.get.mockImplementation((key: string) =>
+      key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
+    );
+    llmDispatcher.streamChatCompletionAggregated.mockRejectedValueOnce(
+      new Error('Request failed with status code 429'),
+    );
+
+    await expect(
+      service.chatStream(
+        {
+          content: 'Retry this queued turn',
+          threadId: CONVERSATION_ID,
+        },
+        {
+          executionMode: 'background',
+          organizationId: ORG_ID,
+          userId: USER_ID,
+        },
+      ),
+    ).rejects.toThrow('Request failed with status code 429');
+
+    expect(agentRunsService.fail).toHaveBeenCalledOnce();
+    expect(streamPublisher.publishError).toHaveBeenCalledOnce();
+  });
+
   it('streams real LLM deltas via agent:token when AGENT_TOKEN_STREAMING_ENABLED is on', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
 
@@ -2368,7 +2396,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
 
@@ -2485,7 +2513,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
     // Simulate a Redis publish outage for the duration of the stream.
@@ -2613,7 +2641,82 @@ describe('AgentOrchestratorService', () => {
     );
   });
 
-  it('should recover generate_image to prepare_generation for x_content in chat()', async () => {
+  it('should finalize ingredient alternatives without a narration-only LLM round', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    llmDispatcher.chatCompletion.mockResolvedValueOnce({
+      choices: [
+        {
+          message: {
+            content: null,
+            tool_calls: [
+              {
+                function: {
+                  arguments: JSON.stringify({
+                    alternatives: [
+                      {
+                        label: 'Editorial angle',
+                        prompt: 'A cinematic editorial product composition',
+                      },
+                    ],
+                    generationType: 'image',
+                  }),
+                  name: 'suggest_ingredient_alternatives',
+                },
+                id: 'call-ingredient-alternatives',
+              },
+            ],
+          },
+        },
+      ],
+      usage: {
+        completion_tokens: 10,
+        prompt_tokens: 10,
+        total_tokens: 20,
+      },
+    } as never);
+    toolExecutorService.executeTool.mockResolvedValue({
+      creditsUsed: 0,
+      data: { alternatives: ['ingredient-2'] },
+      nextActions: [
+        {
+          id: 'ingredient-alternatives-1',
+          title: 'Ingredient alternatives',
+          type: 'ingredient_alternatives_card',
+        },
+      ],
+      success: true,
+    });
+
+    await service.chatStream(
+      {
+        agentType: AgentType.IMAGE_CREATOR,
+        content: 'Suggest alternatives for this ingredient',
+      },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    for (let i = 0; i < 20; i++) {
+      if (streamPublisher.publishDone.mock.calls.length > 0) break;
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+
+    expect(llmDispatcher.chatCompletion).toHaveBeenCalledTimes(1);
+    expect(agentMessagesService.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'Here are the ingredient alternatives.',
+        metadata: expect.objectContaining({
+          uiActions: expect.arrayContaining([
+            expect.objectContaining({ id: 'ingredient-alternatives-1' }),
+          ]),
+        }),
+        role: AgentMessageRole.ASSISTANT,
+      }),
+    );
+  });
+
+  it('should recover generate_image as a direct x_content action in chat()', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
@@ -2666,7 +2769,7 @@ describe('AgentOrchestratorService', () => {
     );
 
     expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
-      'prepare_generation',
+      'generate_image',
       expect.objectContaining({
         generationType: 'image',
         prompt: 'a political podcast host',
@@ -2678,13 +2781,13 @@ describe('AgentOrchestratorService', () => {
       expect.arrayContaining([
         expect.objectContaining({
           status: 'completed',
-          toolName: 'prepare_generation',
+          toolName: 'generate_image',
         }),
       ]),
     );
   });
 
-  it('should recover generate_image to prepare_generation for x_content in chatStream()', async () => {
+  it('should recover generate_image as a direct x_content action in chatStream()', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
@@ -2744,7 +2847,7 @@ describe('AgentOrchestratorService', () => {
     }
 
     expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
-      'prepare_generation',
+      'generate_image',
       expect.objectContaining({
         generationType: 'image',
         prompt: 'a political podcast host',
@@ -2756,12 +2859,12 @@ describe('AgentOrchestratorService', () => {
       expect.objectContaining({
         status: 'completed',
         toolCallId: 'call-recover-stream',
-        toolName: 'prepare_generation',
+        toolName: 'generate_image',
       }),
     );
   });
 
-  it('should recover generate_as_identity to prepare_generation for x_content in chat()', async () => {
+  it('should recover generate_as_identity as direct video in x_content chat()', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
@@ -2814,7 +2917,7 @@ describe('AgentOrchestratorService', () => {
     );
 
     expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
-      'prepare_generation',
+      'generate_video',
       expect.objectContaining({
         generationType: 'video',
         prompt: 'avatar style talking head',
@@ -2826,13 +2929,13 @@ describe('AgentOrchestratorService', () => {
       expect.arrayContaining([
         expect.objectContaining({
           status: 'completed',
-          toolName: 'prepare_generation',
+          toolName: 'generate_video',
         }),
       ]),
     );
   });
 
-  it('should recover generate_as_identity to prepare_generation for x_content in chatStream()', async () => {
+  it('should recover generate_as_identity as direct video in x_content chatStream()', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
@@ -2892,7 +2995,7 @@ describe('AgentOrchestratorService', () => {
     }
 
     expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
-      'prepare_generation',
+      'generate_video',
       expect.objectContaining({
         generationType: 'video',
         prompt: 'avatar style talking head',
@@ -2904,12 +3007,12 @@ describe('AgentOrchestratorService', () => {
       expect.objectContaining({
         status: 'completed',
         toolCallId: 'call-recover-identity-stream',
-        toolName: 'prepare_generation',
+        toolName: 'generate_video',
       }),
     );
   });
 
-  it('should recover default_api.generate_image to prepare_generation for x_content in chat()', async () => {
+  it('should recover default_api.generate_image as direct image generation', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
@@ -2962,7 +3065,7 @@ describe('AgentOrchestratorService', () => {
     );
 
     expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
-      'prepare_generation',
+      'generate_image',
       expect.objectContaining({
         generationType: 'image',
         prompt: 'a political podcast host',
@@ -2973,7 +3076,7 @@ describe('AgentOrchestratorService', () => {
       expect.arrayContaining([
         expect.objectContaining({
           status: 'completed',
-          toolName: 'prepare_generation',
+          toolName: 'generate_image',
         }),
       ]),
     );
@@ -2982,7 +3085,7 @@ describe('AgentOrchestratorService', () => {
     );
   });
 
-  it('should recover default_api.generate_video to prepare_generation for x_content in chat()', async () => {
+  it('should recover default_api.generate_video as direct video generation', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
@@ -3035,7 +3138,7 @@ describe('AgentOrchestratorService', () => {
     );
 
     expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
-      'prepare_generation',
+      'generate_video',
       expect.objectContaining({
         generationType: 'video',
         prompt: 'studio walkthrough',
@@ -3397,7 +3500,7 @@ describe('AgentOrchestratorService', () => {
     expect(llmDispatcher.chatCompletion).not.toHaveBeenCalled();
   });
 
-  it('adds a completion summary card for thread UI action content outputs with inline previews', async () => {
+  it('keeps the content preview as the only thread UI action result surface', async () => {
     toolExecutorService.executeTool.mockResolvedValue({
       creditsUsed: 0,
       nextActions: [
@@ -3428,29 +3531,15 @@ describe('AgentOrchestratorService', () => {
       { organizationId: ORG_ID, userId: USER_ID },
     );
 
-    expect(response.message.metadata?.uiActions).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          outputVariants: expect.arrayContaining([
-            expect.objectContaining({
-              kind: 'image',
-              url: 'https://cdn.example.com/generated-1.png',
-            }),
-            expect.objectContaining({
-              kind: 'text',
-              textContent: 'Hook one',
-            }),
-          ]),
-          // `/publish/drafts` is a dead path the card builder normalizes.
-          primaryCta: expect.objectContaining({
-            href: '/publish/review',
-            label: 'Review Draft',
-          }),
-          summaryText: 'Generated content for this request.',
-          type: 'completion_summary_card',
-        }),
-      ]),
-    );
+    expect(response.message.metadata?.uiActions).toEqual([
+      expect.objectContaining({
+        ctas: [{ href: '/publish/drafts', label: 'View all drafts' }],
+        id: 'content-preview-1',
+        images: ['https://cdn.example.com/generated-1.png'],
+        tweets: ['Hook one', 'Hook two'],
+        type: 'content_preview_card',
+      }),
+    ]);
   });
 
   it('adds a generic completion summary card for successful tool-only thread UI action results', async () => {

@@ -37,6 +37,13 @@ export interface AgentPageContext {
 
 export type AgentGenerationMode = 'auto' | 'image' | 'video';
 
+export interface AgentGenerationSettings {
+  aspectRatio: string;
+  duration?: number;
+  model?: string;
+  outputs?: number;
+}
+
 export interface AgentChatRequest {
   agentType?: AgentType;
   artifactReferences?: AgentArtifactReference[];
@@ -82,6 +89,8 @@ export interface AgentChatContext {
   generationPriority?: RouterPriority;
   /** Per-turn media routing selected by the operator. */
   generationMode?: AgentGenerationMode;
+  /** Validated media settings selected in the conversation composer. */
+  generationSettings?: AgentGenerationSettings;
   organizationId: string;
   /** Resolved runtime skills for tool set augmentation */
   resolvedSkills?: ResolvedRuntimeSkill[];

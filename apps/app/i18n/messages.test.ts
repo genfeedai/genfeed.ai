@@ -162,7 +162,7 @@ describe('loadMessages', () => {
       'Brand label',
     );
     expect(english.agent.settings.autoLabel).toBe('Auto');
-    expect(english.agent.composerToolbar.actions).toBe('Actions');
+    expect(english.agent.composerToolbar.actions).toBe('Workspace shortcuts');
     expect(english.agent.composerToolbar.noModelsEnabled).toBe(
       'No models enabled',
     );

@@ -16,7 +16,6 @@ import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-con
 import { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
 import { useOverlayElementHeight } from '@genfeedai/agent/hooks/use-overlay-element-height';
 import { useStableSocketConnectionState } from '@genfeedai/agent/hooks/use-stable-socket-connection-state';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   readPreferredAgentChatModel,
@@ -26,12 +25,11 @@ import {
 } from '@genfeedai/agent/stores/agent-preferred-model.store';
 import {
   isAutoAgentModel,
+  resolveAgentModelForBalance,
   toRuntimeAgentModel,
 } from '@genfeedai/agent/utils/agent-auto-model.util';
-import { findPendingGenerationAction } from '@genfeedai/agent/utils/find-pending-generation-action';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { resolveComposerTranscriptPaddingPx } from '@genfeedai/agent/utils/resolve-composer-transcript-padding.util';
-import { resolveThreadGenerationType } from '@genfeedai/agent/utils/thread-generation-type';
 import { useOptionalUser } from '@genfeedai/contexts/user/user-context/user-context';
 import {
   AlertCategory,
@@ -97,13 +95,8 @@ export function AgentChatContainer({
   const settingsPriority =
     toRouterPriority(currentUser?.settings?.generationPriority) ??
     RouterPriority.BALANCED;
-  const messages = useAgentChatStore((state) => state.messages);
-  const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const creditsRemaining = useAgentChatStore((state) => state.creditsRemaining);
-  const stickyGenerationActionRef = useRef<{
-    action: AgentUiAction;
-    threadId: string | null;
-  } | null>(null);
+  const hadInitialModel = useRef(Boolean(model?.trim()));
   const persistSettingsInFlight = useRef(false);
   const pendingSettingsPatch = useRef<{
     defaultAgentModel?: string;
@@ -124,7 +117,7 @@ export function AgentChatContainer({
 
   useEffect(() => {
     const preferredModel = readPreferredAgentChatModel();
-    if (!model?.trim() && preferredModel) {
+    if (!hadInitialModel.current && preferredModel) {
       setSelectedModel(preferredModel);
     }
     const preferredPriority = readPreferredAgentChatPriority();
@@ -298,9 +291,17 @@ export function AgentChatContainer({
     settingsDefaultModel,
   ]);
 
-  // Auto → omit model on the wire so the server resolves via defaults + priority.
+  const effectiveSelectedModel = resolveAgentModelForBalance(
+    selectedModel,
+    creditsRemaining,
+    registryModels.map((entry) => entry.key),
+  );
+
+  // Auto normally omits model so the server resolves via defaults + priority.
+  // At zero balance the effective selection is the explicit free registry row.
   const runtimeModel =
-    toRuntimeAgentModel(selectedModel) || UNRESOLVED_RUNTIME_AGENT_MODEL;
+    toRuntimeAgentModel(effectiveSelectedModel) ||
+    UNRESOLVED_RUNTIME_AGENT_MODEL;
 
   const container = useAgentChatContainer({
     apiService,
@@ -330,7 +331,7 @@ export function AgentChatContainer({
     const lastUser = [...container.timeline]
       .reverse()
       .find((entry) => entry.kind === 'user-message');
-    if (!lastUser || lastUser.kind !== 'user-message') {
+    if (lastUser?.kind !== 'user-message') {
       return;
     }
     await container.handleRetry(lastUser.message);
@@ -397,63 +398,6 @@ export function AgentChatContainer({
       onSend={handleSuggestionSend}
     />
   ) : null;
-  const threadGenerationType = useMemo(
-    () => resolveThreadGenerationType(messages, activeThreadId),
-    [activeThreadId, messages],
-  );
-  const resolvedGenerationAction = useMemo(
-    () =>
-      [...container.streamState.pendingUiActions]
-        .reverse()
-        .find(
-          (action) =>
-            action.type === 'generation_action_card' &&
-            (threadGenerationType == null ||
-              action.generationType === threadGenerationType),
-        ) ??
-      findPendingGenerationAction(
-        messages,
-        activeThreadId,
-        threadGenerationType,
-      ),
-    [
-      activeThreadId,
-      container.streamState.pendingUiActions,
-      messages,
-      threadGenerationType,
-    ],
-  );
-
-  // Hold the card across the hand-off gap.
-  //
-  // The action lives in `pendingUiActions` while streaming and in the persisted
-  // message metadata afterwards. Finalization clears the stream state and loads
-  // the messages in two separate store writes, so there is a render where both
-  // sources are empty. That unmounted the card and silently discarded whatever
-  // the user had typed or picked in it — which is why a chosen model appeared
-  // to snap back to Auto. Retain the last action for the same thread instead.
-  if (stickyGenerationActionRef.current?.threadId !== activeThreadId) {
-    stickyGenerationActionRef.current = null;
-  }
-  if (
-    stickyGenerationActionRef.current &&
-    threadGenerationType &&
-    stickyGenerationActionRef.current.action.generationType !==
-      threadGenerationType
-  ) {
-    stickyGenerationActionRef.current = null;
-  }
-  if (resolvedGenerationAction) {
-    stickyGenerationActionRef.current = {
-      action: resolvedGenerationAction,
-      threadId: activeThreadId,
-    };
-  }
-
-  const pendingGenerationAction =
-    resolvedGenerationAction ??
-    stickyGenerationActionRef.current?.action ??
-    null;
   // When the docked composer is visible, status/errors live above the glass
   // bar (Claude/T3 pattern) — not as sticky timeline chrome.
   const isComposerDocked =
@@ -545,7 +489,7 @@ export function AgentChatContainer({
             placeholder={placeholder}
             promptBarSuggestions={emptyStatePromptBarSuggestions}
             removeAttachment={container.removeAttachment}
-            selectedModel={selectedModel}
+            selectedModel={effectiveSelectedModel}
             onModelChange={handleModelChange}
             onPrioritizeChange={handlePrioritizeChange}
             prioritize={prioritize}
@@ -588,7 +532,7 @@ export function AgentChatContainer({
             composerTranscriptPaddingPx={composerTranscriptPaddingPx}
             pendingInputRequest={container.pendingInputRequest}
             pendingUiActions={container.streamState.pendingUiActions}
-            hasDockedGenerationCard={Boolean(pendingGenerationAction)}
+            hasDockedGenerationCard={false}
             scrollContainerRef={container.scrollContainerRef}
             scrollToBottom={container.scrollToBottom}
             shouldShowInputRequestOverlay={
@@ -615,8 +559,8 @@ export function AgentChatContainer({
             />
           ) : (
             <AgentChatPromptBar
-              activeGenerationAction={pendingGenerationAction}
               activeWorkEvent={activeWorkEvent}
+              workEvents={container.workEvents}
               addFiles={container.addFiles}
               apiService={apiService}
               chatAttachments={container.chatAttachments}
@@ -655,7 +599,6 @@ export function AgentChatContainer({
               isInterruptingFollowUps={container.followUpQueue.isInterrupting}
               onStop={container.handleStopRun}
               onSubmitInputRequest={container.handleSubmitInputRequest}
-              onUiAction={container.handleUiAction}
               pendingInputRequest={
                 composerShell && !onboardingMode
                   ? container.pendingInputRequest
@@ -665,7 +608,7 @@ export function AgentChatContainer({
               prioritize={prioritize}
               promptBarSuggestions={promptBarSuggestions}
               removeAttachment={container.removeAttachment}
-              selectedModel={selectedModel}
+              selectedModel={effectiveSelectedModel}
               models={registryModels}
               isModelsLoading={isRegistryModelsLoading}
               showSuggestedActionsWhenNotEmpty={

@@ -16,32 +16,64 @@ import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolu
 import { quoteVideoGenerationCredits } from '@genfeedai/pricing';
 import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
 import StudioGenerateSettingsPopover from '@pages/studio/generate/components/StudioGenerateSettingsPopover';
-import StudioGenerateTypeSelector from '@pages/studio/generate/components/StudioGenerateTypeSelector';
-import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
-import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
+import {
+  getStudioGenerateTypeConfig,
+  listStudioGenerateTypeConfigs,
+  resolveStudioGenerateType,
+} from '@pages/studio/generate/utils/studio-generate-types';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
-import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
+import {
+  AUTO_MODEL_OPTION_VALUE,
+  AUTO_PRIORITY_LABELS,
+} from '@ui/dropdowns/model-selector/model-selector.constants';
 import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorites';
 import { Button } from '@ui/primitives/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { ArrowUp } from 'lucide-react';
+import {
+  ArrowUp,
+  Clapperboard,
+  Image as ImageIcon,
+  Mic,
+  Music,
+  UserRound,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 /** Types whose prompt is spoken aloud rather than described to a renderer. */
 const SCRIPT_PLACEHOLDER = 'Write the script you want spoken…';
 const PROMPT_PLACEHOLDER = 'Describe what you want to generate…';
+
+const STUDIO_GENERATION_CONTEXT_OPTIONS = listStudioGenerateTypeConfigs().map(
+  (config) => ({
+    description:
+      config.type === 'image'
+        ? 'Create still visuals'
+        : config.type === 'video'
+          ? 'Create motion and clips'
+          : config.type === 'music'
+            ? 'Generate original audio'
+            : config.type === 'avatar'
+              ? 'Animate a speaking avatar'
+              : 'Generate spoken audio',
+    icon:
+      config.type === 'image'
+        ? ImageIcon
+        : config.type === 'video'
+          ? Clapperboard
+          : config.type === 'music'
+            ? Music
+            : config.type === 'avatar'
+              ? UserRound
+              : Mic,
+    label: config.label,
+    value: config.type,
+  }),
+);
 
 /**
  * The single Studio composer. The asset type is state on this row rather than
@@ -177,54 +209,42 @@ export default function StudioGenerateComposer({
 
       <div className="mt-0.5 flex min-h-9 min-w-0 items-center justify-between gap-2 pt-1">
         <div className="flex min-w-0 shrink items-center gap-0.5">
-          <StudioGenerateTypeSelector
+          <ModelSelectorPopover
+            autoLabel={
+              capabilities.hasModelSelection
+                ? isLoadingModels
+                  ? translate('loadingModels')
+                  : AUTO_PRIORITY_LABELS[settings.prioritize]
+                : undefined
+            }
+            className="max-w-[16rem] min-w-0"
+            contextLabel="Output type"
+            contextOptions={STUDIO_GENERATION_CONTEXT_OPTIONS}
+            contextValue={type}
+            favoriteModelKeys={favoriteModelKeys}
             isDisabled={isGenerating}
-            onChange={onTypeChange}
-            type={type}
+            models={capabilities.hasModelSelection ? models : []}
+            name="studioGenerateModel"
+            onChange={handleModelChange}
+            onContextChange={(value) =>
+              onTypeChange(resolveStudioGenerateType(value))
+            }
+            onFavoriteToggle={onFavoriteToggle}
+            onPrioritizeChange={(prioritize: RouterPriority) =>
+              onSettingsChange({ prioritize })
+            }
+            prioritize={settings.prioritize}
+            selectionMode="single"
+            values={
+              capabilities.hasModelSelection
+                ? isAutoMode
+                  ? [AUTO_MODEL_OPTION_VALUE]
+                  : settings.modelKey
+                    ? [settings.modelKey]
+                    : []
+                : []
+            }
           />
-
-          {capabilities.hasModelSelection ? (
-            isLoadingModels ? (
-              <Select disabled value="">
-                <SelectTrigger
-                  className={cn('max-w-[12rem]', SHELL_CONTROL_HEIGHT_CLASS)}
-                >
-                  <SelectValue placeholder={translate('loadingModels')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="loading">
-                    {translate('loadingModels')}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            ) : (
-              <div
-                className={isGenerating ? 'pointer-events-none opacity-50' : ''}
-              >
-                <ModelSelectorPopover
-                  autoLabel="Auto"
-                  className="max-w-[12rem] min-w-0"
-                  favoriteModelKeys={favoriteModelKeys}
-                  models={models}
-                  name="studioGenerateModel"
-                  onChange={handleModelChange}
-                  onFavoriteToggle={onFavoriteToggle}
-                  onPrioritizeChange={(prioritize: RouterPriority) =>
-                    onSettingsChange({ prioritize })
-                  }
-                  prioritize={settings.prioritize}
-                  selectionMode="single"
-                  values={
-                    isAutoMode
-                      ? [AUTO_MODEL_OPTION_VALUE]
-                      : settings.modelKey
-                        ? [settings.modelKey]
-                        : []
-                  }
-                />
-              </div>
-            )
-          ) : null}
 
           <StudioGenerateSettingsPopover
             isDisabled={isGenerating}

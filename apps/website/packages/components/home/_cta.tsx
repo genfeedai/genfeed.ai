@@ -9,12 +9,12 @@ import { ArrowRight } from 'lucide-react';
 
 export default function HomeCTA(): React.ReactElement {
   return (
-    <section className="gen-section-spacing-xl relative overflow-hidden gen-grain">
+    <section className="gen-section-spacing-lg relative overflow-hidden">
       <div className="container mx-auto px-6 relative z-10">
-        <div className="flex flex-col items-center text-center gap-8 max-w-3xl mx-auto">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-6 text-center">
           <Heading
             as="h2"
-            className="text-5xl font-semibold leading-none tracking-[-0.03em] sm:text-6xl md:text-7xl"
+            className="text-5xl font-semibold leading-none tracking-[-0.03em] sm:text-6xl"
           >
             Ship on-brand content, faster.
           </Heading>

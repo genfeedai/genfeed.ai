@@ -82,7 +82,7 @@ export interface StudioGenerateResultsProps {
   onReprompt: (job: StudioGenerateJob) => void;
   onSelect: (job: StudioGenerateJob) => void;
   selectedJobId?: string | null;
-  view: ViewType.GRID | ViewType.MASONRY;
+  view: ViewType.GRID | ViewType.LIST;
 }
 
 export interface StudioGenerateCardProps {
@@ -91,6 +91,7 @@ export interface StudioGenerateCardProps {
   job: StudioGenerateJob;
   onReprompt: (job: StudioGenerateJob) => void;
   onSelect: (job: StudioGenerateJob) => void;
+  view: ViewType.GRID | ViewType.LIST;
 }
 
 export interface StudioGenerateInspectorProps {

@@ -199,10 +199,20 @@ export class WebSocketGateway
         userId: sub,
       };
     } catch (error: unknown) {
-      const errorMessage = (error as Error)?.message ?? String(error);
+      const errorCode =
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        typeof error.code === 'string'
+          ? error.code
+          : undefined;
       this.logger.warn(
-        `Failed to verify Better Auth token for client ${client.id}: ${errorMessage}`,
-        { ...this.context, error },
+        `Failed to verify Better Auth token for client ${client.id}`,
+        {
+          ...this.context,
+          errorCode,
+          errorName: error instanceof Error ? error.name : 'UnknownError',
+        },
       );
       return {};
     }

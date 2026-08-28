@@ -267,6 +267,7 @@ export function AgentThreadListRow({
         >
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
+              {activityIndicator}
               {conv.isPinned ? (
                 <Pin
                   className="size-3 shrink-0 -rotate-45 text-foreground/42"
@@ -283,7 +284,6 @@ export function AgentThreadListRow({
               >
                 {threadTitle}
               </span>
-              {activityIndicator}
             </div>
             {preview ? (
               <div className="mt-0.5 min-w-0 truncate text-2xs text-foreground/38">
