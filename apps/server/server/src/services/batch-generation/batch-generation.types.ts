@@ -1,4 +1,3 @@
-import type { ContentMixConfig } from '@server/services/batch-generation/schemas/batch.schema';
 import type { BatchPricingOptions } from '@genfeedai/constants';
 import {
   BatchItemStatus,
@@ -12,6 +11,7 @@ import type {
   VideoContinuityQaReport,
 } from '@genfeedai/interfaces';
 import type { Batch } from '@genfeedai/prisma';
+import type { ContentMixConfig } from '@server/services/batch-generation/schemas/batch.schema';
 
 export interface BatchItem {
   format: ContentFormat;
@@ -72,6 +72,10 @@ export interface BatchItemFull extends BatchItem {
 export type BatchCreditsLedger = {
   chargedCredits: number;
   refundedCredits?: number;
+  /** Hold consumed when this batch reaches a terminal settlement. */
+  reservationId?: string;
+  /** Durable proof that the reservation transition completed. */
+  reservationSettledAt?: string;
   settledAt?: string;
   /**
    * Monotonic count of settlement claims won for this batch. Each occurrence

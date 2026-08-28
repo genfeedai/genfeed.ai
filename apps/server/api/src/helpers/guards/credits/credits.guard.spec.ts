@@ -12,6 +12,7 @@ import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import type { ModelsService } from '@server/collections/models/services/models.service';
+import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
 import type { ByokService } from '@server/services/byok/byok.service';
 
 const orgId = testId('org');
@@ -57,7 +58,13 @@ describe('CreditsGuard', () => {
     creditsUtilsService = {
       checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
-      reserveCredits: vi.fn().mockResolvedValue({ id: 'reservation-1' }),
+      reserveCredits: vi.fn().mockImplementation((input: { amount: number }) =>
+        Promise.resolve({
+          amount: input.amount,
+          id: 'reservation-1',
+          status: 'RESERVED',
+        }),
+      ),
     };
     modelsService = { findOne: vi.fn() };
     byokService = {
@@ -127,6 +134,32 @@ describe('CreditsGuard', () => {
     expect(ctx.switchToHttp().getRequest().creditsConfig).toMatchObject({
       reservationId: 'reservation-1',
     });
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('maps an uncovered atomic source-action reservation to a credit error', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
+      amount: 10,
+      description: 'Image generation',
+    });
+    creditsUtilsService.reserveCredits.mockRejectedValue(
+      new BusinessLogicException(
+        'insufficient credits',
+        undefined,
+        'INSUFFICIENT_CREDITS',
+      ),
+    );
+    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(4);
+
+    await expect(
+      guard.canActivate(createContext({ sourceActionId: 'action-short' })),
+    ).rejects.toThrow();
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
   });
 
   it('multiplies a fixed per-output amount using a trusted guard override', async () => {

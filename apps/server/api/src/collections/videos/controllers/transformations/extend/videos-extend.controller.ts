@@ -1,7 +1,10 @@
 import { VideoExtendDto } from '@api/collections/videos/dto/video-extend.dto';
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
+import {
+  Credits,
+  DeferCreditsUntilModelResolution,
+} from '@api/helpers/decorators/credits/credits.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -58,6 +61,7 @@ export class VideosExtendController {
     description: 'Video extension',
     source: ActivitySource.VIDEO_GENERATION,
   })
+  @DeferCreditsUntilModelResolution()
   @ValidateModel({ category: ModelCategory.VIDEO })
   @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
   @UseInterceptors(CreditsInterceptor)

@@ -2,6 +2,7 @@ import { ImageGenerationCreditsService } from '@api/collections/images/services/
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ByokProvider, ModelProvider } from '@genfeedai/enums';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ImageGenerationCreditsService', () => {
@@ -32,9 +33,14 @@ describe('ImageGenerationCreditsService', () => {
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       true,
     );
-    creditsUtilsService.reserveCredits.mockResolvedValue({
-      id: 'reservation-1',
-    });
+    creditsUtilsService.reserveCredits.mockImplementation(
+      (input: { amount: number }) =>
+        Promise.resolve({
+          amount: input.amount,
+          id: 'reservation-1',
+          status: 'RESERVED',
+        }),
+    );
     service = new ImageGenerationCreditsService(
       creditsUtilsService as never,
       modelsService as never,
@@ -129,6 +135,40 @@ describe('ImageGenerationCreditsService', () => {
     expect(request.creditsConfig).toMatchObject({
       reservationId: 'reservation-1',
     });
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('returns 402 when the atomic source-action reservation cannot be covered', async () => {
+    creditsUtilsService.reserveCredits.mockRejectedValue(
+      new BusinessLogicException(
+        'insufficient credits',
+        undefined,
+        'INSUFFICIENT_CREDITS',
+      ),
+    );
+    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(4);
+    const request = {
+      body: { sourceActionId: 'image-action-insufficient' },
+      creditsConfig: { deferred: true },
+      user: { userId: 'user-1' },
+    };
+
+    const error = await service
+      .ensureDeferredCredits(
+        { outputs: 2, height: 1080, width: 1920 } as never,
+        'fal/model',
+        'org-1',
+        request as never,
+      )
+      .catch((caught) => caught);
+
+    expect(error).toBeInstanceOf(HttpException);
+    expect(error.getStatus()).toBe(HttpStatus.PAYMENT_REQUIRED);
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
   });
 
   it('records resolved-provider BYOK usage without requiring platform credits', async () => {

@@ -909,9 +909,7 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/Invalid batch platform/);
-    expect(
-      creditsUtilsService.reserveCredits,
-    ).not.toHaveBeenCalled();
+    expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
     expect(batchGenerationService.cancelBatch).not.toHaveBeenCalled();
   });
 
@@ -940,9 +938,7 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     expect(result.error).toMatch(/Insufficient credits/);
     expect(result.creditsUsed).toBe(0);
     expect(batchGenerationService.createBatch).toHaveBeenCalled();
-    expect(
-      creditsUtilsService.reserveCredits,
-    ).toHaveBeenCalledWith(
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
       expect.objectContaining({
         actorUserId: 'user-1',
         amount: expect.any(Number),
@@ -1019,9 +1015,7 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       'user-1',
       'organization-1',
     );
-    expect(
-      creditsUtilsService.reserveCredits,
-    ).toHaveBeenCalled();
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalled();
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
     ).not.toHaveBeenCalled();
@@ -1043,6 +1037,37 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     expect(batchCreditsService.settleBatchCredits).not.toHaveBeenCalled();
   });
 
+  it('releases the hold and cancels when the reservation ledger cannot be pinned', async () => {
+    const {
+      batchCreditsService,
+      batchGenerationQueueService,
+      batchGenerationService,
+      creditsUtilsService,
+      handler,
+    } = createBatchHandler();
+    batchCreditsService.recordUpfrontCharge.mockResolvedValue(false);
+
+    const result = await handler.generateContentBatch(
+      { brandId: 'brand-1', count: 3, platforms: ['instagram'] },
+      context,
+    );
+
+    expect(result).toEqual({
+      creditsUsed: 0,
+      error: 'Batch credit reservation could not be recorded',
+      success: false,
+    });
+    expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+      organizationId: 'organization-1',
+      reservationId: 'reservation-1',
+    });
+    expect(batchGenerationService.cancelBatch).toHaveBeenCalledWith(
+      'batch-1',
+      'organization-1',
+    );
+    expect(batchGenerationQueueService.queueBatch).not.toHaveBeenCalled();
+  });
+
   it('resolves a credential handle within the caller organization before creating the batch', async () => {
     const credentialsService = {
       findByHandle: vi.fn().mockResolvedValue({ brandId: 'brand-from-handle' }),
@@ -1062,7 +1087,9 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       batchGenerationService as never,
       credentialsService as never,
       undefined,
-      { reserveCredits: vi.fn().mockResolvedValue({ id: 'res-handle' }) } as never,
+      {
+        reserveCredits: vi.fn().mockResolvedValue({ id: 'res-handle' }),
+      } as never,
       { recordUpfrontCharge: vi.fn().mockResolvedValue(true) } as never,
       undefined,
       queue as never,
@@ -1101,7 +1128,9 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       { cancelBatch: vi.fn(), createBatch } as never,
       { findByHandle: vi.fn().mockResolvedValue({ brandId: null }) } as never,
       undefined,
-      { reserveCredits: vi.fn().mockResolvedValue({ id: 'res-selected' }) } as never,
+      {
+        reserveCredits: vi.fn().mockResolvedValue({ id: 'res-selected' }),
+      } as never,
       { recordUpfrontCharge: vi.fn().mockResolvedValue(true) } as never,
       undefined,
       { queueBatch: vi.fn().mockResolvedValue('job-selected-1') } as never,
@@ -1144,7 +1173,9 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       batchGenerationService as never,
       undefined,
       undefined,
-      { reserveCredits: vi.fn().mockResolvedValue({ id: 'res-local' }) } as never,
+      {
+        reserveCredits: vi.fn().mockResolvedValue({ id: 'res-local' }),
+      } as never,
       {
         recordUpfrontCharge: vi.fn().mockResolvedValue(true),
         settleBatchCredits,

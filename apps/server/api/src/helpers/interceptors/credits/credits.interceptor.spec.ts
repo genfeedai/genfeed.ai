@@ -222,6 +222,35 @@ describe('CreditsInterceptor', () => {
       );
     });
 
+    it('recognizes a JSON:API source action before deferring media settlement', async () => {
+      mockRequest.body = {
+        data: {
+          attributes: { sourceActionId: 'json-api-action' },
+        },
+      } as never;
+      mockRequest.creditsConfig = {
+        amount: 10,
+        description: 'Image generation',
+        reservationId: 'reservation-json-api',
+        source: ActivitySource.IMAGE_GENERATION,
+      };
+      const handler = {
+        handle: () => of({ data: { id: 'asset-json-api' } }),
+      } as CallHandler;
+
+      interceptor.intercept(mockContext, handler).subscribe();
+
+      await vi.waitFor(() =>
+        expect(creditDeductionQueueService.queueDeduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            idempotencyKey: 'agent-media-json-api-action-asset-json-api',
+            reservationId: 'reservation-json-api',
+            settlementAssetId: 'asset-json-api',
+          }),
+        ),
+      );
+    });
+
     it('does not charge confirmed media when acceptance returned no persisted asset', async () => {
       mockRequest.body = { sourceActionId: 'action-without-asset' };
       mockRequest.creditsConfig = {
@@ -254,8 +283,9 @@ describe('CreditsInterceptor', () => {
       mockRequest.creditsConfig = {
         amount: 10,
         description: 'Image generation',
+        reservationId: 'reservation-queue-failure',
         source: ActivitySource.IMAGE_GENERATION,
-      } as CreditsConfig;
+      };
       mockRequest.user = {
         id: 'user_123',
         organizationId,
@@ -276,6 +306,10 @@ describe('CreditsInterceptor', () => {
           });
         }),
       ).rejects.toThrow('settlement queue unavailable');
+      expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+        organizationId,
+        reservationId: 'reservation-queue-failure',
+      });
     });
 
     it('should forward the pricing audit stamp as deduction metadata', async () => {
@@ -398,12 +432,12 @@ describe('CreditsInterceptor', () => {
             expect(
               creditDeductionQueueService.queueDeduction,
             ).not.toHaveBeenCalled();
-            expect(
-              creditsUtilsService.releaseReservation,
-            ).toHaveBeenCalledWith({
-              organizationId,
-              reservationId: 'reservation-1',
-            });
+            expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith(
+              {
+                organizationId,
+                reservationId: 'reservation-1',
+              },
+            );
             resolve();
           },
         });

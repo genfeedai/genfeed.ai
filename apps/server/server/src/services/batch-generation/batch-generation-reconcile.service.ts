@@ -1,3 +1,9 @@
+import { BatchItemStatus, BatchStatus } from '@genfeedai/enums';
+import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
+import { CreditReservationService } from '@server/collections/credits/services/credit-reservation.service';
 import {
   BATCH_LEASE_STALE_MS,
   BATCH_MAX_RESUME_ATTEMPTS,
@@ -16,11 +22,6 @@ import {
 } from '@server/services/batch-generation/batch-item-rows';
 import { toPrismaBatchStatus } from '@server/services/batch-generation/batch-status-prisma.mapper';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BatchItemStatus, BatchStatus } from '@genfeedai/enums';
-import { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 /** A batch whose run died and which the sweep wants handed back to the queue. */
 export type StrandedBatch = {
@@ -51,6 +52,7 @@ export class BatchGenerationReconcileService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly creditsService: BatchGenerationCreditsService,
+    private readonly reservationService: CreditReservationService,
   ) {}
 
   /**
@@ -209,6 +211,8 @@ export class BatchGenerationReconcileService {
         collectedCount,
       });
     }
+
+    await this.reservationService.expireDue();
   }
 
   /**

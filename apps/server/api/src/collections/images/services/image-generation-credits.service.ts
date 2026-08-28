@@ -1,8 +1,5 @@
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { baseModelKey } from '@server/collections/models/utils/model-key.util';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import {
   calculateDynamicImageCost,
@@ -15,13 +12,21 @@ import {
   resolveModelCreditCost,
   scaleCreditsForFanOut,
 } from '@api/helpers/utils/credits/generation-credit-cost.util';
+import {
+  hasGenerationSourceActionId,
+  reserveGenerationRequestCredits,
+} from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
-import { ByokService } from '@server/services/byok/byok.service';
-import { resolveModelByokProvider } from '@server/services/byok/byok-provider-map.util';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import type { ByokProvider } from '@genfeedai/enums';
 import { buildPricingAuditStamp } from '@genfeedai/pricing';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { baseModelKey } from '@server/collections/models/utils/model-key.util';
+import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
+import { ByokService } from '@server/services/byok/byok.service';
+import { resolveModelByokProvider } from '@server/services/byok/byok-provider-map.util';
 
 @Injectable()
 export class ImageGenerationCreditsService {
@@ -52,6 +57,7 @@ export class ImageGenerationCreditsService {
     );
     if (
       !byokProvider &&
+      !hasGenerationSourceActionId(request) &&
       !(await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         organization,
         requiredCredits,
@@ -75,6 +81,28 @@ export class ImageGenerationCreditsService {
         isByokBypass: true,
         provider: byokProvider,
       };
+      return;
+    }
+
+    try {
+      await reserveGenerationRequestCredits({
+        amount: requiredCredits,
+        creditsUtilsService: this.creditsUtilsService,
+        organizationId: organization,
+        request,
+      });
+    } catch (error: unknown) {
+      if (
+        error instanceof BusinessLogicException &&
+        error.errorCode === 'INSUFFICIENT_CREDITS'
+      ) {
+        const balance =
+          await this.creditsUtilsService.getOrganizationCreditsBalance(
+            organization,
+          );
+        throw createInsufficientCreditsException(requiredCredits, balance);
+      }
+      throw error;
     }
   }
 

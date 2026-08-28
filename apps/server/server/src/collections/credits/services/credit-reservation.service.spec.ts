@@ -19,7 +19,7 @@ describe('CreditReservationService', () => {
     },
     creditTransaction: { updateMany: vi.fn() },
   };
-  const logger = { log: vi.fn() };
+  const logger = { error: vi.fn(), log: vi.fn() };
   const creditBalanceService = {
     applyDelta: vi.fn(),
     getOrCreateBalance: vi.fn(),
@@ -45,7 +45,21 @@ describe('CreditReservationService', () => {
   );
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    prisma.creditReservation.create.mockReset();
+    prisma.creditReservation.findFirst.mockReset();
+    prisma.creditReservation.findMany.mockReset();
+    prisma.creditReservation.update.mockReset();
+    prisma.creditReservation.updateMany
+      .mockReset()
+      .mockResolvedValue({ count: 1 });
+    prisma.creditTransaction.updateMany.mockReset();
+    logger.error.mockReset();
+    logger.log.mockReset();
+    creditBalanceService.applyDelta.mockReset();
+    creditBalanceService.getOrCreateBalance.mockReset();
+    creditBalanceService.toSnapshot.mockReset();
+    creditTransactionsService.createTransactionEntry.mockReset();
+    transactionUtil.runInTransaction.mockClear();
     creditBalanceService.applyDelta.mockResolvedValue({
       available: 80,
       billingAccountId: 'ba_1',
@@ -55,6 +69,10 @@ describe('CreditReservationService', () => {
       settled: 100,
       version: 2,
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('is idempotent for an existing reservation key', async () => {
@@ -161,6 +179,7 @@ describe('CreditReservationService', () => {
         billingAccountId: 'ba_1',
         id: 'res_1',
         organizationId: 'org_1',
+        settledAmount: 15,
         status: CreditReservationStatus.SETTLED,
       });
     prisma.creditReservation.updateMany.mockResolvedValueOnce({ count: 0 });
@@ -264,6 +283,26 @@ describe('CreditReservationService', () => {
       'org_1',
       { billingAccountId: 'ba_1', heldDelta: -20 },
       txClient,
+    );
+  });
+
+  it('continues expiring later reservations when one tenant fails', async () => {
+    prisma.creditReservation.findMany.mockResolvedValue([
+      { id: 'res_1', organizationId: 'org_1' },
+      { id: 'res_2', organizationId: 'org_2' },
+    ]);
+    const release = vi
+      .spyOn(service, 'release')
+      .mockRejectedValueOnce(new Error('wallet unavailable'))
+      .mockResolvedValueOnce({} as never);
+
+    await expect(service.expireDue()).resolves.toBe(1);
+
+    expect(release).toHaveBeenCalledTimes(2);
+    expect(logger.error).toHaveBeenCalledWith(
+      'Credit reservation expiry failed',
+      expect.any(Error),
+      { organizationId: 'org_1', reservationId: 'res_1' },
     );
   });
 });

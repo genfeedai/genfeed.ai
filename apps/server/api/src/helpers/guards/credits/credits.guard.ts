@@ -2,6 +2,11 @@ import {
   CREDITS_DEFER_MODEL_RESOLUTION_KEY,
   CREDITS_KEY,
 } from '@api/helpers/decorators/credits/credits.decorator';
+import {
+  hasGenerationSourceActionId,
+  type ReservationCreditsConfig,
+  reserveGenerationRequestCredits,
+} from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
@@ -40,7 +45,10 @@ import {
   isTrainerKey,
   isTrainingKey,
 } from '@server/collections/models/utils/model-key.util';
-import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
+import {
+  BusinessLogicException,
+  InsufficientCreditsException,
+} from '@server/exceptions/business-logic.exception';
 import { getMinimumTextCredits } from '@server/helpers/utils/text-pricing/text-pricing.util';
 import { ByokService } from '@server/services/byok/byok.service';
 import { resolveModelByokProvider } from '@server/services/byok/byok-provider-map.util';
@@ -49,7 +57,7 @@ import type { Request } from 'express';
 // Type for authenticated request with user data
 interface AuthenticatedRequest extends Omit<Request, 'user'> {
   user?: AuthenticatedUser;
-  creditsConfig?: CreditsConfig & {
+  creditsConfig?: ReservationCreditsConfig & {
     amount: number;
     modelKey?: string;
     deferred?: boolean;
@@ -592,10 +600,11 @@ export class CreditsGuard implements CanActivate {
       if (creditsDeferred) return true;
 
       const hasEnoughCredits =
-        await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+        hasGenerationSourceActionId(request) ||
+        (await this.creditsUtilsService.checkOrganizationCreditsAvailable(
           user.organizationId,
           requiredCredits,
-        );
+        ));
 
       if (!hasEnoughCredits) {
         const currentBalance =
@@ -624,6 +633,29 @@ export class CreditsGuard implements CanActivate {
           : {}),
       };
       request.creditsConfig = updatedCreditsConfig;
+      try {
+        await reserveGenerationRequestCredits({
+          amount: requiredCredits,
+          creditsUtilsService: this.creditsUtilsService,
+          organizationId: user.organizationId,
+          request,
+        });
+      } catch (error: unknown) {
+        if (
+          error instanceof BusinessLogicException &&
+          error.errorCode === 'INSUFFICIENT_CREDITS'
+        ) {
+          const currentBalance =
+            await this.creditsUtilsService.getOrganizationCreditsBalance(
+              user.organizationId,
+            );
+          throw new InsufficientCreditsException(
+            requiredCredits,
+            currentBalance,
+          );
+        }
+        throw error;
+      }
       this.loggerService.debug('Credits guard: creditsConfig set on request', {
         amount: updatedCreditsConfig.amount,
         modelKey: updatedCreditsConfig.modelKey,

@@ -28,9 +28,14 @@ describe('VideoGenerationCreditsService', () => {
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       true,
     );
-    creditsUtilsService.reserveCredits.mockResolvedValue({
-      id: 'reservation-1',
-    });
+    creditsUtilsService.reserveCredits.mockImplementation(
+      (input: { amount: number }) =>
+        Promise.resolve({
+          amount: input.amount,
+          id: 'reservation-1',
+          status: 'RESERVED',
+        }),
+    );
     service = new VideoGenerationCreditsService(
       creditsUtilsService as never,
       modelsService as never,
