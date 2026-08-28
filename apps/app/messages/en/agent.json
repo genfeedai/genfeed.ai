@@ -27,9 +27,11 @@
     "actionsAria": "Open composer actions",
     "addContext": "Add context",
     "attachFiles": "Attach files",
+    "generationMode": "Generation mode",
     "noModelsEnabled": "No models enabled",
     "noModelsEnabledTitle": "No models enabled for this workspace",
-    "referenceLibrary": "Reference library content"
+    "referenceLibrary": "Reference library content",
+    "selected": "Selected"
   },
   "generationActionCard": {
     "acceptFullRun": "Accept full run",

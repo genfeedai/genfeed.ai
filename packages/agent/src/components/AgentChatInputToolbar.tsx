@@ -319,7 +319,7 @@ function AgentChatInputToolbarInner({
             side="top"
             sideOffset={8}
           >
-            <DropdownMenuLabel>Generation mode</DropdownMenuLabel>
+            <DropdownMenuLabel>{translate('generationMode')}</DropdownMenuLabel>
             {generationModeOptions.map((option) => {
               const ModeIcon = option.icon;
               return (
@@ -337,7 +337,9 @@ function AgentChatInputToolbarInner({
                     <p className="text-2xs text-muted">{option.description}</p>
                   </div>
                   {generationMode === option.value ? (
-                    <DropdownMenuShortcut>Selected</DropdownMenuShortcut>
+                    <DropdownMenuShortcut>
+                      {translate('selected')}
+                    </DropdownMenuShortcut>
                   ) : null}
                 </DropdownMenuItem>
               );
