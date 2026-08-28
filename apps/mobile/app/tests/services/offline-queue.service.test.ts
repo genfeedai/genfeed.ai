@@ -10,12 +10,20 @@ const network = vi.hoisted(() => ({
   on: vi.fn(),
 }));
 
+const sentry = vi.hoisted(() => ({
+  captureException: vi.fn(),
+}));
+
 vi.mock('@react-native-async-storage/async-storage', () => ({
   default: asyncStorage,
 }));
 
 vi.mock('@/services/network.service', () => ({
   networkService: network,
+}));
+
+vi.mock('@/services/sentry.service', () => ({
+  sentryService: sentry,
 }));
 
 import { offlineQueueService } from '@/services/offline-queue.service';
@@ -81,6 +89,15 @@ describe('offlineQueueService', () => {
 
     expect(offlineQueueService.isQueueEmpty()).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(sentry.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Request failed with status 500',
+      }),
+      expect.objectContaining({
+        actionType: 'CREATE_IDEA',
+        method: 'POST',
+      }),
+    );
     vi.unstubAllGlobals();
   });
 
@@ -101,5 +118,44 @@ describe('offlineQueueService', () => {
     expect(offlineQueueService.getQueue().map((item) => item.endpoint)).toEqual(
       ['/ideas/2'],
     );
+  });
+
+  it('rejects queue mutations when persistence fails', async () => {
+    const storageError = new Error('Storage unavailable');
+    asyncStorage.setItem.mockRejectedValueOnce(storageError);
+
+    await expect(
+      offlineQueueService.addAction({
+        endpoint: '/ideas',
+        method: 'POST',
+        type: 'CREATE_IDEA',
+      }),
+    ).rejects.toBe(storageError);
+  });
+
+  it('finishes processing when the updated queue cannot be persisted', async () => {
+    const processingComplete = vi.fn();
+    const storageError = new Error('Storage unavailable');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, status: 200 }),
+    );
+
+    await offlineQueueService.addAction({
+      endpoint: '/ideas',
+      method: 'POST',
+      type: 'CREATE_IDEA',
+    });
+    network.isOnline.mockReturnValue(true);
+    asyncStorage.setItem.mockRejectedValueOnce(storageError);
+    offlineQueueService.on('processingComplete', processingComplete);
+
+    await expect(offlineQueueService.processQueue()).rejects.toBe(storageError);
+
+    expect(processingComplete).toHaveBeenCalledWith({
+      processed: 1,
+      remaining: 0,
+    });
+    vi.unstubAllGlobals();
   });
 });
