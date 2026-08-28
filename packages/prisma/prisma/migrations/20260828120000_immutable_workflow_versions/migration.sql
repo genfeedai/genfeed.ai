@@ -1,3 +1,10 @@
+BEGIN;
+
+-- Workflow version hashes use the same SHA-256 contract as the application.
+-- Installation is deliberately fail-closed when the database owner cannot
+-- provide pgcrypto; persisting a second hash format would break version identity.
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+
 -- Workflow identity stays mutable; executable definitions become immutable.
 CREATE TABLE "workflow_versions" (
     "id" TEXT NOT NULL,
@@ -80,13 +87,17 @@ AS $$
         WHEN 'ai-voice-change' THEN 'voiceChange'
         WHEN 'analytics-feedback' THEN 'analyticsFeedback'
         WHEN 'attach-post-ingredient' THEN 'attachPostIngredient'
+        WHEN 'captionGen' THEN 'effect-captions'
         WHEN 'cast-prompt-generator' THEN 'castPrompt'
+        WHEN 'download' THEN 'workflow.collect-output'
         WHEN 'effect-color-grade' THEN 'colorGrade'
         WHEN 'generateVideo' THEN 'videoGen'
         WHEN 'output-publish' THEN 'publish'
+        WHEN 'outputGallery' THEN 'workflow.collect-output'
         WHEN 'social-post-reply' THEN 'postReply'
         WHEN 'social-send-dm' THEN 'sendDm'
         WHEN 'source-corpus' THEN 'sourceCorpus'
+        WHEN 'transcribe' THEN 'ai-transcribe'
         WHEN 'workflow-output' THEN 'workflow.collect-output'
         WHEN 'workflow_output' THEN 'workflow.collect-output'
         WHEN 'workflowOutput' THEN 'workflow.collect-output'
@@ -279,8 +290,55 @@ AS $$
         'content-intelligence.load-patterns',
         'content-intelligence.plan',
         'content-intelligence.track-pattern',
-        'contentEngineProduction',
-        'contentPipelineAutopilot',
+        'agent.autopilot.begin',
+        'agent.autopilot.discover',
+        'agent.autopilot.dispatch-strategy',
+        'agent.autopilot.fail',
+        'agent.autopilot.finalize',
+        'content.production.engine.begin',
+        'content.production.engine.discover-brands',
+        'content.production.engine.execute-plan',
+        'content.production.engine.fail',
+        'content.production.engine.finalize',
+        'content.production.engine.plan-brand',
+        'content.production.autopilot.begin',
+        'content.production.autopilot.discover-personas',
+        'content.production.autopilot.fail',
+        'content.production.autopilot.finalize',
+        'content.production.autopilot.process-persona',
+        'harness.winners.begin',
+        'harness.winners.discover-brands',
+        'harness.winners.fail',
+        'harness.winners.finalize',
+        'harness.winners.promote-brand',
+        'livestream.sessions.begin',
+        'livestream.sessions.discover',
+        'livestream.sessions.fail',
+        'livestream.sessions.finalize',
+        'livestream.sessions.process-one',
+        'livestream.restream.finalize',
+        'livestream.restream.load-bot',
+        'livestream.restream.sync-chat',
+        'paid-creative.research.discover-advertisers',
+        'paid-creative.research.finalize',
+        'paid-creative.research.ingest-advertiser',
+        'paid-creative.research.prepare',
+        'reply.polling.bots.begin',
+        'reply.polling.bots.discover-targets',
+        'reply.polling.bots.fail',
+        'reply.polling.bots.finalize',
+        'reply.polling.bots.process-target',
+        'reply.polling.social.begin',
+        'reply.polling.social.discover-workflows',
+        'reply.polling.social.fail',
+        'reply.polling.social.finalize',
+        'reply.polling.social.process-workflow',
+        'trends.notifications.deliver-email',
+        'trends.notifications.deliver-in-app',
+        'trends.notifications.deliver-telegram',
+        'trends.notifications.finalize',
+        'trends.notifications.prepare',
+        'trends.notifications.render',
         'control_scheduled_release',
         'create_ad_remix_workflow',
         'create_article',
@@ -368,7 +426,6 @@ AS $$
         'get_workflow_inputs',
         'get_workflow_run',
         'get_workflow_status',
-        'harnessWinnerPromotionSweep',
         'hookGenerator',
         'imageGen',
         'initiate_oauth_connect',
@@ -410,7 +467,6 @@ AS $$
         'list_workflow_templates',
         'list_workflows',
         'list_x_account_activity',
-        'livestreamBotSessionProcessing',
         'llm',
         'long-form.persist-output',
         'long-form.transform-text',
@@ -428,14 +484,12 @@ AS $$
         'output-notify',
         'output-save',
         'output-webhook',
-        'outreachCampaignDispatch',
         'patterns.extraction.build',
         'patterns.extraction.load',
         'patterns.extraction.persist-candidate',
         'patterns.extraction.save-checkpoints',
         'patterns.extraction.scan-ads',
         'patterns.extraction.scan-content',
-        'paidCreativeResearchIngestion',
         'pause_campaign',
         'postGen',
         'postReply',
@@ -446,7 +500,6 @@ AS $$
         'prepare_voice_clone',
         'prepare_workflow_trigger',
         'present_payment_options',
-        'proactiveAgentStrategies',
         'process-compress',
         'process-extract-audio',
         'process-merge-videos',
@@ -482,13 +535,11 @@ AS $$
         'reply.inbound.prepare',
         'reply.post-watch.fetch',
         'reply.post-watch.finalize',
-        'replyBotPolling',
         'reportDelivery',
         'repurpose_post',
         'request_asset',
         'resolve_approval',
         'resolve_handle',
-        'restreamChatIngest',
         'retry_agent_run',
         'save_brand_voice_profile',
         'save_dashboard_layout',
@@ -527,7 +578,6 @@ AS $$
         'social.reply-campaign.reclaim',
         'social.reply-campaign.throttle',
         'socialRead',
-        'socialTriggerPolling',
         'soundOverlay',
         'sourceCorpus',
         'spawn_content_agent',
@@ -543,7 +593,6 @@ AS $$
         'trendDigest',
         'trendHashtagInspiration',
         'trendSoundInspiration',
-        'trendSummaryNotifications',
         'trendTrigger',
         'trendVideoInspiration',
         'twitter.pipeline.draft.build-prompt',
@@ -705,7 +754,159 @@ AS $$
     );
 $$;
 
-CREATE FUNCTION workflow_action_node(source_node JSONB)
+-- Catalog membership is necessary but not sufficient: many catalog actions are
+-- Agent/MCP tools or removed orchestration macros. Only this deployment-time
+-- executor snapshot may survive the hard cut from a persisted legacy graph.
+CREATE FUNCTION workflow_action_has_atomic_executor(action_id TEXT)
+RETURNS BOOLEAN
+LANGUAGE SQL
+IMMUTABLE
+AS $$
+    SELECT action_id IN (
+        'ai-enhance',
+        'ai-transcribe',
+        'aiAvatarVideo',
+        'analyticsFeedback',
+        'attachPostIngredient',
+        'castPrompt',
+        'effect-captions',
+        'effect-ken-burns',
+        'effect-portrait-blur',
+        'effect-split-screen',
+        'effect-watermark',
+        'hookGenerator',
+        'imageGen',
+        'lipSync',
+        'llm',
+        'musicSource',
+        'newsletterGen',
+        'postGen',
+        'postReply',
+        'promptConstructor',
+        'publish',
+        'reframe',
+        'sendDm',
+        'soundOverlay',
+        'sourceCorpus',
+        'textToSpeech',
+        'upscale',
+        'videoFrameExtract',
+        'videoGen',
+        'videoQa',
+        'voiceChange',
+        'workflow.collect-output',
+        'workflow.for-each',
+        'workflow.for-each-tenant',
+        'workflow.run-child'
+    );
+$$;
+
+CREATE FUNCTION workflow_removed_macro_reason(action_id TEXT)
+RETURNS TEXT
+LANGUAGE SQL
+IMMUTABLE
+AS $$
+    SELECT CASE
+        WHEN action_id IN (
+            'content.optimization.cycle.run'
+        ) THEN 'legacy action hides product orchestration and must be rebuilt as explicit workflow nodes'
+        WHEN action_id IN (
+            'adOptimization',
+            'adSyncGoogle',
+            'adSyncMeta',
+            'adSyncTikTok',
+            'agentCampaignOrchestration',
+            'agentCampaignTriggerEvaluation',
+            'agent-campaign.memory.extract',
+            'agent-campaign.orchestration.run',
+            'agent-campaign.triggers.evaluate',
+            'aiInfluencerDailyPosts',
+            'analyticsFacebookSync',
+            'analyticsGenericSync',
+            'analyticsSocialSync',
+            'analyticsThreadsSync',
+            'analyticsTwitterSync',
+            'brand-remix-paused-meta-draft',
+            'brand-remix-paused-x-ads-draft',
+            'brand-remix-review-handoff',
+            'email-digest.send',
+            'insight.generate',
+            'knowledge.source.ingest',
+            'lifecycle-email.send',
+            'review-gate-timeout',
+            'signup.prefill.execute',
+            'streak-maintenance',
+            'telegram.distribution.deliver',
+            'tiktok-status-reconciliation',
+            'workflow.artifact.cleanup-expired',
+            'youtube.obtain-transcript',
+            'youtube-comments-ingest',
+            'youtube-status-reconciliation',
+            'youtubeAnalyticsSync'
+        ) THEN 'legacy orchestration action was removed by the hard cut and has no one-node semantic equivalent'
+        ELSE NULL
+    END;
+$$;
+
+CREATE FUNCTION workflow_node_parameters(node_data JSONB)
+RETURNS JSONB
+LANGUAGE PLPGSQL
+IMMUTABLE
+AS $$
+DECLARE
+    nested_config JSONB := COALESCE(node_data->'config', '{}'::jsonb);
+BEGIN
+    IF jsonb_typeof(node_data) <> 'object' THEN
+        RAISE EXCEPTION 'Workflow node data must be an object';
+    END IF;
+    IF jsonb_typeof(nested_config) <> 'object' THEN
+        RAISE EXCEPTION 'Workflow node data.config must be an object';
+    END IF;
+
+    -- Match WorkflowFormatConverterService.extractParameters: nested config is
+    -- the base and real editor data.* fields override it. Runtime-only metadata
+    -- is deliberately excluded from executable parameters.
+    RETURN nested_config || (
+        node_data
+        - 'cachedOutput'
+        - 'color'
+        - 'comment'
+        - 'config'
+        - 'error'
+        - 'inputVariableKeys'
+        - 'isLocked'
+        - 'label'
+        - 'lockTimestamp'
+        - 'progress'
+        - 'status'
+    );
+END;
+$$;
+
+CREATE FUNCTION workflow_unconvertible_node_reason(node_type TEXT)
+RETURNS TEXT
+LANGUAGE SQL
+IMMUTABLE
+AS $$
+    SELECT CASE node_type
+        WHEN 'workflowRef' THEN 'child workflow references require an explicit workflow.run-child contract'
+        WHEN 'workflow-ref' THEN 'child workflow references require an explicit workflow.run-child contract'
+        WHEN 'resize' THEN 'legacy resize source binding is not equivalent to process-resize inputs'
+        WHEN 'clip' THEN 'legacy clip queue semantics have no one-node atomic equivalent'
+        WHEN 'webhook' THEN 'legacy webhook payload semantics have no registered atomic executor'
+        WHEN 'videoTrim' THEN 'legacy trim source binding is not equivalent to process-trim inputs'
+        WHEN 'control-loop' THEN 'legacy loop state must be rebuilt with workflow.for-each and an explicit child workflow'
+        WHEN 'motionControl' THEN 'legacy motion-control configuration has no registered atomic executor'
+        WHEN 'animation' THEN 'legacy animation configuration has no registered atomic executor'
+        WHEN 'imageGridSplit' THEN 'legacy grid-split configuration has no registered atomic executor'
+        WHEN 'annotation' THEN 'legacy annotation configuration has no registered atomic executor'
+        WHEN 'subtitle' THEN 'legacy subtitle configuration is not equivalent to effect-captions inputs'
+        WHEN 'imageCompare' THEN 'legacy image comparison has no registered atomic executor'
+        ELSE NULL
+    END;
+$$;
+
+CREATE FUNCTION workflow_action_node(source_node JSONB, workflow_id TEXT)
 RETURNS JSONB
 LANGUAGE PLPGSQL
 IMMUTABLE
@@ -715,37 +916,57 @@ DECLARE
     action_id TEXT;
     input_type TEXT;
     node_data JSONB := COALESCE(source_node->'data', '{}'::jsonb);
-    parameters JSONB := COALESCE(
-        source_node->'data'->'config',
-        source_node->'config',
-        '{}'::jsonb
-    );
+    root_config JSONB := COALESCE(source_node->'config', '{}'::jsonb);
+    parameters JSONB;
+    rejection_reason TEXT;
 BEGIN
+    IF jsonb_typeof(source_node) <> 'object' THEN
+        RAISE EXCEPTION 'Workflow % nodes must be JSON objects', workflow_id;
+    END IF;
+    IF NULLIF(source_node->>'id', '') IS NULL THEN
+        RAISE EXCEPTION 'Workflow % node has no id', workflow_id;
+    END IF;
     IF node_type IS NULL OR node_type = '' THEN
-        RAISE EXCEPTION 'Workflow node % has no type', source_node->>'id';
+        RAISE EXCEPTION 'Workflow % node % has no type', workflow_id, source_node->>'id';
+    END IF;
+    IF jsonb_typeof(node_data) <> 'object' THEN
+        RAISE EXCEPTION 'Workflow % node % data must be an object', workflow_id, source_node->>'id';
+    END IF;
+    IF jsonb_typeof(root_config) <> 'object' THEN
+        RAISE EXCEPTION 'Workflow % node % config must be an object', workflow_id, source_node->>'id';
+    END IF;
+    IF node_data ? 'config'
+        AND jsonb_typeof(node_data->'config') <> 'object'
+    THEN
+        RAISE EXCEPTION 'Workflow % node % data.config must be an object', workflow_id, source_node->>'id';
     END IF;
 
+    parameters := root_config || workflow_node_parameters(node_data);
+
     IF node_type = 'workflow-input' THEN
-        RETURN jsonb_set(
+        source_node := jsonb_set(
             source_node,
             '{type}',
             to_jsonb('workflowInput'::text),
             true
         );
+        node_type := 'workflowInput';
     END IF;
 
-    IF node_type IN ('audioInput', 'imageInput', 'input-prompt', 'videoInput') THEN
+    IF node_type IN (
+        'audioInput',
+        'imageInput',
+        'input-prompt',
+        'prompt',
+        'videoInput'
+    ) THEN
         input_type := CASE node_type
             WHEN 'audioInput' THEN 'audio'
             WHEN 'imageInput' THEN 'image'
             WHEN 'input-prompt' THEN 'text'
+            WHEN 'prompt' THEN 'text'
             WHEN 'videoInput' THEN 'video'
         END;
-        parameters := COALESCE(
-            source_node->'data'->'config',
-            source_node->'config',
-            '{}'::jsonb
-        );
         RETURN jsonb_set(
             jsonb_set(
                 source_node,
@@ -754,12 +975,13 @@ BEGIN
                 true
             ),
             '{data}',
-            node_data || jsonb_build_object(
-                'config',
-                jsonb_strip_nulls(
-                    jsonb_build_object(
+            jsonb_strip_nulls(
+                jsonb_build_object(
+                    'config',
+                    jsonb_strip_nulls(jsonb_build_object(
                         'defaultValue', COALESCE(
                             parameters->input_type,
+                            parameters->'prompt',
                             parameters->'defaultValue',
                             parameters->'value'
                         ),
@@ -773,7 +995,9 @@ BEGIN
                             THEN parameters->'required'
                             ELSE 'false'::jsonb
                         END
-                    )
+                    )),
+                    'inputVariableKeys', node_data->'inputVariableKeys',
+                    'label', COALESCE(node_data->>'label', source_node->>'id')
                 )
             ),
             true
@@ -781,28 +1005,68 @@ BEGIN
     END IF;
 
     IF workflow_node_is_engine_native(node_type) THEN
-        RETURN source_node;
+        RETURN jsonb_set(
+            source_node - 'config',
+            '{data}',
+            jsonb_strip_nulls(
+                jsonb_build_object(
+                    'config', parameters,
+                    'inputVariableKeys', node_data->'inputVariableKeys',
+                    'label', COALESCE(node_data->>'label', node_type)
+                )
+            ),
+            true
+        );
+    END IF;
+
+    rejection_reason := workflow_unconvertible_node_reason(node_type);
+    IF rejection_reason IS NOT NULL THEN
+        RAISE EXCEPTION
+            'Workflow % node % has unconvertible legacy type %: %',
+            workflow_id,
+            source_node->>'id',
+            node_type,
+            rejection_reason;
     END IF;
 
     IF node_type = 'genfeedAction' THEN
+        IF jsonb_typeof(node_data->'config') <> 'object' THEN
+            RAISE EXCEPTION 'Workflow % action node % data.config must be an object', workflow_id, source_node->>'id';
+        END IF;
         action_id := workflow_node_action_id(
-            source_node->'data'->'config'->>'actionId'
+            node_data->'config'->>'actionId'
         );
         parameters := COALESCE(
-            source_node->'data'->'config'->'parameters',
+            node_data->'config'->'parameters',
             '{}'::jsonb
         );
+        IF jsonb_typeof(parameters) <> 'object' THEN
+            RAISE EXCEPTION 'Workflow % action node % parameters must be an object', workflow_id, source_node->>'id';
+        END IF;
     ELSE
         action_id := workflow_node_action_id(node_type);
     END IF;
 
     IF action_id IS NULL OR action_id = '' THEN
-        RAISE EXCEPTION 'Workflow action node % has no actionId', source_node->>'id';
+        RAISE EXCEPTION 'Workflow % action node % has no actionId', workflow_id, source_node->>'id';
     END IF;
 
-    IF NOT workflow_action_is_supported(action_id) THEN
+    rejection_reason := workflow_removed_macro_reason(action_id);
+    IF rejection_reason IS NOT NULL THEN
         RAISE EXCEPTION
-            'Workflow action node % references unsupported action %',
+            'Workflow % action node % references removed macro %: %',
+            workflow_id,
+            source_node->>'id',
+            action_id,
+            rejection_reason;
+    END IF;
+
+    IF NOT workflow_action_is_supported(action_id)
+        OR NOT workflow_action_has_atomic_executor(action_id)
+    THEN
+        RAISE EXCEPTION
+            'Workflow % action node % references unsupported or unregistered atomic action %',
+            workflow_id,
             source_node->>'id',
             action_id;
     END IF;
@@ -810,11 +1074,15 @@ BEGIN
     RETURN jsonb_set(
         jsonb_set(source_node, '{type}', to_jsonb('genfeedAction'::text), true),
         '{data}',
-        node_data || jsonb_build_object(
-            'config',
+        jsonb_strip_nulls(
             jsonb_build_object(
-                'actionId', action_id,
-                'parameters', parameters
+                'config',
+                jsonb_build_object(
+                    'actionId', action_id,
+                    'parameters', parameters
+                ),
+                'inputVariableKeys', node_data->'inputVariableKeys',
+                'label', COALESCE(node_data->>'label', action_id)
             )
         ),
         true
@@ -822,30 +1090,320 @@ BEGIN
 END;
 $$;
 
-CREATE FUNCTION workflow_step_action_id(category TEXT)
+CREATE FUNCTION workflow_step_rejection_reason(category TEXT)
+RETURNS TEXT
+LANGUAGE SQL
+IMMUTABLE
+AS $$
+    SELECT CASE category
+        WHEN 'transform' THEN 'source-asset queue semantics have no atomic executor equivalent'
+        WHEN 'upscale' THEN 'legacy source-asset binding is not represented by the persisted step'
+        WHEN 'resize' THEN 'source-asset queue semantics have no atomic executor equivalent'
+        WHEN 'caption' THEN 'legacy source-asset queue semantics are not equivalent to effect-captions inputs'
+        WHEN 'clip' THEN 'legacy queueClipJob is not equivalent to the MCP-only generate_clips tool'
+        WHEN 'publish' THEN 'legacy platform, credential, schedule, and asset inputs differ from the atomic publish contract'
+        WHEN 'webhook' THEN 'legacy webhook payload semantics have no registered atomic executor'
+        WHEN 'generate-image' THEN 'legacy scheduled generation and persistence semantics differ from imageGen output semantics'
+        WHEN 'generate-video' THEN 'legacy scheduled generation and persistence semantics differ from videoGen output semantics'
+        WHEN 'generate-music' THEN 'legacy scheduled music generation has no atomic workflow equivalent'
+        WHEN 'generate-article' THEN 'legacy topic-based generation is not equivalent to create_article draft persistence'
+        WHEN 'color-grade' THEN 'the colorGrade executor is not registered in the hard-cut runtime'
+        WHEN 'generate-hook' THEN 'legacy step execution did not define the atomic hookGenerator input contract'
+        WHEN 'text-overlay' THEN 'effect-text-overlay has no registered atomic executor'
+        WHEN 'image-batch' THEN 'generate_content_batch is an Agent/MCP tool, not an atomic workflow executor'
+        WHEN 'performance-track' THEN 'legacy step execution did not define the analyticsFeedback input contract'
+        ELSE 'unknown legacy step category'
+    END;
+$$;
+
+CREATE FUNCTION workflow_stable_json(value JSONB)
 RETURNS TEXT
 LANGUAGE PLPGSQL
 IMMUTABLE
+STRICT
 AS $$
+DECLARE
+    result TEXT;
 BEGIN
-    RETURN CASE category
-        WHEN 'transform' THEN 'process-transform'
-        WHEN 'upscale' THEN 'upscale'
-        WHEN 'resize' THEN 'process-resize'
-        WHEN 'caption' THEN 'effect-captions'
-        WHEN 'clip' THEN 'generate_clips'
-        WHEN 'publish' THEN 'publish'
-        WHEN 'webhook' THEN 'output-webhook'
-        WHEN 'generate-image' THEN 'imageGen'
-        WHEN 'generate-video' THEN 'videoGen'
-        WHEN 'generate-article' THEN 'create_article'
-        WHEN 'color-grade' THEN 'colorGrade'
-        WHEN 'generate-hook' THEN 'hookGenerator'
-        WHEN 'text-overlay' THEN 'effect-text-overlay'
-        WHEN 'image-batch' THEN 'generate_content_batch'
-        WHEN 'performance-track' THEN 'analyticsFeedback'
-        ELSE NULL
-    END;
+    CASE jsonb_typeof(value)
+        WHEN 'object' THEN
+            SELECT '{' || COALESCE(
+                string_agg(
+                    to_jsonb(entry.key)::text || ':' || workflow_stable_json(entry.value),
+                    ',' ORDER BY entry.key COLLATE "C"
+                ),
+                ''
+            ) || '}'
+            INTO result
+            FROM jsonb_each(value) AS entry;
+            RETURN result;
+        WHEN 'array' THEN
+            SELECT '[' || COALESCE(
+                string_agg(
+                    workflow_stable_json(entry.value),
+                    ',' ORDER BY entry.ordinality
+                ),
+                ''
+            ) || ']'
+            INTO result
+            FROM jsonb_array_elements(value) WITH ORDINALITY AS entry(value, ordinality);
+            RETURN result;
+        WHEN 'number' THEN
+            RETURN trim_scale((value #>> '{}')::numeric)::text;
+        ELSE
+            RETURN value::text;
+    END CASE;
+END;
+$$;
+
+CREATE FUNCTION workflow_normalize_input_schema(source_schema JSONB, workflow_id TEXT)
+RETURNS JSONB
+LANGUAGE PLPGSQL
+IMMUTABLE
+AS $$
+DECLARE
+    input_record RECORD;
+    input_value JSONB;
+    input_key TEXT;
+    input_type TEXT;
+    normalized JSONB := '[]'::jsonb;
+BEGIN
+    IF jsonb_typeof(source_schema) <> 'array' THEN
+        RAISE EXCEPTION 'Workflow % inputVariables must be an array', workflow_id;
+    END IF;
+
+    FOR input_record IN
+        SELECT value, ordinality
+        FROM jsonb_array_elements(source_schema) WITH ORDINALITY
+        ORDER BY ordinality
+    LOOP
+        input_value := input_record.value;
+        IF jsonb_typeof(input_value) <> 'object' THEN
+            RAISE EXCEPTION 'Workflow % input variable % must be an object', workflow_id, input_record.ordinality;
+        END IF;
+
+        input_key := NULLIF(input_value->>'key', '');
+        input_type := input_value->>'type';
+        IF input_key IS NULL THEN
+            RAISE EXCEPTION 'Workflow % input variable % has no key', workflow_id, input_record.ordinality;
+        END IF;
+        IF input_type IS NULL OR input_type NOT IN (
+            'asset', 'audio', 'boolean', 'image', 'number', 'select', 'string', 'text', 'video'
+        ) THEN
+            RAISE EXCEPTION 'Workflow % input variable % has unsupported type %', workflow_id, input_key, input_type;
+        END IF;
+        IF NULLIF(input_value->>'label', '') IS NULL THEN
+            RAISE EXCEPTION 'Workflow % input variable % has no label', workflow_id, input_key;
+        END IF;
+        IF input_value ? 'required'
+            AND jsonb_typeof(input_value->'required') <> 'boolean'
+        THEN
+            RAISE EXCEPTION 'Workflow % input variable % required must be boolean', workflow_id, input_key;
+        END IF;
+        IF input_value ? 'validation'
+            AND jsonb_typeof(input_value->'validation') <> 'object'
+        THEN
+            RAISE EXCEPTION 'Workflow % input variable % validation must be an object', workflow_id, input_key;
+        END IF;
+        IF input_value ? 'description'
+            AND jsonb_typeof(input_value->'description') <> 'string'
+        THEN
+            RAISE EXCEPTION 'Workflow % input variable % description must be a string', workflow_id, input_key;
+        END IF;
+        IF input_value->'validation' ? 'min'
+            AND jsonb_typeof(input_value->'validation'->'min') <> 'number'
+        THEN
+            RAISE EXCEPTION 'Workflow % input variable % validation.min must be a number', workflow_id, input_key;
+        END IF;
+        IF input_value->'validation' ? 'max'
+            AND jsonb_typeof(input_value->'validation'->'max') <> 'number'
+        THEN
+            RAISE EXCEPTION 'Workflow % input variable % validation.max must be a number', workflow_id, input_key;
+        END IF;
+        IF input_value->'validation' ? 'pattern'
+            AND jsonb_typeof(input_value->'validation'->'pattern') <> 'string'
+        THEN
+            RAISE EXCEPTION 'Workflow % input variable % validation.pattern must be a string', workflow_id, input_key;
+        END IF;
+        IF input_value->'validation' ? 'options' THEN
+            IF jsonb_typeof(input_value->'validation'->'options') IS DISTINCT FROM 'array' THEN
+                RAISE EXCEPTION 'Workflow % input variable % validation.options must be a string array', workflow_id, input_key;
+            END IF;
+            IF EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements(input_value->'validation'->'options') AS option
+                WHERE jsonb_typeof(option) <> 'string'
+            ) THEN
+                RAISE EXCEPTION 'Workflow % input variable % validation.options must be a string array', workflow_id, input_key;
+            END IF;
+        END IF;
+
+        normalized := normalized || jsonb_build_array(
+            input_value || jsonb_build_object(
+                'required', COALESCE(input_value->'required', 'false'::jsonb)
+            )
+        );
+    END LOOP;
+
+    IF EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(normalized) AS input
+        GROUP BY input->>'key'
+        HAVING count(*) > 1
+    ) THEN
+        RAISE EXCEPTION 'Workflow % inputVariables contains duplicate keys', workflow_id;
+    END IF;
+
+    RETURN normalized;
+END;
+$$;
+
+CREATE FUNCTION workflow_validate_graph(graph_document JSONB, workflow_id TEXT)
+RETURNS VOID
+LANGUAGE PLPGSQL
+IMMUTABLE
+AS $$
+DECLARE
+    graph_nodes JSONB := graph_document->'nodes';
+    graph_edges JSONB := graph_document->'edges';
+    locked_node_ids JSONB := graph_document->'lockedNodeIds';
+    remaining_node_ids TEXT[];
+    removable_node_id TEXT;
+BEGIN
+    IF jsonb_typeof(graph_document) IS DISTINCT FROM 'object'
+        OR jsonb_typeof(graph_nodes) IS DISTINCT FROM 'array'
+        OR jsonb_typeof(graph_edges) IS DISTINCT FROM 'array'
+        OR jsonb_typeof(locked_node_ids) IS DISTINCT FROM 'array'
+    THEN
+        RAISE EXCEPTION 'Workflow % graph nodes, edges, and lockedNodeIds must be arrays', workflow_id;
+    END IF;
+    IF jsonb_array_length(graph_nodes) > 500 THEN
+        RAISE EXCEPTION 'Workflow % graph exceeds the 500-node limit', workflow_id;
+    END IF;
+    IF EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(graph_nodes) AS node
+        WHERE jsonb_typeof(node) <> 'object'
+            OR NULLIF(node->>'id', '') IS NULL
+            OR NULLIF(node->>'type', '') IS NULL
+            OR jsonb_typeof(node->'position') IS DISTINCT FROM 'object'
+            OR jsonb_typeof(node->'position'->'x') IS DISTINCT FROM 'number'
+            OR jsonb_typeof(node->'position'->'y') IS DISTINCT FROM 'number'
+            OR jsonb_typeof(node->'data') IS DISTINCT FROM 'object'
+            OR NULLIF(node->'data'->>'label', '') IS NULL
+            OR jsonb_typeof(node->'data'->'config') IS DISTINCT FROM 'object'
+            OR CASE
+                WHEN node->'data' ? 'inputVariableKeys'
+                THEN CASE
+                    WHEN jsonb_typeof(node->'data'->'inputVariableKeys') = 'array'
+                    THEN EXISTS (
+                        SELECT 1
+                        FROM jsonb_array_elements(node->'data'->'inputVariableKeys') AS input_key
+                        WHERE jsonb_typeof(input_key) <> 'string'
+                    )
+                    ELSE true
+                END
+                ELSE false
+            END
+    ) THEN
+        RAISE EXCEPTION 'Workflow % graph contains a malformed node', workflow_id;
+    END IF;
+    IF EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(graph_nodes) AS node
+        GROUP BY node->>'id'
+        HAVING count(*) > 1
+    ) THEN
+        RAISE EXCEPTION 'Workflow % graph contains duplicate node ids', workflow_id;
+    END IF;
+    IF EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(graph_edges) AS edge
+        WHERE jsonb_typeof(edge) <> 'object'
+            OR NULLIF(edge->>'id', '') IS NULL
+            OR NULLIF(edge->>'source', '') IS NULL
+            OR NULLIF(edge->>'target', '') IS NULL
+            OR (
+                edge ? 'sourceHandle'
+                AND jsonb_typeof(edge->'sourceHandle') NOT IN ('null', 'string')
+            )
+            OR (
+                edge ? 'targetHandle'
+                AND jsonb_typeof(edge->'targetHandle') NOT IN ('null', 'string')
+            )
+    ) THEN
+        RAISE EXCEPTION 'Workflow % graph contains a malformed edge', workflow_id;
+    END IF;
+    IF EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(graph_edges) AS edge
+        GROUP BY edge->>'id'
+        HAVING count(*) > 1
+    ) THEN
+        RAISE EXCEPTION 'Workflow % graph contains duplicate edge ids', workflow_id;
+    END IF;
+    IF EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(graph_edges) AS edge
+        WHERE NOT EXISTS (
+            SELECT 1 FROM jsonb_array_elements(graph_nodes) AS node
+            WHERE node->>'id' = edge->>'source'
+        ) OR NOT EXISTS (
+            SELECT 1 FROM jsonb_array_elements(graph_nodes) AS node
+            WHERE node->>'id' = edge->>'target'
+        )
+    ) THEN
+        RAISE EXCEPTION 'Workflow % graph contains a dangling edge', workflow_id;
+    END IF;
+    IF EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(locked_node_ids) AS locked(node_id)
+        WHERE jsonb_typeof(locked.node_id) <> 'string'
+            OR NOT EXISTS (
+                SELECT 1 FROM jsonb_array_elements(graph_nodes) AS node
+                WHERE node->>'id' = locked.node_id #>> '{}'
+            )
+    ) THEN
+        RAISE EXCEPTION 'Workflow % graph contains an unknown locked node id', workflow_id;
+    END IF;
+    IF EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(locked_node_ids) AS locked(node_id)
+        GROUP BY locked.node_id
+        HAVING count(*) > 1
+    ) THEN
+        RAISE EXCEPTION 'Workflow % graph contains duplicate locked node ids', workflow_id;
+    END IF;
+    SELECT COALESCE(
+        array_agg(node->>'id' ORDER BY node->>'id' COLLATE "C"),
+        ARRAY[]::TEXT[]
+    )
+    INTO remaining_node_ids
+    FROM jsonb_array_elements(graph_nodes) AS node;
+
+    -- Kahn's algorithm avoids enumerating every path in a dense acyclic graph.
+    WHILE cardinality(remaining_node_ids) > 0 LOOP
+        SELECT candidate.node_id
+        INTO removable_node_id
+        FROM unnest(remaining_node_ids) AS candidate(node_id)
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM jsonb_array_elements(graph_edges) AS edge
+            WHERE edge->>'target' = candidate.node_id
+                AND edge->>'source' = ANY(remaining_node_ids)
+        )
+        ORDER BY candidate.node_id COLLATE "C"
+        LIMIT 1;
+
+        IF removable_node_id IS NULL THEN
+            RAISE EXCEPTION 'Workflow % graph contains a cycle', workflow_id;
+        END IF;
+        remaining_node_ids := array_remove(
+            remaining_node_ids,
+            removable_node_id
+        );
+        removable_node_id := NULL;
+    END LOOP;
 END;
 $$;
 
@@ -856,20 +1414,73 @@ DECLARE
     migrated_nodes JSONB;
     migrated_edges JSONB;
     graph_document JSONB;
+    input_schema JSONB;
     step_record RECORD;
     dependency TEXT;
     step_id TEXT;
-    action_id TEXT;
+    rejection_reason TEXT;
 BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM "workflows" workflow
+        LEFT JOIN "organizations" organization
+            ON organization."id" = workflow."organizationId"
+        LEFT JOIN "users" owner
+            ON owner."id" = workflow."userId"
+        WHERE organization."id" IS NULL OR owner."id" IS NULL
+    ) THEN
+        RAISE EXCEPTION 'Workflows contain missing tenant owners';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM "workflow_executions" execution
+        LEFT JOIN "workflows" workflow ON workflow."id" = execution."workflowId"
+        WHERE workflow."id" IS NULL
+            OR execution."organizationId" <> workflow."organizationId"
+            OR execution."userId" <> workflow."userId"
+    ) THEN
+        RAISE EXCEPTION 'Workflow executions contain orphaned or cross-tenant workflow ownership';
+    END IF;
+
     FOR workflow_row IN
         SELECT * FROM "workflows" ORDER BY "createdAt", "id"
     LOOP
         source_nodes := COALESCE(workflow_row."nodes", '[]'::jsonb);
+        IF jsonb_typeof(source_nodes) <> 'array'
+            OR jsonb_typeof(COALESCE(workflow_row."edges", '[]'::jsonb)) <> 'array'
+            OR jsonb_typeof(COALESCE(workflow_row."steps", '[]'::jsonb)) <> 'array'
+            OR jsonb_typeof(COALESCE(workflow_row."lockedNodeIds", '[]'::jsonb)) <> 'array'
+        THEN
+            RAISE EXCEPTION 'Workflow % legacy nodes, edges, steps, and lockedNodeIds must be arrays', workflow_row."id";
+        END IF;
+
+        input_schema := workflow_normalize_input_schema(
+            COALESCE(workflow_row."inputVariables", '[]'::jsonb),
+            workflow_row."id"
+        );
+
+        IF jsonb_array_length(source_nodes) > 0
+            AND jsonb_array_length(COALESCE(workflow_row."steps", '[]'::jsonb)) > 0
+        THEN
+            RAISE EXCEPTION 'Workflow % contains both legacy graph nodes and steps; conversion would discard one executable definition', workflow_row."id";
+        END IF;
+        IF jsonb_array_length(source_nodes) = 0
+            AND jsonb_array_length(COALESCE(workflow_row."edges", '[]'::jsonb)) > 0
+        THEN
+            RAISE EXCEPTION 'Workflow % has legacy edges without graph nodes', workflow_row."id";
+        END IF;
 
         IF jsonb_array_length(source_nodes) > 0 THEN
-            SELECT COALESCE(jsonb_agg(workflow_action_node(node)), '[]'::jsonb)
+            SELECT COALESCE(
+                jsonb_agg(
+                    workflow_action_node(node, workflow_row."id")
+                    ORDER BY ordinality
+                ),
+                '[]'::jsonb
+            )
             INTO migrated_nodes
-            FROM jsonb_array_elements(source_nodes) AS node;
+            FROM jsonb_array_elements(source_nodes) WITH ORDINALITY AS source(node, ordinality);
 
             migrated_edges := COALESCE(workflow_row."edges", '[]'::jsonb);
         ELSE
@@ -881,12 +1492,48 @@ BEGIN
                 FROM jsonb_array_elements(COALESCE(workflow_row."steps", '[]'::jsonb))
                     WITH ORDINALITY
             LOOP
+                IF jsonb_typeof(step_record.value) <> 'object' THEN
+                    RAISE EXCEPTION 'Workflow % step % must be an object', workflow_row."id", step_record.ordinality;
+                END IF;
                 step_id := COALESCE(
                     NULLIF(step_record.value->>'id', ''),
                     'step-' || step_record.ordinality::text
                 );
+                IF NULLIF(step_record.value->>'category', '') IS NULL THEN
+                    RAISE EXCEPTION 'Workflow % step % has no category', workflow_row."id", step_id;
+                END IF;
+                IF step_record.value ? 'config'
+                    AND jsonb_typeof(step_record.value->'config') <> 'object'
+                THEN
+                    RAISE EXCEPTION 'Workflow % step % config must be an object', workflow_row."id", step_id;
+                END IF;
+                IF step_record.value ? 'dependsOn'
+                    AND jsonb_typeof(step_record.value->'dependsOn') <> 'array'
+                THEN
+                    RAISE EXCEPTION 'Workflow % step % dependsOn must be a string array', workflow_row."id", step_id;
+                END IF;
+                IF step_record.value ? 'dependsOn'
+                    AND EXISTS (
+                        SELECT 1
+                        FROM jsonb_array_elements(step_record.value->'dependsOn') AS dependency_value
+                        WHERE jsonb_typeof(dependency_value) <> 'string'
+                    )
+                THEN
+                    RAISE EXCEPTION 'Workflow % step % dependsOn must be a string array', workflow_row."id", step_id;
+                END IF;
 
                 IF step_record.value->>'category' = 'delay' THEN
+                    IF step_record.value->'config' ? 'duration'
+                        AND (
+                            jsonb_typeof(step_record.value->'config'->'duration') <> 'number'
+                            OR (step_record.value->'config'->>'duration')::numeric < 0
+                            OR (step_record.value->'config'->>'duration')::numeric > 2592000000
+                            OR trunc((step_record.value->'config'->>'duration')::numeric)
+                                <> (step_record.value->'config'->>'duration')::numeric
+                        )
+                    THEN
+                        RAISE EXCEPTION 'Workflow % step % delay duration must be an integer from 0 to 2592000000 milliseconds', workflow_row."id", step_id;
+                    END IF;
                     migrated_nodes := migrated_nodes || jsonb_build_array(
                         jsonb_build_object(
                             'id', step_id,
@@ -897,45 +1544,34 @@ BEGIN
                             ),
                             'data', jsonb_build_object(
                                 'label', COALESCE(step_record.value->>'label', 'Delay'),
-                                'config', COALESCE(step_record.value->'config', '{}'::jsonb)
-                            )
-                        )
-                    );
-                ELSE
-                    action_id := workflow_step_action_id(step_record.value->>'category');
-                    IF action_id IS NULL THEN
-                        RAISE EXCEPTION
-                            'Workflow % step % has unconvertible category %',
-                            workflow_row."id",
-                            step_id,
-                            step_record.value->>'category';
-                    END IF;
-
-                    IF NOT workflow_action_is_supported(action_id) THEN
-                        RAISE EXCEPTION
-                            'Workflow % step % references unsupported action %',
-                            workflow_row."id",
-                            step_id,
-                            action_id;
-                    END IF;
-
-                    migrated_nodes := migrated_nodes || jsonb_build_array(
-                        jsonb_build_object(
-                            'id', step_id,
-                            'type', 'genfeedAction',
-                            'position', jsonb_build_object(
-                                'x', (step_record.ordinality - 1) * 280,
-                                'y', 0
-                            ),
-                            'data', jsonb_build_object(
-                                'label', COALESCE(step_record.value->>'label', action_id),
                                 'config', jsonb_build_object(
-                                    'actionId', action_id,
-                                    'parameters', COALESCE(step_record.value->'config', '{}'::jsonb)
+                                    'duration', COALESCE(
+                                        CASE
+                                            WHEN jsonb_typeof(step_record.value->'config'->'duration') = 'number'
+                                                AND (step_record.value->'config'->>'duration')::numeric > 0
+                                            THEN to_jsonb(
+                                                (step_record.value->'config'->>'duration')::numeric / 1000
+                                            )
+                                            ELSE NULL
+                                        END,
+                                        '1'::jsonb
+                                    ),
+                                    'mode', 'fixed',
+                                    'unit', 'seconds'
                                 )
                             )
                         )
                     );
+                ELSE
+                    rejection_reason := workflow_step_rejection_reason(
+                        step_record.value->>'category'
+                    );
+                    RAISE EXCEPTION
+                        'Workflow % step % has unconvertible category %: %',
+                        workflow_row."id",
+                        step_id,
+                        step_record.value->>'category',
+                        rejection_reason;
                 END IF;
 
                 FOR dependency IN
@@ -959,6 +1595,7 @@ BEGIN
             'edges', migrated_edges,
             'lockedNodeIds', COALESCE(workflow_row."lockedNodeIds", '[]'::jsonb)
         );
+        PERFORM workflow_validate_graph(graph_document, workflow_row."id");
 
         INSERT INTO "workflow_versions" (
             "id",
@@ -977,8 +1614,22 @@ BEGIN
             workflow_row."userId",
             1,
             graph_document,
-            COALESCE(workflow_row."inputVariables", '[]'::jsonb),
-            md5(graph_document::text || ':' || COALESCE(workflow_row."inputVariables", '[]'::jsonb)::text),
+            input_schema,
+            'sha256:v1:' || encode(
+                digest(
+                    convert_to(
+                        workflow_stable_json(
+                            jsonb_build_object(
+                                'graph', graph_document,
+                                'inputSchema', input_schema
+                            )
+                        ),
+                        'UTF8'
+                    ),
+                    'sha256'
+                ),
+                'hex'
+            ),
             workflow_row."updatedAt"
         );
     END LOOP;
@@ -988,18 +1639,23 @@ $$;
 ALTER TABLE "workflows" ADD COLUMN "currentVersionId" TEXT;
 UPDATE "workflows"
 SET "currentVersionId" = 'wv_legacy_' || "id";
+ALTER TABLE "workflows" ALTER COLUMN "currentVersionId" SET NOT NULL;
 CREATE UNIQUE INDEX "workflows_currentVersionId_key"
     ON "workflows"("currentVersionId");
 ALTER TABLE "workflows"
     ADD CONSTRAINT "workflows_currentVersionId_fkey"
     FOREIGN KEY ("currentVersionId") REFERENCES "workflow_versions"("id")
-    ON DELETE RESTRICT ON UPDATE CASCADE;
+    ON DELETE RESTRICT ON UPDATE CASCADE
+    DEFERRABLE INITIALLY DEFERRED;
 
 ALTER TABLE "workflow_executions" ADD COLUMN "workflowVersionId" TEXT;
 UPDATE "workflow_executions" execution
-SET "workflowVersionId" = workflow."currentVersionId"
-FROM "workflows" workflow
-WHERE execution."workflowId" = workflow."id";
+SET "workflowVersionId" = version."id"
+FROM "workflow_versions" version
+WHERE version."workflowId" = execution."workflowId"
+    AND version."organizationId" = execution."organizationId"
+    AND version."userId" = execution."userId"
+    AND version."version" = 1;
 ALTER TABLE "workflow_executions" ALTER COLUMN "workflowVersionId" SET NOT NULL;
 CREATE INDEX "workflow_executions_organizationId_workflowVersionId_createdAt_idx"
     ON "workflow_executions"("organizationId", "workflowVersionId", "createdAt" DESC);
@@ -1008,6 +1664,36 @@ ALTER TABLE "workflow_executions"
     FOREIGN KEY ("workflowVersionId") REFERENCES "workflow_versions"("id")
     ON DELETE RESTRICT ON UPDATE CASCADE;
 
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM "workflows" workflow
+        LEFT JOIN "workflow_versions" version
+            ON version."id" = workflow."currentVersionId"
+            AND version."workflowId" = workflow."id"
+            AND version."organizationId" = workflow."organizationId"
+            AND version."userId" = workflow."userId"
+            AND version."version" = 1
+        WHERE version."id" IS NULL
+    ) THEN
+        RAISE EXCEPTION 'Workflow version backfill did not bind every identity to its tenant-owned v1';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM "workflow_executions" execution
+        JOIN "workflow_versions" version
+            ON version."id" = execution."workflowVersionId"
+        WHERE version."workflowId" <> execution."workflowId"
+            OR version."organizationId" <> execution."organizationId"
+            OR version."userId" <> execution."userId"
+    ) THEN
+        RAISE EXCEPTION 'Workflow execution version backfill crossed workflow or tenant ownership';
+    END IF;
+END;
+$$;
+
 ALTER TABLE "workflows"
     DROP COLUMN "steps",
     DROP COLUMN "nodes",
@@ -1015,8 +1701,17 @@ ALTER TABLE "workflows"
     DROP COLUMN "inputVariables",
     DROP COLUMN "lockedNodeIds";
 
-DROP FUNCTION workflow_step_action_id(TEXT);
-DROP FUNCTION workflow_action_node(JSONB);
+DROP FUNCTION workflow_step_rejection_reason(TEXT);
+DROP FUNCTION workflow_validate_graph(JSONB, TEXT);
+DROP FUNCTION workflow_normalize_input_schema(JSONB, TEXT);
+DROP FUNCTION workflow_stable_json(JSONB);
+DROP FUNCTION workflow_action_node(JSONB, TEXT);
+DROP FUNCTION workflow_unconvertible_node_reason(TEXT);
+DROP FUNCTION workflow_node_parameters(JSONB);
+DROP FUNCTION workflow_removed_macro_reason(TEXT);
+DROP FUNCTION workflow_action_has_atomic_executor(TEXT);
 DROP FUNCTION workflow_action_is_supported(TEXT);
 DROP FUNCTION workflow_node_action_id(TEXT);
 DROP FUNCTION workflow_node_is_engine_native(TEXT);
+
+COMMIT;
