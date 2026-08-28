@@ -367,7 +367,7 @@ export const COLLECTION_E2E_MOCK_PROVIDERS = [
 ];
 
 type PrismaDelegate = {
-  count: () => Promise<number>;
+  count: (args?: { where?: Record<string, unknown> }) => Promise<number>;
   create: (args: { data: Record<string, unknown> }) => Promise<unknown>;
   deleteMany: () => Promise<unknown>;
   upsert?: (args: {
@@ -498,13 +498,16 @@ export class TestDatabaseHelper {
     }
   }
 
-  async getDocumentCount(collectionName: string): Promise<number> {
+  async getDocumentCount(
+    collectionName: string,
+    where?: Record<string, unknown>,
+  ): Promise<number> {
     const delegateName = this.getDelegateName(collectionName);
     if (!delegateName) {
       return 0;
     }
 
-    return this.delegate(delegateName).count();
+    return this.delegate(delegateName).count(where ? { where } : undefined);
   }
 
   private async deleteFromDelegate(delegateName: string): Promise<void> {

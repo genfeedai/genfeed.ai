@@ -4,9 +4,6 @@
  */
 
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-// Import services
-import { UsersService } from '@server/collections/users/services/users.service';
 import {
   createTestCredit,
   createTestMember,
@@ -22,6 +19,9 @@ import {
 } from '@api-test/e2e-test.module';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+// Import services
+import { UsersService } from '@server/collections/users/services/users.service';
 
 describe('Authentication E2E Tests', () => {
   let app: INestApplication;
@@ -100,22 +100,30 @@ describe('Authentication E2E Tests', () => {
 
   describe('User Verification Flow', () => {
     it('should verify user exists in database', async () => {
-      const count = await dbHelper.getDocumentCount('users');
+      const count = await dbHelper.getDocumentCount('users', {
+        id: testUser.id,
+      });
       expect(count).toBe(1);
     });
 
     it('should verify organization membership', async () => {
-      const count = await dbHelper.getDocumentCount('members');
+      const count = await dbHelper.getDocumentCount('members', {
+        id: testMember.id,
+      });
       expect(count).toBe(1);
     });
 
     it('should verify organization settings exist', async () => {
-      const count = await dbHelper.getDocumentCount('organization-settings');
+      const count = await dbHelper.getDocumentCount('organization-settings', {
+        organizationId: testOrganization.id,
+      });
       expect(count).toBe(1);
     });
 
     it('should verify credits exist for organization', async () => {
-      const count = await dbHelper.getDocumentCount('credit-balances');
+      const count = await dbHelper.getDocumentCount('credit-balances', {
+        organizationId: testOrganization.id,
+      });
       expect(count).toBe(1);
     });
   });
@@ -172,8 +180,12 @@ describe('Authentication E2E Tests', () => {
       await dbHelper.seedCollection('organizations', [secondOrg]);
       await dbHelper.seedCollection('members', [secondMember]);
 
-      const orgCount = await dbHelper.getDocumentCount('organizations');
-      const memberCount = await dbHelper.getDocumentCount('members');
+      const orgCount = await dbHelper.getDocumentCount('organizations', {
+        userId: testUser.id,
+      });
+      const memberCount = await dbHelper.getDocumentCount('members', {
+        userId: testUser.id,
+      });
 
       expect(orgCount).toBe(2);
       expect(memberCount).toBe(2);
@@ -195,7 +207,9 @@ describe('Authentication E2E Tests', () => {
       await dbHelper.seedCollection('users', [anotherUser]);
       await dbHelper.seedCollection('members', [memberInTestOrg]);
 
-      const memberCount = await dbHelper.getDocumentCount('members');
+      const memberCount = await dbHelper.getDocumentCount('members', {
+        organizationId: testOrganization.id,
+      });
       expect(memberCount).toBe(2);
     });
   });
