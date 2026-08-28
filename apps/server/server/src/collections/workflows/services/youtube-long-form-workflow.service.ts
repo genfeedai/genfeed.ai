@@ -436,7 +436,7 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
         actionType: YOUTUBE_LONG_FORM_WORKFLOW_ID,
         canonicalId: YOUTUBE_LONG_FORM_WORKFLOW_ID,
         inputValues: {
-          brandId: input.brandId,
+          ...(input.brandId ? { brandId: input.brandId } : {}),
           outputType: input.outputType,
           persistence: 'account',
           retentionPolicy: 'ttl',
