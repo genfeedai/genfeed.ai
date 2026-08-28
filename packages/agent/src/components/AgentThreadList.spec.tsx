@@ -8,18 +8,45 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { Effect } from 'effect';
-import type { ReactNode } from 'react';
+import type { MouseEventHandler, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { prefetchRoute } = vi.hoisted(() => ({
+  prefetchRoute: vi.fn(),
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    back: vi.fn(),
+    prefetch: prefetchRoute,
+    push: vi.fn(),
+    replace: vi.fn(),
+  }),
+}));
 
 vi.mock('next/link', () => ({
   default: function MockLink(props: {
     children?: ReactNode;
     href: string;
-    onClick?: () => void | Promise<void>;
+    onBlur?: () => void;
+    onClick?: MouseEventHandler<HTMLAnchorElement>;
+    onFocus?: () => void;
+    onPointerEnter?: () => void;
+    onPointerLeave?: () => void;
+    prefetch?: boolean;
     className?: string;
   }) {
     return (
-      <a className={props.className} href={props.href} onClick={props.onClick}>
+      <a
+        className={props.className}
+        data-prefetch={String(props.prefetch)}
+        href={props.href}
+        onBlur={props.onBlur}
+        onClick={props.onClick}
+        onFocus={props.onFocus}
+        onPointerEnter={props.onPointerEnter}
+        onPointerLeave={props.onPointerLeave}
+      >
         {props.children}
       </a>
     );
@@ -267,6 +294,7 @@ function createDeferred<T>(): {
 
 describe('AgentThreadList', () => {
   beforeEach(() => {
+    prefetchRoute.mockReset();
     storeState.activeRunId = null;
     storeState.activeRunStatus = 'idle';
     storeState.activeThreadId = null;
@@ -467,6 +495,43 @@ describe('AgentThreadList', () => {
     expect(threadLink).toHaveAttribute('href', '/acme/moonrise/agent/conv-1');
     // Row chrome is flex min-h-0 stretch (not a fixed min-h-14 pill).
     expect(threadLink?.parentElement).toHaveClass('min-h-0');
+  });
+
+  it('keeps programmatic thread navigation route-driven and prefetches on intent', async () => {
+    const thread = createThread('conv-1', 'Fast thread');
+    const onNavigate = vi.fn();
+    const apiService = createApiService({
+      getThreads: vi.fn().mockResolvedValue([thread]),
+    });
+
+    render(
+      <AgentThreadList
+        apiService={apiService as never}
+        onNavigate={onNavigate}
+        resolveThreadHref={(candidate) =>
+          `/acme/moonrise/agent/${candidate.id}`
+        }
+      />,
+    );
+
+    const threadLink = (await screen.findByText('Fast thread')).closest('a');
+
+    expect(threadLink).not.toBeNull();
+    expect(threadLink).toHaveAttribute('data-prefetch', 'false');
+
+    fireEvent.pointerEnter(threadLink as HTMLAnchorElement);
+    expect(prefetchRoute).toHaveBeenCalledOnce();
+    expect(prefetchRoute).toHaveBeenCalledWith('/acme/moonrise/agent/conv-1');
+
+    const navigationWasNotCanceled = fireEvent.click(
+      threadLink as HTMLAnchorElement,
+    );
+
+    expect(navigationWasNotCanceled).toBe(false);
+    expect(onNavigate).toHaveBeenCalledOnce();
+    expect(onNavigate).toHaveBeenCalledWith('/acme/moonrise/agent/conv-1');
+    expect(storeState.setActiveThread).not.toHaveBeenCalled();
+    expect(apiService.getMessages).not.toHaveBeenCalled();
   });
 
   it('uses one trailing slot for the timestamp and thread actions', async () => {

@@ -138,6 +138,7 @@ export function AgentThreadList({
       renameDraft={renameDraft}
       renameInputRef={renameInputRef}
       isArchivedView={isArchivedView}
+      usesProgrammaticNavigation={Boolean(onNavigate)}
       getThreadHref={getThreadHref}
       onContextMenu={handleThreadContextMenu}
       onSelect={(thread) => {

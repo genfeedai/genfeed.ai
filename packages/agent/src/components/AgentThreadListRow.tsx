@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Badge from '@ui/display/badge/Badge';
+import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -52,6 +53,7 @@ interface AgentThreadListRowProps {
   renameDraft: string;
   renameInputRef: RefObject<HTMLInputElement | null>;
   isArchivedView: boolean;
+  usesProgrammaticNavigation: boolean;
   getThreadHref: (thread: AgentThread) => string;
   onContextMenu: (event: React.MouseEvent, threadId: string) => void;
   onSelect: (thread: AgentThread) => void;
@@ -127,6 +129,7 @@ export function AgentThreadListRow({
   renameDraft,
   renameInputRef,
   isArchivedView,
+  usesProgrammaticNavigation,
   getThreadHref,
   onContextMenu,
   onSelect,
@@ -143,6 +146,8 @@ export function AgentThreadListRow({
   onPrefetch,
   onCancelPrefetch,
 }: AgentThreadListRowProps): ReactElement {
+  const threadHref = getThreadHref(conv);
+  const prefetchThreadRoute = useNavigationPrefetch(threadHref);
   const isActiveConversation = conv.id === activeThreadId;
   // Archived view lists only archived threads, so a stale/missing API status
   // must still render with archived chrome.
@@ -246,18 +251,24 @@ export function AgentThreadListRow({
         </div>
       ) : (
         <Link
-          href={getThreadHref(conv)}
+          href={threadHref}
+          prefetch={false}
           className="flex min-w-0 flex-1 gap-2 rounded px-2.5 py-1.5 pr-8 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60"
-          onClick={() => {
+          onClick={(event) => {
+            if (usesProgrammaticNavigation) {
+              event.preventDefault();
+            }
             // Do not abort an in-flight prefetch for this row. The switch
             // adopts that flight so hover-then-click cannot stack a second
             // messages+snapshot set (#2790).
             onSelect(conv);
           }}
           onPointerEnter={() => {
+            prefetchThreadRoute();
             onPrefetch(conv.id);
           }}
           onFocus={() => {
+            prefetchThreadRoute();
             onPrefetch(conv.id);
           }}
           onPointerLeave={() => {

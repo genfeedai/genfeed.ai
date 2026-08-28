@@ -351,15 +351,15 @@ export function useAgentThreadList({
         return;
       }
 
-      setActiveThread(thread.id);
-
-      abortRef.current?.abort();
-      abortRef.current = new AbortController();
-
       if (onNavigate) {
         onNavigate(getThreadHref(thread));
         return;
       }
+
+      setActiveThread(thread.id);
+
+      abortRef.current?.abort();
+      abortRef.current = new AbortController();
 
       setMessages([]);
       setWorkEvents([]);

@@ -148,6 +148,7 @@ describe('useAgentThreadList', () => {
 
     expect(onNavigate).toHaveBeenCalledWith('/acme/moonrise/agent/t-1');
     expect(apiService.getMessagesEffect).not.toHaveBeenCalled();
+    expect(useAgentChatStore.getState().activeThreadId).toBeNull();
   });
 
   it('handleSelect is a no-op for the already-active thread', async () => {
