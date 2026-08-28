@@ -1,8 +1,8 @@
-import { ByokService } from '@server/services/byok/byok.service';
-import { runImageGenerationBrief } from '@server/services/generation-brief';
 import { ByokProvider, ImageTaskModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { ByokService } from '@server/services/byok/byok.service';
+import { runImageGenerationBrief } from '@server/services/generation-brief';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
 import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
@@ -51,7 +51,7 @@ export class GenerateImageTask {
    */
   async execute(
     config: GenerateImageConfig,
-    userId: string,
+    _userId: string,
     organizationId: string,
   ): Promise<GenerateImageResult> {
     const startTime = Date.now();
@@ -185,9 +185,7 @@ export class GenerateImageTask {
       ByokProvider.LEONARDOAI,
     );
 
-    // Leonardo AI implementation
-    // Note: Adjust method signature based on actual LeonardoAIService interface
-    const result = await this.leonardoService.generateImage(
+    const generationId = await this.leonardoService.generateImage(
       config.prompt,
       {
         height: config.height || 1024,
@@ -197,7 +195,7 @@ export class GenerateImageTask {
       byokKey?.apiKey,
     );
 
-    return result.url;
+    return generationId;
   }
 
   /**

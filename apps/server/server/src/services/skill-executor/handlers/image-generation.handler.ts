@@ -1,18 +1,18 @@
+import { ByokProvider, ImageTaskModel } from '@genfeedai/enums';
+import type { ByokResolutionResult } from '@genfeedai/interfaces';
+import { Injectable } from '@nestjs/common';
 import { ManagedInferenceProvider } from '@server/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
 import { ManagedInferenceClientService } from '@server/endpoints/v1/managed-inference/managed-inference-client.service';
 import { ByokProviderFactoryService } from '@server/services/byok/byok-provider-factory.service';
 import { runImageGenerationBrief } from '@server/services/generation-brief';
+import { FalService } from '@server/services/integrations/fal/services/fal.service';
+import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type {
   GeneratedContent,
   SkillExecutionContext,
   SkillHandler,
 } from '@server/services/skill-executor/interfaces/skill-executor.interfaces';
-import { ByokProvider, ImageTaskModel } from '@genfeedai/enums';
-import type { ByokResolutionResult } from '@genfeedai/interfaces';
-import { Injectable } from '@nestjs/common';
-import { FalService } from '@server/services/integrations/fal/services/fal.service';
-import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 /**
  * Detects provider capacity/availability errors that warrant failover.
@@ -95,12 +95,11 @@ export class ImageGenerationHandler implements SkillHandler {
           provider: ManagedInferenceProvider.LEONARDO,
         });
       } else {
-        const result = await this.leonardoAIService.generateImage(
+        imageUrl = await this.leonardoAIService.generateImage(
           compiledPrompt,
           { height, style: 'photorealistic', width },
           provider.apiKey,
         );
-        imageUrl = result.url;
       }
     } else if (
       model === ImageTaskModel.SDXL ||
