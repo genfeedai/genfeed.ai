@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  buildHiddenSystemWorkflowMetadata,
   buildSystemWorkflowDuplicateMetadata,
   buildSystemWorkflowMetadata,
   buildSystemWorkflowUpgradeMetadata,
@@ -34,6 +35,22 @@ describe('system workflow metadata contract', () => {
       getSystemWorkflowMetadata({ systemWorkflow: canonicalMetadata }),
     ).toEqual(canonicalMetadata);
     expect(duplicateMetadata).not.toBeNull();
+  });
+
+  it('marks code-owned runtime workflows internal and non-duplicable', () => {
+    const metadata = buildHiddenSystemWorkflowMetadata({
+      canonicalId: 'youtube-to-long-form-text',
+    });
+
+    expect(metadata).toMatchObject({
+      canonicalId: 'youtube-to-long-form-text',
+      duplicable: false,
+      immutable: true,
+      visibility: 'internal',
+    });
+    expect(getSystemWorkflowMetadata({ systemWorkflow: metadata })).toEqual(
+      metadata,
+    );
   });
 
   it('normalizes canonical metadata stored before template versioning', () => {

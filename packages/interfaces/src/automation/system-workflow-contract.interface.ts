@@ -2,6 +2,7 @@ export const SYSTEM_WORKFLOW_METADATA_KEY = 'systemWorkflow';
 export const SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY =
   'duplicatedFromSystemWorkflow';
 export const SYSTEM_WORKFLOW_OWNER = 'genfeed';
+export const SYSTEM_WORKFLOW_PRINCIPAL_ID = 'genfeed-public-tools';
 export const SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE = 1011;
 export const SYSTEM_WORKFLOW_TEMPLATE_VERSION = 1;
 export const SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY =
@@ -24,7 +25,7 @@ export type SystemWorkflowMetadata = {
   productizationIssue: typeof SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE;
   sourceIssue?: number;
   version: number;
-  visibility: 'organization';
+  visibility: 'internal' | 'organization';
 };
 
 export type SystemWorkflowDuplicateMetadata = {
@@ -69,6 +70,16 @@ export function buildSystemWorkflowMetadata(
     sourceIssue: input.sourceIssue,
     version,
     visibility: 'organization',
+  };
+}
+
+export function buildHiddenSystemWorkflowMetadata(
+  input: BuildSystemWorkflowMetadataInput,
+): SystemWorkflowMetadata {
+  return {
+    ...buildSystemWorkflowMetadata(input),
+    duplicable: false,
+    visibility: 'internal',
   };
 }
 
@@ -227,7 +238,7 @@ function normalizeSystemWorkflowMetadata(
     productizationIssue !== SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE ||
     !isOptionalIssueNumber(value.sourceIssue) ||
     !isPositiveInteger(version) ||
-    visibility !== 'organization'
+    (visibility !== 'internal' && visibility !== 'organization')
   ) {
     return null;
   }
@@ -243,7 +254,7 @@ function normalizeSystemWorkflowMetadata(
     productizationIssue: SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE,
     sourceIssue: value.sourceIssue,
     version,
-    visibility: 'organization',
+    visibility,
   };
 }
 
