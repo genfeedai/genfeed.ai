@@ -105,7 +105,6 @@ export type {
 export { PostEntity } from './collections/posts/entities/post.entity';
 export type { Post, PostDocument } from './collections/posts/post.schema';
 export {
-  isSweepDrivenSystemWorkflow,
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowRunnerService,
 } from './collections/workflows/system-workflow-runner.service';

@@ -14,7 +14,6 @@ import {
   EXECUTABLE_WORKFLOW_SELECT,
   WorkflowExecutorService,
 } from '@server/collections/workflows/services/workflow-executor.service';
-import { isSweepDrivenSystemWorkflow } from '@server/collections/workflows/system-workflow-runner.service';
 import {
   computeNextRunAtOrThrow,
   isSchedulableTimezone,
@@ -25,6 +24,11 @@ import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 function toWorkflowDocument(workflow: unknown): WorkflowDocument {
   return hydrateWorkflowDefinition(workflow as Record<string, unknown>);
 }
+
+type SchedulableWorkflow = Pick<
+  WorkflowDocument,
+  'id' | 'isScheduleEnabled' | 'schedule' | 'timezone'
+>;
 
 /**
  * Owns the producer side of workflow cron scheduling.
@@ -74,7 +78,6 @@ export class WorkflowSchedulerService implements OnModuleInit {
         select: {
           id: true,
           isScheduleEnabled: true,
-          metadata: true,
           schedule: true,
           timezone: true,
         },
@@ -95,7 +98,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
       );
 
       for (const workflow of workflows) {
-        await this.scheduleWorkflow(toWorkflowDocument(workflow));
+        await this.scheduleWorkflow(workflow as SchedulableWorkflow);
       }
     } catch (error) {
       this.logger.error(
@@ -109,30 +112,13 @@ export class WorkflowSchedulerService implements OnModuleInit {
   /**
    * Upsert the BullMQ job scheduler for a workflow's cron schedule.
    */
-  async scheduleWorkflow(workflow: WorkflowDocument): Promise<void> {
+  async scheduleWorkflow(workflow: SchedulableWorkflow): Promise<void> {
     const workflowId = String(
       (workflow as unknown as Record<string, unknown>).id ??
         (workflow as unknown as { id: string }).id,
     );
 
     if (!workflow.schedule || !workflow.isScheduleEnabled) {
-      await this.unscheduleWorkflow(workflowId);
-      return;
-    }
-
-    // Sweep-driven provenance actions fire from the workers sweep scheduler —
-    // the engine has no executor for systemWorkflowAction nodes. Catalog
-    // system workflows with real nodes (content-loop-autopilot, …) still
-    // register here so tenants can pause or change cadence.
-    if (
-      isSweepDrivenSystemWorkflow(
-        (workflow as unknown as Record<string, unknown>).metadata,
-      )
-    ) {
-      this.logger.log(
-        `Skipping user-workflow scheduling for sweep-driven system workflow ${workflowId}`,
-        'WorkflowSchedulerService',
-      );
       await this.unscheduleWorkflow(workflowId);
       return;
     }
@@ -329,9 +315,8 @@ export class WorkflowSchedulerService implements OnModuleInit {
    *
    * The single shared schedule-mutation contract (UI PATCH, agent tool, MCP,
    * brand publishing defaults all converge here): the cadence and timezone are
-   * validated before persistence, sweep-driven system workflows are rejected,
-   * catalog system workflows remain tenant-pausable, and scheduler
-   * registration failures surface to the caller instead of logging silently.
+   * validated before persistence and scheduler registration failures surface
+   * to the caller instead of logging silently.
    */
   async updateSchedule(
     workflowId: string,
@@ -340,21 +325,12 @@ export class WorkflowSchedulerService implements OnModuleInit {
     isEnabled: boolean = true,
   ): Promise<WorkflowDocument | null> {
     const existing = await this.prisma.workflow.findFirst({
-      select: { id: true, metadata: true },
+      select: { id: true },
       where: { id: workflowId, isDeleted: false },
     });
 
     if (!existing) {
       return null;
-    }
-
-    // Sweep-driven provenance actions still cannot take a tenant cron — that
-    // write would persist a cadence that never registers. Catalog system
-    // workflows with executable graphs are tenant-pausable.
-    if (isSweepDrivenSystemWorkflow(existing.metadata)) {
-      throw new BadRequestException(
-        'This system workflow is driven by the platform sweep scheduler and cannot be edited. Duplicate the workflow to schedule your own copy.',
-      );
     }
 
     if (schedule) {
@@ -382,6 +358,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
         schedule,
         timezone,
       },
+      include: { currentVersion: true },
       where: { id: workflowId },
     });
 

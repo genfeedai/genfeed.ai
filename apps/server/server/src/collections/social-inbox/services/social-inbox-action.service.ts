@@ -1,3 +1,12 @@
+import { Platform, WorkflowExecutionTrigger } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  type OnModuleInit,
+} from '@nestjs/common';
 import type {
   SocialConversationDocument,
   SocialMessage,
@@ -20,30 +29,38 @@ import type {
 } from '@server/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxQueryService } from '@server/collections/social-inbox/services/social-inbox-query.service';
 import { SocialInboxRealtimeService } from '@server/collections/social-inbox/services/social-inbox-realtime.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
 import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
-import { Platform } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-} from '@nestjs/common';
 
 type JsonRecord = Record<string, unknown>;
 
 @Injectable()
-export class SocialInboxActionService {
+export class SocialInboxActionService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly youtubeService: YoutubeService,
     private readonly instagramService: InstagramService,
     private readonly queryService: SocialInboxQueryService,
     private readonly realtimeService: SocialInboxRealtimeService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
   ) {}
+
+  onModuleInit(): void {
+    this.systemWorkflowRunner.registerAction(
+      SYSTEM_WORKFLOW_ACTION_IDS.SOCIAL_INBOX_POST_REPLY,
+      ({ input }) => this.executeProviderReplyAction(input),
+    );
+    this.systemWorkflowRunner.registerAction(
+      SYSTEM_WORKFLOW_ACTION_IDS.SOCIAL_INBOX_SEND_DM,
+      ({ input }) => this.executeProviderDmAction(input),
+    );
+  }
 
   async createDraft(
     scope: SocialInboxScope,
@@ -242,7 +259,7 @@ export class SocialInboxActionService {
       scope,
       input,
       body,
-      () => this.publishReply(conversation, body),
+      () => this.publishReply(conversation, scope, body),
     );
     await this.realtimeService.emit(
       conversation.organizationId,
@@ -277,7 +294,7 @@ export class SocialInboxActionService {
       input,
       body,
       () =>
-        this.publishDm(conversation, {
+        this.publishDm(conversation, scope, {
           recipientId: input.recipientId,
           text: body,
         }),
@@ -337,8 +354,36 @@ export class SocialInboxActionService {
 
   private async publishReply(
     conversation: SocialConversationDocument,
+    scope: SocialInboxScope,
     text: string,
   ): Promise<{ messageId: string; url?: string }> {
+    const { result } =
+      await this.systemWorkflowRunner.runAction<OutboundPublishResult>({
+        actionType: 'post_reply',
+        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SOCIAL_INBOX_POST_REPLY,
+        inputValues: {
+          conversationId: conversation.id,
+          organizationId: conversation.organizationId,
+          text,
+        },
+        organizationId: conversation.organizationId,
+        source: 'SocialInboxActionService.postReply',
+        trigger: WorkflowExecutionTrigger.API,
+        userId: scope.userId,
+      });
+    return result;
+  }
+
+  private async executeProviderReplyAction(
+    input: Record<string, unknown>,
+  ): Promise<OutboundPublishResult> {
+    const organizationId = String(input.organizationId ?? '');
+    const conversation = await this.queryService.getConversation(
+      { organizationId },
+      String(input.conversationId ?? ''),
+    );
+    const text = sanitizeBody(String(input.text ?? ''));
+
     if (!conversation.brandId) {
       throw new BadRequestException('A brand is required to publish replies');
     }
@@ -393,8 +438,37 @@ export class SocialInboxActionService {
 
   private async publishDm(
     conversation: SocialConversationDocument,
+    scope: SocialInboxScope,
     input: { recipientId?: string; text: string },
   ): Promise<{ messageId: string }> {
+    const { result } = await this.systemWorkflowRunner.runAction<{
+      messageId: string;
+    }>({
+      actionType: 'send_dm',
+      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SOCIAL_INBOX_SEND_DM,
+      inputValues: {
+        conversationId: conversation.id,
+        organizationId: conversation.organizationId,
+        recipientId: input.recipientId,
+        text: input.text,
+      },
+      organizationId: conversation.organizationId,
+      source: 'SocialInboxActionService.sendDm',
+      trigger: WorkflowExecutionTrigger.API,
+      userId: scope.userId,
+    });
+    return result;
+  }
+
+  private async executeProviderDmAction(
+    input: Record<string, unknown>,
+  ): Promise<{ messageId: string }> {
+    const organizationId = String(input.organizationId ?? '');
+    const conversation = await this.queryService.getConversation(
+      { organizationId },
+      String(input.conversationId ?? ''),
+    );
+
     if (!conversation.brandId) {
       throw new BadRequestException('A brand is required to send DMs');
     }
@@ -405,7 +479,9 @@ export class SocialInboxActionService {
       );
     }
 
-    const recipientId = input.recipientId ?? conversation.participantExternalId;
+    const recipientId =
+      (typeof input.recipientId === 'string' ? input.recipientId : undefined) ??
+      conversation.participantExternalId;
     if (!recipientId) {
       throw new BadRequestException('Instagram DM requires a recipient id');
     }
@@ -414,7 +490,7 @@ export class SocialInboxActionService {
       conversation.organizationId,
       conversation.brandId,
       recipientId,
-      input.text,
+      sanitizeBody(String(input.text ?? '')),
       conversation.credentialId ?? undefined,
     );
 

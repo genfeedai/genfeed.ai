@@ -1,10 +1,3 @@
-import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
-import {
-  normalizeReplyBotPlatform,
-  unsupportedReplyBotPlatformMessage,
-} from '@server/services/reply-bot/reply-bot-platform.util';
 import { ReplyBotPlatform } from '@genfeedai/enums';
 import type {
   IReplyBotContentData,
@@ -17,6 +10,13 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
+import {
+  normalizeReplyBotPlatform,
+  unsupportedReplyBotPlatformMessage,
+} from '@server/services/reply-bot/reply-bot-platform.util';
 import { TwitterApi } from 'twitter-api-v2';
 
 @Injectable()
@@ -491,7 +491,7 @@ export class BotActionExecutorService {
         throw new Error('organizationId and brandId required for Instagram');
       }
 
-      await this.instagramService.sendCommentReplyDm(
+      const contentId = await this.instagramService.sendCommentReplyDm(
         credential.organizationId,
         credential.brandId,
         recipientUserId,
@@ -505,7 +505,7 @@ export class BotActionExecutorService {
         recipientUserId,
       });
 
-      return { success: true };
+      return { contentId: contentId ?? undefined, success: true };
     } catch (error: unknown) {
       const errorMessage = (error as Error)?.message || 'Unknown error';
 

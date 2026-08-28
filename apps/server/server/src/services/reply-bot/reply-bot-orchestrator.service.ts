@@ -764,6 +764,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
   }
 
   private async executeReplyDmAction(input: Record<string, unknown>): Promise<{
+    dmContentId?: string;
     dmSent: boolean;
     error?: string;
     replyContentId?: string;
@@ -829,6 +830,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
       );
       dmSent = dmResult.success;
       return {
+        dmContentId: dmResult.contentId,
         dmSent,
         error: dmResult.success ? undefined : dmResult.error,
         replyContentId,

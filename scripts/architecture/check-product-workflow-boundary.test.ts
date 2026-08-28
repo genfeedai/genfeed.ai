@@ -45,7 +45,7 @@ describe('check-product-workflow-boundary', () => {
     );
   });
 
-  it('allows documented pending migrations with a replacement system workflow id', () => {
+  it('allows documented workflow adapters with a replacement system workflow id', () => {
     writeFixture(
       'apps/server/api/src/services/reply-bot/orchestrator.service.ts',
       `
@@ -59,11 +59,11 @@ describe('check-product-workflow-boundary', () => {
 
     const exceptions: ProductWorkflowBoundaryException[] = [
       {
-        classification: 'pending-system-workflow-migration',
+        classification: 'workflow-adapter',
         file: 'apps/server/api/src/services/reply-bot/orchestrator.service.ts',
         id: 'reply-bot',
         issue: 1011,
-        reason: 'Fixture pending migration.',
+        reason: 'Fixture workflow adapter.',
         systemWorkflowIds: ['reply-dm-automation'],
       },
     ];
@@ -139,7 +139,7 @@ describe('check-product-workflow-boundary', () => {
     );
   });
 
-  it('allows documented social inbox action migration exceptions', () => {
+  it('allows documented social inbox workflow adapters', () => {
     writeFixture(
       'apps/server/api/src/collections/social-inbox/services/social-inbox.service.ts',
       `
@@ -153,11 +153,11 @@ describe('check-product-workflow-boundary', () => {
 
     const exceptions: ProductWorkflowBoundaryException[] = [
       {
-        classification: 'pending-system-workflow-migration',
+        classification: 'workflow-adapter',
         file: 'apps/server/api/src/collections/social-inbox/services/social-inbox.service.ts',
         id: 'social-inbox-actions',
         issue: 1032,
-        reason: 'Fixture social inbox action migration.',
+        reason: 'Fixture social inbox workflow adapter.',
         systemWorkflowIds: ['reply-dm-automation'],
       },
     ];
@@ -174,7 +174,7 @@ describe('check-product-workflow-boundary', () => {
     ]);
   });
 
-  it('rejects pending migration exceptions without a replacement workflow id', () => {
+  it('rejects workflow adapter exceptions without a replacement workflow id', () => {
     writeFixture(
       'apps/server/api/src/services/reply-bot/orchestrator.service.ts',
       `
@@ -188,40 +188,10 @@ describe('check-product-workflow-boundary', () => {
 
     const exceptions: ProductWorkflowBoundaryException[] = [
       {
-        classification: 'pending-system-workflow-migration',
+        classification: 'workflow-adapter',
         file: 'apps/server/api/src/services/reply-bot/orchestrator.service.ts',
         id: 'reply-bot',
         issue: 1011,
-        reason: 'Fixture pending migration.',
-      },
-    ];
-
-    const result = runCheckProductWorkflowBoundary({ exceptions });
-
-    expect(result.violations).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ kind: 'incomplete-exception' }),
-      ]),
-    );
-  });
-
-  it('rejects workflow adapter exceptions without a replacement workflow id', () => {
-    writeFixture(
-      'apps/server/api/src/services/campaign/campaign-executor.service.ts',
-      `
-        export class CampaignExecutor {
-          async run(): Promise<void> {
-            await this.botActionExecutorService.postReply({}, {}, 'hello');
-          }
-        }
-      `,
-    );
-
-    const exceptions: ProductWorkflowBoundaryException[] = [
-      {
-        classification: 'workflow-adapter',
-        file: 'apps/server/api/src/services/campaign/campaign-executor.service.ts',
-        id: 'campaign-reply',
         reason: 'Fixture workflow adapter.',
       },
     ];
@@ -238,7 +208,7 @@ describe('check-product-workflow-boundary', () => {
   it('detects stale exception entries', () => {
     const exceptions: ProductWorkflowBoundaryException[] = [
       {
-        classification: 'pending-system-workflow-migration',
+        classification: 'workflow-adapter',
         file: 'apps/server/api/src/services/reply-bot/missing.service.ts',
         id: 'missing',
         issue: 1011,

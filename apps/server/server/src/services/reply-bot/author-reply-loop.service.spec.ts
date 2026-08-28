@@ -19,11 +19,14 @@ describe('AuthorReplyLoopService', () => {
   const replyGenerationService = {
     generateReply: vi.fn().mockResolvedValue('Solid take — here is why.'),
   };
-  const botActionExecutorService = {
-    postReply: vi.fn().mockResolvedValue({
-      contentId: 'reply-1',
-      contentUrl: 'https://x.com/i/status/reply-1',
-      success: true,
+  const systemWorkflowRunner = {
+    runAction: vi.fn().mockResolvedValue({
+      provenance: { executionId: 'execution-1', workflowId: 'workflow-1' },
+      result: {
+        replyContentId: 'reply-1',
+        replyContentUrl: 'https://x.com/i/status/reply-1',
+        replySent: true,
+      },
     }),
   };
   const replyBotConfigsService = {
@@ -53,7 +56,7 @@ describe('AuthorReplyLoopService', () => {
       logger as never,
       socialMonitorService as never,
       replyGenerationService as never,
-      botActionExecutorService as never,
+      systemWorkflowRunner as never,
       replyBotConfigsService as never,
       credentialsService as never,
       processedTweetsService as never,
@@ -223,10 +226,13 @@ describe('AuthorReplyLoopService', () => {
       id: 'x-cred',
       username: 'brandx',
     });
-    botActionExecutorService.postReply.mockResolvedValue({
-      contentId: 'x-reply-1',
-      contentUrl: 'https://x.com/brandx/status/x-reply-1',
-      success: true,
+    systemWorkflowRunner.runAction.mockResolvedValue({
+      provenance: { executionId: 'execution-1', workflowId: 'workflow-1' },
+      result: {
+        replyContentId: 'x-reply-1',
+        replyContentUrl: 'https://x.com/brandx/status/x-reply-1',
+        replySent: true,
+      },
     });
 
     const result = await service.sendReply({
@@ -241,14 +247,16 @@ describe('AuthorReplyLoopService', () => {
       userId: 'user-1',
     });
 
-    expect(botActionExecutorService.postReply).toHaveBeenCalledWith(
+    expect(systemWorkflowRunner.runAction).toHaveBeenCalledWith(
       expect.objectContaining({
-        brandId: 'brand-1',
+        canonicalId: 'reply-dm-automation',
+        inputValues: expect.objectContaining({
+          credentialId: 'x-cred',
+          replyText: 'Thanks!',
+        }),
         organizationId: 'org-1',
-        platform: 'twitter',
+        userId: 'user-1',
       }),
-      expect.objectContaining({ id: 'c1' }),
-      'Thanks!',
     );
     expect(result.success).toBe(true);
     expect(result.contentId).toBe('x-reply-1');
@@ -269,9 +277,9 @@ describe('AuthorReplyLoopService', () => {
       id: 'yt-cred',
       username: 'channel',
     });
-    botActionExecutorService.postReply.mockResolvedValue({
-      contentId: 'yt-reply-1',
-      success: true,
+    systemWorkflowRunner.runAction.mockResolvedValue({
+      provenance: { executionId: 'execution-1', workflowId: 'workflow-1' },
+      result: { replyContentId: 'yt-reply-1', replySent: true },
     });
 
     const result = await service.sendReply({
@@ -287,14 +295,13 @@ describe('AuthorReplyLoopService', () => {
       userId: 'user-1',
     });
 
-    expect(botActionExecutorService.postReply).toHaveBeenCalledWith(
+    expect(systemWorkflowRunner.runAction).toHaveBeenCalledWith(
       expect.objectContaining({
-        brandId: 'brand-1',
-        organizationId: 'org-1',
-        platform: 'youtube',
+        inputValues: expect.objectContaining({
+          credentialId: 'yt-cred',
+          replyText: 'Thanks for watching!',
+        }),
       }),
-      expect.objectContaining({ id: 'c1' }),
-      'Thanks for watching!',
     );
     expect(result.success).toBe(true);
     expect(result.contentId).toBe('yt-reply-1');
@@ -359,10 +366,13 @@ describe('AuthorReplyLoopService', () => {
       platform: 'twitter',
       username: 'brandx_labs',
     });
-    botActionExecutorService.postReply.mockResolvedValue({
-      contentId: 'x-reply-2',
-      contentUrl: 'https://x.com/brandx_labs/status/x-reply-2',
-      success: true,
+    systemWorkflowRunner.runAction.mockResolvedValue({
+      provenance: { executionId: 'execution-1', workflowId: 'workflow-1' },
+      result: {
+        replyContentId: 'x-reply-2',
+        replyContentUrl: 'https://x.com/brandx_labs/status/x-reply-2',
+        replySent: true,
+      },
     });
 
     await service.sendReply({

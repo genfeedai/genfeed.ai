@@ -438,6 +438,16 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Generates and sends reply-bot replies and direct messages.',
   ),
   internalAction(
+    'social-inbox-post-reply',
+    'Post Social Inbox Reply',
+    'Posts one reply from a social inbox conversation.',
+  ),
+  internalAction(
+    'social-inbox-send-dm',
+    'Send Social Inbox DM',
+    'Sends one direct message from a social inbox conversation.',
+  ),
+  internalAction(
     'review-gate-timeout',
     'Review Gate Timeout Resolution',
     'Resolves workflow review gates whose timeout elapsed.',

@@ -1,12 +1,12 @@
+import { Platform, SocialConversationType } from '@genfeedai/enums';
+import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { SocialInboxService } from '@server/collections/social-inbox/services/social-inbox.service';
 import { SocialInboxProviderError } from '@server/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxActionService } from '@server/collections/social-inbox/services/social-inbox-action.service';
 import { SocialInboxIngestionService } from '@server/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@server/collections/social-inbox/services/social-inbox-query.service';
 import { SocialInboxRealtimeService } from '@server/collections/social-inbox/services/social-inbox-realtime.service';
-import { Platform, SocialConversationType } from '@genfeedai/enums';
-import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
-import { BadRequestException, ConflictException } from '@nestjs/common';
 
 type StoreConversation = {
   id: string;
@@ -439,6 +439,34 @@ function createContext(): TestContext {
   const realtimeService = new SocialInboxRealtimeService(
     notificationsPublisher as never,
   );
+  const actionExecutors = new Map<
+    string,
+    (request: { input: Record<string, unknown> }) => Promise<unknown>
+  >();
+  const systemWorkflowRunner = {
+    registerAction: vi.fn(
+      (
+        actionId: string,
+        executor: (request: {
+          input: Record<string, unknown>;
+        }) => Promise<unknown>,
+      ) => actionExecutors.set(actionId, executor),
+    ),
+    runAction: vi.fn(async (input: Record<string, unknown>) => {
+      const executor = actionExecutors.get(String(input.canonicalId));
+      if (!executor) {
+        throw new Error(
+          `Missing action executor: ${String(input.canonicalId)}`,
+        );
+      }
+      return {
+        provenance: { executionId: 'execution-1', workflowId: 'workflow-1' },
+        result: await executor({
+          input: input.inputValues as Record<string, unknown>,
+        }),
+      };
+    }),
+  };
   const ingestionService = new SocialInboxIngestionService(
     prisma as never,
     youtubeService as never,
@@ -457,7 +485,9 @@ function createContext(): TestContext {
     instagramService as never,
     queryService,
     realtimeService,
+    systemWorkflowRunner as never,
   );
+  actionService.onModuleInit();
 
   return {
     conversations,

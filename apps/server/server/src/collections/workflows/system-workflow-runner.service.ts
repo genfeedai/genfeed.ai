@@ -39,6 +39,8 @@ export const SYSTEM_WORKFLOW_ACTION_IDS = {
   REPLY_DM_AUTOMATION: 'reply-dm-automation',
   REVIEW_GATE_TIMEOUT: 'review-gate-timeout',
   SCHEDULED_POST_PUBLISHING: 'scheduled-post-publishing',
+  SOCIAL_INBOX_POST_REPLY: 'social-inbox-post-reply',
+  SOCIAL_INBOX_SEND_DM: 'social-inbox-send-dm',
   SOCIAL_REPLY_CAMPAIGN: 'social-reply-campaign',
   STREAK_MAINTENANCE: 'streak-maintenance',
   TIKTOK_STATUS_RECONCILIATION: 'tiktok-status-reconciliation',
@@ -62,29 +64,6 @@ export type SystemWorkflowGraphDefinition = SystemWorkflowGraphMetadata & {
   definition: WorkflowDefinitionInput;
   resultNodeId: string;
 };
-
-const SWEEP_DRIVEN_SYSTEM_WORKFLOW_IDS = new Set<string>(
-  Object.values(SYSTEM_WORKFLOW_ACTION_IDS),
-);
-
-export function isSweepDrivenSystemWorkflow(metadata: unknown): boolean {
-  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
-    return false;
-  }
-  const systemWorkflow = (metadata as Record<string, unknown>)[
-    SYSTEM_WORKFLOW_METADATA_KEY
-  ];
-  if (
-    !systemWorkflow ||
-    typeof systemWorkflow !== 'object' ||
-    Array.isArray(systemWorkflow)
-  ) {
-    return false;
-  }
-  return SWEEP_DRIVEN_SYSTEM_WORKFLOW_IDS.has(
-    String((systemWorkflow as Record<string, unknown>).canonicalId ?? ''),
-  );
-}
 
 export type SystemWorkflowProvenance = {
   executionId: string;

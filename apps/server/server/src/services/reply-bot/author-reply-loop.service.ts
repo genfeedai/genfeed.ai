@@ -4,10 +4,31 @@
  * Implements the X Heavy Ranker lesson: author engages reader replies.
  * Uses COMMENT_RESPONDER path + harness-aware draft generation.
  */
+
+import {
+  ReplyBotActionType,
+  ReplyBotPlatform,
+  ReplyBotType,
+  ReplyLength,
+  ReplyTone,
+  toPrismaCredentialPlatform,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
+import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { ProcessedTweetsService } from '@server/collections/processed-tweets/services/processed-tweets.service';
 import type { ReplyBotConfigDocument } from '@server/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
+import {
+  SYSTEM_WORKFLOW_ACTION_IDS,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   readReplyBotCredentialId,
@@ -22,7 +43,6 @@ import type {
   EnsureAuthorResponderResult,
   RecordAuthorClosedLoopParams,
 } from '@server/services/reply-bot/author-reply-loop.types';
-import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@server/services/reply-bot/reply-generation.service';
 import {
   clampReplyMaxAgeHours,
@@ -41,21 +61,6 @@ import {
   toYouTubeVideoUrl,
 } from '@server/services/reply-bot/youtube-reply-url.util';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import {
-  ReplyBotActionType,
-  ReplyBotPlatform,
-  ReplyBotType,
-  ReplyLength,
-  ReplyTone,
-  toPrismaCredentialPlatform,
-} from '@genfeedai/enums';
-import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { BadRequestException, Injectable, Optional } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 
 const MAX_PARENT_POSTS = 12;
 const MAX_COMMENTS_PER_POST = 40;
@@ -69,7 +74,7 @@ export class AuthorReplyLoopService {
     private readonly logger: LoggerService,
     private readonly socialMonitorService: SocialMonitorService,
     private readonly replyGenerationService: ReplyGenerationService,
-    private readonly botActionExecutorService: BotActionExecutorService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     private readonly replyBotConfigsService: ReplyBotConfigsService,
     @Optional()
     private readonly credentialsService: CredentialsService | undefined,
@@ -565,26 +570,51 @@ export class AuthorReplyLoopService {
       throw new BadRequestException('Reply text is empty');
     }
 
-    const result = await this.botActionExecutorService.postReply(
-      credential,
-      {
-        authorId: params.commentAuthorId ?? '',
-        authorUsername: params.commentAuthor,
-        createdAt: new Date(),
-        id: params.commentId,
-        text: params.commentText,
-      },
-      replyText,
-    );
+    if (!credential.id) {
+      throw new BadRequestException(
+        `No ${platformLabel} credential id for this brand`,
+      );
+    }
 
-    if (result.success) {
+    const { result } = await this.systemWorkflowRunner.runAction<{
+      error?: string;
+      replyContentId?: string;
+      replyContentUrl?: string;
+      replySent: boolean;
+    }>({
+      actionType: ReplyBotActionType.REPLY_ONLY,
+      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.REPLY_DM_AUTOMATION,
+      inputValues: {
+        actionType: ReplyBotActionType.REPLY_ONLY,
+        content: {
+          authorId: params.commentAuthorId ?? '',
+          authorUsername: params.commentAuthor,
+          createdAt: new Date().toISOString(),
+          id: params.commentId,
+          text: params.commentText,
+        },
+        credentialId: credential.id,
+        organizationId: params.organizationId,
+        replyText,
+      },
+      metadata: {
+        brandId: params.brandId,
+        parentPostId: params.parentPostId,
+      },
+      organizationId: params.organizationId,
+      source: 'AuthorReplyLoopService.sendReply',
+      trigger: WorkflowExecutionTrigger.API,
+      userId: params.userId,
+    });
+
+    if (result.replySent) {
       await this.recordAuthorClosedLoop({
         brandId: params.brandId,
         commentId: params.commentId,
         organizationId: params.organizationId,
         parentPostId: params.parentPostId,
         platform: replyPlatform,
-        replyContentId: result.contentId,
+        replyContentId: result.replyContentId,
       });
 
       try {
@@ -600,12 +630,12 @@ export class AuthorReplyLoopService {
 
     return {
       commentId: params.commentId,
-      contentId: result.contentId,
-      contentUrl: result.contentUrl,
+      contentId: result.replyContentId,
+      contentUrl: result.replyContentUrl,
       error: result.error,
       intent,
       replyText,
-      success: result.success,
+      success: result.replySent,
     };
   }
 

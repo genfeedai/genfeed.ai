@@ -45,6 +45,7 @@ export interface IReplyBotReplyResult {
 
 export interface IReplyBotDmResult {
   success: boolean;
+  contentId?: string;
   error?: string;
 }
 

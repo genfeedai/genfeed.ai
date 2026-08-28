@@ -27,7 +27,6 @@ const DEFAULT_IGNORE_GLOBS = [
 ];
 
 export type ProductWorkflowBoundaryClassification =
-  | 'pending-system-workflow-migration'
   | 'platform-maintenance'
   | 'workflow-adapter';
 
@@ -126,22 +125,12 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
       systemWorkflowIds: ['twitter-publish-action'],
     },
     {
-      classification: 'pending-system-workflow-migration',
-      file: 'apps/server/server/src/services/reply-bot/author-reply-loop.service.ts',
-      id: 'author-reply-loop',
-      issue: 1011,
-      reason:
-        'Author-reply closed loop still posts via bot-action-executor while reply automation migrates fully behind system workflows.',
-      systemWorkflowIds: ['reply-dm-automation'],
-    },
-    {
-      classification: 'pending-system-workflow-migration',
+      classification: 'workflow-adapter',
       file: 'apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts',
       id: 'social-inbox-manual-actions',
-      issue: 1032,
       reason:
-        'Manual social inbox replies and DMs still call platform services directly while they migrate behind reply-dm-automation.',
-      systemWorkflowIds: ['reply-dm-automation'],
+        'Low-level provider adapters registered as the social-inbox-post-reply and social-inbox-send-dm actions; public methods execute them through system workflows.',
+      systemWorkflowIds: ['social-inbox-post-reply', 'social-inbox-send-dm'],
     },
     {
       classification: 'workflow-adapter',
@@ -168,7 +157,7 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     id: 'direct-publish-call',
     matches: (_file, source) => /\bpublisher\.publish\s*\(/.test(source),
     message:
-      'Direct publish calls must be workflow-backed or documented as a system workflow migration.',
+      'Direct publish calls must be isolated inside a documented workflow action adapter.',
   },
   {
     id: 'reply-bot-action-call',
@@ -177,7 +166,7 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
         source,
       ),
     message:
-      'Direct reply/DM/social action calls must run through workflow execution or be documented as a system workflow migration.',
+      'Direct reply/DM/social action calls must be isolated inside a documented workflow action adapter.',
   },
   {
     id: 'direct-social-client-action',
@@ -185,7 +174,7 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
       /\bclient\.v2\.tweet\s*\(/.test(source) ||
       /\b(?:sendInstagramDm|postInstagramComment)\s*\(/.test(source),
     message:
-      'Direct social API actions must be isolated behind workflow nodes or documented as pending migration.',
+      'Direct social API actions must be isolated inside a documented workflow action adapter.',
   },
   {
     id: 'social-inbox-direct-platform-action',
@@ -206,7 +195,7 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
       file.endsWith('.service.ts') &&
       PRODUCT_CRON_PATH_SEGMENTS.some((segment) => file.includes(segment)),
     message:
-      'Product cron-like services must be workflow adapters, platform maintenance, or pending system workflow migrations.',
+      'Product cron-like services must be workflow adapters or platform maintenance.',
   },
 ];
 
@@ -239,19 +228,6 @@ function validateException(
         'Workflow adapter exceptions must name at least one system workflow id.',
     });
     return;
-  }
-
-  if (exception.classification !== 'pending-system-workflow-migration') {
-    return;
-  }
-
-  if (!exception.issue || !hasSystemWorkflowReplacement(exception)) {
-    violations.push({
-      exception,
-      kind: 'incomplete-exception',
-      message:
-        'Pending product automation migrations must name an issue and at least one replacement system workflow id.',
-    });
   }
 }
 
@@ -324,7 +300,7 @@ export function runCheckProductWorkflowBoundary(
         detection,
         kind: 'undocumented-product-workflow-boundary',
         message:
-          'Hardcoded product automation must route through a system workflow or be documented as a bounded migration exception.',
+          'Hardcoded product automation must route through a workflow-backed action or be an explicitly documented low-level action adapter.',
       });
       continue;
     }
@@ -379,7 +355,7 @@ if (isMainModule()) {
     }
 
     console.error(
-      '\nRoute product automation through system workflows, or document a bounded pending migration with issue and replacement workflow id.',
+      '\nRoute product automation through workflows and isolate unavoidable provider calls inside a documented action adapter.',
     );
     process.exit(1);
   }
