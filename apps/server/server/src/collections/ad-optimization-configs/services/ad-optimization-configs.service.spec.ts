@@ -234,7 +234,12 @@ describe('AdOptimizationConfigsService', () => {
 
       expect(docs).toHaveLength(1);
       expect(docs[0].id).toBe('cfg-on');
-      expect(findMany).toHaveBeenCalledWith({ where: { isDeleted: false } });
+      expect(findMany).toHaveBeenCalledWith({
+        where: {
+          config: { equals: true, path: ['isEnabled'] },
+          isDeleted: false,
+        },
+      });
     });
   });
 });

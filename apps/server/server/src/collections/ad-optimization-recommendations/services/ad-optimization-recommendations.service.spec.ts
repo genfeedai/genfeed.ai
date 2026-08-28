@@ -102,19 +102,11 @@ describe('AdOptimizationRecommendationsService', () => {
       });
     });
 
-    it('filters by status and recommendation type after projection', async () => {
+    it('filters by status and recommendation type before pagination', async () => {
       findMany.mockResolvedValue([
         makeRow(
           { recommendationType: 'pause', status: 'pending' },
           { id: 'rec-1' },
-        ),
-        makeRow(
-          { recommendationType: 'promote', status: 'pending' },
-          { id: 'rec-2' },
-        ),
-        makeRow(
-          { recommendationType: 'pause', status: 'approved' },
-          { id: 'rec-3' },
         ),
       ]);
 
@@ -125,6 +117,24 @@ describe('AdOptimizationRecommendationsService', () => {
 
       expect(docs).toHaveLength(1);
       expect(docs[0]?.id).toBe('rec-1');
+      expect(findMany).toHaveBeenCalledWith({
+        orderBy: { createdAt: 'desc' },
+        skip: 0,
+        take: 50,
+        where: {
+          AND: [
+            { data: { equals: 'pending', path: ['status'] } },
+            {
+              data: {
+                equals: 'pause',
+                path: ['recommendationType'],
+              },
+            },
+          ],
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
     });
   });
 
@@ -295,15 +305,6 @@ describe('AdOptimizationRecommendationsService', () => {
           },
           { id: 'rec-expired-date' },
         ),
-        makeRow(
-          { expiresAt: '2099-01-01T00:00:00.000Z', status: 'pending' },
-          { id: 'rec-future' },
-        ),
-        makeRow(
-          { expiresAt: '2020-01-01T00:00:00.000Z', status: 'approved' },
-          { id: 'rec-approved' },
-        ),
-        makeRow({ status: 'pending' }, { id: 'rec-no-expiry' }),
       ];
       findMany.mockResolvedValue(rows);
       findFirst.mockImplementation(
@@ -317,7 +318,20 @@ describe('AdOptimizationRecommendationsService', () => {
       const count = await service.expireStale();
 
       expect(count).toBe(2);
-      expect(findMany).toHaveBeenCalledWith({ where: { isDeleted: false } });
+      expect(findMany).toHaveBeenCalledWith({
+        where: {
+          AND: [
+            { data: { equals: 'pending', path: ['status'] } },
+            {
+              data: {
+                lt: expect.any(String),
+                path: ['expiresAt'],
+              },
+            },
+          ],
+          isDeleted: false,
+        },
+      });
       expect(update).toHaveBeenCalledTimes(2);
       expect(logger.log).toHaveBeenCalledWith(
         expect.stringContaining('expired 2 stale recommendations'),
@@ -325,9 +339,7 @@ describe('AdOptimizationRecommendationsService', () => {
     });
 
     it('returns zero without logging when nothing is stale', async () => {
-      findMany.mockResolvedValue([
-        makeRow({ expiresAt: '2099-01-01T00:00:00.000Z', status: 'pending' }),
-      ]);
+      findMany.mockResolvedValue([]);
 
       await expect(service.expireStale()).resolves.toBe(0);
       expect(update).not.toHaveBeenCalled();
@@ -348,32 +360,33 @@ describe('AdOptimizationRecommendationsService', () => {
 
   describe('findExistingPending', () => {
     it('finds the pending recommendation for the entity and type', async () => {
-      findMany.mockResolvedValue([
-        makeRow(
-          { entityId: 'ad-1', recommendationType: 'pause', status: 'executed' },
-          { id: 'rec-old' },
-        ),
+      findFirst.mockResolvedValue(
         makeRow(
           { entityId: 'ad-1', recommendationType: 'pause', status: 'pending' },
           { id: 'rec-pending' },
         ),
-      ]);
+      );
 
       const doc = await service.findExistingPending('org-1', 'ad-1', 'pause');
 
-      expect(findMany).toHaveBeenCalledWith({
-        where: { isDeleted: false, organizationId: 'org-1' },
+      expect(findFirst).toHaveBeenCalledWith({
+        where: {
+          AND: [
+            { data: { equals: 'ad-1', path: ['entityId'] } },
+            {
+              data: { equals: 'pause', path: ['recommendationType'] },
+            },
+            { data: { equals: 'pending', path: ['status'] } },
+          ],
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       });
       expect(doc?.id).toBe('rec-pending');
     });
 
     it('returns null when no pending recommendation matches', async () => {
-      findMany.mockResolvedValue([
-        makeRow(
-          { entityId: 'ad-2', recommendationType: 'pause', status: 'pending' },
-          { id: 'rec-other' },
-        ),
-      ]);
+      findFirst.mockResolvedValue(null);
 
       await expect(
         service.findExistingPending('org-1', 'ad-1', 'pause'),

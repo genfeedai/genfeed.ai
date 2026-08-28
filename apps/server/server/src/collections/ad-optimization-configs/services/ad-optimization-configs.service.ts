@@ -82,13 +82,12 @@ export class AdOptimizationConfigsService {
   async findAllEnabled(): Promise<AdOptimizationConfigDocument[]> {
     const docs = await this.prisma.adOptimizationConfig.findMany({
       where: {
+        config: { equals: true, path: ['isEnabled'] },
         isDeleted: false,
       },
     });
 
-    return docs
-      .map((doc) => this.toDocument(doc))
-      .filter((doc) => doc.isEnabled);
+    return docs.map((doc) => this.toDocument(doc));
   }
 
   private toDocument(

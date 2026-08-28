@@ -58,21 +58,30 @@ export class AdOptimizationRecommendationsService {
       offset?: number;
     },
   ): Promise<AdOptimizationRecommendationDocument[]> {
+    const dataFilters: Prisma.AdOptimizationRecommendationWhereInput[] = [];
+    if (params?.status) {
+      dataFilters.push({ data: { equals: params.status, path: ['status'] } });
+    }
+    if (params?.recommendationType) {
+      dataFilters.push({
+        data: {
+          equals: params.recommendationType,
+          path: ['recommendationType'],
+        },
+      });
+    }
+
     const docs = await this.prisma.adOptimizationRecommendation.findMany({
       orderBy: { createdAt: 'desc' },
       skip: params?.offset ?? 0,
       take: params?.limit ?? 50,
-      where: scopedWhere(organizationId),
+      where: scopedWhere(
+        organizationId,
+        dataFilters.length > 0 ? { AND: dataFilters } : {},
+      ),
     });
 
-    return docs
-      .map((doc) => this.toDocument(doc))
-      .filter(
-        (doc) =>
-          (!params?.status || doc.status === params.status) &&
-          (!params?.recommendationType ||
-            doc.recommendationType === params.recommendationType),
-      );
+    return docs.map((doc) => this.toDocument(doc));
   }
 
   async findById(
@@ -133,25 +142,19 @@ export class AdOptimizationRecommendationsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
+      const now = new Date();
       const docs = await this.prisma.adOptimizationRecommendation.findMany({
         where: {
+          AND: [
+            { data: { equals: 'pending', path: ['status'] } },
+            { data: { lt: now.toISOString(), path: ['expiresAt'] } },
+          ],
           isDeleted: false,
         },
       });
 
       let count = 0;
       for (const doc of docs.map((item) => this.toDocument(item))) {
-        const expiresAt =
-          doc.expiresAt instanceof Date
-            ? doc.expiresAt
-            : doc.expiresAt
-              ? new Date(doc.expiresAt)
-              : null;
-
-        if (doc.status !== 'pending' || !expiresAt || expiresAt > new Date()) {
-          continue;
-        }
-
         await this.updateStatus(
           doc.id,
           doc.organizationId,
@@ -177,20 +180,22 @@ export class AdOptimizationRecommendationsService {
     entityId: string,
     recommendationType: RecommendationType,
   ): Promise<AdOptimizationRecommendationDocument | null> {
-    const docs = await this.prisma.adOptimizationRecommendation.findMany({
-      where: scopedWhere(organizationId),
+    const doc = await this.prisma.adOptimizationRecommendation.findFirst({
+      where: scopedWhere(organizationId, {
+        AND: [
+          { data: { equals: entityId, path: ['entityId'] } },
+          {
+            data: {
+              equals: recommendationType,
+              path: ['recommendationType'],
+            },
+          },
+          { data: { equals: 'pending', path: ['status'] } },
+        ],
+      }),
     });
 
-    return (
-      docs
-        .map((doc) => this.toDocument(doc))
-        .find(
-          (doc) =>
-            doc.entityId === entityId &&
-            doc.recommendationType === recommendationType &&
-            doc.status === 'pending',
-        ) ?? null
-    );
+    return doc ? this.toDocument(doc) : null;
   }
 
   private async updateStatus(
