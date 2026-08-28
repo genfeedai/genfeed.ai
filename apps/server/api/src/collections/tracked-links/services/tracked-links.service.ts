@@ -28,6 +28,17 @@ type TrackedLink = TrackedLinkDocument;
 type CountryCacheEntry = { country?: string; expiresAt: number };
 type ClickRateEntry = { count: number; resetAt: number };
 type ClickStatsRow = { totalClicks: bigint; uniqueClicks: bigint };
+type ClickBreakdownRow = {
+  bucket: string;
+  count: bigint;
+  dimension: 'country' | 'date' | 'device' | 'referrer';
+};
+type ClickBreakdowns = {
+  clicksByCountry: Record<string, number>;
+  clicksByDate: Record<string, number>;
+  clicksByDevice: Record<string, number>;
+  clicksByReferrer: Record<string, number>;
+};
 type RequestHeaders = Record<string, string | string[] | undefined>;
 
 const CLICK_RATE_LIMIT = 120;
@@ -524,6 +535,71 @@ export class TrackedLinksService {
     });
   }
 
+  private async getClickBreakdowns(
+    linkIds: string[],
+  ): Promise<ClickBreakdowns> {
+    const result: ClickBreakdowns = {
+      clicksByCountry: {},
+      clicksByDate: {},
+      clicksByDevice: {},
+      clicksByReferrer: {},
+    };
+
+    if (linkIds.length === 0) {
+      return result;
+    }
+
+    const rows = await this.prisma.$queryRaw<ClickBreakdownRow[]>(Prisma.sql`
+      WITH scoped_clicks AS (
+        SELECT "timestamp", "country", "device", "referrer"
+        FROM "link_clicks"
+        WHERE "linkId" IN (${Prisma.join(linkIds)})
+      )
+      SELECT
+        breakdown.dimension,
+        breakdown.bucket,
+        COUNT(*)::bigint AS "count"
+      FROM scoped_clicks
+      CROSS JOIN LATERAL (
+        VALUES
+          ('date', TO_CHAR(scoped_clicks."timestamp" AT TIME ZONE 'UTC', 'YYYY-MM-DD')),
+          ('country', scoped_clicks."country"),
+          ('device', scoped_clicks."device"),
+          (
+            'referrer',
+            LOWER(
+              SUBSTRING(
+                scoped_clicks."referrer"
+                FROM '^[[:alpha:]][[:alnum:]+.-]*://(?:[^@/]*@)?(\\[[^]]+\\]|[^:/?#]+)'
+              )
+            )
+          )
+      ) AS breakdown(dimension, bucket)
+      WHERE breakdown.bucket IS NOT NULL AND breakdown.bucket <> ''
+      GROUP BY breakdown.dimension, breakdown.bucket
+    `);
+
+    for (const row of rows) {
+      const count = Number(row.count);
+      switch (row.dimension) {
+        case 'country':
+          result.clicksByCountry[row.bucket] = count;
+          break;
+        case 'date':
+          result.clicksByDate[row.bucket] = count;
+          break;
+        case 'device':
+          result.clicksByDevice[row.bucket] = count;
+          break;
+        case 'referrer':
+          result.clicksByReferrer[row.bucket] = count;
+          break;
+      }
+    }
+
+    return result;
+  }
+
   /**
    * Get link performance
    */
@@ -548,47 +624,7 @@ export class TrackedLinksService {
   }> {
     const link = await this.getById(linkId, organizationId);
 
-    // Get all clicks for this link
-    const clicks = await this.prisma.linkClick.findMany({
-      where: { linkId },
-    });
-
-    const clickDocs = clicks as unknown as Array<{
-      timestamp: Date;
-      country?: string;
-      device?: string;
-      referrer?: string;
-    }>;
-
-    const clicksByDate: Record<string, number> = {};
-    const clicksByCountry: Record<string, number> = {};
-    const clicksByDevice: Record<string, number> = {};
-    const clicksByReferrer: Record<string, number> = {};
-
-    clickDocs.forEach((click) => {
-      // By date
-      const date = click.timestamp.toISOString().split('T')[0];
-      clicksByDate[date] = (clicksByDate[date] || 0) + 1;
-
-      // By country
-      if (click.country) {
-        clicksByCountry[click.country] =
-          (clicksByCountry[click.country] || 0) + 1;
-      }
-
-      // By device
-      if (click.device) {
-        clicksByDevice[click.device] = (clicksByDevice[click.device] || 0) + 1;
-      }
-
-      // By referrer
-      if (click.referrer) {
-        const domain = this.extractDomain(click.referrer);
-        if (domain) {
-          clicksByReferrer[domain] = (clicksByReferrer[domain] || 0) + 1;
-        }
-      }
-    });
+    const clickBreakdowns = await this.getClickBreakdowns([linkId]);
 
     const linkDoc = link as unknown as Record<string, unknown> & {
       stats: { totalClicks: number; uniqueClicks: number; lastClickAt?: Date };
@@ -596,10 +632,7 @@ export class TrackedLinksService {
     };
 
     return {
-      clicksByCountry,
-      clicksByDate,
-      clicksByDevice,
-      clicksByReferrer,
+      ...clickBreakdowns,
       contentId: (linkDoc.contentId as string) ?? undefined,
       contentType: linkDoc.contentType as string | undefined,
       createdAt: linkDoc.createdAt,
@@ -650,7 +683,6 @@ export class TrackedLinksService {
     );
     const avgClicksPerLink = totalLinks > 0 ? totalClicks / totalLinks : 0;
 
-    // Find top performing link
     const topLink = linkDocs.reduce(
       (
         best: {
@@ -667,18 +699,8 @@ export class TrackedLinksService {
       null,
     );
 
-    // Get clicks by date for trend
     const linkIds = linkDocs.map((l) => l.id);
-    const clicks = await this.prisma.linkClick.findMany({
-      where: { linkId: { in: linkIds } },
-    });
-
-    const clickDocs = clicks as unknown as Array<{ timestamp: Date }>;
-    const clicksByDate: Record<string, number> = {};
-    clickDocs.forEach((click) => {
-      const date = click.timestamp.toISOString().split('T')[0];
-      clicksByDate[date] = (clicksByDate[date] || 0) + 1;
-    });
+    const { clicksByDate } = await this.getClickBreakdowns(linkIds);
 
     // Calculate trend (last 7 days vs previous 7 days)
     const dates = Object.keys(clicksByDate).sort();
@@ -846,17 +868,5 @@ export class TrackedLinksService {
       expiresAt: Date.now() + 5 * 60 * 1000,
     });
     return undefined;
-  }
-
-  /**
-   * Extract domain from referrer URL
-   */
-  private extractDomain(url: string): string | null {
-    try {
-      const urlObj = new URL(url);
-      return urlObj.hostname;
-    } catch {
-      return null;
-    }
   }
 }

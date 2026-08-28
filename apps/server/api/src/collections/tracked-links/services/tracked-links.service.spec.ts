@@ -18,6 +18,7 @@ describe('TrackedLinksService', () => {
       },
     };
     const prisma = {
+      $queryRaw: vi.fn(),
       brand: {
         findFirst: vi.fn(),
       },
@@ -27,6 +28,7 @@ describe('TrackedLinksService', () => {
       trackedLink: {
         create: vi.fn(),
         findFirst: vi.fn(),
+        findMany: vi.fn(),
         update: vi.fn(),
         updateMany: vi.fn(),
       },
@@ -66,6 +68,67 @@ describe('TrackedLinksService', () => {
       },
       where: expect.objectContaining({ id: 'link-1' }),
     });
+  });
+
+  it('returns database-aggregated performance breakdowns', async () => {
+    const { prisma, service } = makeService();
+    prisma.trackedLink.findFirst.mockResolvedValue({
+      createdAt: new Date('2026-08-01T00:00:00.000Z'),
+      id: 'link-1',
+      organizationId: 'org-1',
+      originalUrl: 'https://example.com',
+      shortUrl: 'https://gf.test/abc123',
+      stats: { totalClicks: 12, uniqueClicks: 7 },
+    });
+    prisma.$queryRaw.mockResolvedValue([
+      { bucket: '2026-08-28', count: 12n, dimension: 'date' },
+      { bucket: 'US', count: 8n, dimension: 'country' },
+      { bucket: 'mobile', count: 9n, dimension: 'device' },
+      { bucket: 'example.com', count: 5n, dimension: 'referrer' },
+    ]);
+
+    const result = await service.getLinkPerformance('link-1', 'org-1');
+
+    expect(prisma.$queryRaw).toHaveBeenCalledOnce();
+    expect(result).toEqual(
+      expect.objectContaining({
+        clicksByCountry: { US: 8 },
+        clicksByDate: { '2026-08-28': 12 },
+        clicksByDevice: { mobile: 9 },
+        clicksByReferrer: { 'example.com': 5 },
+      }),
+    );
+  });
+
+  it('aggregates content click trends without loading click rows', async () => {
+    const { prisma, service } = makeService();
+    prisma.trackedLink.findMany.mockResolvedValue([
+      {
+        contentType: 'video',
+        id: 'link-1',
+        shortUrl: 'https://gf.test/one',
+        stats: { totalClicks: 8, uniqueClicks: 6 },
+      },
+      {
+        contentType: 'video',
+        id: 'link-2',
+        shortUrl: 'https://gf.test/two',
+        stats: { totalClicks: 4, uniqueClicks: 3 },
+      },
+    ]);
+    prisma.$queryRaw.mockResolvedValue([
+      { bucket: '2026-08-21', count: 4n, dimension: 'date' },
+      { bucket: '2026-08-28', count: 8n, dimension: 'date' },
+    ]);
+
+    const result = await service.getContentCTAStats('content-1', 'org-1');
+
+    expect(prisma.$queryRaw).toHaveBeenCalledOnce();
+    expect(result.clicksByDate).toEqual({
+      '2026-08-21': 4,
+      '2026-08-28': 8,
+    });
+    expect(result.totalClicks).toBe(12);
   });
 
   it('rejects unsafe redirect URL schemes when creating tracked links', async () => {
