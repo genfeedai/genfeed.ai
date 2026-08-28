@@ -143,6 +143,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/clip-projects/clip-project-highlights.controller.ts',
     prefix: 'clip-projects',
   },
+  clipProjectGeneration: {
+    file: 'collections/clip-projects/clip-project-generation.controller.ts',
+    prefix: 'clip-projects',
+  },
   postGroups: {
     file: 'collections/post-groups/controllers/post-groups.controller.ts',
     prefix: 'post-groups',
@@ -448,7 +452,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   {
     method: 'Post',
     sub: ':projectId/generate',
-    controller: 'clipProjects',
+    controller: 'clipProjectGeneration',
     tools: ['generate_clips'],
   },
   {
