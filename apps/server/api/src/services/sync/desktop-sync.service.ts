@@ -282,6 +282,7 @@ export class DesktopSyncService {
           workspaceId: thread.workspaceId,
         };
         const updateIfNewer = () =>
+          // sql-risk-audit: ignore bulk-write-tenant-review -- organizationId and canonical userId tenant-scope the unique thread id; DesktopThread has no soft-delete column, and updatedAt makes this a single-row compare-and-set.
           this.prisma.desktopThread.updateMany({
             data,
             where: {
