@@ -290,7 +290,8 @@ export default function TerminalWorkspace({ onDone }: WorkspaceProps) {
       }
       case 'workflows': {
         await requireAuth();
-        const workflows = await listWorkflows();
+        const workflows = await listWorkflows({}, signal);
+        signal.throwIfAborted();
         append(
           'system',
           workflows

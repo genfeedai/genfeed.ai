@@ -43,6 +43,18 @@ describe('api/workflows', () => {
     expect(mockFetch).toHaveBeenCalledWith('/workflows?limit=100&page=2', { method: 'GET' });
   });
 
+  it('forwards cancellation when listing workflows', async () => {
+    mockFetch.mockResolvedValue(collection('workflow-1'));
+    const controller = new AbortController();
+
+    await listWorkflows({}, controller.signal);
+
+    expect(mockFetch).toHaveBeenCalledWith('/workflows?limit=20', {
+      method: 'GET',
+      signal: controller.signal,
+    });
+  });
+
   it('gets a workflow', async () => {
     mockFetch.mockResolvedValue(single('workflow-1'));
     expect((await getWorkflow('workflow-1')).id).toBe('workflow-1');
