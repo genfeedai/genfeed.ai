@@ -54,7 +54,12 @@ async function resolveMigrationsDirectory(): Promise<string> {
       if (stat.isDirectory()) {
         return directory;
       }
-    } catch {}
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== 'ENOENT' && code !== 'ENOTDIR') {
+        throw error;
+      }
+    }
   }
 
   throw new Error('Desktop Prisma migrations directory was not found.');
