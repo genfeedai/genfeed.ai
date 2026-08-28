@@ -41,6 +41,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../../../primitives/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../../../primitives/tooltip';
 
 type LifecycleAppSwitcherItemConfig = AppSwitcherItemConfig & {
   /**
@@ -403,52 +409,78 @@ function AppSwitcherGridItem({
   const Icon = APP_SWITCHER_ICON_OVERRIDES[app.itemKey] ?? app.icon;
 
   return (
-    <DropdownMenuItem asChild>
-      <Link
-        href={href}
-        aria-current={isActive ? 'page' : undefined}
-        aria-label={
-          isLocked
-            ? `${app.label} — locked. Generate your first asset to unlock.`
-            : undefined
-        }
-        onClick={() => onNavigateStart(navigationAnnouncement)}
-        className={cn(
-          'group grid min-h-[4.5rem] min-w-0 grid-rows-[2.25rem_1.125rem] place-items-center gap-1 rounded-lg px-1 py-1.5 text-center outline-none',
-          'border-transparent !bg-transparent !shadow-none !ring-0 !ring-offset-0',
-          'focus:text-inherit data-[highlighted]:text-inherit',
-        )}
-      >
-        <span
-          className={cn(
-            'relative inline-flex size-9 items-center justify-center rounded-lg bg-background-secondary text-foreground/58 transition-colors',
-            isActive
-              ? 'bg-foreground text-background'
-              : 'group-hover:bg-foreground group-hover:text-background group-focus-visible:bg-foreground group-focus-visible:text-background',
-            isLocked && 'opacity-60',
-          )}
-        >
-          <Icon aria-hidden="true" className="size-[1.125rem]" />
-          {isLocked ? (
-            <span className="absolute -right-1 -top-1 inline-flex size-4 items-center justify-center rounded-full bg-background text-foreground/70 shadow-border">
-              <Lock aria-hidden="true" className="size-2.5" />
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <DropdownMenuItem asChild>
+          <Link
+            href={href}
+            aria-current={isActive ? 'page' : undefined}
+            aria-label={
+              isLocked
+                ? `${app.label} — locked. Generate your first asset to unlock.`
+                : undefined
+            }
+            onClick={() => onNavigateStart(navigationAnnouncement)}
+            className={cn(
+              'group grid min-h-[4.5rem] min-w-0 grid-rows-[2.25rem_1.125rem] place-items-center gap-1 rounded-lg px-1 py-1.5 text-center outline-none',
+              'border-transparent !bg-transparent !shadow-none !ring-0 !ring-offset-0',
+              'focus:text-inherit data-[highlighted]:text-inherit',
+            )}
+          >
+            <span
+              className={cn(
+                'relative inline-flex size-9 items-center justify-center rounded-lg bg-background-secondary text-foreground/58 transition-colors',
+                isActive
+                  ? 'bg-foreground text-background'
+                  : 'group-hover:bg-foreground group-hover:text-background group-focus-visible:bg-foreground group-focus-visible:text-background',
+                isLocked && 'opacity-60',
+              )}
+            >
+              <Icon aria-hidden="true" className="size-[1.125rem]" />
+              {isLocked ? (
+                <span className="absolute -right-1 -top-1 inline-flex size-4 items-center justify-center rounded-full bg-background text-foreground/70 shadow-border">
+                  <Lock aria-hidden="true" className="size-2.5" />
+                </span>
+              ) : null}
             </span>
-          ) : null}
-        </span>
-        <span
-          className={cn(
-            'block whitespace-nowrap text-xs font-semibold leading-[1.125rem]',
-            isActive
-              ? 'text-foreground'
-              : 'text-foreground/58 group-hover:text-foreground group-focus-visible:text-foreground',
-            // No label underline — active state is the filled icon tile only.
-            isLocked && 'text-foreground/45',
-          )}
-        >
-          {app.label}
-        </span>
-      </Link>
-    </DropdownMenuItem>
+            <span
+              className={cn(
+                'block whitespace-nowrap text-xs font-semibold leading-[1.125rem]',
+                isActive
+                  ? 'text-foreground'
+                  : 'text-foreground/58 group-hover:text-foreground group-focus-visible:text-foreground',
+                // No label underline — active state is the filled icon tile only.
+                isLocked && 'text-foreground/45',
+              )}
+            >
+              {app.label}
+            </span>
+          </Link>
+        </DropdownMenuItem>
+      </TooltipTrigger>
+      <TooltipContent
+        side="left"
+        align="center"
+        sideOffset={12}
+        collisionPadding={12}
+        aria-label={`${app.label}: ${app.description}`}
+        className="w-64 p-3 font-normal"
+      >
+        <div className="flex items-start gap-2.5">
+          <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-background-secondary text-foreground">
+            <Icon aria-hidden="true" className="size-4" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-foreground">
+              {app.label}
+            </span>
+            <span className="mt-0.5 block text-xs leading-4 text-muted-foreground">
+              {app.description}
+            </span>
+          </span>
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -604,27 +636,29 @@ export function AppSwitcher({
           </div>
         </div>
 
-        <div
-          className="grid grid-cols-3 gap-1 px-2.5 py-2.5"
-          role="group"
-          aria-label="Apps"
-        >
-          {apps.map((app) => {
-            const navigation = resolveAppNavigation(app);
+        <TooltipProvider delayDuration={200}>
+          <div
+            className="grid grid-cols-3 gap-1 px-2.5 py-2.5"
+            role="group"
+            aria-label="Apps"
+          >
+            {apps.map((app) => {
+              const navigation = resolveAppNavigation(app);
 
-            return (
-              <AppSwitcherGridItem
-                key={app.itemKey}
-                app={app}
-                isActive={app.itemKey === activeItemKey}
-                isLocked={isAppLocked(app)}
-                href={navigation.href}
-                navigationAnnouncement={navigation.announcement}
-                onNavigateStart={handleNavigateStart}
-              />
-            );
-          })}
-        </div>
+              return (
+                <AppSwitcherGridItem
+                  key={app.itemKey}
+                  app={app}
+                  isActive={app.itemKey === activeItemKey}
+                  isLocked={isAppLocked(app)}
+                  href={navigation.href}
+                  navigationAnnouncement={navigation.announcement}
+                  onNavigateStart={handleNavigateStart}
+                />
+              );
+            })}
+          </div>
+        </TooltipProvider>
 
         <div className="sr-only" aria-live="polite">
           {activeApp ? (

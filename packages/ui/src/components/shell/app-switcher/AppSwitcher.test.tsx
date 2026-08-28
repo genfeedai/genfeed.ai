@@ -116,7 +116,21 @@ vi.mock('../../../primitives/dropdown-menu', () => ({
 }));
 
 vi.mock('../../../primitives/tooltip', () => ({
-  SimpleTooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
+  Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
+  TooltipContent: ({
+    children,
+    side,
+    ...props
+  }: React.HTMLAttributes<HTMLDivElement> & {
+    children: ReactNode;
+    side?: string;
+  }) => (
+    <div role="tooltip" data-side={side} {...props}>
+      {children}
+    </div>
+  ),
+  TooltipProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 vi.mock('@genfeedai/enums', () => ({
@@ -267,6 +281,19 @@ describe('AppSwitcher', () => {
     expect(
       screen.queryByRole('link', { name: 'Admin' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('explains each app with a left-side icon, label, and description tooltip', () => {
+    render(<AppSwitcher orgSlug="acme" />);
+
+    const tooltip = screen.getByRole('tooltip', {
+      name: 'Agent: Ask and execute.',
+    });
+
+    expect(tooltip).toHaveAttribute('data-side', 'left');
+    expect(tooltip.querySelector('svg')).toBeInTheDocument();
+    expect(tooltip).toHaveTextContent('Agent');
+    expect(tooltip).toHaveTextContent('Ask and execute.');
   });
 
   it('hides Studio when its app-switcher discovery flag is disabled', () => {
