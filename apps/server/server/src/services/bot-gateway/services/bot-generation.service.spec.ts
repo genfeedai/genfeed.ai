@@ -19,6 +19,7 @@ import {
   type BotMediaGenerationDispatcher,
 } from '@server/services/bot-gateway/services/bot-media-generation-dispatcher.interface';
 import type { Request } from 'express';
+import type { Mocked } from 'vitest';
 
 describe('BotGenerationService', () => {
   const ingredientId = 'ingredient-1';
@@ -37,10 +38,10 @@ describe('BotGenerationService', () => {
   const request = {} as Request;
 
   let service: BotGenerationService;
-  let creditsUtilsService: vi.Mocked<
+  let creditsUtilsService: Mocked<
     Pick<CreditsUtilsService, 'getOrganizationCreditsBalance'>
   >;
-  let dispatcher: vi.Mocked<BotMediaGenerationDispatcher>;
+  let dispatcher: Mocked<BotMediaGenerationDispatcher>;
   let publisher: {
     get: ReturnType<typeof vi.fn>;
     setex: ReturnType<typeof vi.fn>;
