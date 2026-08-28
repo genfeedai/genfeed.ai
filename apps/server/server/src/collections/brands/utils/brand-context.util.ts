@@ -21,20 +21,21 @@ export const buildPromptBrandingFromBrand = (
     return undefined;
   }
 
+  const sampleOutput = voice.sampleOutput?.trim();
   const branding: PromptBranding = {
-    audience: voice.audience?.length ? voice.audience.join(', ') : undefined,
-    doNotSoundLike: voice.doNotSoundLike?.length
-      ? voice.doNotSoundLike
-      : undefined,
-    hashtags: voice.hashtags?.length ? voice.hashtags : undefined,
-    messagingPillars: voice.messagingPillars?.length
-      ? voice.messagingPillars
-      : undefined,
-    sampleOutput: voice.sampleOutput?.trim() || undefined,
-    taglines: voice.taglines?.length ? voice.taglines : undefined,
-    tone: voice.tone,
-    values: voice.values?.length ? voice.values : undefined,
-    voice: voice.style,
+    ...(voice.audience?.length ? { audience: voice.audience.join(', ') } : {}),
+    ...(voice.doNotSoundLike?.length
+      ? { doNotSoundLike: voice.doNotSoundLike }
+      : {}),
+    ...(voice.hashtags?.length ? { hashtags: voice.hashtags } : {}),
+    ...(voice.messagingPillars?.length
+      ? { messagingPillars: voice.messagingPillars }
+      : {}),
+    ...(sampleOutput ? { sampleOutput } : {}),
+    ...(voice.taglines?.length ? { taglines: voice.taglines } : {}),
+    ...(voice.tone ? { tone: voice.tone } : {}),
+    ...(voice.values?.length ? { values: voice.values } : {}),
+    ...(voice.style ? { voice: voice.style } : {}),
   };
 
   return Object.values(branding).some(Boolean) ? branding : undefined;

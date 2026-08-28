@@ -727,12 +727,15 @@ export class AuthorReplyLoopService implements OnModuleInit {
       },
       replyText,
     );
+    const error = result.error;
+    const replyContentId = result.contentId;
+    const replyContentUrl = result.contentUrl;
     return {
       ...state,
       sendResult: {
-        error: result.error,
-        replyContentId: result.contentId,
-        replyContentUrl: result.contentUrl,
+        ...(error === undefined ? {} : { error }),
+        ...(replyContentId === undefined ? {} : { replyContentId }),
+        ...(replyContentUrl === undefined ? {} : { replyContentUrl }),
         replySent: result.success,
       },
     };
@@ -767,11 +770,14 @@ export class AuthorReplyLoopService implements OnModuleInit {
         // The provider send is authoritative; duplicate processed markers are benign.
       }
     }
+    const contentId = result.replyContentId;
+    const contentUrl = result.replyContentUrl;
+    const error = result.error;
     return {
       commentId: state.request.commentId,
-      contentId: result.replyContentId,
-      contentUrl: result.replyContentUrl,
-      error: result.error,
+      ...(contentId === undefined ? {} : { contentId }),
+      ...(contentUrl === undefined ? {} : { contentUrl }),
+      ...(error === undefined ? {} : { error }),
       intent: state.intent,
       replyText: this.requiredString(state.replyText, 'replyText'),
       success: result.replySent,

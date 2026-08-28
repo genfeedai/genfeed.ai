@@ -157,13 +157,17 @@ export class ReplyInboundProcessorService implements OnModuleInit {
         {
           brandId: input.brandId,
           commentAuthor: input.commentAuthorUsername,
-          commentAuthorId: input.commentAuthorId,
+          ...(input.commentAuthorId === undefined
+            ? {}
+            : { commentAuthorId: input.commentAuthorId }),
           commentId: input.commentId,
           commentText: input.commentText,
           intent,
           organizationId: input.organizationId,
           parentPostId: input.parentPostId,
-          parentPostPreview: input.parentPostPreview,
+          ...(input.parentPostPreview === undefined
+            ? {}
+            : { parentPostPreview: input.parentPostPreview }),
           platform,
           userId,
         },

@@ -73,7 +73,9 @@ export class ReplyPostWatchService implements OnModuleInit {
           organizationId: params.organizationId,
           platform,
           postId: params.postId,
-          postPreview: params.postPreview,
+          ...(params.postPreview === undefined
+            ? {}
+            : { postPreview: params.postPreview }),
         };
         return this.workflowQueue.queueSystemWorkflow(
           {
@@ -100,11 +102,22 @@ export class ReplyPostWatchService implements OnModuleInit {
     data: ReplyPostWatchWorkflowInput,
   ): Promise<ReplyPostWatchWorkflowResult> {
     const definition = buildReplyPostWatchWorkflowDefinition();
+    const request: ReplyPostWatchWorkflowInput = {
+      attempt: data.attempt,
+      brandId: data.brandId,
+      maxAttempts: data.maxAttempts,
+      organizationId: data.organizationId,
+      platform: data.platform,
+      postId: data.postId,
+      ...(data.postPreview === undefined
+        ? {}
+        : { postPreview: data.postPreview }),
+    };
     const { result } =
       await this.workflowRunner.runWorkflow<ReplyPostWatchWorkflowResult>({
         actionType: definition.canonicalId,
         canonicalId: definition.canonicalId,
-        inputValues: { request: data },
+        inputValues: { request },
         organizationId: data.organizationId,
         source: 'ReplyPostWatchService.runWatchAttempt',
         trigger: WorkflowExecutionTrigger.SCHEDULED,
@@ -144,13 +157,17 @@ export class ReplyPostWatchService implements OnModuleInit {
       if (!already) {
         items.push({
           brandId: request.brandId,
-          commentAuthorId: comment.authorId,
+          ...(comment.authorId === undefined
+            ? {}
+            : { commentAuthorId: comment.authorId }),
           commentAuthorUsername: comment.authorUsername,
           commentId: comment.id,
           commentText: comment.text,
           organizationId: request.organizationId,
           parentPostId: request.postId,
-          parentPostPreview: request.postPreview,
+          ...(request.postPreview === undefined
+            ? {}
+            : { parentPostPreview: request.postPreview }),
           platform: wirePlatform,
           receivedAt: new Date().toISOString(),
           source: 'post-watch',
