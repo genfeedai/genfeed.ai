@@ -2,6 +2,7 @@ import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { StreaksService } from '@server/collections/streaks/services/streaks.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowRunnerService,
@@ -13,6 +14,7 @@ export class CronStreaksService implements OnModuleInit {
     private readonly logger: LoggerService,
     private readonly streaksService: StreaksService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
   ) {}
 
   onModuleInit(): void {
@@ -37,29 +39,25 @@ export class CronStreaksService implements OnModuleInit {
     const organizationIds =
       await this.streaksService.listStreakOrganizationIds();
 
-    const totals = { atRisk: 0, broken: 0, frozen: 0 };
+    let queued = 0;
 
     for (const organizationId of organizationIds) {
       try {
-        const { result } = await this.systemWorkflowRunner.runAction<{
-          atRisk: number;
-          broken: number;
-          frozen: number;
-        }>({
-          actionType: 'streak-maintenance',
-          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.STREAK_MAINTENANCE,
-          inputValues: {
+        await this.workflowQueue.queueSystemAction(
+          {
+            actionType: SYSTEM_WORKFLOW_ACTION_IDS.STREAK_MAINTENANCE,
+            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.STREAK_MAINTENANCE,
+            inputValues: {
+              organizationId,
+              referenceDate: referenceDate.toISOString(),
+            },
             organizationId,
-            referenceDate: referenceDate.toISOString(),
+            source: 'streak_maintenance_sweep',
+            trigger: WorkflowExecutionTrigger.SCHEDULED,
           },
-          organizationId,
-          source: 'CronStreaksService.processStreaks',
-          trigger: WorkflowExecutionTrigger.SCHEDULED,
-        });
-
-        totals.atRisk += result.atRisk;
-        totals.broken += result.broken;
-        totals.frozen += result.frozen;
+          `${SYSTEM_WORKFLOW_ACTION_IDS.STREAK_MAINTENANCE}-${organizationId}-${referenceDate.toISOString().slice(0, 10)}`,
+        );
+        queued += 1;
       } catch (error: unknown) {
         this.logger.error('Streak maintenance failed for organization', {
           error: (error as Error)?.message,
@@ -69,8 +67,8 @@ export class CronStreaksService implements OnModuleInit {
     }
 
     this.logger.log('CronStreaksService completed', {
-      ...totals,
       organizations: organizationIds.length,
+      queued,
     });
   }
 }

@@ -1,5 +1,6 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { RssSourcesService } from '@server/collections/rss-sources/services/rss-sources.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import type {
   SystemWorkflowActionExecutor,
   SystemWorkflowRunnerService,
@@ -23,23 +24,19 @@ describe('CronRssAutopostService', () => {
         actionExecutor = executor;
       },
     ),
-    runAction: vi.fn(
-      async (input: { inputValues: Record<string, unknown> }) => ({
-        provenance: {
-          executionId: 'execution-1',
-          workflowId: 'workflow-1',
-          workflowLabel: 'Poll RSS Source',
-        },
-        result: await actionExecutor({
+  };
+  const workflowQueue = {
+    queueSystemAction: vi.fn(
+      async (input: { inputValues?: Record<string, unknown> }) =>
+        actionExecutor({
           context: {} as never,
-          input: input.inputValues,
+          input: input.inputValues ?? {},
           provenance: {
             executionId: 'execution-1',
             workflowId: 'workflow-1',
             workflowLabel: 'Poll RSS Source',
           },
         }),
-      }),
     ),
   };
   let service: CronRssAutopostService;
@@ -65,6 +62,7 @@ describe('CronRssAutopostService', () => {
       logger as unknown as LoggerService,
       rssSourcesService as unknown as RssSourcesService,
       systemWorkflowRunner as unknown as SystemWorkflowRunnerService,
+      workflowQueue as unknown as WorkflowExecutionQueueService,
     );
   });
 
@@ -89,6 +87,6 @@ describe('CronRssAutopostService', () => {
       'RSS autopost poll failed for source',
       expect.objectContaining({ sourceId: 'rss-1' }),
     );
-    expect(systemWorkflowRunner.runAction).toHaveBeenCalledTimes(2);
+    expect(workflowQueue.queueSystemAction).toHaveBeenCalledTimes(2);
   });
 });

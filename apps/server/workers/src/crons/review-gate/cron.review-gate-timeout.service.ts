@@ -1,6 +1,7 @@
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
@@ -8,6 +9,7 @@ import {
 } from '@server/collections/workflows/system-workflow-runner.service';
 
 const MS_PER_HOUR = 60 * 60 * 1000;
+const REVIEW_GATE_SWEEP_INTERVAL_MS = 15 * 60 * 1000;
 @Injectable()
 export class CronReviewGateTimeoutService implements OnModuleInit {
   private readonly context = 'CronReviewGateTimeoutService';
@@ -16,6 +18,7 @@ export class CronReviewGateTimeoutService implements OnModuleInit {
     private readonly logger: LoggerService,
     private readonly executorService: WorkflowExecutorService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
   ) {}
 
   onModuleInit(): void {
@@ -41,7 +44,7 @@ export class CronReviewGateTimeoutService implements OnModuleInit {
       await this.executorService.findPendingReviewGateExecutions();
     const now = Date.now();
 
-    const totals = { approved: 0, checked: pending.length, rejected: 0 };
+    let queued = 0;
 
     for (const gate of pending) {
       const requestedAtMs = new Date(gate.requestedAt).getTime();
@@ -55,28 +58,24 @@ export class CronReviewGateTimeoutService implements OnModuleInit {
       }
 
       try {
-        const { result } = await this.systemWorkflowRunner.runAction<{
-          resolution?: string;
-        } | null>({
-          actionType: 'review-gate-timeout',
-          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.REVIEW_GATE_TIMEOUT,
-          inputValues: {
-            autoApproveIfNoResponse: gate.autoApproveIfNoResponse,
-            executionId: gate.executionId,
-            nodeId: gate.nodeId,
+        await this.workflowQueue.queueSystemAction(
+          {
+            actionType: SYSTEM_WORKFLOW_ACTION_IDS.REVIEW_GATE_TIMEOUT,
+            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.REVIEW_GATE_TIMEOUT,
+            inputValues: {
+              autoApproveIfNoResponse: gate.autoApproveIfNoResponse,
+              executionId: gate.executionId,
+              nodeId: gate.nodeId,
+              organizationId: gate.organizationId,
+              workflowId: gate.workflowId,
+            },
             organizationId: gate.organizationId,
-            workflowId: gate.workflowId,
+            source: 'review_gate_timeout_sweep',
+            trigger: WorkflowExecutionTrigger.SCHEDULED,
           },
-          organizationId: gate.organizationId,
-          source: 'CronReviewGateTimeoutService.resolveTimedOutReviewGates',
-          trigger: WorkflowExecutionTrigger.SCHEDULED,
-        });
-
-        if (result?.resolution === 'approved') {
-          totals.approved += 1;
-        } else if (result?.resolution === 'rejected') {
-          totals.rejected += 1;
-        }
+          `${SYSTEM_WORKFLOW_ACTION_IDS.REVIEW_GATE_TIMEOUT}-${gate.executionId}-${gate.nodeId}-${Math.floor(now / REVIEW_GATE_SWEEP_INTERVAL_MS)}`,
+        );
+        queued += 1;
       } catch (error: unknown) {
         this.logger.error(
           'Review-gate timeout resolution failed for execution',
@@ -90,8 +89,9 @@ export class CronReviewGateTimeoutService implements OnModuleInit {
     }
 
     this.logger.log('CronReviewGateTimeoutService completed', {
-      ...totals,
+      checked: pending.length,
       context: this.context,
+      queued,
     });
   }
 }

@@ -182,6 +182,46 @@ describe('WorkflowExecutionQueueService', () => {
         }),
       );
     });
+
+    it('wraps a queued action in the canonical immutable action graph', async () => {
+      await service.queueSystemAction(
+        {
+          actionType: 'rss-source-poll',
+          canonicalId: 'rss-source-poll',
+          inputValues: { sourceId: 'source-1' },
+          organizationId: 'org-1',
+          source: 'rss_autopost_sweep',
+        },
+        'rss-source-poll-source-1-123',
+      );
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'system-run',
+        expect.objectContaining({
+          systemRun: expect.objectContaining({
+            definition: expect.objectContaining({
+              canonicalId: 'rss-source-poll',
+              definition: expect.objectContaining({
+                nodes: [
+                  expect.objectContaining({
+                    data: expect.objectContaining({
+                      config: expect.objectContaining({
+                        actionId: 'rss-source-poll',
+                      }),
+                    }),
+                    type: 'genfeedAction',
+                  }),
+                ],
+              }),
+            }),
+            input: expect.objectContaining({
+              inputValues: { payload: { sourceId: 'source-1' } },
+            }),
+          }),
+        }),
+        expect.objectContaining({ jobId: 'rss-source-poll-source-1-123' }),
+      );
+    });
   });
 
   describe('queueDelayedResume', () => {

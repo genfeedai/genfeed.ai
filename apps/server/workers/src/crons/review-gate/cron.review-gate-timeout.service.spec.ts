@@ -1,8 +1,10 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
+  type SystemWorkflowActionExecutor,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
 import { CronReviewGateTimeoutService } from '@workers/crons/review-gate/cron.review-gate-timeout.service';
@@ -29,7 +31,9 @@ describe('CronReviewGateTimeoutService', () => {
     findPendingReviewGateExecutions: ReturnType<typeof vi.fn>;
     resolveTimedOutReviewGate: ReturnType<typeof vi.fn>;
   };
-  let provenanceService: { runAction: ReturnType<typeof vi.fn> };
+  let actionExecutor: SystemWorkflowActionExecutor;
+  let provenanceService: { registerAction: ReturnType<typeof vi.fn> };
+  let workflowQueue: { queueSystemAction: ReturnType<typeof vi.fn> };
   let loggerService: {
     log: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
@@ -45,15 +49,24 @@ describe('CronReviewGateTimeoutService', () => {
       }),
     };
     provenanceService = {
-      runAction: vi.fn(
-        async (_input: unknown, action: () => Promise<unknown>) => ({
-          provenance: {
-            executionId: 'sys-exec',
-            workflowId: 'sys-wf',
-            workflowLabel: 'Review Gate Timeout Resolution',
-          },
-          result: await action(),
-        }),
+      registerAction: vi.fn(
+        (_actionId: string, executor: SystemWorkflowActionExecutor) => {
+          actionExecutor = executor;
+        },
+      ),
+    };
+    workflowQueue = {
+      queueSystemAction: vi.fn(
+        async (input: { inputValues?: Record<string, unknown> }) =>
+          actionExecutor({
+            context: {} as never,
+            input: input.inputValues ?? {},
+            provenance: {
+              executionId: 'sys-exec',
+              workflowId: 'sys-wf',
+              workflowLabel: 'Review Gate Timeout Resolution',
+            },
+          }),
       ),
     };
     loggerService = { error: vi.fn(), log: vi.fn() };
@@ -66,11 +79,13 @@ describe('CronReviewGateTimeoutService', () => {
           provide: SystemWorkflowRunnerService,
           useValue: provenanceService,
         },
+        { provide: WorkflowExecutionQueueService, useValue: workflowQueue },
         { provide: LoggerService, useValue: loggerService },
       ],
     }).compile();
 
     service = module.get(CronReviewGateTimeoutService);
+    service.onModuleInit();
   });
 
   it('resolves gates whose timeout has elapsed inside a provenance action', async () => {
@@ -78,12 +93,12 @@ describe('CronReviewGateTimeoutService', () => {
 
     await service.resolveTimedOutReviewGates();
 
-    expect(provenanceService.runAction).toHaveBeenCalledWith(
+    expect(workflowQueue.queueSystemAction).toHaveBeenCalledWith(
       expect.objectContaining({
         canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.REVIEW_GATE_TIMEOUT,
         organizationId: 'org-1',
       }),
-      expect.any(Function),
+      expect.any(String),
     );
     expect(executorService.resolveTimedOutReviewGate).toHaveBeenCalledWith(
       'wf-1',
@@ -100,7 +115,7 @@ describe('CronReviewGateTimeoutService', () => {
 
     await service.resolveTimedOutReviewGates();
 
-    expect(executorService.resolveTimedOutReviewGate).not.toHaveBeenCalled();
+    expect(workflowQueue.queueSystemAction).not.toHaveBeenCalled();
   });
 
   it('isolates per-execution failures and keeps processing', async () => {
@@ -108,17 +123,24 @@ describe('CronReviewGateTimeoutService', () => {
       gate({ executionId: 'exec-a', nodeId: 'node-a' }),
       gate({ executionId: 'exec-b', nodeId: 'node-b' }),
     ]);
-    executorService.resolveTimedOutReviewGate
+    workflowQueue.queueSystemAction
       .mockRejectedValueOnce(new Error('boom'))
-      .mockResolvedValueOnce({
-        executionId: 'exec-b',
-        nodeId: 'node-b',
-        resolution: 'approved',
-      });
+      .mockImplementationOnce(
+        async (input: { inputValues?: Record<string, unknown> }) =>
+          actionExecutor({
+            context: {} as never,
+            input: input.inputValues ?? {},
+            provenance: {
+              executionId: 'sys-exec',
+              workflowId: 'sys-wf',
+              workflowLabel: 'Review Gate Timeout Resolution',
+            },
+          }),
+      );
 
     await service.resolveTimedOutReviewGates();
 
-    expect(executorService.resolveTimedOutReviewGate).toHaveBeenCalledTimes(2);
+    expect(workflowQueue.queueSystemAction).toHaveBeenCalledTimes(2);
     expect(loggerService.error).toHaveBeenCalledTimes(1);
   });
 
@@ -129,6 +151,6 @@ describe('CronReviewGateTimeoutService', () => {
 
     await service.resolveTimedOutReviewGates();
 
-    expect(executorService.resolveTimedOutReviewGate).not.toHaveBeenCalled();
+    expect(workflowQueue.queueSystemAction).not.toHaveBeenCalled();
   });
 });

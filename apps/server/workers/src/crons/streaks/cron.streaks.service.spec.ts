@@ -1,8 +1,10 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { StreaksService } from '@server/collections/streaks/services/streaks.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
+  type SystemWorkflowActionExecutor,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
 import { CronStreaksService } from '@workers/crons/streaks/cron.streaks.service';
@@ -14,7 +16,9 @@ describe('CronStreaksService', () => {
     listStreakOrganizationIds: ReturnType<typeof vi.fn>;
     processStaleStreaks: ReturnType<typeof vi.fn>;
   };
-  let provenanceService: { runAction: ReturnType<typeof vi.fn> };
+  let actionExecutor: SystemWorkflowActionExecutor;
+  let provenanceService: { registerAction: ReturnType<typeof vi.fn> };
+  let workflowQueue: { queueSystemAction: ReturnType<typeof vi.fn> };
   let loggerService: {
     log: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
@@ -33,15 +37,24 @@ describe('CronStreaksService', () => {
     };
 
     provenanceService = {
-      runAction: vi.fn(
-        async (_input: unknown, action: () => Promise<unknown>) => ({
-          provenance: {
-            executionId: 'execution-1',
-            workflowId: 'workflow-1',
-            workflowLabel: 'Streak Maintenance',
-          },
-          result: await action(),
-        }),
+      registerAction: vi.fn(
+        (_actionId: string, executor: SystemWorkflowActionExecutor) => {
+          actionExecutor = executor;
+        },
+      ),
+    };
+    workflowQueue = {
+      queueSystemAction: vi.fn(
+        async (input: { inputValues?: Record<string, unknown> }) =>
+          actionExecutor({
+            context: {} as never,
+            input: input.inputValues ?? {},
+            provenance: {
+              executionId: 'execution-1',
+              workflowId: 'workflow-1',
+              workflowLabel: 'Streak Maintenance',
+            },
+          }),
       ),
     };
 
@@ -61,6 +74,7 @@ describe('CronStreaksService', () => {
           provide: SystemWorkflowRunnerService,
           useValue: provenanceService,
         },
+        { provide: WorkflowExecutionQueueService, useValue: workflowQueue },
         {
           provide: LoggerService,
           useValue: loggerService,
@@ -69,19 +83,20 @@ describe('CronStreaksService', () => {
     }).compile();
 
     service = module.get(CronStreaksService);
+    service.onModuleInit();
   });
 
   describe('processStreaks', () => {
     it('processes each organization inside a system workflow execution', async () => {
       await service.processStreaks();
 
-      expect(provenanceService.runAction).toHaveBeenCalledTimes(2);
-      expect(provenanceService.runAction).toHaveBeenCalledWith(
+      expect(workflowQueue.queueSystemAction).toHaveBeenCalledTimes(2);
+      expect(workflowQueue.queueSystemAction).toHaveBeenCalledWith(
         expect.objectContaining({
           canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.STREAK_MAINTENANCE,
           organizationId: 'org-1',
         }),
-        expect.any(Function),
+        expect.any(String),
       );
       expect(streaksService.processStaleStreaks).toHaveBeenCalledWith(
         expect.any(Date),
@@ -99,26 +114,26 @@ describe('CronStreaksService', () => {
       expect(loggerService.log).toHaveBeenCalledWith(
         'CronStreaksService completed',
         {
-          atRisk: 10,
-          broken: 4,
-          frozen: 2,
           organizations: 2,
+          queued: 2,
         },
       );
     });
 
     it('continues with remaining organizations when one fails', async () => {
-      provenanceService.runAction
+      workflowQueue.queueSystemAction
         .mockRejectedValueOnce(new Error('DB failure'))
-        .mockImplementation(
-          async (_input: unknown, action: () => Promise<unknown>) => ({
-            provenance: {
-              executionId: 'execution-2',
-              workflowId: 'workflow-1',
-              workflowLabel: 'Streak Maintenance',
-            },
-            result: await action(),
-          }),
+        .mockImplementationOnce(
+          async (input: { inputValues?: Record<string, unknown> }) =>
+            actionExecutor({
+              context: {} as never,
+              input: input.inputValues ?? {},
+              provenance: {
+                executionId: 'execution-2',
+                workflowId: 'workflow-1',
+                workflowLabel: 'Streak Maintenance',
+              },
+            }),
         );
 
       await expect(service.processStreaks()).resolves.toBeUndefined();
@@ -130,10 +145,8 @@ describe('CronStreaksService', () => {
       expect(loggerService.log).toHaveBeenCalledWith(
         'CronStreaksService completed',
         {
-          atRisk: 5,
-          broken: 2,
-          frozen: 1,
           organizations: 2,
+          queued: 1,
         },
       );
     });
@@ -143,15 +156,13 @@ describe('CronStreaksService', () => {
 
       await service.processStreaks();
 
-      expect(provenanceService.runAction).not.toHaveBeenCalled();
+      expect(workflowQueue.queueSystemAction).not.toHaveBeenCalled();
       expect(streaksService.processStaleStreaks).not.toHaveBeenCalled();
       expect(loggerService.log).toHaveBeenCalledWith(
         'CronStreaksService completed',
         {
-          atRisk: 0,
-          broken: 0,
-          frozen: 0,
           organizations: 0,
+          queued: 0,
         },
       );
     });

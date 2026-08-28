@@ -23,6 +23,7 @@ export const SYSTEM_SWEEP_JOBS = {
   STREAK_MAINTENANCE: 'streak-maintenance-sweep',
   TIKTOK_STATUS: 'tiktok-status-sweep',
   TRANSCRIPT_PURGE: 'transcript-purge-sweep',
+  YOUTUBE_MESSAGES: 'youtube-messages-sweep',
   YOUTUBE_STATUS: 'youtube-status-sweep',
 } as const;
 
@@ -66,6 +67,11 @@ export const SYSTEM_SWEEP_DEFINITIONS: SystemSweepDefinition[] = [
   {
     jobName: SYSTEM_SWEEP_JOBS.YOUTUBE_STATUS,
     pattern: '0 1 * * *',
+    timezone: 'UTC',
+  },
+  {
+    jobName: SYSTEM_SWEEP_JOBS.YOUTUBE_MESSAGES,
+    pattern: '*/30 * * * *',
     timezone: 'UTC',
   },
   {

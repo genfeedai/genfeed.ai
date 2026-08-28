@@ -21,6 +21,7 @@ import type {
   RunSystemWorkflowInput,
   SystemWorkflowGraphDefinition,
 } from '@server/collections/workflows/system-workflow-runner.service';
+import { createSystemActionWorkflowDefinition } from '@server/collections/workflows/system-workflow-runner.service';
 import { Queue } from 'bullmq';
 
 // =============================================================================
@@ -188,6 +189,21 @@ export class WorkflowExecutionQueueService {
     });
 
     return requireQueueJobId(job.id, 'queueing a system workflow');
+  }
+
+  async queueSystemAction(
+    input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
+    jobId: string,
+  ): Promise<string> {
+    const definition = createSystemActionWorkflowDefinition(input.canonicalId);
+    return this.queueSystemWorkflowDefinition(
+      definition,
+      {
+        ...input,
+        inputValues: { payload: input.inputValues ?? {} },
+      },
+      jobId,
+    );
   }
 
   /**

@@ -106,6 +106,20 @@ describe('Genfeed action registry', () => {
     expect(getActionDefinition('clip.continuity.persist-report')).toBeDefined();
   });
 
+  it('owns recurring product actions launched by system sweeps', () => {
+    expect(
+      [
+        'engagement-rule-evaluation',
+        'review-gate-timeout',
+        'rss-source-poll',
+        'streak-maintenance',
+        'tiktok-status-reconciliation',
+        'youtube-comments-ingest',
+        'youtube-status-reconciliation',
+      ].every((actionId) => getActionDefinition(actionId)),
+    ).toBe(true);
+  });
+
   it('owns workflow credit policy instead of delegating it to the engine', () => {
     expect(getActionDefinition('imageGen')?.credits).toEqual({
       amount: 5,

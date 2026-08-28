@@ -1,10 +1,13 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { RssSourcesService } from '@server/collections/rss-sources/services/rss-sources.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
+
+const RSS_SWEEP_INTERVAL_MS = 15 * 60 * 1000;
 
 @Injectable()
 export class CronRssAutopostService {
@@ -12,6 +15,7 @@ export class CronRssAutopostService {
     private readonly logger: LoggerService,
     private readonly rssSourcesService: RssSourcesService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
   ) {
     this.systemWorkflowRunner.registerAction(
       SYSTEM_WORKFLOW_ACTION_IDS.RSS_SOURCE_POLL,
@@ -50,19 +54,22 @@ export class CronRssAutopostService {
 
     for (const source of sources) {
       try {
-        await this.systemWorkflowRunner.runAction({
-          actionType: SYSTEM_WORKFLOW_ACTION_IDS.RSS_SOURCE_POLL,
-          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.RSS_SOURCE_POLL,
-          inputValues: {
-            ...(source.brandId ? { brandId: source.brandId } : {}),
+        await this.workflowQueue.queueSystemAction(
+          {
+            actionType: SYSTEM_WORKFLOW_ACTION_IDS.RSS_SOURCE_POLL,
+            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.RSS_SOURCE_POLL,
+            inputValues: {
+              ...(source.brandId ? { brandId: source.brandId } : {}),
+              organizationId: source.organizationId,
+              sourceId: source.id,
+              userId: source.userId,
+            },
             organizationId: source.organizationId,
-            sourceId: source.id,
+            source: 'rss_autopost_sweep',
             userId: source.userId,
           },
-          organizationId: source.organizationId,
-          source: 'rss_autopost_sweep',
-          userId: source.userId,
-        });
+          `${SYSTEM_WORKFLOW_ACTION_IDS.RSS_SOURCE_POLL}-${source.id}-${Math.floor(Date.now() / RSS_SWEEP_INTERVAL_MS)}`,
+        );
       } catch (error: unknown) {
         this.logger.error('RSS autopost poll failed for source', {
           error: error instanceof Error ? error.message : 'Unknown error',

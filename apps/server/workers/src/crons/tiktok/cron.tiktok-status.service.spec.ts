@@ -3,8 +3,10 @@ import { SERVER_TOKENS } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PostsService } from '@server/collections/posts/services/posts.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
+  type SystemWorkflowActionExecutor,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
 import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
@@ -16,6 +18,7 @@ describe('CronTiktokStatusService', () => {
   let service: CronTiktokStatusService;
   let postsService: {
     findAll: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
   let tiktokService: {
@@ -26,7 +29,9 @@ describe('CronTiktokStatusService', () => {
     emitLegacyPostFailed: ReturnType<typeof vi.fn>;
     emitLegacyPostPublished: ReturnType<typeof vi.fn>;
   };
-  let provenanceService: { runAction: ReturnType<typeof vi.fn> };
+  let actionExecutor: SystemWorkflowActionExecutor;
+  let provenanceService: { registerAction: ReturnType<typeof vi.fn> };
+  let workflowQueue: { queueSystemAction: ReturnType<typeof vi.fn> };
   let schedulerPublishStateService: {
     transitionPost: ReturnType<typeof vi.fn>;
   };
@@ -34,6 +39,7 @@ describe('CronTiktokStatusService', () => {
   beforeEach(async () => {
     postsService = {
       findAll: vi.fn().mockResolvedValue({ docs: [] }),
+      findOne: vi.fn(),
       patch: vi.fn(),
     };
     tiktokService = {
@@ -45,25 +51,24 @@ describe('CronTiktokStatusService', () => {
       emitLegacyPostPublished: vi.fn().mockResolvedValue(undefined),
     };
     provenanceService = {
-      runAction: vi.fn(
-        async (
-          _input: unknown,
-          action: (provenance: {
-            executionId: string;
-            workflowId: string;
-            workflowLabel: string;
-          }) => Promise<unknown>,
-        ) => {
-          const provenance = {
-            executionId: 'execution-1',
-            workflowId: 'workflow-1',
-            workflowLabel: 'TikTok Status Reconciliation',
-          };
-          return {
-            provenance,
-            result: await action(provenance),
-          };
+      registerAction: vi.fn(
+        (_actionId: string, executor: SystemWorkflowActionExecutor) => {
+          actionExecutor = executor;
         },
+      ),
+    };
+    workflowQueue = {
+      queueSystemAction: vi.fn(
+        async (input: { inputValues?: Record<string, unknown> }) =>
+          actionExecutor({
+            context: {} as never,
+            input: input.inputValues ?? {},
+            provenance: {
+              executionId: 'execution-1',
+              workflowId: 'workflow-1',
+              workflowLabel: 'TikTok Status Reconciliation',
+            },
+          }),
       ),
     };
     schedulerPublishStateService = {
@@ -99,6 +104,7 @@ describe('CronTiktokStatusService', () => {
           provide: SystemWorkflowRunnerService,
           useValue: provenanceService,
         },
+        { provide: WorkflowExecutionQueueService, useValue: workflowQueue },
         {
           provide: PublishEventWebhookService,
           useValue: publishEventWebhookService,
@@ -111,6 +117,7 @@ describe('CronTiktokStatusService', () => {
     }).compile();
 
     service = module.get<CronTiktokStatusService>(CronTiktokStatusService);
+    service.onModuleInit();
   });
 
   it('should be defined', () => {
@@ -133,6 +140,7 @@ describe('CronTiktokStatusService', () => {
       userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
+    postsService.findOne.mockResolvedValue(post);
     // Empty access token bypasses EncryptionUtil.decrypt (no key needed in tests)
     tiktokService.refreshToken.mockResolvedValue({ accessToken: '' });
     tiktokService.getPublishStatus.mockResolvedValue({
@@ -142,12 +150,12 @@ describe('CronTiktokStatusService', () => {
 
     await service.checkPendingTiktokPosts();
 
-    expect(provenanceService.runAction).toHaveBeenCalledWith(
+    expect(workflowQueue.queueSystemAction).toHaveBeenCalledWith(
       expect.objectContaining({
         canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TIKTOK_STATUS_RECONCILIATION,
         organizationId: 'org-1',
       }),
-      expect.any(Function),
+      expect.any(String),
     );
     expect(schedulerPublishStateService.transitionPost).toHaveBeenCalledWith(
       post,
@@ -187,14 +195,15 @@ describe('CronTiktokStatusService', () => {
       userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
+    postsService.findOne.mockResolvedValue(post);
 
     await service.checkPendingTiktokPosts();
 
-    expect(provenanceService.runAction).toHaveBeenCalledWith(
+    expect(workflowQueue.queueSystemAction).toHaveBeenCalledWith(
       expect.objectContaining({
         canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TIKTOK_STATUS_RECONCILIATION,
       }),
-      expect.any(Function),
+      expect.any(String),
     );
     expect(schedulerPublishStateService.transitionPost).toHaveBeenCalledWith(
       post,
@@ -231,6 +240,7 @@ describe('CronTiktokStatusService', () => {
       userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
+    postsService.findOne.mockResolvedValue(post);
     schedulerPublishStateService.transitionPost.mockResolvedValue(false);
 
     await service.checkPendingTiktokPosts();
@@ -256,9 +266,7 @@ describe('CronTiktokStatusService', () => {
       userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
-    provenanceService.runAction.mockRejectedValue(
-      new Error('provenance unavailable'),
-    );
+    workflowQueue.queueSystemAction.mockRejectedValue(new Error('queue down'));
 
     await expect(service.checkPendingTiktokPosts()).resolves.toBeUndefined();
   });
@@ -280,6 +288,7 @@ describe('CronTiktokStatusService', () => {
       userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
+    postsService.findOne.mockResolvedValue(post);
     tiktokService.refreshToken.mockResolvedValue({ accessToken: '' });
     tiktokService.getPublishStatus.mockResolvedValue({
       publicly_available_post_id: ['tiktok-post-4'],
@@ -323,6 +332,7 @@ describe('CronTiktokStatusService', () => {
       userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
+    postsService.findOne.mockResolvedValue(post);
     tiktokService.refreshToken.mockResolvedValue({ accessToken: '' });
     tiktokService.getPublishStatus.mockResolvedValue({
       publicly_available_post_id: ['tiktok-stale-success'],

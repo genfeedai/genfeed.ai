@@ -164,6 +164,14 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
         'The sweep discovers enabled sources; each source poll runs through the rss-source-poll hidden workflow action.',
       systemWorkflowIds: ['rss-source-poll'],
     },
+    {
+      classification: 'workflow-adapter',
+      file: 'apps/server/workers/src/crons/youtube/cron.youtube-messages.service.ts',
+      id: 'youtube-comments-ingest',
+      reason:
+        'The sweep discovers connected credentials; each credential queues the youtube-comments-ingest hidden workflow action.',
+      systemWorkflowIds: ['youtube-comments-ingest'],
+    },
   ];
 
 const PRODUCT_CRON_PATH_SEGMENTS = ['/content-pipeline/', '/posts/'];
@@ -222,6 +230,15 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
       /\brssSourcesService\s*\.\s*pollSource\s*\(/.test(source),
     message:
       'RSS source polling must be isolated inside a registered workflow action.',
+  },
+  {
+    id: 'youtube-comments-direct-ingest',
+    matches: (file, source) =>
+      file ===
+        'apps/server/workers/src/crons/youtube/cron.youtube-messages.service.ts' &&
+      /\bsocialInboxService\s*\.\s*ingestYoutubeComments\s*\(/.test(source),
+    message:
+      'YouTube social-inbox ingestion must be isolated inside a registered workflow action.',
   },
   {
     id: 'product-cron-service',

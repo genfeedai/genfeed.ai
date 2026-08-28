@@ -650,6 +650,11 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Reconciles YouTube video visibility.',
   ),
   internalAction(
+    'youtube-comments-ingest',
+    'Ingest YouTube Comments',
+    'Ingests one connected YouTube account into the social inbox.',
+  ),
+  internalAction(
     'workflow.collect-output',
     'Collect Workflow Output',
     'Collects terminal workflow inputs into one structured result.',

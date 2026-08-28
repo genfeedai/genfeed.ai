@@ -48,6 +48,7 @@ export const SYSTEM_WORKFLOW_ACTION_IDS = {
   STREAK_MAINTENANCE: 'streak-maintenance',
   TIKTOK_STATUS_RECONCILIATION: 'tiktok-status-reconciliation',
   TWITTER_PUBLISH_ACTION: 'twitter-publish-action',
+  YOUTUBE_COMMENTS_INGEST: 'youtube-comments-ingest',
   YOUTUBE_STATUS_RECONCILIATION: 'youtube-status-reconciliation',
 } as const;
 
@@ -97,6 +98,40 @@ export type RunSystemWorkflowInput = {
   userId?: string;
   runtimeContext?: unknown;
 };
+
+export function createSystemActionWorkflowDefinition(
+  actionId: string,
+): SystemWorkflowGraphDefinition {
+  const actionDefinition = getActionDefinition(actionId);
+  if (!actionDefinition) {
+    throw new Error(`Unknown Genfeed action: ${actionId}`);
+  }
+
+  return {
+    canonicalId: actionDefinition.id,
+    definition: {
+      edges: [],
+      inputVariables: [
+        {
+          key: 'payload',
+          label: 'Action input',
+          required: true,
+          type: 'json',
+        },
+      ],
+      nodes: [
+        createGenfeedActionNode({
+          actionId: actionDefinition.id,
+          id: 'system-action',
+          inputVariableKeys: ['payload'],
+        }),
+      ],
+    },
+    description: actionDefinition.description,
+    label: actionDefinition.label,
+    resultNodeId: 'system-action',
+  };
+}
 
 @Injectable()
 export class SystemWorkflowRunnerService {
@@ -169,31 +204,7 @@ export class SystemWorkflowRunnerService {
     provenance: SystemWorkflowProvenance;
     result: T;
   }> {
-    const actionDefinition = this.resolveDefinition(input.canonicalId);
-    const definition: SystemWorkflowGraphDefinition = {
-      canonicalId: actionDefinition.id,
-      definition: {
-        edges: [],
-        inputVariables: [
-          {
-            key: 'payload',
-            label: 'Action input',
-            required: true,
-            type: 'json',
-          },
-        ],
-        nodes: [
-          createGenfeedActionNode({
-            actionId: actionDefinition.id,
-            id: 'system-action',
-            inputVariableKeys: ['payload'],
-          }),
-        ],
-      },
-      description: actionDefinition.description,
-      label: actionDefinition.label,
-      resultNodeId: 'system-action',
-    };
+    const definition = createSystemActionWorkflowDefinition(input.canonicalId);
 
     return this.executeDefinition<T>(definition, {
       ...input,

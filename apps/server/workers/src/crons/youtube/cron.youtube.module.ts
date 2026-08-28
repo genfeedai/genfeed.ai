@@ -23,7 +23,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     SocialIntegrationsModule,
     PrismaModule,
   ],
-  exports: [CronYoutubeStatusService],
+  exports: [CronYoutubeMessagesService, CronYoutubeStatusService],
   providers: [
     CronYoutubeMessagesService,
     CronYoutubeStatusService,

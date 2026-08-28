@@ -23,6 +23,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowRunnerService,
@@ -44,6 +45,8 @@ const EMPTY_SNAPSHOT: EngagementMetricSnapshot = {
   shares: 0,
   views: 0,
 };
+
+const ENGAGEMENT_SWEEP_INTERVAL_MS = 15 * 60 * 1000;
 
 type StoredRule = {
   actionPayload: unknown;
@@ -80,6 +83,7 @@ export class CronEngagementTriggersService {
     private readonly postGroupsService: PostGroupsService,
     private readonly publisherFactory: PublisherFactoryService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
   ) {
     this.systemWorkflowRunner.registerAction(
       SYSTEM_WORKFLOW_ACTION_IDS.ENGAGEMENT_RULE_EVALUATION,
@@ -115,17 +119,20 @@ export class CronEngagementTriggersService {
 
     for (const rule of rules) {
       try {
-        await this.systemWorkflowRunner.runAction({
-          actionType: SYSTEM_WORKFLOW_ACTION_IDS.ENGAGEMENT_RULE_EVALUATION,
-          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.ENGAGEMENT_RULE_EVALUATION,
-          inputValues: {
+        await this.workflowQueue.queueSystemAction(
+          {
+            actionType: SYSTEM_WORKFLOW_ACTION_IDS.ENGAGEMENT_RULE_EVALUATION,
+            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.ENGAGEMENT_RULE_EVALUATION,
+            inputValues: {
+              organizationId: rule.organizationId,
+              ruleId: rule.id,
+            },
             organizationId: rule.organizationId,
-            ruleId: rule.id,
+            source: 'engagement_rule_sweep',
+            userId: rule.userId,
           },
-          organizationId: rule.organizationId,
-          source: 'engagement_rule_sweep',
-          userId: rule.userId,
-        });
+          `${SYSTEM_WORKFLOW_ACTION_IDS.ENGAGEMENT_RULE_EVALUATION}-${rule.id}-${Math.floor(Date.now() / ENGAGEMENT_SWEEP_INTERVAL_MS)}`,
+        );
       } catch (error: unknown) {
         this.logger.error('Engagement trigger failed for rule', {
           error: error instanceof Error ? error.message : 'Unknown error',

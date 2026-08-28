@@ -10,6 +10,7 @@ import { CronRssAutopostService } from '@workers/crons/rss/cron.rss-autopost.ser
 import { CronStreaksService } from '@workers/crons/streaks/cron.streaks.service';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
 import { CronTranscriptPurgeService } from '@workers/crons/transcript-purge/cron.transcript-purge.service';
+import { CronYoutubeMessagesService } from '@workers/crons/youtube/cron.youtube-messages.service';
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
 import { SYSTEM_SWEEP_JOBS } from '@workers/scheduling/system-sweeps.constants';
 import { SystemSweepsProcessor } from '@workers/scheduling/system-sweeps.processor';
@@ -36,6 +37,7 @@ describe('SystemSweepsProcessor', () => {
   let transcriptPurgeService: {
     purgeExpiredTranscripts: ReturnType<typeof vi.fn>;
   };
+  let youtubeMessagesService: { syncYoutubeMessages: ReturnType<typeof vi.fn> };
   let youtubeService: { checkScheduledYoutubeVideos: ReturnType<typeof vi.fn> };
   let configService: { isDevSchedulersEnabled: boolean };
   let logger: {
@@ -60,6 +62,7 @@ describe('SystemSweepsProcessor', () => {
     streaksService = { processStreaks: vi.fn() };
     tiktokService = { checkPendingTiktokPosts: vi.fn() };
     transcriptPurgeService = { purgeExpiredTranscripts: vi.fn() };
+    youtubeMessagesService = { syncYoutubeMessages: vi.fn() };
     youtubeService = { checkScheduledYoutubeVideos: vi.fn() };
     configService = { isDevSchedulersEnabled: true };
     logger = { debug: vi.fn(), warn: vi.fn() };
@@ -91,6 +94,10 @@ describe('SystemSweepsProcessor', () => {
         {
           provide: CronTranscriptPurgeService,
           useValue: transcriptPurgeService,
+        },
+        {
+          provide: CronYoutubeMessagesService,
+          useValue: youtubeMessagesService,
         },
         { provide: CronYoutubeStatusService, useValue: youtubeService },
         { provide: LoggerService, useValue: logger },
@@ -128,6 +135,12 @@ describe('SystemSweepsProcessor', () => {
     await processor.process(jobNamed(SYSTEM_SWEEP_JOBS.YOUTUBE_STATUS));
 
     expect(youtubeService.checkScheduledYoutubeVideos).toHaveBeenCalledOnce();
+  });
+
+  it('dispatches the YouTube inbox sweep', async () => {
+    await processor.process(jobNamed(SYSTEM_SWEEP_JOBS.YOUTUBE_MESSAGES));
+
+    expect(youtubeMessagesService.syncYoutubeMessages).toHaveBeenCalledOnce();
   });
 
   it('dispatches the streak maintenance sweep', async () => {

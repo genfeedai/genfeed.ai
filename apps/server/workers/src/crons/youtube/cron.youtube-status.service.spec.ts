@@ -6,8 +6,10 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PostsService } from '@server/collections/posts/services/posts.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
+  type SystemWorkflowActionExecutor,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
 import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
@@ -19,6 +21,7 @@ describe('CronYoutubeStatusService', () => {
   let service: CronYoutubeStatusService;
   let postsService: {
     findAll: ReturnType<typeof vi.fn>;
+    findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
   let youtubeService: { getVideoStatus: ReturnType<typeof vi.fn> };
@@ -26,7 +29,9 @@ describe('CronYoutubeStatusService', () => {
     emitLegacyPostFailed: ReturnType<typeof vi.fn>;
     emitLegacyPostPublished: ReturnType<typeof vi.fn>;
   };
-  let provenanceService: { runAction: ReturnType<typeof vi.fn> };
+  let actionExecutor: SystemWorkflowActionExecutor;
+  let provenanceService: { registerAction: ReturnType<typeof vi.fn> };
+  let workflowQueue: { queueSystemAction: ReturnType<typeof vi.fn> };
   let schedulerPublishStateService: {
     transitionPost: ReturnType<typeof vi.fn>;
   };
@@ -34,6 +39,7 @@ describe('CronYoutubeStatusService', () => {
   beforeEach(async () => {
     postsService = {
       findAll: vi.fn().mockResolvedValue({ docs: [] }),
+      findOne: vi.fn(),
       patch: vi.fn(),
     };
     youtubeService = {
@@ -44,25 +50,24 @@ describe('CronYoutubeStatusService', () => {
       emitLegacyPostPublished: vi.fn().mockResolvedValue(undefined),
     };
     provenanceService = {
-      runAction: vi.fn(
-        async (
-          _input: unknown,
-          action: (provenance: {
-            executionId: string;
-            workflowId: string;
-            workflowLabel: string;
-          }) => Promise<unknown>,
-        ) => {
-          const provenance = {
-            executionId: 'execution-1',
-            workflowId: 'workflow-1',
-            workflowLabel: 'YouTube Status Reconciliation',
-          };
-          return {
-            provenance,
-            result: await action(provenance),
-          };
+      registerAction: vi.fn(
+        (_actionId: string, executor: SystemWorkflowActionExecutor) => {
+          actionExecutor = executor;
         },
+      ),
+    };
+    workflowQueue = {
+      queueSystemAction: vi.fn(
+        async (input: { inputValues?: Record<string, unknown> }) =>
+          actionExecutor({
+            context: {} as never,
+            input: input.inputValues ?? {},
+            provenance: {
+              executionId: 'execution-1',
+              workflowId: 'workflow-1',
+              workflowLabel: 'YouTube Status Reconciliation',
+            },
+          }),
       ),
     };
     schedulerPublishStateService = {
@@ -92,6 +97,7 @@ describe('CronYoutubeStatusService', () => {
           provide: SystemWorkflowRunnerService,
           useValue: provenanceService,
         },
+        { provide: WorkflowExecutionQueueService, useValue: workflowQueue },
         {
           provide: PublishEventWebhookService,
           useValue: publishEventWebhookService,
@@ -104,6 +110,7 @@ describe('CronYoutubeStatusService', () => {
     }).compile();
 
     service = module.get<CronYoutubeStatusService>(CronYoutubeStatusService);
+    service.onModuleInit();
   });
 
   it('rolls a grouped public video into canonical target state', async () => {
@@ -118,6 +125,7 @@ describe('CronYoutubeStatusService', () => {
       userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
+    postsService.findOne.mockResolvedValue(post);
     youtubeService.getVideoStatus.mockResolvedValue({
       privacyStatus: 'public',
     });
@@ -160,18 +168,19 @@ describe('CronYoutubeStatusService', () => {
       userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
+    postsService.findOne.mockResolvedValue(post);
     youtubeService.getVideoStatus.mockResolvedValue({
       privacyStatus: 'public',
     });
 
     await service.checkScheduledYoutubeVideos();
 
-    expect(provenanceService.runAction).toHaveBeenCalledWith(
+    expect(workflowQueue.queueSystemAction).toHaveBeenCalledWith(
       expect.objectContaining({
         canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.YOUTUBE_STATUS_RECONCILIATION,
         organizationId: 'org-1',
       }),
-      expect.any(Function),
+      expect.any(String),
     );
     expect(schedulerPublishStateService.transitionPost).toHaveBeenCalledWith(
       post,
@@ -206,6 +215,7 @@ describe('CronYoutubeStatusService', () => {
       userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
+    postsService.findOne.mockResolvedValue(post);
     youtubeService.getVideoStatus.mockResolvedValue({
       privacyStatus: 'public',
     });
@@ -230,13 +240,15 @@ describe('CronYoutubeStatusService', () => {
       userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
+    postsService.findOne.mockResolvedValue(post);
     youtubeService.getVideoStatus.mockResolvedValue({
       privacyStatus: 'private',
     });
 
     await service.checkScheduledYoutubeVideos();
 
-    expect(provenanceService.runAction).not.toHaveBeenCalled();
+    expect(workflowQueue.queueSystemAction).toHaveBeenCalledTimes(1);
+    expect(schedulerPublishStateService.transitionPost).not.toHaveBeenCalled();
     expect(postsService.patch).not.toHaveBeenCalled();
   });
 
@@ -251,17 +263,18 @@ describe('CronYoutubeStatusService', () => {
       userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
+    postsService.findOne.mockResolvedValue(post);
     youtubeService.getVideoStatus.mockRejectedValue(
       new Error('Video not found'),
     );
 
     await service.checkScheduledYoutubeVideos();
 
-    expect(provenanceService.runAction).toHaveBeenCalledWith(
+    expect(workflowQueue.queueSystemAction).toHaveBeenCalledWith(
       expect.objectContaining({
         canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.YOUTUBE_STATUS_RECONCILIATION,
       }),
-      expect.any(Function),
+      expect.any(String),
     );
     expect(postsService.patch).toHaveBeenCalledWith('post-3', {
       isDeleted: true,

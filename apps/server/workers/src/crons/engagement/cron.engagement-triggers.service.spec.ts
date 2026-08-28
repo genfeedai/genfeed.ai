@@ -18,6 +18,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import type {
   SystemWorkflowActionExecutor,
   SystemWorkflowRunnerService,
@@ -88,23 +89,19 @@ describe('CronEngagementTriggersService', () => {
         actionExecutor = executor;
       },
     ),
-    runAction: vi.fn(
-      async (input: { inputValues: Record<string, unknown> }) => ({
-        provenance: {
-          executionId: 'execution-1',
-          workflowId: 'workflow-1',
-          workflowLabel: 'Evaluate Engagement Rule',
-        },
-        result: await actionExecutor({
+  };
+  const workflowQueue = {
+    queueSystemAction: vi.fn(
+      async (input: { inputValues?: Record<string, unknown> }) =>
+        actionExecutor({
           context: {} as never,
-          input: input.inputValues,
+          input: input.inputValues ?? {},
           provenance: {
             executionId: 'execution-1',
             workflowId: 'workflow-1',
             workflowLabel: 'Evaluate Engagement Rule',
           },
         }),
-      }),
     ),
   };
   let service: CronEngagementTriggersService;
@@ -142,6 +139,7 @@ describe('CronEngagementTriggersService', () => {
       postGroupsService as unknown as PostGroupsService,
       publisherFactory as unknown as PublisherFactoryService,
       systemWorkflowRunner as unknown as SystemWorkflowRunnerService,
+      workflowQueue as unknown as WorkflowExecutionQueueService,
     );
   });
 

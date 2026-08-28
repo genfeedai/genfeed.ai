@@ -124,13 +124,6 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform recovery for deterministic raw-cut clip jobs after missed Redis pub/sub events or API restarts.',
   },
   {
-    file: 'apps/server/api/src/services/clip-orchestrator/clip-continuity-finalization.service.ts',
-    id: 'clip-continuity-finalization-recovery',
-    methodName: 'processPendingRuns',
-    reason:
-      'Platform recovery for durable continuity QA requests retained in the shared state store after missed events or API restarts.',
-  },
-  {
     file: 'apps/server/api/src/collections/trends/services/trends-warmup.service.ts',
     id: 'trends-warmup',
     methodName: 'warmGlobalTrendDatasets',
@@ -181,13 +174,6 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
     id: 'model-watcher',
     methodName: 'discoverNewModels',
     reason: 'Platform model catalog maintenance.',
-  },
-  {
-    file: 'apps/server/workers/src/crons/youtube/cron.youtube-messages.service.ts',
-    id: 'youtube-messages-ingestion',
-    methodName: 'syncYoutubeMessages',
-    reason:
-      'Platform social-inbox message ingestion across connected credentials.',
   },
   {
     file: 'apps/server/workers/src/crons/llm-idle/cron.llm-idle.service.ts',
@@ -301,6 +287,13 @@ export const SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST: CronBoundaryEntry[] = [
     methodName: 'checkScheduledYoutubeVideos',
     reason:
       'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/youtube/cron.youtube-messages.service.ts',
+    id: 'youtube-messages-sweep',
+    methodName: 'syncYoutubeMessages',
+    reason:
+      'System sweep discovery adapter; each connected credential queues a youtube-comments-ingest action workflow.',
   },
 ];
 

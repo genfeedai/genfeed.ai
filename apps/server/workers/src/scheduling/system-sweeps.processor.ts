@@ -11,6 +11,7 @@ import { CronRssAutopostService } from '@workers/crons/rss/cron.rss-autopost.ser
 import { CronStreaksService } from '@workers/crons/streaks/cron.streaks.service';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
 import { CronTranscriptPurgeService } from '@workers/crons/transcript-purge/cron.transcript-purge.service';
+import { CronYoutubeMessagesService } from '@workers/crons/youtube/cron.youtube-messages.service';
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
 import {
   SYSTEM_SWEEP_JOBS,
@@ -39,6 +40,7 @@ export class SystemSweepsProcessor extends WorkerHost {
     private readonly cronStreaksService: CronStreaksService,
     private readonly cronTiktokStatusService: CronTiktokStatusService,
     private readonly cronTranscriptPurgeService: CronTranscriptPurgeService,
+    private readonly cronYoutubeMessagesService: CronYoutubeMessagesService,
     private readonly cronYoutubeStatusService: CronYoutubeStatusService,
     private readonly logger: LoggerService,
   ) {
@@ -77,6 +79,10 @@ export class SystemSweepsProcessor extends WorkerHost {
 
       case SYSTEM_SWEEP_JOBS.YOUTUBE_STATUS:
         await this.cronYoutubeStatusService.checkScheduledYoutubeVideos();
+        return;
+
+      case SYSTEM_SWEEP_JOBS.YOUTUBE_MESSAGES:
+        await this.cronYoutubeMessagesService.syncYoutubeMessages();
         return;
 
       case SYSTEM_SWEEP_JOBS.STREAK_MAINTENANCE:
