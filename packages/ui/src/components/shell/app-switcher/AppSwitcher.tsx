@@ -414,11 +414,9 @@ function AppSwitcherGridItem({
             ? `${app.label} — locked. Generate your first asset to unlock.`
             : undefined
         }
-        onBlur={() => onPreviewChange(null)}
         onClick={() => onNavigateStart(navigationAnnouncement)}
         onFocus={() => onPreviewChange(app)}
         onMouseEnter={() => onPreviewChange(app)}
-        onMouseLeave={() => onPreviewChange(null)}
         className={cn(
           'group grid min-h-[4.5rem] min-w-0 grid-rows-[2.25rem_1.125rem] place-items-center gap-1 rounded-lg px-1 py-1.5 text-center outline-none',
           'border-transparent !bg-transparent !shadow-none !ring-0 !ring-offset-0',
@@ -551,9 +549,10 @@ export function AppSwitcher({
   });
   const activeApp = apps.find((app) => app.itemKey === activeItemKey);
   const previewApp = apps.find((app) => app.itemKey === previewAppKey) ?? null;
-  const previewRowIndex = previewApp
+  const displayedApp = previewApp ?? activeApp ?? apps[0] ?? null;
+  const previewRowIndex = displayedApp
     ? Math.floor(
-        apps.findIndex((app) => app.itemKey === previewApp.itemKey) / 3,
+        apps.findIndex((app) => app.itemKey === displayedApp.itemKey) / 3,
       )
     : 0;
   const previewRowTopClass = [
@@ -562,8 +561,8 @@ export function AppSwitcher({
     'top-[13.125rem]',
     'top-[18rem]',
   ][previewRowIndex];
-  const PreviewIcon = previewApp
-    ? (APP_SWITCHER_ICON_OVERRIDES[previewApp.itemKey] ?? previewApp.icon)
+  const PreviewIcon = displayedApp
+    ? (APP_SWITCHER_ICON_OVERRIDES[displayedApp.itemKey] ?? displayedApp.icon)
     : null;
   const ActiveIcon = activeApp?.icon ?? LayoutGrid;
   const activeLabel = activeApp?.label ?? 'Apps';
@@ -614,7 +613,8 @@ export function AppSwitcher({
       <DropdownMenuContent
         align="end"
         sideOffset={8}
-        className="relative w-[calc(100vw-2rem)] !overflow-visible p-0 sm:w-[19rem]"
+        collisionPadding={16}
+        className="w-[calc(100vw-2rem)] overflow-hidden p-0 sm:w-[35rem]"
         onCloseAutoFocus={(event) => {
           if (!preventTriggerAutoFocusRef.current) {
             return;
@@ -624,70 +624,75 @@ export function AppSwitcher({
           preventTriggerAutoFocusRef.current = false;
         }}
       >
-        {previewApp && PreviewIcon ? (
-          <div
-            aria-label={`${previewApp.label}: ${previewApp.description}`}
-            className={cn(
-              'absolute right-[calc(100%-1px)] z-[10002] flex h-[4.5rem] w-64 items-center gap-2.5 rounded-l-md rounded-r-none border-y border-l border-border bg-popover px-3 font-normal shadow-none',
-              previewRowTopClass,
-            )}
-            role="tooltip"
-          >
-            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-background-secondary text-foreground">
-              <PreviewIcon aria-hidden="true" className="size-[1.125rem]" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold text-foreground">
-                {previewApp.label}
-              </span>
-              <span className="mt-0.5 block text-xs leading-4 text-muted-foreground">
-                {previewApp.description}
-              </span>
-            </span>
-          </div>
-        ) : null}
-        <div className="max-h-[min(80vh,30rem)] overflow-y-auto rounded-md">
-          <div className="flex min-h-11 items-center justify-between gap-3 border-b border-border px-3 py-2">
-            <div className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/52">
-              Apps
-            </div>
-            <div className="min-w-0 truncate text-sm font-semibold text-foreground/58">
-              {tenantLabel}
-            </div>
-          </div>
-
-          <div
-            className="grid grid-cols-3 gap-1 px-2.5 py-2.5"
-            role="group"
-            aria-label="Apps"
-          >
-            {apps.map((app) => {
-              const navigation = resolveAppNavigation(app);
-
-              return (
-                <AppSwitcherGridItem
-                  key={app.itemKey}
-                  app={app}
-                  isActive={app.itemKey === activeItemKey}
-                  isLocked={isAppLocked(app)}
-                  href={navigation.href}
-                  navigationAnnouncement={navigation.announcement}
-                  onNavigateStart={handleNavigateStart}
-                  onPreviewChange={(preview) =>
-                    setPreviewAppKey(preview?.itemKey ?? null)
-                  }
-                />
-              );
-            })}
-          </div>
-
-          <div className="sr-only" aria-live="polite">
-            {activeApp ? (
-              <>
-                Current app:
-                <span className="truncate">{activeLabel}</span>
-              </>
+        <div className="grid max-h-[min(80vh,30rem)] sm:grid-cols-[16rem_19rem]">
+          <div className="relative hidden min-h-0 bg-popover sm:block">
+            {displayedApp && PreviewIcon ? (
+              <div
+                aria-label={`${displayedApp.label}: ${displayedApp.description}`}
+                aria-live="polite"
+                className={cn(
+                  'absolute inset-x-0 flex h-[4.5rem] items-center gap-2.5 px-3 font-normal',
+                  previewRowTopClass,
+                )}
+                role="status"
+              >
+                <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-background-secondary text-foreground">
+                  <PreviewIcon aria-hidden="true" className="size-[1.125rem]" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-foreground">
+                    {displayedApp.label}
+                  </span>
+                  <span className="mt-0.5 block text-xs leading-4 text-muted-foreground">
+                    {displayedApp.description}
+                  </span>
+                </span>
+              </div>
             ) : null}
+          </div>
+          <div className="min-h-0 overflow-y-auto">
+            <div className="flex min-h-11 items-center justify-between gap-3 border-b border-border px-3 py-2">
+              <div className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/52">
+                Apps
+              </div>
+              <div className="min-w-0 truncate text-sm font-semibold text-foreground/58">
+                {tenantLabel}
+              </div>
+            </div>
+
+            <div
+              className="grid grid-cols-3 gap-1 px-2.5 py-2.5"
+              role="group"
+              aria-label="Apps"
+            >
+              {apps.map((app) => {
+                const navigation = resolveAppNavigation(app);
+
+                return (
+                  <AppSwitcherGridItem
+                    key={app.itemKey}
+                    app={app}
+                    isActive={app.itemKey === activeItemKey}
+                    isLocked={isAppLocked(app)}
+                    href={navigation.href}
+                    navigationAnnouncement={navigation.announcement}
+                    onNavigateStart={handleNavigateStart}
+                    onPreviewChange={(preview) =>
+                      setPreviewAppKey(preview?.itemKey ?? null)
+                    }
+                  />
+                );
+              })}
+            </div>
+
+            <div className="sr-only" aria-live="polite">
+              {activeApp ? (
+                <>
+                  Current app:
+                  <span className="truncate">{activeLabel}</span>
+                </>
+              ) : null}
+            </div>
           </div>
         </div>
       </DropdownMenuContent>

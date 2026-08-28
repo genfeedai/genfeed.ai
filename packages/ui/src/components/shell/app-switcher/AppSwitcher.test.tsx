@@ -268,30 +268,26 @@ describe('AppSwitcher', () => {
   it('melts the hovered app details into the switcher left edge', () => {
     render(<AppSwitcher orgSlug="acme" />);
 
-    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: 'Workspace: Plan and manage.' }),
+    ).toBeInTheDocument();
     fireEvent.mouseEnter(screen.getByRole('link', { name: 'Agent' }));
 
-    const tooltip = screen.getByRole('tooltip', {
+    const tooltip = screen.getByRole('status', {
       name: 'Agent: Ask and execute.',
     });
 
-    expect(tooltip).toHaveClass(
-      'right-[calc(100%-1px)]',
-      'top-[3.375rem]',
-      'rounded-l-md',
-      'rounded-r-none',
-      'border-y',
-      'border-l',
-      'shadow-none',
-      'bg-popover',
-    );
-    expect(tooltip.className).not.toContain('border-r');
+    expect(tooltip).toHaveClass('inset-x-0', 'top-[3.375rem]');
+    expect(tooltip.className).not.toContain('right-[calc(100%-1px)]');
+    expect(tooltip.className).not.toContain('border');
     expect(tooltip.querySelector('svg')).toBeInTheDocument();
     expect(tooltip).toHaveTextContent('Agent');
     expect(tooltip).toHaveTextContent('Ask and execute.');
 
     fireEvent.mouseLeave(screen.getByRole('link', { name: 'Agent' }));
-    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: 'Agent: Ask and execute.' }),
+    ).toBeInTheDocument();
   });
 
   it('aligns hovered details with the app grid row', () => {
@@ -300,8 +296,8 @@ describe('AppSwitcher', () => {
     fireEvent.mouseEnter(screen.getByRole('link', { name: 'Discover' }));
 
     expect(
-      screen.getByRole('tooltip', { name: 'Discover: Find winners.' }),
-    ).toHaveClass('top-[12.875rem]');
+      screen.getByRole('status', { name: 'Discover: Find winners.' }),
+    ).toHaveClass('top-[13.125rem]');
   });
 
   it('hides Studio when its app-switcher discovery flag is disabled', () => {
