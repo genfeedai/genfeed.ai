@@ -35,6 +35,7 @@ export default function SidebarLogoToggleButton({
       size={ButtonSize.ICON}
       withWrapper={false}
       onClick={onClick}
+      onMouseDown={(event) => event.preventDefault()}
       ariaLabel={ariaLabel}
       className={cn(
         'relative flex size-8 flex-shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 text-foreground/72 shadow-none transition-colors',
