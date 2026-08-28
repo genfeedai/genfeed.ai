@@ -19,14 +19,14 @@ The generation story in the current repo spans a small set of stable entrypoints
 - [`apps/server/api/src/services/batch-generation/batch-generation.controller.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/batch-generation/batch-generation.controller.ts)
   - exposes the stable batch entrypoints under `batches`
   - routes create/process/review operations into the service layer
-- [`apps/server/api/src/services/batch-generation/batch-generation.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/batch-generation/batch-generation.service.ts)
+- [`apps/server/server/src/services/batch-generation/batch-generation.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/server/src/services/batch-generation/batch-generation.service.ts)
   - builds batch plans
   - delegates actual generation to `ContentGeneratorService`
 - [`packages/tools/src/registry/source/index.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/tools/src/registry/source/index.ts)
   - defines the canonical agent-visible generation tools
 - [`packages/tools/src/registry/tool-registry.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/tools/src/registry/tool-registry.ts)
   - assigns generation tool categories and UI action cards
-- [`apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts)
+- [`apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts)
   - dispatches generation tools to the internal media APIs
 - [`apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts)
   - discovers models from verified Replicate owners into an inactive review queue
