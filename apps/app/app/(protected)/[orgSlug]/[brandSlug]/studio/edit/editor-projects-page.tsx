@@ -5,6 +5,8 @@ import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
 import type { IEditorProject } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
@@ -65,6 +67,7 @@ function formatRelativeTime(dateStr: string): string {
 
 export default function EditorProjectsPage() {
   const { href } = useOrgUrl();
+  const notificationsService = NotificationsService.getInstance();
   const [projects, setProjects] = useState<IEditorProject[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,7 +85,8 @@ export default function EditorProjectsPage() {
       const service = await getEditorService();
       const allProjects = await service.findAll();
       setProjects(allProjects);
-    } catch (_err) {
+    } catch (error) {
+      logger.error('Failed to load editor projects', error);
       setError('Failed to load projects');
     }
   }, [getEditorService]);
@@ -102,11 +106,15 @@ export default function EditorProjectsPage() {
         const service = await getEditorService();
         await service.delete(projectId);
         setProjects((prev) => (prev ?? []).filter((p) => p.id !== projectId));
-      } catch {
-        // Silently fail
+      } catch (error) {
+        logger.error('Failed to delete editor project', {
+          error,
+          projectId,
+        });
+        notificationsService.error('Failed to delete project');
       }
     },
-    [getEditorService],
+    [getEditorService, notificationsService],
   );
 
   const newProjectButton = (
