@@ -62,7 +62,7 @@ type UpcomingInvoicePreview = {
 };
 
 const STRIPE_PINNED_API_VERSION: StripeConstructor.LatestApiVersion =
-  '2026-07-29.dahlia';
+  '2026-08-26.dahlia';
 
 function resolveStripeApiVersion(
   configured: string | undefined,
