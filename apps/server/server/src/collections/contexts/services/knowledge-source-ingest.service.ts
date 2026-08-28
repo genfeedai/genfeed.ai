@@ -104,15 +104,15 @@ export class KnowledgeSourceIngestService {
     state: KnowledgeSourceIngestState,
   ): Promise<KnowledgeSourceIngestState> {
     if (!state.source || state.status === 'skipped') return state;
+    const { error: _previousError, ...sourceWithoutError } = state.source;
     const next =
       state.status === 'ready'
         ? {
-            ...state.source,
-            error: undefined,
+            ...sourceWithoutError,
             status: KnowledgeBaseStatus.PROCESSING,
           }
         : {
-            ...state.source,
+            ...sourceWithoutError,
             error:
               state.status === 'unsupported'
                 ? `${state.source.category} sources are not ingested yet`
@@ -162,7 +162,9 @@ export class KnowledgeSourceIngestService {
           metadata: {
             chunkIndex,
             kind: KNOWLEDGE_SOURCE_CHUNK_KIND,
-            mimeType: state.extracted.mimeType,
+            ...(state.extracted.mimeType
+              ? { mimeType: state.extracted.mimeType }
+              : {}),
             referenceUrl: state.source.referenceUrl,
             source: 'knowledge-source',
             sourceCategory: state.source.category,
@@ -186,11 +188,11 @@ export class KnowledgeSourceIngestService {
     if (state.status !== 'ready') {
       return { chunkCount: 0, sourceId: state.source.id, status: state.status };
     }
+    const { error: _previousError, ...sourceWithoutError } = state.source;
     const next = {
-      ...state.source,
+      ...sourceWithoutError,
       chunkCount: error ? 0 : (state.chunks?.length ?? 0),
-      error,
-      ...(error ? {} : { lastIngestedAt: new Date().toISOString() }),
+      ...(error ? { error } : { lastIngestedAt: new Date().toISOString() }),
       status: error
         ? KnowledgeBaseStatus.FAILED
         : KnowledgeBaseStatus.COMPLETED,

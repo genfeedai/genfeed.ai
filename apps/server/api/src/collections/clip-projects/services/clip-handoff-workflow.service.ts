@@ -314,12 +314,12 @@ export class ClipHandoffWorkflowService implements OnModuleInit {
     const clipResultId = String(clipResult.id);
     const ingredientId = this.requireLinkedIngredientId(clipResult);
     const videoUrl = this.resolveClipVideoUrl(clipResult);
+    const summary = this.readString(clipResult.summary);
+    const title = this.readString(clipResult.title);
     const payload = {
       assets: [
         {
-          ...(this.readString(clipResult.summary)
-            ? { caption: this.readString(clipResult.summary) ?? undefined }
-            : {}),
+          ...(summary ? { caption: summary } : {}),
           assetId: ingredientId,
           mediaUrl: videoUrl,
           mimeType: 'video/mp4',
@@ -330,8 +330,8 @@ export class ClipHandoffWorkflowService implements OnModuleInit {
       metadata: {
         clipResultId,
         ingredientId,
-        summary: this.readString(clipResult.summary),
-        title: this.readString(clipResult.title),
+        ...(summary ? { summary } : {}),
+        ...(title ? { title } : {}),
       },
       platforms: ['instagram'],
       preparedAt: new Date().toISOString(),
