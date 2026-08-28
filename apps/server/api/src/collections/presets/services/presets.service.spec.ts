@@ -6,8 +6,8 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { PresetsService } from '@api/collections/presets/services/presets.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 describe('PresetsService', () => {
   const create = vi.fn();
@@ -19,7 +19,7 @@ describe('PresetsService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    findMany.mockResolvedValue([]);
+    findFirst.mockResolvedValue(null);
 
     service = new PresetsService(
       {
@@ -67,6 +67,27 @@ describe('PresetsService', () => {
         organizationId: 'organization-1',
       },
     });
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        config: { equals: 'editorial-portrait', path: ['key'] },
+        isDeleted: false,
+      },
+    });
+  });
+
+  it('finds a preset key without materializing the preset table', async () => {
+    findFirst.mockResolvedValue({ id: 'preset-1' });
+
+    await expect(service.findByKey('editorial-portrait')).resolves.toEqual({
+      id: 'preset-1',
+    });
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        config: { equals: 'editorial-portrait', path: ['key'] },
+        isDeleted: false,
+      },
+    });
+    expect(findMany).not.toHaveBeenCalled();
   });
 
   it('merges config-backed updates without dropping stored preset details', async () => {
