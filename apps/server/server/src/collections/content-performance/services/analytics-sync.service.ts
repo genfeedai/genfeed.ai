@@ -101,31 +101,36 @@ export class AnalyticsSyncService {
             `Analytics record ${row.id} requires a tenant-scoped post and brand`,
           );
         }
+        const contentType = mapPostCategoryToContentType(post.category);
         return {
           brandId,
           clicks: 0,
           comments: row.totalComments ?? 0,
-          contentRunId: post.contentRunId ?? undefined,
-          contentType: mapPostCategoryToContentType(post.category),
-          creativeVersion: post.creativeVersion ?? undefined,
-          externalPostId: post.externalId ?? undefined,
-          generationId: post.generationId ?? undefined,
-          hookVersion: post.hookVersion ?? undefined,
+          ...(post.contentRunId ? { contentRunId: post.contentRunId } : {}),
+          ...(contentType ? { contentType } : {}),
+          ...(post.creativeVersion
+            ? { creativeVersion: post.creativeVersion }
+            : {}),
+          ...(post.externalId ? { externalPostId: post.externalId } : {}),
+          ...(post.generationId ? { generationId: post.generationId } : {}),
+          ...(post.hookVersion ? { hookVersion: post.hookVersion } : {}),
           likes: row.totalLikes ?? 0,
           measuredAt: new Date(row.date).toISOString(),
           organizationId: options.organizationId,
-          personaId: post.personaId ?? undefined,
-          platform: row.platform ?? undefined,
+          ...(post.personaId ? { personaId: post.personaId } : {}),
+          ...(row.platform ? { platform: row.platform } : {}),
           postId,
-          publishIntent: post.publishIntent ?? undefined,
+          ...(post.publishIntent ? { publishIntent: post.publishIntent } : {}),
           saves: row.totalSaves ?? 0,
-          scheduleSlot: post.scheduleSlot ?? undefined,
+          ...(post.scheduleSlot ? { scheduleSlot: post.scheduleSlot } : {}),
           shares: row.totalShares ?? 0,
           sourceAnalyticsId: row.id,
-          userId: row.userId ?? undefined,
-          variantId: post.variantId ?? undefined,
+          ...(row.userId ? { userId: row.userId } : {}),
+          ...(post.variantId ? { variantId: post.variantId } : {}),
           views: row.totalViews ?? 0,
-          workflowExecutionId: post.workflowExecutionId ?? undefined,
+          ...(post.workflowExecutionId
+            ? { workflowExecutionId: post.workflowExecutionId }
+            : {}),
         } satisfies AnalyticsSyncItem;
       }),
     };

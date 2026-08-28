@@ -753,7 +753,13 @@ export class ArticlesContentService {
       topic: this.getArticleLabel(article),
     });
 
-    return { article, focus, harnessContext, modelConfig, organizationId };
+    return {
+      article,
+      ...(focus === undefined ? {} : { focus }),
+      harnessContext,
+      modelConfig,
+      organizationId,
+    };
   }
 
   async reviewExistingPrepared(

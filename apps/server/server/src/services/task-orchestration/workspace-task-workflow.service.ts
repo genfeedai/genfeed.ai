@@ -393,8 +393,11 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
         );
       return {
         ...state,
-        externalId: result.externalId,
-        ingredientId: result.ingredientId,
+        externalId: this.requiredString(
+          result.externalId,
+          'provider externalId',
+        ),
+        ingredientId: this.requiredString(result.ingredientId, 'ingredientId'),
       };
     });
   }
@@ -513,27 +516,11 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
     request: SystemWorkflowActionRequest,
   ): WorkspaceTaskWorkflowRequest {
     const record = this.readRecord(request.input.request, 'request');
-    const organizationId = this.requiredString(
-      record.organizationId,
-      'organizationId',
-    );
-    if (organizationId !== request.context.organizationId) {
+    const parsed = this.readRequestValue(record);
+    if (parsed.organizationId !== request.context.organizationId) {
       throw new Error('Workspace task workflow organization mismatch');
     }
-    return {
-      brandId: this.optionalString(record.brandId),
-      brandName: this.optionalString(record.brandName),
-      elevenlabsVoiceId: this.optionalString(record.elevenlabsVoiceId),
-      heygenAvatarId: this.optionalString(record.heygenAvatarId),
-      organizationId,
-      outputType: this.optionalString(record.outputType),
-      platforms: this.stringArray(record.platforms),
-      request: this.requiredString(record.request, 'request'),
-      taskId: this.requiredString(record.taskId, 'taskId'),
-      userId: this.requiredString(record.userId, 'userId'),
-      voiceId: this.optionalString(record.voiceId),
-      voiceProvider: this.optionalString(record.voiceProvider),
-    };
+    return parsed;
   }
 
   private readAgentRunItem(value: unknown): AgentRunItem {
@@ -555,18 +542,24 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
   private readFacecamState(value: unknown): FacecamState {
     const record = this.readRecord(value, 'facecam state');
     const generation = this.readRecord(record.generation, 'generation');
+    const externalId = this.optionalString(record.externalId);
+    const ingredientId = this.optionalString(record.ingredientId);
+    const avatarId = this.optionalString(generation.avatarId);
+    const clonedVoiceId = this.optionalString(generation.clonedVoiceId);
+    const heygenVoiceId = this.optionalString(generation.heygenVoiceId);
+    const voiceProvider = this.optionalString(generation.voiceProvider);
     return {
       ...this.readRequestValue(record),
-      externalId: this.optionalString(record.externalId),
+      ...(externalId === undefined ? {} : { externalId }),
       generation: {
-        avatarId: this.optionalString(generation.avatarId),
-        clonedVoiceId: this.optionalString(generation.clonedVoiceId),
-        heygenVoiceId: this.optionalString(generation.heygenVoiceId),
+        ...(avatarId === undefined ? {} : { avatarId }),
+        ...(clonedVoiceId === undefined ? {} : { clonedVoiceId }),
+        ...(heygenVoiceId === undefined ? {} : { heygenVoiceId }),
         text: this.requiredString(generation.text, 'generation.text'),
         useIdentity: generation.useIdentity === true,
-        voiceProvider: this.optionalString(generation.voiceProvider),
+        ...(voiceProvider === undefined ? {} : { voiceProvider }),
       },
-      ingredientId: this.optionalString(record.ingredientId),
+      ...(ingredientId === undefined ? {} : { ingredientId }),
       resolvedVoiceProvider:
         this.optionalString(record.resolvedVoiceProvider) ?? '',
     };
@@ -587,22 +580,30 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
   private readRequestValue(
     record: Record<string, unknown>,
   ): WorkspaceTaskWorkflowRequest {
+    const brandId = this.optionalString(record.brandId);
+    const brandName = this.optionalString(record.brandName);
+    const elevenlabsVoiceId = this.optionalString(record.elevenlabsVoiceId);
+    const heygenAvatarId = this.optionalString(record.heygenAvatarId);
+    const outputType = this.optionalString(record.outputType);
+    const platforms = this.stringArray(record.platforms);
+    const voiceId = this.optionalString(record.voiceId);
+    const voiceProvider = this.optionalString(record.voiceProvider);
     return {
-      brandId: this.optionalString(record.brandId),
-      brandName: this.optionalString(record.brandName),
-      elevenlabsVoiceId: this.optionalString(record.elevenlabsVoiceId),
-      heygenAvatarId: this.optionalString(record.heygenAvatarId),
+      ...(brandId === undefined ? {} : { brandId }),
+      ...(brandName === undefined ? {} : { brandName }),
+      ...(elevenlabsVoiceId === undefined ? {} : { elevenlabsVoiceId }),
+      ...(heygenAvatarId === undefined ? {} : { heygenAvatarId }),
       organizationId: this.requiredString(
         record.organizationId,
         'organizationId',
       ),
-      outputType: this.optionalString(record.outputType),
-      platforms: this.stringArray(record.platforms),
+      ...(outputType === undefined ? {} : { outputType }),
+      ...(platforms === undefined ? {} : { platforms }),
       request: this.requiredString(record.request, 'request'),
       taskId: this.requiredString(record.taskId, 'taskId'),
       userId: this.requiredString(record.userId, 'userId'),
-      voiceId: this.optionalString(record.voiceId),
-      voiceProvider: this.optionalString(record.voiceProvider),
+      ...(voiceId === undefined ? {} : { voiceId }),
+      ...(voiceProvider === undefined ? {} : { voiceProvider }),
     };
   }
 

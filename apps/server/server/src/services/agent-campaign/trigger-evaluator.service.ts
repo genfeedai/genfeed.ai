@@ -322,7 +322,7 @@ export class TriggerEvaluatorService {
       campaignId: state.campaignId,
       dispatchCount,
       dispatchedTriggerTypes,
-      skippedReason,
+      ...(skippedReason ? { skippedReason } : {}),
       summary,
     };
   }

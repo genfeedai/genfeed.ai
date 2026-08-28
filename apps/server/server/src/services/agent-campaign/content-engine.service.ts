@@ -117,7 +117,7 @@ export interface ContentEngineCycleResult {
   campaignId: string;
   dispatchCount: number;
   dispatchedRuns: OrchestrationDispatchPlan[];
-  nextOrchestratedAt: Date | null;
+  nextOrchestratedAt: string | null;
   skippedReason?: string;
   summary: string;
 }
@@ -465,8 +465,8 @@ export class ContentEngineService {
       nextOrchestratedAt: state.nextOrchestratedAt
         ? new Date(state.nextOrchestratedAt)
         : null,
-      skippedReason: state.skippedReason,
-      status: state.completeCampaign ? 'completed' : undefined,
+      ...(state.skippedReason ? { skippedReason: state.skippedReason } : {}),
+      ...(state.completeCampaign ? { status: 'completed' as const } : {}),
       summary: state.summary ?? 'Campaign orchestration completed.',
     });
   }
@@ -639,10 +639,8 @@ export class ContentEngineService {
       campaignId: state.input.campaignId,
       dispatchCount: dispatchedRuns.length,
       dispatchedRuns,
-      nextOrchestratedAt: state.nextOrchestratedAt
-        ? new Date(state.nextOrchestratedAt)
-        : null,
-      skippedReason: state.skippedReason,
+      nextOrchestratedAt: state.nextOrchestratedAt,
+      ...(state.skippedReason ? { skippedReason: state.skippedReason } : {}),
       summary,
     };
   }
@@ -1028,7 +1026,7 @@ export class ContentEngineService {
     await this.agentCampaignsService.patch(String(campaign.id), {
       lastOrchestratedAt: now,
       lastOrchestrationSummary: input.summary,
-      nextOrchestratedAt: input.nextOrchestratedAt,
+      nextOrchestratedAt: input.nextOrchestratedAt?.toISOString() ?? null,
       organizationId: requireRelationId(
         campaign.organizationId,
         'organization',
@@ -1048,8 +1046,8 @@ export class ContentEngineService {
       campaignId: String(campaign.id),
       dispatchCount: input.dispatchedRuns.length,
       dispatchedRuns: input.dispatchedRuns,
-      nextOrchestratedAt: input.nextOrchestratedAt,
-      skippedReason: input.skippedReason,
+      nextOrchestratedAt: input.nextOrchestratedAt?.toISOString() ?? null,
+      ...(input.skippedReason ? { skippedReason: input.skippedReason } : {}),
       summary: input.summary,
     };
   }

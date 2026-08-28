@@ -80,6 +80,8 @@ describe('AnalyticsSyncService action operations', () => {
         views: 1000,
       }),
     ]);
+    expect(result.items[0]).not.toHaveProperty('contentRunId');
+    expect(Object.values(result.items[0] ?? {})).not.toContain(undefined);
     expect(postFindMany).toHaveBeenCalledWith({
       where: expect.objectContaining({
         isDeleted: false,
