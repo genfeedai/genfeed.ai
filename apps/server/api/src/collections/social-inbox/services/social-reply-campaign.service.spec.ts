@@ -84,9 +84,8 @@ function createContext(): {
       createMany: ReturnType<typeof vi.fn>;
     };
   };
-  queueService: {
-    enqueueTick: ReturnType<typeof vi.fn>;
-    removeTick: ReturnType<typeof vi.fn>;
+  workflowQueue: {
+    queueSystemWorkflowDefinition: ReturnType<typeof vi.fn>;
   };
   recipients: StoreRecipient[];
   service: SocialReplyCampaignService;
@@ -273,20 +272,19 @@ function createContext(): {
     socialReplyCampaignRecipient,
   };
 
-  const queueService = {
-    enqueueTick: vi.fn().mockResolvedValue('job-1'),
-    removeTick: vi.fn().mockResolvedValue(undefined),
+  const workflowQueue = {
+    queueSystemWorkflowDefinition: vi.fn().mockResolvedValue('job-1'),
   };
 
   return {
     campaigns,
     conversations,
     prisma,
-    queueService,
+    workflowQueue,
     recipients,
     service: new SocialReplyCampaignService(
       prisma as never,
-      queueService as never,
+      workflowQueue as never,
     ),
   };
 }
@@ -381,11 +379,23 @@ describe('SocialReplyCampaignService', () => {
       expect(started.status).toBe(SocialReplyCampaignStatus.RUNNING);
       expect(started.dispatchCursor).toBe(1);
       expect(started.startedAt).toBeInstanceOf(Date);
-      expect(context.queueService.enqueueTick).toHaveBeenCalledWith({
-        campaignId: campaign.id,
-        dispatchCursor: 1,
-        organizationId: 'org-1',
-      });
+      expect(
+        context.workflowQueue.queueSystemWorkflowDefinition,
+      ).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          inputValues: {
+            request: {
+              campaignId: campaign.id,
+              dispatchCursor: 1,
+              organizationId: 'org-1',
+            },
+          },
+        }),
+        `social-reply-campaign-${campaign.id}-1`,
+        undefined,
+        { replaceTerminalJob: true },
+      );
     });
 
     it('refuses to start a campaign with no pending recipients', async () => {
@@ -398,7 +408,9 @@ describe('SocialReplyCampaignService', () => {
       await expect(
         context.service.transition(SCOPE, campaign.id, 'start'),
       ).rejects.toThrow('Campaign has no pending recipients to dispatch');
-      expect(context.queueService.enqueueTick).not.toHaveBeenCalled();
+      expect(
+        context.workflowQueue.queueSystemWorkflowDefinition,
+      ).not.toHaveBeenCalled();
     });
 
     it('refuses to start an already-running campaign', async () => {
@@ -411,14 +423,10 @@ describe('SocialReplyCampaignService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('pauses a running campaign and drops its pending tick', async () => {
+    it('pauses a running campaign so its already queued workflow becomes stale', async () => {
       const context = createContext();
       const campaign = await seedCampaign(context);
-      const started = await context.service.transition(
-        SCOPE,
-        campaign.id,
-        'start',
-      );
+      await context.service.transition(SCOPE, campaign.id, 'start');
 
       const paused = await context.service.transition(
         SCOPE,
@@ -428,10 +436,9 @@ describe('SocialReplyCampaignService', () => {
 
       expect(paused.status).toBe(SocialReplyCampaignStatus.PAUSED);
       expect(paused.nextRunAt).toBeNull();
-      expect(context.queueService.removeTick).toHaveBeenCalledWith(
-        campaign.id,
-        started.dispatchCursor,
-      );
+      expect(
+        context.workflowQueue.queueSystemWorkflowDefinition,
+      ).toHaveBeenCalledTimes(1);
     });
 
     it('resumes from pause on a fresh cursor so the orphaned tick stays stale', async () => {
@@ -449,11 +456,23 @@ describe('SocialReplyCampaignService', () => {
       expect(resumed.status).toBe(SocialReplyCampaignStatus.RUNNING);
       expect(resumed.dispatchCursor).toBe(2);
       expect(resumed.pausedAt).toBeNull();
-      expect(context.queueService.enqueueTick).toHaveBeenLastCalledWith({
-        campaignId: campaign.id,
-        dispatchCursor: 2,
-        organizationId: 'org-1',
-      });
+      expect(
+        context.workflowQueue.queueSystemWorkflowDefinition,
+      ).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          inputValues: {
+            request: {
+              campaignId: campaign.id,
+              dispatchCursor: 2,
+              organizationId: 'org-1',
+            },
+          },
+        }),
+        `social-reply-campaign-${campaign.id}-2`,
+        undefined,
+        { replaceTerminalJob: true },
+      );
     });
 
     it('cannot resume a campaign that was never paused', async () => {
@@ -513,7 +532,9 @@ describe('SocialReplyCampaignService', () => {
 
       expect(fulfilled).toHaveLength(1);
       expect(rejected).toHaveLength(1);
-      expect(context.queueService.enqueueTick).toHaveBeenCalledTimes(1);
+      expect(
+        context.workflowQueue.queueSystemWorkflowDefinition,
+      ).toHaveBeenCalledTimes(1);
       expect(context.campaigns[0]).toMatchObject({
         dispatchCursor: 1,
         status: SocialReplyCampaignStatus.RUNNING,

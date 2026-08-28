@@ -8,7 +8,7 @@ import type {
 import { WorkflowEngine } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { CaptionsService } from '@server/collections/captions/services/captions.service';
 import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
@@ -31,6 +31,7 @@ import type {
   WorkflowVisualNode,
 } from '@server/collections/workflows/schemas/workflow.schema';
 import { AdAutomationWorkflowService } from '@server/collections/workflows/services/ad-automation-workflow.service';
+import { AdBulkUploadWorkflowService } from '@server/collections/workflows/services/ad-bulk-upload-workflow.service';
 import { SocialAdapterFactory } from '@server/collections/workflows/services/adapters/social-adapter.factory';
 import { YoutubeSocialAdapter } from '@server/collections/workflows/services/adapters/youtube-social.adapter';
 import { AgentAutopilotWorkflowService } from '@server/collections/workflows/services/agent-autopilot-workflow.service';
@@ -116,14 +117,18 @@ export class WorkflowEngineAdapterService {
     @Optional() private readonly cacheService?: CacheService,
     @Optional() private readonly prismaService?: PrismaService,
     @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
-    @Optional()
-    private readonly adAutomationWorkflowService?: AdAutomationWorkflowService,
+    @Inject(AdAutomationWorkflowService)
+    private readonly adAutomationWorkflowService:
+      | AdAutomationWorkflowService
+      | undefined,
     @Optional()
     private readonly campaignOrchestrationWorkflowService?: CampaignOrchestrationWorkflowService,
     @Optional()
     private readonly agentAutopilotWorkflowService?: AgentAutopilotWorkflowService,
-    @Optional()
-    private readonly analyticsSyncWorkflowService?: AnalyticsSyncWorkflowService,
+    @Inject(AnalyticsSyncWorkflowService)
+    private readonly analyticsSyncWorkflowService:
+      | AnalyticsSyncWorkflowService
+      | undefined,
     @Optional()
     private readonly contentProductionWorkflowService?: ContentProductionWorkflowService,
     @Optional()
@@ -152,6 +157,10 @@ export class WorkflowEngineAdapterService {
     private readonly postAccountFanoutService?: PostAccountFanoutService,
     @Optional()
     private readonly videoQaContinuityResolver?: VideoQaContinuityResolverService,
+    @Inject(AdBulkUploadWorkflowService)
+    private readonly adBulkUploadWorkflowService:
+      | AdBulkUploadWorkflowService
+      | undefined,
   ) {
     this.engine = new WorkflowEngine({ maxConcurrency: 3 });
     this.converter = new WorkflowEngineConverterService();
@@ -229,6 +238,7 @@ export class WorkflowEngineAdapterService {
       this.winnerPromotionWorkflowService,
       this.paidCreativeResearchWorkflowService,
       this.outreachCampaignDispatchWorkflowService,
+      this.adBulkUploadWorkflowService,
     );
     this.trendPublishRegistrar =
       new WorkflowTrendPublishExecutorRegistrarService(

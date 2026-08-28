@@ -64,7 +64,7 @@ describe('check-product-workflow-boundary', () => {
         id: 'reply-bot',
         issue: 1011,
         reason: 'Fixture workflow adapter.',
-        systemWorkflowIds: ['reply-dm-automation'],
+        systemWorkflowIds: ['reply-bot.send-dm'],
       },
     ];
 
@@ -158,7 +158,7 @@ describe('check-product-workflow-boundary', () => {
         id: 'social-inbox-actions',
         issue: 1032,
         reason: 'Fixture social inbox workflow adapter.',
-        systemWorkflowIds: ['reply-dm-automation'],
+        systemWorkflowIds: ['social.inbox.outbound.post-reply'],
       },
     ];
 
@@ -213,7 +213,7 @@ describe('check-product-workflow-boundary', () => {
         id: 'missing',
         issue: 1011,
         reason: 'Fixture stale migration.',
-        systemWorkflowIds: ['reply-dm-automation'],
+        systemWorkflowIds: ['reply-bot.send-dm'],
       },
     ];
 

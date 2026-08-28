@@ -286,6 +286,33 @@ describe('WorkflowEngine', () => {
       expect(capturedInputs[0].get('keywords')).toEqual(['ai tools']);
     });
 
+    it('does not route an inactive explicit sourceHandle', async () => {
+      const capturedInputs: Map<string, unknown>[] = [];
+      const sourceExecutor: NodeExecutor = vi.fn(async () => ({
+        result: 'completed',
+      }));
+      const targetExecutor: NodeExecutor = vi.fn(async (_node, inputs) => {
+        capturedInputs.push(new Map(inputs));
+        return null;
+      });
+      engine.registerExecutor('imageGen', sourceExecutor);
+      engine.registerExecutor('upscale', targetExecutor);
+
+      await engine.execute(
+        makeWorkflow(
+          [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
+          [
+            makeEdge('n1', 'n2', {
+              sourceHandle: 'failure',
+              targetHandle: 'failure',
+            }),
+          ],
+        ),
+      );
+
+      expect(capturedInputs[0]).toEqual(new Map());
+    });
+
     it('collects repeated target handles into an ordered array', async () => {
       const targetExecutor: NodeExecutor = vi.fn(async (_node, inputs) => ({
         videos: inputs.get('videos'),

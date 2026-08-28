@@ -4,6 +4,10 @@ import type {
 } from '@genfeedai/workflows/engine';
 import { WinnerPromotionWorkflowService } from '@server/collections/content-performance/services/winner-promotion-workflow.service';
 import { AdAutomationWorkflowService } from '@server/collections/workflows/services/ad-automation-workflow.service';
+import {
+  AD_BULK_UPLOAD_ACTION_IDS,
+  AdBulkUploadWorkflowService,
+} from '@server/collections/workflows/services/ad-bulk-upload-workflow.service';
 import { AgentAutopilotWorkflowService } from '@server/collections/workflows/services/agent-autopilot-workflow.service';
 import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
 import { CampaignOrchestrationWorkflowService } from '@server/collections/workflows/services/campaign-orchestration-workflow.service';
@@ -14,6 +18,8 @@ import { PaidCreativeResearchWorkflowService } from '@server/collections/workflo
 import { ReplyPollingWorkflowService } from '@server/collections/workflows/services/reply-polling-workflow.service';
 import { TrendNotificationWorkflowService } from '@server/collections/workflows/services/trend-notification-workflow.service';
 import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
+import { AD_AUTOMATION_ACTION_IDS } from '@server/collections/workflows/templates/ad-automation-workflows.template';
+import { ANALYTICS_SYNC_ACTION_IDS } from '@server/collections/workflows/templates/analytics-sync-workflows.template';
 import type { TrendNotificationCadence } from '@server/collections/workflows/templates/trend-notification-workflows.template';
 
 export class WorkflowAutomationExecutorRegistrarService {
@@ -30,10 +36,12 @@ export class WorkflowAutomationExecutorRegistrarService {
     private readonly winnerPromotionWorkflowService?: WinnerPromotionWorkflowService,
     private readonly paidCreativeResearchWorkflowService?: PaidCreativeResearchWorkflowService,
     private readonly outreachCampaignDispatchWorkflowService?: OutreachCampaignDispatchWorkflowService,
+    private readonly adBulkUploadWorkflowService?: AdBulkUploadWorkflowService,
   ) {}
 
   register(engine: WorkflowEngine): void {
     this.registerAdAutomationExecutors(engine);
+    this.registerAdBulkUploadExecutors(engine);
     this.registerCampaignOrchestrationExecutors(engine);
     this.registerAgentAutopilotExecutors(engine);
     this.registerAnalyticsSyncExecutors(engine);
@@ -47,31 +55,116 @@ export class WorkflowAutomationExecutorRegistrarService {
   }
 
   private registerAdAutomationExecutors(engine: WorkflowEngine): void {
-    engine.registerExecutor('adOptimization', (_node, _inputs, context) =>
-      this.adAutomationWorkflowService
-        ? this.adAutomationWorkflowService.runAdOptimization(
-            context.organizationId,
-          )
-        : this.adAutomationUnavailable('adOptimization', context),
+    const service = this.adAutomationWorkflowService;
+    if (!service) {
+      return;
+    }
+    const registrations = [
+      [
+        AD_AUTOMATION_ACTION_IDS.DISCOVER_CREDENTIALS,
+        service.discoverCredentials.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.GOOGLE_FETCH,
+        service.fetchGoogle.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.GOOGLE_NORMALIZE,
+        service.normalizeGoogle.bind(service),
+      ],
+      [AD_AUTOMATION_ACTION_IDS.META_FETCH, service.fetchMeta.bind(service)],
+      [
+        AD_AUTOMATION_ACTION_IDS.META_NORMALIZE,
+        service.normalizeMeta.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.OPTIMIZATION_ANALYZE,
+        service.analyzeOptimization.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.OPTIMIZATION_FINALIZE,
+        service.finalizeOptimization.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.OPTIMIZATION_LOAD_CONFIG,
+        service.loadOptimizationConfig.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.OPTIMIZATION_PERSIST,
+        service.persistOptimizationRecommendations.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.PERSIST_PERFORMANCE,
+        service.persistPerformance.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.TIKTOK_FETCH,
+        service.fetchTikTok.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.TIKTOK_NORMALIZE,
+        service.normalizeTikTok.bind(service),
+      ],
+    ] as const;
+
+    for (const [actionId, execute] of registrations) {
+      engine.registerExecutor(actionId, (node, inputs, context) =>
+        execute(context.organizationId, actionInputs(node.config, inputs)),
+      );
+    }
+  }
+
+  private registerAdBulkUploadExecutors(engine: WorkflowEngine): void {
+    const service = this.adBulkUploadWorkflowService;
+    if (!service) {
+      return;
+    }
+    engine.registerExecutor(
+      AD_BULK_UPLOAD_ACTION_IDS.CLAIM,
+      (node, inputs, context) =>
+        service.claim(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
     );
-    engine.registerExecutor('adSyncGoogle', (_node, _inputs, context) =>
-      this.adAutomationWorkflowService
-        ? this.adAutomationWorkflowService.runGoogleAdSync(
-            context.organizationId,
-          )
-        : this.adAutomationUnavailable('adSyncGoogle', context),
+    engine.registerExecutor(
+      AD_BULK_UPLOAD_ACTION_IDS.BUILD_MEDIA_ITEMS,
+      (node, inputs) =>
+        service.buildMediaItems(actionInputs(node.config, inputs)),
     );
-    engine.registerExecutor('adSyncMeta', (_node, _inputs, context) =>
-      this.adAutomationWorkflowService
-        ? this.adAutomationWorkflowService.runMetaAdSync(context.organizationId)
-        : this.adAutomationUnavailable('adSyncMeta', context),
+    engine.registerExecutor(
+      AD_BULK_UPLOAD_ACTION_IDS.UPLOAD_MEDIA,
+      (node, inputs, context) =>
+        service.uploadMedia(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
     );
-    engine.registerExecutor('adSyncTikTok', (_node, _inputs, context) =>
-      this.adAutomationWorkflowService
-        ? this.adAutomationWorkflowService.runTikTokAdSync(
-            context.organizationId,
-          )
-        : this.adAutomationUnavailable('adSyncTikTok', context),
+    engine.registerExecutor(
+      AD_BULK_UPLOAD_ACTION_IDS.BUILD_PERMUTATIONS,
+      (node, inputs) =>
+        service.buildPermutations(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      AD_BULK_UPLOAD_ACTION_IDS.CREATE_AD,
+      (node, inputs, context) =>
+        service.createAd(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AD_BULK_UPLOAD_ACTION_IDS.FINALIZE,
+      (node, inputs, context) =>
+        service.finalize(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AD_BULK_UPLOAD_ACTION_IDS.FAIL,
+      (node, inputs, context) =>
+        service.fail(context.organizationId, actionInputs(node.config, inputs)),
     );
   }
 
@@ -126,22 +219,88 @@ export class WorkflowAutomationExecutorRegistrarService {
   }
 
   private registerAnalyticsSyncExecutors(engine: WorkflowEngine): void {
-    const actions = [
-      ['analyticsFacebookSync', 'runFacebookAnalytics'],
-      ['analyticsSocialSync', 'runSocialAnalytics'],
-      ['analyticsThreadsSync', 'runThreadsAnalytics'],
-      ['analyticsTwitterSync', 'runTwitterAnalytics'],
-      ['analyticsGenericSync', 'runGenericAnalyticsSync'],
-      ['youtubeAnalyticsSync', 'runYouTubeAnalytics'],
-    ] as const;
-
-    for (const [nodeType, method] of actions) {
-      engine.registerExecutor(nodeType, (_node, _inputs, context) =>
-        this.analyticsSyncWorkflowService
-          ? this.analyticsSyncWorkflowService[method](context.organizationId)
-          : this.analyticsSyncUnavailable(nodeType, context),
-      );
+    const service = this.analyticsSyncWorkflowService;
+    if (!service) {
+      return;
     }
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.DISCOVER_POSTS,
+      (node, inputs, context) =>
+        service.discoverPosts(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.FACEBOOK_COLLECT,
+      (node, inputs) =>
+        service.collectFacebook(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.SOCIAL_COLLECT,
+      (node, inputs) =>
+        service.collectSocial(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.THREADS_COLLECT,
+      (node, inputs) =>
+        service.collectThreads(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.TWITTER_COLLECT,
+      (node, inputs) =>
+        service.collectTwitter(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.YOUTUBE_COLLECT,
+      (node, inputs) =>
+        service.collectYouTube(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.FINALIZE_COLLECTION,
+      (node, inputs) =>
+        service.finalizeCollection(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.GENERIC_RESOLVE_WINDOW,
+      (node, inputs, context) =>
+        service.resolveGenericWindow(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.GENERIC_DISCOVER,
+      (node, inputs, context) =>
+        service.discoverGeneric(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.GENERIC_PERSIST,
+      (node, inputs, context) =>
+        service.persistGeneric(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.GENERIC_SYNC_MEMORY,
+      (node, inputs, context) =>
+        service.syncGenericMemory(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.GENERIC_DETECT_ALERTS,
+      (node, inputs, context) =>
+        service.detectGenericAlerts(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
   }
 
   private registerContentProductionExecutors(engine: WorkflowEngine): void {
@@ -341,17 +500,6 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
   }
 
-  private async adAutomationUnavailable(
-    action: string,
-    context: ExecutionContext,
-  ) {
-    throw this.unavailableServiceError(
-      action,
-      'AdAutomationWorkflowService',
-      context,
-    );
-  }
-
   private async campaignOrchestrationUnavailable(
     action: string,
     context: ExecutionContext,
@@ -370,17 +518,6 @@ export class WorkflowAutomationExecutorRegistrarService {
     throw this.unavailableServiceError(
       action,
       'AgentAutopilotWorkflowService',
-      context,
-    );
-  }
-
-  private async analyticsSyncUnavailable(
-    action: string,
-    context: ExecutionContext,
-  ) {
-    throw this.unavailableServiceError(
-      action,
-      'AnalyticsSyncWorkflowService',
       context,
     );
   }
@@ -456,5 +593,21 @@ function workflowContext(
     workflowNodeId: node.id,
     workflowNodeType: node.type,
     workflowRunId: context.runId,
+  };
+}
+
+function actionInputs(
+  config: Record<string, unknown>,
+  inputs: Map<string, unknown> | Record<string, unknown>,
+): Record<string, unknown> {
+  const parameters =
+    config.parameters !== null &&
+    typeof config.parameters === 'object' &&
+    !Array.isArray(config.parameters)
+      ? (config.parameters as Record<string, unknown>)
+      : {};
+  return {
+    ...parameters,
+    ...(inputs instanceof Map ? Object.fromEntries(inputs) : inputs),
   };
 }

@@ -1,4 +1,3 @@
-import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import { JobState } from '@genfeedai/enums';
@@ -11,9 +10,9 @@ import {
   BadRequestException,
   Injectable,
   type OnModuleInit,
-  ServiceUnavailableException,
 } from '@nestjs/common';
 import { hashToken } from '@server/auth/shared/pkce.util';
+import { CLIP_ANALYSIS_WORKFLOW_ID } from '@server/collections/clip-projects/services/clip-analysis-workflow-definition';
 import { generateClipSrt } from '@server/collections/clip-projects/services/clip-srt.util';
 import {
   PUBLIC_LONG_FORM_ORGANIZATION_ID,
@@ -40,9 +39,9 @@ const PUBLIC_YOUTUBE_CLIP_PREVIEW_WORKFLOW_ID = 'public-youtube-clip.preview';
 
 const PUBLIC_YOUTUBE_CLIP_ACTION_IDS = {
   CREATE_SESSION: 'youtube.clip.create-session',
-  DISPATCH_ANALYSIS: 'youtube.clip.dispatch-analysis',
   DISPATCH_PREVIEW: 'youtube.clip.dispatch-preview',
   READ_SESSION: 'youtube.clip.read-session',
+  RELEASE_SESSION: 'youtube.clip.release-session',
   RESERVE_PREVIEW: 'youtube.clip.reserve-preview',
 } as const;
 
@@ -53,6 +52,17 @@ type PublicYoutubeSource = {
 };
 
 type PublicYoutubeClipSessionEnvelope = {
+  analysisJobs: Array<{
+    highlightFallback: 'deterministic';
+    highlightModel: string;
+    language: string;
+    maxClips: number;
+    minViralityScore: number;
+    orgId: string;
+    projectId: string;
+    userId: string;
+    youtubeUrl: string;
+  }>;
   idempotencyKey?: string;
   isNew: boolean;
   previewToken: string;
@@ -70,7 +80,6 @@ type PublicYoutubeClipPreviewEnvelope = {
 @Injectable()
 export class PublicYoutubeClipsService implements OnModuleInit {
   constructor(
-    private readonly clipAnalyzeQueueService: ClipAnalyzeQueueService,
     private readonly fileQueueService: FileQueueService,
     private readonly logger: LoggerService,
     private readonly runner: SystemWorkflowRunnerService,
@@ -83,12 +92,12 @@ export class PublicYoutubeClipsService implements OnModuleInit {
       (request) => this.createSessionAction(request),
     );
     this.runner.registerAction(
-      PUBLIC_YOUTUBE_CLIP_ACTION_IDS.DISPATCH_ANALYSIS,
-      (request) => this.dispatchAnalysisAction(request),
-    );
-    this.runner.registerAction(
       PUBLIC_YOUTUBE_CLIP_ACTION_IDS.READ_SESSION,
       (request) => this.readSessionAction(request),
+    );
+    this.runner.registerAction(
+      PUBLIC_YOUTUBE_CLIP_ACTION_IDS.RELEASE_SESSION,
+      (request) => this.releaseSessionAction(request),
     );
     this.runner.registerAction(
       PUBLIC_YOUTUBE_CLIP_ACTION_IDS.RESERVE_PREVIEW,
@@ -110,10 +119,31 @@ export class PublicYoutubeClipsService implements OnModuleInit {
             targetHandle: 'source',
           },
           {
-            id: 'session-to-analysis',
+            id: 'session-to-analysis-items',
             source: 'create-session',
-            target: 'dispatch-analysis',
-            targetHandle: 'sessionEnvelope',
+            sourceHandle: 'analysisJobs',
+            target: 'schedule-analysis',
+            targetHandle: 'items',
+          },
+          {
+            id: 'session-to-response',
+            source: 'create-session',
+            sourceHandle: 'previewToken',
+            target: 'read-session',
+            targetHandle: 'previewToken',
+          },
+          {
+            id: 'analysis-to-response',
+            source: 'schedule-analysis',
+            target: 'read-session',
+            targetHandle: 'analysisDispatch',
+          },
+          {
+            id: 'analysis-failure-to-release',
+            source: 'schedule-analysis',
+            sourceHandle: 'failure',
+            target: 'release-session',
+            targetHandle: 'failure',
           },
         ],
         inputVariables: [
@@ -145,19 +175,37 @@ export class PublicYoutubeClipsService implements OnModuleInit {
             ['idempotencyKey'],
             280,
           ),
+          createGenfeedActionNode({
+            actionId: 'workflow.for-each',
+            id: 'schedule-analysis',
+            parameters: {
+              childWorkflowId: CLIP_ANALYSIS_WORKFLOW_ID,
+              itemInputKey: 'job',
+              maxConcurrency: 1,
+              mode: 'scheduled',
+            },
+            position: { x: 0, y: 560 },
+          }),
           this.actionNode(
-            'dispatch-analysis',
-            PUBLIC_YOUTUBE_CLIP_ACTION_IDS.DISPATCH_ANALYSIS,
-            'Dispatch clip analysis',
+            'read-session',
+            PUBLIC_YOUTUBE_CLIP_ACTION_IDS.READ_SESSION,
+            'Read clip session',
             [],
-            560,
+            840,
+          ),
+          this.actionNode(
+            'release-session',
+            PUBLIC_YOUTUBE_CLIP_ACTION_IDS.RELEASE_SESSION,
+            'Release failed clip session',
+            [],
+            840,
           ),
         ],
       },
       description:
         'Resolves a YouTube source, creates an idempotent session, and dispatches clip analysis.',
       label: 'Public YouTube Clip Creation',
-      resultNodeId: 'dispatch-analysis',
+      resultNodeId: 'read-session',
       version: 1,
     });
     this.runner.registerWorkflow({
@@ -305,49 +353,27 @@ export class PublicYoutubeClipsService implements OnModuleInit {
       sourceVideoUrl: source.youtubeUrl,
     });
     return {
+      analysisJobs: created.isNew
+        ? [
+            {
+              highlightFallback: 'deterministic',
+              highlightModel: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+              language: created.session.language,
+              maxClips: MAX_FREE_RECOMMENDATIONS,
+              minViralityScore: 0,
+              orgId: PUBLIC_LONG_FORM_ORGANIZATION_ID,
+              projectId: this.store.toWorkerProjectId(created.previewToken),
+              userId: PUBLIC_LONG_FORM_USER_ID,
+              youtubeUrl: source.youtubeUrl,
+            },
+          ]
+        : [],
       idempotencyKey,
       isNew: created.isNew,
       previewToken: created.previewToken,
       session: created.session,
       source,
     };
-  }
-
-  private async dispatchAnalysisAction(
-    request: SystemWorkflowActionRequest,
-  ): Promise<IPublicYoutubeClipToolSession> {
-    const envelope = this.readSessionEnvelope(request.input.sessionEnvelope);
-    if (envelope.isNew) {
-      try {
-        await this.clipAnalyzeQueueService.enqueue({
-          highlightFallback: 'deterministic',
-          highlightModel: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
-          language: envelope.session.language,
-          maxClips: MAX_FREE_RECOMMENDATIONS,
-          minViralityScore: 0,
-          orgId: PUBLIC_LONG_FORM_ORGANIZATION_ID,
-          projectId: this.store.toWorkerProjectId(envelope.previewToken),
-          userId: PUBLIC_LONG_FORM_USER_ID,
-          youtubeUrl: envelope.source.youtubeUrl,
-        });
-      } catch (error) {
-        await this.store.releaseFailedSession(
-          envelope.previewToken,
-          envelope.session.sourceFingerprint,
-          envelope.idempotencyKey,
-        );
-        this.logger.error('Public YouTube clip analysis enqueue failed', {
-          code: 'public_youtube_clip_enqueue_failed',
-          error,
-        });
-        throw new ServiceUnavailableException({
-          code: 'public_youtube_clip_enqueue_unavailable',
-          detail: 'The video could not be queued. Retry safely.',
-          title: 'Service Unavailable',
-        });
-      }
-    }
-    return this.toResponse(envelope.previewToken, envelope.session);
   }
 
   private async readSessionAction(
@@ -360,6 +386,33 @@ export class PublicYoutubeClipsService implements OnModuleInit {
     let session = await this.store.getSession(previewToken);
     session = await this.reconcilePreview(previewToken, session);
     return this.toResponse(previewToken, session);
+  }
+
+  private async releaseSessionAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<{ previewToken?: string; released: boolean }> {
+    const failure = this.readRecord(request.input.failure);
+    const nodeOutputs = this.readRecord(failure.nodeOutputs);
+    const envelope = this.readRecord(nodeOutputs['create-session']);
+    if (envelope.isNew !== true) {
+      return { released: false };
+    }
+    const previewToken = this.requiredString(
+      envelope.previewToken,
+      'failure.nodeOutputs.create-session.previewToken',
+    );
+    const session = this.readRecord(envelope.session);
+    const sourceFingerprint = this.requiredString(
+      session.sourceFingerprint,
+      'failure.nodeOutputs.create-session.session.sourceFingerprint',
+    );
+    const idempotencyKey = this.readString(envelope.idempotencyKey);
+    await this.store.releaseFailedSession(
+      previewToken,
+      sourceFingerprint,
+      idempotencyKey,
+    );
+    return { previewToken, released: true };
   }
 
   private async reservePreviewAction(
@@ -578,24 +631,6 @@ export class PublicYoutubeClipsService implements OnModuleInit {
       title: this.requiredString(record.title, 'source.title'),
       videoId: this.requiredString(record.videoId, 'source.videoId'),
       youtubeUrl: this.requiredString(record.youtubeUrl, 'source.youtubeUrl'),
-    };
-  }
-
-  private readSessionEnvelope(
-    value: unknown,
-  ): PublicYoutubeClipSessionEnvelope {
-    const record = this.readRecord(value);
-    return {
-      idempotencyKey:
-        typeof record.idempotencyKey === 'string'
-          ? record.idempotencyKey
-          : undefined,
-      isNew: record.isNew === true,
-      previewToken: this.requiredString(record.previewToken, 'previewToken'),
-      session: this.readRecord(
-        record.session,
-      ) as unknown as StoredPublicYoutubeClipSession,
-      source: this.readSource(record.source),
     };
   }
 

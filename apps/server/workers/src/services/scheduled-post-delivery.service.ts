@@ -37,8 +37,8 @@ import {
   type ScheduledPostWorkflowInput,
 } from '@server/collections/posts/services/scheduled-post-workflow-definition';
 import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import { ReplyInboundQueueService } from '@server/queues/reply-bot/reply-inbound-queue.service';
 import { QuotaService } from '@server/services/quota/quota.service';
+import { ReplyPostWatchService } from '@server/services/reply-bot/reply-post-watch.service';
 import { PublishEventWebhookService } from '@server/services/webhook-client/publish-event-webhook.service';
 import {
   createChannelTargetError,
@@ -94,7 +94,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     private readonly publishEventWebhookService: PublishEventWebhookService,
     private readonly schedulerPublishStateService: SchedulerPublishStateService,
-    private readonly replyInboundQueueService: ReplyInboundQueueService,
+    private readonly replyPostWatchService: ReplyPostWatchService,
     private readonly publishingReadinessService: CredentialPublishingReadinessService,
     private readonly prisma: PrismaService,
   ) {}
@@ -950,7 +950,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       undefined;
     const watchPlatform = isYouTube ? Platform.YOUTUBE : Platform.TWITTER;
 
-    void this.replyInboundQueueService
+    void this.replyPostWatchService
       .schedulePostWatch({
         brandId: String(brandId),
         organizationId: String(organizationId),

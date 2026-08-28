@@ -26,14 +26,36 @@ import {
 } from '@server/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
 import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
+  type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
+import {
+  buildCampaignDmBatchWorkflowDefinition,
+  buildCampaignDmWorkflowDefinition,
+  CAMPAIGN_DM_ACTION_IDS,
+} from '@server/services/campaign/campaign-dm-workflow-definition';
 import { resolveCampaignScope } from '@server/services/campaign/campaign-scope.util';
 import { isCampaignOutreachPairExecutable } from '@server/services/campaign/outreach-capability.util';
 import { toReplyBotCredentialData } from '@server/services/campaign/reply-bot-credential.util';
 import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@server/services/reply-bot/reply-generation.service';
+
+type DmExecutionResult = {
+  success: boolean;
+  error?: string;
+  skipReason?: CampaignSkipReason;
+};
+
+type CampaignDmWorkflowState = {
+  campaignId: string;
+  credentialId?: string;
+  dmText?: string;
+  organizationId: string;
+  outcome?: DmExecutionResult;
+  recipientUserId?: string;
+  sendResult?: { error?: string; success: boolean };
+  targetId: string;
+};
 
 @Injectable()
 export class DmCampaignExecutorService implements OnModuleInit {
@@ -50,9 +72,39 @@ export class DmCampaignExecutorService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
+    this.systemWorkflowRunner.registerWorkflow(
+      buildCampaignDmWorkflowDefinition(),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildCampaignDmBatchWorkflowDefinition(),
+    );
     this.systemWorkflowRunner.registerAction(
-      SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_DM_AUTOMATION,
-      ({ input }) => this.executeCampaignDmAction(input),
+      CAMPAIGN_DM_ACTION_IDS.DISCOVER_TARGETS,
+      (request) => this.discoverTargetsAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      CAMPAIGN_DM_ACTION_IDS.CLAIM,
+      (request) => this.claimTargetAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      CAMPAIGN_DM_ACTION_IDS.RESOLVE_CONTEXT,
+      (request) => this.resolveContextAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      CAMPAIGN_DM_ACTION_IDS.GENERATE,
+      (request) => this.generateDmAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      CAMPAIGN_DM_ACTION_IDS.RESERVE,
+      (request) => this.reserveDmAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      CAMPAIGN_DM_ACTION_IDS.SEND,
+      (request) => this.sendDmAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      CAMPAIGN_DM_ACTION_IDS.FINALIZE,
+      (request) => this.finalizeDmAction(request),
     );
   }
 
@@ -71,13 +123,6 @@ export class DmCampaignExecutorService implements OnModuleInit {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const campaignId = this.getCampaignId(campaign);
 
-    const results = {
-      failed: 0,
-      processed: 0,
-      skipped: 0,
-      successful: 0,
-    };
-
     try {
       if (
         !isCampaignOutreachPairExecutable({
@@ -90,7 +135,7 @@ export class DmCampaignExecutorService implements OnModuleInit {
           campaignType: campaign.campaignType,
           platform: campaign.platform,
         });
-        return results;
+        return { failed: 0, processed: 0, skipped: 0, successful: 0 };
       }
 
       if (!campaign.organizationId) {
@@ -98,35 +143,33 @@ export class DmCampaignExecutorService implements OnModuleInit {
           campaignId,
           reason: 'organization_id_required',
         });
-        return results;
+        return { failed: 0, processed: 0, skipped: 0, successful: 0 };
       }
-
-      const pendingTargets =
-        await this.campaignTargetsService.getPendingTargets(
-          campaignId,
-          campaign.organizationId,
-          limit,
-        );
-
-      for (const target of pendingTargets) {
-        const result = await this.executeDmTarget(campaign, target);
-        results.processed++;
-
-        if (result.success) {
-          results.successful++;
-        } else if (result.skipReason) {
-          results.skipped++;
-        } else {
-          results.failed++;
-        }
-
-        // Add delay between DMs
-        if (campaign.rateLimits?.delayBetweenRepliesSeconds) {
-          await this.delay(
-            campaign.rateLimits.delayBetweenRepliesSeconds * 1000,
-          );
-        }
-      }
+      const definition = buildCampaignDmBatchWorkflowDefinition();
+      const { result } = await this.systemWorkflowRunner.runWorkflowDefinition<{
+        count: number;
+        results: Array<{ index: number; jobId: string }>;
+      }>(definition, {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: {
+          request: {
+            campaignId,
+            limit,
+            organizationId: campaign.organizationId,
+          },
+        },
+        organizationId: campaign.organizationId,
+        source: 'DmCampaignExecutorService.processPendingDmTargets',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: resolveCampaignScope(campaign).userId,
+      });
+      const results = {
+        failed: 0,
+        processed: result.count,
+        skipped: 0,
+        successful: 0,
+      };
 
       this.loggerService.log(`${url} batch complete`, {
         campaignId,
@@ -143,296 +186,373 @@ export class DmCampaignExecutorService implements OnModuleInit {
     }
   }
 
-  /**
-   * Execute a single DM target
-   */
-  private async executeDmTarget(
-    campaign: OutreachCampaignDocument,
-    target: CampaignTargetDocument,
+  private async discoverTargetsAction(
+    action: SystemWorkflowActionRequest,
   ): Promise<{
-    success: boolean;
-    error?: string;
-    skipReason?: CampaignSkipReason;
+    interItemDelayMs: number;
+    items: Array<{
+      campaignId: string;
+      organizationId: string;
+      targetId: string;
+    }>;
   }> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const campaignId = this.getCampaignId(campaign);
-    const targetId = this.getTargetId(target);
-
-    try {
-      const refusal = getOutreachCapabilityRefusal({
+    const request = this.readRecord(action.input.request);
+    const campaignId = this.requiredString(request.campaignId, 'campaignId');
+    const organizationId = this.requiredString(
+      request.organizationId,
+      'organizationId',
+    );
+    const campaign = await this.campaignsService.findOneById(
+      campaignId,
+      organizationId,
+    );
+    if (!campaign || campaign.status !== CampaignStatus.ACTIVE) {
+      throw new Error(`Campaign ${campaignId} is not active`);
+    }
+    if (
+      !isCampaignOutreachPairExecutable({
         campaignType: campaign.campaignType,
         platform: campaign.platform,
-      });
-      if (refusal) {
-        return {
-          error: refusal.message,
-          success: false,
-        };
-      }
-
-      if (campaign.status !== CampaignStatus.ACTIVE) {
-        if (campaign.organizationId) {
-          await this.campaignTargetsService.markAsSkipped(
-            targetId,
-            campaign.organizationId,
-            CampaignSkipReason.CAMPAIGN_PAUSED,
-          );
-          await this.campaignsService.incrementSkippedCounter(
-            campaignId,
-            campaign.organizationId,
-          );
-        }
-        return {
-          skipReason: CampaignSkipReason.CAMPAIGN_PAUSED,
-          success: false,
-        };
-      }
-
-      const scope = resolveCampaignScope(campaign);
-
-      // Check rate limits
-      const canReply = await this.campaignsService.canReply(
+      })
+    ) {
+      throw new Error(`Campaign ${campaignId} outreach pair is unavailable`);
+    }
+    const limit =
+      typeof request.limit === 'number'
+        ? Math.max(1, Math.min(100, Math.floor(request.limit)))
+        : 10;
+    const targets = await this.campaignTargetsService.getPendingTargets(
+      campaignId,
+      organizationId,
+      limit,
+    );
+    return {
+      interItemDelayMs:
+        Math.max(0, campaign.rateLimits?.delayBetweenRepliesSeconds ?? 0) *
+        1000,
+      items: targets.map((target) => ({
         campaignId,
-        scope.organizationId,
-      );
-      if (!canReply) {
-        await this.campaignTargetsService.markAsSkipped(
-          targetId,
-          scope.organizationId,
-          CampaignSkipReason.RATE_LIMITED,
-        );
-        await this.campaignsService.incrementSkippedCounter(
-          campaignId,
-          scope.organizationId,
-        );
-        return { skipReason: CampaignSkipReason.RATE_LIMITED, success: false };
-      }
+        organizationId,
+        targetId: target.id.toString(),
+      })),
+    };
+  }
 
-      const claimed = await this.campaignTargetsService.claimForProcessing(
-        targetId,
-        scope.organizationId,
-      );
-      if (!claimed) {
-        return {
+  private async claimTargetAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<CampaignDmWorkflowState> {
+    const state = this.readWorkflowRequest(action.input);
+    const { campaign } = await this.loadWorkflowRecords(state);
+    const refusal = getOutreachCapabilityRefusal({
+      campaignType: campaign.campaignType,
+      platform: campaign.platform,
+    });
+    if (refusal) {
+      return { ...state, outcome: { error: refusal.message, success: false } };
+    }
+    if (campaign.status !== CampaignStatus.ACTIVE) {
+      await this.skipTarget(state, CampaignSkipReason.CAMPAIGN_PAUSED);
+      return {
+        ...state,
+        outcome: {
           skipReason: CampaignSkipReason.CAMPAIGN_PAUSED,
           success: false,
-        };
-      }
-
-      // Get credential
-      const credential = await this.findCampaignCredential(scope);
-
-      if (!credential) {
-        const errorMessage = 'Credential not found';
-        await this.campaignTargetsService.markAsFailed(
-          targetId,
-          scope.organizationId,
-          errorMessage,
-        );
-        await this.campaignsService.incrementFailedCounter(
-          campaignId,
-          scope.organizationId,
-        );
-        return { error: errorMessage, success: false };
-      }
-
-      const credentialData = toReplyBotCredentialData(
-        credential as Record<string, unknown>,
-      );
-
-      if (!credentialData) {
-        const errorMessage = 'Credential is missing an access token';
-        await this.campaignTargetsService.markAsFailed(
-          targetId,
-          scope.organizationId,
-          errorMessage,
-        );
-        await this.campaignsService.incrementFailedCounter(
-          campaignId,
-          scope.organizationId,
-        );
-        return { error: errorMessage, success: false };
-      }
-
-      // Resolve username to userId if needed
-      let recipientUserId = target.recipientUserId;
-      if (!recipientUserId && target.recipientUsername) {
-        recipientUserId =
-          await this.botActionExecutorService.resolveTwitterUserId(
-            credentialData,
-            target.recipientUsername,
-          );
-
-        if (!recipientUserId) {
-          const errorMessage = `User not found: @${target.recipientUsername}`;
-          await this.campaignTargetsService.markAsSkipped(
-            targetId,
-            scope.organizationId,
-            CampaignSkipReason.USER_NOT_FOUND,
-            CampaignTargetStatus.PROCESSING,
-          );
-          await this.campaignsService.incrementSkippedCounter(
-            campaignId,
-            scope.organizationId,
-          );
-          return {
-            error: errorMessage,
-            skipReason: CampaignSkipReason.USER_NOT_FOUND,
+        },
+      };
+    }
+    if (
+      !(await this.campaignsService.canReply(
+        state.campaignId,
+        state.organizationId,
+      ))
+    ) {
+      await this.skipTarget(state, CampaignSkipReason.RATE_LIMITED);
+      return {
+        ...state,
+        outcome: {
+          skipReason: CampaignSkipReason.RATE_LIMITED,
+          success: false,
+        },
+      };
+    }
+    const claimed = await this.campaignTargetsService.claimForProcessing(
+      state.targetId,
+      state.organizationId,
+    );
+    return claimed
+      ? state
+      : {
+          ...state,
+          outcome: {
+            skipReason: CampaignSkipReason.CAMPAIGN_PAUSED,
             success: false,
-          };
-        }
+          },
+        };
+  }
 
+  private async resolveContextAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<CampaignDmWorkflowState> {
+    const state = this.readWorkflowState(action.input);
+    if (state.outcome) return state;
+    const { campaign, target } = await this.loadWorkflowRecords(state);
+    const scope = resolveCampaignScope(campaign);
+    const credentialRecord = await this.findCampaignCredential(scope);
+    const credential = credentialRecord
+      ? toReplyBotCredentialData(
+          credentialRecord as unknown as Record<string, unknown>,
+          { organizationId: state.organizationId },
+        )
+      : null;
+    if (!credential || !credentialRecord) {
+      return {
+        ...state,
+        outcome: {
+          error: credentialRecord
+            ? 'Credential is missing an access token'
+            : 'Credential not found',
+          success: false,
+        },
+      };
+    }
+    let recipientUserId = target.recipientUserId ?? undefined;
+    if (!recipientUserId && target.recipientUsername) {
+      recipientUserId =
+        (await this.botActionExecutorService.resolveTwitterUserId(
+          credential,
+          target.recipientUsername,
+        )) ?? undefined;
+      if (recipientUserId) {
         await this.campaignTargetsService.updateOne(
-          targetId,
-          scope.organizationId,
+          state.targetId,
+          state.organizationId,
           { recipientUserId },
         );
       }
-
-      if (!recipientUserId) {
-        const errorMessage = 'No recipient username or userId';
-        await this.campaignTargetsService.markAsFailed(
-          targetId,
-          scope.organizationId,
-          errorMessage,
-        );
-        await this.campaignsService.incrementFailedCounter(
-          campaignId,
-          scope.organizationId,
-        );
-        return { error: errorMessage, success: false };
-      }
-
-      // Generate DM text
-      const dmText = await this.generateDmText(
-        campaign,
-        target.recipientUsername || '',
-        scope,
-      );
-
-      // Send DM
-      const { result: dmResult } = await this.systemWorkflowRunner.runAction<{
-        error?: string;
-        success: boolean;
-      }>({
-        actionType: 'campaign-dm',
-        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_DM_AUTOMATION,
-        inputValues: {
-          campaignId,
-          credentialId: scope.credentialId,
-          dmText,
-          organizationId: scope.organizationId,
-          recipientUserId,
-          targetId,
-        },
-        organizationId: scope.organizationId,
-        source: 'DmCampaignExecutorService.executeDmTarget',
-        trigger: WorkflowExecutionTrigger.SCHEDULED,
-        userId: scope.userId,
-      });
-
-      if (!dmResult.success) {
-        const isDmNotAllowed =
-          dmResult.error?.includes('cannot send messages') ||
-          dmResult.error?.includes('Direct message');
-
-        if (isDmNotAllowed) {
-          await this.campaignTargetsService.markAsSkipped(
-            targetId,
-            scope.organizationId,
-            CampaignSkipReason.DM_NOT_ALLOWED,
-            CampaignTargetStatus.PROCESSING,
-          );
-          await this.campaignsService.incrementSkippedCounter(
-            campaignId,
-            scope.organizationId,
-          );
-          return {
-            error: dmResult.error,
-            skipReason: CampaignSkipReason.DM_NOT_ALLOWED,
-            success: false,
-          };
-        }
-
-        await this.campaignTargetsService.markAsFailed(
-          targetId,
-          scope.organizationId,
-          dmResult.error || 'Failed to send DM',
-          (target.retryCount || 0) + 1,
-        );
-        await this.campaignsService.incrementFailedCounter(
-          campaignId,
-          scope.organizationId,
-        );
-        return { error: dmResult.error, success: false };
-      }
-
-      await this.campaignTargetsService.markAsSent(
-        targetId,
-        scope.organizationId,
-        {
-          dmText,
-        },
-      );
-
-      await this.campaignsService.incrementDmCounter(
-        campaignId,
-        scope.organizationId,
-      );
-
-      this.loggerService.log(`${url} DM sent`, {
-        campaignId,
-        recipientUsername: target.recipientUsername,
-        targetId,
-      });
-
-      return { success: true };
-    } catch (error: unknown) {
-      const errorMessage = (error as Error)?.message || 'Unknown error';
-
-      this.loggerService.error(`${url} failed`, {
-        campaignId,
-        error,
-        targetId,
-      });
-
-      if (campaign.organizationId) {
-        await this.campaignTargetsService.markAsFailed(
-          targetId,
-          campaign.organizationId,
-          errorMessage,
-          (target.retryCount || 0) + 1,
-        );
-        await this.campaignsService.incrementFailedCounter(
-          campaignId,
-          campaign.organizationId,
-        );
-      }
-
-      return { error: errorMessage, success: false };
     }
+    if (!recipientUserId) {
+      const error = target.recipientUsername
+        ? `User not found: @${target.recipientUsername}`
+        : 'No recipient username or userId';
+      if (target.recipientUsername) {
+        await this.skipTarget(
+          state,
+          CampaignSkipReason.USER_NOT_FOUND,
+          CampaignTargetStatus.PROCESSING,
+        );
+        return {
+          ...state,
+          outcome: {
+            error,
+            skipReason: CampaignSkipReason.USER_NOT_FOUND,
+            success: false,
+          },
+        };
+      }
+      return { ...state, outcome: { error, success: false } };
+    }
+    return {
+      ...state,
+      credentialId: String(credentialRecord.id),
+      recipientUserId,
+    };
   }
 
-  private async executeCampaignDmAction(input: Record<string, unknown>) {
-    const organizationId = String(input.organizationId ?? '');
+  private async generateDmAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<CampaignDmWorkflowState> {
+    const state = this.readWorkflowState(action.input);
+    if (state.outcome) return state;
+    const { campaign, target } = await this.loadWorkflowRecords(state);
+    const dmText = await this.generateDmText(
+      campaign,
+      target.recipientUsername || '',
+      resolveCampaignScope(campaign),
+    );
+    return { ...state, dmText };
+  }
+
+  private async reserveDmAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<CampaignDmWorkflowState> {
+    const state = this.readWorkflowState(action.input);
+    if (state.outcome) return state;
+    const reservation = await this.campaignsService.reserveReplySlot(
+      state.campaignId,
+      state.organizationId,
+    );
+    if (reservation.reserved) return state;
+    await this.skipTarget(
+      state,
+      CampaignSkipReason.RATE_LIMITED,
+      CampaignTargetStatus.PROCESSING,
+    );
+    return {
+      ...state,
+      outcome: {
+        skipReason: CampaignSkipReason.RATE_LIMITED,
+        success: false,
+      },
+    };
+  }
+
+  private async sendDmAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<CampaignDmWorkflowState> {
+    const state = this.readWorkflowState(action.input);
+    if (state.outcome) return state;
     const credentialRecord = await this.findCampaignCredential({
-      credentialId: String(input.credentialId ?? ''),
-      organizationId,
+      credentialId: this.requiredString(state.credentialId, 'credentialId'),
+      organizationId: state.organizationId,
     });
     const credential = credentialRecord
       ? toReplyBotCredentialData(
           credentialRecord as unknown as Record<string, unknown>,
-          { organizationId },
+          { organizationId: state.organizationId },
         )
       : null;
-    if (!credential) {
-      throw new Error('Campaign DM credential is unavailable');
-    }
-    return this.botActionExecutorService.sendDm(
+    if (!credential) throw new Error('Campaign DM credential is unavailable');
+    const sendResult = await this.botActionExecutorService.sendDm(
       credential,
-      String(input.recipientUserId ?? ''),
-      String(input.dmText ?? ''),
+      this.requiredString(state.recipientUserId, 'recipientUserId'),
+      this.requiredString(state.dmText, 'dmText'),
     );
+    return { ...state, sendResult };
+  }
+
+  private async finalizeDmAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<DmExecutionResult> {
+    const state = this.readWorkflowState(action.input);
+    if (state.outcome) {
+      if (state.outcome.error && !state.outcome.skipReason) {
+        await this.failTarget(state, state.outcome.error);
+      }
+      return state.outcome;
+    }
+    const result = state.sendResult;
+    if (!result?.success) {
+      const error = result?.error ?? 'Failed to send DM';
+      const isNotAllowed =
+        error.includes('cannot send messages') ||
+        error.includes('Direct message');
+      if (isNotAllowed) {
+        await this.skipTarget(
+          state,
+          CampaignSkipReason.DM_NOT_ALLOWED,
+          CampaignTargetStatus.PROCESSING,
+        );
+        return {
+          error,
+          skipReason: CampaignSkipReason.DM_NOT_ALLOWED,
+          success: false,
+        };
+      }
+      await this.failTarget(state, error);
+      return { error, success: false };
+    }
+    await this.campaignTargetsService.markAsSent(
+      state.targetId,
+      state.organizationId,
+      { dmText: this.requiredString(state.dmText, 'dmText') },
+    );
+    await this.campaignsService.incrementDmCounter(
+      state.campaignId,
+      state.organizationId,
+    );
+    return { success: true };
+  }
+
+  private async loadWorkflowRecords(state: CampaignDmWorkflowState): Promise<{
+    campaign: OutreachCampaignDocument;
+    target: CampaignTargetDocument;
+  }> {
+    const [campaign, target] = await Promise.all([
+      this.campaignsService.findOneById(state.campaignId, state.organizationId),
+      this.campaignTargetsService.findOne({
+        id: state.targetId,
+        organizationId: state.organizationId,
+      }),
+    ]);
+    if (!campaign) throw new Error(`Campaign ${state.campaignId} not found`);
+    if (!target) throw new Error(`Campaign target ${state.targetId} not found`);
+    return {
+      campaign: campaign as OutreachCampaignDocument,
+      target: target as CampaignTargetDocument,
+    };
+  }
+
+  private readWorkflowRequest(
+    input: Record<string, unknown>,
+  ): CampaignDmWorkflowState {
+    const request = this.readRecord(input.request);
+    return {
+      campaignId: this.requiredString(request.campaignId, 'campaignId'),
+      organizationId: this.requiredString(
+        request.organizationId,
+        'organizationId',
+      ),
+      targetId: this.requiredString(request.targetId, 'targetId'),
+    };
+  }
+
+  private readWorkflowState(
+    input: Record<string, unknown>,
+  ): CampaignDmWorkflowState {
+    const state = this.readRecord(input.state);
+    return (
+      Object.keys(state).length > 0 ? state : input
+    ) as CampaignDmWorkflowState;
+  }
+
+  private async skipTarget(
+    state: CampaignDmWorkflowState,
+    reason: CampaignSkipReason,
+    expectedStatus?: CampaignTargetStatus,
+  ): Promise<void> {
+    await this.campaignTargetsService.markAsSkipped(
+      state.targetId,
+      state.organizationId,
+      reason,
+      expectedStatus,
+    );
+    await this.campaignsService.incrementSkippedCounter(
+      state.campaignId,
+      state.organizationId,
+    );
+  }
+
+  private async failTarget(
+    state: CampaignDmWorkflowState,
+    error: string,
+  ): Promise<void> {
+    const target = await this.campaignTargetsService.findOne({
+      id: state.targetId,
+      organizationId: state.organizationId,
+    });
+    await this.campaignTargetsService.markAsFailed(
+      state.targetId,
+      state.organizationId,
+      error,
+      (target?.retryCount || 0) + 1,
+    );
+    await this.campaignsService.incrementFailedCounter(
+      state.campaignId,
+      state.organizationId,
+    );
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new Error(`Campaign DM action requires ${field}`);
+    }
+    return value;
   }
 
   /**
@@ -499,13 +619,5 @@ export class DmCampaignExecutorService implements OnModuleInit {
 
   private getCampaignId(campaign: OutreachCampaignDocument): string {
     return String(campaign.id);
-  }
-
-  private getTargetId(target: CampaignTargetDocument): string {
-    return String(target.id);
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

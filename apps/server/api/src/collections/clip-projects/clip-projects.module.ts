@@ -13,8 +13,6 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { EditorProjectsModule } from '@api/collections/editor-projects/editor-projects.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
-import { ClipAnalyzeModule } from '@api/queues/clip-analyze/clip-analyze.module';
-import { ClipFactoryModule } from '@api/queues/clip-factory/clip-factory.module';
 import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
 import { UploadsModule } from '@api/services/uploads/uploads.module';
 import { Module } from '@nestjs/common';
@@ -35,8 +33,6 @@ import { Module } from '@nestjs/common';
     CreditsModule,
     EditorProjectsModule,
     IngredientsModule,
-    ClipAnalyzeModule,
-    ClipFactoryModule,
     PublicClipToolStoreModule,
     UploadsModule,
     WorkflowsModule,

@@ -44,12 +44,21 @@ function createExecution() {
     },
     nodeResults: [
       {
-        nodeId: 'generate-clip-1',
+        nodeId: 'generate-hook',
         nodeType: 'genfeedAction',
         output: {
-          clipResultIds: ['hook-result'],
-          providerJobIds: ['hook-job'],
-          queuedClipCount: 1,
+          count: 1,
+          results: [
+            {
+              index: 0,
+              result: {
+                clipResultIds: ['hook-result'],
+                originalIndex: 0,
+                providerJobIds: ['hook-job'],
+                queuedClipCount: 1,
+              },
+            },
+          ],
         },
         status: 'completed',
       },

@@ -29,13 +29,13 @@ describe('ClipProjectIngestionController', () => {
         status: 'analyzing',
       }),
       createFromYoutube: vi.fn().mockResolvedValue({
-        batchJobId: 'factory-job-1',
+        batchJobId: 'clip-factory-project-1',
         estimatedClips: 10,
         projectId: 'project-1',
         status: 'processing',
       }),
       finalizeUpload: vi.fn().mockResolvedValue({
-        batchJobId: 'clip-analyze-project-1',
+        batchJobId: 'clip-analysis-project-1',
         estimatedClips: 10,
         projectId: 'project-1',
         status: 'analyzing',
@@ -48,7 +48,7 @@ describe('ClipProjectIngestionController', () => {
         uploadUrl: 'https://uploads.test/ingredient-1',
       }),
       retrySource: vi.fn().mockResolvedValue({
-        batchJobId: 'clip-analyze-project-1',
+        batchJobId: 'clip-analysis-project-1',
         estimatedClips: 10,
         projectId: 'project-1',
         status: 'queued',
@@ -70,7 +70,7 @@ describe('ClipProjectIngestionController', () => {
     await expect(
       controller.createFromYoutube(currentUser as never, dto),
     ).resolves.toEqual({
-      batchJobId: 'factory-job-1',
+      batchJobId: 'clip-factory-project-1',
       estimatedClips: 10,
       projectId: 'project-1',
       status: 'processing',

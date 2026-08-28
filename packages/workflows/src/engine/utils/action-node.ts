@@ -18,7 +18,6 @@ export const ENGINE_NATIVE_NODE_TYPES: ReadonlySet<string> = new Set([
   'condition',
   'control-branch',
   'control-delay',
-  'control-loop',
   'delay',
   'engagementTrigger',
   'input-image',

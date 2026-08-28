@@ -235,19 +235,12 @@ export class HookClipApprovalService {
     if (!execution) {
       return undefined;
     }
-    const request = this.readGenerationInput(execution.inputValues?.request);
+    const request = this.resolveGenerationRequest(execution);
     if (!this.isHookReviewRequired(request)) {
       return undefined;
     }
 
-    const hookIndex = this.resolveHookIndex(request);
-    const hookNodeId = `generate-clip-${hookIndex + 1}`;
-    const hookNodeResult = execution.nodeResults.find(
-      (nodeResult) => nodeResult.nodeId === hookNodeId,
-    );
-    const hookClipResultId = this.readFirstString(
-      hookNodeResult?.output?.clipResultIds,
-    );
+    const hookClipResultId = this.resolveHookClipResultId(execution);
     const attempt = this.readPositiveInteger(
       execution.metadata?.clipHookReviewAttempt ??
         project.clipHookReviewAttempt,
@@ -371,6 +364,32 @@ export class HookClipApprovalService {
     return request as ClipGenerationInput;
   }
 
+  private resolveGenerationRequest(
+    execution: WorkflowExecutionDocument,
+  ): ClipGenerationInput {
+    if (execution.inputValues?.request) {
+      return this.readGenerationInput(execution.inputValues.request);
+    }
+    const plan = execution.nodeResults.find(
+      (nodeResult) => nodeResult.nodeId === 'plan-generation',
+    );
+    const output = this.readRecord(plan?.output);
+    const baseInput = this.readRecord(output.baseInput);
+    return this.readGenerationInput(baseInput.request);
+  }
+
+  private resolveHookClipResultId(
+    execution: WorkflowExecutionDocument,
+  ): string | undefined {
+    const hookDispatch = execution.nodeResults.find(
+      (nodeResult) => nodeResult.nodeId === 'generate-hook',
+    );
+    const output = this.readRecord(hookDispatch?.output);
+    const first = Array.isArray(output.results) ? output.results[0] : undefined;
+    const childResult = this.readRecord(this.readRecord(first).result);
+    return this.readFirstString(childResult.clipResultIds);
+  }
+
   private isHookReviewRequired(input: ClipGenerationInput): boolean {
     return (
       (input.hookApprovalRequired ??
@@ -397,6 +416,12 @@ export class HookClipApprovalService {
 
   private readFirstString(value: unknown): string | undefined {
     return Array.isArray(value) ? this.readString(value[0]) : undefined;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
   }
 
   private readPositiveInteger(value: unknown, fallback: number): number {

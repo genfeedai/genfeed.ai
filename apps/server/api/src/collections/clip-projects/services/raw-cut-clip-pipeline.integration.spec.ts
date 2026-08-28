@@ -5,6 +5,7 @@ import type { ModuleRef } from '@nestjs/core';
 import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
 import {
   type ClipGenerationInput,
+  type ClipGenerationResult,
   ClipGenerationService,
 } from '@server/collections/clip-projects/services/clip-generation.service';
 import { RawCutClipService } from '@server/collections/clip-projects/services/raw-cut-clip.service';
@@ -164,29 +165,28 @@ function createWorkflowHarness() {
     ): void {
       actions.set(actionId, executor);
     },
+    registerWorkflow(): void {},
     async startWorkflowDefinition(
       definition: SystemWorkflowGraphDefinition,
       input: { inputValues?: Record<string, unknown> },
     ) {
-      const request = input.inputValues?.request;
-      const collectedInputs: Record<string, unknown> = {};
-      for (const node of definition.definition.nodes) {
-        if (node.type !== 'genfeedAction') {
-          continue;
-        }
-        const actionId = String(node.data.config?.actionId ?? '');
-        if (actionId !== 'clip.generation.generate-one') {
-          continue;
-        }
-        const parameters = node.data.config?.parameters as
-          | Record<string, unknown>
-          | undefined;
-        const originalIndex = Number(parameters?.originalIndex);
-        const executor = actions.get(actionId);
-        if (!executor) {
-          throw new Error(`Missing test action ${actionId}`);
-        }
-        collectedInputs[`clip${originalIndex}`] = await executor({
+      const request = input.inputValues?.request as
+        | ClipGenerationInput
+        | undefined;
+      const executor = actions.get('clip.generation.generate-one');
+      if (!request || !executor) {
+        throw new Error('Missing immutable clip generation test action');
+      }
+      const results: Array<{
+        index: number;
+        result: ClipGenerationResult & { originalIndex: number };
+      }> = [];
+      for (
+        let originalIndex = 0;
+        originalIndex < request.highlights.length;
+        originalIndex++
+      ) {
+        const result = (await executor({
           context: {} as never,
           input: { originalIndex, request },
           provenance: {
@@ -194,21 +194,12 @@ function createWorkflowHarness() {
             workflowId: 'workflow-1',
             workflowLabel: 'Clip Generation',
           },
+        })) as ClipGenerationResult;
+        results.push({
+          index: originalIndex,
+          result: { ...result, originalIndex },
         });
       }
-      const collector = actions.get('clip.generation.collect-results');
-      if (!collector) {
-        throw new Error('Missing test result collector');
-      }
-      const result = await collector({
-        context: {} as never,
-        input: collectedInputs,
-        provenance: {
-          executionId: 'execution-1',
-          workflowId: 'workflow-1',
-          workflowLabel: 'Clip Generation',
-        },
-      });
       return {
         execution: {
           executionId: 'execution-1',
@@ -217,7 +208,7 @@ function createWorkflowHarness() {
               creditsUsed: 0,
               nodeId: definition.resultNodeId,
               nodeType: 'genfeedAction',
-              output: result,
+              output: { count: results.length, results },
               retryCount: 0,
               status: 'COMPLETED',
             },

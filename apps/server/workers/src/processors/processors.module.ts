@@ -29,7 +29,6 @@ import { VoicesModule } from '@api/collections/voices/voices.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { HeygenPollModule } from '@api/queues/heygen-poll/heygen-poll.module';
-import { KnowledgeSourceIngestQueueModule } from '@api/queues/knowledge-source-ingest/knowledge-source-ingest-queue.module';
 import { AgentCampaignOrchestratorModule } from '@api/services/agent-campaign/agent-campaign-orchestrator.module';
 import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-orchestrator.module';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
@@ -39,6 +38,7 @@ import { CampaignModule } from '@api/services/campaign/campaign.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
 import { TelegramDistributionModule } from '@api/services/distribution/telegram/telegram-distribution.module';
+import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
@@ -49,69 +49,19 @@ import { WebhookClientModule } from '@api/services/webhook-client/webhook-client
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { LoggerService } from '@libs/logger/logger.service';
-import { PrismaService } from '@libs/prisma/prisma.service';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
-import { AnalyticsSocialJobService } from '@server/analytics/services/analytics-social-job.service';
-import { AnalyticsTwitterJobService } from '@server/analytics/services/analytics-twitter-job.service';
-import { AnalyticsYouTubeJobService } from '@server/analytics/services/analytics-youtube-job.service';
-import { PostAnalyticsCollectionStateService } from '@server/analytics/services/post-analytics-collection-state.service';
-// --- Dependency modules (services/collections these processors inject from) ---
-import { PostAnalyticsService } from '@server/collections/posts/services/post-analytics.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { SERVER_TOKENS } from '@server/server.dependencies';
-import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
-import { LinkedInService } from '@server/services/integrations/linkedin/services/linkedin.service';
-import { MastodonService } from '@server/services/integrations/mastodon/services/mastodon.service';
-import { PinterestService } from '@server/services/integrations/pinterest/services/pinterest.service';
-import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 // --- collections/ processors ---
 import { BatchWorkflowProcessor } from '@workers/processors/api/collections/workflows/services/batch-workflow.processor';
 import { WorkflowExecutionProcessor as CollectionsWorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
 // --- queues/ processors ---
-import { AdBulkUploadProcessor } from '@workers/processors/api/queues/ad-bulk-upload/ad-bulk-upload.processor';
-import { AdOptimizationProcessor } from '@workers/processors/api/queues/ad-optimization/ad-optimization.processor';
-import { AdSyncGoogleProcessor } from '@workers/processors/api/queues/ad-sync-google/ad-sync-google.processor';
-import { AdSyncMetaProcessor } from '@workers/processors/api/queues/ad-sync-meta/ad-sync-meta.processor';
-import { AdSyncTikTokProcessor } from '@workers/processors/api/queues/ad-sync-tiktok/ad-sync-tiktok.processor';
 import { AgentRunProcessor } from '@workers/processors/api/queues/agent-run/agent-run.processor';
-import { AnalyticsFacebookProcessor } from '@workers/processors/api/queues/analytics-facebook/analytics-facebook.processor';
-import { AnalyticsSocialProcessor } from '@workers/processors/api/queues/analytics-social/analytics-social.processor';
-import { AnalyticsSyncProcessor } from '@workers/processors/api/queues/analytics-sync/analytics-sync.processor';
-import { AnalyticsThreadsProcessor } from '@workers/processors/api/queues/analytics-threads/analytics-threads.processor';
-import { AnalyticsTwitterProcessor } from '@workers/processors/api/queues/analytics-twitter/analytics-twitter.processor';
-import { AnalyticsYouTubeProcessor } from '@workers/processors/api/queues/analytics-youtube/analytics-youtube.processor';
-import { BatchGenerationProcessor } from '@workers/processors/api/queues/batch-generation/batch-generation.processor';
-import { CampaignProcessor } from '@workers/processors/api/queues/campaign/campaign.processor';
-import { ClipAnalyzeProcessor } from '@workers/processors/api/queues/clip-analyze/clip-analyze.processor';
-import { ClipFactoryProcessor } from '@workers/processors/api/queues/clip-factory/clip-factory.processor';
 import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-deduction/credit-deduction.processor';
-import { EmailDigestProcessor } from '@workers/processors/api/queues/email-digest/email-digest.processor';
 import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/heygen-poll.processor';
-import { InsightGenerationProcessor } from '@workers/processors/api/queues/insight-generation/insight-generation.processor';
-import { KnowledgeSourceIngestProcessor } from '@workers/processors/api/queues/knowledge-source-ingest/knowledge-source-ingest.processor';
-import { LifecycleEmailProcessor } from '@workers/processors/api/queues/lifecycle-email/lifecycle-email.processor';
 import { NotificationDeliveryProcessor } from '@workers/processors/api/queues/notification-delivery/notification-delivery.processor';
 import { NotificationDeliveryRecoveryService } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.service';
-import { PatternExtractionProcessor } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction.processor';
-import { ReplyBotPollingProcessor } from '@workers/processors/api/queues/reply-bot/reply-bot-polling.processor';
-import { ReplyInboundProcessor } from '@workers/processors/api/queues/reply-bot/reply-inbound.processor';
-import { ReplyPostWatchProcessor } from '@workers/processors/api/queues/reply-bot/reply-post-watch.processor';
-import { ClipHighlightDetector } from '@workers/processors/api/queues/shared/clip-highlight-detector.service';
-import { SignupPrefillProcessor } from '@workers/processors/api/queues/signup-prefill/signup-prefill.processor';
-import { SocialInboxSyncProcessor } from '@workers/processors/api/queues/social-inbox-sync/social-inbox-sync.processor';
-import { SocialReplyCampaignProcessor } from '@workers/processors/api/queues/social-reply-campaign/social-reply-campaign.processor';
-import { TelegramDistributeProcessor } from '@workers/processors/api/queues/telegram-distribute/telegram-distribute.processor';
 // --- services/ processors ---
-import { CampaignMemoryProcessor } from '@workers/processors/api/services/agent-campaign/campaign-memory.processor';
-import { OrchestratorProcessor } from '@workers/processors/api/services/agent-campaign/orchestrator.processor';
-import { TriggerEvaluatorProcessor } from '@workers/processors/api/services/agent-campaign/trigger-evaluator.processor';
-import { BatchContentProcessor } from '@workers/processors/api/services/batch-content/batch-content.processor';
-import { ContentOptimizationProcessor } from '@workers/processors/api/services/content-optimization/content-optimization.processor';
 import { WorkspaceTaskProcessor } from '@workers/processors/api/services/task-orchestration/workspace-task.processor';
 import { WebhookClientProcessor } from '@workers/processors/api/services/webhook-client/webhook-client.processor';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
@@ -159,114 +109,26 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => CampaignModule),
     forwardRef(() => ContentOptimizationModule),
     forwardRef(() => ContentOrchestrationModule),
+    forwardRef(() => LifecycleEmailsModule),
     forwardRef(() => NotificationsModule),
     forwardRef(() => ReplyBotModule),
     forwardRef(() => SignupPrefillModule),
     forwardRef(() => SkillExecutorModule),
     forwardRef(() => TaskOrchestrationModule),
     forwardRef(() => HeygenPollModule),
-    forwardRef(() => KnowledgeSourceIngestQueueModule),
     forwardRef(() => TelegramDistributionModule),
     forwardRef(() => WebhookClientModule),
     forwardRef(() => WhisperModule),
   ],
   providers: [
-    // --- domain services used by extracted analytics-family processors ---
-    AnalyticsSocialJobService,
-    AnalyticsTwitterJobService,
-    AnalyticsYouTubeJobService,
-    PostAnalyticsCollectionStateService,
-    {
-      provide: SERVER_TOKENS.analyticsCollectionState,
-      useExisting: PostAnalyticsCollectionStateService,
-    },
-    {
-      provide: SERVER_TOKENS.prisma,
-      useExisting: PrismaService,
-    },
-    {
-      provide: SERVER_TOKENS.instagram,
-      useExisting: InstagramService,
-    },
-    {
-      provide: SERVER_TOKENS.linkedIn,
-      useExisting: LinkedInService,
-    },
-    {
-      provide: SERVER_TOKENS.logger,
-      useExisting: LoggerService,
-    },
-    {
-      provide: SERVER_TOKENS.mastodon,
-      useExisting: MastodonService,
-    },
-    {
-      provide: SERVER_TOKENS.pinterest,
-      useExisting: PinterestService,
-    },
-    {
-      provide: SERVER_TOKENS.postAnalytics,
-      useExisting: PostAnalyticsService,
-    },
-    {
-      provide: SERVER_TOKENS.posts,
-      useExisting: PostsService,
-    },
-    {
-      provide: SERVER_TOKENS.tiktok,
-      useExisting: TiktokService,
-    },
-    {
-      provide: SERVER_TOKENS.twitter,
-      useExisting: TwitterService,
-    },
-    {
-      provide: SERVER_TOKENS.youtube,
-      useExisting: YoutubeService,
-    },
-
-    // --- queues/ processors (25) ---
-    AdBulkUploadProcessor,
-    AdOptimizationProcessor,
-    AdSyncGoogleProcessor,
-    AdSyncMetaProcessor,
-    AdSyncTikTokProcessor,
+    // --- queues/ processors ---
     AgentRunProcessor,
-    AnalyticsFacebookProcessor,
-    AnalyticsSocialProcessor,
-    AnalyticsSyncProcessor,
-    AnalyticsThreadsProcessor,
-    AnalyticsTwitterProcessor,
-    AnalyticsYouTubeProcessor,
-    CampaignProcessor,
-    ClipAnalyzeProcessor,
-    ClipFactoryProcessor,
-    // Shared highlight-detection step for the two clip processors above.
-    ClipHighlightDetector,
     CreditDeductionProcessor,
-    EmailDigestProcessor,
     HeygenPollProcessor,
-    InsightGenerationProcessor,
-    KnowledgeSourceIngestProcessor,
-    LifecycleEmailProcessor,
     NotificationDeliveryProcessor,
     NotificationDeliveryRecoveryService,
-    PatternExtractionProcessor,
-    ReplyBotPollingProcessor,
-    ReplyInboundProcessor,
-    ReplyPostWatchProcessor,
-    SignupPrefillProcessor,
-    SocialInboxSyncProcessor,
-    SocialReplyCampaignProcessor,
-    TelegramDistributeProcessor,
 
     // --- services/ processors ---
-    BatchContentProcessor,
-    BatchGenerationProcessor,
-    CampaignMemoryProcessor,
-    ContentOptimizationProcessor,
-    OrchestratorProcessor,
-    TriggerEvaluatorProcessor,
     WebhookClientProcessor,
     WorkspaceTaskProcessor,
 

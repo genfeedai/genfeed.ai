@@ -1,6 +1,6 @@
 import {
   DEFAULT_QUEUE,
-  PATTERN_EXTRACTION_QUEUE,
+  TRIGGER_EVALUATION_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/queue-contracts';
 import {
@@ -31,8 +31,8 @@ describe('default queue drain', () => {
   });
 
   it('counts every waiting job by name without mutating anything in dry-run mode', async () => {
-    const stranded = job(PATTERN_EXTRACTION_QUEUE);
-    const alsoStranded = job(PATTERN_EXTRACTION_QUEUE);
+    const stranded = job(TRIGGER_EVALUATION_QUEUE);
+    const alsoStranded = job(TRIGGER_EVALUATION_QUEUE);
     const orphan = job('some-deleted-job');
     const defaultQueue = {
       getWaiting: vi.fn().mockResolvedValue([stranded, alsoStranded, orphan]),
@@ -49,7 +49,7 @@ describe('default queue drain', () => {
     expect(stranded.remove).not.toHaveBeenCalled();
     expect(orphan.remove).not.toHaveBeenCalled();
     expect(report).toEqual({
-      byJobName: { 'some-deleted-job': 1, [PATTERN_EXTRACTION_QUEUE]: 2 },
+      byJobName: { 'some-deleted-job': 1, [TRIGGER_EVALUATION_QUEUE]: 2 },
       dryRun: true,
       purged: 0,
       rerouted: 0,
@@ -59,10 +59,10 @@ describe('default queue drain', () => {
   });
 
   it('reroutes each misrouted job to the queue its name identifies', async () => {
-    const patternJob = job(PATTERN_EXTRACTION_QUEUE, { brandId: 'brand-1' });
+    const triggerJob = job(TRIGGER_EVALUATION_QUEUE, { brandId: 'brand-1' });
     const workflowJob = job(WORKFLOW_EXECUTION_QUEUE, { postId: 'post-1' });
     const defaultQueue = {
-      getWaiting: vi.fn().mockResolvedValue([patternJob, workflowJob]),
+      getWaiting: vi.fn().mockResolvedValue([triggerJob, workflowJob]),
     };
     const writers = new Map<string, { add: ReturnType<typeof vi.fn> }>();
     const createQueueWriter = vi.fn((queueName: string) => {
@@ -76,15 +76,15 @@ describe('default queue drain', () => {
       purgeUnroutable: false,
     });
 
-    expect(writers.get(PATTERN_EXTRACTION_QUEUE)?.add).toHaveBeenCalledWith(
-      PATTERN_EXTRACTION_QUEUE,
+    expect(writers.get(TRIGGER_EVALUATION_QUEUE)?.add).toHaveBeenCalledWith(
+      TRIGGER_EVALUATION_QUEUE,
       { brandId: 'brand-1' },
     );
     expect(writers.get(WORKFLOW_EXECUTION_QUEUE)?.add).toHaveBeenCalledWith(
       WORKFLOW_EXECUTION_QUEUE,
       { postId: 'post-1' },
     );
-    expect(patternJob.remove).toHaveBeenCalled();
+    expect(triggerJob.remove).toHaveBeenCalled();
     expect(workflowJob.remove).toHaveBeenCalled();
     expect(report.rerouted).toBe(2);
     expect(report.unroutable).toBe(0);
@@ -123,9 +123,9 @@ describe('default queue drain', () => {
       getWaiting: vi
         .fn()
         .mockResolvedValue([
-          job(PATTERN_EXTRACTION_QUEUE),
-          job(PATTERN_EXTRACTION_QUEUE),
-          job(PATTERN_EXTRACTION_QUEUE),
+          job(TRIGGER_EVALUATION_QUEUE),
+          job(TRIGGER_EVALUATION_QUEUE),
+          job(TRIGGER_EVALUATION_QUEUE),
         ]),
     };
     const createQueueWriter = vi.fn(() => ({ add: vi.fn() }));

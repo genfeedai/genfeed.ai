@@ -14,6 +14,7 @@ import { SocialInboxActionService } from '@server/collections/social-inbox/servi
 import { SocialInboxIngestionService } from '@server/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@server/collections/social-inbox/services/social-inbox-query.service';
 import { SocialInboxRealtimeService } from '@server/collections/social-inbox/services/social-inbox-realtime.service';
+import { SocialInboxSyncWorkflowService } from '@server/collections/social-inbox/services/social-inbox-sync-workflow.service';
 import { SocialReplyCampaignDispatchService } from '@server/collections/social-inbox/services/social-reply-campaign-dispatch.service';
 
 @Module({
@@ -34,6 +35,7 @@ import { SocialReplyCampaignDispatchService } from '@server/collections/social-i
     SocialInboxQueryService,
     SocialInboxRealtimeService,
     SocialInboxService,
+    SocialInboxSyncWorkflowService,
     SocialReplyCampaignDispatchService,
     SocialReplyCampaignService,
   ],

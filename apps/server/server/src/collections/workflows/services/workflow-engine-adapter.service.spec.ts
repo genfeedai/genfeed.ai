@@ -1388,7 +1388,7 @@ describe('WorkflowEngineAdapterService', () => {
       expect(result.nodes[1].type).toBe('delay');
     });
 
-    it('preserves action envelopes and maps engine-native controls', () => {
+    it('preserves action envelopes and maps engine-native conditions', () => {
       const workflowDoc = {
         id: 'wf-1',
         nodes: [
@@ -1400,7 +1400,7 @@ describe('WorkflowEngineAdapterService', () => {
           {
             data: { config: {} },
             id: 'n2',
-            type: 'control-loop',
+            type: 'control-branch',
           },
         ],
         organizationId: 'org-1',
@@ -1413,7 +1413,7 @@ describe('WorkflowEngineAdapterService', () => {
         config: { actionId: 'ai-enhance', parameters: {} },
         type: 'genfeedAction',
       });
-      expect(result.nodes[1].type).toBe('control-loop');
+      expect(result.nodes[1].type).toBe('condition');
     });
 
     it('should map input-video to the dedicated input-video executor', () => {

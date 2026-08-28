@@ -59,10 +59,17 @@ function createMockSchedulerService() {
 
 function createMockSystemWorkflowRunner() {
   return {
-    runAction: vi.fn().mockResolvedValue({ result: { status: 'failed' } }),
-    runWorkflowDefinition: vi.fn().mockResolvedValue({
+    startWorkflowDefinition: vi.fn().mockResolvedValue({
+      execution: {
+        executionId: 'exec-system',
+        nodeResults: [],
+        startedAt: new Date(),
+        status: WorkflowExecutionStatus.COMPLETED,
+        totalCreditsUsed: 0,
+        workflowId: 'wf-system',
+      },
       provenance: { executionId: 'exec-system', workflowId: 'wf-system' },
-      result: { status: 'completed' },
+      userId: 'user-1',
     }),
   };
 }
@@ -136,15 +143,104 @@ describe('WorkflowExecutionProcessor', () => {
         ),
       ).resolves.toEqual({
         executionId: 'exec-system',
+        status: WorkflowExecutionStatus.COMPLETED,
         workflowId: 'wf-system',
       });
       expect(
-        mockSystemWorkflowRunner.runWorkflowDefinition,
+        mockSystemWorkflowRunner.startWorkflowDefinition,
       ).toHaveBeenCalledWith(definition, input);
     });
 
-    it('projects terminal failure through a registered action before retry', async () => {
-      mockSystemWorkflowRunner.runWorkflowDefinition.mockRejectedValueOnce(
+    it('accepts a durable review-gate pause without projecting failure', async () => {
+      mockSystemWorkflowRunner.startWorkflowDefinition.mockResolvedValueOnce({
+        execution: {
+          executionId: 'exec-paused',
+          nodeResults: [],
+          startedAt: new Date(),
+          status: WorkflowExecutionStatus.RUNNING,
+          totalCreditsUsed: 0,
+          workflowId: 'wf-system',
+        },
+        provenance: { executionId: 'exec-paused', workflowId: 'wf-system' },
+        userId: 'user-1',
+      });
+      const definition = {
+        canonicalId: 'clip.factory',
+        definition: { edges: [], inputVariables: [], nodes: [] },
+        description: 'Clip factory',
+        label: 'Clip factory',
+        resultNodeId: 'dispatch-remaining',
+      };
+      const input = {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        organizationId: 'org-1',
+        source: 'clip-analysis-completion',
+      };
+
+      await expect(
+        processor.process(
+          createMockJob({
+            systemRun: {
+              definition,
+              input,
+            },
+            type: 'system-run',
+          }) as never,
+        ),
+      ).resolves.toEqual({
+        executionId: 'exec-paused',
+        status: WorkflowExecutionStatus.RUNNING,
+        workflowId: 'wf-system',
+      });
+    });
+
+    it('does not create a second system execution when BullMQ retries', async () => {
+      const definition = {
+        canonicalId: 'campaign.reply.execute-target',
+        definition: { edges: [], inputVariables: [], nodes: [] },
+        description: 'Campaign reply',
+        label: 'Campaign reply',
+        resultNodeId: 'finalize',
+      };
+      const input = {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        organizationId: 'org-1',
+        source: 'workflow.for-each',
+        userId: 'user-1',
+      };
+
+      await expect(
+        processor.process(
+          createMockJob(
+            {
+              systemRun: {
+                definition,
+                input,
+                priorExecution: {
+                  executionId: 'exec-prior',
+                  status: WorkflowExecutionStatus.COMPLETED,
+                  userId: 'user-1',
+                  workflowId: 'wf-system',
+                },
+              },
+              type: 'system-run',
+            },
+            { attemptsMade: 1 },
+          ) as never,
+        ),
+      ).resolves.toMatchObject({
+        executionId: 'exec-prior',
+        status: WorkflowExecutionStatus.COMPLETED,
+      });
+      expect(
+        mockSystemWorkflowRunner.startWorkflowDefinition,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('leaves terminal failure handling inside the immutable graph', async () => {
+      mockSystemWorkflowRunner.startWorkflowDefinition.mockRejectedValueOnce(
         new Error('QA failed'),
       );
       const definition = {
@@ -167,24 +263,12 @@ describe('WorkflowExecutionProcessor', () => {
           createMockJob({
             systemRun: {
               definition,
-              failureAction: {
-                actionId: 'clip.continuity.fail',
-                inputValues: { projectId: 'project-1' },
-              },
               input,
             },
             type: 'system-run',
           }) as never,
         ),
       ).rejects.toThrow('QA failed');
-      expect(mockSystemWorkflowRunner.runAction).toHaveBeenCalledWith({
-        actionType: 'clip.continuity.fail',
-        canonicalId: 'clip.continuity.fail',
-        inputValues: { projectId: 'project-1', workflowError: 'QA failed' },
-        organizationId: 'org-1',
-        source: 'system-workflow-failure',
-        userId: 'user-1',
-      });
     });
   });
 
@@ -457,6 +541,53 @@ describe('WorkflowExecutionProcessor', () => {
       expect(mockQueue.queueDelayedResume).toHaveBeenCalledWith(
         delayJobData,
         60000,
+      );
+    });
+  });
+
+  describe('process - delay resume jobs', () => {
+    it('schedules the next durable delay when a resumed graph pauses again', async () => {
+      const nextDelay = {
+        delayNodeId: 'delay-2',
+        executionId: 'exec-1',
+        nodeOutputCache: {
+          'delay-2': { delayMs: 45_000 },
+        },
+        organizationId: 'org-1',
+        remainingNodeIds: ['publish'],
+        triggerEvent: {
+          data: {},
+          organizationId: 'org-1',
+          platform: 'manual',
+          type: 'manual',
+          userId: 'user-1',
+        },
+        userId: 'user-1',
+        workflowId: 'wf-1',
+      };
+      mockExecutor.resumeAfterDelay.mockResolvedValueOnce({
+        _delayJobData: nextDelay,
+        executionId: 'exec-1',
+        nodeResults: [],
+        startedAt: new Date(),
+        status: WorkflowExecutionStatus.RUNNING,
+        totalCreditsUsed: 0,
+        workflowId: 'wf-1',
+      });
+
+      await processor.process(
+        createMockJob({
+          delayResumeData: {
+            ...nextDelay,
+            delayNodeId: 'delay-1',
+          },
+          type: 'delay-resume',
+        }) as never,
+      );
+
+      expect(mockQueue.queueDelayedResume).toHaveBeenCalledWith(
+        nextDelay,
+        45_000,
       );
     });
   });

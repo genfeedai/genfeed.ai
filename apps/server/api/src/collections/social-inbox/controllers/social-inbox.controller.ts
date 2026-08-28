@@ -1,4 +1,3 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import {
   SocialConversationUpdateDto,
   SocialDmDto,
@@ -11,10 +10,6 @@ import {
   SocialInboxQueryDto,
   SocialMessagesQueryDto,
 } from '@api/collections/social-inbox/dto/social-inbox-query.dto';
-import {
-  type SocialInboxScope,
-  SocialInboxService,
-} from '@server/collections/social-inbox/services/social-inbox.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -24,7 +19,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { QueueService } from '@server/queues/core/queue.service';
 import {
   ApiKeyScope,
   MemberRole,
@@ -35,12 +29,6 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
-import {
-  SOCIAL_INBOX_SYNC_QUEUE,
-  type SocialInboxSyncConversationType,
-  type SocialInboxSyncJobData,
-  type SocialInboxSyncPlatform,
-} from '@genfeedai/queue-contracts';
 import {
   SocialConversationSerializer,
   SocialMessageSerializer,
@@ -58,6 +46,16 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import {
+  type SocialInboxScope,
+  SocialInboxService,
+} from '@server/collections/social-inbox/services/social-inbox.service';
+import { SocialInboxSyncWorkflowService } from '@server/collections/social-inbox/services/social-inbox-sync-workflow.service';
+import type {
+  SocialInboxSyncConversationType,
+  SocialInboxSyncPlatform,
+} from '@server/collections/social-inbox/services/social-inbox-sync-workflow-definition';
 import type { Request } from 'express';
 
 @ApiTags('Messages')
@@ -68,7 +66,7 @@ import type { Request } from 'express';
 export class SocialInboxController {
   constructor(
     private readonly socialInboxService: SocialInboxService,
-    private readonly queueService: QueueService,
+    private readonly syncWorkflowService: SocialInboxSyncWorkflowService,
   ) {}
 
   @Get()
@@ -358,20 +356,17 @@ export class SocialInboxController {
     conversationType: SocialInboxSyncConversationType,
   ): Promise<{ jobId: string | undefined; status: string }> {
     const scope = this.buildScope(user);
-    const job = await this.queueService.add<SocialInboxSyncJobData>(
-      SOCIAL_INBOX_SYNC_QUEUE,
-      {
-        brandId: scope.brandId,
-        conversationType,
-        credentialId: body.credentialId,
-        limit: body.limit,
-        organizationId: scope.organizationId,
-        platform,
-        userId: scope.userId,
-      },
-    );
+    const jobId = await this.syncWorkflowService.enqueue({
+      brandId: scope.brandId,
+      conversationType,
+      credentialId: body.credentialId,
+      limit: body.limit,
+      organizationId: scope.organizationId,
+      platform,
+      userId: scope.userId,
+    });
 
-    return { jobId: job.id, status: 'queued' };
+    return { jobId, status: 'queued' };
   }
 
   private buildScope(user: User): SocialInboxScope {

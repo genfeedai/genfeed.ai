@@ -43,6 +43,14 @@ type WorkflowBrandContext = {
   voiceConfig: IBrandAgentVoice | null;
 };
 
+const MAX_WORKFLOW_DELAY_MS = 30 * 24 * 60 * 60 * 1000;
+const WORKFLOW_DELAY_UNIT_MS = {
+  days: 24 * 60 * 60 * 1000,
+  hours: 60 * 60 * 1000,
+  minutes: 60 * 1000,
+  seconds: 1000,
+} as const;
+
 function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === 'object' && value !== null
     ? (value as Record<string, unknown>)
@@ -51,6 +59,131 @@ function asRecord(value: unknown): Record<string, unknown> {
 
 function optionalString(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+function readPath(value: unknown, path: string): unknown {
+  return path.split('.').reduce<unknown>((current, segment) => {
+    const record = asRecord(current);
+    return record[segment];
+  }, value);
+}
+
+function isEmptyConditionValue(value: unknown): boolean {
+  return (
+    value === undefined ||
+    value === null ||
+    value === '' ||
+    (Array.isArray(value) && value.length === 0) ||
+    (typeof value === 'object' &&
+      !Array.isArray(value) &&
+      Object.keys(asRecord(value)).length === 0)
+  );
+}
+
+function evaluateCondition(
+  candidate: unknown,
+  operator: string,
+  expected: unknown,
+): boolean {
+  switch (operator) {
+    case 'equals':
+      return Object.is(candidate, expected);
+    case 'notEquals':
+      return !Object.is(candidate, expected);
+    case 'greaterThan':
+      return typeof candidate === 'number' &&
+        typeof expected === 'number' &&
+        Number.isFinite(candidate) &&
+        Number.isFinite(expected)
+        ? candidate > expected
+        : false;
+    case 'lessThan':
+      return typeof candidate === 'number' &&
+        typeof expected === 'number' &&
+        Number.isFinite(candidate) &&
+        Number.isFinite(expected)
+        ? candidate < expected
+        : false;
+    case 'greaterThanOrEquals':
+      return typeof candidate === 'number' &&
+        typeof expected === 'number' &&
+        Number.isFinite(candidate) &&
+        Number.isFinite(expected)
+        ? candidate >= expected
+        : false;
+    case 'lessThanOrEquals':
+      return typeof candidate === 'number' &&
+        typeof expected === 'number' &&
+        Number.isFinite(candidate) &&
+        Number.isFinite(expected)
+        ? candidate <= expected
+        : false;
+    case 'contains':
+      return typeof candidate === 'string'
+        ? candidate.includes(String(expected ?? ''))
+        : Array.isArray(candidate) && candidate.includes(expected);
+    case 'notContains':
+      return !evaluateCondition(candidate, 'contains', expected);
+    case 'startsWith':
+      return (
+        typeof candidate === 'string' &&
+        candidate.startsWith(String(expected ?? ''))
+      );
+    case 'endsWith':
+      return (
+        typeof candidate === 'string' &&
+        candidate.endsWith(String(expected ?? ''))
+      );
+    case 'isTrue':
+      return candidate === true;
+    case 'isFalse':
+      return candidate === false;
+    case 'isEmpty':
+      return isEmptyConditionValue(candidate);
+    case 'isNotEmpty':
+      return !isEmptyConditionValue(candidate);
+    default:
+      throw new Error(`Unsupported workflow condition operator: ${operator}`);
+  }
+}
+
+function resolveDelayMs(config: Record<string, unknown>, now: Date): number {
+  const mode = optionalString(config.mode) ?? 'fixed';
+  let delayMs: number;
+  if (mode === 'until') {
+    const untilTime = optionalString(config.untilTime);
+    if (!untilTime) {
+      throw new Error('Workflow delay untilTime is required in until mode');
+    }
+    const untilMs = Date.parse(untilTime);
+    if (!Number.isFinite(untilMs)) {
+      throw new Error('Workflow delay untilTime must be a valid timestamp');
+    }
+    delayMs = Math.max(untilMs - now.getTime(), 0);
+  } else if (mode === 'fixed') {
+    const duration = config.duration;
+    const unit = optionalString(config.unit) ?? 'minutes';
+    const unitMs =
+      WORKFLOW_DELAY_UNIT_MS[unit as keyof typeof WORKFLOW_DELAY_UNIT_MS];
+    if (
+      typeof duration !== 'number' ||
+      !Number.isFinite(duration) ||
+      duration < 0
+    ) {
+      throw new Error('Workflow delay duration must be a non-negative number');
+    }
+    if (!unitMs) {
+      throw new Error(`Unsupported workflow delay unit: ${unit}`);
+    }
+    delayMs = duration * unitMs;
+  } else {
+    throw new Error(`Unsupported workflow delay mode: ${mode}`);
+  }
+
+  if (!Number.isSafeInteger(delayMs) || delayMs > MAX_WORKFLOW_DELAY_MS) {
+    throw new Error(`Workflow delay may not exceed ${MAX_WORKFLOW_DELAY_MS}ms`);
+  }
+  return delayMs;
 }
 
 function toWorkflowBrandContext(brand: Brand): WorkflowBrandContext {
@@ -91,12 +224,42 @@ export class WorkflowCoreExecutorRegistrarService {
   ) {}
 
   register(engine: WorkflowEngine): void {
+    this.registerConditionExecutor(engine);
+    this.registerDelayExecutor(engine);
     this.registerReviewGateExecutor(engine);
     this.registerBrandExecutor(engine);
     this.registerBrandAssetExecutor(engine);
     this.registerBrandContextExecutor(engine);
     this.registerAnalyticsFeedbackExecutor(engine);
     this.registerSeoExecutors(engine);
+  }
+
+  private registerConditionExecutor(engine: WorkflowEngine): void {
+    engine.registerExecutor('condition', async (node, inputs) => {
+      const source = inputs.get('value') ?? inputs.values().next().value;
+      const field = optionalString(node.config.field);
+      const customField = optionalString(node.config.customField);
+      const path = field === 'custom' ? customField : field;
+      const candidate = path ? readPath(source, path) : source;
+      const operator = optionalString(node.config.operator) ?? 'equals';
+      return {
+        data: source,
+        result: evaluateCondition(candidate, operator, node.config.value),
+        value: candidate,
+      };
+    });
+  }
+
+  private registerDelayExecutor(engine: WorkflowEngine): void {
+    engine.registerExecutor('delay', async (node, inputs) => {
+      const now = new Date();
+      const delayMs = resolveDelayMs(node.config, now);
+      return {
+        data: inputs.get('trigger') ?? inputs.values().next().value,
+        delayMs,
+        resumeAt: new Date(now.getTime() + delayMs).toISOString(),
+      };
+    });
   }
 
   private registerBrandExecutor(engine: WorkflowEngine): void {

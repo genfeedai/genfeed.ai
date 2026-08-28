@@ -32,6 +32,7 @@ export interface WorkflowExecutionResult {
   startedAt: Date;
   completedAt?: Date;
   error?: string;
+  _delayJobData?: DelayResumeJobData;
 }
 
 export interface NodeExecutionSummary {

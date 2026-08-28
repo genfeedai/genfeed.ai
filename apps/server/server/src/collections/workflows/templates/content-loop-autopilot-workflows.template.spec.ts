@@ -13,14 +13,32 @@ describe('CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES', () => {
     });
 
     const nodeTypes = (template?.nodes ?? []).map((node) => node.type);
-    expect(nodeTypes).toEqual(['genfeedAction', 'genfeedAction']);
+    expect(nodeTypes).toEqual([
+      'genfeedAction',
+      'genfeedAction',
+      'genfeedAction',
+      'genfeedAction',
+    ]);
     expect(
       (template?.nodes ?? []).map((node) => node.data.config.actionId),
-    ).toEqual(['analyticsGenericSync', 'harnessWinnerPromotionSweep']);
+    ).toEqual([
+      'analytics.generic.resolve-window',
+      'analytics.generic.discover',
+      'workflow.for-each',
+      'harnessWinnerPromotionSweep',
+    ]);
 
     expect(template?.edges).toEqual([
       expect.objectContaining({
-        source: 'analyticsGenericSync',
+        source: 'resolveAnalyticsWindow',
+        target: 'discoverAnalytics',
+      }),
+      expect.objectContaining({
+        source: 'discoverAnalytics',
+        target: 'syncEachAnalyticsItem',
+      }),
+      expect.objectContaining({
+        source: 'syncEachAnalyticsItem',
         target: 'harnessWinnerPromotionSweep',
       }),
     ]);
@@ -32,7 +50,9 @@ describe('CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES', () => {
 
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toEqual([
-      'analyticsGenericSync',
+      'resolveAnalyticsWindow',
+      'discoverAnalytics',
+      'syncEachAnalyticsItem',
       'harnessWinnerPromotionSweep',
     ]);
   });

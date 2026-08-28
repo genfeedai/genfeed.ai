@@ -1,16 +1,16 @@
-import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
-import type { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
-import type { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
 import { ClipProjectIngestionService } from '@api/collections/clip-projects/services/clip-project-ingestion.service';
-import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import type { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
-import type { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
-import type { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
 import type { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
 import { BadRequestException } from '@nestjs/common';
+import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
+import type { ClipAnalysisWorkflowQueueService } from '@server/collections/clip-projects/services/clip-analysis-workflow-queue.service';
+import type { ClipFactoryWorkflowQueueService } from '@server/collections/clip-projects/services/clip-factory-workflow-queue.service';
+import type { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
+import type { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
+import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import type { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
 
 describe('ClipProjectIngestionService', () => {
   const currentUser = {
@@ -35,13 +35,11 @@ describe('ClipProjectIngestionService', () => {
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
   };
-  let clipFactoryQueueService: {
+  let clipFactoryWorkflowQueue: {
     enqueue: ReturnType<typeof vi.fn>;
-    retry: ReturnType<typeof vi.fn>;
   };
-  let clipAnalyzeQueueService: {
+  let clipAnalysisWorkflowQueue: {
     enqueue: ReturnType<typeof vi.fn>;
-    retry: ReturnType<typeof vi.fn>;
   };
   let clipGenerationRequestService: {
     assertCompleteAvatarIdentity: ReturnType<typeof vi.fn>;
@@ -72,13 +70,11 @@ describe('ClipProjectIngestionService', () => {
       findOne: vi.fn(),
       patch: vi.fn(),
     };
-    clipFactoryQueueService = {
-      enqueue: vi.fn().mockResolvedValue('factory-job-1'),
-      retry: vi.fn().mockResolvedValue('clip-factory-project-1'),
+    clipFactoryWorkflowQueue = {
+      enqueue: vi.fn().mockResolvedValue('clip-factory-project-1'),
     };
-    clipAnalyzeQueueService = {
-      enqueue: vi.fn().mockResolvedValue('analyze-job-1'),
-      retry: vi.fn().mockResolvedValue('clip-analyze-project-1'),
+    clipAnalysisWorkflowQueue = {
+      enqueue: vi.fn().mockResolvedValue('clip-analysis-project-1'),
     };
     clipGenerationRequestService = {
       assertCompleteAvatarIdentity: vi.fn((identity?: AgentClipRunIdentity) => {
@@ -112,8 +108,8 @@ describe('ClipProjectIngestionService', () => {
     };
     service = new ClipProjectIngestionService(
       clipProjectsService as unknown as ClipProjectsService,
-      clipFactoryQueueService as unknown as ClipFactoryQueueService,
-      clipAnalyzeQueueService as unknown as ClipAnalyzeQueueService,
+      clipFactoryWorkflowQueue as unknown as ClipFactoryWorkflowQueueService,
+      clipAnalysisWorkflowQueue as unknown as ClipAnalysisWorkflowQueueService,
       clipGenerationRequestService as unknown as ClipGenerationRequestService,
       clipIdentityResolutionService as unknown as ClipIdentityResolutionService,
       creditsUtilsService as unknown as CreditsUtilsService,
@@ -184,7 +180,7 @@ describe('ClipProjectIngestionService', () => {
       source: expect.objectContaining({ flow: 'quick', kind: 'youtube' }),
       userId: 'user-1',
     });
-    expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith({
+    expect(clipFactoryWorkflowQueue.enqueue).toHaveBeenCalledWith({
       avatarId: 'avatar-custom',
       avatarProvider: 'argil',
       language: 'fr',
@@ -210,7 +206,7 @@ describe('ClipProjectIngestionService', () => {
       'org-1',
     );
     expect(result).toEqual({
-      batchJobId: 'factory-job-1',
+      batchJobId: 'clip-factory-project-1',
       estimatedClips: 12,
       identity: customIdentity,
       projectId: 'project-1',
@@ -275,7 +271,7 @@ describe('ClipProjectIngestionService', () => {
       source: expect.objectContaining({ flow: 'quick', kind: 'youtube' }),
       userId: 'user-1',
     });
-    expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith({
+    expect(clipFactoryWorkflowQueue.enqueue).toHaveBeenCalledWith({
       avatarId: 'avatar-1',
       avatarProvider: 'heygen',
       language: 'en',
@@ -321,7 +317,7 @@ describe('ClipProjectIngestionService', () => {
     expect(
       clipGenerationRequestService.assertCompleteAvatarIdentity,
     ).not.toHaveBeenCalled();
-    expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith(
+    expect(clipFactoryWorkflowQueue.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
         avatarId: undefined,
         mode: 'raw-cut',
@@ -363,7 +359,7 @@ describe('ClipProjectIngestionService', () => {
     expect(
       clipGenerationRequestService.resolveRunReferences,
     ).toHaveBeenCalledWith('brand-1', 'org-1');
-    expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith(
+    expect(clipFactoryWorkflowQueue.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
         avatarId: undefined,
         runReferences,
@@ -388,7 +384,7 @@ describe('ClipProjectIngestionService', () => {
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).not.toHaveBeenCalled();
     expect(clipProjectsService.create).not.toHaveBeenCalled();
-    expect(clipFactoryQueueService.enqueue).not.toHaveBeenCalled();
+    expect(clipFactoryWorkflowQueue.enqueue).not.toHaveBeenCalled();
   });
 
   it('asserts complete avatar identity before credits or persistence', async () => {
@@ -412,7 +408,7 @@ describe('ClipProjectIngestionService', () => {
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).not.toHaveBeenCalled();
     expect(clipProjectsService.create).not.toHaveBeenCalled();
-    expect(clipFactoryQueueService.enqueue).not.toHaveBeenCalled();
+    expect(clipFactoryWorkflowQueue.enqueue).not.toHaveBeenCalled();
   });
 
   it('throws the exact balance error before persistence or queueing', async () => {
@@ -442,7 +438,7 @@ describe('ClipProjectIngestionService', () => {
       meta: { available: 3, required: 8 },
     });
     expect(clipProjectsService.create).not.toHaveBeenCalled();
-    expect(clipFactoryQueueService.enqueue).not.toHaveBeenCalled();
+    expect(clipFactoryWorkflowQueue.enqueue).not.toHaveBeenCalled();
   });
 
   it('propagates factory persistence and queue errors unchanged', async () => {
@@ -456,13 +452,13 @@ describe('ClipProjectIngestionService', () => {
         youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
       }),
     ).rejects.toBe(persistenceError);
-    expect(clipFactoryQueueService.enqueue).not.toHaveBeenCalled();
+    expect(clipFactoryWorkflowQueue.enqueue).not.toHaveBeenCalled();
 
     clipProjectsService.create.mockResolvedValueOnce({
       id: 'project-2',
     } as ClipProjectDocument);
     const queueError = new Error('Factory queue failed');
-    clipFactoryQueueService.enqueue.mockRejectedValueOnce(queueError);
+    clipFactoryWorkflowQueue.enqueue.mockRejectedValueOnce(queueError);
 
     await expect(
       service.createFromYoutube(currentUser as never, {
@@ -515,7 +511,7 @@ describe('ClipProjectIngestionService', () => {
       status: 'pending',
       userId: 'user-1',
     });
-    expect(clipAnalyzeQueueService.enqueue).toHaveBeenCalledWith({
+    expect(clipAnalysisWorkflowQueue.enqueue).toHaveBeenCalledWith({
       language: 'es',
       maxClips: 14,
       minViralityScore: 64,
@@ -560,7 +556,7 @@ describe('ClipProjectIngestionService', () => {
       status: 'pending',
       userId: 'legacy-user-1',
     });
-    expect(clipAnalyzeQueueService.enqueue).toHaveBeenCalledWith({
+    expect(clipAnalysisWorkflowQueue.enqueue).toHaveBeenCalledWith({
       language: 'en',
       maxClips: 10,
       minViralityScore: 50,
@@ -647,7 +643,7 @@ describe('ClipProjectIngestionService', () => {
     await expect(
       service.finalizeUpload(currentUser as never, 'project-1'),
     ).resolves.toMatchObject({
-      batchJobId: 'analyze-job-1',
+      batchJobId: 'clip-analysis-project-1',
       estimatedClips: 6,
       status: 'analyzing',
     });
@@ -656,12 +652,12 @@ describe('ClipProjectIngestionService', () => {
       currentUser,
       'ingredient-1',
     );
-    expect(clipAnalyzeQueueService.enqueue).toHaveBeenCalledWith(
+    expect(clipAnalysisWorkflowQueue.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
         projectId: 'project-1',
         source: expect.objectContaining({
           durationSeconds: 3600,
-          jobId: 'clip-analyze-project-1',
+          jobId: 'clip-analysis-project-1',
           status: 'queued',
         }),
         youtubeUrl: 'https://cdn.test/videos/ingredient-1',
@@ -697,7 +693,7 @@ describe('ClipProjectIngestionService', () => {
     await expect(
       service.finalizeUpload(currentUser as never, 'project-1'),
     ).rejects.toThrow('Clip sources may be up to 10 GB.');
-    expect(clipAnalyzeQueueService.enqueue).not.toHaveBeenCalled();
+    expect(clipAnalysisWorkflowQueue.enqueue).not.toHaveBeenCalled();
   });
 
   it('does not trust the client-declared upload size when storage metadata omits it', async () => {
@@ -728,7 +724,7 @@ describe('ClipProjectIngestionService', () => {
     await expect(
       service.finalizeUpload(currentUser as never, 'project-1'),
     ).rejects.toThrow('uploaded clip source size is unavailable');
-    expect(clipAnalyzeQueueService.enqueue).not.toHaveBeenCalled();
+    expect(clipAnalysisWorkflowQueue.enqueue).not.toHaveBeenCalled();
   });
 
   it('requires authoritative duration metadata before queueing an upload', async () => {
@@ -759,7 +755,7 @@ describe('ClipProjectIngestionService', () => {
     await expect(
       service.finalizeUpload(currentUser as never, 'project-1'),
     ).rejects.toThrow('uploaded clip source duration is unavailable');
-    expect(clipAnalyzeQueueService.enqueue).not.toHaveBeenCalled();
+    expect(clipAnalysisWorkflowQueue.enqueue).not.toHaveBeenCalled();
   });
 
   it('validates a managed upload against its selected project reference', async () => {
@@ -818,7 +814,7 @@ describe('ClipProjectIngestionService', () => {
     expect(
       clipGenerationRequestService.assertProviderRequirements,
     ).toHaveBeenCalledWith('genfeedai', reference, [], 'avatar');
-    expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith(
+    expect(clipFactoryWorkflowQueue.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
         referenceImageUrl: 'https://cdn.test/reference.jpg',
       }),
@@ -830,10 +826,11 @@ describe('ClipProjectIngestionService', () => {
       id: 'project-1',
       organizationId: 'org-1',
       settings: { flow: 'review', maxClips: 6 },
+      sourceVideoUrl: 'https://youtube.com/watch?v=abc123def45',
       source: {
         fingerprint: 'sha256:test',
         flow: 'review',
-        jobId: 'clip-analyze-project-1',
+        jobId: 'clip-analysis-project-1',
         kind: 'youtube',
         maxRetries: 3,
         retryCount: 0,
@@ -846,13 +843,15 @@ describe('ClipProjectIngestionService', () => {
     await expect(
       service.retrySource(currentUser as never, 'project-1'),
     ).resolves.toMatchObject({
-      batchJobId: 'clip-analyze-project-1',
+      batchJobId: 'clip-analysis-project-1',
       status: 'queued',
     });
 
-    expect(clipAnalyzeQueueService.retry).toHaveBeenCalledWith(
-      'project-1',
-      expect.objectContaining({ retryCount: 1, status: 'queued' }),
+    expect(clipAnalysisWorkflowQueue.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: 'project-1',
+        source: expect.objectContaining({ retryCount: 1, status: 'queued' }),
+      }),
     );
     expect(clipProjectsService.patch).toHaveBeenCalledWith(
       'project-1',
@@ -885,7 +884,7 @@ describe('ClipProjectIngestionService', () => {
       }),
     ).rejects.toBe(identityError);
     expect(clipProjectsService.create).not.toHaveBeenCalled();
-    expect(clipAnalyzeQueueService.enqueue).not.toHaveBeenCalled();
+    expect(clipAnalysisWorkflowQueue.enqueue).not.toHaveBeenCalled();
 
     const persistenceError = new Error('Analysis project write failed');
     clipProjectsService.create.mockRejectedValueOnce(persistenceError);
@@ -894,13 +893,13 @@ describe('ClipProjectIngestionService', () => {
         youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
       }),
     ).rejects.toBe(persistenceError);
-    expect(clipAnalyzeQueueService.enqueue).not.toHaveBeenCalled();
+    expect(clipAnalysisWorkflowQueue.enqueue).not.toHaveBeenCalled();
 
     clipProjectsService.create.mockResolvedValueOnce({
       id: 'project-2',
     } as ClipProjectDocument);
     const queueError = new Error('Analyze queue failed');
-    clipAnalyzeQueueService.enqueue.mockRejectedValueOnce(queueError);
+    clipAnalysisWorkflowQueue.enqueue.mockRejectedValueOnce(queueError);
     await expect(
       service.analyzeYoutube(currentUser as never, {
         youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',

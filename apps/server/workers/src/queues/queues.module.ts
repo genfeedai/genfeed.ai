@@ -6,45 +6,15 @@
  * registrations to ensure consistent retry/backoff behaviour.
  */
 
-import { OutreachCampaignsCoreModule } from '@api/collections/outreach-campaigns/outreach-campaigns-core.module';
 import {
-  AD_BULK_UPLOAD_QUEUE,
-  AD_OPTIMIZATION_QUEUE,
-  AD_SYNC_GOOGLE_QUEUE,
-  AD_SYNC_META_QUEUE,
-  AD_SYNC_TIKTOK_QUEUE,
   AGENT_RUN_QUEUE,
-  ANALYTICS_FACEBOOK_QUEUE,
-  ANALYTICS_SOCIAL_QUEUE,
-  ANALYTICS_SYNC_QUEUE,
-  ANALYTICS_THREADS_QUEUE,
-  ANALYTICS_TWITTER_QUEUE,
-  ANALYTICS_YOUTUBE_QUEUE,
-  BATCH_CONTENT_QUEUE,
-  BATCH_GENERATION_QUEUE,
   BATCH_WORKFLOW_QUEUE,
   CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
-  CAMPAIGN_PROCESSING_QUEUE,
-  CLIP_ANALYZE_QUEUE,
-  CLIP_FACTORY_QUEUE,
-  CONTENT_OPTIMIZATION_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
-  EMAIL_DIGEST_QUEUE,
   HEYGEN_POLL_QUEUE,
-  INSIGHT_GENERATION_QUEUE,
-  KNOWLEDGE_SOURCE_INGEST_QUEUE,
-  LIFECYCLE_EMAIL_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
   ORCHESTRATOR_RUN_QUEUE,
-  PATTERN_EXTRACTION_QUEUE,
-  REPLY_BOT_POLLING_QUEUE,
-  REPLY_INBOUND_QUEUE,
-  REPLY_POST_WATCH_QUEUE,
-  SIGNUP_PREFILL_QUEUE,
-  SOCIAL_INBOX_SYNC_QUEUE,
-  SOCIAL_REPLY_CAMPAIGN_QUEUE,
-  TELEGRAM_DISTRIBUTE_QUEUE,
   TRIGGER_EVALUATION_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
@@ -62,32 +32,21 @@ import {
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
-import { BatchGenerationQueueService } from '@server/queues/batch-generation/batch-generation-queue.service';
-import { CampaignQueueService } from '@server/queues/campaign/campaign-queue.service';
 import { QueueService } from '@server/queues/core/queue.service';
 import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
-import { ReplyInboundQueueService } from '@server/queues/reply-bot/reply-inbound-queue.service';
-import { SocialReplyCampaignQueueService } from '@server/queues/social-reply-campaign/social-reply-campaign-queue.service';
 import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/workspace-task-queue.service';
 import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
-import { PatternExtractionQueueService } from '@workers/queues/pattern-extraction-queue.service';
 
 @Module({
   exports: [
     AgentRunQueueService,
     QueueService,
-    CampaignQueueService,
-    SocialReplyCampaignQueueService,
     WorkspaceTaskQueueService,
     HeygenPollQueueService,
-    BatchGenerationQueueService,
-    ReplyInboundQueueService,
-    PatternExtractionQueueService,
   ],
   imports: [
     LoggerModule,
-    OutreachCampaignsCoreModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -118,187 +77,7 @@ import { PatternExtractionQueueService } from '@workers/queues/pattern-extractio
         },
         name: DEFAULT_QUEUE,
       },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: ANALYTICS_TWITTER_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 2000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: ANALYTICS_YOUTUBE_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 2000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: ANALYTICS_SOCIAL_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: AD_SYNC_META_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: AD_SYNC_GOOGLE_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: AD_SYNC_TIKTOK_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: ANALYTICS_SYNC_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: EMAIL_DIGEST_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: LIFECYCLE_EMAIL_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 15000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: SIGNUP_PREFILL_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: INSIGHT_GENERATION_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: KNOWLEDGE_SOURCE_INGEST_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: AD_BULK_UPLOAD_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: AD_OPTIMIZATION_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: TELEGRAM_DISTRIBUTE_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 2,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: PATTERN_EXTRACTION_QUEUE,
-      },
       // ---------- Newly registered queues (moved from API) ----------
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: REPLY_BOT_POLLING_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 200,
-          removeOnFail: 100,
-        },
-        name: REPLY_INBOUND_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 2,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: REPLY_POST_WATCH_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 30000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: CAMPAIGN_PROCESSING_QUEUE,
-      },
       {
         defaultJobOptions: {
           attempts: 3,
@@ -316,16 +95,6 @@ import { PatternExtractionQueueService } from '@workers/queues/pattern-extractio
           removeOnFail: 50,
         },
         name: AGENT_RUN_QUEUE,
-      },
-      {
-        // Retries are owned by the resume path, not by BullMQ: a redelivered
-        // whole-batch job would regenerate items the dead run already persisted.
-        defaultJobOptions: {
-          attempts: 1,
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: BATCH_GENERATION_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -347,48 +116,12 @@ import { PatternExtractionQueueService } from '@workers/queues/pattern-extractio
       },
       {
         defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 1000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: BATCH_CONTENT_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: CONTENT_OPTIMIZATION_QUEUE,
-      },
-      {
-        defaultJobOptions: {
           attempts: 5,
           backoff: { delay: 3000, type: 'exponential' },
           removeOnComplete: 100,
           removeOnFail: 200,
         },
         name: WEBHOOK_CLIENT_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 2,
-          backoff: { delay: 30000, type: 'exponential' },
-          removeOnComplete: 50,
-          removeOnFail: 25,
-        },
-        name: CLIP_ANALYZE_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 2,
-          backoff: { delay: 30000, type: 'exponential' },
-          removeOnComplete: 50,
-          removeOnFail: 25,
-        },
-        name: CLIP_FACTORY_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -437,59 +170,14 @@ import { PatternExtractionQueueService } from '@workers/queues/pattern-extractio
         },
         name: HEYGEN_POLL_QUEUE,
       },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 2000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: ANALYTICS_FACEBOOK_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 2000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: ANALYTICS_THREADS_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: SOCIAL_INBOX_SYNC_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: SOCIAL_REPLY_CAMPAIGN_QUEUE,
-      },
     ),
   ],
   providers: [
     AgentRunQueueService,
     QueueService,
-    CampaignQueueService,
-    SocialReplyCampaignQueueService,
     WorkspaceTaskQueueService,
     HeygenPollQueueService,
-    // Producer for the reconciliation sweep: the sweep re-queues stranded
-    // batches from inside the workers process, so it needs the API's producer
-    // here rather than reaching into the API's QueuesModule (which would
-    // register a second BullMQ root).
-    BatchGenerationQueueService,
     // Schedule 24h reply post-watch series after successful X publish.
-    ReplyInboundQueueService,
-    PatternExtractionQueueService,
     {
       provide: SERVER_TOKENS.logger,
       useExisting: LoggerService,

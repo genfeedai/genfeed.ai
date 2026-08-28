@@ -1,7 +1,7 @@
-import { BatchGenerationQueueService } from '@server/queues/batch-generation/batch-generation-queue.service';
-import { BatchGenerationReconcileService } from '@server/services/batch-generation/batch-generation-reconcile.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { BatchGenerationReconcileService } from '@server/services/batch-generation/batch-generation-reconcile.service';
+import { BatchGenerationWorkflowService } from '@server/services/batch-generation/batch-generation-workflow.service';
 import { CronBatchGenerationReconcileService } from '@workers/crons/batch-generation/cron.batch-generation-reconcile.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -49,7 +49,7 @@ describe('CronBatchGenerationReconcileService', () => {
           provide: BatchGenerationReconcileService,
           useValue: reconcileService,
         },
-        { provide: BatchGenerationQueueService, useValue: queueService },
+        { provide: BatchGenerationWorkflowService, useValue: queueService },
       ],
     }).compile();
 

@@ -87,26 +87,30 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
     }
     const executionResult = this.readRecord(execution.result);
     const persistedInputValues = this.readRecord(executionResult.inputValues);
-    const request = this.readRecord(persistedInputValues.request);
+    const planResult = execution.nodeResults.find(
+      (result) => result.nodeId === 'plan-generation',
+    );
+    const planOutput = this.readRecord(planResult?.output);
+    const baseInput = this.readRecord(planOutput.baseInput);
+    const request = this.readRecord(
+      persistedInputValues.request ?? baseInput.request,
+    );
     const references = this.readReferences(request.runReferences);
-    const orderedClipIds = execution.nodeResults
-      .filter((result) => result.nodeId.startsWith('generate-clip-'))
-      .sort(
-        (left, right) =>
-          this.readNodeIndex(left.nodeId) - this.readNodeIndex(right.nodeId),
-      )
-      .flatMap((result) =>
-        this.readStringArray(this.readRecord(result.output).clipResultIds),
-      );
-    if (orderedClipIds.length === 0 && project.readyClipCount > 0) {
-      throw new Error(
-        `Clip continuity found no action outputs for generation execution ${generationWorkflowExecutionId}`,
-      );
-    }
     const clipRows = await this.clipResults.findByProject(
       projectId,
       organizationId,
     );
+    const orderedClipIds = [...clipRows]
+      .sort(
+        (left, right) =>
+          this.readClipIndex(left.index) - this.readClipIndex(right.index),
+      )
+      .map((clip) => clip.id);
+    if (orderedClipIds.length === 0 && project.readyClipCount > 0) {
+      throw new Error(
+        `Clip continuity found no persisted clip results for generation execution ${generationWorkflowExecutionId}`,
+      );
+    }
     const clipsById = new Map(clipRows.map((clip) => [clip.id, clip]));
     const hasCanonicalReferences = references.length > 0;
     let qaIndex = 0;
@@ -548,8 +552,9 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
       : [];
   }
 
-  private readNodeIndex(nodeId: string): number {
-    const value = Number(nodeId.replace('generate-clip-', ''));
-    return Number.isFinite(value) ? value : Number.MAX_SAFE_INTEGER;
+  private readClipIndex(value: unknown): number {
+    return typeof value === 'number' && Number.isFinite(value)
+      ? value
+      : Number.MAX_SAFE_INTEGER;
   }
 }

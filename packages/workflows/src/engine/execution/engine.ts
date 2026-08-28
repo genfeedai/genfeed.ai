@@ -650,6 +650,14 @@ export class WorkflowEngine {
           const handleKey = edge.targetHandle ?? edge.source;
           const sourceKey = edge.sourceHandle ?? edge.targetHandle;
           if (
+            edge.sourceHandle !== undefined &&
+            (!sourceOutput ||
+              typeof sourceOutput !== 'object' ||
+              !(edge.sourceHandle in (sourceOutput as Record<string, unknown>)))
+          ) {
+            continue;
+          }
+          if (
             sourceKey &&
             sourceOutput &&
             typeof sourceOutput === 'object' &&

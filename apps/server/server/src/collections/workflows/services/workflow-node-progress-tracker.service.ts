@@ -1,13 +1,12 @@
-import { WorkflowExecutionGraphService } from '@server/collections/workflows/services/workflow-execution-graph.service';
-import { WorkflowExecutionProgressService } from '@server/collections/workflows/services/workflow-execution-progress.service';
-import { EVENT_TYPE_TO_NODE_TYPE } from '@server/collections/workflows/services/workflow-executor.constants';
-import type { TriggerEvent } from '@server/collections/workflows/services/workflow-executor.types';
 import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import type {
   ExecutableNode,
   ExecutableWorkflow,
   NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
+import { WorkflowExecutionProgressService } from '@server/collections/workflows/services/workflow-execution-progress.service';
+import { EVENT_TYPE_TO_NODE_TYPE } from '@server/collections/workflows/services/workflow-executor.constants';
+import type { TriggerEvent } from '@server/collections/workflows/services/workflow-executor.types';
 
 type ProgressTrackingOptions = {
   baselineEstimatedDurationMs?: number;
@@ -27,7 +26,6 @@ type ProgressTrackingContext = {
 export class WorkflowNodeProgressTrackerService {
   constructor(
     private readonly progressService: WorkflowExecutionProgressService,
-    private readonly graphService: WorkflowExecutionGraphService,
   ) {}
 
   async injectTriggerNode(
@@ -190,13 +188,6 @@ export class WorkflowNodeProgressTrackerService {
       nodeId: input.nodeId,
       nodeType: input.node.type,
     });
-
-    this.graphService.skipDownstreamNodes(
-      input.nodeId,
-      input.workflow.edges,
-      input.skippedNodes,
-      input.completedNodes,
-    );
 
     await this.progressService.updateExecutionEta(
       input.executionId,

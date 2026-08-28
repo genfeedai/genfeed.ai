@@ -50,6 +50,7 @@ function createHarness() {
         actions.set(actionId, executor);
       },
     ),
+    registerWorkflow: vi.fn(),
     startWorkflowDefinition: vi.fn(),
   };
   const moduleRef = {
@@ -97,15 +98,29 @@ function createHarness() {
 }
 
 function completedExecution(result: ClipGenerationResult) {
+  const childResults = result.clipResultIds.map((clipResultId, index) => ({
+    index,
+    provenance: {
+      executionId: `child-execution-${index}`,
+      workflowId: 'clip.generation.one',
+      workflowLabel: 'Generate One Clip',
+    },
+    result: {
+      clipResultIds: [clipResultId],
+      originalIndex: index,
+      providerJobIds: [result.providerJobIds[index] ?? ''],
+      queuedClipCount: result.providerJobIds[index] ? 1 : 0,
+    },
+  }));
   return {
     execution: {
       executionId: 'execution-1',
       nodeResults: [
         {
           creditsUsed: 0,
-          nodeId: 'collect-clip-results',
+          nodeId: 'generate-remaining',
           nodeType: 'genfeedAction',
-          output: result,
+          output: { count: childResults.length, results: childResults },
           retryCount: 0,
           status: 'completed',
         },
@@ -124,16 +139,16 @@ function completedExecution(result: ClipGenerationResult) {
 }
 
 describe('ClipGenerationService workflow boundary', () => {
-  it('registers one atomic generator and one result collector action', () => {
-    const { actions } = createHarness();
+  it('registers one atomic generator and the immutable parent workflow', () => {
+    const { actions, runner } = createHarness();
 
-    expect([...actions.keys()]).toEqual([
-      'clip.generation.generate-one',
-      'clip.generation.collect-results',
-    ]);
+    expect([...actions.keys()]).toEqual(['clip.generation.generate-one']);
+    expect(runner.registerWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({ canonicalId: 'clip.generation' }),
+    );
   });
 
-  it('starts a persisted graph and links the project to its execution', async () => {
+  it('starts the immutable graph with all project state owned by its actions', async () => {
     const { projects, runner, service } = createHarness();
     const result: ClipGenerationResult = {
       clipResultIds: ['clip-1', 'clip-2'],
@@ -146,19 +161,17 @@ describe('ClipGenerationService workflow boundary', () => {
 
     await expect(service.generateClips(request)).resolves.toEqual(result);
     expect(runner.startWorkflowDefinition).toHaveBeenCalledWith(
-      expect.objectContaining({ resultNodeId: 'collect-clip-results' }),
       expect.objectContaining({
-        inputValues: { request },
+        canonicalId: 'clip.generation',
+        resultNodeId: 'generate-remaining',
+      }),
+      expect.objectContaining({
+        inputValues: { request, reviewContext: { attempt: 1 } },
         organizationId: 'org-1',
         userId: 'user-1',
       }),
     );
-    expect(projects.patch).toHaveBeenCalledWith(
-      'project-1',
-      expect.objectContaining({ workflowExecutionId: 'execution-1' }),
-      [],
-      'org-1',
-    );
+    expect(projects.patch).not.toHaveBeenCalled();
   });
 
   it('returns only the hook output while its native review gate is pending', async () => {
@@ -175,9 +188,17 @@ describe('ClipGenerationService workflow boundary', () => {
         nodeResults: [
           {
             creditsUsed: 0,
-            nodeId: 'generate-clip-1',
+            nodeId: 'generate-hook',
             nodeType: 'genfeedAction',
-            output: hookResult,
+            output: {
+              count: 1,
+              results: [
+                {
+                  index: 0,
+                  result: { ...hookResult, originalIndex: 0 },
+                },
+              ],
+            },
             retryCount: 0,
             status: 'COMPLETED',
           },
@@ -214,40 +235,5 @@ describe('ClipGenerationService workflow boundary', () => {
     expect(clipResults.create).toHaveBeenCalledWith(
       expect.objectContaining({ index: 1, title: 'Body' }),
     );
-  });
-
-  it('collects action outputs in their original highlight order', async () => {
-    const { actions } = createHarness();
-    const executor = actions.get('clip.generation.collect-results');
-    if (!executor) {
-      throw new Error('collect-results action was not registered');
-    }
-
-    await expect(
-      executor({
-        context: {} as never,
-        input: {
-          clip1: {
-            clipResultIds: ['clip-2'],
-            providerJobIds: ['job-2'],
-            queuedClipCount: 1,
-          },
-          clip0: {
-            clipResultIds: ['clip-1'],
-            providerJobIds: ['job-1'],
-            queuedClipCount: 1,
-          },
-        },
-        provenance: {
-          executionId: 'execution-1',
-          workflowId: 'workflow-1',
-          workflowLabel: 'Clip Generation',
-        },
-      }),
-    ).resolves.toEqual({
-      clipResultIds: ['clip-1', 'clip-2'],
-      providerJobIds: ['job-1', 'job-2'],
-      queuedClipCount: 2,
-    });
   });
 });

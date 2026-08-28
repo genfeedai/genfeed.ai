@@ -183,6 +183,36 @@ describe('WorkflowExecutionQueueService', () => {
       );
     });
 
+    it('supports durable delayed child workflow dispatch', async () => {
+      const definition = {
+        canonicalId: 'campaign-reply-target',
+        definition: { edges: [], inputVariables: [], nodes: [] },
+        description: 'Reply to one target',
+        label: 'Campaign Reply Target',
+        resultNodeId: 'finalize',
+      };
+      const input = {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { targetId: 'target-1' },
+        organizationId: 'org-1',
+        source: 'workflow.for-each',
+      };
+
+      await service.queueSystemWorkflowDefinition(
+        definition,
+        input,
+        'campaign-target-1',
+        { delayMs: 30_000 },
+      );
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'system-run',
+        expect.anything(),
+        expect.objectContaining({ delay: 30_000 }),
+      );
+    });
+
     it('wraps a queued action in the canonical immutable action graph', async () => {
       await service.queueSystemAction(
         {
@@ -242,6 +272,7 @@ describe('WorkflowExecutionQueueService', () => {
         expect.objectContaining({
           attempts: 3,
           delay: 1800000,
+          jobId: expect.stringMatching(/^workflow-delay-/),
         }),
       );
     });

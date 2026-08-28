@@ -4,6 +4,10 @@
 dependency management, and workflow execution tracking.
  */
 
+import { AdOptimizationAuditLogsModule } from '@api/collections/ad-optimization-audit-logs/ad-optimization-audit-logs.module';
+import { AdOptimizationConfigsModule } from '@api/collections/ad-optimization-configs/ad-optimization-configs.module';
+import { AdOptimizationRecommendationsModule } from '@api/collections/ad-optimization-recommendations/ad-optimization-recommendations.module';
+import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
@@ -14,6 +18,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
+import { OutreachCampaignsCoreModule } from '@api/collections/outreach-campaigns/outreach-campaigns-core.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
@@ -34,10 +39,13 @@ import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marke
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
+import { GoogleAdsModule } from '@api/services/integrations/google-ads/google-ads.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
+import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
+import { TikTokAdsModule } from '@api/services/integrations/tiktok-ads/tiktok-ads.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
@@ -54,6 +62,7 @@ import {
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
 import { forwardRef, Module } from '@nestjs/common';
+import { AdAutomationWorkflowService } from '@server/collections/workflows/services/ad-automation-workflow.service';
 import { InstagramSocialAdapter } from '@server/collections/workflows/services/adapters/instagram-social.adapter';
 import { SocialAdapterFactory } from '@server/collections/workflows/services/adapters/social-adapter.factory';
 import { TwitterSocialAdapter } from '@server/collections/workflows/services/adapters/twitter-social.adapter';
@@ -66,6 +75,7 @@ import { PaidCreativeResearchWorkflowService } from '@server/collections/workflo
 import { ReplyPollingWorkflowService } from '@server/collections/workflows/services/reply-polling-workflow.service';
 import { ReviewGateNotificationService } from '@server/collections/workflows/services/review-gate-notification.service';
 import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
+import { SystemWorkflowDefinitionRegistrarService } from '@server/collections/workflows/services/system-workflow-definition-registrar.service';
 import { VideoQaContinuityResolverService } from '@server/collections/workflows/services/video-qa-continuity-resolver.service';
 import { WorkflowArtifactLifecycleService } from '@server/collections/workflows/services/workflow-artifact-lifecycle.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
@@ -116,6 +126,10 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
   ],
   imports: [
     WorkflowsCoreModule,
+    AdOptimizationAuditLogsModule,
+    AdOptimizationConfigsModule,
+    AdOptimizationRecommendationsModule,
+    AdPerformanceModule,
     AgentThreadsModule,
     BrandsCoreModule,
     CaptionsModule,
@@ -125,16 +139,19 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     ElevenLabsModule,
     FileQueueModule,
     FilesClientModule,
+    GoogleAdsModule,
     HeyGenModule,
     IngredientsModule,
     InstagramModule,
     MarketplaceIntegrationModule,
+    MetaAdsModule,
     MetadataModule,
     MusicsModule,
     NewslettersModule,
     NotificationsModule,
     NotificationsPublisherModule,
     OpenRouterModule,
+    OutreachCampaignsCoreModule,
     LlmDispatcherModule,
     PostsModule,
     ReplyBotConfigsModule,
@@ -145,6 +162,7 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     TrendsModule,
     HttpModule,
     TwitterModule,
+    TikTokAdsModule,
     YoutubeModule,
     VideoGenerationModule,
     VideosModule,
@@ -174,6 +192,7 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     }),
   ],
   providers: [
+    AdAutomationWorkflowService,
     TwitterSocialAdapter,
     InstagramSocialAdapter,
     YoutubeSocialAdapter,
@@ -196,6 +215,7 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     WorkflowSchedulerService,
     SystemWorkflowCatalogService,
     SystemWorkflowRunnerService,
+    SystemWorkflowDefinitionRegistrarService,
     WorkflowTemplateSeederService,
     WorkflowWebhookService,
     PaidCreativeResearchWorkflowService,

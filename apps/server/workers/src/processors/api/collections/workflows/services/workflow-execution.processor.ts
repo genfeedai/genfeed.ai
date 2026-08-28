@@ -1,4 +1,4 @@
-import { ActionOrigin } from '@genfeedai/enums';
+import { ActionOrigin, WorkflowExecutionStatus } from '@genfeedai/enums';
 import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
 import { runWithActionOrigin } from '@genfeedai/server';
 import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
@@ -101,33 +101,128 @@ export class WorkflowExecutionProcessor extends WorkerHost {
     if (!systemRun) {
       throw new Error('System workflow job missing graph definition');
     }
+    const prior = systemRun.priorExecution;
+    const result =
+      (job.attemptsMade ?? 0) > 0 && prior
+        ? await this.continuePriorSystemRun(systemRun, prior)
+        : await this.systemWorkflowRunner.startWorkflowDefinition(
+            systemRun.definition,
+            systemRun.input,
+          );
     try {
-      const result = await this.systemWorkflowRunner.runWorkflowDefinition(
-        systemRun.definition,
-        systemRun.input,
-      );
-      return {
-        executionId: result.provenance.executionId,
-        workflowId: result.provenance.workflowId,
-      };
-    } catch (error: unknown) {
-      const failureAction = systemRun.failureAction;
-      if (failureAction) {
-        await this.systemWorkflowRunner.runAction({
-          actionType: failureAction.actionId,
-          canonicalId: failureAction.actionId,
-          inputValues: {
-            ...failureAction.inputValues,
-            workflowError:
-              error instanceof Error ? error.message : 'System workflow failed',
+      await job.updateData({
+        ...job.data,
+        systemRun: {
+          ...systemRun,
+          priorExecution: {
+            ...(result.execution._delayJobData
+              ? { delayResumeData: result.execution._delayJobData }
+              : {}),
+            executionId: result.provenance.executionId,
+            status: result.execution.status,
+            userId: result.userId,
+            workflowId: result.provenance.workflowId,
           },
-          organizationId: systemRun.input.organizationId,
-          source: 'system-workflow-failure',
-          userId: systemRun.input.userId,
-        });
-      }
-      throw error;
+        },
+      });
+    } catch (error: unknown) {
+      this.logger.warn(
+        `${this.logContext} failed to persist prior system execution`,
+        {
+          error,
+          executionId: result.provenance.executionId,
+          jobId: job.id,
+        },
+      );
     }
+    if (result.execution.status === WorkflowExecutionStatus.FAILED) {
+      throw new Error(
+        result.execution.error ??
+          `System workflow ${systemRun.definition.canonicalId} failed`,
+      );
+    }
+    if (result.execution.status === WorkflowExecutionStatus.CANCELLED) {
+      throw new Error(
+        `System workflow ${systemRun.definition.canonicalId} was cancelled`,
+      );
+    }
+    if (result.execution._delayJobData) {
+      await this.queueService.queueDelayedResume(
+        result.execution._delayJobData,
+        this.calculateDelayMs(result.execution._delayJobData),
+      );
+    }
+    return {
+      executionId: result.provenance.executionId,
+      status: result.execution.status,
+      workflowId: result.provenance.workflowId,
+    };
+  }
+
+  private async continuePriorSystemRun(
+    systemRun: NonNullable<WorkflowExecutionJobData['systemRun']>,
+    prior: NonNullable<
+      NonNullable<WorkflowExecutionJobData['systemRun']>['priorExecution']
+    >,
+  ): Promise<{
+    execution: Awaited<
+      ReturnType<WorkflowExecutorService['continueExistingExecution']>
+    >;
+    provenance: {
+      executionId: string;
+      workflowId: string;
+      workflowLabel: string;
+    };
+    userId: string;
+  }> {
+    if (
+      prior.status === WorkflowExecutionStatus.COMPLETED ||
+      prior.status === WorkflowExecutionStatus.RUNNING
+    ) {
+      return {
+        execution: {
+          completedAt:
+            prior.status === WorkflowExecutionStatus.COMPLETED
+              ? new Date()
+              : undefined,
+          executionId: prior.executionId,
+          nodeResults: [],
+          startedAt: new Date(),
+          status: prior.status,
+          totalCreditsUsed: 0,
+          workflowId: prior.workflowId,
+          ...(prior.delayResumeData
+            ? { _delayJobData: prior.delayResumeData }
+            : {}),
+        },
+        provenance: {
+          executionId: prior.executionId,
+          workflowId: prior.workflowId,
+          workflowLabel: systemRun.definition.label,
+        },
+        userId: prior.userId,
+      };
+    }
+
+    const execution = await this.executorService.continueExistingExecution(
+      prior.executionId,
+      {
+        data: systemRun.input.inputValues ?? {},
+        organizationId: systemRun.input.organizationId,
+        platform: 'system-workflow',
+        type: 'manual',
+        userId: prior.userId,
+      },
+    );
+    return {
+      execution,
+      provenance: {
+        executionId: prior.executionId,
+        workflowId: execution.workflowId,
+        workflowLabel: systemRun.definition.label,
+      },
+      userId: prior.userId,
+    };
   }
 
   /**
@@ -263,6 +358,13 @@ export class WorkflowExecutionProcessor extends WorkerHost {
     }
 
     const result = await this.executorService.resumeAfterDelay(delayResumeData);
+
+    if (result._delayJobData) {
+      await this.queueService.queueDelayedResume(
+        result._delayJobData,
+        this.calculateDelayMs(result._delayJobData),
+      );
+    }
 
     this.logger.log(`${this.logContext} delay resume completed`, {
       executionId: result.executionId,

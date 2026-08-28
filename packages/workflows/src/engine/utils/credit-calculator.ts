@@ -14,7 +14,6 @@ const ENGINE_NATIVE_CREDIT_COSTS: CreditCostConfig = {
   'input-video': 0,
   'control-branch': 0,
   'control-delay': 0,
-  'control-loop': 0,
   condition: 0,
   delay: 0,
   keywordTrigger: 0,
@@ -200,7 +199,6 @@ const NODE_CATEGORY_MAP: Record<string, string> = {
   // control
   'control-branch': 'control',
   'control-delay': 'control',
-  'control-loop': 'control',
   condition: 'control',
   delay: 'control',
   promptConstructor: 'control',

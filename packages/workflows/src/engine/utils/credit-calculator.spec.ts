@@ -141,7 +141,7 @@ describe('getNodeCreditCost', () => {
 
   it('should return 0 for free node types', () => {
     expect(getNodeCreditCost('output-webhook')).toBe(0);
-    expect(getNodeCreditCost('control-loop')).toBe(0);
+    expect(getNodeCreditCost('control-branch')).toBe(0);
     expect(getNodeCreditCost('brand')).toBe(0);
     expect(getNodeCreditCost('publish')).toBe(0);
     expect(getNodeCreditCost('input-video')).toBe(0);
@@ -313,7 +313,7 @@ describe('groupCostsByCategory', () => {
 
   it('should group control nodes together', () => {
     const nodes = [
-      makeNode('n1', 'control-loop'),
+      makeNode('n1', 'control-branch'),
       makeNode('n2', 'promptConstructor'),
     ];
 
@@ -349,7 +349,7 @@ describe('groupCostsByCategory', () => {
       makeNode('n1', 'imageGen'),
       makeNode('n2', 'input-video'),
       makeNode('n3', 'publish'),
-      makeNode('n4', 'control-loop'),
+      makeNode('n4', 'control-branch'),
       makeNode('n5', 'process-resize'),
     ];
 
@@ -384,7 +384,7 @@ describe('DEFAULT_CREDIT_COSTS', () => {
     expect(DEFAULT_CREDIT_COSTS.brand).toBe(0);
     expect(DEFAULT_CREDIT_COSTS.brandAsset).toBe(0);
     expect(DEFAULT_CREDIT_COSTS.brandContext).toBe(0);
-    expect(DEFAULT_CREDIT_COSTS['control-loop']).toBe(0);
+    expect(DEFAULT_CREDIT_COSTS['control-branch']).toBe(0);
     expect(DEFAULT_CREDIT_COSTS.publish).toBe(0);
     expect(DEFAULT_CREDIT_COSTS['input-video']).toBe(0);
     expect(DEFAULT_CREDIT_COSTS['output-webhook']).toBe(0);

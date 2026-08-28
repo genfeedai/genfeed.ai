@@ -3,7 +3,7 @@ import type {
   UserSetupService,
 } from '@api/collections/users/services/user-setup.service';
 import type { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import type { SignupPrefillQueueService } from '@api/services/signup-prefill/signup-prefill-queue.service';
+import type { SignupPrefillWorkflowService } from '@api/services/signup-prefill/signup-prefill-workflow.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -67,7 +67,7 @@ describe('UserProvisioningListener', () => {
     listener = new UserProvisioningListener(
       userSetupService as unknown as UserSetupService,
       lifecycleEmailService as unknown as LifecycleEmailService,
-      signupPrefillQueueService as unknown as SignupPrefillQueueService,
+      signupPrefillQueueService as unknown as SignupPrefillWorkflowService,
       logger as unknown as LoggerService,
     );
   });

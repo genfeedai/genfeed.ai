@@ -63,6 +63,10 @@ describe('immutable workflow version migration', () => {
     expect(migrationSource).toContain("'youtube.transcribe-audio'");
   });
 
+  it('accepts the generic workflow fan-out action', () => {
+    expect(migrationSource).toContain("'workflow.for-each'");
+  });
+
   it('pins every existing execution to the migrated immutable version', () => {
     expect(migrationSource).toContain(
       'ALTER TABLE "workflow_executions" ADD COLUMN "workflowVersionId" TEXT',

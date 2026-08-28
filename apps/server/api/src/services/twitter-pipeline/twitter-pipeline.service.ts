@@ -11,14 +11,17 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowRunnerService,
-} from '@server/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { toReplyBotCredentialData } from '@server/services/campaign/reply-bot-credential.util';
 import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
+import {
+  buildTwitterDraftWorkflowDefinition,
+  buildTwitterPublishWorkflowDefinition,
+  buildTwitterSearchWorkflowDefinition,
+  TWITTER_PIPELINE_ACTION_IDS,
+} from './twitter-pipeline-workflow-definition';
 
 type TwitterPublishRequest = {
   credentialId?: string;
@@ -42,34 +45,28 @@ export class TwitterPipelineService implements OnModuleInit {
 
   onModuleInit(): void {
     this.systemWorkflowRunner.registerAction(
-      SYSTEM_WORKFLOW_ACTION_IDS.TWITTER_PUBLISH_ACTION,
-      ({ input }) => {
-        const orgId = String(input.organizationId ?? '');
-        const brandId = String(input.brandId ?? '');
-        const type = input.type;
-        if (
-          !orgId ||
-          !brandId ||
-          (type !== 'reply' &&
-            type !== 'quote' &&
-            type !== 'original' &&
-            type !== 'repost')
-        ) {
-          throw new Error('X publish action received invalid workflow input');
-        }
-        return this.executePublishAction(orgId, brandId, {
-          credentialId:
-            typeof input.credentialId === 'string'
-              ? input.credentialId
-              : undefined,
-          targetTweetId:
-            typeof input.targetTweetId === 'string'
-              ? input.targetTweetId
-              : undefined,
-          text: String(input.text ?? ''),
-          type,
-        });
-      },
+      TWITTER_PIPELINE_ACTION_IDS.SEARCH_RECENT,
+      ({ input }) => this.executeSearchAction(input),
+    );
+    this.systemWorkflowRunner.registerAction(
+      TWITTER_PIPELINE_ACTION_IDS.DRAFT_BUILD_PROMPT,
+      ({ input }) => this.executeDraftPromptAction(input),
+    );
+    this.systemWorkflowRunner.registerAction(
+      TWITTER_PIPELINE_ACTION_IDS.DRAFT_GENERATE,
+      ({ input }) => this.executeDraftGenerationAction(input),
+    );
+    this.systemWorkflowRunner.registerAction(
+      TWITTER_PIPELINE_ACTION_IDS.DRAFT_PARSE,
+      ({ input }) => this.executeDraftParseAction(input),
+    );
+    this.systemWorkflowRunner.registerAction(
+      TWITTER_PIPELINE_ACTION_IDS.PUBLISH_RESOLVE_CREDENTIAL,
+      ({ input }) => this.executeCredentialResolutionAction(input),
+    );
+    this.systemWorkflowRunner.registerAction(
+      TWITTER_PIPELINE_ACTION_IDS.PUBLISH_SEND,
+      ({ input }) => this.executePublishAction(input),
     );
   }
 
@@ -103,10 +100,25 @@ export class TwitterPipelineService implements OnModuleInit {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const results = await this.twitterService.searchRecentTweets(query, {
-        maxResults: options.maxResults ?? 10,
-        sortOrder: 'relevancy',
-      });
+      const definition = buildTwitterSearchWorkflowDefinition();
+      const { result: results } =
+        await this.systemWorkflowRunner.runWorkflowDefinition<
+          ITwitterSearchResult[]
+        >(definition, {
+          actionType: definition.canonicalId,
+          canonicalId: definition.canonicalId,
+          inputValues: {
+            request: {
+              brandId,
+              maxResults: options.maxResults ?? 10,
+              organizationId: orgId,
+              query,
+            },
+          },
+          organizationId: orgId,
+          source: 'TwitterPipelineService.search',
+          trigger: WorkflowExecutionTrigger.API,
+        });
 
       this.loggerService.log(`${url} returned ${results.length} tweets`, {
         brandId,
@@ -133,17 +145,24 @@ export class TwitterPipelineService implements OnModuleInit {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const prompt = this.buildHybridPrompt(searchResults, voiceConfig);
-
-      const response = await this.openRouterService.chatCompletion({
-        max_tokens: 4000,
-        messages: [{ content: prompt, role: 'user' }],
-        model: LLM_DEFAULTS.grokFast,
-        temperature: 0.7,
-      });
-
-      const content = response.choices?.[0]?.message?.content ?? '';
-      const opportunities = this.parseOpportunities(content, searchResults);
+      const definition = buildTwitterDraftWorkflowDefinition();
+      const { result: opportunities } =
+        await this.systemWorkflowRunner.runWorkflowDefinition<
+          ITwitterOpportunity[]
+        >(definition, {
+          actionType: definition.canonicalId,
+          canonicalId: definition.canonicalId,
+          inputValues: {
+            request: {
+              organizationId: orgId,
+              searchResults,
+              voiceConfig,
+            },
+          },
+          organizationId: orgId,
+          source: 'TwitterPipelineService.draft',
+          trigger: WorkflowExecutionTrigger.API,
+        });
 
       this.loggerService.log(
         `${url} generated ${opportunities.length} opportunities`,
@@ -168,22 +187,28 @@ export class TwitterPipelineService implements OnModuleInit {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
+      const definition = buildTwitterPublishWorkflowDefinition();
       const { result } =
-        await this.systemWorkflowRunner.runAction<ITwitterPublishResult>({
-          actionType: `twitter-${request.type}`,
-          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TWITTER_PUBLISH_ACTION,
-          inputValues: {
-            brandId,
-            credentialId: request.credentialId,
+        await this.systemWorkflowRunner.runWorkflowDefinition<ITwitterPublishResult>(
+          definition,
+          {
+            actionType: definition.canonicalId,
+            canonicalId: definition.canonicalId,
+            inputValues: {
+              request: {
+                brandId,
+                credentialId: request.credentialId,
+                organizationId: orgId,
+                targetTweetId: request.targetTweetId,
+                text: request.text,
+                type: request.type,
+              },
+            },
             organizationId: orgId,
-            targetTweetId: request.targetTweetId,
-            text: request.text,
-            type: request.type,
+            source: 'TwitterPipelineService.publish',
+            trigger: WorkflowExecutionTrigger.API,
           },
-          organizationId: orgId,
-          source: 'TwitterPipelineService.publish',
-          trigger: WorkflowExecutionTrigger.API,
-        });
+        );
 
       return result;
     } catch (error: unknown) {
@@ -193,15 +218,95 @@ export class TwitterPipelineService implements OnModuleInit {
     }
   }
 
-  private async executePublishAction(
-    orgId: string,
-    brandId: string,
-    request: TwitterPublishRequest,
-  ): Promise<ITwitterPublishResult> {
+  private async executeSearchAction(
+    input: Record<string, unknown>,
+  ): Promise<ITwitterSearchResult[]> {
+    const request = this.readRequest(input);
+    return this.twitterService.searchRecentTweets(
+      this.requiredString(request.query, 'query'),
+      {
+        maxResults:
+          typeof request.maxResults === 'number' ? request.maxResults : 10,
+        sortOrder: 'relevancy',
+      },
+    );
+  }
+
+  private async executeDraftPromptAction(
+    input: Record<string, unknown>,
+  ): Promise<{
+    prompt: string;
+    searchResults: ITwitterSearchResult[];
+  }> {
+    const request = this.readRequest(input);
+    const searchResults = this.readSearchResults(request.searchResults);
+    const voiceConfig = this.readVoiceConfig(request.voiceConfig);
+    return {
+      prompt: this.buildHybridPrompt(searchResults, voiceConfig),
+      searchResults,
+    };
+  }
+
+  private async executeDraftGenerationAction(
+    input: Record<string, unknown>,
+  ): Promise<{ rawContent: string }> {
+    const draftContext = this.readRecord(input.draftContext);
+    const response = await this.openRouterService.chatCompletion({
+      max_tokens: 4000,
+      messages: [
+        {
+          content: this.requiredString(draftContext.prompt, 'prompt'),
+          role: 'user',
+        },
+      ],
+      model: LLM_DEFAULTS.grokFast,
+      temperature: 0.7,
+    });
+    return { rawContent: response.choices?.[0]?.message?.content ?? '' };
+  }
+
+  private async executeDraftParseAction(
+    input: Record<string, unknown>,
+  ): Promise<ITwitterOpportunity[]> {
+    const draftContext = this.readRecord(input.draftContext);
+    const generation = this.readRecord(input.generation);
+    return this.parseOpportunities(
+      this.requiredString(generation.rawContent, 'rawContent', true),
+      this.readSearchResults(draftContext.searchResults),
+    );
+  }
+
+  private async executeCredentialResolutionAction(
+    input: Record<string, unknown>,
+  ): Promise<{ credentialId: string }> {
+    const request = this.readPublishRequest(input);
     const credential = await this.credentialsService.resolveBrandAccount({
-      brandId,
-      credentialId: request.credentialId,
-      organizationId: orgId,
+      brandId: request.brandId,
+      credentialId: request.request.credentialId,
+      organizationId: request.organizationId,
+      platform: CredentialPlatform.TWITTER,
+    });
+    if (!credential) {
+      throw new Error('Twitter credential not found');
+    }
+    if (!this.buildCredentialData(credential)) {
+      throw new Error('Twitter credential missing accessToken');
+    }
+    return { credentialId: credential.id };
+  }
+
+  private async executePublishAction(
+    input: Record<string, unknown>,
+  ): Promise<ITwitterPublishResult> {
+    const publish = this.readPublishRequest(input);
+    const credentialInput = this.readRecord(input.credential);
+    const credential = await this.credentialsService.resolveBrandAccount({
+      brandId: publish.brandId,
+      credentialId: this.requiredString(
+        credentialInput.credentialId,
+        'credentialId',
+      ),
+      organizationId: publish.organizationId,
       platform: CredentialPlatform.TWITTER,
     });
     if (!credential) {
@@ -216,10 +321,10 @@ export class TwitterPipelineService implements OnModuleInit {
       };
     }
 
-    if (request.type === 'original') {
+    if (publish.request.type === 'original') {
       const result = await this.botActionExecutorService.postTweet(
         credentialData,
-        request.text,
+        publish.request.text,
       );
       return {
         error: result.error,
@@ -228,35 +333,35 @@ export class TwitterPipelineService implements OnModuleInit {
         tweetUrl: result.contentUrl,
       };
     }
-    if (!request.targetTweetId) {
+    if (!publish.request.targetTweetId) {
       return {
-        error: `targetTweetId required for ${request.type}`,
+        error: `targetTweetId required for ${publish.request.type}`,
         success: false,
       };
     }
 
     const result =
-      request.type === 'reply'
+      publish.request.type === 'reply'
         ? await this.botActionExecutorService.postReply(
             credentialData,
             {
               authorId: '',
               authorUsername: '',
               createdAt: new Date(),
-              id: request.targetTweetId,
+              id: publish.request.targetTweetId,
               text: '',
             },
-            request.text,
+            publish.request.text,
           )
-        : request.type === 'quote'
+        : publish.request.type === 'quote'
           ? await this.botActionExecutorService.postQuoteTweet(
               credentialData,
-              request.targetTweetId,
-              request.text,
+              publish.request.targetTweetId,
+              publish.request.text,
             )
           : await this.botActionExecutorService.repostTweet(
               credentialData,
-              request.targetTweetId,
+              publish.request.targetTweetId,
             );
 
     return {
@@ -380,5 +485,77 @@ Return ONLY the JSON, no markdown fences, no extra text.`;
       );
       return [];
     }
+  }
+
+  private readPublishRequest(input: Record<string, unknown>): {
+    brandId: string;
+    organizationId: string;
+    request: TwitterPublishRequest;
+  } {
+    const request = this.readRequest(input);
+    const type = request.type;
+    if (
+      type !== 'original' &&
+      type !== 'quote' &&
+      type !== 'reply' &&
+      type !== 'repost'
+    ) {
+      throw new Error(`Unsupported X publish type: ${String(type)}`);
+    }
+    return {
+      brandId: this.requiredString(request.brandId, 'brandId'),
+      organizationId: this.requiredString(
+        request.organizationId,
+        'organizationId',
+      ),
+      request: {
+        ...(typeof request.credentialId === 'string'
+          ? { credentialId: request.credentialId }
+          : {}),
+        ...(typeof request.targetTweetId === 'string'
+          ? { targetTweetId: request.targetTweetId }
+          : {}),
+        text: this.requiredString(request.text, 'text', true),
+        type,
+      },
+    };
+  }
+
+  private readRequest(input: Record<string, unknown>): Record<string, unknown> {
+    const request = this.readRecord(input.request);
+    return Object.keys(request).length > 0 ? request : input;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private readSearchResults(value: unknown): ITwitterSearchResult[] {
+    if (!Array.isArray(value)) {
+      throw new Error('X draft action requires searchResults');
+    }
+    return value as ITwitterSearchResult[];
+  }
+
+  private readVoiceConfig(value: unknown): ITwitterVoiceConfig {
+    const record = this.readRecord(value);
+    return {
+      description: this.requiredString(record.description, 'description'),
+      handle: this.requiredString(record.handle, 'handle'),
+      searchQuery: this.requiredString(record.searchQuery, 'searchQuery', true),
+    };
+  }
+
+  private requiredString(
+    value: unknown,
+    field: string,
+    allowEmpty = false,
+  ): string {
+    if (typeof value !== 'string' || (!allowEmpty && value.length === 0)) {
+      throw new Error(`X pipeline action requires ${field}`);
+    }
+    return value;
   }
 }

@@ -1,5 +1,6 @@
 import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
+import { ClipProjectsCoreModule } from '@api/collections/clip-projects/clip-projects-core.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { LinksModule } from '@api/collections/links/links.module';
@@ -26,7 +27,6 @@ import { NewsletterImportFeedService } from '@api/endpoints/public/services/news
 import { PublicMediaService } from '@api/endpoints/public/services/public-media.service';
 import { PublicYoutubeClipsService } from '@api/endpoints/public/services/public-youtube-clips.service';
 import { RssService } from '@api/endpoints/public/services/rss.service';
-import { ClipAnalyzeModule } from '@api/queues/clip-analyze/clip-analyze.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
@@ -53,7 +53,7 @@ import { Module } from '@nestjs/common';
   imports: [
     ArticlesModule,
     BrandsCoreModule,
-    ClipAnalyzeModule,
+    ClipProjectsCoreModule,
     FilesClientModule,
     FileQueueModule,
     HttpModule,

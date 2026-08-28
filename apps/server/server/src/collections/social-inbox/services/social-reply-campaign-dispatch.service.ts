@@ -13,31 +13,29 @@ import {
   SocialReplyCampaignStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
-import type {
-  SocialReplyCampaignJobData,
-  SocialReplyCampaignJobResult,
-} from '@genfeedai/queue-contracts';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  type OnModuleInit,
-} from '@nestjs/common';
-import type { SocialInboxScope } from '@server/collections/social-inbox/services/social-inbox.types';
-import { SocialInboxActionService } from '@server/collections/social-inbox/services/social-inbox-action.service';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 import {
   dayWindowStart,
   decideThrottle,
   hourWindowStart,
   renderCampaignBody,
 } from '@server/collections/social-inbox/services/social-reply-campaign.helpers';
-import type { SocialReplyCampaign } from '@server/collections/social-inbox/services/social-reply-campaign.types';
+import type {
+  SocialReplyCampaign,
+  SocialReplyCampaignDispatchRequest,
+  SocialReplyCampaignDispatchResult,
+} from '@server/collections/social-inbox/services/social-reply-campaign.types';
 import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
+  buildSocialReplyCampaignWorkflowDefinition,
+  SOCIAL_REPLY_CAMPAIGN_ACTION_IDS,
+} from '@server/collections/social-inbox/services/social-reply-campaign-workflow-definition';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import {
+  type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
-import { SocialReplyCampaignQueueService } from '@server/queues/social-reply-campaign/social-reply-campaign-queue.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 /**
@@ -68,104 +66,355 @@ type ClaimResult =
   | { kind: 'empty' }
   | { kind: 'lost-race' };
 
+type SocialReplyCampaignDispatchState = {
+  body?: string;
+  claimStartedAt?: string;
+  conversationId?: string;
+  error?: string;
+  errorKind?: 'bad-request' | 'conflict' | 'provider';
+  idempotencyKey?: string;
+  messageId?: string;
+  messageType?: 'dm' | 'reply';
+  organizationId?: string;
+  outboundMessageId?: string;
+  outcome?: SocialReplyCampaignDispatchResult['outcome'];
+  permanentError?: boolean;
+  recipientId?: string;
+  request: SocialReplyCampaignDispatchRequest;
+  scheduleDelaySeconds?: number;
+  startedAt: string;
+  userId?: string;
+  workflowRunId?: string;
+};
+
 @Injectable()
 export class SocialReplyCampaignDispatchService implements OnModuleInit {
   private readonly logContext = 'SocialReplyCampaignDispatchService';
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly actionService: SocialInboxActionService,
-    private readonly queueService: SocialReplyCampaignQueueService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
     private readonly logger: LoggerService,
   ) {}
 
   onModuleInit(): void {
     this.workflowRunner.registerAction(
-      SYSTEM_WORKFLOW_ACTION_IDS.SOCIAL_REPLY_CAMPAIGN,
-      ({ input, provenance }) => {
-        const scope: SocialInboxScope = {
-          brandId:
-            typeof input.brandId === 'string' ? input.brandId : undefined,
-          organizationId: String(input.organizationId ?? ''),
-          userId: typeof input.userId === 'string' ? input.userId : undefined,
-        };
-        const conversationId = String(input.conversationId ?? '');
-        const request = {
-          idempotencyKey: String(input.idempotencyKey ?? ''),
-          text: String(input.body ?? ''),
-          workflowRunId: provenance.executionId,
-        };
-        return input.messageType === SocialMessageType.DM
-          ? this.actionService.sendDm(scope, conversationId, request)
-          : this.actionService.postReply(scope, conversationId, request);
-      },
+      SOCIAL_REPLY_CAMPAIGN_ACTION_IDS.LOAD,
+      (request) => this.loadCampaignAction(request),
+    );
+    this.workflowRunner.registerAction(
+      SOCIAL_REPLY_CAMPAIGN_ACTION_IDS.RECLAIM,
+      (request) => this.reclaimAction(request),
+    );
+    this.workflowRunner.registerAction(
+      SOCIAL_REPLY_CAMPAIGN_ACTION_IDS.THROTTLE,
+      (request) => this.throttleAction(request),
+    );
+    this.workflowRunner.registerAction(
+      SOCIAL_REPLY_CAMPAIGN_ACTION_IDS.CLAIM,
+      (request) => this.claimAction(request),
+    );
+    this.workflowRunner.registerAction(
+      SOCIAL_REPLY_CAMPAIGN_ACTION_IDS.PREPARE,
+      (request) => this.prepareAction(request),
+    );
+    this.workflowRunner.registerAction(
+      SOCIAL_REPLY_CAMPAIGN_ACTION_IDS.FINALIZE,
+      (request) => this.finalizeAction(request),
     );
   }
 
   async dispatchTick(
-    data: SocialReplyCampaignJobData,
-  ): Promise<SocialReplyCampaignJobResult> {
+    data: SocialReplyCampaignDispatchRequest,
+  ): Promise<SocialReplyCampaignDispatchResult> {
+    const definition = buildSocialReplyCampaignWorkflowDefinition();
+    const { result } =
+      await this.workflowRunner.runWorkflowDefinition<SocialReplyCampaignDispatchResult>(
+        definition,
+        {
+          actionType: definition.canonicalId,
+          canonicalId: definition.canonicalId,
+          inputValues: { request: data },
+          organizationId: data.organizationId,
+          source: 'SocialReplyCampaignDispatchService.dispatchTick',
+          trigger: WorkflowExecutionTrigger.SCHEDULED,
+        },
+      );
+    return result;
+  }
+
+  private async loadCampaignAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<SocialReplyCampaignDispatchState> {
+    const request = this.readDispatchRequest(action.input);
     const campaign = await this.prisma.socialReplyCampaign.findFirst({
-      where: scopedWhere(data.organizationId, { id: data.campaignId }),
+      where: scopedWhere(request.organizationId, { id: request.campaignId }),
     });
-
-    // A pause or cancel flips `status`, and a resume bumps `dispatchCursor`.
-    // Either makes an already-delayed tick a no-op when it finally lands.
-    if (!campaign || campaign.status !== SocialReplyCampaignStatus.RUNNING) {
-      return { outcome: 'campaign-inactive' };
-    }
-    if (campaign.dispatchCursor !== data.dispatchCursor) {
-      return { outcome: 'campaign-inactive' };
-    }
-
-    const now = new Date();
-    await this.reclaimStaleDispatches(campaign, now);
-
-    const throttle = await this.evaluateThrottle(campaign, now);
-    if (throttle.delaySeconds > 0) {
-      await this.scheduleNext(campaign, throttle.delaySeconds, now);
+    if (
+      !campaign ||
+      campaign.status !== SocialReplyCampaignStatus.RUNNING ||
+      campaign.dispatchCursor !== request.dispatchCursor
+    ) {
       return {
-        nextRunInSeconds: throttle.delaySeconds,
-        outcome: 'throttled',
+        outcome: 'campaign-inactive',
+        request,
+        startedAt: new Date().toISOString(),
       };
     }
+    return { request, startedAt: new Date().toISOString() };
+  }
 
-    const claim = await this.claimNextRecipient(campaign, now);
+  private async reclaimAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<SocialReplyCampaignDispatchState> {
+    const state = this.readDispatchState(action.input);
+    if (state.outcome) return state;
+    await this.reclaimStaleDispatches(
+      await this.requireCampaign(state),
+      new Date(state.startedAt),
+    );
+    return state;
+  }
+
+  private async throttleAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<SocialReplyCampaignDispatchState> {
+    const state = this.readDispatchState(action.input);
+    if (state.outcome) return state;
+    const campaign = await this.requireCampaign(state);
+    const throttle = await this.evaluateThrottle(
+      campaign,
+      new Date(state.startedAt),
+    );
+    return throttle.delaySeconds > 0
+      ? {
+          ...state,
+          outcome: 'throttled',
+          scheduleDelaySeconds: throttle.delaySeconds,
+        }
+      : state;
+  }
+
+  private async claimAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<SocialReplyCampaignDispatchState> {
+    const state = this.readDispatchState(action.input);
+    if (state.outcome) return state;
+    const campaign = await this.requireCampaign(state);
+    const claim = await this.claimNextRecipient(
+      campaign,
+      new Date(state.startedAt),
+    );
+    if (claim.kind === 'lost-race') {
+      return {
+        ...state,
+        outcome: 'recipient-skipped',
+        scheduleDelaySeconds: 0,
+      };
+    }
     if (claim.kind === 'empty') {
-      // Another worker may still be mid-send (DISPATCHING). Completing here
-      // would strand that recipient if the worker dies after we finish.
       const inFlight = await this.prisma.socialReplyCampaignRecipient.count({
         where: scopedWhere(campaign.organizationId, {
           campaignId: campaign.id,
           status: SocialReplyCampaignRecipientStatus.DISPATCHING,
         }),
       });
-      if (inFlight > 0) {
-        await this.scheduleNext(campaign, campaign.minDelaySeconds, now);
-        return {
-          nextRunInSeconds: campaign.minDelaySeconds,
-          outcome: 'throttled',
-        };
-      }
-
-      await this.completeCampaign(campaign);
-      return { outcome: 'campaign-completed' };
+      return inFlight > 0
+        ? {
+            ...state,
+            outcome: 'throttled',
+            scheduleDelaySeconds: campaign.minDelaySeconds,
+          }
+        : { ...state, outcome: 'campaign-completed' };
     }
+    return {
+      ...state,
+      claimStartedAt: claim.claimStartedAt.toISOString(),
+      recipientId: claim.recipientId,
+    };
+  }
 
-    if (claim.kind === 'lost-race') {
-      // Another tick took this recipient. Re-tick instead of treating the
-      // roster as drained — that path used to complete the campaign early.
-      await this.scheduleNext(campaign, 0, now);
-      return { outcome: 'recipient-skipped' };
-    }
-
-    return this.sendToRecipient(
-      campaign,
-      claim.recipientId,
-      claim.claimStartedAt,
-      now,
+  private async prepareAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<SocialReplyCampaignDispatchState> {
+    const state = this.readDispatchState(action.input);
+    if (state.outcome) return state;
+    const campaign = await this.requireCampaign(state);
+    const recipientId = this.requiredString(state.recipientId, 'recipientId');
+    const claimStartedAt = new Date(
+      this.requiredString(state.claimStartedAt, 'claimStartedAt'),
     );
+    const recipient = await this.prisma.socialReplyCampaignRecipient.findFirst({
+      where: scopedWhere(campaign.organizationId, {
+        dispatchedAt: claimStartedAt,
+        id: recipientId,
+        status: SocialReplyCampaignRecipientStatus.DISPATCHING,
+      }),
+    });
+    if (!recipient) {
+      return {
+        ...state,
+        outcome: 'recipient-skipped',
+        scheduleDelaySeconds: 0,
+      };
+    }
+    const conversation = await this.prisma.socialConversation.findFirst({
+      where: scopedWhere(campaign.organizationId, {
+        id: recipient.conversationId,
+      }),
+    });
+    if (!conversation) {
+      await this.markSkipped(
+        campaign,
+        recipientId,
+        claimStartedAt,
+        'Conversation is no longer available',
+      );
+      return {
+        ...state,
+        outcome: 'recipient-skipped',
+        scheduleDelaySeconds: 0,
+      };
+    }
+    return {
+      ...state,
+      body: renderCampaignBody(campaign.bodyTemplate, {
+        handle: conversation.participantHandle,
+        name: conversation.participantName,
+      }),
+      conversationId: recipient.conversationId,
+      idempotencyKey: recipient.idempotencyKey,
+      messageType:
+        campaign.messageType === SocialMessageType.DM ? 'dm' : 'reply',
+      organizationId: campaign.organizationId,
+      userId: campaign.userId ?? undefined,
+      workflowRunId: action.provenance.executionId,
+    };
+  }
+
+  private async finalizeAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<SocialReplyCampaignDispatchResult> {
+    const state = this.readDispatchState(action.input);
+    const campaign = await this.findCampaign(state);
+    if (!campaign) return { outcome: 'campaign-inactive' };
+    const now = new Date(state.startedAt);
+    if (state.outcome === 'campaign-completed') {
+      await this.completeCampaign(campaign);
+      return { outcome: state.outcome };
+    }
+    if (state.outcome) {
+      if (state.scheduleDelaySeconds !== undefined) {
+        await this.scheduleNext(campaign, state.scheduleDelaySeconds, now);
+      }
+      return {
+        ...(state.scheduleDelaySeconds !== undefined
+          ? { nextRunInSeconds: state.scheduleDelaySeconds }
+          : {}),
+        outcome: state.outcome,
+        ...(state.recipientId ? { recipientId: state.recipientId } : {}),
+      };
+    }
+    const recipientId = this.requiredString(state.recipientId, 'recipientId');
+    const claimStartedAt = new Date(
+      this.requiredString(state.claimStartedAt, 'claimStartedAt'),
+    );
+    const messageId = state.outboundMessageId ?? state.messageId;
+    if (messageId && !state.error) {
+      await this.markSent(
+        campaign,
+        recipientId,
+        claimStartedAt,
+        messageId,
+        this.requiredString(state.body, 'body'),
+      );
+      await this.scheduleNext(campaign, campaign.minDelaySeconds, now);
+      return { outcome: 'recipient-sent', recipientId };
+    }
+    const reason = state.error ?? 'Dispatch failed';
+    if (state.errorKind === 'bad-request' || state.permanentError) {
+      await this.markSkipped(campaign, recipientId, claimStartedAt, reason);
+      await this.scheduleNext(campaign, 0, now);
+      return { outcome: 'recipient-skipped', recipientId };
+    }
+    const recipient = await this.prisma.socialReplyCampaignRecipient.findFirst({
+      where: scopedWhere(campaign.organizationId, { id: recipientId }),
+    });
+    if (
+      recipient &&
+      recipient.attemptCount < SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS
+    ) {
+      await this.requeueRecipient(
+        campaign,
+        recipientId,
+        claimStartedAt,
+        reason,
+      );
+    } else {
+      await this.markFailed(campaign, recipientId, claimStartedAt, reason);
+    }
+    await this.scheduleNext(campaign, campaign.minDelaySeconds, now);
+    return { outcome: 'recipient-failed', recipientId };
+  }
+
+  private readDispatchRequest(
+    input: Record<string, unknown>,
+  ): SocialReplyCampaignDispatchRequest {
+    const request = this.readRecord(input.request);
+    return {
+      campaignId: this.requiredString(request.campaignId, 'campaignId'),
+      dispatchCursor:
+        typeof request.dispatchCursor === 'number' ? request.dispatchCursor : 0,
+      organizationId: this.requiredString(
+        request.organizationId,
+        'organizationId',
+      ),
+    };
+  }
+
+  private readDispatchState(
+    input: Record<string, unknown>,
+  ): SocialReplyCampaignDispatchState {
+    const state = this.readRecord(input.state);
+    return (
+      Object.keys(state).length > 0 ? state : input
+    ) as SocialReplyCampaignDispatchState;
+  }
+
+  private async findCampaign(
+    state: SocialReplyCampaignDispatchState,
+  ): Promise<SocialReplyCampaign | null> {
+    return this.prisma.socialReplyCampaign.findFirst({
+      where: scopedWhere(state.request.organizationId, {
+        id: state.request.campaignId,
+      }),
+    });
+  }
+
+  private async requireCampaign(
+    state: SocialReplyCampaignDispatchState,
+  ): Promise<SocialReplyCampaign> {
+    const campaign = await this.findCampaign(state);
+    if (!campaign || campaign.status !== SocialReplyCampaignStatus.RUNNING) {
+      throw new Error(
+        `Social reply campaign ${state.request.campaignId} is inactive`,
+      );
+    }
+    return campaign;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new Error(`Social reply campaign action requires ${field}`);
+    }
+    return value;
   }
 
   /**
@@ -324,122 +573,6 @@ export class SocialReplyCampaignDispatchService implements OnModuleInit {
     return claimed.count === 1
       ? { claimStartedAt: now, kind: 'claimed', recipientId: candidate.id }
       : { kind: 'lost-race' };
-  }
-
-  private async sendToRecipient(
-    campaign: SocialReplyCampaign,
-    recipientId: string,
-    claimStartedAt: Date,
-    now: Date,
-  ): Promise<SocialReplyCampaignJobResult> {
-    const recipient = await this.prisma.socialReplyCampaignRecipient.findFirst({
-      where: scopedWhere(campaign.organizationId, {
-        dispatchedAt: claimStartedAt,
-        id: recipientId,
-        status: SocialReplyCampaignRecipientStatus.DISPATCHING,
-      }),
-    });
-    if (!recipient) {
-      // Claim won but the row vanished (soft-delete race). Keep draining.
-      await this.scheduleNext(campaign, 0, now);
-      return { outcome: 'recipient-skipped', recipientId };
-    }
-
-    const conversation = await this.prisma.socialConversation.findFirst({
-      where: scopedWhere(campaign.organizationId, {
-        id: recipient.conversationId,
-      }),
-    });
-    if (!conversation) {
-      await this.markSkipped(
-        campaign,
-        recipientId,
-        claimStartedAt,
-        'Conversation is no longer available',
-      );
-      await this.scheduleNext(campaign, 0, now);
-      return { outcome: 'recipient-skipped', recipientId };
-    }
-
-    const scope: SocialInboxScope = {
-      brandId: campaign.brandId ?? undefined,
-      organizationId: campaign.organizationId,
-      userId: campaign.userId ?? undefined,
-    };
-    const body = renderCampaignBody(campaign.bodyTemplate, {
-      handle: conversation.participantHandle,
-      name: conversation.participantName,
-    });
-
-    try {
-      const { result: message } = await this.workflowRunner.runAction<{
-        id: string;
-      }>({
-        actionType: 'social-reply-campaign',
-        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SOCIAL_REPLY_CAMPAIGN,
-        inputValues: {
-          body,
-          brandId: scope.brandId,
-          campaignId: campaign.id,
-          conversationId: recipient.conversationId,
-          idempotencyKey: recipient.idempotencyKey,
-          messageType: campaign.messageType,
-          organizationId: campaign.organizationId,
-          platform: campaign.platform,
-          recipientId,
-          userId: scope.userId,
-        },
-        organizationId: campaign.organizationId,
-        source: 'SocialReplyCampaignDispatchService.dispatchTick',
-        trigger: WorkflowExecutionTrigger.SCHEDULED,
-        userId: campaign.userId ?? undefined,
-      });
-
-      await this.markSent(
-        campaign,
-        recipientId,
-        claimStartedAt,
-        message.id,
-        body,
-      );
-      await this.scheduleNext(campaign, campaign.minDelaySeconds, now);
-      return { outcome: 'recipient-sent', recipientId };
-    } catch (error: unknown) {
-      const reason = error instanceof Error ? error.message : 'Dispatch failed';
-
-      // A `BadRequestException` means the platform will never accept this
-      // conversation (reply window closed, DMs unsupported). Skipping keeps the
-      // campaign draining instead of burning retries on a permanent refusal.
-      if (error instanceof BadRequestException) {
-        await this.markSkipped(campaign, recipientId, claimStartedAt, reason);
-        await this.scheduleNext(campaign, 0, now);
-        return { outcome: 'recipient-skipped', recipientId };
-      }
-
-      this.logger.error(`${this.logContext} dispatch failed`, {
-        campaignId: campaign.id,
-        error: reason,
-        recipientId,
-      });
-
-      // Transient provider errors stay retryable until the attempt budget is
-      // exhausted. Permanently retiring on the first 5xx left healthy rosters
-      // half-drained after a blip.
-      if (recipient.attemptCount < SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS) {
-        await this.requeueRecipient(
-          campaign,
-          recipientId,
-          claimStartedAt,
-          reason,
-        );
-        await this.scheduleNext(campaign, campaign.minDelaySeconds, now);
-        return { outcome: 'recipient-failed', recipientId };
-      }
-
-      await this.markFailed(campaign, recipientId, claimStartedAt, reason);
-      await this.scheduleNext(campaign, campaign.minDelaySeconds, now);
-      return { outcome: 'recipient-failed', recipientId };
-    }
   }
 
   private async markSent(
@@ -634,13 +767,29 @@ export class SocialReplyCampaignDispatchService implements OnModuleInit {
     // tick (none today) would not re-use a stale value.
     campaign.dispatchCursor = dispatchCursor;
 
-    await this.queueService.enqueueTick(
+    const request: SocialReplyCampaignDispatchRequest = {
+      campaignId: campaign.id,
+      dispatchCursor,
+      organizationId: campaign.organizationId,
+    };
+    const definition = buildSocialReplyCampaignWorkflowDefinition();
+    await this.workflowQueue.queueSystemWorkflowDefinition(
+      definition,
       {
-        campaignId: campaign.id,
-        dispatchCursor,
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request },
+        metadata: { campaignId: campaign.id, dispatchCursor },
         organizationId: campaign.organizationId,
+        source: 'social-reply-campaign-successor',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: campaign.userId ?? undefined,
       },
-      delaySeconds,
+      `social-reply-campaign-${campaign.id}-${dispatchCursor}`,
+      {
+        delayMs: delaySeconds * 1000,
+        replaceTerminalJob: true,
+      },
     );
   }
 }

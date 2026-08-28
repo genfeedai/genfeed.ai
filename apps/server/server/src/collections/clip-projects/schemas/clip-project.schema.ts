@@ -1,3 +1,4 @@
+import type { SupportedAvatarVideoProviderName } from '@genfeedai/interfaces';
 import {
   CLIP_PROJECT_STATUSES,
   type ClipProcessingFlow,
@@ -8,7 +9,6 @@ import {
   type ClipProjectStatus as SharedClipProjectStatus,
 } from '@genfeedai/interfaces';
 import type { ClipProject as PrismaClipProject } from '@genfeedai/prisma';
-import type { SupportedAvatarVideoProviderName } from '@genfeedai/queue-contracts';
 
 export type ClipProject = PrismaClipProject;
 

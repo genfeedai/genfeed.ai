@@ -31,7 +31,6 @@ describe('workflow presentation node registry', () => {
       'control-branch',
       'reviewGate',
       'control-delay',
-      'control-loop',
       'effect-captions',
       'effect-color-grade',
       'effect-ken-burns',

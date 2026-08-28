@@ -6,6 +6,7 @@ import type {
   ExecutionRunResult,
   NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
+import { planPartialExecution } from '@genfeedai/workflows/engine';
 import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionGraphService } from '@server/collections/workflows/services/workflow-execution-graph.service';
@@ -57,11 +58,14 @@ export class WorkflowNodeGraphRunnerService {
     executionId: string,
     options: {
       baselineEstimatedDurationMs?: number;
+      nodeOutputCache?: Record<string, unknown>;
+      respectLocks?: boolean;
+      selectedNodeIds?: string[];
       startedAt: Date;
       workflowLabel: string;
     },
   ): Promise<ExecutionRunResult> {
-    const executionOrder = this.graphService.topologicalSort(
+    let executionOrder = this.graphService.topologicalSort(
       workflow.nodes,
       workflow.edges,
     );
@@ -72,12 +76,48 @@ export class WorkflowNodeGraphRunnerService {
     let totalCreditsUsed = 0;
     const startedAt = options.startedAt;
 
+    for (const [nodeId, output] of Object.entries(
+      options.nodeOutputCache ?? {},
+    )) {
+      completedNodes.add(nodeId);
+      nodeCache.set(nodeId, output);
+      nodeResults.set(nodeId, {
+        completedAt: startedAt,
+        creditsUsed: 0,
+        nodeId,
+        output,
+        retryCount: 0,
+        startedAt,
+        status: 'completed',
+      });
+    }
+
     await this.hydrateCompletedNodesFromExecution(
       executionId,
       nodeCache,
       nodeResults,
       completedNodes,
     );
+    for (const completedNodeId of completedNodes) {
+      this.graphService.pruneFailurePathAfterSuccess(
+        completedNodeId,
+        workflow.edges,
+        skippedNodes,
+        completedNodes,
+      );
+      const completedNode = workflow.nodes.find(
+        (node) => node.id === completedNodeId,
+      );
+      if (completedNode?.type === 'condition') {
+        this.graphService.pruneUnreachablePaths(
+          completedNodeId,
+          this.graphService.extractBranch(nodeCache.get(completedNodeId)),
+          workflow.edges,
+          skippedNodes,
+          completedNodes,
+        );
+      }
+    }
 
     await this.nodeProgressTracker.injectTriggerNode({
       completedNodes,
@@ -90,7 +130,31 @@ export class WorkflowNodeGraphRunnerService {
       triggerEvent,
       workflow,
     });
-    this.prepopulateLockedNodes(workflow, nodeCache, completedNodes);
+    if (options.respectLocks !== false) {
+      this.prepopulateLockedNodes(workflow, nodeCache, completedNodes);
+    }
+
+    if (options.selectedNodeIds && options.selectedNodeIds.length > 0) {
+      const partialPlan = planPartialExecution(
+        options.selectedNodeIds,
+        workflow.nodes,
+        workflow.edges,
+        nodeCache,
+      );
+      if (!partialPlan.isValid) {
+        return {
+          completedAt: new Date(),
+          error: partialPlan.errors.join('; '),
+          nodeResults,
+          runId: executionId,
+          startedAt,
+          status: 'failed',
+          totalCreditsUsed,
+          workflowId: workflow.id,
+        };
+      }
+      executionOrder = partialPlan.executionOrder;
+    }
 
     let executionError: string | undefined;
     let executionStatus: 'completed' | 'failed' = 'completed';
@@ -125,6 +189,7 @@ export class WorkflowNodeGraphRunnerService {
           workflow.edges,
           completedNodes,
           nodeCache,
+          skippedNodes,
         )
       ) {
         const deps = this.graphService.getNodeDependencies(
@@ -135,14 +200,11 @@ export class WorkflowNodeGraphRunnerService {
           (depId) => completedNodes.has(depId) || skippedNodes.has(depId),
         );
 
-        if (allDepsResolved && deps.some((depId) => skippedNodes.has(depId))) {
-          skippedNodes.add(nodeId);
-          continue;
+        if (!allDepsResolved) {
+          executionError = `Dependencies not satisfied for node ${nodeId}`;
+          executionStatus = 'failed';
+          break;
         }
-
-        executionError = `Dependencies not satisfied for node ${nodeId}`;
-        executionStatus = 'failed';
-        break;
       }
 
       if (completedNodes.size + skippedNodes.size > MAX_EXECUTION_NODES) {
@@ -208,6 +270,21 @@ export class WorkflowNodeGraphRunnerService {
             if (skippedResult.output !== undefined) {
               nodeCache.set(nodeId, skippedResult.output);
             }
+            this.graphService.pruneFailurePathAfterSuccess(
+              nodeId,
+              workflow.edges,
+              skippedNodes,
+              completedNodes,
+            );
+          } else {
+            this.resolveFailedNode({
+              completedNodes,
+              edges: workflow.edges,
+              error: skippedResult.error ?? `Node ${nodeId} failed`,
+              nodeCache,
+              nodeId,
+              skippedNodes,
+            });
           }
           continue;
         }
@@ -231,6 +308,21 @@ export class WorkflowNodeGraphRunnerService {
           if (skippedResult.output !== undefined) {
             nodeCache.set(nodeId, skippedResult.output);
           }
+          this.graphService.pruneFailurePathAfterSuccess(
+            nodeId,
+            workflow.edges,
+            skippedNodes,
+            completedNodes,
+          );
+        } else {
+          this.resolveFailedNode({
+            completedNodes,
+            edges: workflow.edges,
+            error: skippedResult.error ?? `Node ${nodeId} failed`,
+            nodeCache,
+            nodeId,
+            skippedNodes,
+          });
         }
         continue;
       }
@@ -285,6 +377,13 @@ export class WorkflowNodeGraphRunnerService {
             nodeCache.set(nodeId, nodeResult.output);
           }
 
+          this.graphService.pruneFailurePathAfterSuccess(
+            nodeId,
+            workflow.edges,
+            skippedNodes,
+            completedNodes,
+          );
+
           if (node.type === 'condition') {
             this.graphService.pruneUnreachablePaths(
               nodeId,
@@ -330,6 +429,14 @@ export class WorkflowNodeGraphRunnerService {
             workflow,
           });
         } else {
+          this.resolveFailedNode({
+            completedNodes,
+            edges: workflow.edges,
+            error: nodeResult.error ?? `Node ${nodeId} failed`,
+            nodeCache,
+            nodeId,
+            skippedNodes,
+          });
           await this.nodeProgressTracker.trackNodeFailed({
             completedNodes,
             errorMessage: nodeResult.error,
@@ -369,6 +476,15 @@ export class WorkflowNodeGraphRunnerService {
           retryCount: 0,
           startedAt: new Date(),
           status: 'failed',
+        });
+
+        this.resolveFailedNode({
+          completedNodes,
+          edges: workflow.edges,
+          error: errorMessage,
+          nodeCache,
+          nodeId,
+          skippedNodes,
         });
 
         await this.nodeProgressTracker.trackNodeFailed({
@@ -431,6 +547,40 @@ export class WorkflowNodeGraphRunnerService {
     }
   }
 
+  private resolveFailedNode(input: {
+    completedNodes: Set<string>;
+    edges: ExecutableEdge[];
+    error: string;
+    nodeCache: Map<string, unknown>;
+    nodeId: string;
+    skippedNodes: Set<string>;
+  }): void {
+    const nodeOutputs = Object.fromEntries(input.nodeCache);
+    input.completedNodes.add(input.nodeId);
+    input.nodeCache.set(input.nodeId, {
+      failure: {
+        error: input.error,
+        failedNodeId: input.nodeId,
+        nodeOutputs,
+      },
+    });
+    if (this.graphService.hasFailureEdge(input.nodeId, input.edges)) {
+      this.graphService.pruneSuccessPathsAfterFailure(
+        input.nodeId,
+        input.edges,
+        input.skippedNodes,
+        input.completedNodes,
+      );
+      return;
+    }
+    this.graphService.skipDownstreamNodes(
+      input.nodeId,
+      input.edges,
+      input.skippedNodes,
+      input.completedNodes,
+    );
+  }
+
   /**
    * Re-load durable completed node outputs so a job retry of the same
    * executionId skips side-effect nodes that already landed (#2359).
@@ -482,18 +632,20 @@ export class WorkflowNodeGraphRunnerService {
 
         const output = row.output;
         completedNodes.add(nodeId);
-        if (output !== undefined) {
+        if (output !== undefined && !nodeCache.has(nodeId)) {
           nodeCache.set(nodeId, output);
         }
-        nodeResults.set(nodeId, {
-          completedAt: new Date(),
-          creditsUsed: 0,
-          nodeId,
-          output,
-          retryCount: 0,
-          startedAt: new Date(),
-          status: 'completed',
-        });
+        if (!nodeResults.has(nodeId)) {
+          nodeResults.set(nodeId, {
+            completedAt: new Date(),
+            creditsUsed: 0,
+            nodeId,
+            output,
+            retryCount: 0,
+            startedAt: new Date(),
+            status: 'completed',
+          });
+        }
         const claimKey = `${executionId}:${nodeId}`;
         this.nodeClaims.set(claimKey, {
           nodeId,

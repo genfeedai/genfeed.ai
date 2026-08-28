@@ -10,6 +10,31 @@ export type SocialReplyCampaignDocument = PrismaSocialReplyCampaign;
 export type SocialReplyCampaignRecipientDocument =
   PrismaSocialReplyCampaignRecipient;
 
+export interface SocialReplyCampaignDispatchRequest {
+  campaignId: string;
+  organizationId: string;
+  /**
+   * Monotonic execution counter. Every successor workflow advances the cursor,
+   * so stale delayed executions fail closed when the campaign is paused,
+   * resumed, or cancelled.
+   */
+  dispatchCursor: number;
+}
+
+export type SocialReplyCampaignTickOutcome =
+  | 'campaign-completed'
+  | 'campaign-inactive'
+  | 'recipient-failed'
+  | 'recipient-sent'
+  | 'recipient-skipped'
+  | 'throttled';
+
+export interface SocialReplyCampaignDispatchResult {
+  nextRunInSeconds?: number;
+  outcome: SocialReplyCampaignTickOutcome;
+  recipientId?: string;
+}
+
 export interface SocialReplyCampaignCreateInput {
   bodyTemplate: string;
   conversationIds: string[];

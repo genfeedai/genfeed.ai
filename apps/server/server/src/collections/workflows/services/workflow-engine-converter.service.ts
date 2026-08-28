@@ -27,7 +27,6 @@ export interface WorkflowDocumentShape {
 const ENGINE_NATIVE_NODE_TYPE_TO_EXECUTOR: Record<string, string> = {
   'control-branch': 'condition',
   'control-delay': 'delay',
-  'control-loop': 'control-loop',
   'input-image': 'input-image',
   'input-video': 'input-video',
   ...VISUAL_TRIGGER_NODE_TYPE_TO_EXECUTOR,

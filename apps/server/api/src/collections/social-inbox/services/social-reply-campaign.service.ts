@@ -1,4 +1,13 @@
 import {
+  SocialMessageType,
+  SocialReplyCampaignRecipientStatus,
+  SocialReplyCampaignStatus,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import {
   boundLimit,
   boundPage,
   sanitizeBody,
@@ -16,17 +25,10 @@ import type {
   SocialReplyCampaignRecipientListQuery,
   SocialReplyCampaignUpdateInput,
 } from '@server/collections/social-inbox/services/social-reply-campaign.types';
-import { SocialReplyCampaignQueueService } from '@server/queues/social-reply-campaign/social-reply-campaign-queue.service';
+import { buildSocialReplyCampaignWorkflowDefinition } from '@server/collections/social-inbox/services/social-reply-campaign-workflow-definition';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
-import {
-  SocialMessageType,
-  SocialReplyCampaignRecipientStatus,
-  SocialReplyCampaignStatus,
-} from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
  * Transitions a campaign can be asked to make. `start` and `resume` differ only
@@ -60,7 +62,7 @@ export function buildRecipientIdempotencyKey(
 export class SocialReplyCampaignService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly queueService: SocialReplyCampaignQueueService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
   ) {}
 
   async list(
@@ -335,11 +337,27 @@ export class SocialReplyCampaignService {
       );
     }
 
-    await this.queueService.enqueueTick({
+    const request = {
       campaignId: campaign.id,
       dispatchCursor,
       organizationId: campaign.organizationId,
-    });
+    };
+    const definition = buildSocialReplyCampaignWorkflowDefinition();
+    await this.workflowQueue.queueSystemWorkflowDefinition(
+      definition,
+      {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request },
+        metadata: { campaignId: campaign.id, dispatchCursor },
+        organizationId: campaign.organizationId,
+        source: `social-reply-campaign-${transition}`,
+        trigger: WorkflowExecutionTrigger.API,
+        userId: campaign.userId ?? undefined,
+      },
+      `social-reply-campaign-${campaign.id}-${dispatchCursor}`,
+      { replaceTerminalJob: true },
+    );
 
     return this.get(
       {
@@ -377,8 +395,6 @@ export class SocialReplyCampaignService {
         `Cannot pause a ${campaign.status} campaign`,
       );
     }
-
-    await this.queueService.removeTick(campaign.id, campaign.dispatchCursor);
 
     return this.get(
       {
@@ -432,8 +448,6 @@ export class SocialReplyCampaignService {
         status: { in: ACTIVE_RECIPIENT_STATUSES },
       }),
     });
-    await this.queueService.removeTick(campaign.id, campaign.dispatchCursor);
-
     return this.get(
       {
         brandId: campaign.brandId ?? undefined,

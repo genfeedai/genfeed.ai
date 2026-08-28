@@ -1,117 +1,261 @@
+import { randomUUID } from 'node:crypto';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  ForbiddenException,
+  Injectable,
+  type OnModuleInit,
+} from '@nestjs/common';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import type { SystemWorkflowActionRequest } from '@server/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { BatchContentQueueService } from '@server/services/batch-content/batch-content-queue.service';
+import {
+  BATCH_CONTENT_ACTION_IDS,
+  buildBatchContentItemWorkflowDefinition,
+  buildBatchContentWorkflowDefinition,
+} from '@server/services/batch-content/batch-content-workflow-definition';
 import type {
   BatchContentRequest,
   BatchContentResult,
-  BatchStatus,
+  QueuedBatchContentResult,
 } from '@server/services/batch-content/interfaces/batch-content.interfaces';
-import { GeneratedContent } from '@server/services/skill-executor/interfaces/skill-executor.interfaces';
-import { LoggerService } from '@libs/logger/logger.service';
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import type { GeneratedContent } from '@server/services/skill-executor/interfaces/skill-executor.interfaces';
+import { SkillExecutorService } from '@server/services/skill-executor/skill-executor.service';
+
+type BatchContentItem = BatchContentRequest & { itemIndex: number };
+
+type ForEachResult = {
+  count: number;
+  results: Array<{ index: number; result: GeneratedContent }>;
+};
 
 @Injectable()
-export class BatchContentService {
+export class BatchContentService implements OnModuleInit {
   private readonly context = 'BatchContentService';
 
   constructor(
-    private readonly batchContentQueueService: BatchContentQueueService,
     private readonly brandsService: BrandsService,
+    private readonly skillExecutorService: SkillExecutorService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
     private readonly logger: LoggerService,
   ) {}
 
-  async triggerBatch(
-    request: BatchContentRequest,
-    userId: string,
-  ): Promise<{ batchId: string }> {
-    await this.validateBrandOwnership(request.organizationId, request.brandId);
-
-    const { batchId } = await this.batchContentQueueService.enqueueBatch(
-      request,
-      userId,
+  onModuleInit(): void {
+    this.workflowRunner.registerAction(
+      BATCH_CONTENT_ACTION_IDS.PLAN,
+      async (request) => this.planBatchAction(request),
     );
-
-    return { batchId };
-  }
-
-  async generateBatch(
-    request: BatchContentRequest,
-  ): Promise<BatchContentResult> {
-    await this.validateBrandOwnership(request.organizationId, request.brandId);
-
-    const { batchId } =
-      await this.batchContentQueueService.enqueueBatch(request);
-
-    while (true) {
-      const status = this.batchContentQueueService.getBatchStatus(
-        batchId,
-        request.organizationId,
-        request.brandId,
-      );
-
-      if (status.status === 'completed' || status.status === 'failed') {
-        const ranked = this.rankDrafts(status.results);
-        return {
-          duration: this.batchContentQueueService.getBatchDuration(batchId),
-          results: ranked,
-          summary: {
-            completed: status.completed,
-            failed: status.failed,
-            total: status.total,
-          },
-        };
-      }
-
-      await this.delay(100);
-    }
-  }
-
-  getBatchStatus(
-    batchId: string,
-    organizationId: string,
-    brandId: string,
-  ): BatchStatus {
-    const status = this.batchContentQueueService.getBatchStatus(
-      batchId,
-      organizationId,
-      brandId,
+    this.workflowRunner.registerAction(
+      BATCH_CONTENT_ACTION_IDS.GENERATE_ITEM,
+      (request) => this.generateItemAction(request),
     );
-
-    if (status.status === 'completed' || status.status === 'failed') {
-      return {
-        ...status,
-        results: this.rankDrafts(status.results),
-      };
-    }
-
-    return status;
+    this.workflowRunner.registerAction(
+      BATCH_CONTENT_ACTION_IDS.RANK,
+      async (request) => this.rankDraftsAction(request),
+    );
+    this.workflowRunner.registerWorkflow(
+      buildBatchContentItemWorkflowDefinition(),
+    );
+    this.workflowRunner.registerWorkflow(buildBatchContentWorkflowDefinition());
   }
 
-  rankDrafts(drafts: GeneratedContent[]): GeneratedContent[] {
+  async queueBatch(
+    request: BatchContentRequest,
+    userId?: string,
+  ): Promise<QueuedBatchContentResult> {
+    await this.validateBrandOwnership(request.organizationId, request.brandId);
+    const definition = buildBatchContentWorkflowDefinition();
+    const jobId = await this.workflowQueue.queueSystemWorkflowDefinition(
+      definition,
+      {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request },
+        organizationId: request.organizationId,
+        source: 'BatchContentService.queueBatch',
+        userId,
+      },
+      `batch-content-${randomUUID()}`,
+      { attempts: 1 },
+    );
+    return { jobId, status: 'queued' };
+  }
+
+  private rankDrafts(drafts: GeneratedContent[]): GeneratedContent[] {
     const ranked = [...drafts]
       .sort((left, right) => {
         const rightConfidence = right.confidence ?? Number.NEGATIVE_INFINITY;
         const leftConfidence = left.confidence ?? Number.NEGATIVE_INFINITY;
-
         if (rightConfidence !== leftConfidence) {
           return rightConfidence - leftConfidence;
         }
-
         return right.content.length - left.content.length;
       })
       .map((draft, index) => ({
         ...draft,
-        metadata: {
-          ...(draft.metadata ?? {}),
-          rank: index + 1,
-        },
+        metadata: { ...draft.metadata, rank: index + 1 },
       }));
 
     this.logger.log(`${this.context} ranked drafts`, {
       rankedCount: ranked.length,
     });
-
     return ranked;
+  }
+
+  private planBatchAction(request: SystemWorkflowActionRequest): {
+    items: BatchContentItem[];
+    startedAt: number;
+  } {
+    const batchRequest = this.readBatchRequest(request.input.request);
+    return {
+      items: Array.from(
+        { length: batchRequest.count },
+        (_value, itemIndex) => ({
+          ...batchRequest,
+          itemIndex,
+        }),
+      ),
+      startedAt: Date.now(),
+    };
+  }
+
+  private async generateItemAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<GeneratedContent> {
+    const item = this.readBatchItem(request.input.item);
+    const execution = await this.skillExecutorService.execute(
+      item.skillSlug,
+      {
+        brandId: item.brandId,
+        brandVoice: '',
+        organizationId: item.organizationId,
+        platforms: [],
+      },
+      item.params ?? {},
+    );
+    return execution.draft;
+  }
+
+  private rankDraftsAction(
+    request: SystemWorkflowActionRequest,
+  ): BatchContentResult {
+    const plan = this.readRecord(request.input.plan, 'plan');
+    const batch = this.readForEachResult(request.input.batch);
+    const drafts = batch.results
+      .sort((left, right) => left.index - right.index)
+      .map((entry) => entry.result);
+    return {
+      duration: Math.max(
+        0,
+        Date.now() - this.requiredNumber(plan.startedAt, 'startedAt'),
+      ),
+      results: this.rankDrafts(drafts),
+      summary: {
+        completed: drafts.length,
+        failed: 0,
+        total: batch.count,
+      },
+    };
+  }
+
+  private readBatchRequest(value: unknown): BatchContentRequest {
+    const record = this.readRecord(value, 'request');
+    const count = this.requiredNumber(record.count, 'count');
+    if (!Number.isInteger(count) || count < 1 || count > 100) {
+      throw new Error('Batch content count must be an integer from 1 to 100');
+    }
+    return {
+      brandId: this.requiredString(record.brandId, 'brandId'),
+      count,
+      organizationId: this.requiredString(
+        record.organizationId,
+        'organizationId',
+      ),
+      params: this.readRecord(record.params, 'params', true),
+      skillSlug: this.requiredString(record.skillSlug, 'skillSlug'),
+    };
+  }
+
+  private readBatchItem(value: unknown): BatchContentItem {
+    const request = this.readBatchRequest(value);
+    const record = this.readRecord(value, 'item');
+    return {
+      ...request,
+      itemIndex: this.requiredNumber(record.itemIndex, 'itemIndex'),
+    };
+  }
+
+  private readForEachResult(value: unknown): ForEachResult {
+    const record = this.readRecord(value, 'batch');
+    if (!Array.isArray(record.results)) {
+      throw new Error('Batch content workflow requires generated results');
+    }
+    return {
+      count: this.requiredNumber(record.count, 'count'),
+      results: record.results.map((value, position) => {
+        const entry = this.readRecord(value, `results[${position}]`);
+        return {
+          index: this.requiredNumber(entry.index, 'index'),
+          result: this.readGeneratedContent(entry.result),
+        };
+      }),
+    };
+  }
+
+  private readGeneratedContent(value: unknown): GeneratedContent {
+    const record = this.readRecord(value, 'generated content');
+    const platforms = Array.isArray(record.platforms)
+      ? record.platforms.filter(
+          (item): item is string => typeof item === 'string',
+        )
+      : [];
+    return {
+      content: this.requiredString(record.content, 'content'),
+      ...(typeof record.confidence === 'number'
+        ? { confidence: record.confidence }
+        : {}),
+      ...(Array.isArray(record.mediaUrls)
+        ? {
+            mediaUrls: record.mediaUrls.filter(
+              (item): item is string => typeof item === 'string',
+            ),
+          }
+        : {}),
+      metadata: this.readRecord(record.metadata, 'metadata', true),
+      platforms,
+      skillSlug: this.requiredString(record.skillSlug, 'skillSlug'),
+      type: this.requiredString(record.type, 'type'),
+    };
+  }
+
+  private readRecord(
+    value: unknown,
+    field: string,
+    optional = false,
+  ): Record<string, unknown> {
+    if (value === undefined && optional) {
+      return {};
+    }
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error(`Batch content workflow requires ${field}`);
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private requiredNumber(value: unknown, field: string): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new Error(`Batch content workflow requires numeric ${field}`);
+    }
+    return value;
+  }
+
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new Error(`Batch content workflow requires ${field}`);
+    }
+    return value.trim();
   }
 
   private async validateBrandOwnership(
@@ -120,27 +264,15 @@ export class BatchContentService {
   ): Promise<void> {
     const brand = await this.brandsService.findOne({
       id: brandId,
-      organizationId: organizationId,
+      organizationId,
     });
-
     if (!brand) {
       throw new NotFoundException('Brand', brandId);
     }
-
-    // Defence-in-depth re-check on top of the scoped query above. It has to read
-    // the `organizationId` scalar: `brand.organization` is the Mongo-era alias, and
-    // `String(undefined)` yields the literal `"undefined"`, which never equals the
-    // caller's org — the guard would have rejected every legitimate brand.
     if (brand.organizationId !== organizationId) {
       throw new ForbiddenException(
         'Brand does not belong to this organization',
       );
     }
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => {
-      setTimeout(resolve, ms);
-    });
   }
 }

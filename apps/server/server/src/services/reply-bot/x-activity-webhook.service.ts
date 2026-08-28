@@ -2,15 +2,15 @@
  * X Activity / Account Activity webhook intake.
  * Pipes only — subscription registration is connect-later.
  */
-import { ReplyInboundQueueService } from '@server/queues/reply-bot/reply-inbound-queue.service';
-import { buildXActivityCrcResponseBody } from '@server/services/reply-bot/x-activity-crc.util';
-import { extractInboundCandidatesFromXActivityPayload } from '@server/services/reply-bot/x-activity-event.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+
 import { toPrismaCredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
+import { Injectable } from '@nestjs/common';
+import { ReplyInboundProcessorService } from '@server/services/reply-bot/reply-inbound-processor.service';
+import { buildXActivityCrcResponseBody } from '@server/services/reply-bot/x-activity-crc.util';
+import { extractInboundCandidatesFromXActivityPayload } from '@server/services/reply-bot/x-activity-event.util';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 export type XActivityIntakeResult = {
   enqueued: number;
@@ -26,11 +26,7 @@ export class XActivityWebhookService {
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
     private readonly prisma: PrismaService,
-    @Optional()
-    private readonly replyInboundQueueService:
-      | ReplyInboundQueueService
-      | undefined,
-    @Optional() private readonly moduleRef?: ModuleRef,
+    private readonly replyInboundProcessorService: ReplyInboundProcessorService,
   ) {}
 
   isEnabled(): boolean {
@@ -99,12 +95,7 @@ export class XActivityWebhookService {
         continue;
       }
 
-      const replyInboundQueueService = this.resolveReplyInboundQueueService();
-      if (!replyInboundQueueService) {
-        ignored += 1;
-        continue;
-      }
-      await replyInboundQueueService.enqueueInbound({
+      await this.replyInboundProcessorService.enqueue({
         brandId: resolved.brandId,
         commentAuthorId: candidate.commentAuthorId,
         commentAuthorUsername: candidate.commentAuthorUsername,
@@ -125,19 +116,6 @@ export class XActivityWebhookService {
     });
 
     return { enqueued, ignored, mode: 'live' };
-  }
-
-  private resolveReplyInboundQueueService():
-    | ReplyInboundQueueService
-    | undefined {
-    if (this.replyInboundQueueService) {
-      return this.replyInboundQueueService;
-    }
-    try {
-      return this.moduleRef?.get(ReplyInboundQueueService, { strict: false });
-    } catch {
-      return undefined;
-    }
   }
 
   /**

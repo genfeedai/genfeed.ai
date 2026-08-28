@@ -21,12 +21,7 @@ function createHarness() {
     task: { findMany: vi.fn().mockResolvedValue([]), updateMany: vi.fn() },
     workflowExecution: {
       findFirst: vi.fn().mockResolvedValue({
-        nodeResults: [
-          {
-            nodeId: 'generate-clip-1',
-            output: { clipResultIds: ['clip-1'] },
-          },
-        ],
+        nodeResults: [],
         result: {
           inputValues: {
             request: {

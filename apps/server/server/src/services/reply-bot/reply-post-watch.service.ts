@@ -1,124 +1,190 @@
-/**
- * One delayed post-watch attempt: fetch new replies under a post, enqueue inbound.
- */
+import {
+  Platform,
+  ReplyBotPlatform,
+  ReplyBotType,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { ProcessedTweetsService } from '@server/collections/processed-tweets/services/processed-tweets.service';
-import { ReplyInboundQueueService } from '@server/queues/reply-bot/reply-inbound-queue.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import {
+  type SystemWorkflowActionRequest,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
+import {
+  buildReplyPostWatchWorkflowDefinition,
+  REPLY_INGESTION_ACTION_IDS,
+  type ReplyInboundWorkflowInput,
+  type ReplyPostWatchWorkflowInput,
+  type ReplyPostWatchWorkflowResult,
+} from '@server/services/reply-bot/reply-ingestion-workflow-definition';
+import {
+  REPLY_POST_WATCH_DELAYS_MINUTES,
+  REPLY_POST_WATCH_MAX_ATTEMPTS,
+} from '@server/services/reply-bot/reply-post-watch.constants';
 import { SocialMonitorService } from '@server/services/reply-bot/social-monitor.service';
-import { Platform, ReplyBotPlatform, ReplyBotType } from '@genfeedai/enums';
-import type {
-  ReplyPostWatchJobData,
-  ReplyPostWatchResult,
-} from '@genfeedai/queue-contracts';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
+
+type WatchFetchResult = ReplyPostWatchWorkflowInput & {
+  commentsFound: number;
+  items: ReplyInboundWorkflowInput[];
+};
 
 @Injectable()
-export class ReplyPostWatchService {
-  private readonly constructorName = String(this.constructor.name);
-
+export class ReplyPostWatchService implements OnModuleInit {
   constructor(
-    private readonly logger: LoggerService,
     private readonly socialMonitorService: SocialMonitorService,
-    @Optional()
-    private readonly replyInboundQueueService:
-      | ReplyInboundQueueService
-      | undefined,
     private readonly processedTweetsService: ProcessedTweetsService,
-    @Optional() private readonly moduleRef?: ModuleRef,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
   ) {}
 
+  onModuleInit(): void {
+    this.workflowRunner.registerWorkflow(
+      buildReplyPostWatchWorkflowDefinition(),
+    );
+    this.workflowRunner.registerAction(
+      REPLY_INGESTION_ACTION_IDS.FETCH_POST_WATCH,
+      (request) => this.fetchAction(request),
+    );
+    this.workflowRunner.registerAction(
+      REPLY_INGESTION_ACTION_IDS.FINALIZE_POST_WATCH,
+      (request) => this.finalizeAction(request),
+    );
+  }
+
+  async schedulePostWatch(params: {
+    brandId: string;
+    organizationId: string;
+    platform?: Platform.TWITTER | Platform.YOUTUBE | 'twitter' | 'youtube';
+    postId: string;
+    postPreview?: string;
+  }): Promise<{ scheduled: number }> {
+    const platform =
+      String(params.platform) === 'youtube'
+        ? Platform.YOUTUBE
+        : Platform.TWITTER;
+    const definition = buildReplyPostWatchWorkflowDefinition();
+    const jobs = await Promise.all(
+      REPLY_POST_WATCH_DELAYS_MINUTES.map((delayMinutes, attempt) => {
+        const request: ReplyPostWatchWorkflowInput = {
+          attempt,
+          brandId: params.brandId,
+          maxAttempts: REPLY_POST_WATCH_MAX_ATTEMPTS,
+          organizationId: params.organizationId,
+          platform,
+          postId: params.postId,
+          postPreview: params.postPreview,
+        };
+        return this.workflowQueue.queueSystemWorkflowDefinition(
+          definition,
+          {
+            actionType: definition.canonicalId,
+            canonicalId: definition.canonicalId,
+            inputValues: { request },
+            metadata: { attempt, postId: params.postId },
+            organizationId: params.organizationId,
+            source: 'reply-post-watch-series',
+            trigger: WorkflowExecutionTrigger.SCHEDULED,
+          },
+          `reply-post-watch-${params.organizationId}-${platform}-${params.postId}-${attempt}`,
+          {
+            delayMs: delayMinutes * 60 * 1000,
+            replaceTerminalJob: true,
+          },
+        );
+      }),
+    );
+    return { scheduled: jobs.length };
+  }
+
   async runWatchAttempt(
-    data: ReplyPostWatchJobData,
-  ): Promise<ReplyPostWatchResult> {
-    let commentsFound = 0;
-    let enqueued = 0;
-
-    try {
-      const watchPlatform =
-        data.platform === Platform.YOUTUBE
-          ? ReplyBotPlatform.YOUTUBE
-          : ReplyBotPlatform.TWITTER;
-      const wirePlatform =
-        watchPlatform === ReplyBotPlatform.YOUTUBE
-          ? Platform.YOUTUBE
-          : Platform.TWITTER;
-
-      const comments = await this.socialMonitorService.getContentComments(
-        watchPlatform,
-        data.postId,
+    data: ReplyPostWatchWorkflowInput,
+  ): Promise<ReplyPostWatchWorkflowResult> {
+    const definition = buildReplyPostWatchWorkflowDefinition();
+    const { result } =
+      await this.workflowRunner.runWorkflowDefinition<ReplyPostWatchWorkflowResult>(
+        definition,
         {
-          brandId: data.brandId,
-          limit: 40,
+          actionType: definition.canonicalId,
+          canonicalId: definition.canonicalId,
+          inputValues: { request: data },
           organizationId: data.organizationId,
-          preferOfficialApi: true,
+          source: 'ReplyPostWatchService.runWatchAttempt',
+          trigger: WorkflowExecutionTrigger.SCHEDULED,
         },
       );
-      commentsFound = comments.length;
+    return result;
+  }
 
-      for (const comment of comments) {
-        const already = await this.processedTweetsService.isProcessed(
-          comment.id,
-          data.organizationId,
-          ReplyBotType.COMMENT_RESPONDER,
-        );
-        if (already) {
-          continue;
-        }
-
-        const replyInboundQueueService = this.resolveReplyInboundQueueService();
-        if (!replyInboundQueueService) {
-          continue;
-        }
-        await replyInboundQueueService.enqueueInbound({
-          brandId: data.brandId,
+  private async fetchAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<WatchFetchResult> {
+    const request = this.readInput(action.input.request);
+    const watchPlatform =
+      request.platform === Platform.YOUTUBE
+        ? ReplyBotPlatform.YOUTUBE
+        : ReplyBotPlatform.TWITTER;
+    const wirePlatform =
+      watchPlatform === ReplyBotPlatform.YOUTUBE
+        ? Platform.YOUTUBE
+        : Platform.TWITTER;
+    const comments = await this.socialMonitorService.getContentComments(
+      watchPlatform,
+      request.postId,
+      {
+        brandId: request.brandId,
+        limit: 40,
+        organizationId: request.organizationId,
+        preferOfficialApi: true,
+      },
+    );
+    const items: ReplyInboundWorkflowInput[] = [];
+    for (const comment of comments) {
+      const already = await this.processedTweetsService.isProcessed(
+        comment.id,
+        request.organizationId,
+        ReplyBotType.COMMENT_RESPONDER,
+      );
+      if (!already) {
+        items.push({
+          brandId: request.brandId,
           commentAuthorId: comment.authorId,
           commentAuthorUsername: comment.authorUsername,
           commentId: comment.id,
           commentText: comment.text,
-          organizationId: data.organizationId,
-          parentPostId: data.postId,
-          parentPostPreview: data.postPreview,
+          organizationId: request.organizationId,
+          parentPostId: request.postId,
+          parentPostPreview: request.postPreview,
           platform: wirePlatform,
           receivedAt: new Date().toISOString(),
           source: 'post-watch',
         });
-        enqueued += 1;
       }
-    } catch (error: unknown) {
-      this.logger.warn(`${this.constructorName} watch attempt failed`, {
-        attempt: data.attempt,
-        error: error instanceof Error ? error.message : 'unknown',
-        postId: data.postId,
-      });
     }
+    return { ...request, commentsFound: comments.length, items };
+  }
 
-    this.logger.log(`${this.constructorName} watch attempt complete`, {
-      attempt: data.attempt,
-      commentsFound,
-      enqueued,
-      postId: data.postId,
-    });
-
+  private async finalizeAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<ReplyPostWatchWorkflowResult> {
+    const state = this.readRecord(action.input.state) as WatchFetchResult;
+    const batch = this.readRecord(action.input.batch);
     return {
-      attempt: data.attempt,
-      commentsFound,
-      enqueued,
-      organizationId: data.organizationId,
-      postId: data.postId,
+      attempt: state.attempt,
+      commentsFound: state.commentsFound,
+      enqueued: typeof batch.count === 'number' ? batch.count : 0,
+      organizationId: state.organizationId,
+      postId: state.postId,
     };
   }
 
-  private resolveReplyInboundQueueService():
-    | ReplyInboundQueueService
-    | undefined {
-    if (this.replyInboundQueueService) {
-      return this.replyInboundQueueService;
-    }
-    try {
-      return this.moduleRef?.get(ReplyInboundQueueService, { strict: false });
-    } catch {
-      return undefined;
-    }
+  private readInput(value: unknown): ReplyPostWatchWorkflowInput {
+    return this.readRecord(value) as unknown as ReplyPostWatchWorkflowInput;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
   }
 }

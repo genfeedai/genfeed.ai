@@ -1,10 +1,9 @@
-import { ReplyPollingWorkflowService } from '@server/collections/workflows/services/reply-polling-workflow.service';
 import { ReplyBotPlatform } from '@genfeedai/enums';
+import { ReplyPollingWorkflowService } from '@server/collections/workflows/services/reply-polling-workflow.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ReplyPollingWorkflowService', () => {
   const replyBotConfigsService = { find: vi.fn() };
-  const credentialsService = { findOne: vi.fn() };
   const replyBotOrchestratorService = { processOrganizationBots: vi.fn() };
   const prisma = {
     workflow: { findMany: vi.fn(), update: vi.fn() },
@@ -18,7 +17,6 @@ describe('ReplyPollingWorkflowService', () => {
     createMentionChecker: vi.fn(),
     createRepostChecker: vi.fn(),
   };
-  const instagramAdapter = {};
   const youtubeAdapter = {
     createCommentChecker: vi.fn(),
   };
@@ -36,7 +34,6 @@ describe('ReplyPollingWorkflowService', () => {
     vi.clearAllMocks();
     configService.isDevSchedulersEnabled = true;
     replyBotConfigsService.find.mockResolvedValue([]);
-    credentialsService.findOne.mockResolvedValue(null);
     replyBotOrchestratorService.processOrganizationBots.mockResolvedValue([]);
     prisma.workflow.findMany.mockResolvedValue([]);
     prisma.workflow.update.mockResolvedValue({});
@@ -52,12 +49,10 @@ describe('ReplyPollingWorkflowService', () => {
 
     service = new ReplyPollingWorkflowService(
       replyBotConfigsService as never,
-      credentialsService as never,
       replyBotOrchestratorService as never,
       prisma as never,
       executionQueue as never,
       twitterAdapter as never,
-      instagramAdapter as never,
       youtubeAdapter as never,
       configService as never,
       cacheService as never,
@@ -79,7 +74,7 @@ describe('ReplyPollingWorkflowService', () => {
     });
   });
 
-  it('discovers active reply bot credentials inside the workflow organization', async () => {
+  it('dispatches active reply bot credential ids inside the workflow organization', async () => {
     replyBotConfigsService.find.mockResolvedValue([
       {
         config: { credentialId: 'credential-1' },
@@ -88,14 +83,6 @@ describe('ReplyPollingWorkflowService', () => {
         organizationId: 'org-1',
       },
     ]);
-    credentialsService.findOne.mockResolvedValue({
-      accessToken: 'token',
-      accessTokenSecret: 'secret',
-      externalId: 'external-1',
-      platform: ReplyBotPlatform.TWITTER,
-      refreshToken: 'refresh',
-      username: 'brand',
-    });
     replyBotOrchestratorService.processOrganizationBots.mockResolvedValue([
       {
         botConfigId: 'config-1',
@@ -115,19 +102,9 @@ describe('ReplyPollingWorkflowService', () => {
       isDeleted: false,
       organizationId: 'org-1',
     });
-    expect(credentialsService.findOne).toHaveBeenCalledWith({
-      id: 'credential-1',
-      organizationId: 'org-1',
-    });
     expect(
       replyBotOrchestratorService.processOrganizationBots,
-    ).toHaveBeenCalledWith(
-      'org-1',
-      expect.objectContaining({
-        platform: ReplyBotPlatform.TWITTER,
-        username: 'brand',
-      }),
-    );
+    ).toHaveBeenCalledWith('org-1', 'credential-1');
     expect(result).toMatchObject({
       action: 'replyBotPolling',
       checked: 1,

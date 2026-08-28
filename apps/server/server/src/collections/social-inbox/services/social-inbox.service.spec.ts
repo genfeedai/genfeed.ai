@@ -452,20 +452,62 @@ function createContext(): TestContext {
         }) => Promise<unknown>,
       ) => actionExecutors.set(actionId, executor),
     ),
-    runAction: vi.fn(async (input: Record<string, unknown>) => {
-      const executor = actionExecutors.get(String(input.canonicalId));
-      if (!executor) {
-        throw new Error(
-          `Missing action executor: ${String(input.canonicalId)}`,
-        );
-      }
-      return {
-        provenance: { executionId: 'execution-1', workflowId: 'workflow-1' },
-        result: await executor({
-          input: input.inputValues as Record<string, unknown>,
-        }),
-      };
-    }),
+    registerWorkflow: vi.fn(),
+    runWorkflowDefinition: vi.fn(
+      async (
+        definition: {
+          definition: {
+            edges: Array<{
+              source: string;
+              sourceHandle?: string;
+              target: string;
+              targetHandle?: string;
+            }>;
+            nodes: Array<{
+              data: { config: Record<string, unknown> };
+              id: string;
+            }>;
+          };
+          resultNodeId: string;
+        },
+        input: { inputValues?: Record<string, unknown> },
+      ) => {
+        const outputs = new Map<string, unknown>();
+        for (const node of definition.definition.nodes) {
+          const actionId = String(node.data.config.actionId);
+          const executor = actionExecutors.get(actionId);
+          if (!executor)
+            throw new Error(`Missing action executor: ${actionId}`);
+          const actionInput: Record<string, unknown> = {
+            ...input.inputValues,
+          };
+          for (const edge of definition.definition.edges.filter(
+            (candidate) => candidate.target === node.id,
+          )) {
+            const source = outputs.get(edge.source);
+            const value =
+              edge.sourceHandle &&
+              source &&
+              typeof source === 'object' &&
+              edge.sourceHandle in source
+                ? (source as Record<string, unknown>)[edge.sourceHandle]
+                : source;
+            actionInput[edge.targetHandle ?? edge.source] = value;
+          }
+          outputs.set(
+            node.id,
+            await executor({
+              input: actionInput,
+              provenance: {
+                executionId: 'execution-1',
+                workflowId: 'workflow-1',
+              },
+            } as never),
+          );
+        }
+        return { result: outputs.get(definition.resultNodeId) };
+      },
+    ),
   };
   const ingestionService = new SocialInboxIngestionService(
     prisma as never,

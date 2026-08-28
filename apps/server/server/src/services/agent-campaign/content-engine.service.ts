@@ -1,3 +1,7 @@
+import { AgentExecutionTrigger, type AgentType } from '@genfeedai/enums';
+import type { IAgentCampaignContentRotation } from '@genfeedai/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { type AgentCampaignDocument } from '@server/collections/agent-campaigns/schemas/agent-campaign.schema';
 import { AgentCampaignsService } from '@server/collections/agent-campaigns/services/agent-campaigns.service';
 import { AgentGoalsService } from '@server/collections/agent-goals/services/agent-goals.service';
@@ -11,7 +15,6 @@ import {
   AnalyticsService,
 } from '@server/endpoints/analytics/analytics.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { CampaignMemoryQueueService } from '@server/services/agent-campaign/campaign-memory-queue.service';
 import {
   type CampaignWinnerExtractionResult,
   CampaignWinnerExtractionService,
@@ -24,14 +27,9 @@ import {
   DEFAULT_ORCHESTRATION_INTERVAL_HOURS,
   MAX_ORCHESTRATED_STRATEGIES_PER_RUN,
 } from '@server/services/agent-campaign/orchestrator.constants';
-import { OrchestratorQueueService } from '@server/services/agent-campaign/orchestrator-queue.service';
 import { isOrchestratorAgentType } from '@server/services/agent-orchestrator/constants/agent-type.constants';
 import { AgentRuntimeService } from '@server/services/agent-runtime/agent-runtime.service';
 import { requireRelationId } from '@server/shared/utils/relation-id/relation-id.util';
-import { AgentExecutionTrigger, type AgentType } from '@genfeedai/enums';
-import type { IAgentCampaignContentRotation } from '@genfeedai/interfaces';
-import { LoggerService } from '@libs/logger/logger.service';
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
 
 interface AnalyticsOverview {
   avgEngagementRate?: number;
@@ -93,8 +91,6 @@ export class ContentEngineService {
     private readonly contentRotationService: ContentRotationService,
     private readonly analyticsService: AnalyticsService,
     private readonly agentMemoryCaptureService: AgentMemoryCaptureService,
-    private readonly campaignMemoryQueueService: CampaignMemoryQueueService,
-    private readonly orchestratorQueueService: OrchestratorQueueService,
     private readonly campaignWinnerExtractionService: CampaignWinnerExtractionService,
     private readonly logger: LoggerService,
     @Inject(forwardRef(() => AgentRuntimeService))
@@ -876,26 +872,6 @@ export class ContentEngineService {
       skippedReason: input.skippedReason,
       summary: input.summary,
     };
-  }
-
-  async scheduleCampaign(
-    campaignId: string,
-    organizationId: string,
-    userId: string,
-  ): Promise<string> {
-    const jobId = await this.orchestratorQueueService.queueCampaignRun({
-      campaignId,
-      organizationId,
-      userId,
-    });
-
-    await this.campaignMemoryQueueService.queueExtraction({
-      campaignId,
-      organizationId,
-      userId,
-    });
-
-    return jobId;
   }
 
   extractWinnerPatterns(

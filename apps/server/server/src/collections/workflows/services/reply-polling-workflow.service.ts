@@ -1,21 +1,11 @@
-import {
-  Platform,
-  ReplyBotPlatform,
-  WorkflowLifecycle,
-  WorkflowStatus,
-} from '@genfeedai/enums';
-import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+import { Platform, WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
 import { toPrismaJson, type Workflow } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
-import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import type { ReplyBotConfigDocument } from '@server/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
-import { InstagramSocialAdapter } from '@server/collections/workflows/services/adapters/instagram-social.adapter';
 import { TwitterSocialAdapter } from '@server/collections/workflows/services/adapters/twitter-social.adapter';
 import { YoutubeSocialAdapter } from '@server/collections/workflows/services/adapters/youtube-social.adapter';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
@@ -81,12 +71,10 @@ export class ReplyPollingWorkflowService {
 
   constructor(
     private readonly replyBotConfigsService: ReplyBotConfigsService,
-    private readonly credentialsService: CredentialsService,
     private readonly replyBotOrchestratorService: ReplyBotOrchestratorService,
     private readonly prisma: PrismaService,
     private readonly executionQueue: WorkflowExecutionQueueService,
     private readonly twitterAdapter: TwitterSocialAdapter,
-    private readonly instagramAdapter: InstagramSocialAdapter,
     private readonly youtubeAdapter: YoutubeSocialAdapter,
     private readonly configService: ConfigService,
     private readonly cacheService: CacheService,
@@ -116,16 +104,10 @@ export class ReplyPollingWorkflowService {
       for (const target of targets) {
         checked += 1;
         try {
-          const credential = await this.loadCredential(target);
-          if (!credential) {
-            skipped += 1;
-            continue;
-          }
-
           const results =
             await this.replyBotOrchestratorService.processOrganizationBots(
               organizationId,
-              credential,
+              target.credentialId,
             );
 
           triggered += results.length;
@@ -240,40 +222,6 @@ export class ReplyPollingWorkflowService {
       this.optionalString(configRecord.credential) ??
       this.optionalString(configRecord.credentialId)
     );
-  }
-
-  private async loadCredential(
-    target: ReplyBotTarget,
-  ): Promise<IReplyBotCredentialData | null> {
-    const credential = (await this.credentialsService.findOne({
-      id: target.credentialId,
-      organizationId: target.organizationId,
-    })) as CredentialDocument | null;
-
-    if (!credential) {
-      this.logger.warn(`${this.logContext} credential not found`, {
-        credentialId: target.credentialId,
-        organizationId: target.organizationId,
-      });
-      return null;
-    }
-
-    return {
-      accessToken: EncryptionUtil.decrypt(credential.accessToken ?? ''),
-      accessTokenSecret: credential.accessTokenSecret
-        ? EncryptionUtil.decrypt(credential.accessTokenSecret)
-        : undefined,
-      brandId: credential.brandId ?? undefined,
-      externalId: credential.externalId ?? undefined,
-      // The bot speaks as this exact account, not as the brand's default one.
-      id: credential.id,
-      organizationId: target.organizationId,
-      platform: credential.platform as ReplyBotPlatform,
-      refreshToken: credential.refreshToken
-        ? EncryptionUtil.decrypt(credential.refreshToken)
-        : undefined,
-      username: credential.username ?? undefined,
-    };
   }
 
   private countReplyBotErrors(results: ProcessingResult[]): number {

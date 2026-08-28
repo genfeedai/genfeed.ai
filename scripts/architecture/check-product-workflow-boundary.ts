@@ -97,16 +97,22 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
       file: 'apps/server/workers/src/crons/posts/cron.posts.service.ts',
       id: 'scheduled-post-publishing',
       reason:
-        'Scheduled publish dispatch is wrapped by scheduled-post-publishing system workflow executions with post provenance.',
-      systemWorkflowIds: ['scheduled-post-publishing'],
+        'The scheduler discovers due posts and queues the immutable scheduled-post.publish graph; provider delivery is an atomic action node.',
+      systemWorkflowIds: ['scheduled-post.publish'],
     },
     {
       classification: 'workflow-adapter',
       file: 'apps/server/server/src/services/reply-bot/reply-bot-orchestrator.service.ts',
       id: 'reply-bot-orchestration',
       reason:
-        'Reply/DM social actions are wrapped by reply-dm-automation system workflow executions.',
-      systemWorkflowIds: ['reply-dm-automation'],
+        'The service registers atomic reply-bot action adapters and queues immutable organization, bot, content, DM, and test workflow graphs.',
+      systemWorkflowIds: [
+        'reply-bot.process-organization',
+        'reply-bot.process-bot',
+        'reply-bot.process-content',
+        'reply-bot.send-dm',
+        'reply-bot.test-generation',
+      ],
     },
     {
       classification: 'workflow-adapter',
@@ -114,39 +120,52 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
       id: 'reply-bot-action-executor',
       reason:
         'Low-level social client adapter used by workflow-backed action callers; it must not schedule product behavior itself.',
-      systemWorkflowIds: ['reply-dm-automation'],
+      systemWorkflowIds: [
+        'author-reply.send-reply',
+        'reply-bot.process-content',
+        'reply-bot.send-dm',
+      ],
     },
     {
       classification: 'workflow-adapter',
       file: 'apps/server/api/src/services/twitter-pipeline/twitter-pipeline.service.ts',
       id: 'twitter-pipeline-publish',
       reason:
-        'Twitter original/reply/quote publish actions are wrapped by twitter-publish-action system workflow executions.',
-      systemWorkflowIds: ['twitter-publish-action'],
+        'Twitter original, reply, and quote publishing share the atomic provider action in the immutable twitter.pipeline.publish graph.',
+      systemWorkflowIds: ['twitter.pipeline.publish'],
     },
     {
       classification: 'workflow-adapter',
       file: 'apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts',
       id: 'social-inbox-manual-actions',
       reason:
-        'Low-level provider adapters registered as the social-inbox-post-reply and social-inbox-send-dm actions; public methods execute them through system workflows.',
-      systemWorkflowIds: ['social-inbox-post-reply', 'social-inbox-send-dm'],
+        'Low-level provider adapters are registered once and invoked by the immutable social inbox outbound reply and DM workflows.',
+      systemWorkflowIds: [
+        'social.inbox.outbound.post-reply',
+        'social.inbox.outbound.send-dm',
+      ],
     },
     {
       classification: 'workflow-adapter',
       file: 'apps/server/server/src/services/campaign/campaign-executor.service.ts',
-      id: 'campaign-reply-automation',
+      id: 'campaign-reply-action-adapter',
       reason:
-        'Outreach campaign replies are wrapped by campaign-reply-automation system workflow executions.',
-      systemWorkflowIds: ['campaign-reply-automation'],
+        'Atomic campaign reply target actions are sequenced by immutable batch and per-target workflows.',
+      systemWorkflowIds: [
+        'campaign.reply.process-pending-targets',
+        'campaign.reply.execute-target',
+      ],
     },
     {
       classification: 'workflow-adapter',
       file: 'apps/server/server/src/services/campaign/dm-campaign-executor.service.ts',
-      id: 'campaign-dm-automation',
+      id: 'campaign-dm-action-adapter',
       reason:
-        'Outreach campaign DMs are wrapped by campaign-dm-automation system workflow executions.',
-      systemWorkflowIds: ['campaign-dm-automation'],
+        'Atomic campaign DM target actions are sequenced by immutable batch and per-target workflows.',
+      systemWorkflowIds: [
+        'campaign.dm.process-pending-targets',
+        'campaign.dm.execute-target',
+      ],
     },
     {
       classification: 'workflow-adapter',

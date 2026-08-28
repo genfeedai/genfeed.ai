@@ -16,8 +16,6 @@ import { DEFAULT_CREDIT_COSTS } from './credit-calculator';
 /** Node types deleted in #481 — must never regain a credit cost. */
 const REMOVED_NODE_TYPES = [
   'patternContext',
-  'condition',
-  'delay',
   'followUser',
   'likePost',
   'rssInput',

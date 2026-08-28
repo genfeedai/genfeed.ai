@@ -1,21 +1,10 @@
 import { createHash } from 'node:crypto';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
 import type { AnalyzeYoutubeDto } from '@api/collections/clip-projects/dto/analyze-youtube.dto';
 import type { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
 import {
   MAX_CLIP_SOURCE_SIZE_BYTES,
   type PrepareClipUploadDto,
 } from '@api/collections/clip-projects/dto/prepare-clip-upload.dto';
-import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
-import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
-import { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
-import { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { CLIP_SOURCE_MAX_DURATION_SECONDS } from '@genfeedai/constants';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
@@ -27,6 +16,17 @@ import {
   DEFAULT_CLIP_RESULT_MODE,
 } from '@genfeedai/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
+import { ClipAnalysisWorkflowQueueService } from '@server/collections/clip-projects/services/clip-analysis-workflow-queue.service';
+import { ClipFactoryWorkflowQueueService } from '@server/collections/clip-projects/services/clip-factory-workflow-queue.service';
+import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
+import { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 
 const DEFAULT_CLIP_SOURCE_MAX_RETRIES = 3;
 
@@ -56,8 +56,8 @@ export interface PrepareClipUploadResult {
 export class ClipProjectIngestionService {
   constructor(
     private readonly clipProjectsService: ClipProjectsService,
-    private readonly clipFactoryQueueService: ClipFactoryQueueService,
-    private readonly clipAnalyzeQueueService: ClipAnalyzeQueueService,
+    private readonly clipFactoryWorkflowQueue: ClipFactoryWorkflowQueueService,
+    private readonly clipAnalysisWorkflowQueue: ClipAnalysisWorkflowQueueService,
     private readonly clipGenerationRequestService: ClipGenerationRequestService,
     private readonly clipIdentityResolutionService: ClipIdentityResolutionService,
     private readonly creditsUtilsService: CreditsUtilsService,
@@ -144,7 +144,7 @@ export class ClipProjectIngestionService {
       [],
       orgId,
     );
-    const batchJobId = await this.clipFactoryQueueService.enqueue({
+    const batchJobId = await this.clipFactoryWorkflowQueue.enqueue({
       avatarId: identity?.avatarId,
       avatarProvider: provider,
       language: dto.language ?? 'en',
@@ -206,7 +206,7 @@ export class ClipProjectIngestionService {
     });
 
     const projectId = String(project.id);
-    const queuedSource = this.withJobId(source, `clip-analyze-${projectId}`);
+    const queuedSource = this.withJobId(source, `clip-analysis-${projectId}`);
     await this.clipProjectsService.patch(
       projectId,
       { source: queuedSource },
@@ -214,7 +214,7 @@ export class ClipProjectIngestionService {
       orgId,
     );
 
-    await this.clipAnalyzeQueueService.enqueue({
+    await this.clipAnalysisWorkflowQueue.enqueue({
       language: dto.language ?? 'en',
       maxClips: dto.maxClips ?? 10,
       minViralityScore: dto.minViralityScore ?? 50,
@@ -407,7 +407,7 @@ export class ClipProjectIngestionService {
     }
 
     const flow = project.settings?.flow ?? source.flow;
-    const expectedJobId = `${flow === 'review' ? 'clip-analyze' : 'clip-factory'}-${projectId}`;
+    const expectedJobId = `${flow === 'review' ? 'clip-analysis' : 'clip-factory'}-${projectId}`;
     const queuedSource: ClipSourceContract = {
       ...source,
       durationSeconds,
@@ -444,10 +444,24 @@ export class ClipProjectIngestionService {
       updatedAt: new Date().toISOString(),
     };
     const flow = project.settings?.flow ?? source.flow;
+    const sourceUrl = project.sourceVideoUrl ?? nextSource.artifact?.mediaUrl;
+    if (!sourceUrl) {
+      throw new BadRequestException('The clip source URL is unavailable.');
+    }
     const batchJobId =
       flow === 'review'
-        ? await this.clipAnalyzeQueueService.retry(projectId, nextSource)
-        : await this.clipFactoryQueueService.retry(projectId, nextSource);
+        ? await this.clipAnalysisWorkflowQueue.enqueue({
+            language: project.settings?.language ?? project.language ?? 'en',
+            maxClips: project.settings?.maxClips ?? 10,
+            minViralityScore: project.settings?.minViralityScore ?? 50,
+            orgId: user.organizationId,
+            projectId,
+            source: nextSource,
+            userId: user.userId ?? user.id,
+            youtubeUrl: sourceUrl,
+          })
+        : (await this.enqueueUploadedProject(user, project, nextSource))
+            .batchJobId;
 
     await this.clipProjectsService.patch(
       projectId,
@@ -491,7 +505,7 @@ export class ClipProjectIngestionService {
         [],
         user.organizationId,
       );
-      const batchJobId = await this.clipAnalyzeQueueService.enqueue({
+      const batchJobId = await this.clipAnalysisWorkflowQueue.enqueue({
         language: settings.language ?? project.language ?? 'en',
         maxClips: estimatedClips,
         minViralityScore: settings.minViralityScore ?? 50,
@@ -560,7 +574,7 @@ export class ClipProjectIngestionService {
       user.organizationId,
     );
 
-    const batchJobId = await this.clipFactoryQueueService.enqueue({
+    const batchJobId = await this.clipFactoryWorkflowQueue.enqueue({
       avatarId: identity?.avatarId,
       avatarProvider: provider,
       language: settings.language ?? project.language ?? 'en',

@@ -7,11 +7,11 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   };
 });
 
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LifecycleEmailService } from './lifecycle-email.service';
-import { LifecycleEmailQueueService } from './lifecycle-email-queue.service';
+import { LifecycleEmailWorkflowService } from './lifecycle-email-workflow.service';
 
 const CHECKOUT_RECOVERY_DELAY_MS = 2 * 60 * 60 * 1000;
 
@@ -23,6 +23,7 @@ describe('LifecycleEmailService', () => {
       findFirst: ReturnType<typeof vi.fn>;
       updateMany: ReturnType<typeof vi.fn>;
     };
+    member: { findFirst: ReturnType<typeof vi.fn> };
     user: { findFirst: ReturnType<typeof vi.fn> };
   };
   let queueService: { scheduleEmail: ReturnType<typeof vi.fn> };
@@ -41,6 +42,9 @@ describe('LifecycleEmailService', () => {
         findFirst: vi.fn().mockResolvedValue({ userId: 'user_1' }),
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
+      member: {
+        findFirst: vi.fn().mockResolvedValue({ organizationId: 'org_1' }),
+      },
       user: { findFirst: vi.fn().mockResolvedValue(user) },
     };
 
@@ -50,7 +54,7 @@ describe('LifecycleEmailService', () => {
 
     service = new LifecycleEmailService(
       prisma as unknown as PrismaService,
-      queueService as unknown as LifecycleEmailQueueService,
+      queueService as unknown as LifecycleEmailWorkflowService,
       { log: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
     );
   });

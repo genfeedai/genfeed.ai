@@ -1,5 +1,4 @@
 import { PublicYoutubeClipsService } from '@api/endpoints/public/services/public-youtube-clips.service';
-import type { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -26,7 +25,7 @@ const storedSession: StoredPublicYoutubeClipSession = {
 };
 
 describe('PublicYoutubeClipsService', () => {
-  const queue = { enqueue: vi.fn() };
+  const scheduledAnalysisJobs: unknown[] = [];
   const files = { getJobStatus: vi.fn(), processVideo: vi.fn() };
   const logger = { error: vi.fn(), warn: vi.fn() };
   const store = {
@@ -38,11 +37,16 @@ describe('PublicYoutubeClipsService', () => {
     reservePreview: vi.fn(),
     toWorkerProjectId: vi.fn(),
   };
+  let actions: Map<
+    string,
+    (request: { input: Record<string, unknown> }) => Promise<unknown>
+  >;
   let service: PublicYoutubeClipsService;
   let runner: SystemWorkflowRunnerService;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    scheduledAnalysisJobs.length = 0;
     store.createSession.mockResolvedValue({
       isNew: true,
       previewToken: token,
@@ -51,11 +55,8 @@ describe('PublicYoutubeClipsService', () => {
     store.toWorkerProjectId.mockReturnValue(
       `public-youtube-clip-session-${'f'.repeat(64)}`,
     );
-    queue.enqueue.mockResolvedValue({ id: 'analysis-job' });
-    const actions = new Map<
-      string,
-      (request: { input: Record<string, unknown> }) => Promise<unknown>
-    >();
+    store.getSession.mockResolvedValue(storedSession);
+    actions = new Map();
     const actionRequest = (input: Record<string, unknown>) => ({ input });
     runner = {
       registerAction: vi.fn(
@@ -91,10 +92,15 @@ describe('PublicYoutubeClipsService', () => {
                 },
               }),
             );
+            const envelope = sessionEnvelope as {
+              analysisJobs?: unknown[];
+              previewToken?: string;
+            };
+            scheduledAnalysisJobs.push(...(envelope.analysisJobs ?? []));
             return {
               provenance: {},
-              result: await actions.get('youtube.clip.dispatch-analysis')?.(
-                actionRequest({ sessionEnvelope }),
+              result: await actions.get('youtube.clip.read-session')?.(
+                actionRequest({ previewToken: envelope.previewToken }),
               ),
             };
           }
@@ -124,7 +130,6 @@ describe('PublicYoutubeClipsService', () => {
       ),
     } as unknown as SystemWorkflowRunnerService;
     service = new PublicYoutubeClipsService(
-      queue as unknown as ClipAnalyzeQueueService,
       files as unknown as FileQueueService,
       logger as unknown as LoggerService,
       runner,
@@ -145,7 +150,7 @@ describe('PublicYoutubeClipsService', () => {
         sourceVideoUrl: 'https://www.youtube.com/watch?v=abc12345',
       }),
     );
-    expect(queue.enqueue).toHaveBeenCalledWith(
+    expect(scheduledAnalysisJobs).toContainEqual(
       expect.objectContaining({
         highlightFallback: 'deterministic',
         highlightModel: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
@@ -166,7 +171,7 @@ describe('PublicYoutubeClipsService', () => {
       await expect(service.create(url)).rejects.toBeInstanceOf(
         BadRequestException,
       );
-      expect(queue.enqueue).not.toHaveBeenCalled();
+      expect(scheduledAnalysisJobs).toHaveLength(0);
     },
   );
 
@@ -182,25 +187,46 @@ describe('PublicYoutubeClipsService', () => {
       'request-key-1',
     );
 
-    expect(queue.enqueue).not.toHaveBeenCalled();
+    expect(scheduledAnalysisJobs).toHaveLength(0);
   });
 
-  it('releases only the failed enqueue reservations so retries stay safe', async () => {
-    queue.enqueue.mockRejectedValueOnce(new Error('queue unavailable'));
+  it('registers terminal workflow compensation for analysis scheduling failure', async () => {
+    const createWorkflow = vi
+      .mocked(runner.registerWorkflow)
+      .mock.calls.map(([definition]) => definition)
+      .find(
+        (definition) => definition.canonicalId === 'public-youtube-clip.create',
+      );
+    expect(createWorkflow?.definition.edges).toContainEqual({
+      id: 'analysis-failure-to-release',
+      source: 'schedule-analysis',
+      sourceHandle: 'failure',
+      target: 'release-session',
+      targetHandle: 'failure',
+    });
 
-    await expect(
-      service.create(
-        'https://www.youtube.com/watch?v=abc12345',
-        'request-key-1',
-      ),
-    ).rejects.toMatchObject({ status: 503 });
+    await actions.get('youtube.clip.release-session')?.({
+      input: {
+        failure: {
+          error: 'Redis unavailable',
+          failedNodeId: 'schedule-analysis',
+          nodeOutputs: {
+            'create-session': {
+              idempotencyKey: 'request-key-1',
+              isNew: true,
+              previewToken: token,
+              session: storedSession,
+            },
+          },
+        },
+      },
+    });
 
     expect(store.releaseFailedSession).toHaveBeenCalledWith(
       token,
-      storedSession.sourceFingerprint,
+      'fingerprint',
       'request-key-1',
     );
-    expect(store.deleteSession).not.toHaveBeenCalled();
   });
 
   it('renders the one preview from the durable source artifact', async () => {

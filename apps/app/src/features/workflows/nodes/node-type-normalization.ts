@@ -14,7 +14,6 @@ const ENGINE_NATIVE_EDITOR_NODE_TYPES = new Set([
   'condition',
   'control-branch',
   'control-delay',
-  'control-loop',
   'delay',
   'engagementTrigger',
   'input-image',

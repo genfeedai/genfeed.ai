@@ -1,3 +1,14 @@
+import type {
+  AgentClipRunIdentity,
+  ClipGenerationReference,
+  ClipResultMode,
+  SupportedAvatarVideoProviderName,
+} from '@genfeedai/interfaces';
+import {
+  DEFAULT_CLIP_REFERENCE_POLICY,
+  DEFAULT_CLIP_RESULT_MODE,
+} from '@genfeedai/interfaces';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { toBrandGenerationReferences } from '@server/collections/brands/utils/brand-kit-generation-references.util';
 import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
@@ -9,23 +20,12 @@ import type {
   ClipProjectDocument,
   ClipProjectHighlight,
 } from '@server/collections/clip-projects/schemas/clip-project.schema';
-import type { ClipRunGenerationReference } from '@server/collections/clip-projects/services/clip-generation.service';
 import { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
 import {
   type ResolvedClipReference,
   resolveSelectedClipReference,
 } from '@server/collections/clip-projects/services/clip-reference-generation.util';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
-import type {
-  AgentClipRunIdentity,
-  ClipResultMode,
-} from '@genfeedai/interfaces';
-import {
-  DEFAULT_CLIP_REFERENCE_POLICY,
-  DEFAULT_CLIP_RESULT_MODE,
-} from '@genfeedai/interfaces';
-import type { SupportedAvatarVideoProviderName } from '@genfeedai/queue-contracts';
-import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface PrepareClipGenerationParams {
   dto: GenerateClipsDto;
@@ -39,7 +39,7 @@ export interface PreparedClipGeneration {
   persistedHighlights: ClipProjectHighlight[];
   project: ClipProjectDocument;
   reference: ResolvedClipReference;
-  runReferences: readonly ClipRunGenerationReference[];
+  runReferences: readonly ClipGenerationReference[];
   selectedHighlights: ClipProjectHighlight[];
 }
 
@@ -166,7 +166,7 @@ export class ClipGenerationRequestService {
   assertProviderRequirements(
     provider: SupportedAvatarVideoProviderName,
     reference: ResolvedClipReference,
-    runReferences: readonly ClipRunGenerationReference[],
+    runReferences: readonly ClipGenerationReference[],
     mode: ClipResultMode,
   ): void {
     if (mode !== 'avatar' || provider !== 'genfeedai') {
@@ -186,7 +186,7 @@ export class ClipGenerationRequestService {
   async resolveRunReferences(
     brandId: string,
     organizationId: string,
-  ): Promise<readonly ClipRunGenerationReference[]> {
+  ): Promise<readonly ClipGenerationReference[]> {
     const brandKit = await this.brandsService.resolveBrandKitAssets(
       brandId,
       organizationId,

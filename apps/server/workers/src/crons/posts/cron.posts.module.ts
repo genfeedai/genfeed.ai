@@ -5,6 +5,7 @@ import { PostsModule } from '@api/collections/posts/posts.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { PublishersModule } from '@api/services/integrations/publishers/publishers.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
+import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import {
   AgentArtifactReferenceService,
@@ -37,6 +38,7 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
     forwardRef(() => WebhookClientModule),
     PublishersModule,
     QuotaModule,
+    forwardRef(() => ReplyBotModule),
     PrismaModule,
     forwardRef(() => WorkersQueuesModule),
     forwardRef(() => WorkflowsModule),

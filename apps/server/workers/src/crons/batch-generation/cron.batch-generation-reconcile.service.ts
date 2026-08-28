@@ -1,7 +1,7 @@
-import { BatchGenerationQueueService } from '@server/queues/batch-generation/batch-generation-queue.service';
-import { BatchGenerationReconcileService } from '@server/services/batch-generation/batch-generation-reconcile.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { BatchGenerationReconcileService } from '@server/services/batch-generation/batch-generation-reconcile.service';
+import { BatchGenerationWorkflowService } from '@server/services/batch-generation/batch-generation-workflow.service';
 
 /**
  * Puts stranded batches back on the queue.
@@ -23,7 +23,7 @@ export class CronBatchGenerationReconcileService {
   constructor(
     private readonly logger: LoggerService,
     private readonly reconcileService: BatchGenerationReconcileService,
-    private readonly queueService: BatchGenerationQueueService,
+    private readonly workflowService: BatchGenerationWorkflowService,
   ) {}
 
   async reconcileSettlementShortfalls(): Promise<void> {
@@ -44,7 +44,7 @@ export class CronBatchGenerationReconcileService {
         // The deterministic job id makes this a no-op when the original job is
         // still queued, so a sweep firing next to a live job cannot fork a
         // second run of the same batch.
-        await this.queueService.queueBatch({
+        await this.workflowService.queueBatch({
           batchId: batch.batchId,
           isResume: true,
           organizationId: batch.organizationId,

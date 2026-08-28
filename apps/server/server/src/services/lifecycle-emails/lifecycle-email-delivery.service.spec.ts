@@ -1,7 +1,7 @@
 import { postExecutionStateReadFilter } from '@genfeedai/api-types';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { SubscriptionStatus, TargetExecutionState } from '@genfeedai/enums';
-import type { LifecycleEmailJobData } from '@genfeedai/queue-contracts';
+import type { LifecycleEmailWorkflowInput } from '@genfeedai/interfaces';
 import type {
   ServerConfig,
   ServerLogger,
@@ -18,7 +18,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => ({
 const isSelfHostedMock = vi.mocked(isSelfHostedDeployment);
 
 type LifecycleEmailJobOverrides = Omit<
-  Partial<LifecycleEmailJobData>,
+  Partial<LifecycleEmailWorkflowInput>,
   'step'
 > & {
   step?: string;
@@ -26,14 +26,14 @@ type LifecycleEmailJobOverrides = Omit<
 
 function makeJob(
   overrides: LifecycleEmailJobOverrides = {},
-): LifecycleEmailJobData {
+): LifecycleEmailWorkflowInput {
   return {
     sequence: 'welcome',
     step: 'welcome-day-0',
     triggerKey: 'trigger-1',
     userId: 'user-1',
     ...overrides,
-  } as LifecycleEmailJobData;
+  } as LifecycleEmailWorkflowInput;
 }
 
 function makeDelivery(overrides: Record<string, unknown> = {}) {

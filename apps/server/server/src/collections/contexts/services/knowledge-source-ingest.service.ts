@@ -1,3 +1,11 @@
+import { KnowledgeBaseStatus } from '@genfeedai/enums';
+import type {
+  KnowledgeSourceBackfillWorkflowInput,
+  KnowledgeSourceIngestWorkflowInput,
+} from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { ContextsService } from '@server/collections/contexts/services/contexts.service';
 import {
   extractSourceText,
@@ -14,14 +22,6 @@ import {
 } from '@server/collections/contexts/utils/knowledge-source.util';
 import { chunkText } from '@server/collections/contexts/utils/text-chunker.util';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { KnowledgeBaseStatus } from '@genfeedai/enums';
-import type {
-  KnowledgeSourceBackfillJobData,
-  KnowledgeSourceIngestJobData,
-} from '@genfeedai/queue-contracts';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 export type KnowledgeSourceIngestStatus =
   | 'completed'
@@ -52,7 +52,7 @@ export class KnowledgeSourceIngestService {
   ) {}
 
   async ingest(
-    job: KnowledgeSourceIngestJobData,
+    job: KnowledgeSourceIngestWorkflowInput,
   ): Promise<KnowledgeSourceIngestResult> {
     const contextBase = await this.prisma.contextBase.findFirst({
       where: scopedWhere(job.organizationId, { id: job.contextBaseId }),
@@ -196,12 +196,8 @@ export class KnowledgeSourceIngestService {
   }
 
   async scanForBackfill(
-    input: KnowledgeSourceBackfillJobData = {},
+    input: KnowledgeSourceBackfillWorkflowInput,
   ): Promise<KnowledgeSourceBackfillScanResult> {
-    if (!input.organizationId) {
-      return { queued: [] };
-    }
-
     const rows = await this.prisma.contextBase.findMany({
       where: scopedWhere(input.organizationId, {}),
     });

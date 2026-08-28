@@ -119,10 +119,20 @@ export class WorkflowExecutorService {
       this.progressService,
       this.finalizer,
       this.reviewGateNotifier,
+      (input) =>
+        this.graphRunner.executeNodeGraph(
+          input.workflow,
+          input.triggerEvent,
+          input.executionId,
+          {
+            nodeOutputCache: input.nodeOutputCache,
+            startedAt: input.startedAt,
+            workflowLabel: input.workflowLabel,
+          },
+        ),
     );
     this.nodeProgressTracker = new WorkflowNodeProgressTrackerService(
       this.progressService,
-      this.graphService,
     );
     // Prefer injected claim service; fall back to a prisma-backed instance so
     // durable (executionId, nodeId) claims always exist in process (#2359).
@@ -370,6 +380,31 @@ export class WorkflowExecutorService {
     );
   }
 
+  async executePartialWorkflowDocument(
+    workflowDoc: WorkflowDocument | ExecutableWorkflowRow,
+    userId: string,
+    organizationId: string,
+    nodeIds: string[],
+    respectLocks = true,
+  ): Promise<WorkflowExecutionResult> {
+    return this.executeWorkflowDocument(
+      this.documentService.normalizeWorkflowDocument(workflowDoc),
+      {
+        data: {},
+        organizationId,
+        platform: 'manual',
+        type: 'partial',
+        userId,
+      },
+      WorkflowExecutionTrigger.MANUAL,
+      {
+        executionMode: 'partial',
+        selectedNodeIds: nodeIds,
+      },
+      { respectLocks, selectedNodeIds: nodeIds },
+    );
+  }
+
   async submitReviewGateApproval(
     workflowId: string,
     executionId: string,
@@ -516,35 +551,18 @@ export class WorkflowExecutorService {
         'workflow',
       );
     }
-    const resumedCompletedNodeIds = new Set(Object.keys(nodeOutputCache));
-    const resumedSkippedNodeIds = new Set<string>();
-
-    for (const node of executableWorkflow.nodes) {
-      if (nodeOutputCache[node.id] !== undefined) {
-        node.cachedOutput = nodeOutputCache[node.id];
-      }
-    }
-
-    const result = await this.engineAdapter.executeWorkflow(
+    const result = await this.graphRunner.executeNodeGraph(
       executableWorkflow,
+      triggerEvent,
+      executionId,
       {
-        executionId,
-        nodeIds: remainingNodeIds,
-        onNodeStatusChange: this.progressService.buildNodeStatusChangeHandler({
-          baselineEstimatedDurationMs:
-            this.progressService.extractEstimatedDurationMs(
-              existingExecution?.metadata,
-            ),
-          completedNodeIds: resumedCompletedNodeIds,
-          executionId,
-          progressFallback: existingExecution?.progress ?? 0,
-          skippedNodeIds: resumedSkippedNodeIds,
-          startedAt: existingExecution?.startedAt ?? new Date(),
-          userId: triggerEvent.userId,
-          workflow: executableWorkflow,
-          workflowId,
-          workflowLabel,
-        }),
+        baselineEstimatedDurationMs:
+          this.progressService.extractEstimatedDurationMs(
+            existingExecution?.metadata,
+          ),
+        nodeOutputCache,
+        startedAt: existingExecution?.startedAt ?? new Date(),
+        workflowLabel,
       },
     );
 
@@ -617,6 +635,7 @@ export class WorkflowExecutorService {
     event: TriggerEvent,
     trigger: WorkflowExecutionTrigger,
     metadata?: Record<string, unknown>,
+    graphOptions?: { respectLocks?: boolean; selectedNodeIds?: string[] },
   ): Promise<WorkflowExecutionResult> {
     return runWithActionOrigin(
       resolveNestedActionOrigin(ActionOrigin.WORKFLOW),
@@ -626,6 +645,8 @@ export class WorkflowExecutorService {
           event,
           trigger,
           metadata,
+          undefined,
+          graphOptions,
         ),
     );
   }
@@ -636,6 +657,7 @@ export class WorkflowExecutorService {
     trigger: WorkflowExecutionTrigger,
     metadata?: Record<string, unknown>,
     existingExecutionId?: string,
+    graphOptions?: { respectLocks?: boolean; selectedNodeIds?: string[] },
   ): Promise<WorkflowExecutionResult> {
     const workflowLabel = this.documentService.getWorkflowLabel(workflowDoc);
     const workflowId = String(
@@ -730,6 +752,8 @@ export class WorkflowExecutorService {
         executionId,
         {
           baselineEstimatedDurationMs: initialEta.estimatedDurationMs,
+          respectLocks: graphOptions?.respectLocks,
+          selectedNodeIds: graphOptions?.selectedNodeIds,
           startedAt,
           workflowLabel,
         },
@@ -814,9 +838,7 @@ export class WorkflowExecutorService {
         totalCreditsUsed: result.totalCreditsUsed,
         workflowId,
         ...(delayJobData ? { _delayJobData: delayJobData } : {}),
-      } as WorkflowExecutionResult & {
-        _delayJobData?: unknown;
-      };
+      } as WorkflowExecutionResult;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);

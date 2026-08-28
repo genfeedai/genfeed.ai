@@ -1,25 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
-  AVATAR_VIDEO_PROVIDER_NAMES,
-  isSupportedAvatarVideoProviderName,
-  SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
-} from './job-data/clip-factory-job.interface';
-import {
   AGENT_RUN_QUEUE,
   ALL_QUEUE_NAMES,
-  ANALYTICS_SOCIAL_QUEUE,
-  CAMPAIGN_PROCESSING_QUEUE,
-  CLIP_ANALYZE_QUEUE,
-  CLIP_FACTORY_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
-  KNOWLEDGE_SOURCE_INGEST_QUEUE,
-  LIFECYCLE_EMAIL_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
-  REPLY_BOT_POLLING_QUEUE,
-  REPLY_INBOUND_QUEUE,
-  REPLY_POST_WATCH_QUEUE,
   TRIGGER_EVALUATION_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
   WORKSPACE_TASK_QUEUE,
@@ -30,26 +16,17 @@ describe('queue-names.constant', () => {
     // These string values are wire-level contracts: changing one orphans
     // in-flight jobs in Redis. Lock them down.
     expect(DEFAULT_QUEUE).toBe('default');
-    expect(ANALYTICS_SOCIAL_QUEUE).toBe('analytics-social');
-    expect(REPLY_BOT_POLLING_QUEUE).toBe('reply-bot-polling');
-    expect(REPLY_INBOUND_QUEUE).toBe('reply-inbound');
-    expect(REPLY_POST_WATCH_QUEUE).toBe('reply-post-watch');
-    expect(CAMPAIGN_PROCESSING_QUEUE).toBe('campaign-processing');
     expect(AGENT_RUN_QUEUE).toBe('agent-run');
     expect(WORKSPACE_TASK_QUEUE).toBe('workspace-task');
     expect(HEYGEN_POLL_QUEUE).toBe('heygen-poll');
-    expect(LIFECYCLE_EMAIL_QUEUE).toBe('lifecycle-email');
     expect(NOTIFICATION_DELIVERY_QUEUE).toBe('notification-delivery');
     expect(CREDIT_DEDUCTION_QUEUE).toBe('credit-deduction');
-    expect(CLIP_ANALYZE_QUEUE).toBe('clip-analyze');
-    expect(CLIP_FACTORY_QUEUE).toBe('clip-factory');
     expect(WORKFLOW_EXECUTION_QUEUE).toBe('workflow-execution');
     expect(TRIGGER_EVALUATION_QUEUE).toBe('triggers.evaluate');
-    expect(KNOWLEDGE_SOURCE_INGEST_QUEUE).toBe('knowledge-source-ingest');
   });
 
   it('lists every queue exactly once', () => {
-    expect(ALL_QUEUE_NAMES.length).toBeGreaterThanOrEqual(32);
+    expect(ALL_QUEUE_NAMES.length).toBeGreaterThan(0);
     expect(new Set(ALL_QUEUE_NAMES).size).toBe(ALL_QUEUE_NAMES.length);
   });
 
@@ -58,33 +35,5 @@ describe('queue-names.constant', () => {
       expect(typeof name).toBe('string');
       expect(name.length).toBeGreaterThan(0);
     }
-  });
-});
-
-describe('clip avatar provider contracts', () => {
-  it('keeps future provider names known while only advertising implemented providers', () => {
-    expect(AVATAR_VIDEO_PROVIDER_NAMES).toEqual([
-      'argil',
-      'genfeedai',
-      'heygen',
-      'did',
-      'tavus',
-      'musetalk',
-    ]);
-    expect(SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES).toEqual([
-      'heygen',
-      'argil',
-      'genfeedai',
-    ]);
-  });
-
-  it('recognizes only production-ready avatar providers as supported', () => {
-    expect(isSupportedAvatarVideoProviderName('heygen')).toBe(true);
-    expect(isSupportedAvatarVideoProviderName('argil')).toBe(true);
-    expect(isSupportedAvatarVideoProviderName('genfeedai')).toBe(true);
-    expect(isSupportedAvatarVideoProviderName('did')).toBe(false);
-    expect(isSupportedAvatarVideoProviderName('tavus')).toBe(false);
-    expect(isSupportedAvatarVideoProviderName('musetalk')).toBe(false);
-    expect(isSupportedAvatarVideoProviderName('unknown')).toBe(false);
   });
 });

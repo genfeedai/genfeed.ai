@@ -1,15 +1,3 @@
-/**
- * Reply Bot Orchestrator Service
- *
- * Coordinates the multi-platform reply bot workflow:
- * - Fetches content from social platforms via SocialMonitorService
- * - Generates AI-powered replies
- * - Executes actions (post replies, send DMs)
- * - Tracks activities and rate limits
- *
- * Supported platforms: Twitter/X, Instagram, TikTok, YouTube, Reddit
- */
-
 import {
   BotActivitySkipReason,
   BotActivityStatus,
@@ -23,7 +11,6 @@ import {
 import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { BotActivitiesService } from '@server/collections/bot-activities/services/bot-activities.service';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
@@ -31,8 +18,9 @@ import { MonitoredAccountsService } from '@server/collections/monitored-accounts
 import { ProcessedTweetsService } from '@server/collections/processed-tweets/services/processed-tweets.service';
 import type { ReplyBotConfigDocument } from '@server/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
+  type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
 import { toReplyBotCredentialData } from '@server/services/campaign/reply-bot-credential.util';
@@ -43,6 +31,14 @@ import {
   normalizeReplyBotPlatform,
   unsupportedReplyBotPlatformMessage,
 } from '@server/services/reply-bot/reply-bot-platform.util';
+import {
+  buildReplyBotContentWorkflowDefinition,
+  buildReplyBotDmWorkflowDefinition,
+  buildReplyBotOrganizationWorkflowDefinition,
+  buildReplyBotTestWorkflowDefinition,
+  buildReplyBotWorkflowDefinition,
+  REPLY_BOT_ACTION_IDS,
+} from '@server/services/reply-bot/reply-bot-workflow-definition';
 import {
   type ReplyCandidate,
   ReplyCandidatePrefilterService,
@@ -58,9 +54,6 @@ import {
 } from '@server/services/reply-bot/social-monitor.service';
 import { requireRelationId } from '@server/shared/utils/relation-id/relation-id.util';
 
-/**
- * Result of processing bots for an organization
- */
 export interface ProcessingResult {
   botConfigId: string;
   platform: ReplyBotPlatform;
@@ -71,10 +64,58 @@ export interface ProcessingResult {
   errors: number;
 }
 
+type SerializedReplyCandidate = Omit<ReplyCandidate, 'createdAt'> & {
+  createdAt: string;
+};
+type ReplyBotRequest = {
+  botConfigId: string;
+  credentialId: string;
+  organizationId: string;
+};
+type ReplyBotContentRequest = ReplyBotRequest & {
+  content: SerializedReplyCandidate;
+};
+type ReplyBotContentResult = {
+  dmSent: boolean;
+  error?: boolean;
+  replySent: boolean;
+  skipped: boolean;
+};
+type ReplyBotContentState = ReplyBotContentRequest & {
+  activityId?: string;
+  dmDelayMs: number;
+  dmItems: ReplyBotDmRequest[];
+  dmText?: string;
+  error?: string;
+  intent?: ReturnType<typeof resolveReplyIntent> | 'default';
+  replyContentId?: string;
+  replyContentUrl?: string;
+  replySent: boolean;
+  replyText?: string;
+  skipReason?: BotActivitySkipReason;
+  skipped: boolean;
+  test?: boolean;
+};
+type ReplyBotDmRequest = ReplyBotRequest & {
+  activityId: string;
+  dmText: string;
+  recipientId: string;
+  replyContentId?: string;
+  replyContentUrl?: string;
+  replyText?: string;
+};
+type ReplyBotDmState = ReplyBotDmRequest & {
+  dmContentId?: string;
+  error?: string;
+  success: boolean;
+};
+type ForEachResult<T> = {
+  count: number;
+  results: Array<{ index: number; result: T }>;
+};
+
 @Injectable()
 export class ReplyBotOrchestratorService implements OnModuleInit {
-  private readonly constructorName: string = String(this.constructor.name);
-
   constructor(
     readonly _configService: ConfigService,
     private readonly loggerService: LoggerService,
@@ -89,514 +130,380 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     private readonly processedTweetsService: ProcessedTweetsService,
     private readonly credentialsService: CredentialsService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
     private readonly authorReplyLoopService: AuthorReplyLoopService,
   ) {}
 
   onModuleInit(): void {
-    this.systemWorkflowRunner.registerAction(
-      SYSTEM_WORKFLOW_ACTION_IDS.REPLY_DM_AUTOMATION,
-      ({ input }) => this.executeReplyDmAction(input),
+    this.systemWorkflowRunner.registerWorkflow(
+      buildReplyBotOrganizationWorkflowDefinition(),
     );
-  }
-
-  /**
-   * Main entry point - process all active bots for an organization
-   */
-  async processOrganizationBots(
-    organizationId: string,
-    credential: IReplyBotCredentialData,
-  ): Promise<ProcessingResult[]> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const results: ProcessingResult[] = [];
-
-    try {
-      // Get all active bot configs for this organization
-      const activeBots = await this.replyBotConfigsService.findActive(
-        organizationId.toString(),
-      );
-
-      this.loggerService.log(`${url} starting`, {
-        activeBotCount: activeBots.length,
-        organizationId: organizationId.toString(),
-      });
-
-      for (const botConfig of activeBots) {
-        const result = await this.processSingleBot(
-          botConfig,
-          organizationId.toString(),
-          credential,
-        );
-        results.push(result);
-      }
-
-      this.loggerService.log(`${url} completed`, {
-        organizationId: organizationId.toString(),
-        totalBots: results.length,
-        totalDms: results.reduce((sum, r) => sum + r.dmsSent, 0),
-        totalReplies: results.reduce((sum, r) => sum + r.repliesSent, 0),
-      });
-
-      return results;
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
+    this.systemWorkflowRunner.registerWorkflow(
+      buildReplyBotWorkflowDefinition(),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildReplyBotContentWorkflowDefinition(),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildReplyBotDmWorkflowDefinition(),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildReplyBotTestWorkflowDefinition(),
+    );
+    const actions = [
+      [REPLY_BOT_ACTION_IDS.DISCOVER_BOTS, this.discoverBotsAction.bind(this)],
+      [
+        REPLY_BOT_ACTION_IDS.FINALIZE_ORGANIZATION,
+        this.finalizeOrganizationAction.bind(this),
+      ],
+      [
+        REPLY_BOT_ACTION_IDS.FETCH_CANDIDATES,
+        this.fetchCandidatesAction.bind(this),
+      ],
+      [REPLY_BOT_ACTION_IDS.FINALIZE_BOT, this.finalizeBotAction.bind(this)],
+      [REPLY_BOT_ACTION_IDS.CLAIM_CONTENT, this.claimContentAction.bind(this)],
+      [
+        REPLY_BOT_ACTION_IDS.GENERATE_REPLY,
+        this.generateReplyAction.bind(this),
+      ],
+      [REPLY_BOT_ACTION_IDS.GENERATE_DM, this.generateDmAction.bind(this)],
+      [REPLY_BOT_ACTION_IDS.SEND_REPLY, this.sendReplyAction.bind(this)],
+      [
+        REPLY_BOT_ACTION_IDS.FINALIZE_CONTENT,
+        this.finalizeContentAction.bind(this),
+      ],
+      [REPLY_BOT_ACTION_IDS.SEND_DM, this.sendDmAction.bind(this)],
+      [REPLY_BOT_ACTION_IDS.FINALIZE_DM, this.finalizeDmAction.bind(this)],
+      [REPLY_BOT_ACTION_IDS.LOAD_TEST, this.loadTestAction.bind(this)],
+      [REPLY_BOT_ACTION_IDS.FINALIZE_TEST, this.finalizeTestAction.bind(this)],
+    ] as const;
+    for (const [actionId, executor] of actions) {
+      this.systemWorkflowRunner.registerAction(actionId, executor);
     }
   }
 
-  /**
-   * Process a single bot configuration
-   */
-  async processSingleBot(
-    botConfig: ReplyBotConfigDocument,
+  async processOrganizationBots(
     organizationId: string,
-    credential: IReplyBotCredentialData,
+    credentialId: string,
+  ): Promise<ProcessingResult[]> {
+    const definition = buildReplyBotOrganizationWorkflowDefinition();
+    const { result } = await this.systemWorkflowRunner.runWorkflowDefinition<
+      ProcessingResult[]
+    >(definition, {
+      actionType: definition.canonicalId,
+      canonicalId: definition.canonicalId,
+      inputValues: { request: { credentialId, organizationId } },
+      organizationId,
+      source: 'ReplyBotOrchestratorService.processOrganizationBots',
+      trigger: WorkflowExecutionTrigger.SCHEDULED,
+    });
+    return result;
+  }
+
+  async queueOrganizationBots(
+    organizationId: string,
+    credentialId: string,
+  ): Promise<string> {
+    const definition = buildReplyBotOrganizationWorkflowDefinition();
+    return this.workflowQueue.queueSystemWorkflowDefinition(
+      definition,
+      {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request: { credentialId, organizationId } },
+        organizationId,
+        source: 'reply-bot-manual-poll',
+        trigger: WorkflowExecutionTrigger.API,
+      },
+      `reply-bot-poll-${organizationId}-${credentialId}-${Date.now()}`,
+    );
+  }
+
+  async processSingleBot(
+    botConfigId: string,
+    organizationId: string,
+    credentialId: string,
   ): Promise<ProcessingResult> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const botConfigId = botConfig.id.toString();
+    const definition = buildReplyBotWorkflowDefinition();
+    const { result } =
+      await this.systemWorkflowRunner.runWorkflowDefinition<ProcessingResult>(
+        definition,
+        {
+          actionType: definition.canonicalId,
+          canonicalId: definition.canonicalId,
+          inputValues: {
+            request: { botConfigId, credentialId, organizationId },
+          },
+          organizationId,
+          source: 'ReplyBotOrchestratorService.processSingleBot',
+          trigger: WorkflowExecutionTrigger.SCHEDULED,
+        },
+      );
+    return result;
+  }
+
+  async testReplyGeneration(
+    botConfigId: string,
+    organizationId: string,
+    testContent: { content: string; author: string },
+  ): Promise<{ replyText: string; dmText?: string }> {
+    const definition = buildReplyBotTestWorkflowDefinition();
+    const { result } = await this.systemWorkflowRunner.runWorkflowDefinition<{
+      dmText?: string;
+      replyText: string;
+    }>(definition, {
+      actionType: definition.canonicalId,
+      canonicalId: definition.canonicalId,
+      inputValues: { request: { botConfigId, organizationId, testContent } },
+      organizationId,
+      source: 'ReplyBotOrchestratorService.testReplyGeneration',
+      trigger: WorkflowExecutionTrigger.API,
+    });
+    return result;
+  }
+
+  private async discoverBotsAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<{ items: ReplyBotRequest[] }> {
+    const request = this.readRecord(action.input.request);
+    const organizationId = this.requiredString(
+      request.organizationId,
+      'organizationId',
+    );
+    const credentialId = this.requiredString(
+      request.credentialId,
+      'credentialId',
+    );
+    await this.loadCredential(credentialId, organizationId);
+    const bots = await this.replyBotConfigsService.findActive(organizationId);
+    return {
+      items: bots.map((bot) => ({
+        botConfigId: bot.id.toString(),
+        credentialId,
+        organizationId,
+      })),
+    };
+  }
+
+  private async finalizeOrganizationAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<ProcessingResult[]> {
+    return this.readForEachResult<ProcessingResult>(
+      action.input.batch,
+    ).results.map((entry) => entry.result);
+  }
+
+  private async fetchCandidatesAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<{
+    botConfigId: string;
+    fetchError?: string;
+    items: ReplyBotContentRequest[];
+    platform: ReplyBotPlatform;
+    skipped: number;
+  }> {
+    const request = this.readBotRequest(action.input.request);
+    const botConfig = await this.loadBotConfig(request);
+    const credential = await this.loadCredential(
+      request.credentialId,
+      request.organizationId,
+    );
     const platformInput =
       credential.platform ?? botConfig.platform ?? ReplyBotPlatform.TWITTER;
     const platform = normalizeReplyBotPlatform(platformInput);
-
-    if (!platform) {
+    if (!platform)
       throw new Error(unsupportedReplyBotPlatformMessage(platformInput));
+    if (!this.rateLimitService.isWithinSchedule(botConfig)) {
+      return {
+        botConfigId: request.botConfigId,
+        items: [],
+        platform,
+        skipped: 0,
+      };
     }
-
-    const normalizedCredential: IReplyBotCredentialData = {
-      ...credential,
-      platform,
-    };
-
-    const result: ProcessingResult = {
-      botConfigId,
-      contentProcessed: 0,
-      dmsSent: 0,
-      errors: 0,
-      platform,
-      repliesSent: 0,
-      skipped: 0,
-    };
-
     try {
-      // Check if within schedule
-      if (!this.rateLimitService.isWithinSchedule(botConfig)) {
-        this.loggerService.log(`${url} outside schedule`, { botConfigId });
-        return result;
-      }
-
-      // Fetch content based on bot type
-      let content: SocialContentData[] = [];
-
-      if (botConfig.type === ReplyBotType.REPLY_GUY) {
-        content = await this.fetchMentions(
-          botConfig,
-          normalizedCredential,
-          organizationId,
-          platform,
-        );
-      } else if (botConfig.type === ReplyBotType.ACCOUNT_MONITOR) {
-        content = await this.fetchMonitoredAccountContent(
-          botConfig,
-          normalizedCredential,
-          organizationId,
-          platform,
-        );
-      } else if (botConfig.type === ReplyBotType.COMMENT_RESPONDER) {
-        content = await this.fetchComments(
-          botConfig,
-          normalizedCredential,
-          organizationId,
-          platform,
-        );
-      }
-
-      this.loggerService.log(`${url} fetched content`, {
-        botConfigId,
-        botType: botConfig.type,
-        contentCount: content.length,
+      const normalizedCredential = { ...credential, platform };
+      const content = await this.fetchContent(
+        botConfig,
+        normalizedCredential,
+        request.organizationId,
         platform,
-      });
-
-      const prefilterResult = this.replyCandidatePrefilterService.prefilter(
-        content,
-        {
-          botConfig,
-          botType: (botConfig.type ?? ReplyBotType.REPLY_GUY) as ReplyBotType,
-          credential: normalizedCredential,
-          organizationId,
-          platform,
-        },
       );
-      content = prefilterResult.candidates;
-      result.skipped += prefilterResult.skipped;
-
-      this.loggerService.log(`${url} prefiltered candidates`, {
-        acceptedCount: content.length,
-        botConfigId,
-        fetchedCount: content.length + prefilterResult.skipped,
+      const prefilter = this.replyCandidatePrefilterService.prefilter(content, {
+        botConfig,
+        botType: (botConfig.type ?? ReplyBotType.REPLY_GUY) as ReplyBotType,
+        credential: normalizedCredential,
+        organizationId: request.organizationId,
         platform,
-        skippedCount: prefilterResult.skipped,
-        skipCounts: prefilterResult.skipCounts,
       });
-
-      if (content.length > 0) {
-        try {
-          this.requireBotOwnerUserId(botConfig, botConfigId);
-        } catch (error: unknown) {
-          result.errors += content.length;
-          this.loggerService.error(`${url} owner resolution failed`, {
-            botConfigId,
-            error,
-          });
-          return result;
-        }
+      if (prefilter.candidates.length > 0) {
+        this.requireBotOwnerUserId(botConfig, request.botConfigId);
       }
-
-      // Process each content item
-      for (const item of content) {
-        const processed = await this.processContent(
-          botConfig,
-          item,
-          organizationId,
-          normalizedCredential,
-        );
-
-        result.contentProcessed++;
-
-        if (processed.skipped) {
-          result.skipped++;
-        } else if (processed.error) {
-          result.errors++;
-        } else {
-          if (processed.replySent) {
-            result.repliesSent++;
-          }
-          if (processed.dmSent) {
-            result.dmsSent++;
-          }
-        }
-      }
-
-      this.loggerService.log(`${url} completed bot processing`, result);
-
-      return result;
+      return {
+        botConfigId: request.botConfigId,
+        items: prefilter.candidates.map((contentItem) => ({
+          ...request,
+          content: this.serializeCandidate(contentItem),
+        })),
+        platform,
+        skipped: prefilter.skipped,
+      };
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, { botConfigId, error });
-      return result;
+      return {
+        botConfigId: request.botConfigId,
+        fetchError: this.errorMessage(error),
+        items: [],
+        platform,
+        skipped: 0,
+      };
     }
   }
 
-  /**
-   * Fetch mentions for REPLY_GUY bot type
-   */
-  private async fetchMentions(
-    botConfig: ReplyBotConfigDocument,
-    credential: IReplyBotCredentialData,
-    organizationId: string,
-    platform: ReplyBotPlatform,
-  ): Promise<SocialContentData[]> {
-    const username = credential.username;
-    if (!username) {
-      this.loggerService.warn(
-        `No username in credential for ${platform}, skipping mentions fetch`,
-      );
-      return [];
-    }
+  private async finalizeBotAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<ProcessingResult> {
+    const state = this.readRecord(action.input.state);
+    const results = this.readForEachResult<ReplyBotContentResult>(
+      action.input.batch,
+    ).results.map((entry) => entry.result);
+    return {
+      botConfigId: this.requiredString(state.botConfigId, 'botConfigId'),
+      contentProcessed: results.length,
+      dmsSent: results.filter((result) => result.dmSent).length,
+      errors:
+        results.filter((result) => result.error).length +
+        (state.fetchError ? 1 : 0),
+      platform: state.platform as ReplyBotPlatform,
+      repliesSent: results.filter((result) => result.replySent).length,
+      skipped:
+        this.numberValue(state.skipped) +
+        results.filter((result) => result.skipped).length,
+    };
+  }
 
-    const mentions = await this.socialMonitorService.getUserMentions(
-      platform,
-      username,
-      { limit: 100, sinceId: botConfig.lastProcessedTweetId },
+  private async claimContentAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<ReplyBotContentState> {
+    const request = this.readContentRequest(action.input.request);
+    const botConfig = await this.loadBotConfig(request);
+    const ownerUserId = this.requireBotOwnerUserId(
+      botConfig,
+      request.botConfigId,
     );
-
-    // Filter out already processed content
-    const unprocessed =
-      await this.socialMonitorService.filterUnprocessedContent(
-        mentions,
-        organizationId,
-        ReplyBotType.REPLY_GUY,
-      );
-
-    return unprocessed;
-  }
-
-  /**
-   * Fetch content from monitored accounts for ACCOUNT_MONITOR bot type
-   */
-  private async fetchMonitoredAccountContent(
-    botConfig: ReplyBotConfigDocument,
-    _credential: IReplyBotCredentialData,
-    organizationId: string,
-    platform: ReplyBotPlatform,
-  ): Promise<SocialContentData[]> {
-    const allContent: SocialContentData[] = [];
-
-    // Get all active monitored accounts for this bot
-    const monitoredAccounts =
-      await this.monitoredAccountsService.findByBotConfig(
-        botConfig.id.toString(),
-        organizationId,
-      );
-
-    for (const account of monitoredAccounts) {
-      if (!account.isActive || !account.username) {
-        continue;
-      }
-
-      const content = await this.socialMonitorService.getUserTimeline(
-        platform,
-        account.username,
-        { limit: 10, sinceId: account.lastProcessedTweetId },
-      );
-
-      // Apply account-specific filters
-      const filtered = this.socialMonitorService.filterContent(
-        content,
-        account.filters,
-      );
-
-      // Filter out already processed content
-      const unprocessed =
-        await this.socialMonitorService.filterUnprocessedContent(
-          filtered,
-          organizationId,
-          ReplyBotType.ACCOUNT_MONITOR,
-        );
-
-      // Update last processed ID
-      if (unprocessed.length > 0) {
-        const latestId = unprocessed[0].id;
-        await this.monitoredAccountsService.updateLastProcessed(
-          account.id.toString(),
-          organizationId,
-          latestId,
-        );
-      }
-
-      allContent.push(...unprocessed);
-    }
-
-    return allContent;
-  }
-
-  /**
-   * Fetch comments on user's content for COMMENT_RESPONDER bot type
-   *
-   * Fetches user's recent posts, then retrieves comments on each post,
-   * filtering out already-processed comments.
-   */
-  private async fetchComments(
-    botConfig: ReplyBotConfigDocument,
-    credential: IReplyBotCredentialData,
-    organizationId: string,
-    platform: ReplyBotPlatform,
-  ): Promise<SocialContentData[]> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const allComments: SocialContentData[] = [];
-
-    const username = credential.username;
-    if (!username) {
-      this.loggerService.warn(
-        `${url} No username in credential for ${platform}, skipping comments fetch`,
-      );
-      return [];
-    }
-
-    try {
-      const userPosts = await this.socialMonitorService.getUserTimeline(
-        platform,
-        username,
-        { limit: 10 },
-      );
-
-      this.loggerService.log(`${url} fetched user posts for comment scan`, {
-        platform,
-        postCount: userPosts.length,
-        username,
-      });
-
-      for (const post of userPosts) {
-        const comments = await this.socialMonitorService.getContentComments(
-          platform,
-          post.id,
-          {
-            brandId:
-              typeof botConfig.brandId === 'string'
-                ? botConfig.brandId
-                : undefined,
-            limit: 50,
-            organizationId,
-            preferOfficialApi: true,
-          },
-        );
-
-        // Stamp parent so author closed-loop tracking can attribute the post.
-        allComments.push(
-          ...comments.map((comment) => ({
-            ...comment,
-            parentContentId: comment.parentContentId ?? post.id,
-          })),
-        );
-      }
-
-      const unprocessed =
-        await this.socialMonitorService.filterUnprocessedContent(
-          allComments,
-          organizationId,
-          ReplyBotType.COMMENT_RESPONDER,
-        );
-
-      // Apply keyword filters from bot config
-      let filtered = unprocessed;
-      if (botConfig.filters?.includeKeywords?.length) {
-        filtered = filtered.filter((item) =>
-          botConfig.filters?.includeKeywords?.some((keyword) =>
-            item.text.toLowerCase().includes(keyword.toLowerCase()),
-          ),
-        );
-      }
-      if (botConfig.filters?.excludeKeywords?.length) {
-        filtered = filtered.filter(
-          (item) =>
-            !botConfig.filters?.excludeKeywords?.some((keyword) =>
-              item.text.toLowerCase().includes(keyword.toLowerCase()),
-            ),
-        );
-      }
-
-      this.loggerService.log(`${url} comment fetch complete`, {
-        filteredComments: filtered.length,
-        platform,
-        totalComments: allComments.length,
-        unprocessedComments: unprocessed.length,
-      });
-
-      return filtered;
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed to fetch comments`, {
-        error: (error as Error)?.message,
-        platform,
-        username,
-      });
-      return [];
-    }
-  }
-
-  /**
-   * Process a single content item - generate and send reply, optionally DM
-   */
-  private async processContent(
-    botConfig: ReplyBotConfigDocument,
-    content: ReplyCandidate,
-    organizationId: string,
-    credential: IReplyBotCredentialData,
-  ): Promise<{
-    skipped: boolean;
-    skipReason?: BotActivitySkipReason;
-    error?: boolean;
-    replySent?: boolean;
-    dmSent?: boolean;
-  }> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const botConfigId = botConfig.id.toString();
-    const ownerUserId = this.requireBotOwnerUserId(botConfig, botConfigId);
-
-    // Check rate limits
     const rateCheck = await this.rateLimitService.checkRateLimit(
-      botConfigId,
-      organizationId,
+      request.botConfigId,
+      request.organizationId,
     );
-
     if (!rateCheck.allowed) {
-      // Log skipped activity
       await this.botActivitiesService.create({
         replyBotConfigId: botConfig.id,
         botType: botConfig.type,
-        organizationId,
+        organizationId: request.organizationId,
         skipReason: BotActivitySkipReason.RATE_LIMITED,
         status: BotActivityStatus.SKIPPED,
-        triggerTweetAuthorId: content.authorId,
-        triggerTweetAuthorUsername: content.authorUsername,
-        triggerTweetId: content.id,
-        triggerTweetText: content.text,
+        triggerTweetAuthorId: request.content.authorId,
+        triggerTweetAuthorUsername: request.content.authorUsername,
+        triggerTweetId: request.content.id,
+        triggerTweetText: request.content.text,
         userId: ownerUserId,
       });
-
       return {
-        skipped: true,
+        ...request,
+        dmDelayMs: 0,
+        dmItems: [],
+        replySent: false,
         skipReason: BotActivitySkipReason.RATE_LIMITED,
+        skipped: true,
       };
     }
-
-    // Create activity record in processing state
     const activity = await this.botActivitiesService.create({
       replyBotConfigId: botConfig.id,
       botType: botConfig.type,
-      organizationId,
+      organizationId: request.organizationId,
       status: BotActivityStatus.PROCESSING,
-      triggerTweetAuthorId: content.authorId,
-      triggerTweetAuthorUsername: content.authorUsername,
-      triggerTweetId: content.id,
-      triggerTweetText: content.text,
+      triggerTweetAuthorId: request.content.authorId,
+      triggerTweetAuthorUsername: request.content.authorUsername,
+      triggerTweetId: request.content.id,
+      triggerTweetText: request.content.text,
       userId: ownerUserId,
     });
-
-    const activityId = activity.id.toString();
-
-    try {
-      const brandId =
-        typeof botConfig.brandId === 'string' ? botConfig.brandId : undefined;
-
-      // On comment_responder (Replies surface), route by intent persona.
-      const isOwnPostReplies =
-        botConfig.type === ReplyBotType.COMMENT_RESPONDER;
-      const intent = isOwnPostReplies
-        ? resolveReplyIntent(content.text)
+    const intent =
+      botConfig.type === ReplyBotType.COMMENT_RESPONDER
+        ? resolveReplyIntent(request.content.text)
         : 'default';
+    const state: ReplyBotContentState = {
+      ...request,
+      activityId: activity.id.toString(),
+      dmDelayMs: Math.max(0, botConfig.dmConfig?.delaySeconds ?? 60) * 1000,
+      dmItems: [],
+      intent,
+      replySent: false,
+      skipped: false,
+    };
+    if (
+      botConfig.type === ReplyBotType.COMMENT_RESPONDER &&
+      getReplyIntentPersona(intent).shouldSkipAuto
+    ) {
+      await this.botActivitiesService.updateStatus(
+        state.activityId,
+        request.organizationId,
+        {
+          completedAt: new Date(),
+          errorMessage: 'Skipped spam/low-signal comment (intent filter)',
+          status: BotActivityStatus.SKIPPED,
+        },
+      );
+      await this.processedTweetsService.markAsProcessed(
+        request.content.id,
+        request.organizationId,
+        ReplyBotType.COMMENT_RESPONDER,
+        request.botConfigId,
+      );
+      return {
+        ...state,
+        skipReason: BotActivitySkipReason.FILTERED_OUT,
+        skipped: true,
+      };
+    }
+    return state;
+  }
+
+  private async generateReplyAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<ReplyBotContentState> {
+    const state = this.readContentState(action.input);
+    if (state.skipped || state.error) return state;
+    try {
+      const botConfig = await this.loadBotConfig(state);
+      const ownerUserId = this.requireBotOwnerUserId(
+        botConfig,
+        state.botConfigId,
+      );
+      const ownPost = botConfig.type === ReplyBotType.COMMENT_RESPONDER;
+      const intent = state.intent ?? 'default';
       const persona = getReplyIntentPersona(intent);
-
-      if (isOwnPostReplies && persona.shouldSkipAuto) {
-        await this.botActivitiesService.updateStatus(
-          activityId,
-          organizationId,
-          {
-            completedAt: new Date(),
-            errorMessage: 'Skipped spam/low-signal comment (intent filter)',
-            status: BotActivityStatus.SKIPPED,
-          },
-        );
-        await this.processedTweetsService.markAsProcessed(
-          content.id,
-          organizationId,
-          ReplyBotType.COMMENT_RESPONDER,
-          botConfigId,
-        );
-        return {
-          skipReason: BotActivitySkipReason.FILTERED_OUT,
-          skipped: true,
-        };
-      }
-
-      const intentInstructions = isOwnPostReplies
-        ? [persona.instructions, `Tone: ${persona.toneHint}.`]
-        : [];
       const replyText = await this.replyGenerationService.generateReply({
-        brandId,
+        brandId:
+          typeof botConfig.brandId === 'string' ? botConfig.brandId : undefined,
         context: this.mergeReplyContext(
           botConfig.context,
-          content.replyContext,
+          state.content.replyContext,
         ),
-        customInstructions: [botConfig.replyInstructions, ...intentInstructions]
+        customInstructions: [
+          botConfig.replyInstructions,
+          ...(ownPost
+            ? [persona.instructions, `Tone: ${persona.toneHint}.`]
+            : []),
+        ]
           .filter(Boolean)
           .join(' '),
         length:
-          isOwnPostReplies && (intent === 'thanks' || intent === 'troll')
+          ownPost && (intent === 'thanks' || intent === 'troll')
             ? ReplyLength.SHORT
             : (botConfig.replyLength as ReplyLength) || ReplyLength.MEDIUM,
-        organizationId,
-        platform: String(
-          botConfig.platform ?? credential.platform ?? 'twitter',
-        ),
-        tone: isOwnPostReplies
+        organizationId: state.organizationId,
+        platform: String(botConfig.platform ?? 'twitter'),
+        tone: ownPost
           ? intent === 'troll'
             ? ReplyTone.HUMOROUS
             : intent === 'thanks'
@@ -605,250 +512,523 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
                 ? ReplyTone.INFORMATIVE
                 : ReplyTone.ENGAGING
           : (botConfig.replyTone as ReplyTone) || ReplyTone.FRIENDLY,
-        tweetAuthor: content.authorUsername,
-        tweetContent: content.text,
+        tweetAuthor: state.content.authorUsername,
+        tweetContent: state.content.text,
         userId: ownerUserId,
       });
-
-      // Generate DM if configured
-      let dmText: string | undefined;
-      if (
-        botConfig.actionType === ReplyBotActionType.REPLY_AND_DM ||
-        botConfig.actionType === ReplyBotActionType.DM_ONLY
-      ) {
-        const dmInstructions = [
-          botConfig.dmConfig?.customInstructions,
-          botConfig.dmConfig?.offer
-            ? `The offer: ${botConfig.dmConfig.offer}`
-            : '',
-          botConfig.dmConfig?.ctaLink
-            ? `Include this link: ${botConfig.dmConfig.ctaLink}`
-            : '',
-        ]
-          .filter(Boolean)
-          .join('\n');
-
-        dmText = await this.replyGenerationService.generateDm({
-          context: botConfig.dmConfig?.context,
-          customInstructions: dmInstructions || undefined,
-          organizationId,
-          replyText,
-          tweetAuthor: content.authorUsername,
-          tweetContent: content.text,
-          userId: ownerUserId,
-        });
-      }
-
-      const actionExecution = await this.systemWorkflowRunner.runAction<{
-        dmSent: boolean;
-        error?: string;
-        replyContentId?: string;
-        replyContentUrl?: string;
-        replySent: boolean;
-      }>({
-        actionType: String(botConfig.actionType ?? 'reply'),
-        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.REPLY_DM_AUTOMATION,
-        inputValues: {
-          actionType: botConfig.actionType,
-          botConfigId,
-          content: {
-            authorId: content.authorId,
-            authorUsername: content.authorUsername,
-            createdAt: content.createdAt.toISOString(),
-            id: content.id,
-            text: content.text,
-          },
-          credentialId: credential.id,
-          dmDelayMs: botConfig.dmConfig?.delaySeconds
-            ? botConfig.dmConfig.delaySeconds * 1000
-            : 60000,
-          dmText,
-          organizationId,
-          replyText,
-        },
-        metadata: {
-          activityId,
-          botType: botConfig.type,
-          triggerAuthorUsername: content.authorUsername,
-        },
-        organizationId,
-        source: 'ReplyBotOrchestratorService.processContent',
-        trigger: WorkflowExecutionTrigger.SCHEDULED,
-        userId: ownerUserId,
-      });
-      const { dmSent, replyContentId, replyContentUrl, replySent } =
-        actionExecution.result;
-
-      if (actionExecution.result.error) {
-        this.loggerService.warn(`${url} social action completed with error`, {
-          botConfigId,
-          contentId: content.id,
-          error: actionExecution.result.error,
-        });
-      }
-
-      // Update activity to completed
-      await this.botActivitiesService.updateStatus(activityId, organizationId, {
-        completedAt: new Date(),
-        dmSent,
-        dmText,
-        replyText,
-        replyTweetId: replyContentId,
-        replyTweetUrl: replyContentUrl,
-        status: BotActivityStatus.COMPLETED,
-      });
-
-      // Mark content as processed
-      await this.processedTweetsService.markAsProcessed(
-        content.id,
-        organizationId,
-        (botConfig.type ?? ReplyBotType.REPLY_GUY) as ReplyBotType,
-        botConfigId,
-      );
-
-      // Author-reply loop: record closed conversation for harness winners.
-      if (
-        replySent &&
-        botConfig.type === ReplyBotType.COMMENT_RESPONDER &&
-        (content.parentContentId || content.inReplyToId)
-      ) {
-        await this.authorReplyLoopService.recordAuthorClosedLoop({
-          brandId:
-            typeof botConfig.brandId === 'string'
-              ? botConfig.brandId
-              : undefined,
-          commentId: content.id,
-          organizationId,
-          parentPostId: content.parentContentId || content.inReplyToId || '',
-          platform: String(botConfig.platform ?? 'twitter'),
-          replyContentId,
-        });
-      }
-
-      // Increment rate limit counter
-      this.rateLimitService.incrementCounter(botConfigId);
-
-      this.loggerService.log(`${url} content processed successfully`, {
-        botConfigId,
-        contentId: content.id,
-        dmSent,
-        platform: content.platform,
-        replySent,
-      });
-
-      return {
-        dmSent,
-        replySent,
-        skipped: false,
-      };
+      return { ...state, replyText };
     } catch (error: unknown) {
-      const errorMessage = (error as Error)?.message || 'Unknown error';
-
-      // Update activity to failed
-      await this.botActivitiesService.updateStatus(activityId, organizationId, {
-        errorMessage,
-        status: BotActivityStatus.FAILED,
-      });
-
-      this.loggerService.error(`${url} content processing failed`, {
-        botConfigId,
-        contentId: content.id,
-        error: errorMessage,
-      });
-
-      return {
-        error: true,
-        skipped: false,
-      };
+      return { ...state, error: this.errorMessage(error) };
     }
   }
 
-  private async executeReplyDmAction(input: Record<string, unknown>): Promise<{
-    dmContentId?: string;
-    dmSent: boolean;
-    error?: string;
-    replyContentId?: string;
-    replyContentUrl?: string;
-    replySent: boolean;
+  private async generateDmAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<ReplyBotContentState> {
+    const state = this.readContentState(action.input);
+    if (state.skipped || state.error) return state;
+    try {
+      const botConfig = await this.loadBotConfig(state);
+      if (
+        botConfig.actionType !== ReplyBotActionType.REPLY_AND_DM &&
+        botConfig.actionType !== ReplyBotActionType.DM_ONLY
+      ) {
+        return state;
+      }
+      const instructions = [
+        botConfig.dmConfig?.customInstructions,
+        botConfig.dmConfig?.offer
+          ? `The offer: ${botConfig.dmConfig.offer}`
+          : '',
+        botConfig.dmConfig?.ctaLink
+          ? `Include this link: ${botConfig.dmConfig.ctaLink}`
+          : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+      const dmText = await this.replyGenerationService.generateDm({
+        context: botConfig.dmConfig?.context,
+        customInstructions: instructions || undefined,
+        organizationId: state.organizationId,
+        replyText: this.requiredString(state.replyText, 'replyText'),
+        tweetAuthor: state.content.authorUsername,
+        tweetContent: state.content.text,
+        userId: this.requireBotOwnerUserId(botConfig, state.botConfigId),
+      });
+      return { ...state, dmText };
+    } catch (error: unknown) {
+      return { ...state, error: this.errorMessage(error) };
+    }
+  }
+
+  private async sendReplyAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<ReplyBotContentState> {
+    const state = this.readContentState(action.input);
+    if (state.skipped || state.error || state.test) return state;
+    const botConfig = await this.loadBotConfig(state);
+    let next = state;
+    if (botConfig.actionType !== ReplyBotActionType.DM_ONLY) {
+      try {
+        const credential = await this.loadCredential(
+          state.credentialId,
+          state.organizationId,
+        );
+        const result = await this.botActionExecutorService.postReply(
+          credential,
+          this.deserializeCandidate(state.content),
+          this.requiredString(state.replyText, 'replyText'),
+        );
+        if (!result.success) {
+          return { ...state, error: result.error ?? 'Failed to post reply' };
+        }
+        next = {
+          ...state,
+          replyContentId: result.contentId,
+          replyContentUrl: result.contentUrl,
+          replySent: true,
+        };
+      } catch (error: unknown) {
+        return { ...state, error: this.errorMessage(error) };
+      }
+    }
+    if (next.dmText && next.activityId) {
+      next = {
+        ...next,
+        dmItems: [
+          {
+            activityId: next.activityId,
+            botConfigId: next.botConfigId,
+            credentialId: next.credentialId,
+            dmText: next.dmText,
+            organizationId: next.organizationId,
+            recipientId: next.content.authorId,
+            replyContentId: next.replyContentId,
+            replyContentUrl: next.replyContentUrl,
+            replyText: next.replyText,
+          },
+        ],
+      };
+    }
+    return next;
+  }
+
+  private async finalizeContentAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<ReplyBotContentResult> {
+    const state = this.readContentState(action.input);
+    if (state.skipped)
+      return { dmSent: false, replySent: false, skipped: true };
+    const activityId = this.requiredString(state.activityId, 'activityId');
+    if (state.error) {
+      await this.botActivitiesService.updateStatus(
+        activityId,
+        state.organizationId,
+        {
+          errorMessage: state.error,
+          status: BotActivityStatus.FAILED,
+        },
+      );
+      return {
+        dmSent: false,
+        error: true,
+        replySent: state.replySent,
+        skipped: false,
+      };
+    }
+    const dmScheduled =
+      this.readForEachResult<{ jobId: string }>(action.input.dmDispatch).count >
+      0;
+    await this.botActivitiesService.updateStatus(
+      activityId,
+      state.organizationId,
+      {
+        ...(!dmScheduled ? { completedAt: new Date() } : {}),
+        dmSent: false,
+        dmText: state.dmText,
+        replyText: state.replyText,
+        replyTweetId: state.replyContentId,
+        replyTweetUrl: state.replyContentUrl,
+        status: dmScheduled
+          ? BotActivityStatus.PROCESSING
+          : BotActivityStatus.COMPLETED,
+      },
+    );
+    const botConfig = await this.loadBotConfig(state);
+    await this.processedTweetsService.markAsProcessed(
+      state.content.id,
+      state.organizationId,
+      (botConfig.type ?? ReplyBotType.REPLY_GUY) as ReplyBotType,
+      state.botConfigId,
+    );
+    if (
+      state.replySent &&
+      botConfig.type === ReplyBotType.COMMENT_RESPONDER &&
+      (state.content.parentContentId || state.content.inReplyToId)
+    ) {
+      await this.authorReplyLoopService.recordAuthorClosedLoop({
+        brandId:
+          typeof botConfig.brandId === 'string' ? botConfig.brandId : undefined,
+        commentId: state.content.id,
+        organizationId: state.organizationId,
+        parentPostId:
+          state.content.parentContentId ?? state.content.inReplyToId ?? '',
+        platform: String(botConfig.platform ?? 'twitter'),
+        replyContentId: state.replyContentId,
+      });
+    }
+    this.rateLimitService.incrementCounter(state.botConfigId);
+    return { dmSent: false, replySent: state.replySent, skipped: false };
+  }
+
+  private async sendDmAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<ReplyBotDmState> {
+    const request = this.readDmRequest(action.input.request);
+    try {
+      const credential = await this.loadCredential(
+        request.credentialId,
+        request.organizationId,
+      );
+      const result = await this.botActionExecutorService.sendDm(
+        credential,
+        request.recipientId,
+        request.dmText,
+      );
+      return {
+        ...request,
+        dmContentId: result.contentId,
+        error: result.success
+          ? undefined
+          : (result.error ?? 'Failed to send DM'),
+        success: result.success,
+      };
+    } catch (error: unknown) {
+      return { ...request, error: this.errorMessage(error), success: false };
+    }
+  }
+
+  private async finalizeDmAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<ReplyBotDmState> {
+    const state = this.readDmState(action.input);
+    await this.botActivitiesService.updateStatus(
+      state.activityId,
+      state.organizationId,
+      state.success
+        ? {
+            completedAt: new Date(),
+            dmSent: true,
+            dmText: state.dmText,
+            replyText: state.replyText,
+            replyTweetId: state.replyContentId,
+            replyTweetUrl: state.replyContentUrl,
+            status: BotActivityStatus.COMPLETED,
+          }
+        : {
+            errorMessage: state.error ?? 'Failed to send DM',
+            status: BotActivityStatus.FAILED,
+          },
+    );
+    return state;
+  }
+
+  private async loadTestAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<ReplyBotContentState> {
+    const request = this.readRecord(action.input.request);
+    const botConfigId = this.requiredString(request.botConfigId, 'botConfigId');
+    const organizationId = this.requiredString(
+      request.organizationId,
+      'organizationId',
+    );
+    const testContent = this.readRecord(request.testContent);
+    const botConfig = await this.loadBotConfig({ botConfigId, organizationId });
+    const platform = normalizeReplyBotPlatform(
+      botConfig.platform ?? ReplyBotPlatform.TWITTER,
+    );
+    if (!platform)
+      throw new Error(unsupportedReplyBotPlatformMessage(botConfig.platform));
+    return {
+      botConfigId,
+      content: {
+        authorId: 'dry-run-author',
+        authorUsername: this.requiredString(testContent.author, 'author'),
+        contentType: 'post' as SerializedReplyCandidate['contentType'],
+        createdAt: new Date().toISOString(),
+        id: 'dry-run-content',
+        platform,
+        text: this.requiredString(testContent.content, 'content'),
+      },
+      credentialId: '',
+      dmDelayMs: 0,
+      dmItems: [],
+      intent: 'default',
+      organizationId,
+      replySent: false,
+      skipped: false,
+      test: true,
+    };
+  }
+
+  private async finalizeTestAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<{
+    dmText?: string;
+    replyText: string;
   }> {
-    const organizationId = String(input.organizationId ?? '');
-    const credentialId = String(input.credentialId ?? '');
-    const credentialRecord = await this.credentialsService.findOne({
+    const state = this.readContentState(action.input);
+    if (state.error) throw new Error(state.error);
+    return {
+      dmText: state.dmText,
+      replyText: this.requiredString(state.replyText, 'replyText'),
+    };
+  }
+
+  private async fetchContent(
+    botConfig: ReplyBotConfigDocument,
+    credential: IReplyBotCredentialData,
+    organizationId: string,
+    platform: ReplyBotPlatform,
+  ): Promise<SocialContentData[]> {
+    if (botConfig.type === ReplyBotType.REPLY_GUY) {
+      if (!credential.username) return [];
+      const mentions = await this.socialMonitorService.getUserMentions(
+        platform,
+        credential.username,
+        {
+          limit: 100,
+          sinceId: botConfig.lastProcessedTweetId,
+        },
+      );
+      return this.socialMonitorService.filterUnprocessedContent(
+        mentions,
+        organizationId,
+        ReplyBotType.REPLY_GUY,
+      );
+    }
+    if (botConfig.type === ReplyBotType.ACCOUNT_MONITOR) {
+      return this.fetchMonitoredAccountContent(
+        botConfig,
+        organizationId,
+        platform,
+      );
+    }
+    if (botConfig.type === ReplyBotType.COMMENT_RESPONDER) {
+      return this.fetchComments(
+        botConfig,
+        credential,
+        organizationId,
+        platform,
+      );
+    }
+    return [];
+  }
+
+  private async fetchMonitoredAccountContent(
+    botConfig: ReplyBotConfigDocument,
+    organizationId: string,
+    platform: ReplyBotPlatform,
+  ): Promise<SocialContentData[]> {
+    const accounts = await this.monitoredAccountsService.findByBotConfig(
+      botConfig.id.toString(),
+      organizationId,
+    );
+    const allContent: SocialContentData[] = [];
+    for (const account of accounts) {
+      if (!account.isActive || !account.username) continue;
+      const content = await this.socialMonitorService.getUserTimeline(
+        platform,
+        account.username,
+        {
+          limit: 10,
+          sinceId: account.lastProcessedTweetId,
+        },
+      );
+      const filtered = this.socialMonitorService.filterContent(
+        content,
+        account.filters,
+      );
+      const unprocessed =
+        await this.socialMonitorService.filterUnprocessedContent(
+          filtered,
+          organizationId,
+          ReplyBotType.ACCOUNT_MONITOR,
+        );
+      if (unprocessed[0]) {
+        await this.monitoredAccountsService.updateLastProcessed(
+          account.id.toString(),
+          organizationId,
+          unprocessed[0].id,
+        );
+      }
+      allContent.push(...unprocessed);
+    }
+    return allContent;
+  }
+
+  private async fetchComments(
+    botConfig: ReplyBotConfigDocument,
+    credential: IReplyBotCredentialData,
+    organizationId: string,
+    platform: ReplyBotPlatform,
+  ): Promise<SocialContentData[]> {
+    if (!credential.username) return [];
+    const posts = await this.socialMonitorService.getUserTimeline(
+      platform,
+      credential.username,
+      {
+        limit: 10,
+      },
+    );
+    const comments = (
+      await Promise.all(
+        posts.map(async (post) => {
+          const rows = await this.socialMonitorService.getContentComments(
+            platform,
+            post.id,
+            {
+              brandId:
+                typeof botConfig.brandId === 'string'
+                  ? botConfig.brandId
+                  : undefined,
+              limit: 50,
+              organizationId,
+              preferOfficialApi: true,
+            },
+          );
+          return rows.map((comment) => ({
+            ...comment,
+            parentContentId: comment.parentContentId ?? post.id,
+          }));
+        }),
+      )
+    ).flat();
+    const unprocessed =
+      await this.socialMonitorService.filterUnprocessedContent(
+        comments,
+        organizationId,
+        ReplyBotType.COMMENT_RESPONDER,
+      );
+    return unprocessed.filter((item) => {
+      const included =
+        !botConfig.filters?.includeKeywords?.length ||
+        botConfig.filters.includeKeywords.some((keyword) =>
+          item.text.toLowerCase().includes(keyword.toLowerCase()),
+        );
+      const excluded = botConfig.filters?.excludeKeywords?.some((keyword) =>
+        item.text.toLowerCase().includes(keyword.toLowerCase()),
+      );
+      return included && !excluded;
+    });
+  }
+
+  private async loadCredential(
+    credentialId: string,
+    organizationId: string,
+  ): Promise<IReplyBotCredentialData> {
+    const record = await this.credentialsService.findOne({
       id: credentialId,
       organizationId,
     });
-    const credential = credentialRecord
-      ? toReplyBotCredentialData(
-          credentialRecord as unknown as Record<string, unknown>,
-          { organizationId },
-        )
+    const credential = record
+      ? toReplyBotCredentialData(record as unknown as Record<string, unknown>, {
+          organizationId,
+        })
       : null;
-    if (!credential) {
+    if (!credential)
       throw new Error(`Reply-bot credential ${credentialId} not found`);
-    }
-
-    const content = input.content as Record<string, unknown> | undefined;
-    if (!content) {
-      throw new Error('Reply and DM action requires content');
-    }
-    const actionType = input.actionType;
-    let replySent = false;
-    let dmSent = false;
-    let replyContentId: string | undefined;
-    let replyContentUrl: string | undefined;
-
-    if (actionType !== ReplyBotActionType.DM_ONLY) {
-      const replyResult = await this.botActionExecutorService.postReply(
-        credential,
-        {
-          authorId: String(content.authorId ?? ''),
-          authorUsername: String(content.authorUsername ?? ''),
-          createdAt: new Date(String(content.createdAt ?? '')),
-          id: String(content.id ?? ''),
-          text: String(content.text ?? ''),
-        },
-        String(input.replyText ?? ''),
-      );
-      if (!replyResult.success) {
-        throw new Error(replyResult.error || 'Failed to post reply');
-      }
-      replySent = true;
-      replyContentId = replyResult.contentId;
-      replyContentUrl = replyResult.contentUrl;
-    }
-
-    if (
-      typeof input.dmText === 'string' &&
-      (actionType === ReplyBotActionType.REPLY_AND_DM ||
-        actionType === ReplyBotActionType.DM_ONLY)
-    ) {
-      await this.delay(Number(input.dmDelayMs ?? 60000));
-      const dmResult = await this.botActionExecutorService.sendDm(
-        credential,
-        String(content.authorId ?? ''),
-        input.dmText,
-      );
-      dmSent = dmResult.success;
-      return {
-        dmContentId: dmResult.contentId,
-        dmSent,
-        error: dmResult.success ? undefined : dmResult.error,
-        replyContentId,
-        replyContentUrl,
-        replySent,
-      };
-    }
-
-    return { dmSent, replyContentId, replyContentUrl, replySent };
+    return credential;
   }
 
-  /**
-   * Resolve a reply bot config's owner from its scalar FK column.
-   *
-   * `ReplyBotConfig.userId` is a non-nullable column, so an unresolvable owner
-   * means the row was read incorrectly rather than legitimately ownerless.
-   * Fail closed before generation or activity persistence.
-   */
+  private async loadBotConfig(
+    request: Pick<ReplyBotRequest, 'botConfigId' | 'organizationId'>,
+  ): Promise<ReplyBotConfigDocument> {
+    const botConfig = await this.replyBotConfigsService.findOneById(
+      request.botConfigId,
+      request.organizationId,
+    );
+    if (!botConfig)
+      throw new Error(`Reply bot config ${request.botConfigId} not found`);
+    return botConfig;
+  }
+
+  private readBotRequest(value: unknown): ReplyBotRequest {
+    const request = this.readRecord(value);
+    return {
+      botConfigId: this.requiredString(request.botConfigId, 'botConfigId'),
+      credentialId: this.requiredString(request.credentialId, 'credentialId'),
+      organizationId: this.requiredString(
+        request.organizationId,
+        'organizationId',
+      ),
+    };
+  }
+
+  private readContentRequest(value: unknown): ReplyBotContentRequest {
+    const request = this.readRecord(value);
+    return {
+      ...this.readBotRequest(request),
+      content: request.content as SerializedReplyCandidate,
+    };
+  }
+
+  private readContentState(
+    input: Record<string, unknown>,
+  ): ReplyBotContentState {
+    const state = this.readRecord(input.state);
+    return (
+      Object.keys(state).length > 0 ? state : input
+    ) as ReplyBotContentState;
+  }
+
+  private readDmRequest(value: unknown): ReplyBotDmRequest {
+    const request = this.readRecord(value);
+    return {
+      ...this.readBotRequest(request),
+      activityId: this.requiredString(request.activityId, 'activityId'),
+      dmText: this.requiredString(request.dmText, 'dmText'),
+      recipientId: this.requiredString(request.recipientId, 'recipientId'),
+      replyContentId:
+        typeof request.replyContentId === 'string'
+          ? request.replyContentId
+          : undefined,
+      replyContentUrl:
+        typeof request.replyContentUrl === 'string'
+          ? request.replyContentUrl
+          : undefined,
+      replyText:
+        typeof request.replyText === 'string' ? request.replyText : undefined,
+    };
+  }
+
+  private readDmState(input: Record<string, unknown>): ReplyBotDmState {
+    const state = this.readRecord(input.state);
+    return (Object.keys(state).length > 0 ? state : input) as ReplyBotDmState;
+  }
+
+  private readForEachResult<T>(value: unknown): ForEachResult<T> {
+    const result = this.readRecord(value);
+    return {
+      count: this.numberValue(result.count),
+      results: Array.isArray(result.results)
+        ? (result.results as ForEachResult<T>['results'])
+        : [],
+    };
+  }
+
+  private serializeCandidate(
+    candidate: ReplyCandidate,
+  ): SerializedReplyCandidate {
+    return { ...candidate, createdAt: candidate.createdAt.toISOString() };
+  }
+
+  private deserializeCandidate(
+    candidate: SerializedReplyCandidate,
+  ): ReplyCandidate {
+    return { ...candidate, createdAt: new Date(candidate.createdAt) };
+  }
+
   private requireBotOwnerUserId(
     botConfig: ReplyBotConfigDocument,
     botConfigId: string,
@@ -860,87 +1040,34 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     );
   }
 
-  /**
-   * Delay helper
-   */
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
   private mergeReplyContext(
     botContext: string | undefined,
     candidateContext: string | undefined,
   ): string | undefined {
-    const context = [botContext, candidateContext].filter(Boolean).join('\n\n');
-    return context || undefined;
+    return (
+      [botContext, candidateContext].filter(Boolean).join('\n\n') || undefined
+    );
   }
 
-  /**
-   * Test mode - generate reply without posting
-   */
-  async testReplyGeneration(
-    botConfigId: string,
-    organizationId: string,
-    testContent: { content: string; author: string },
-  ): Promise<{ replyText: string; dmText?: string }> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    const botConfig = await this.replyBotConfigsService.findOneById(
-      botConfigId,
-      organizationId,
-    );
-
-    if (!botConfig) {
-      throw new Error('Bot configuration not found');
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new Error(`Reply bot action requires ${field}`);
     }
+    return value;
+  }
 
-    const ownerUserId = this.requireBotOwnerUserId(botConfig, botConfigId);
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
 
-    const replyText = await this.replyGenerationService.generateReply({
-      context: botConfig.context,
-      customInstructions: botConfig.replyInstructions,
-      length: (botConfig.replyLength as ReplyLength) || ReplyLength.MEDIUM,
-      organizationId,
-      tone: (botConfig.replyTone as ReplyTone) || ReplyTone.FRIENDLY,
-      tweetAuthor: testContent.author,
-      tweetContent: testContent.content,
-      userId: ownerUserId,
-    });
+  private numberValue(value: unknown): number {
+    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  }
 
-    let dmText: string | undefined;
-    if (
-      botConfig.actionType === ReplyBotActionType.REPLY_AND_DM ||
-      botConfig.actionType === ReplyBotActionType.DM_ONLY
-    ) {
-      const dmInstructions = [
-        botConfig.dmConfig?.customInstructions,
-        botConfig.dmConfig?.offer
-          ? `The offer: ${botConfig.dmConfig.offer}`
-          : '',
-        botConfig.dmConfig?.ctaLink
-          ? `Include this link: ${botConfig.dmConfig.ctaLink}`
-          : '',
-      ]
-        .filter(Boolean)
-        .join('\n');
-
-      dmText = await this.replyGenerationService.generateDm({
-        context: botConfig.dmConfig?.context,
-        customInstructions: dmInstructions || undefined,
-        organizationId,
-        replyText,
-        tweetAuthor: testContent.author,
-        tweetContent: testContent.content,
-        userId: ownerUserId,
-      });
-    }
-
-    this.loggerService.log(`${url} test generation completed`, {
-      botConfigId,
-      dmGenerated: !!dmText,
-      replyLength: replyText.length,
-    });
-
-    return { dmText, replyText };
+  private errorMessage(error: unknown): string {
+    this.loggerService.error('Reply bot workflow action failed', error);
+    return error instanceof Error ? error.message : 'Unknown error';
   }
 }

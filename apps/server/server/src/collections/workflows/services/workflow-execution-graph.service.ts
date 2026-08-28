@@ -1,10 +1,12 @@
-import type { NodeExecutionSummary } from '@server/collections/workflows/services/workflow-executor.types';
 import type {
   ExecutableEdge,
   ExecutableNode,
   ExecutionRunResult,
 } from '@genfeedai/workflows/engine';
+import type { NodeExecutionSummary } from '@server/collections/workflows/services/workflow-executor.types';
 import { mapEngineNodeStatus } from './workflow-execution-status.util';
+
+export const WORKFLOW_FAILURE_EDGE_HANDLE = 'failure';
 
 export class WorkflowExecutionGraphService {
   collectDownstreamNodeIds(
@@ -91,18 +93,28 @@ export class WorkflowExecutionGraphService {
       }
 
       const handleKey = edge.targetHandle ?? edge.source;
+      const sourceKey = edge.sourceHandle ?? edge.targetHandle;
       if (
-        edge.targetHandle &&
+        edge.sourceHandle !== undefined &&
+        (!sourceOutput ||
+          typeof sourceOutput !== 'object' ||
+          !(edge.sourceHandle in (sourceOutput as Record<string, unknown>)))
+      ) {
+        continue;
+      }
+      if (
+        sourceKey &&
         sourceOutput &&
         typeof sourceOutput === 'object' &&
-        edge.targetHandle in (sourceOutput as Record<string, unknown>)
+        sourceKey in (sourceOutput as Record<string, unknown>)
       ) {
-        inputs.set(
+        this.addInput(
+          inputs,
           handleKey,
-          (sourceOutput as Record<string, unknown>)[edge.targetHandle],
+          (sourceOutput as Record<string, unknown>)[sourceKey],
         );
       } else {
-        inputs.set(handleKey, sourceOutput);
+        this.addInput(inputs, handleKey, sourceOutput);
       }
     }
 
@@ -118,9 +130,15 @@ export class WorkflowExecutionGraphService {
     edges: ExecutableEdge[],
     completedNodes: Set<string>,
     cache: Map<string, unknown>,
+    skippedNodes: Set<string> = new Set(),
   ): boolean {
     const deps = this.getNodeDependencies(nodeId, edges);
-    return deps.every((depId) => completedNodes.has(depId) || cache.has(depId));
+    return deps.every(
+      (depId) =>
+        completedNodes.has(depId) ||
+        cache.has(depId) ||
+        skippedNodes.has(depId),
+    );
   }
 
   isNodeReachable(
@@ -163,20 +181,59 @@ export class WorkflowExecutionGraphService {
         e.sourceHandle !== branch,
     );
 
-    const nodesToSkip = new Set<string>();
-    for (const edge of prunedEdges) {
-      this.collectDownstream(
-        edge.target,
-        edges,
-        nodesToSkip,
-        completedNodes,
-        conditionNodeId,
-      );
-    }
+    this.pruneEdges(
+      conditionNodeId,
+      prunedEdges,
+      edges,
+      skippedNodes,
+      completedNodes,
+    );
+  }
 
-    for (const nodeId of nodesToSkip) {
-      skippedNodes.add(nodeId);
-    }
+  hasFailureEdge(nodeId: string, edges: ExecutableEdge[]): boolean {
+    return edges.some(
+      (edge) =>
+        edge.source === nodeId &&
+        edge.sourceHandle === WORKFLOW_FAILURE_EDGE_HANDLE,
+    );
+  }
+
+  pruneFailurePathAfterSuccess(
+    nodeId: string,
+    edges: ExecutableEdge[],
+    skippedNodes: Set<string>,
+    completedNodes: Set<string>,
+  ): void {
+    this.pruneEdges(
+      nodeId,
+      edges.filter(
+        (edge) =>
+          edge.source === nodeId &&
+          edge.sourceHandle === WORKFLOW_FAILURE_EDGE_HANDLE,
+      ),
+      edges,
+      skippedNodes,
+      completedNodes,
+    );
+  }
+
+  pruneSuccessPathsAfterFailure(
+    nodeId: string,
+    edges: ExecutableEdge[],
+    skippedNodes: Set<string>,
+    completedNodes: Set<string>,
+  ): void {
+    this.pruneEdges(
+      nodeId,
+      edges.filter(
+        (edge) =>
+          edge.source === nodeId &&
+          edge.sourceHandle !== WORKFLOW_FAILURE_EDGE_HANDLE,
+      ),
+      edges,
+      skippedNodes,
+      completedNodes,
+    );
   }
 
   skipDownstreamNodes(
@@ -245,6 +302,53 @@ export class WorkflowExecutionGraphService {
       }
     }
     return undefined;
+  }
+
+  private addInput(
+    inputs: Map<string, unknown>,
+    handle: string,
+    value: unknown,
+  ): void {
+    if (!inputs.has(handle)) {
+      inputs.set(handle, value);
+      return;
+    }
+    const existing = inputs.get(handle);
+    inputs.set(
+      handle,
+      Array.isArray(existing) ? [...existing, value] : [existing, value],
+    );
+  }
+
+  private pruneEdges(
+    originNodeId: string,
+    prunedEdges: ExecutableEdge[],
+    allEdges: ExecutableEdge[],
+    skippedNodes: Set<string>,
+    completedNodes: Set<string>,
+  ): void {
+    const nodesToSkip = new Set<string>();
+    for (const edge of prunedEdges) {
+      const retainsIncomingPath = allEdges.some(
+        (candidate) =>
+          candidate.target === edge.target &&
+          !prunedEdges.includes(candidate) &&
+          !skippedNodes.has(candidate.source),
+      );
+      if (retainsIncomingPath) {
+        continue;
+      }
+      this.collectDownstream(
+        edge.target,
+        allEdges,
+        nodesToSkip,
+        completedNodes,
+        originNodeId,
+      );
+    }
+    for (const nodeId of nodesToSkip) {
+      skippedNodes.add(nodeId);
+    }
   }
 
   private collectDownstream(

@@ -1,6 +1,3 @@
-import { ClipProjectStatus } from '@server/collections/clip-projects/schemas/clip-project.schema';
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
-import { OrganizationalCreateDto } from '@server/shared/dto/base/base.dto';
 import {
   CLIP_PROCESSING_FLOWS,
   CLIP_RESULT_MODES,
@@ -8,12 +5,13 @@ import {
   type ClipReferenceFrameSet,
   type ClipResultMode,
   DEFAULT_CLIP_RESULT_MODE,
-} from '@genfeedai/interfaces';
-import {
   SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
   type SupportedAvatarVideoProviderName,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
+import { ClipProjectStatus } from '@server/collections/clip-projects/schemas/clip-project.schema';
+import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
+import { OrganizationalCreateDto } from '@server/shared/dto/base/base.dto';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,

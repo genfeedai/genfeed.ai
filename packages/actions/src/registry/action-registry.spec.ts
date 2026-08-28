@@ -95,9 +95,7 @@ describe('Genfeed action registry', () => {
 
   it('owns the atomic clip-generation graph actions', () => {
     expect(getActionDefinition('clip.generation.generate-one')).toBeDefined();
-    expect(
-      getActionDefinition('clip.generation.collect-results'),
-    ).toBeDefined();
+    expect(getActionDefinition('clip.generation.plan')).toBeDefined();
     expect(getActionDefinition('clip.handoff.prepare-publish')).toBeDefined();
     expect(getActionDefinition('clip.handoff.create-editor')).toBeDefined();
     expect(getActionDefinition('clip.handoff.link-library')).toBeDefined();
@@ -142,6 +140,12 @@ describe('Genfeed action registry', () => {
       expect(definition).toBeDefined();
       expect(definition?.visibility).toBe('internal');
     }
+  });
+
+  it('owns the generic workflow fan-out action', () => {
+    const definition = getActionDefinition('workflow.for-each');
+    expect(definition).toBeDefined();
+    expect(definition?.visibility).toBe('internal');
   });
 
   it('hard-cuts YouTube transcription into atomic workflow actions', () => {

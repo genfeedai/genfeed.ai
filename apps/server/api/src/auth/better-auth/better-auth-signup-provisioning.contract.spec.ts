@@ -1,16 +1,16 @@
+import { MembersService } from '@api/collections/members/services/members.service';
+import { RolesService } from '@api/collections/roles/services/roles.service';
+import { UserSetupService } from '@api/collections/users/services/user-setup.service';
+import type { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import type { SignupPrefillWorkflowService } from '@api/services/signup-prefill/signup-prefill-workflow.service';
+import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { CreditBalanceService } from '@server/collections/credits/services/credit-balance.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@server/collections/settings/services/settings.service';
-import { UserSetupService } from '@api/collections/users/services/user-setup.service';
-import type { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import type { SignupPrefillQueueService } from '@api/services/signup-prefill/signup-prefill-queue.service';
-import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
-import type { LoggerService } from '@libs/logger/logger.service';
 import { betterAuth } from 'better-auth';
 import { type MemoryDB, memoryAdapter } from 'better-auth/adapters/memory';
 import { magicLink } from 'better-auth/plugins';
@@ -154,7 +154,7 @@ function createSignupProvisioningHarness() {
   const listener = new UserProvisioningListener(
     userSetupService,
     lifecycleEmailService as unknown as LifecycleEmailService,
-    signupPrefillQueueService as unknown as SignupPrefillQueueService,
+    signupPrefillQueueService as unknown as SignupPrefillWorkflowService,
     logger as unknown as LoggerService,
   );
 

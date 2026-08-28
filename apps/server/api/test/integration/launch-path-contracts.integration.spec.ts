@@ -385,8 +385,8 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     const extract = readSourceOf('UnsupportedKnowledgeSourceError', {
       root: API_SRC,
     });
-    const processor = readSourceOf('KnowledgeSourceIngestProcessor', {
-      root: WORKERS_SRC,
+    const workflow = readSourceOf('KnowledgeSourceIngestWorkflowService', {
+      root: SERVER_SRC,
     });
     expect(autoCreate).toContain('chunkText');
     expect(autoCreate).toContain('this.addEntry');
@@ -395,8 +395,8 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(ingest).toContain('scanForBackfill');
     expect(extract).toContain('safeFetch');
     expect(extract).toContain('UnsupportedKnowledgeSourceError');
-    expect(processor).toContain('KNOWLEDGE_SOURCE_INGEST_QUEUE');
-    expect(processor).toContain('KNOWLEDGE_SOURCE_BACKFILL_JOB_NAME');
+    expect(workflow).toContain('KNOWLEDGE_SOURCE_ACTION_IDS.INGEST');
+    expect(workflow).toContain('queueSystemWorkflowDefinition');
   });
 
   it('registers platform-x harness pack from open-source ranking signals', () => {
@@ -466,25 +466,24 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(delivery).toContain('schedulePostWatch');
   });
 
-  it('registers X activity webhook and reply inbound/post-watch pipes', () => {
+  it('registers X activity webhook and reply inbound/post-watch workflows', () => {
     const controller = readSourceOf('XActivityWebhookController', {
       root: API_SRC,
     });
-    const inboundQueueName = readSourceOf('REPLY_INBOUND_QUEUE', {
-      root: 'packages/queue-contracts/src',
+    const definitions = readSourceOf('REPLY_INGESTION_WORKFLOW_IDS', {
+      root: API_SRC,
     });
-    const postWatchQueueName = readSourceOf('REPLY_POST_WATCH_QUEUE', {
-      root: 'packages/queue-contracts/src',
+    const inbound = readSourceOf('ReplyInboundProcessorService', {
+      root: API_SRC,
     });
-    const inbound = readSourceOf('ReplyInboundQueueService', { root: API_SRC });
+    const postWatch = readSourceOf('ReplyPostWatchService', { root: API_SRC });
     expect(controller).toContain("Controller('webhooks/x-activity')");
     expect(controller).toContain('handleCrc');
-    expect(inboundQueueName).toContain("REPLY_INBOUND_QUEUE = 'reply-inbound'");
-    expect(postWatchQueueName).toContain(
-      "REPLY_POST_WATCH_QUEUE = 'reply-post-watch'",
-    );
-    expect(inbound).toContain('schedulePostWatch');
-    expect(inbound).toContain('enqueueInbound');
+    expect(definitions).toContain("INBOUND: 'reply.inbound.process'");
+    expect(definitions).toContain("POST_WATCH: 'reply.post-watch.process'");
+    expect(inbound).toContain('queueSystemWorkflowDefinition');
+    expect(postWatch).toContain('schedulePostWatch');
+    expect(postWatch).toContain('queueSystemWorkflowDefinition');
   });
 
   it('classifies reply intents and caps comment age at 48h', () => {

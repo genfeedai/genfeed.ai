@@ -7,7 +7,7 @@ import {
   renderLifecycleSystemEmailParagraphs,
 } from '@genfeedai/constants';
 import { SubscriptionStatus, TargetExecutionState } from '@genfeedai/enums';
-import type { LifecycleEmailJobData } from '@genfeedai/queue-contracts';
+import type { LifecycleEmailWorkflowInput } from '@genfeedai/interfaces';
 import {
   buildSystemEmailHtml,
   buildSystemEmailParagraph,
@@ -104,7 +104,7 @@ export class LifecycleEmailDeliveryService {
     return true;
   }
 
-  async sendLifecycleEmail(data: LifecycleEmailJobData): Promise<void> {
+  async sendLifecycleEmail(data: LifecycleEmailWorkflowInput): Promise<void> {
     const delivery = await this.findDelivery(data);
     if (!delivery) {
       this.logger.warn('Lifecycle email delivery record missing', {
@@ -230,7 +230,7 @@ export class LifecycleEmailDeliveryService {
   }
 
   private async findDelivery(
-    data: LifecycleEmailJobData,
+    data: LifecycleEmailWorkflowInput,
   ): Promise<LifecycleEmailDeliveryRecord | null> {
     return await this.prisma.lifecycleEmailDelivery.findFirst({
       include: {
@@ -311,7 +311,7 @@ export class LifecycleEmailDeliveryService {
   }
 
   private buildTemplate(input: {
-    data: LifecycleEmailJobData;
+    data: LifecycleEmailWorkflowInput;
     metadata: LifecycleEmailMetadata;
     user: UserEmailTarget;
   }): EmailTemplate {

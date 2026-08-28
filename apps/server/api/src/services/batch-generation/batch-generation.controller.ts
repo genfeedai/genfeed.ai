@@ -1,22 +1,16 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
 import { AssignBatchItemDto } from '@api/services/batch-generation/dto/assign-batch-item.dto';
 import {
   BatchAction,
   BatchActionDto,
 } from '@api/services/batch-generation/dto/batch-action.dto';
-import { CreateBatchDto } from '@server/services/batch-generation/dto/create-batch.dto';
-import { CreateManualReviewBatchDto } from '@server/services/batch-generation/dto/create-manual-review-batch.dto';
-import { UpdateBatchDto } from '@server/services/batch-generation/dto/update-batch.dto';
 import { BatchStatus } from '@genfeedai/enums';
 import { BatchSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -33,6 +27,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
+import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
+import { BatchGenerationWorkflowService } from '@server/services/batch-generation/batch-generation-workflow.service';
+import { CreateBatchDto } from '@server/services/batch-generation/dto/create-batch.dto';
+import { CreateManualReviewBatchDto } from '@server/services/batch-generation/dto/create-manual-review-batch.dto';
+import { UpdateBatchDto } from '@server/services/batch-generation/dto/update-batch.dto';
 import type { Request } from 'express';
 
 @ApiTags('Batches')
@@ -42,6 +43,7 @@ import type { Request } from 'express';
 export class BatchGenerationController {
   constructor(
     private readonly batchGenerationService: BatchGenerationService,
+    private readonly batchGenerationWorkflowService: BatchGenerationWorkflowService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -149,19 +151,16 @@ export class BatchGenerationController {
   @Post(':id/process')
   @HttpCode(200)
   @ApiOperation({ summary: 'Trigger batch processing' })
-  async processBatch(
-    @Req() req: Request,
-    @Param('id') id: string,
-    @CurrentUser() user: User,
-  ) {
+  async processBatch(@Param('id') id: string, @CurrentUser() user: User) {
     try {
       const organization = user.organizationId;
 
-      const data = await this.batchGenerationService.processBatch(
-        id,
-        organization,
-      );
-      return serializeSingle(req, BatchSerializer, data);
+      const jobId = await this.batchGenerationWorkflowService.queueBatch({
+        batchId: id,
+        organizationId: organization,
+        userId: user.userId ?? user.id,
+      });
+      return { jobId, status: 'queued' };
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'processBatch');
     }

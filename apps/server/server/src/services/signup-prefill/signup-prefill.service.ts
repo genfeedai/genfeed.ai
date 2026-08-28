@@ -1,3 +1,12 @@
+import { resolveSignupBrandDomain } from '@genfeedai/helpers';
+import type {
+  IBrandVoiceAnalysis,
+  IExtractedBrandData,
+  IScrapedBrandData,
+  SignupPrefillWorkflowInput,
+} from '@genfeedai/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import type { BrandAgentConfig } from '@server/collections/brands/schemas/brand.schema';
 import { BrandDataMapper } from '@server/collections/brands/services/brand-data.mapper';
 import { BrandPersistenceService } from '@server/collections/brands/services/brand-persistence.service';
@@ -13,15 +22,6 @@ import {
   PLACEHOLDER_BRAND_DESCRIPTION,
 } from '@server/services/signup-prefill/utils/brand-system-prompt.util';
 import { buildSignupHarnessProfile } from '@server/services/signup-prefill/utils/harness-seed.util';
-import { resolveSignupBrandDomain } from '@genfeedai/helpers';
-import type {
-  IBrandVoiceAnalysis,
-  IExtractedBrandData,
-  IScrapedBrandData,
-} from '@genfeedai/interfaces';
-import type { SignupPrefillJobData } from '@genfeedai/queue-contracts';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 export type SignupPrefillStatus =
   | 'completed'
@@ -84,7 +84,7 @@ export class SignupPrefillService {
   ) {}
 
   async prefillBrand(
-    data: SignupPrefillJobData,
+    data: SignupPrefillWorkflowInput,
     onProgress?: (percent: number) => Promise<void>,
   ): Promise<SignupPrefillResult> {
     const { brandId, organizationId, userId } = data;

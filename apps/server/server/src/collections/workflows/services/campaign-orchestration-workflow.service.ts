@@ -1,12 +1,10 @@
-import { CampaignMemoryQueueService } from '@server/services/agent-campaign/campaign-memory-queue.service';
-import { OrchestratorQueueService } from '@server/services/agent-campaign/orchestrator-queue.service';
-import { TriggerEvaluatorQueueService } from '@server/services/agent-campaign/trigger-evaluator-queue.service';
-import { CacheService } from '@server/services/cache/cache.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type { AgentCampaign } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { AgentCampaignWorkflowService } from '@server/services/agent-campaign/agent-campaign-workflow.service';
+import { CacheService } from '@server/services/cache/cache.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 type CampaignWorkflowAction =
   | 'agentCampaignOrchestration'
@@ -36,9 +34,7 @@ export class CampaignOrchestrationWorkflowService {
     private readonly logger: LoggerService,
     private readonly prisma: PrismaService,
     private readonly cacheService: CacheService,
-    private readonly campaignMemoryQueueService: CampaignMemoryQueueService,
-    private readonly orchestratorQueueService: OrchestratorQueueService,
-    private readonly triggerEvaluatorQueueService: TriggerEvaluatorQueueService,
+    private readonly agentCampaignWorkflow: AgentCampaignWorkflowService,
   ) {}
 
   async runDueCampaignOrchestration(
@@ -159,13 +155,13 @@ export class CampaignOrchestrationWorkflowService {
     try {
       const scheduledAt = campaign.nextOrchestratedAt ?? now;
 
-      await this.orchestratorQueueService.queueCampaignRun({
+      await this.agentCampaignWorkflow.queueOrchestration({
         campaignId: campaign.id,
         organizationId: campaign.organizationId,
         scheduledAt,
         userId: campaign.userId,
       });
-      await this.campaignMemoryQueueService.queueExtraction({
+      await this.agentCampaignWorkflow.queueMemoryExtraction({
         campaignId: campaign.id,
         organizationId: campaign.organizationId,
         scheduledAt,
@@ -187,7 +183,7 @@ export class CampaignOrchestrationWorkflowService {
     campaign: AgentCampaignWithAgents,
   ): Promise<boolean> {
     try {
-      await this.triggerEvaluatorQueueService.queueCampaignEvaluation({
+      await this.agentCampaignWorkflow.queueTriggerEvaluation({
         campaignId: campaign.id,
         organizationId: campaign.organizationId,
         userId: campaign.userId,

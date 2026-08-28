@@ -5,9 +5,10 @@ import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
-import { AnalyticsSocialJobService } from '@server/analytics/services/analytics-social-job.service';
-import { AnalyticsTwitterJobService } from '@server/analytics/services/analytics-twitter-job.service';
-import { AnalyticsYouTubeJobService } from '@server/analytics/services/analytics-youtube-job.service';
+import { AnalyticsProviderCollectionService } from '@server/analytics/services/analytics-provider-collection.service';
+import { AnalyticsSocialCollectionService } from '@server/analytics/services/analytics-social-collection.service';
+import { AnalyticsTwitterCollectionService } from '@server/analytics/services/analytics-twitter-collection.service';
+import { AnalyticsYouTubeCollectionService } from '@server/analytics/services/analytics-youtube-collection.service';
 import { PostAnalyticsCollectionStateService } from '@server/analytics/services/post-analytics-collection-state.service';
 import { ActivitiesService } from '@server/collections/activities/services/activities.service';
 import { AdBulkUploadJobsService } from '@server/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
@@ -86,6 +87,8 @@ import { ExternalVoiceCatalogService } from '@server/collections/voices/services
 import { VoiceGenerationService } from '@server/collections/voices/services/voice-generation.service';
 import { VoicesService } from '@server/collections/voices/services/voices.service';
 import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
+import { AdAutomationWorkflowService } from '@server/collections/workflows/services/ad-automation-workflow.service';
+import { AdBulkUploadWorkflowService } from '@server/collections/workflows/services/ad-bulk-upload-workflow.service';
 import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
 import { BatchWorkflowService } from '@server/collections/workflows/services/batch-workflow.service';
 import { BatchWorkflowQueueService } from '@server/collections/workflows/services/batch-workflow-queue.service';
@@ -105,28 +108,18 @@ import { ManagedInferenceClientService } from '@server/endpoints/v1/managed-infe
 import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
 import { TransactionUtil } from '@server/helpers/utils/transaction/transaction.util';
 import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
-import { BatchGenerationQueueService } from '@server/queues/batch-generation/batch-generation-queue.service';
-import { CampaignQueueService } from '@server/queues/campaign/campaign-queue.service';
 import { QueueService } from '@server/queues/core/queue.service';
 import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
-import { KnowledgeSourceIngestQueueService } from '@server/queues/knowledge-source-ingest/knowledge-source-ingest-queue.service';
-import { ReplyInboundQueueService } from '@server/queues/reply-bot/reply-inbound-queue.service';
-import { SocialReplyCampaignQueueService } from '@server/queues/social-reply-campaign/social-reply-campaign-queue.service';
 import { SERVER_TOKENS } from '@server/server.dependencies';
-import { CampaignMemoryQueueService } from '@server/services/agent-campaign/campaign-memory-queue.service';
 import { CampaignWinnerExtractionService } from '@server/services/agent-campaign/campaign-winner-extraction.service';
 import { ContentEngineService } from '@server/services/agent-campaign/content-engine.service';
 import { ContentRotationService } from '@server/services/agent-campaign/content-rotation.service';
-import { OrchestratorQueueService } from '@server/services/agent-campaign/orchestrator-queue.service';
 import { TriggerEvaluatorService } from '@server/services/agent-campaign/trigger-evaluator.service';
-import { TriggerEvaluatorQueueService } from '@server/services/agent-campaign/trigger-evaluator-queue.service';
 import { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherService } from '@server/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentTurnAcceptanceService } from '@server/services/agent-orchestrator/agent-turn-acceptance.service';
 import { ApiKeyHelperService } from '@server/services/api-key/api-key-helper.service';
 import { HeygenAvatarProvider } from '@server/services/avatar-video/providers/heygen-avatar.provider';
-import { BatchContentService } from '@server/services/batch-content/batch-content.service';
-import { BatchContentQueueService } from '@server/services/batch-content/batch-content-queue.service';
 import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
 import { BatchGenerationCreditsService } from '@server/services/batch-generation/batch-generation-credits.service';
 import { BatchGenerationReconcileService } from '@server/services/batch-generation/batch-generation-reconcile.service';
@@ -139,9 +132,6 @@ import { CacheModule } from '@server/services/cache/cache.module';
 import { CampaignDiscoveryService } from '@server/services/campaign/campaign-discovery.service';
 import { CampaignExecutorService } from '@server/services/campaign/campaign-executor.service';
 import { DmCampaignExecutorService } from '@server/services/campaign/dm-campaign-executor.service';
-import { AbTestSuggestionHarnessService } from '@server/services/content-optimization/ab-test-suggestion-harness.service';
-import { ContentOptimizationService } from '@server/services/content-optimization/content-optimization.service';
-import { ContentOptimizationQueueService } from '@server/services/content-optimization/content-optimization-queue.service';
 import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
 import { StepExecutorService } from '@server/services/content-orchestration/step-executor.service';
 import { TelegramDistributionService } from '@server/services/distribution/telegram/telegram-distribution.service';
@@ -181,6 +171,7 @@ import { RedditService } from '@server/services/integrations/reddit/services/red
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { ThreadsService } from '@server/services/integrations/threads/services/threads.service';
 import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
+import { TikTokAdsService } from '@server/services/integrations/tiktok-ads/services/tiktok-ads.service';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import { TwitterResponseMapper } from '@server/services/integrations/twitter/services/twitter-response.mapper';
 import { YoutubeAnalyticsService } from '@server/services/integrations/youtube/services/modules/youtube-analytics.service';
@@ -224,15 +215,16 @@ import { PollUntilService } from '@server/shared/services/poll-until/poll-until.
 import { SharedService } from '@server/shared/services/shared/shared.service';
 
 const WORKER_DOMAIN_SERVICES = [
-  AbTestSuggestionHarnessService,
   ActivitiesService,
   CredentialsService,
   AdBulkUploadJobsService,
+  AdBulkUploadWorkflowService,
   AdCreativeMappingsService,
   AdOptimizationAuditLogsService,
   AdOptimizationConfigsService,
   AdOptimizationRecommendationsService,
   AdPerformanceService,
+  AdAutomationWorkflowService,
   AgentCampaignExecutionService,
   AgentCampaignsService,
   AgentOrchestratorService,
@@ -246,11 +238,12 @@ const WORKER_DOMAIN_SERVICES = [
   AgentStrategyWorkflowRunService,
   AgentStreamPublisherService,
   AgentTurnAcceptanceService,
-  AnalyticsSocialJobService,
+  AnalyticsProviderCollectionService,
+  AnalyticsSocialCollectionService,
   AnalyticsSyncService,
   AnalyticsSyncWorkflowService,
-  AnalyticsTwitterJobService,
-  AnalyticsYouTubeJobService,
+  AnalyticsTwitterCollectionService,
+  AnalyticsYouTubeCollectionService,
   ApiKeyHelperService,
   ArticleAnalyticsService,
   ArticlesContentService,
@@ -259,10 +252,7 @@ const WORKER_DOMAIN_SERVICES = [
   AttributionService,
   AuthorReplyLoopService,
   AvatarVideoGenerationService,
-  BatchContentQueueService,
-  BatchContentService,
   BatchGenerationCreditsService,
-  BatchGenerationQueueService,
   BatchGenerationReconcileService,
   BatchGenerationService,
   BillingAccountsService,
@@ -277,8 +267,6 @@ const WORKER_DOMAIN_SERVICES = [
   ByokService,
   CampaignDiscoveryService,
   CampaignExecutorService,
-  CampaignMemoryQueueService,
-  CampaignQueueService,
   CampaignWinnerExtractionService,
   ClipGenerationRequestService,
   ClipGenerationService,
@@ -286,8 +274,6 @@ const WORKER_DOMAIN_SERVICES = [
   ClipLibraryLinkService,
   ClipProjectsService,
   ContentEngineService,
-  ContentOptimizationQueueService,
-  ContentOptimizationService,
   ContentOrchestrationService,
   StepExecutorService,
   ContentRotationService,
@@ -324,7 +310,6 @@ const WORKER_DOMAIN_SERVICES = [
   InstagramPublisherService,
   InstagramService,
   KlingAIService,
-  KnowledgeSourceIngestQueueService,
   KnowledgeSourceIngestService,
   KnowledgeSourceService,
   LeonardoAIService,
@@ -341,7 +326,6 @@ const WORKER_DOMAIN_SERVICES = [
   NotificationPreferenceService,
   NotificationsService,
   OptimizationCycleService,
-  OrchestratorQueueService,
   OrganizationSettingsService,
   OrganizationsService,
   OutreachCampaignsService,
@@ -371,7 +355,6 @@ const WORKER_DOMAIN_SERVICES = [
   ReplyCandidatePrefilterService,
   ReplyGenerationService,
   ReplyInboundProcessorService,
-  ReplyInboundQueueService,
   ReplyPostWatchService,
   ReviewablePostsService,
   SharedService,
@@ -382,7 +365,6 @@ const WORKER_DOMAIN_SERVICES = [
   SocialInboxService,
   SocialMonitorService,
   SocialReplyCampaignDispatchService,
-  SocialReplyCampaignQueueService,
   StreaksService,
   SystemWorkflowCatalogService,
   SystemWorkflowRunnerService,
@@ -393,12 +375,12 @@ const WORKER_DOMAIN_SERVICES = [
   TelegramDistributionService,
   ThreadsPublisherService,
   ThreadsService,
+  TikTokAdsService,
   TikTokPublisherService,
   TiktokService,
   TrendPreferencesService,
   TrendReferenceCorpusService,
   TrendsService,
-  TriggerEvaluatorQueueService,
   TriggerEvaluatorService,
   TwitterPublisherService,
   TwitterResponseMapper,

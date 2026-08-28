@@ -1,6 +1,3 @@
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { DistributionsService } from '@server/collections/distributions/services/distributions.service';
-import { QueueService } from '@server/queues/core/queue.service';
 import {
   CredentialPlatform,
   DistributionContentType,
@@ -8,16 +5,21 @@ import {
   ParseMode,
   PublishStatus,
 } from '@genfeedai/enums';
-import {
-  TELEGRAM_DISTRIBUTE_QUEUE,
-  TelegramDistributeJobData,
-} from '@genfeedai/queue-contracts';
+import type { TelegramDistributionWorkflowInput } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { DistributionsService } from '@server/collections/distributions/services/distributions.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import {
+  buildTelegramDistributionWorkflowDefinition,
+  TELEGRAM_DISTRIBUTION_ACTION_ID,
+} from '@server/services/distribution/telegram/telegram-distribution-workflow-definition';
 import { firstValueFrom } from 'rxjs';
 
 interface TelegramSendResult {
@@ -49,17 +51,33 @@ interface ProcessScheduledOptions {
 }
 
 @Injectable()
-export class TelegramDistributionService {
+export class TelegramDistributionService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
     private readonly configService: ConfigService,
     private readonly credentialsService: CredentialsService,
     private readonly distributionsService: DistributionsService,
-    private readonly queueService: QueueService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
     private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
   ) {}
+
+  onModuleInit(): void {
+    this.workflowRunner.registerAction(
+      TELEGRAM_DISTRIBUTION_ACTION_ID,
+      async ({ input }) => {
+        await this.processScheduled(
+          input.request as TelegramDistributionWorkflowInput,
+        );
+        return { delivered: true };
+      },
+    );
+    this.workflowRunner.registerWorkflow(
+      buildTelegramDistributionWorkflowDefinition(),
+    );
+  }
 
   async sendImmediate(
     options: SendOptions,
@@ -160,18 +178,26 @@ export class TelegramDistributionService {
     const scheduledAtMs = options.scheduledAt.getTime();
     const delayMs = Math.max(0, scheduledAtMs - now);
     const distributionId = distribution.id.toString();
-    const queueData: TelegramDistributeJobData = {
+    const request: TelegramDistributionWorkflowInput = {
       distributionId,
       organizationId: options.organizationId,
       platform: DistributionPlatform.TELEGRAM,
     };
 
-    await this.queueService.add(TELEGRAM_DISTRIBUTE_QUEUE, queueData, {
-      delay: delayMs,
-      jobId: `telegram-distribute-${distributionId}`,
-      removeOnComplete: 100,
-      removeOnFail: 50,
-    });
+    const definition = buildTelegramDistributionWorkflowDefinition();
+    await this.workflowQueue.queueSystemWorkflowDefinition(
+      definition,
+      {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request },
+        organizationId: options.organizationId,
+        source: 'telegram-schedule',
+        userId: options.userId,
+      },
+      `telegram-distribute-${distributionId}`,
+      { attempts: 3, delayMs, replaceTerminalJob: true },
+    );
 
     return { distributionId };
   }

@@ -1,714 +1,150 @@
-import { ReplyBotPlatform } from '@genfeedai/enums';
-import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { BotActivitiesService } from '@server/collections/bot-activities/services/bot-activities.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { MonitoredAccountsService } from '@server/collections/monitored-accounts/services/monitored-accounts.service';
 import { ProcessedTweetsService } from '@server/collections/processed-tweets/services/processed-tweets.service';
 import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
 import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@server/services/reply-bot/rate-limit.service';
 import { ReplyBotOrchestratorService } from '@server/services/reply-bot/reply-bot-orchestrator.service';
+import { REPLY_BOT_ACTION_IDS } from '@server/services/reply-bot/reply-bot-workflow-definition';
 import { ReplyCandidatePrefilterService } from '@server/services/reply-bot/reply-candidate-prefilter.service';
 import { ReplyGenerationService } from '@server/services/reply-bot/reply-generation.service';
 import { SocialMonitorService } from '@server/services/reply-bot/social-monitor.service';
 
-describe('ReplyBotOrchestratorService', () => {
+describe('ReplyBotOrchestratorService workflow boundary', () => {
+  const workflowRunner = {
+    registerAction: vi.fn(),
+    registerWorkflow: vi.fn(),
+    runWorkflowDefinition: vi.fn(),
+  };
+  const workflowQueue = {
+    queueSystemWorkflowDefinition: vi.fn(),
+  };
   let service: ReplyBotOrchestratorService;
 
-  // `ReplyBotConfig.userId` is a non-nullable column, so every realistic bot
-  // config row carries it. The `user` alias is the Mongo-era relation field and
-  // is `undefined` unless the read explicitly populated it.
-  const botOwnerUserId = testId('user');
-
-  const mockConfigService = {
-    get: vi.fn(() => 'test-value'),
-  };
-
-  const mockLoggerService = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  };
-
-  const mockSocialMonitorService = {
-    filterContent: vi.fn(),
-    filterUnprocessedContent: vi.fn(),
-    getContentComments: vi.fn(),
-    getUserMentions: vi.fn(),
-    getUserTimeline: vi.fn(),
-  };
-
-  const mockReplyGenerationService = {
-    generateDm: vi.fn(),
-    generateReply: vi.fn(),
-  };
-
-  const mockBotActionExecutorService = {
-    postQuoteTweet: vi.fn(),
-    postReply: vi.fn(),
-    postTweet: vi.fn(),
-    sendDm: vi.fn(),
-  };
-
-  const mockRateLimitService = {
-    checkRateLimit: vi.fn(),
-    incrementCounter: vi.fn(),
-    isWithinSchedule: vi.fn(),
-  };
-
-  const mockReplyCandidatePrefilterService = {
-    prefilter: vi.fn((content) => ({
-      candidates: content,
-      skipped: 0,
-      skipCounts: {},
-    })),
-  };
-
-  const mockReplyBotConfigsService = {
-    findActive: vi.fn(),
-    findOneById: vi.fn(),
-  };
-
-  const mockMonitoredAccountsService = {
-    findByBotConfig: vi.fn(),
-    updateLastProcessed: vi.fn(),
-  };
-
-  const mockBotActivitiesService = {
-    create: vi.fn(),
-    updateStatus: vi.fn(),
-  };
-
-  const mockProcessedTweetsService = {
-    markAsProcessed: vi.fn(),
-  };
-
-  const mockAuthorReplyLoopService = {
-    recordAuthorClosedLoop: vi.fn().mockResolvedValue(undefined),
-  };
-
-  const mockSystemWorkflowRunner = {
-    runAction: vi.fn(
-      async (
-        _input: unknown,
-        action: (provenance: {
-          executionId: string;
-          workflowId: string;
-          workflowLabel: string;
-        }) => Promise<unknown>,
-      ) => {
-        const provenance = {
-          executionId: 'execution-1',
-          workflowId: 'workflow-1',
-          workflowLabel: 'Reply and DM Automation',
-        };
-        return { provenance, result: await action(provenance) };
-      },
-    ),
-  };
-
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    const module = await Test.createTestingModule({
       providers: [
         ReplyBotOrchestratorService,
-        { provide: ConfigService, useValue: mockConfigService },
-        { provide: LoggerService, useValue: mockLoggerService },
-        { provide: SocialMonitorService, useValue: mockSocialMonitorService },
-        {
-          provide: ReplyGenerationService,
-          useValue: mockReplyGenerationService,
-        },
-        {
-          provide: BotActionExecutorService,
-          useValue: mockBotActionExecutorService,
-        },
-        { provide: RateLimitService, useValue: mockRateLimitService },
-        {
-          provide: ReplyCandidatePrefilterService,
-          useValue: mockReplyCandidatePrefilterService,
-        },
-        {
-          provide: ReplyBotConfigsService,
-          useValue: mockReplyBotConfigsService,
-        },
-        {
-          provide: MonitoredAccountsService,
-          useValue: mockMonitoredAccountsService,
-        },
-        { provide: BotActivitiesService, useValue: mockBotActivitiesService },
-        {
-          provide: ProcessedTweetsService,
-          useValue: mockProcessedTweetsService,
-        },
-        {
-          provide: SystemWorkflowRunnerService,
-          useValue: mockSystemWorkflowRunner,
-        },
-        {
-          provide: AuthorReplyLoopService,
-          useValue: mockAuthorReplyLoopService,
-        },
+        { provide: ConfigService, useValue: {} },
+        { provide: LoggerService, useValue: { error: vi.fn() } },
+        { provide: SocialMonitorService, useValue: {} },
+        { provide: ReplyGenerationService, useValue: {} },
+        { provide: BotActionExecutorService, useValue: {} },
+        { provide: RateLimitService, useValue: {} },
+        { provide: ReplyCandidatePrefilterService, useValue: {} },
+        { provide: ReplyBotConfigsService, useValue: {} },
+        { provide: MonitoredAccountsService, useValue: {} },
+        { provide: BotActivitiesService, useValue: {} },
+        { provide: ProcessedTweetsService, useValue: {} },
+        { provide: CredentialsService, useValue: {} },
+        { provide: SystemWorkflowRunnerService, useValue: workflowRunner },
+        { provide: WorkflowExecutionQueueService, useValue: workflowQueue },
+        { provide: AuthorReplyLoopService, useValue: {} },
       ],
     }).compile();
-
-    service = module.get<ReplyBotOrchestratorService>(
-      ReplyBotOrchestratorService,
-    );
-  });
-
-  afterEach(() => {
+    service = module.get(ReplyBotOrchestratorService);
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('registers every reusable action and all child workflows', () => {
+    service.onModuleInit();
+
+    expect(workflowRunner.registerWorkflow).toHaveBeenCalledTimes(5);
+    expect(workflowRunner.registerAction).toHaveBeenCalledTimes(
+      Object.keys(REPLY_BOT_ACTION_IDS).length,
+    );
   });
 
-  describe('processOrganizationBots', () => {
-    const orgId = testId('org');
-    const credential = {
-      accessToken: 'token-123',
-      platform: 'twitter' as const,
-      username: 'testuser',
-    };
-
-    it('should return empty array when no active bots found', async () => {
-      mockReplyBotConfigsService.findActive.mockResolvedValue([]);
-
-      const results = await service.processOrganizationBots(orgId, credential);
-
-      expect(results).toEqual([]);
-      expect(mockReplyBotConfigsService.findActive).toHaveBeenCalledWith(orgId);
+  it('passes only organization and credential identifiers into polling', async () => {
+    workflowRunner.runWorkflowDefinition.mockResolvedValueOnce({
+      result: [],
     });
 
-    it('should process each active bot and return results', async () => {
-      const botConfigs = [
-        { id: 'test-object-id', name: 'Bot 1', type: 'reply_guy' },
-        { id: 'test-object-id', name: 'Bot 2', type: 'account_monitor' },
-      ];
-      mockReplyBotConfigsService.findActive.mockResolvedValue(botConfigs);
-      mockRateLimitService.isWithinSchedule.mockReturnValue(false);
+    await service.processOrganizationBots('org-1', 'credential-1');
 
-      const results = await service.processOrganizationBots(orgId, credential);
-
-      expect(results).toHaveLength(2);
-      expect(mockRateLimitService.isWithinSchedule).toHaveBeenCalledTimes(2);
-    });
-
-    it('should propagate errors from findActive', async () => {
-      mockReplyBotConfigsService.findActive.mockRejectedValue(
-        new Error('DB connection failed'),
-      );
-
-      await expect(
-        service.processOrganizationBots(orgId, credential),
-      ).rejects.toThrow('DB connection failed');
-    });
-  });
-
-  describe('processSingleBot', () => {
-    const orgId = testId('org');
-    const credential = {
-      accessToken: 'token-123',
-      platform: 'twitter' as const,
-      username: 'testuser',
-    };
-
-    const makeBotConfig = (overrides = {}) => ({
-      id: 'test-object-id',
-      actionType: 'reply_only',
-      context: 'test context',
-      replyInstructions: 'be nice',
-      replyLength: 'medium',
-      replyTone: 'friendly',
-      type: 'reply_guy',
-      userId: botOwnerUserId,
-      ...overrides,
-    });
-
-    it('should return result with zero counts when outside schedule', async () => {
-      const botConfig = makeBotConfig();
-      mockRateLimitService.isWithinSchedule.mockReturnValue(false);
-
-      const result = await service.processSingleBot(
-        botConfig as never,
-        orgId,
-        credential,
-      );
-
-      expect(result.contentProcessed).toBe(0);
-      expect(result.repliesSent).toBe(0);
-      expect(result.skipped).toBe(0);
-      expect(result.errors).toBe(0);
-      expect(mockSocialMonitorService.getUserMentions).not.toHaveBeenCalled();
-    });
-
-    it('normalizes the credential platform before processing', async () => {
-      const botConfig = makeBotConfig();
-      mockRateLimitService.isWithinSchedule.mockReturnValue(false);
-
-      const result = await service.processSingleBot(botConfig as never, orgId, {
-        ...credential,
-        platform: 'TWITTER' as ReplyBotPlatform,
-      });
-
-      expect(result.platform).toBe(ReplyBotPlatform.TWITTER);
-    });
-
-    it('normalizes the config platform when the credential omits it', async () => {
-      const botConfig = makeBotConfig({ platform: 'INSTAGRAM' });
-      mockRateLimitService.isWithinSchedule.mockReturnValue(false);
-
-      const result = await service.processSingleBot(botConfig as never, orgId, {
-        accessToken: 'token-123',
-        username: 'testuser',
-      });
-
-      expect(result.platform).toBe(ReplyBotPlatform.INSTAGRAM);
-    });
-
-    it('rejects an unknown platform before processing', async () => {
-      const botConfig = makeBotConfig();
-
-      await expect(
-        service.processSingleBot(botConfig as never, orgId, {
-          ...credential,
-          platform: 'unknown' as ReplyBotPlatform,
-        }),
-      ).rejects.toThrow('Unsupported reply bot platform: unknown');
-
-      expect(mockRateLimitService.isWithinSchedule).not.toHaveBeenCalled();
-      expect(mockSocialMonitorService.getUserMentions).not.toHaveBeenCalled();
-    });
-
-    it('should fetch mentions for REPLY_GUY bot type', async () => {
-      const botConfig = makeBotConfig({ type: 'reply_guy' });
-      mockRateLimitService.isWithinSchedule.mockReturnValue(true);
-      mockSocialMonitorService.getUserMentions.mockResolvedValue([]);
-      mockSocialMonitorService.filterUnprocessedContent.mockResolvedValue([]);
-
-      await service.processSingleBot(botConfig as never, orgId, credential);
-
-      expect(mockSocialMonitorService.getUserMentions).toHaveBeenCalled();
-      expect(mockReplyCandidatePrefilterService.prefilter).toHaveBeenCalled();
-    });
-
-    it('should fetch monitored account content for ACCOUNT_MONITOR bot type', async () => {
-      const botConfig = makeBotConfig({ type: 'account_monitor' });
-      mockRateLimitService.isWithinSchedule.mockReturnValue(true);
-      mockMonitoredAccountsService.findByBotConfig.mockResolvedValue([]);
-
-      await service.processSingleBot(botConfig as never, orgId, credential);
-
-      expect(mockMonitoredAccountsService.findByBotConfig).toHaveBeenCalled();
-    });
-
-    it('should fetch comments for COMMENT_RESPONDER bot type', async () => {
-      const botConfig = makeBotConfig({ type: 'comment_responder' });
-      mockRateLimitService.isWithinSchedule.mockReturnValue(true);
-      mockSocialMonitorService.getUserTimeline.mockResolvedValue([]);
-      mockSocialMonitorService.filterUnprocessedContent.mockResolvedValue([]);
-
-      await service.processSingleBot(botConfig as never, orgId, credential);
-
-      expect(mockSocialMonitorService.getUserTimeline).toHaveBeenCalled();
-    });
-
-    it('should increment skipped count when rate limited', async () => {
-      const botConfig = makeBotConfig();
-      const contentItem = {
-        authorId: 'author-1',
-        authorUsername: 'author',
-        contentType: 'tweet',
-        createdAt: new Date(),
-        id: 'tweet-1',
-        platform: 'twitter',
-        text: 'Hello',
-      };
-
-      mockRateLimitService.isWithinSchedule.mockReturnValue(true);
-      mockSocialMonitorService.getUserMentions.mockResolvedValue([contentItem]);
-      mockSocialMonitorService.filterUnprocessedContent.mockResolvedValue([
-        contentItem,
-      ]);
-      mockRateLimitService.checkRateLimit.mockResolvedValue({
-        allowed: false,
-        reason: 'rate_limited',
-      });
-      mockBotActivitiesService.create.mockResolvedValue({
-        id: 'test-object-id',
-      });
-
-      const result = await service.processSingleBot(
-        botConfig as never,
-        orgId,
-        credential,
-      );
-
-      expect(result.skipped).toBe(1);
-      expect(result.repliesSent).toBe(0);
-    });
-
-    it('should skip candidates removed by the deterministic prefilter', async () => {
-      const botConfig = makeBotConfig();
-      const contentItem = {
-        authorId: 'author-1',
-        authorUsername: 'author',
-        contentType: 'tweet',
-        createdAt: new Date(),
-        id: 'tweet-1',
-        platform: 'twitter',
-        text: 'Hello',
-      };
-
-      mockRateLimitService.isWithinSchedule.mockReturnValue(true);
-      mockSocialMonitorService.getUserMentions.mockResolvedValue([contentItem]);
-      mockSocialMonitorService.filterUnprocessedContent.mockResolvedValue([
-        contentItem,
-      ]);
-      mockReplyCandidatePrefilterService.prefilter.mockReturnValueOnce({
-        candidates: [],
-        skipped: 1,
-        skipCounts: { excluded_keyword: 1 },
-      });
-
-      const result = await service.processSingleBot(
-        botConfig as never,
-        orgId,
-        credential,
-      );
-
-      expect(result.skipped).toBe(1);
-      expect(result.contentProcessed).toBe(0);
-      expect(mockReplyGenerationService.generateReply).not.toHaveBeenCalled();
-      expect(mockRateLimitService.checkRateLimit).not.toHaveBeenCalled();
-    });
-
-    it('should increment repliesSent on successful reply post', async () => {
-      const botConfig = makeBotConfig({ actionType: 'reply_only' });
-      const contentItem = {
-        authorId: 'author-1',
-        authorUsername: 'author',
-        contentType: 'tweet',
-        createdAt: new Date(),
-        id: 'tweet-1',
-        platform: 'twitter',
-        text: 'Hello',
-      };
-
-      mockRateLimitService.isWithinSchedule.mockReturnValue(true);
-      mockSocialMonitorService.getUserMentions.mockResolvedValue([contentItem]);
-      mockSocialMonitorService.filterUnprocessedContent.mockResolvedValue([
-        contentItem,
-      ]);
-      mockRateLimitService.checkRateLimit.mockResolvedValue({ allowed: true });
-      mockBotActivitiesService.create.mockResolvedValue({
-        id: 'test-object-id',
-      });
-      mockReplyGenerationService.generateReply.mockResolvedValue(
-        'Generated reply text',
-      );
-      mockBotActionExecutorService.postReply.mockResolvedValue({
-        contentId: 'reply-1',
-        contentUrl: 'https://x.com/test/status/reply-1',
-        success: true,
-      });
-      mockBotActivitiesService.updateStatus.mockResolvedValue(undefined);
-      mockProcessedTweetsService.markAsProcessed.mockResolvedValue(undefined);
-
-      const result = await service.processSingleBot(
-        botConfig as never,
-        orgId,
-        credential,
-      );
-
-      expect(result.repliesSent).toBe(1);
-      expect(result.errors).toBe(0);
-      expect(mockRateLimitService.incrementCounter).toHaveBeenCalled();
-      expect(mockProcessedTweetsService.markAsProcessed).toHaveBeenCalledWith(
-        'tweet-1',
-        orgId,
-        'reply_guy',
-        botConfig.id.toString(),
-      );
-    });
-
-    it('should pass enriched candidate context into reply generation', async () => {
-      const botConfig = makeBotConfig({ actionType: 'reply_only' });
-      const contentItem = {
-        authorId: 'author-1',
-        authorUsername: 'author',
-        contentType: 'tweet',
-        createdAt: new Date(),
-        id: 'tweet-1',
-        platform: 'twitter',
-        replyContext: 'Parent content ID: parent-1',
-        text: 'Hello',
-      };
-
-      mockRateLimitService.isWithinSchedule.mockReturnValue(true);
-      mockSocialMonitorService.getUserMentions.mockResolvedValue([contentItem]);
-      mockSocialMonitorService.filterUnprocessedContent.mockResolvedValue([
-        contentItem,
-      ]);
-      mockReplyCandidatePrefilterService.prefilter.mockReturnValueOnce({
-        candidates: [contentItem],
-        skipped: 0,
-        skipCounts: {},
-      });
-      mockRateLimitService.checkRateLimit.mockResolvedValue({ allowed: true });
-      mockBotActivitiesService.create.mockResolvedValue({
-        id: 'test-object-id',
-      });
-      mockReplyGenerationService.generateReply.mockResolvedValue(
-        'Generated reply text',
-      );
-      mockBotActionExecutorService.postReply.mockResolvedValue({
-        contentId: 'reply-1',
-        success: true,
-      });
-      mockBotActivitiesService.updateStatus.mockResolvedValue(undefined);
-      mockProcessedTweetsService.markAsProcessed.mockResolvedValue(undefined);
-
-      await service.processSingleBot(botConfig as never, orgId, credential);
-
-      expect(mockReplyGenerationService.generateReply).toHaveBeenCalledWith(
-        expect.objectContaining({
-          context: 'test context\n\nParent content ID: parent-1',
-          // Owner comes from the scalar FK, not the `user` relation alias.
-          userId: botOwnerUserId,
-        }),
-      );
-    });
-
-    it('should fail closed before creating an activity when the owner cannot be resolved', async () => {
-      // A bot config read without its owner id must not post an unattributed
-      // reply. The failure is isolated to this content item — the surrounding
-      // loop keeps going and records the failed item in the result.
-      const botConfig = makeBotConfig({
-        actionType: 'reply_only',
-        userId: undefined,
-      });
-      const contentItem = {
-        authorId: 'author-1',
-        authorUsername: 'author',
-        contentType: 'tweet',
-        createdAt: new Date(),
-        id: 'tweet-1',
-        platform: 'twitter',
-        text: 'Hello',
-      };
-
-      mockRateLimitService.isWithinSchedule.mockReturnValue(true);
-      mockSocialMonitorService.getUserMentions.mockResolvedValue([contentItem]);
-      mockSocialMonitorService.filterUnprocessedContent.mockResolvedValue([
-        contentItem,
-      ]);
-      mockRateLimitService.checkRateLimit.mockResolvedValue({ allowed: true });
-      mockBotActivitiesService.create.mockResolvedValue({
-        id: 'test-object-id',
-      });
-      mockBotActivitiesService.updateStatus.mockResolvedValue(undefined);
-
-      const result = await service.processSingleBot(
-        botConfig as never,
-        orgId,
-        credential,
-      );
-
-      expect(result.errors).toBe(1);
-      expect(result.repliesSent).toBe(0);
-      expect(mockReplyGenerationService.generateReply).not.toHaveBeenCalled();
-      expect(mockBotActionExecutorService.postReply).not.toHaveBeenCalled();
-      expect(mockBotActivitiesService.create).not.toHaveBeenCalled();
-      expect(mockBotActivitiesService.updateStatus).not.toHaveBeenCalled();
-    });
-
-    it('should increment errors on failed reply post', async () => {
-      const botConfig = makeBotConfig({ actionType: 'reply_only' });
-      const contentItem = {
-        authorId: 'author-1',
-        authorUsername: 'author',
-        contentType: 'tweet',
-        createdAt: new Date(),
-        id: 'tweet-1',
-        platform: 'twitter',
-        text: 'Hello',
-      };
-
-      mockRateLimitService.isWithinSchedule.mockReturnValue(true);
-      mockSocialMonitorService.getUserMentions.mockResolvedValue([contentItem]);
-      mockSocialMonitorService.filterUnprocessedContent.mockResolvedValue([
-        contentItem,
-      ]);
-      mockRateLimitService.checkRateLimit.mockResolvedValue({ allowed: true });
-      mockBotActivitiesService.create.mockResolvedValue({
-        id: 'test-object-id',
-      });
-      mockReplyGenerationService.generateReply.mockResolvedValue(
-        'Generated reply',
-      );
-      mockBotActionExecutorService.postReply.mockResolvedValue({
-        error: 'Twitter API error',
-        success: false,
-      });
-      mockBotActivitiesService.updateStatus.mockResolvedValue(undefined);
-
-      const result = await service.processSingleBot(
-        botConfig as never,
-        orgId,
-        credential,
-      );
-
-      expect(result.errors).toBe(1);
-      expect(result.repliesSent).toBe(0);
-      expect(mockBotActivitiesService.updateStatus).toHaveBeenCalledWith(
-        expect.any(String),
-        orgId,
-        expect.objectContaining({
-          errorMessage: 'Twitter API error',
-          status: 'failed',
-        }),
-      );
-    });
-
-    it('should catch and return result when processing throws', async () => {
-      const botConfig = makeBotConfig();
-      mockRateLimitService.isWithinSchedule.mockImplementation(() => {
-        throw new Error('Unexpected failure');
-      });
-
-      const result = await service.processSingleBot(
-        botConfig as never,
-        orgId,
-        credential,
-      );
-
-      expect(result.contentProcessed).toBe(0);
-      expect(result.errors).toBe(0);
-    });
-  });
-
-  describe('testReplyGeneration', () => {
-    const orgId = testId('org');
-    const botConfigId = testId('config');
-    const testContent = { author: 'testauthor', content: 'Test tweet' };
-
-    it('should throw when bot config not found', async () => {
-      mockReplyBotConfigsService.findOneById.mockResolvedValue(null);
-
-      await expect(
-        service.testReplyGeneration(botConfigId, orgId, testContent),
-      ).rejects.toThrow('Bot configuration not found');
-    });
-
-    it('should return generated reply text', async () => {
-      mockReplyBotConfigsService.findOneById.mockResolvedValue({
-        id: botConfigId,
-        actionType: 'reply_only',
-        context: 'context',
-        replyInstructions: 'instructions',
-        replyLength: 'medium',
-        replyTone: 'friendly',
-        userId: botOwnerUserId,
-      });
-      mockReplyGenerationService.generateReply.mockResolvedValue(
-        'Generated reply!',
-      );
-
-      const result = await service.testReplyGeneration(
-        botConfigId,
-        orgId,
-        testContent,
-      );
-
-      expect(result.replyText).toBe('Generated reply!');
-      expect(result.dmText).toBeUndefined();
-    });
-
-    it('should also generate DM when action type is REPLY_AND_DM', async () => {
-      mockReplyBotConfigsService.findOneById.mockResolvedValue({
-        id: botConfigId,
-        actionType: 'reply_and_dm',
-        context: 'context',
-        replyInstructions: 'instructions',
-        dmConfig: {
-          context: 'dm context',
-          ctaLink: 'https://example.com',
-          customInstructions: 'dm instructions',
-          offer: 'Free trial',
+    expect(workflowRunner.runWorkflowDefinition).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        inputValues: {
+          request: {
+            credentialId: 'credential-1',
+            organizationId: 'org-1',
+          },
         },
-        replyLength: 'medium',
-        replyTone: 'friendly',
-        userId: botOwnerUserId,
-      });
-      mockReplyGenerationService.generateReply.mockResolvedValue(
-        'Generated reply!',
-      );
-      mockReplyGenerationService.generateDm.mockResolvedValue('Generated DM!');
+      }),
+    );
+  });
 
-      const result = await service.testReplyGeneration(
-        botConfigId,
-        orgId,
-        testContent,
-      );
+  it('queues manual polling as the organization workflow', async () => {
+    workflowQueue.queueSystemWorkflowDefinition.mockResolvedValueOnce('job-1');
 
-      expect(result.replyText).toBe('Generated reply!');
-      expect(result.dmText).toBe('Generated DM!');
-      expect(mockReplyGenerationService.generateDm).toHaveBeenCalledWith(
-        expect.objectContaining({
-          context: 'dm context',
-          organizationId: orgId,
-          replyText: 'Generated reply!',
-          tweetAuthor: 'testauthor',
-          tweetContent: 'Test tweet',
-        }),
-      );
+    await expect(
+      service.queueOrganizationBots('org-1', 'credential-1'),
+    ).resolves.toBe('job-1');
+
+    expect(workflowQueue.queueSystemWorkflowDefinition).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        inputValues: {
+          request: {
+            credentialId: 'credential-1',
+            organizationId: 'org-1',
+          },
+        },
+      }),
+      expect.stringMatching(/^reply-bot-poll-org-1-credential-1-/),
+    );
+  });
+
+  it('routes a single bot through its child workflow', async () => {
+    workflowRunner.runWorkflowDefinition.mockResolvedValueOnce({
+      result: { botConfigId: 'bot-1' },
     });
 
-    it('should attribute generation to the scalar owner id', async () => {
-      // `findOneById` passes no populate, so `user` is absent on a real row —
-      // reading it used to attribute the generation to `''`.
-      mockReplyBotConfigsService.findOneById.mockResolvedValue({
-        id: botConfigId,
-        actionType: 'reply_only',
-        context: 'context',
-        replyLength: 'medium',
-        replyTone: 'friendly',
-        userId: botOwnerUserId,
-      });
-      mockReplyGenerationService.generateReply.mockResolvedValue(
-        'Generated reply!',
-      );
+    await service.processSingleBot('bot-1', 'org-1', 'credential-1');
 
-      await service.testReplyGeneration(botConfigId, orgId, testContent);
+    expect(workflowRunner.runWorkflowDefinition).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        inputValues: {
+          request: {
+            botConfigId: 'bot-1',
+            credentialId: 'credential-1',
+            organizationId: 'org-1',
+          },
+        },
+      }),
+    );
+  });
 
-      expect(mockReplyGenerationService.generateReply).toHaveBeenCalledWith(
-        expect.objectContaining({
-          organizationId: orgId,
-          userId: botOwnerUserId,
-        }),
-      );
+  it('routes dry-run generation through a workflow without a provider credential', async () => {
+    workflowRunner.runWorkflowDefinition.mockResolvedValueOnce({
+      result: { replyText: 'draft' },
     });
 
-    it('should fail closed without generating when the owner cannot be resolved', async () => {
-      mockReplyBotConfigsService.findOneById.mockResolvedValue({
-        id: botConfigId,
-        actionType: 'reply_only',
-        context: 'context',
-        replyLength: 'medium',
-        replyTone: 'friendly',
-      });
-
-      await expect(
-        service.testReplyGeneration(botConfigId, orgId, testContent),
-      ).rejects.toThrow();
-      expect(mockReplyGenerationService.generateReply).not.toHaveBeenCalled();
+    await service.testReplyGeneration('bot-1', 'org-1', {
+      author: 'alice',
+      content: 'hello',
     });
+
+    expect(workflowRunner.runWorkflowDefinition).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        inputValues: {
+          request: {
+            botConfigId: 'bot-1',
+            organizationId: 'org-1',
+            testContent: { author: 'alice', content: 'hello' },
+          },
+        },
+      }),
+    );
   });
 });

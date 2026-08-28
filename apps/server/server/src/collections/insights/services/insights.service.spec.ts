@@ -96,6 +96,8 @@ describe('InsightsService', () => {
       logger as unknown as LoggerService,
       {} as unknown as ModelsService,
       llmDispatcherService as unknown as LlmDispatcherService,
+      { queueSystemWorkflowDefinition: vi.fn() } as never,
+      { registerAction: vi.fn() } as never,
     );
   });
 

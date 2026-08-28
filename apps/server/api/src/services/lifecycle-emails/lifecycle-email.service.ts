@@ -1,13 +1,13 @@
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import type {
   LifecycleEmailSequence,
   LifecycleEmailStep,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
-import { LifecycleEmailQueueService } from './lifecycle-email-queue.service';
+import { LifecycleEmailWorkflowService } from './lifecycle-email-workflow.service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CHECKOUT_RECOVERY_DELAY_MS = 2 * 60 * 60 * 1000;
@@ -71,7 +71,7 @@ export class LifecycleEmailService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly queueService: LifecycleEmailQueueService,
+    private readonly workflowService: LifecycleEmailWorkflowService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -262,10 +262,17 @@ export class LifecycleEmailService {
       throw error;
     }
 
-    await this.queueService.scheduleEmail(
+    const organizationId =
+      input.metadata?.organizationId ??
+      (await this.resolveUserOrganizationId(input.user.id));
+    if (!organizationId) {
+      throw new Error('Lifecycle email requires an organization');
+    }
+
+    await this.workflowService.scheduleEmail(
       {
         checkoutSessionId: input.checkoutSessionId,
-        organizationId: input.metadata?.organizationId,
+        organizationId,
         sequence: input.sequence,
         step: input.step,
         subscriptionId: input.metadata?.subscriptionId,
@@ -274,6 +281,16 @@ export class LifecycleEmailService {
       },
       input.scheduledFor,
     );
+  }
+
+  private async resolveUserOrganizationId(
+    userId: string,
+  ): Promise<string | null> {
+    const member = await this.prisma.member.findFirst({
+      select: { organizationId: true },
+      where: { isActive: true, isDeleted: false, userId },
+    });
+    return member?.organizationId ?? null;
   }
 
   private async findEmailTargetById(

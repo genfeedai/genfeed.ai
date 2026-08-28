@@ -26,6 +26,21 @@ const REVIEW_GATE_SYSTEM_ACTOR = 'system';
 /** Registry defaults mirrored from the reviewGate node configSchema. */
 const REVIEW_GATE_DEFAULT_TIMEOUT_HOURS = 24;
 
+type ContinueWorkflowGraph = (input: {
+  executionId: string;
+  nodeOutputCache: Record<string, unknown>;
+  startedAt: Date;
+  triggerEvent: {
+    data: Record<string, unknown>;
+    organizationId: string;
+    platform: string;
+    type: string;
+    userId: string;
+  };
+  workflow: ExecutableWorkflow;
+  workflowLabel: string;
+}) => Promise<ExecutionRunResult>;
+
 export class WorkflowReviewGateService {
   constructor(
     private readonly prisma: PrismaService,
@@ -36,6 +51,7 @@ export class WorkflowReviewGateService {
     private readonly progressService: WorkflowExecutionProgressService,
     private readonly finalizer: WorkflowExecutionFinalizerService,
     private readonly notifier?: ReviewGateNotificationService,
+    private readonly continueWorkflowGraph?: ContinueWorkflowGraph,
   ) {}
 
   async submitReviewGateApproval(
@@ -478,19 +494,20 @@ export class WorkflowReviewGateService {
       }
     }
 
-    const downstreamNodeIds = this.graphService.collectDownstreamNodeIds(
-      input.nodeId,
-      executableWorkflow.edges,
-      executableWorkflow.nodes,
-    );
-    const remainingNodeIds = downstreamNodeIds.filter(
-      (downstreamNodeId) =>
-        !input.execution.nodeResults.some(
-          (result) =>
-            result.nodeId === downstreamNodeId &&
-            result.status === WorkflowExecutionStatus.COMPLETED,
-        ),
-    );
+    const remainingNodeIds = this.graphService
+      .collectDownstreamNodeIds(
+        input.nodeId,
+        executableWorkflow.edges,
+        executableWorkflow.nodes,
+      )
+      .filter(
+        (downstreamNodeId) =>
+          !input.execution.nodeResults.some(
+            (result) =>
+              result.nodeId === downstreamNodeId &&
+              result.status === WorkflowExecutionStatus.COMPLETED,
+          ),
+      );
 
     if (remainingNodeIds.length === 0) {
       await this.executionsService.completeExecution(input.executionId);
@@ -513,35 +530,34 @@ export class WorkflowReviewGateService {
       };
     }
 
-    const baselineEstimatedDurationMs =
-      this.progressService.extractEstimatedDurationMs(input.execution.metadata);
-    const completedNodeIds = new Set(
-      input.execution.nodeResults
-        .filter((result) => result.status === WorkflowExecutionStatus.COMPLETED)
-        .map((result) => result.nodeId),
-    );
-    completedNodeIds.add(input.nodeId);
-    const skippedNodeIds = new Set<string>();
+    if (!this.continueWorkflowGraph) {
+      throw new Error('Workflow graph continuation is unavailable');
+    }
 
-    const result = await this.engineAdapter.executeWorkflow(
-      executableWorkflow,
-      {
-        executionId: input.executionId,
-        nodeIds: remainingNodeIds,
-        onNodeStatusChange: this.progressService.buildNodeStatusChangeHandler({
-          baselineEstimatedDurationMs,
-          completedNodeIds,
-          executionId: input.executionId,
-          progressFallback: input.execution.progress ?? 0,
-          skippedNodeIds,
-          startedAt: input.execution.startedAt ?? new Date(),
-          userId: input.userId,
-          workflow: executableWorkflow,
-          workflowId: input.workflowId,
-          workflowLabel: input.workflowLabel,
-        }),
-      },
+    const nodeOutputCache = Object.fromEntries(
+      input.execution.nodeResults.flatMap((nodeResult) =>
+        nodeResult.status === WorkflowExecutionStatus.COMPLETED &&
+        nodeResult.output !== undefined
+          ? [[nodeResult.nodeId, nodeResult.output] as const]
+          : [],
+      ),
     );
+    nodeOutputCache[input.nodeId] = approvedOutput;
+
+    const result = await this.continueWorkflowGraph({
+      executionId: input.executionId,
+      nodeOutputCache,
+      startedAt: input.execution.startedAt ?? new Date(),
+      triggerEvent: {
+        data: input.execution.inputValues ?? {},
+        organizationId: executableWorkflow.organizationId,
+        platform: 'workflow',
+        type: 'reviewGateApproval',
+        userId: input.userId,
+      },
+      workflow: executableWorkflow,
+      workflowLabel: input.workflowLabel,
+    });
 
     const finalStatus = this.finalizer.mapRunResultToExecutionStatus(result);
     if (finalStatus !== WorkflowExecutionStatus.RUNNING) {

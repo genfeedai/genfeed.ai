@@ -9,11 +9,6 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
         label: 'Custom Field Path',
         type: 'string',
       },
-      expression: {
-        description: 'JS-like expression (e.g. value > 10)',
-        label: 'Expression',
-        type: 'string',
-      },
       field: {
         default: 'custom',
         description: 'Field to evaluate',
@@ -43,12 +38,10 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
           'notContains',
           'startsWith',
           'endsWith',
-          'matches',
           'isTrue',
           'isFalse',
           'isEmpty',
           'isNotEmpty',
-          'expression',
         ],
         type: 'select',
       },
@@ -145,13 +138,7 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
         default: 'fixed',
         description: 'Delay mode',
         label: 'Mode',
-        options: ['fixed', 'until', 'optimal'],
-        type: 'select',
-      },
-      platform: {
-        description: 'Platform for optimal posting time',
-        label: 'Platform',
-        options: ['instagram', 'tiktok', 'youtube', 'twitter', 'facebook'],
+        options: ['fixed', 'until'],
         type: 'select',
       },
       timezone: {
@@ -181,21 +168,6 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
     label: 'Delay',
     outputs: {
       trigger: { label: 'Continue', type: 'any' },
-    },
-  },
-
-  'control-loop': {
-    category: 'control',
-    configSchema: {},
-    description: 'Iterate over array of items',
-    icon: 'RefreshCw',
-    inputs: {
-      items: { label: 'Items', multiple: true, type: 'any' },
-    },
-    label: 'Loop',
-    outputs: {
-      index: { label: 'Index', type: 'number' },
-      item: { label: 'Current Item', type: 'any' },
     },
   },
 

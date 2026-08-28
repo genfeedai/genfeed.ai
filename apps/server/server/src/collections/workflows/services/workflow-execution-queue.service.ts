@@ -1,6 +1,8 @@
+import { createHash } from 'node:crypto';
 import {
   ActionOrigin,
   type ActionOriginContext,
+  type WorkflowExecutionStatus,
   WorkflowStatus,
 } from '@genfeedai/enums';
 import type { WorkflowTriggerQueueOptions } from '@genfeedai/interfaces';
@@ -17,11 +19,11 @@ import type {
   TriggerEvent,
 } from '@server/collections/workflows/services/workflow-executor.service';
 import { isProtectedSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
-import type {
-  RunSystemWorkflowInput,
-  SystemWorkflowGraphDefinition,
-} from '@server/collections/workflows/system-workflow-runner.service';
-import { createSystemActionWorkflowDefinition } from '@server/collections/workflows/system-workflow-runner.service';
+import {
+  createSystemActionWorkflowDefinition,
+  type RunSystemWorkflowInput,
+  type SystemWorkflowGraphDefinition,
+} from '@server/collections/workflows/system-workflow-definition';
 import { reserveIdempotentJob } from '@server/queues/idempotent-job';
 import { Queue } from 'bullmq';
 
@@ -44,11 +46,14 @@ export interface WorkflowExecutionJobData {
   priorExecutionIds?: string[];
   systemRun?: {
     definition: SystemWorkflowGraphDefinition;
-    failureAction?: {
-      actionId: string;
-      inputValues: Record<string, unknown>;
-    };
     input: Omit<RunSystemWorkflowInput, 'runtimeContext'>;
+    priorExecution?: {
+      delayResumeData?: DelayResumeJobData;
+      executionId: string;
+      status: WorkflowExecutionStatus;
+      userId: string;
+      workflowId: string;
+    };
   };
 }
 
@@ -158,12 +163,9 @@ export class WorkflowExecutionQueueService {
     definition: SystemWorkflowGraphDefinition,
     input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
     jobId: string,
-    failureAction?: {
-      actionId: string;
-      inputValues: Record<string, unknown>;
-    },
     options: {
       attempts?: number;
+      delayMs?: number;
       replaceTerminalJob?: boolean;
     } = {},
   ): Promise<string> {
@@ -188,7 +190,6 @@ export class WorkflowExecutionQueueService {
         actionContext: sanitizeActionOriginContext(getActionOriginContext()),
         systemRun: {
           definition,
-          ...(failureAction ? { failureAction } : {}),
           input,
         },
         type: 'system-run',
@@ -196,6 +197,7 @@ export class WorkflowExecutionQueueService {
       {
         attempts: options.attempts ?? 3,
         backoff: { delay: 5000, type: 'exponential' },
+        ...(options.delayMs !== undefined ? { delay: options.delayMs } : {}),
         jobId,
         removeOnComplete: 200,
         removeOnFail: 100,
@@ -234,6 +236,10 @@ export class WorkflowExecutionQueueService {
     data: DelayResumeJobData,
     delayMs: number,
   ): Promise<string> {
+    const identity = createHash('sha256')
+      .update(`${data.executionId}:${data.delayNodeId}`)
+      .digest('hex')
+      .slice(0, 32);
     const job = await this.executionQueue.add(
       'delay-resume',
       {
@@ -245,6 +251,7 @@ export class WorkflowExecutionQueueService {
         attempts: 3,
         backoff: { delay: 5000, type: 'exponential' },
         delay: delayMs,
+        jobId: `workflow-delay-${identity}`,
         removeOnComplete: 200,
         removeOnFail: 100,
       },

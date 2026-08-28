@@ -27,10 +27,14 @@ import type {
   SocialConversationPatch,
   SocialInboxScope,
 } from '@server/collections/social-inbox/services/social-inbox.types';
+import {
+  buildSocialInboxOutboundWorkflowDefinition,
+  SOCIAL_INBOX_OUTBOUND_ACTION_IDS,
+} from '@server/collections/social-inbox/services/social-inbox-outbound-workflow-definition';
 import { SocialInboxQueryService } from '@server/collections/social-inbox/services/social-inbox-query.service';
 import { SocialInboxRealtimeService } from '@server/collections/social-inbox/services/social-inbox-realtime.service';
 import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
+  type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
 import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
@@ -39,6 +43,26 @@ import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
 
 type JsonRecord = Record<string, unknown>;
+
+export type SocialInboxOutboundWorkflowState = {
+  action: OutboundAction;
+  agentRunId?: string;
+  body: string;
+  conversationId: string;
+  error?: string;
+  errorKind?: 'bad-request' | 'conflict' | 'provider';
+  externalMessageId?: string;
+  externalUrl?: string;
+  idempotencyKey?: string;
+  messageType: OutboundMessageType;
+  organizationId: string;
+  outboundMessageId?: string;
+  recipientId?: string;
+  reservationClaimed?: boolean;
+  userId?: string;
+  workflowRunId?: string;
+  [key: string]: unknown;
+};
 
 @Injectable()
 export class SocialInboxActionService implements OnModuleInit {
@@ -52,13 +76,23 @@ export class SocialInboxActionService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    this.systemWorkflowRunner.registerAction(
-      SYSTEM_WORKFLOW_ACTION_IDS.SOCIAL_INBOX_POST_REPLY,
-      ({ input }) => this.executeProviderReplyAction(input),
+    this.systemWorkflowRunner.registerWorkflow(
+      buildSocialInboxOutboundWorkflowDefinition('reply'),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildSocialInboxOutboundWorkflowDefinition('dm'),
     );
     this.systemWorkflowRunner.registerAction(
-      SYSTEM_WORKFLOW_ACTION_IDS.SOCIAL_INBOX_SEND_DM,
-      ({ input }) => this.executeProviderDmAction(input),
+      SOCIAL_INBOX_OUTBOUND_ACTION_IDS.RESERVE,
+      (request) => this.reserveOutboundActionNode(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      SOCIAL_INBOX_OUTBOUND_ACTION_IDS.PROVIDER,
+      (request) => this.executeOutboundProviderAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      SOCIAL_INBOX_OUTBOUND_ACTION_IDS.FINALIZE,
+      (request) => this.finalizeOutboundActionNode(request),
     );
   }
 
@@ -240,33 +274,7 @@ export class SocialInboxActionService implements OnModuleInit {
     conversationId: string,
     input: SocialActionInput,
   ): Promise<SocialMessageDocument> {
-    const conversation = await this.queryService.getConversation(
-      scope,
-      conversationId,
-    );
-    const availability = readAvailability(conversation);
-    if (!availability.canPostReply) {
-      throw new BadRequestException(
-        availability.postReplyReason ?? 'Reply is not available',
-      );
-    }
-
-    const body = sanitizeBody(input.text);
-    const message = await this.executeOutboundAction(
-      'post_reply',
-      'reply',
-      conversation,
-      scope,
-      input,
-      body,
-      () => this.publishReply(conversation, scope, body),
-    );
-    await this.realtimeService.emit(
-      conversation.organizationId,
-      conversation.id,
-      'message-created',
-    );
-    return message;
+    return this.runOutboundWorkflow('reply', scope, conversationId, input);
   }
 
   async sendDm(
@@ -274,37 +282,7 @@ export class SocialInboxActionService implements OnModuleInit {
     conversationId: string,
     input: SocialActionInput,
   ): Promise<SocialMessageDocument> {
-    const conversation = await this.queryService.getConversation(
-      scope,
-      conversationId,
-    );
-    const availability = readAvailability(conversation);
-    if (!availability.canSendDm) {
-      throw new BadRequestException(
-        availability.sendDmReason ?? 'DM is not available',
-      );
-    }
-
-    const body = sanitizeBody(input.text);
-    const message = await this.executeOutboundAction(
-      'send_dm',
-      'dm',
-      conversation,
-      scope,
-      input,
-      body,
-      () =>
-        this.publishDm(conversation, scope, {
-          recipientId: input.recipientId,
-          text: body,
-        }),
-    );
-    await this.realtimeService.emit(
-      conversation.organizationId,
-      conversation.id,
-      'message-created',
-    );
-    return message;
+    return this.runOutboundWorkflow('dm', scope, conversationId, input);
   }
 
   async updateConversation(
@@ -352,37 +330,246 @@ export class SocialInboxActionService implements OnModuleInit {
     return updated;
   }
 
-  private async publishReply(
-    conversation: SocialConversationDocument,
+  private async runOutboundWorkflow(
+    messageType: OutboundMessageType,
     scope: SocialInboxScope,
-    text: string,
-  ): Promise<{ messageId: string; url?: string }> {
+    conversationId: string,
+    input: SocialActionInput,
+  ): Promise<SocialMessageDocument> {
+    const definition = buildSocialInboxOutboundWorkflowDefinition(messageType);
     const { result } =
-      await this.systemWorkflowRunner.runAction<OutboundPublishResult>({
-        actionType: 'post_reply',
-        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SOCIAL_INBOX_POST_REPLY,
-        inputValues: {
-          conversationId: conversation.id,
-          organizationId: conversation.organizationId,
-          text,
+      await this.systemWorkflowRunner.runWorkflowDefinition<SocialInboxOutboundWorkflowState>(
+        definition,
+        {
+          actionType: definition.canonicalId,
+          canonicalId: definition.canonicalId,
+          inputValues: {
+            request: {
+              action: messageType === 'dm' ? 'send_dm' : 'post_reply',
+              agentRunId: input.agentRunId,
+              body: input.text,
+              conversationId,
+              idempotencyKey: input.idempotencyKey,
+              messageType,
+              organizationId: scope.organizationId,
+              recipientId: input.recipientId,
+              userId: scope.userId,
+              workflowRunId: input.workflowRunId,
+            },
+          },
+          organizationId: scope.organizationId,
+          source: `SocialInboxActionService.${messageType === 'dm' ? 'sendDm' : 'postReply'}`,
+          trigger: WorkflowExecutionTrigger.API,
+          userId: scope.userId,
         },
-        organizationId: conversation.organizationId,
-        source: 'SocialInboxActionService.postReply',
-        trigger: WorkflowExecutionTrigger.API,
-        userId: scope.userId,
-      });
-    return result;
+      );
+
+    if (result.error) {
+      if (result.errorKind === 'bad-request') {
+        throw new BadRequestException(result.error);
+      }
+      if (result.errorKind === 'conflict') {
+        throw new ConflictException(result.error);
+      }
+      throw new Error(result.error);
+    }
+    const messageId = this.requiredString(
+      result.outboundMessageId,
+      'outboundMessageId',
+    );
+    return findOrThrow(
+      this.prisma.socialMessage,
+      {
+        where: scopedWhere(scope.organizationId, {
+          conversationId,
+          id: messageId,
+        }),
+      },
+      'Outbound social message',
+    );
+  }
+
+  private async reserveOutboundActionNode(
+    action: SystemWorkflowActionRequest,
+  ): Promise<SocialInboxOutboundWorkflowState> {
+    const state = this.readOutboundState(action.input);
+    if (state.outcome) return state;
+    try {
+      const conversation = await this.queryService.getConversation(
+        this.toScope(state),
+        state.conversationId,
+      );
+      const availability = readAvailability(conversation);
+      if (state.messageType === 'dm' && !availability.canSendDm) {
+        throw new BadRequestException(
+          availability.sendDmReason ?? 'DM is not available',
+        );
+      }
+      if (state.messageType === 'reply' && !availability.canPostReply) {
+        throw new BadRequestException(
+          availability.postReplyReason ?? 'Reply is not available',
+        );
+      }
+      const workflowState = {
+        ...state,
+        body: sanitizeBody(state.body),
+        workflowRunId: state.workflowRunId ?? action.provenance.executionId,
+      };
+      const reservation = await this.reserveOutboundAction(
+        workflowState.action,
+        workflowState.messageType,
+        conversation,
+        this.toScope(workflowState),
+        this.toSocialActionInput(workflowState),
+        workflowState.body,
+      );
+      return {
+        ...workflowState,
+        outboundMessageId: reservation.message.id,
+        reservationClaimed: reservation.isClaimed,
+      };
+    } catch (error: unknown) {
+      return {
+        ...state,
+        error: error instanceof Error ? error.message : 'Reservation failed',
+        errorKind:
+          error instanceof BadRequestException
+            ? 'bad-request'
+            : error instanceof ConflictException
+              ? 'conflict'
+              : 'provider',
+      };
+    }
+  }
+
+  private async executeOutboundProviderAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<SocialInboxOutboundWorkflowState> {
+    const state = this.readOutboundState(action.input);
+    if (state.outcome || state.error || state.reservationClaimed === false) {
+      return state;
+    }
+    try {
+      const result =
+        state.messageType === 'dm'
+          ? await this.executeProviderDmAction(state)
+          : await this.executeProviderReplyAction(state);
+      return {
+        ...state,
+        externalMessageId: result.messageId,
+        externalUrl: 'url' in result ? result.url : undefined,
+      };
+    } catch (error: unknown) {
+      return {
+        ...state,
+        error:
+          error instanceof Error ? error.message : 'Provider publish failed',
+        errorKind:
+          error instanceof BadRequestException ? 'bad-request' : 'provider',
+      };
+    }
+  }
+
+  private async finalizeOutboundActionNode(
+    action: SystemWorkflowActionRequest,
+  ): Promise<SocialInboxOutboundWorkflowState> {
+    const state = this.readOutboundState(action.input);
+    if (state.outcome) return state;
+    if (!state.outboundMessageId) return state;
+    const conversation = await this.queryService.getConversation(
+      this.toScope(state),
+      state.conversationId,
+    );
+    if (state.error) {
+      await this.failOutboundAction(
+        state.outboundMessageId,
+        state.action,
+        conversation,
+        this.toScope(state),
+        this.toSocialActionInput(state),
+        state.error,
+      );
+      return state;
+    }
+    if (state.reservationClaimed !== false) {
+      await this.completeOutboundAction(state, conversation);
+      await this.realtimeService.emit(
+        state.organizationId,
+        state.conversationId,
+        'message-created',
+      );
+    }
+    return state;
+  }
+
+  private readOutboundState(
+    input: Record<string, unknown>,
+  ): SocialInboxOutboundWorkflowState {
+    const state = this.readRecord(input.state);
+    const value =
+      Object.keys(state).length > 0 ? state : this.readRecord(input.request);
+    if (value.outcome) {
+      return value as SocialInboxOutboundWorkflowState;
+    }
+    const messageType = value.messageType === 'dm' ? 'dm' : 'reply';
+    return {
+      ...value,
+      action: messageType === 'dm' ? 'send_dm' : 'post_reply',
+      body: this.requiredString(value.body, 'body'),
+      conversationId: this.requiredString(
+        value.conversationId,
+        'conversationId',
+      ),
+      messageType,
+      organizationId: this.requiredString(
+        value.organizationId,
+        'organizationId',
+      ),
+    } as SocialInboxOutboundWorkflowState;
+  }
+
+  private toScope(state: SocialInboxOutboundWorkflowState): SocialInboxScope {
+    return {
+      organizationId: state.organizationId,
+      userId: state.userId,
+    };
+  }
+
+  private toSocialActionInput(
+    state: SocialInboxOutboundWorkflowState,
+  ): SocialActionInput {
+    return {
+      agentRunId: state.agentRunId,
+      idempotencyKey: state.idempotencyKey,
+      messageType: state.messageType,
+      recipientId: state.recipientId,
+      text: state.body,
+      workflowRunId: state.workflowRunId,
+    };
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new Error(`Social inbox outbound action requires ${field}`);
+    }
+    return value;
   }
 
   private async executeProviderReplyAction(
-    input: Record<string, unknown>,
+    input: SocialInboxOutboundWorkflowState,
   ): Promise<OutboundPublishResult> {
-    const organizationId = String(input.organizationId ?? '');
+    const organizationId = input.organizationId;
     const conversation = await this.queryService.getConversation(
       { organizationId },
-      String(input.conversationId ?? ''),
+      input.conversationId,
     );
-    const text = sanitizeBody(String(input.text ?? ''));
+    const text = input.body;
 
     if (!conversation.brandId) {
       throw new BadRequestException('A brand is required to publish replies');
@@ -436,37 +623,13 @@ export class SocialInboxActionService implements OnModuleInit {
     );
   }
 
-  private async publishDm(
-    conversation: SocialConversationDocument,
-    scope: SocialInboxScope,
-    input: { recipientId?: string; text: string },
-  ): Promise<{ messageId: string }> {
-    const { result } = await this.systemWorkflowRunner.runAction<{
-      messageId: string;
-    }>({
-      actionType: 'send_dm',
-      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SOCIAL_INBOX_SEND_DM,
-      inputValues: {
-        conversationId: conversation.id,
-        organizationId: conversation.organizationId,
-        recipientId: input.recipientId,
-        text: input.text,
-      },
-      organizationId: conversation.organizationId,
-      source: 'SocialInboxActionService.sendDm',
-      trigger: WorkflowExecutionTrigger.API,
-      userId: scope.userId,
-    });
-    return result;
-  }
-
   private async executeProviderDmAction(
-    input: Record<string, unknown>,
+    input: SocialInboxOutboundWorkflowState,
   ): Promise<{ messageId: string }> {
-    const organizationId = String(input.organizationId ?? '');
+    const organizationId = input.organizationId;
     const conversation = await this.queryService.getConversation(
       { organizationId },
-      String(input.conversationId ?? ''),
+      input.conversationId,
     );
 
     if (!conversation.brandId) {
@@ -490,68 +653,35 @@ export class SocialInboxActionService implements OnModuleInit {
       conversation.organizationId,
       conversation.brandId,
       recipientId,
-      sanitizeBody(String(input.text ?? '')),
+      input.body,
       conversation.credentialId ?? undefined,
     );
 
     return { messageId: messageId ?? `instagram_dm_${Date.now()}` };
   }
 
-  private async executeOutboundAction(
-    action: OutboundAction,
-    messageType: OutboundMessageType,
+  private async completeOutboundAction(
+    state: SocialInboxOutboundWorkflowState,
     conversation: SocialConversationDocument,
-    scope: SocialInboxScope,
-    input: SocialActionInput,
-    body: string,
-    publish: () => Promise<OutboundPublishResult>,
-  ): Promise<SocialMessageDocument> {
-    const reservation = await this.reserveOutboundAction(
-      action,
-      messageType,
-      conversation,
-      scope,
-      input,
-      body,
-    );
-
-    if (!reservation.isClaimed) {
-      return reservation.message;
-    }
-
-    let external: OutboundPublishResult;
-    try {
-      external = await publish();
-    } catch (error: unknown) {
-      await this.failOutboundAction(
-        reservation.message.id,
-        action,
-        conversation,
-        scope,
-        input,
-        error,
-      );
-      throw error;
-    }
-
+  ): Promise<string> {
     const now = new Date();
     const finalized = await this.prisma.socialMessage.updateMany({
       data: {
         actionProvenance: this.buildActionProvenance({
-          action,
+          action: state.action,
           conversation,
-          input,
-          scope,
+          input: this.toSocialActionInput(state),
+          scope: this.toScope(state),
           status: 'sent',
         }) as Prisma.InputJsonValue,
-        externalMessageId: external.messageId,
+        externalMessageId: state.externalMessageId,
         failureReason: null,
-        sourceUrl: external.url,
+        sourceUrl: state.externalUrl,
         status: 'sent',
       },
-      where: scopedWhere(scope.organizationId, {
+      where: scopedWhere(state.organizationId, {
         conversationId: conversation.id,
-        id: reservation.message.id,
+        id: state.outboundMessageId,
         status: 'pending',
       }),
     });
@@ -563,9 +693,9 @@ export class SocialInboxActionService implements OnModuleInit {
     await this.prisma.socialConversation.update({
       data: {
         automationState:
-          input.workflowRunId || input.agentRunId ? 'automated' : 'manual',
+          state.workflowRunId || state.agentRunId ? 'automated' : 'manual',
         latestMessageAt: now,
-        latestMessageText: clamp(body, 500),
+        latestMessageText: clamp(state.body, 500),
         lastOutboundAt: now,
         needsReview: false,
         status: 'open',
@@ -574,21 +704,11 @@ export class SocialInboxActionService implements OnModuleInit {
       },
       where: {
         id: conversation.id,
-        organizationId: scope.organizationId,
+        organizationId: state.organizationId,
       },
     });
 
-    const message = await this.prisma.socialMessage.findFirst({
-      where: scopedWhere(scope.organizationId, {
-        conversationId: conversation.id,
-        id: reservation.message.id,
-      }),
-    });
-    if (!message) {
-      throw new ConflictException('Finalized social action was not found');
-    }
-
-    return message;
+    return this.requiredString(state.outboundMessageId, 'outboundMessageId');
   }
 
   private async findIdempotentDraft(

@@ -1,72 +1,62 @@
+import { Platform } from '@genfeedai/enums';
 import { ReplyInboundProcessorService } from '@server/services/reply-bot/reply-inbound-processor.service';
-import { Platform, ReplyBotPlatform } from '@genfeedai/enums';
+import { REPLY_INGESTION_ACTION_IDS } from '@server/services/reply-bot/reply-ingestion-workflow-definition';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-describe('ReplyInboundProcessorService', () => {
-  const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
-  const processedTweetsService = {
-    isProcessed: vi.fn().mockResolvedValue(false),
-    markAsProcessed: vi.fn(),
+describe('ReplyInboundProcessorService workflow boundary', () => {
+  const workflowRunner = {
+    registerAction: vi.fn(),
+    registerWorkflow: vi.fn(),
+    runWorkflowDefinition: vi.fn(),
   };
-  const authorReplyLoopService = {
-    findResponderOwnerUserId: vi.fn().mockResolvedValue('user-1'),
-    sendReply: vi.fn().mockResolvedValue({ success: true }),
-  };
-
+  const workflowQueue = { queueSystemWorkflowDefinition: vi.fn() };
   let service: ReplyInboundProcessorService;
 
   beforeEach(() => {
     vi.clearAllMocks();
     service = new ReplyInboundProcessorService(
-      logger as never,
-      processedTweetsService as never,
-      authorReplyLoopService as never,
+      {} as never,
+      {} as never,
+      workflowRunner as never,
+      workflowQueue as never,
     );
   });
 
-  it('forwards platform to sendReply (youtube)', async () => {
-    const result = await service.process({
+  it('registers the inbound graph and its atomic actions', () => {
+    service.onModuleInit();
+
+    expect(workflowRunner.registerWorkflow).toHaveBeenCalledOnce();
+    expect(workflowRunner.registerAction).toHaveBeenCalledWith(
+      REPLY_INGESTION_ACTION_IDS.PREPARE_INBOUND,
+      expect.any(Function),
+    );
+    expect(workflowRunner.registerAction).toHaveBeenCalledWith(
+      REPLY_INGESTION_ACTION_IDS.FINALIZE_INBOUND,
+      expect.any(Function),
+    );
+  });
+
+  it('queues webhook intake as a deterministic system workflow', async () => {
+    workflowQueue.queueSystemWorkflowDefinition.mockResolvedValueOnce('job-1');
+    const input = {
       brandId: 'brand-1',
       commentAuthorUsername: 'viewer',
-      commentId: 'c1',
-      commentText: 'Great video!',
+      commentId: 'comment-1',
+      commentText: 'Great video',
       organizationId: 'org-1',
-      parentPostId: 'v1',
+      parentPostId: 'video-1',
       platform: Platform.YOUTUBE,
       receivedAt: new Date().toISOString(),
-      source: 'manual',
-    });
+      source: 'xaa' as const,
+    };
 
-    expect(result.success).toBe(true);
-    expect(
-      authorReplyLoopService.findResponderOwnerUserId,
-    ).toHaveBeenCalledWith('org-1', 'brand-1', ReplyBotPlatform.YOUTUBE);
-    expect(authorReplyLoopService.sendReply).toHaveBeenCalledWith(
-      expect.objectContaining({
-        platform: ReplyBotPlatform.YOUTUBE,
-      }),
-    );
-  });
-
-  it('defaults platform to twitter when omitted', async () => {
-    await service.process({
-      brandId: 'brand-1',
-      commentAuthorUsername: 'reader',
-      commentId: 'c2',
-      commentText: 'Nice take',
-      organizationId: 'org-1',
-      parentPostId: 'p1',
-      receivedAt: new Date().toISOString(),
-      source: 'xaa',
-    });
-
-    expect(
-      authorReplyLoopService.findResponderOwnerUserId,
-    ).toHaveBeenCalledWith('org-1', 'brand-1', ReplyBotPlatform.TWITTER);
-    expect(authorReplyLoopService.sendReply).toHaveBeenCalledWith(
-      expect.objectContaining({
-        platform: ReplyBotPlatform.TWITTER,
-      }),
+    await expect(service.enqueue(input)).resolves.toEqual({ jobId: 'job-1' });
+    expect(workflowQueue.queueSystemWorkflowDefinition).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ inputValues: { request: input } }),
+      'reply-inbound-org-1-comment-1',
+      undefined,
+      { replaceTerminalJob: true },
     );
   });
 });

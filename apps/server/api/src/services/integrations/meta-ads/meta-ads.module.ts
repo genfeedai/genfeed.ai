@@ -15,6 +15,7 @@ import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
+import { AdBulkUploadWorkflowService } from '@server/collections/workflows/services/ad-bulk-upload-workflow.service';
 import { SERVER_TOKENS } from '@server/server.dependencies';
 import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 
@@ -24,7 +25,7 @@ import { MetaAdsService } from '@server/services/integrations/meta-ads/services/
     MetaAdsBulkController,
     MetaAdsOptimizationController,
   ],
-  exports: [MetaAdsService],
+  exports: [AdBulkUploadWorkflowService, MetaAdsService],
   imports: [
     HttpModule,
     LoggerModule,
@@ -40,6 +41,7 @@ import { MetaAdsService } from '@server/services/integrations/meta-ads/services/
   ],
   providers: [
     AdBulkUploadService,
+    AdBulkUploadWorkflowService,
     MetaAdsService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
   ],

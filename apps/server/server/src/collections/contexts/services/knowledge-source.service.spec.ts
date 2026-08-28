@@ -1,6 +1,6 @@
+import { KnowledgeBaseCategory, KnowledgeBaseStatus } from '@genfeedai/enums';
 import { KnowledgeSourceService } from '@server/collections/contexts/services/knowledge-source.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { KnowledgeBaseCategory, KnowledgeBaseStatus } from '@genfeedai/enums';
 
 describe('KnowledgeSourceService', () => {
   function buildService(
@@ -29,19 +29,10 @@ describe('KnowledgeSourceService', () => {
     const enqueueBackfill =
       options.queue?.enqueueBackfill ??
       vi.fn().mockResolvedValue('kb-backfill-org-1');
-    const ingest = vi.fn().mockResolvedValue({ status: 'completed' });
-    const scanForBackfill = vi.fn().mockResolvedValue({ queued: [] });
-
     const service = new KnowledgeSourceService(
       { contextBase: { update } } as never,
       { findOne, removeEntriesBySource } as never,
-      { ingest, scanForBackfill } as never,
-      { log: vi.fn(), warn: vi.fn() } as never,
-      options.queue === undefined
-        ? ({ enqueueBackfill, enqueueIngest } as never)
-        : options.queue
-          ? (options.queue as never)
-          : undefined,
+      { enqueueBackfill, enqueueIngest } as never,
     );
 
     return {
@@ -49,9 +40,7 @@ describe('KnowledgeSourceService', () => {
       enqueueBackfill,
       enqueueIngest,
       findOne,
-      ingest,
       removeEntriesBySource,
-      scanForBackfill,
       service,
       update,
     };
@@ -133,34 +122,5 @@ describe('KnowledgeSourceService', () => {
       queued: 1,
     });
     expect(enqueueBackfill).toHaveBeenCalledWith({ organizationId: 'org-1' });
-  });
-
-  it('runs the backfill scan inline when the queue is missing', async () => {
-    const ingest = vi.fn().mockResolvedValue({ status: 'completed' });
-    const scanForBackfill = vi.fn().mockResolvedValue({
-      queued: [
-        {
-          contextBaseId: 'ctx-1',
-          organizationId: 'org-1',
-          sourceId: 'src_1',
-        },
-      ],
-    });
-    const service = new KnowledgeSourceService(
-      { contextBase: { update: vi.fn() } } as never,
-      { findOne: vi.fn(), removeEntriesBySource: vi.fn() } as never,
-      { ingest, scanForBackfill } as never,
-      { log: vi.fn(), warn: vi.fn() } as never,
-    );
-
-    await expect(service.backfill('org-1')).resolves.toEqual({
-      jobId: null,
-      queued: 1,
-    });
-    expect(ingest).toHaveBeenCalledWith({
-      contextBaseId: 'ctx-1',
-      organizationId: 'org-1',
-      sourceId: 'src_1',
-    });
   });
 });

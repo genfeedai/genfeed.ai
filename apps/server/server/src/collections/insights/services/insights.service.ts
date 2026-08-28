@@ -1,11 +1,12 @@
 import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { Timeframe } from '@genfeedai/enums';
+import type { InsightGenerationWorkflowInput } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Injectable,
-  Optional,
+  type OnModuleInit,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { GetForecastDto } from '@server/collections/insights/dto/forecast.dto';
@@ -14,11 +15,15 @@ import type { ForecastDocument } from '@server/collections/insights/schemas/fore
 import type { InsightDocument } from '@server/collections/insights/schemas/insight.schema';
 import { ModelsService } from '@server/collections/models/services/models.service';
 import { baseModelKey } from '@server/collections/models/utils/model-key.util';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import {
+  createSystemActionWorkflowDefinition,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
 import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 import { JsonParserUtil } from '@server/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@server/helpers/utils/text-pricing/text-pricing.util';
-import { InsightGenerationQueueService } from '@server/queues/insight-generation/insight-generation-queue.service';
 import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
@@ -46,16 +51,31 @@ type ForecastData = {
   data?: unknown;
 };
 
+export const INSIGHT_GENERATION_ACTION_ID = 'insight.generate';
+
 @Injectable()
-export class InsightsService {
+export class InsightsService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly modelsService: ModelsService,
     private readonly llmDispatcherService: LlmDispatcherService,
-    @Optional()
-    private readonly insightGenerationQueue?: InsightGenerationQueueService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
   ) {}
+
+  onModuleInit(): void {
+    this.workflowRunner.registerAction(
+      INSIGHT_GENERATION_ACTION_ID,
+      async ({ input }) => {
+        const request = input.payload as InsightGenerationWorkflowInput;
+        return this.generateInsightsIfNeeded(
+          request.organizationId,
+          request.limit,
+        );
+      },
+    );
+  }
 
   private capInsightLimit(limit: number): number {
     return Math.min(Math.max(limit, 1), 50);
@@ -306,10 +326,25 @@ export class InsightsService {
       return;
     }
 
-    await this.insightGenerationQueue?.enqueueGeneration({
+    const request: InsightGenerationWorkflowInput = {
       limit: this.capInsightLimit(limit),
       organizationId,
-    });
+    };
+    const definition = createSystemActionWorkflowDefinition(
+      INSIGHT_GENERATION_ACTION_ID,
+    );
+    await this.workflowQueue.queueSystemWorkflowDefinition(
+      definition,
+      {
+        actionType: INSIGHT_GENERATION_ACTION_ID,
+        canonicalId: definition.canonicalId,
+        inputValues: { payload: request },
+        organizationId,
+        source: 'insights-fill',
+      },
+      `insight-generate-${organizationId}`,
+      { attempts: 3, replaceTerminalJob: true },
+    );
   }
 
   async needsInsightGeneration(

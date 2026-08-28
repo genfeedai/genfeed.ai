@@ -1,17 +1,13 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import { AdBulkUploadService } from '@api/services/integrations/meta-ads/services/ad-bulk-upload.service';
-import { ApiKeyScope, CredentialPlatform, MemberRole } from '@genfeedai/enums';
+import { ApiKeyScope, MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   Body,
   Controller,
@@ -22,11 +18,13 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import type {
   BulkUploadStatus,
   CreativeSource,
 } from '@server/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
 import { AdBulkUploadJobsService } from '@server/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 
 interface CreateBulkUploadBody {
   credentialId: string;
@@ -56,7 +54,6 @@ export class MetaAdsBulkController {
     private readonly loggerService: LoggerService,
     private readonly adBulkUploadService: AdBulkUploadService,
     private readonly adBulkUploadJobsService: AdBulkUploadJobsService,
-    private readonly credentialsService: CredentialsService,
   ) {}
 
   @Post('upload')
@@ -71,15 +68,7 @@ export class MetaAdsBulkController {
 
     const ctx = extractRequestContext(user);
 
-    // Resolved before anything is persisted or queued, so an unusable
-    // credential leaves no job row and no provider work behind.
-    const accessToken = await this.getAccessTokenFromCredential(
-      user,
-      body.credentialId,
-    );
-
     return this.adBulkUploadService.createBulkUpload({
-      accessToken,
       adAccountId: body.adAccountId,
       adSetId: body.adSetId,
       bodyCopies: body.bodyCopies,
@@ -92,6 +81,7 @@ export class MetaAdsBulkController {
       images: body.images,
       linkUrl: body.linkUrl,
       organizationId: ctx.organizationId,
+      userId: user.userId ?? user.id,
       videos: body.videos,
     });
   }
@@ -163,34 +153,5 @@ export class MetaAdsBulkController {
     }
 
     return { success: true };
-  }
-
-  /**
-   * Resolves the exact credential the caller named. Matching only on
-   * organization + platform would let a job persist one `credentialId` while
-   * spending through a different account's token.
-   */
-  private async getAccessTokenFromCredential(
-    user: User,
-    credentialId: string,
-  ): Promise<string> {
-    const organizationId = user.organizationId as string;
-
-    const credential = await this.credentialsService.findOne({
-      id: credentialId,
-      isConnected: true,
-      isDeleted: false,
-      organizationId: organizationId,
-      platform: CredentialPlatform.FACEBOOK,
-    });
-
-    if (!credential?.accessToken) {
-      throw new NotFoundException({
-        message:
-          'Facebook credential not found. Please connect your Facebook account first.',
-      });
-    }
-
-    return EncryptionUtil.decrypt(credential.accessToken);
   }
 }

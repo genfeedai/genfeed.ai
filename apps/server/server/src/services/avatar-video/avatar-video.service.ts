@@ -1,3 +1,11 @@
+import {
+  type AvatarVideoProviderName,
+  isSupportedAvatarVideoProviderName,
+  SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
+  type SupportedAvatarVideoProviderName,
+} from '@genfeedai/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import type { AvatarVideoProvider } from '@server/services/avatar-video/avatar-video-provider.interface';
 import { ArgilAvatarProvider } from '@server/services/avatar-video/providers/argil-avatar.provider';
 import { DidAvatarProvider } from '@server/services/avatar-video/providers/did-avatar.provider';
@@ -5,14 +13,6 @@ import { GenfeedaiAvatarProvider } from '@server/services/avatar-video/providers
 import { HeygenAvatarProvider } from '@server/services/avatar-video/providers/heygen-avatar.provider';
 import { MusetalkAvatarProvider } from '@server/services/avatar-video/providers/musetalk-avatar.provider';
 import { TavusAvatarProvider } from '@server/services/avatar-video/providers/tavus-avatar.provider';
-import {
-  type AvatarVideoProviderName,
-  isSupportedAvatarVideoProviderName,
-  SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
-  type SupportedAvatarVideoProviderName,
-} from '@genfeedai/queue-contracts';
-import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
  * Factory / router for avatar video generation providers.

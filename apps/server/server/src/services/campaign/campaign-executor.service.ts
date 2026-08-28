@@ -36,9 +36,15 @@ import {
 import { readCampaignScheduleVersion } from '@server/collections/outreach-campaigns/services/outreach-campaign-schedule.util';
 import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
 import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
+  type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
+import {
+  buildCampaignReplyBatchWorkflowDefinition,
+  buildCampaignReplyPreviewWorkflowDefinition,
+  buildCampaignReplyWorkflowDefinition,
+  CAMPAIGN_REPLY_ACTION_IDS,
+} from '@server/services/campaign/campaign-reply-workflow-definition';
 import { resolveCampaignScope } from '@server/services/campaign/campaign-scope.util';
 import {
   isCampaignOutreachPairExecutable,
@@ -60,6 +66,21 @@ export interface ExecutionResult {
   skipReason?: CampaignSkipReason;
 }
 
+type CampaignReplyWorkflowState = {
+  campaignId: string;
+  credentialId?: string;
+  outcome?: ExecutionResult;
+  organizationId: string;
+  replyText?: string;
+  sendResult?: {
+    error?: string;
+    success: boolean;
+    tweetId?: string;
+    tweetUrl?: string;
+  };
+  targetId: string;
+};
+
 @Injectable()
 export class CampaignExecutorService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
@@ -75,9 +96,47 @@ export class CampaignExecutorService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
+    this.systemWorkflowRunner.registerWorkflow(
+      buildCampaignReplyWorkflowDefinition(),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildCampaignReplyBatchWorkflowDefinition(),
+    );
     this.systemWorkflowRunner.registerAction(
-      SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_REPLY_AUTOMATION,
-      ({ input }) => this.executeCampaignReplyAction(input),
+      CAMPAIGN_REPLY_ACTION_IDS.DISCOVER_TARGETS,
+      (request) => this.discoverTargetsAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      CAMPAIGN_REPLY_ACTION_IDS.CLAIM,
+      (request) => this.claimTargetAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      CAMPAIGN_REPLY_ACTION_IDS.LOAD_CONTEXT,
+      (request) => this.loadContextAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      CAMPAIGN_REPLY_ACTION_IDS.GENERATE,
+      (request) => this.generateReplyAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      CAMPAIGN_REPLY_ACTION_IDS.RESERVE,
+      (request) => this.reserveReplyAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      CAMPAIGN_REPLY_ACTION_IDS.SEND,
+      (request) => this.sendReplyAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      CAMPAIGN_REPLY_ACTION_IDS.FINALIZE,
+      (request) => this.finalizeReplyAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      CAMPAIGN_REPLY_ACTION_IDS.PREVIEW_VALIDATE,
+      (request) => this.validatePreviewAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      CAMPAIGN_REPLY_ACTION_IDS.PREVIEW_GENERATE,
+      (request) => this.generatePreviewAction(request),
     );
   }
 
@@ -89,236 +148,58 @@ export class CampaignExecutorService implements OnModuleInit {
     target: CampaignTargetDocument,
   ): Promise<ExecutionResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const campaignId = campaign.id.toString();
+    const targetId = target.id.toString();
 
     try {
-      const refusal = getOutreachCapabilityRefusal({
-        campaignType: campaign.campaignType,
-        platform: campaign.platform,
-      });
-      if (refusal) {
-        return {
-          error: refusal.message,
-          success: false,
-        };
-      }
-
-      // Check if campaign is still active
-      if (campaign.status !== CampaignStatus.ACTIVE) {
-        if (campaign.organizationId) {
-          await this.campaignTargetsService.markAsSkipped(
-            target.id.toString(),
-            campaign.organizationId,
-            CampaignSkipReason.CAMPAIGN_PAUSED,
-          );
-          await this.campaignsService.incrementSkippedCounter(
-            campaign.id.toString(),
-            campaign.organizationId,
-          );
-        }
-
-        return {
-          skipReason: CampaignSkipReason.CAMPAIGN_PAUSED,
-          success: false,
-        };
-      }
-
       const scope = resolveCampaignScope(campaign);
-
-      // Check rate limits
-      const canReply = await this.campaignsService.canReply(
-        campaign.id.toString(),
-        scope.organizationId,
-      );
-      if (!canReply) {
-        await this.campaignTargetsService.markAsSkipped(
-          target.id.toString(),
-          scope.organizationId,
-          CampaignSkipReason.RATE_LIMITED,
-        );
-        await this.campaignsService.incrementSkippedCounter(
-          campaign.id.toString(),
-          scope.organizationId,
-        );
-
-        return {
-          skipReason: CampaignSkipReason.RATE_LIMITED,
-          success: false,
-        };
-      }
-
-      const claimed = await this.campaignTargetsService.claimForProcessing(
-        target.id.toString(),
-        scope.organizationId,
-        {
-          scheduleVersion: readCampaignScheduleVersion(campaign.schedule),
-        },
-      );
-      if (!claimed) {
-        return {
-          skipReason: CampaignSkipReason.CAMPAIGN_PAUSED,
-          success: false,
-        };
-      }
-
-      // Get credential
-      const credential = await this.findCampaignCredential(scope);
-
-      if (!credential) {
-        const errorMessage = 'Credential not found';
-        await this.campaignTargetsService.markAsFailed(
-          target.id.toString(),
-          scope.organizationId,
-          errorMessage,
-        );
-        await this.campaignsService.incrementFailedCounter(
-          campaign.id.toString(),
-          scope.organizationId,
+      const definition = buildCampaignReplyWorkflowDefinition();
+      const { result } =
+        await this.systemWorkflowRunner.runWorkflowDefinition<ExecutionResult>(
+          definition,
+          {
+            actionType: definition.canonicalId,
+            canonicalId: definition.canonicalId,
+            inputValues: {
+              request: {
+                campaignId,
+                organizationId: scope.organizationId,
+                targetId,
+              },
+            },
+            organizationId: scope.organizationId,
+            source: 'CampaignExecutorService.executeTarget',
+            trigger: WorkflowExecutionTrigger.SCHEDULED,
+            userId: scope.userId,
+          },
         );
 
-        return {
-          error: errorMessage,
-          success: false,
-        };
-      }
-
-      // Generate reply
-      const replyText = await this.generateReply(campaign, target, scope);
-
-      // Post reply
-      const credentialData = toReplyBotCredentialData(
-        credential as Record<string, unknown>,
-      );
-
-      if (!credentialData) {
-        const errorMessage = 'Credential is missing an access token';
-        await this.campaignTargetsService.markAsFailed(
-          target.id.toString(),
-          scope.organizationId,
-          errorMessage,
-        );
-        await this.campaignsService.incrementFailedCounter(
-          campaign.id.toString(),
-          scope.organizationId,
-        );
-
-        return {
-          error: errorMessage,
-          success: false,
-        };
-      }
-
-      const reservation = await this.campaignsService.reserveReplySlot(
-        campaign.id.toString(),
-        scope.organizationId,
-      );
-      if (!reservation.reserved) {
-        await this.campaignTargetsService.markAsSkipped(
-          target.id.toString(),
-          scope.organizationId,
-          CampaignSkipReason.RATE_LIMITED,
-          CampaignTargetStatus.PROCESSING,
-        );
-        await this.campaignsService.incrementSkippedCounter(
-          campaign.id.toString(),
-          scope.organizationId,
-        );
-
-        this.loggerService.log(`${url} reservation denied`, {
-          campaignId: campaign.id,
-          targetId: target.id,
+      if (result.success) {
+        this.loggerService.log(`${url} success`, {
+          campaignId,
+          replyId: result.replyExternalId,
+          targetId,
         });
-
-        return {
-          skipReason: CampaignSkipReason.RATE_LIMITED,
-          success: false,
-        };
       }
-
-      const { result: postResult } = await this.systemWorkflowRunner.runAction<{
-        error?: string;
-        success: boolean;
-        tweetId?: string;
-        tweetUrl?: string;
-      }>({
-        actionType: 'campaign-reply',
-        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.CAMPAIGN_REPLY_AUTOMATION,
-        inputValues: {
-          campaignId: campaign.id.toString(),
-          credentialId: scope.credentialId,
-          organizationId: scope.organizationId,
-          platform: campaign.platform,
-          replyText,
-          targetId: target.id.toString(),
-        },
-        organizationId: scope.organizationId,
-        source: 'CampaignExecutorService.executeTarget',
-        trigger: WorkflowExecutionTrigger.SCHEDULED,
-        userId: scope.userId,
-      });
-
-      if (!postResult.success) {
-        await this.campaignTargetsService.markAsFailed(
-          target.id.toString(),
-          scope.organizationId,
-          postResult.error || 'Failed to post reply',
-          (target.retryCount || 0) + 1,
-        );
-        await this.campaignsService.incrementFailedCounter(
-          campaign.id.toString(),
-          scope.organizationId,
-        );
-
-        return {
-          error: postResult.error,
-          success: false,
-        };
-      }
-
-      await this.campaignTargetsService.markAsReplied(
-        target.id.toString(),
-        scope.organizationId,
-        {
-          replyExternalId: postResult.tweetId || '',
-          replyText,
-          replyUrl: postResult.tweetUrl || '',
-        },
-      );
-
-      await this.campaignsService.incrementReplyCounters(
-        campaign.id.toString(),
-        scope.organizationId,
-      );
-
-      this.loggerService.log(`${url} success`, {
-        campaignId: campaign.id,
-        replyId: postResult.tweetId,
-        targetId: target.id,
-      });
-
-      return {
-        replyExternalId: postResult.tweetId,
-        replyText,
-        replyUrl: postResult.tweetUrl,
-        success: true,
-      };
+      return result;
     } catch (error: unknown) {
       const errorMessage = (error as Error)?.message || 'Unknown error';
 
       this.loggerService.error(`${url} failed`, {
-        campaignId: campaign.id,
+        campaignId,
         error,
-        targetId: target.id,
+        targetId,
       });
 
       if (campaign.organizationId) {
         await this.campaignTargetsService.markAsFailed(
-          target.id.toString(),
+          targetId,
           campaign.organizationId,
           errorMessage,
           (target.retryCount || 0) + 1,
         );
         await this.campaignsService.incrementFailedCounter(
-          campaign.id.toString(),
+          campaignId,
           campaign.organizationId,
         );
       }
@@ -330,34 +211,330 @@ export class CampaignExecutorService implements OnModuleInit {
     }
   }
 
-  private async executeCampaignReplyAction(input: Record<string, unknown>) {
-    const organizationId = String(input.organizationId ?? '');
-    const credentialRecord = await this.findCampaignCredential({
-      credentialId: String(input.credentialId ?? ''),
+  private async discoverTargetsAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<{
+    interItemDelayMs: number;
+    items: Array<{
+      campaignId: string;
+      organizationId: string;
+      targetId: string;
+    }>;
+  }> {
+    const request = this.readRecord(action.input.request);
+    const campaignId = this.requiredString(request.campaignId, 'campaignId');
+    const organizationId = this.requiredString(
+      request.organizationId,
+      'organizationId',
+    );
+    const campaign = await this.campaignsService.findOneById(
+      campaignId,
       organizationId,
+    );
+    if (!campaign || campaign.status !== CampaignStatus.ACTIVE) {
+      throw new Error(`Campaign ${campaignId} is not active`);
+    }
+    requireExecutableOutreachPair({
+      campaignType: campaign.campaignType,
+      platform: campaign.platform,
+    });
+    const limit =
+      typeof request.limit === 'number'
+        ? Math.max(1, Math.min(100, Math.floor(request.limit)))
+        : 10;
+    const targets = await this.campaignTargetsService.getPendingTargets(
+      campaignId,
+      organizationId,
+      limit,
+      { scheduleVersion: readCampaignScheduleVersion(campaign.schedule) },
+    );
+    return {
+      interItemDelayMs:
+        Math.max(0, campaign.rateLimits?.delayBetweenRepliesSeconds ?? 0) *
+        1000,
+      items: targets.map((target) => ({
+        campaignId,
+        organizationId,
+        targetId: target.id.toString(),
+      })),
+    };
+  }
+
+  private async claimTargetAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<CampaignReplyWorkflowState> {
+    const state = this.readWorkflowRequest(action.input);
+    const { campaign, target } = await this.loadWorkflowRecords(state);
+    const refusal = getOutreachCapabilityRefusal({
+      campaignType: campaign.campaignType,
+      platform: campaign.platform,
+    });
+    if (refusal) {
+      return { ...state, outcome: { error: refusal.message, success: false } };
+    }
+    if (campaign.status !== CampaignStatus.ACTIVE) {
+      await this.skipTarget(state, CampaignSkipReason.CAMPAIGN_PAUSED);
+      return {
+        ...state,
+        outcome: {
+          skipReason: CampaignSkipReason.CAMPAIGN_PAUSED,
+          success: false,
+        },
+      };
+    }
+    if (
+      !(await this.campaignsService.canReply(
+        state.campaignId,
+        state.organizationId,
+      ))
+    ) {
+      await this.skipTarget(state, CampaignSkipReason.RATE_LIMITED);
+      return {
+        ...state,
+        outcome: {
+          skipReason: CampaignSkipReason.RATE_LIMITED,
+          success: false,
+        },
+      };
+    }
+    const claimed = await this.campaignTargetsService.claimForProcessing(
+      state.targetId,
+      state.organizationId,
+      { scheduleVersion: readCampaignScheduleVersion(campaign.schedule) },
+    );
+    if (!claimed) {
+      return {
+        ...state,
+        outcome: {
+          skipReason: CampaignSkipReason.CAMPAIGN_PAUSED,
+          success: false,
+        },
+      };
+    }
+    return { ...state, targetId: target.id.toString() };
+  }
+
+  private async loadContextAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<CampaignReplyWorkflowState> {
+    const state = this.readWorkflowState(action.input);
+    if (state.outcome) return state;
+    const { campaign } = await this.loadWorkflowRecords(state);
+    const scope = resolveCampaignScope(campaign);
+    const credential = await this.findCampaignCredential(scope);
+    if (!credential) {
+      return {
+        ...state,
+        outcome: { error: 'Credential not found', success: false },
+      };
+    }
+    if (!toReplyBotCredentialData(credential as Record<string, unknown>)) {
+      return {
+        ...state,
+        outcome: {
+          error: 'Credential is missing an access token',
+          success: false,
+        },
+      };
+    }
+    return { ...state, credentialId: String(credential.id) };
+  }
+
+  private async generateReplyAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<CampaignReplyWorkflowState> {
+    const state = this.readWorkflowState(action.input);
+    if (state.outcome) return state;
+    const { campaign, target } = await this.loadWorkflowRecords(state);
+    const replyText = await this.generateReply(
+      campaign,
+      target,
+      resolveCampaignScope(campaign),
+    );
+    return { ...state, replyText };
+  }
+
+  private async reserveReplyAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<CampaignReplyWorkflowState> {
+    const state = this.readWorkflowState(action.input);
+    if (state.outcome) return state;
+    const reservation = await this.campaignsService.reserveReplySlot(
+      state.campaignId,
+      state.organizationId,
+    );
+    if (reservation.reserved) return state;
+    await this.skipTarget(
+      state,
+      CampaignSkipReason.RATE_LIMITED,
+      CampaignTargetStatus.PROCESSING,
+    );
+    return {
+      ...state,
+      outcome: {
+        skipReason: CampaignSkipReason.RATE_LIMITED,
+        success: false,
+      },
+    };
+  }
+
+  private async sendReplyAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<CampaignReplyWorkflowState> {
+    const state = this.readWorkflowState(action.input);
+    if (state.outcome) return state;
+    const { campaign, target } = await this.loadWorkflowRecords(state);
+    const credentialRecord = await this.findCampaignCredential({
+      credentialId: this.requiredString(state.credentialId, 'credentialId'),
+      organizationId: state.organizationId,
     });
     const credential = credentialRecord
       ? toReplyBotCredentialData(
           credentialRecord as unknown as Record<string, unknown>,
-          { organizationId },
+          { organizationId: state.organizationId },
         )
       : null;
     if (!credential) {
       throw new Error('Campaign reply credential is unavailable');
     }
-    const target = await this.campaignTargetsService.findOne({
-      id: String(input.targetId ?? ''),
-      organizationId,
-    });
-    if (!target) {
-      throw new Error('Campaign reply target is unavailable');
-    }
-    return this.postReply(
-      input.platform as OutreachCampaignDocument['platform'],
+    const sendResult = await this.postReply(
+      campaign.platform,
       credential,
-      target as CampaignTargetDocument,
-      String(input.replyText ?? ''),
+      target,
+      this.requiredString(state.replyText, 'replyText'),
     );
+    return { ...state, sendResult };
+  }
+
+  private async finalizeReplyAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<ExecutionResult> {
+    const state = this.readWorkflowState(action.input);
+    if (state.outcome) {
+      if (state.outcome.error && !state.outcome.skipReason) {
+        await this.failTarget(state, state.outcome.error);
+      }
+      return state.outcome;
+    }
+    const postResult = state.sendResult;
+    if (!postResult?.success) {
+      const error = postResult?.error ?? 'Failed to post reply';
+      await this.failTarget(state, error);
+      return { error, success: false };
+    }
+    const replyText = this.requiredString(state.replyText, 'replyText');
+    await this.campaignTargetsService.markAsReplied(
+      state.targetId,
+      state.organizationId,
+      {
+        replyExternalId: postResult.tweetId || '',
+        replyText,
+        replyUrl: postResult.tweetUrl || '',
+      },
+    );
+    await this.campaignsService.incrementReplyCounters(
+      state.campaignId,
+      state.organizationId,
+    );
+    return {
+      replyExternalId: postResult.tweetId,
+      replyText,
+      replyUrl: postResult.tweetUrl,
+      success: true,
+    };
+  }
+
+  private async loadWorkflowRecords(
+    state: CampaignReplyWorkflowState,
+  ): Promise<{
+    campaign: OutreachCampaignDocument;
+    target: CampaignTargetDocument;
+  }> {
+    const [campaign, target] = await Promise.all([
+      this.campaignsService.findOneById(state.campaignId, state.organizationId),
+      this.campaignTargetsService.findOne({
+        id: state.targetId,
+        organizationId: state.organizationId,
+      }),
+    ]);
+    if (!campaign) throw new Error(`Campaign ${state.campaignId} not found`);
+    if (!target) throw new Error(`Campaign target ${state.targetId} not found`);
+    return {
+      campaign: campaign as OutreachCampaignDocument,
+      target: target as CampaignTargetDocument,
+    };
+  }
+
+  private readWorkflowRequest(
+    input: Record<string, unknown>,
+  ): CampaignReplyWorkflowState {
+    const request = this.readRecord(input.request);
+    return {
+      campaignId: this.requiredString(request.campaignId, 'campaignId'),
+      organizationId: this.requiredString(
+        request.organizationId,
+        'organizationId',
+      ),
+      targetId: this.requiredString(request.targetId, 'targetId'),
+    };
+  }
+
+  private readWorkflowState(
+    input: Record<string, unknown>,
+  ): CampaignReplyWorkflowState {
+    const value = this.readRecord(input.state);
+    const state = Object.keys(value).length > 0 ? value : input;
+    return state as CampaignReplyWorkflowState;
+  }
+
+  private async skipTarget(
+    state: CampaignReplyWorkflowState,
+    reason: CampaignSkipReason,
+    expectedStatus?: CampaignTargetStatus,
+  ): Promise<void> {
+    await this.campaignTargetsService.markAsSkipped(
+      state.targetId,
+      state.organizationId,
+      reason,
+      expectedStatus,
+    );
+    await this.campaignsService.incrementSkippedCounter(
+      state.campaignId,
+      state.organizationId,
+    );
+  }
+
+  private async failTarget(
+    state: CampaignReplyWorkflowState,
+    error: string,
+  ): Promise<void> {
+    const target = await this.campaignTargetsService.findOne({
+      id: state.targetId,
+      organizationId: state.organizationId,
+    });
+    await this.campaignTargetsService.markAsFailed(
+      state.targetId,
+      state.organizationId,
+      error,
+      (target?.retryCount || 0) + 1,
+    );
+    await this.campaignsService.incrementFailedCounter(
+      state.campaignId,
+      state.organizationId,
+    );
+  }
+
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new Error(`Campaign reply action requires ${field}`);
+    }
+    return value;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
   }
 
   /**
@@ -524,10 +701,47 @@ export class CampaignExecutorService implements OnModuleInit {
     campaign: OutreachCampaignDocument,
     target: CampaignTargetDocument,
   ): Promise<string> {
+    const scope = resolveCampaignScope(campaign);
+    const definition = buildCampaignReplyPreviewWorkflowDefinition();
+    const { result } =
+      await this.systemWorkflowRunner.runWorkflowDefinition<string>(
+        definition,
+        {
+          actionType: definition.canonicalId,
+          canonicalId: definition.canonicalId,
+          inputValues: {
+            request: {
+              campaignId: campaign.id.toString(),
+              organizationId: scope.organizationId,
+              targetId: target.id.toString(),
+            },
+          },
+          organizationId: scope.organizationId,
+          source: 'CampaignExecutorService.previewReply',
+          trigger: WorkflowExecutionTrigger.API,
+          userId: scope.userId,
+        },
+      );
+    return result;
+  }
+
+  private async validatePreviewAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<CampaignReplyWorkflowState> {
+    const state = this.readWorkflowRequest(action.input);
+    const { campaign } = await this.loadWorkflowRecords(state);
     requireExecutableOutreachPair({
       campaignType: campaign.campaignType,
       platform: campaign.platform,
     });
+    return state;
+  }
+
+  private async generatePreviewAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<string> {
+    const state = this.readWorkflowState(action.input);
+    const { campaign, target } = await this.loadWorkflowRecords(state);
     return this.generateReply(campaign, target, resolveCampaignScope(campaign));
   }
 
@@ -545,13 +759,6 @@ export class CampaignExecutorService implements OnModuleInit {
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const results = {
-      failed: 0,
-      processed: 0,
-      skipped: 0,
-      successful: 0,
-    };
-
     try {
       if (
         !isCampaignOutreachPairExecutable({
@@ -564,7 +771,7 @@ export class CampaignExecutorService implements OnModuleInit {
           campaignType: campaign.campaignType,
           platform: campaign.platform,
         });
-        return results;
+        return { failed: 0, processed: 0, skipped: 0, successful: 0 };
       }
 
       if (!campaign.organizationId) {
@@ -572,38 +779,33 @@ export class CampaignExecutorService implements OnModuleInit {
           campaignId: campaign.id,
           reason: 'organization_id_required',
         });
-        return results;
+        return { failed: 0, processed: 0, skipped: 0, successful: 0 };
       }
-
-      const pendingTargets =
-        await this.campaignTargetsService.getPendingTargets(
-          campaign.id.toString(),
-          campaign.organizationId,
-          limit,
-          {
-            scheduleVersion: readCampaignScheduleVersion(campaign.schedule),
+      const definition = buildCampaignReplyBatchWorkflowDefinition();
+      const { result } = await this.systemWorkflowRunner.runWorkflowDefinition<{
+        count: number;
+        results: Array<{ index: number; jobId: string }>;
+      }>(definition, {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: {
+          request: {
+            campaignId: campaign.id.toString(),
+            limit,
+            organizationId: campaign.organizationId,
           },
-        );
-
-      for (const target of pendingTargets) {
-        const result = await this.executeTarget(campaign, target);
-        results.processed++;
-
-        if (result.success) {
-          results.successful++;
-        } else if (result.skipReason) {
-          results.skipped++;
-        } else {
-          results.failed++;
-        }
-
-        // Add delay between replies
-        if (campaign.rateLimits?.delayBetweenRepliesSeconds) {
-          await this.delay(
-            campaign.rateLimits.delayBetweenRepliesSeconds * 1000,
-          );
-        }
-      }
+        },
+        organizationId: campaign.organizationId,
+        source: 'CampaignExecutorService.processPendingTargets',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: resolveCampaignScope(campaign).userId,
+      });
+      const results = {
+        failed: 0,
+        processed: result.count,
+        skipped: 0,
+        successful: 0,
+      };
 
       this.loggerService.log(`${url} batch complete`, {
         campaignId: campaign.id,
@@ -618,13 +820,6 @@ export class CampaignExecutorService implements OnModuleInit {
       });
       throw error;
     }
-  }
-
-  /**
-   * Delay execution
-   */
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private normalizeCampaignPlatform(

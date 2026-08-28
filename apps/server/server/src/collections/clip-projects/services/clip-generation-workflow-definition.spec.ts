@@ -1,92 +1,78 @@
 import { describe, expect, it } from 'vitest';
-import type { ClipGenerationInput } from './clip-generation.service';
 import {
   buildClipGenerationWorkflowDefinition,
+  CLIP_GENERATION_CHILD_WORKFLOW_ID,
+  CLIP_GENERATION_PLAN_ACTION_ID,
+  CLIP_GENERATION_WORKFLOW_ID,
   CLIP_HOOK_REVIEW_NODE_ID,
 } from './clip-generation-workflow-definition';
 
-const request: ClipGenerationInput = {
-  highlights: [
-    {
-      clip_type: 'body',
-      end_time: 40,
-      start_time: 20,
-      summary: 'Body',
-      tags: [],
-      title: 'Body',
-      virality_score: 70,
-    },
-    {
-      clip_type: 'hook',
-      end_time: 20,
-      start_time: 0,
-      summary: 'Hook',
-      tags: [],
-      title: 'Hook',
-      virality_score: 90,
-    },
-  ],
-  hookApprovalRequired: true,
-  orgId: 'org-1',
-  projectId: 'project-1',
-  userId: 'user-1',
-};
-
 describe('buildClipGenerationWorkflowDefinition', () => {
-  it('compiles one action per highlight around the native review gate', () => {
-    const workflow = buildClipGenerationWorkflowDefinition(request);
+  it('defines one immutable fan-out graph around the native review gate', () => {
+    const workflow = buildClipGenerationWorkflowDefinition();
 
+    expect(workflow.canonicalId).toBe(CLIP_GENERATION_WORKFLOW_ID);
+    expect(workflow.resultNodeId).toBe('generate-remaining');
     expect(workflow.definition.nodes.map((node) => node.id)).toEqual([
-      'generate-clip-2',
+      'plan-generation',
+      'generate-hook',
+      'hook-review-required',
       CLIP_HOOK_REVIEW_NODE_ID,
-      'generate-clip-1',
-      'collect-clip-results',
+      'generate-remaining',
     ]);
     expect(workflow.definition.nodes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           data: expect.objectContaining({
             config: expect.objectContaining({
-              actionId: 'clip.generation.generate-one',
-              parameters: { originalIndex: 1 },
+              actionId: CLIP_GENERATION_PLAN_ACTION_ID,
             }),
-            inputVariableKeys: ['request'],
+            inputVariableKeys: ['request', 'reviewContext'],
           }),
-          id: 'generate-clip-2',
+          id: 'plan-generation',
+          type: 'genfeedAction',
+        }),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            config: expect.objectContaining({
+              actionId: 'workflow.for-each',
+              parameters: expect.objectContaining({
+                childWorkflowId: CLIP_GENERATION_CHILD_WORKFLOW_ID,
+                mode: 'await',
+              }),
+            }),
+          }),
+          id: 'generate-remaining',
           type: 'genfeedAction',
         }),
         expect.objectContaining({
           id: CLIP_HOOK_REVIEW_NODE_ID,
           type: 'reviewGate',
         }),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            config: expect.objectContaining({
-              actionId: 'clip.generation.collect-results',
-            }),
-          }),
-          id: 'collect-clip-results',
-          type: 'genfeedAction',
-        }),
       ]),
     );
     expect(workflow.definition.edges).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          source: 'generate-clip-2',
+          source: 'hook-review-required',
+          sourceHandle: 'true',
           target: CLIP_HOOK_REVIEW_NODE_ID,
         }),
         expect.objectContaining({
+          source: 'hook-review-required',
+          sourceHandle: 'false',
+          target: 'generate-remaining',
+        }),
+        expect.objectContaining({
           source: CLIP_HOOK_REVIEW_NODE_ID,
-          target: 'generate-clip-1',
+          target: 'generate-remaining',
         }),
       ]),
     );
   });
 
-  it('keeps request data in execution inputs instead of duplicating it in nodes', () => {
-    const workflow = buildClipGenerationWorkflowDefinition(request);
-    const serializedNodes = JSON.stringify(workflow.definition.nodes);
+  it('keeps all request data in immutable execution inputs', () => {
+    const workflow = buildClipGenerationWorkflowDefinition();
 
     expect(workflow.definition.inputVariables).toEqual([
       {
@@ -95,8 +81,15 @@ describe('buildClipGenerationWorkflowDefinition', () => {
         required: true,
         type: 'json',
       },
+      {
+        key: 'reviewContext',
+        label: 'Hook review context',
+        required: false,
+        type: 'json',
+      },
     ]);
-    expect(serializedNodes).not.toContain('Hook summary');
-    expect(serializedNodes).not.toContain('org-1');
+    expect(JSON.stringify(workflow.definition.nodes)).not.toContain(
+      'projectId',
+    );
   });
 });
