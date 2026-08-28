@@ -7,6 +7,7 @@ import type {
   ExecutableNode,
   ExecutableWorkflow,
 } from '../../types';
+import { createExecutableActionNode } from '../../utils/action-node';
 import { DEFAULT_CREDIT_COSTS } from '../../utils/credit-calculator';
 import { type NodeExecutor, WorkflowEngine } from '../engine';
 
@@ -20,13 +21,12 @@ function makeNode(
   type: string,
   config: Record<string, unknown> = {},
 ): ExecutableNode {
-  return {
-    config,
+  return createExecutableActionNode({
+    actionId: type,
     id,
-    inputs: [],
     label: id,
-    type,
-  };
+    parameters: config,
+  });
 }
 
 function makeEdge(
@@ -67,7 +67,7 @@ function makeDigestWorkflow(): ExecutableWorkflow {
         mode: 'timeline',
         username: 'genfeed',
       }),
-      makeNode('analyze', 'analyze'),
+      makeNode('analyze', 'postGen'),
       makeNode('report', 'reportDelivery', {
         channel: 'notification',
         subject: 'Morning X digest',
@@ -75,6 +75,7 @@ function makeDigestWorkflow(): ExecutableWorkflow {
     ],
     organizationId: 'org-1',
     userId: 'user-1',
+    versionId: 'version-1',
   };
 }
 
@@ -112,7 +113,7 @@ describe('morning X digest (#2664)', () => {
     reportDelivery.setNotificationSender(notificationSender);
 
     engine.registerExecutor('socialRead', wrapExecutor(socialRead));
-    engine.registerExecutor('analyze', async (_node, inputs) => {
+    engine.registerExecutor('postGen', async (_node, inputs) => {
       const summary = String(inputs.get('summary') ?? '');
       return { content: `Morning digest\n${summary}` };
     });

@@ -246,13 +246,12 @@ describe('WorkflowEngineAdapterService', () => {
   });
 
   describe('registerExecutor', () => {
-    it('should register an executor without errors', () => {
+    it('should reject executors absent from the shared action catalog', () => {
       const executor = vi.fn().mockResolvedValue({});
 
-      expect(() =>
-        service.registerExecutor('customType', executor),
-      ).not.toThrow();
-      expect(loggerService.debug).toHaveBeenCalled();
+      expect(() => service.registerExecutor('customType', executor)).toThrow(
+        'Cannot register unknown Genfeed action: customType',
+      );
     });
   });
 

@@ -5,13 +5,31 @@ import type {
   ExecutableNode,
   ExecutableWorkflow,
 } from '../../types';
+import { createExecutableActionNode } from '../../utils/action-node';
 import { type NodeExecutor, WorkflowEngine } from '../engine';
 
 function makeNode(
   id: string,
-  type = 'generate',
+  type = 'imageGen',
   overrides: Partial<ExecutableNode> = {},
 ): ExecutableNode {
+  if (['imageGen', 'publish', 'upscale', 'videoStitch'].includes(type)) {
+    return {
+      ...createExecutableActionNode({
+        actionId: type,
+        id,
+        label: id,
+        parameters: overrides.config ?? {},
+      }),
+      ...overrides,
+      config: {
+        actionId: type,
+        parameters: overrides.config ?? {},
+      },
+      type: 'genfeedAction',
+    };
+  }
+
   return {
     config: {},
     id,
@@ -47,6 +65,7 @@ function makeWorkflow(
     nodes,
     organizationId: 'org-1',
     userId: 'user-1',
+    versionId: 'version-1',
     ...overrides,
   };
 }
@@ -66,30 +85,23 @@ describe('WorkflowEngine', () => {
       },
     });
     mockExecutor = vi.fn().mockResolvedValue({ result: 'ok' });
-    engine.registerExecutor('generate', mockExecutor);
+    engine.registerExecutor('imageGen', mockExecutor);
     engine.registerExecutor('upscale', mockExecutor);
     engine.registerExecutor('publish', mockExecutor);
   });
 
   describe('registerExecutor / getExecutor', () => {
-    it('should register and retrieve an executor', () => {
+    it('should register an action executor behind the shared action envelope', () => {
       const executor = vi.fn();
-      engine.registerExecutor('custom', executor);
+      const registrationEngine = new WorkflowEngine();
+      registrationEngine.registerExecutor('imageGen', executor);
 
-      expect(engine.getExecutor('custom')).toBe(executor);
+      expect(registrationEngine.getRegisteredActionIds()).toContain('imageGen');
+      expect(registrationEngine.getExecutor('genfeedAction')).toBeDefined();
     });
 
     it('should return undefined for unregistered type', () => {
       expect(engine.getExecutor('unknown')).toBeUndefined();
-    });
-
-    it('should fall back to defaultExecutor when type not registered', () => {
-      const defaultExec = vi.fn();
-      const engineWithDefault = new WorkflowEngine({
-        defaultExecutor: defaultExec,
-      });
-
-      expect(engineWithDefault.getExecutor('unknown')).toBe(defaultExec);
     });
   });
 
@@ -112,7 +124,7 @@ describe('WorkflowEngine', () => {
           workflowId: ctx.workflowId,
         }),
       );
-      engine.registerExecutor('generate', contextExecutor);
+      engine.registerExecutor('imageGen', contextExecutor);
 
       const workflow = makeWorkflow([makeNode('n1')]);
 
@@ -137,11 +149,11 @@ describe('WorkflowEngine', () => {
         return { result: node.id };
       });
 
-      engine.registerExecutor('generate', trackingExecutor);
+      engine.registerExecutor('imageGen', trackingExecutor);
       engine.registerExecutor('upscale', trackingExecutor);
 
       const workflow = makeWorkflow(
-        [makeNode('n1', 'generate'), makeNode('n2', 'upscale')],
+        [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
         [makeEdge('n1', 'n2')],
       );
 
@@ -157,14 +169,14 @@ describe('WorkflowEngine', () => {
         return { result: node.id };
       });
 
-      engine.registerExecutor('generate', trackingExecutor);
+      engine.registerExecutor('imageGen', trackingExecutor);
       engine.registerExecutor('upscale', trackingExecutor);
       engine.registerExecutor('publish', trackingExecutor);
 
       // Diamond:  A → B, A → C, B → D, C → D
       const workflow = makeWorkflow(
         [
-          makeNode('A', 'generate'),
+          makeNode('A', 'imageGen'),
           makeNode('B', 'upscale'),
           makeNode('C', 'upscale'),
           makeNode('D', 'publish'),
@@ -188,7 +200,7 @@ describe('WorkflowEngine', () => {
 
     it('should handle independent parallel branches', async () => {
       const workflow = makeWorkflow([
-        makeNode('n1', 'generate'),
+        makeNode('n1', 'imageGen'),
         makeNode('n2', 'upscale'),
         makeNode('n3', 'publish'),
       ]);
@@ -208,11 +220,11 @@ describe('WorkflowEngine', () => {
         return { data: `from-${node.id}` };
       });
 
-      engine.registerExecutor('generate', capturingExecutor);
+      engine.registerExecutor('imageGen', capturingExecutor);
       engine.registerExecutor('upscale', capturingExecutor);
 
       const workflow = makeWorkflow(
-        [makeNode('n1', 'generate'), makeNode('n2', 'upscale')],
+        [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
         [makeEdge('n1', 'n2', { targetHandle: 'image' })],
       );
 
@@ -233,11 +245,11 @@ describe('WorkflowEngine', () => {
         return `output-${node.id}`;
       });
 
-      engine.registerExecutor('generate', capturingExecutor);
+      engine.registerExecutor('imageGen', capturingExecutor);
       engine.registerExecutor('upscale', capturingExecutor);
 
       const workflow = makeWorkflow(
-        [makeNode('n1', 'generate'), makeNode('n2', 'upscale')],
+        [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
         [makeEdge('n1', 'n2')],
       );
 
@@ -256,11 +268,11 @@ describe('WorkflowEngine', () => {
         return null;
       });
 
-      engine.registerExecutor('generate', sourceExecutor);
+      engine.registerExecutor('imageGen', sourceExecutor);
       engine.registerExecutor('upscale', targetExecutor);
 
       const workflow = makeWorkflow(
-        [makeNode('n1', 'generate'), makeNode('n2', 'upscale')],
+        [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
         [
           makeEdge('n1', 'n2', {
             sourceHandle: 'topTopics',
@@ -278,13 +290,13 @@ describe('WorkflowEngine', () => {
       const targetExecutor: NodeExecutor = vi.fn(async (_node, inputs) => ({
         videos: inputs.get('videos'),
       }));
-      engine.registerExecutor('stitch', targetExecutor);
+      engine.registerExecutor('videoStitch', targetExecutor);
 
       const workflow = makeWorkflow(
         [
-          makeNode('source-1', 'generate'),
+          makeNode('source-1', 'imageGen'),
           makeNode('source-2', 'upscale'),
-          makeNode('target', 'stitch'),
+          makeNode('target', 'videoStitch'),
         ],
         [
           makeEdge('source-1', 'target', { targetHandle: 'videos' }),
@@ -305,10 +317,10 @@ describe('WorkflowEngine', () => {
       const failingExecutor: NodeExecutor = vi
         .fn()
         .mockRejectedValue(new Error('generation failed'));
-      engine.registerExecutor('generate', failingExecutor);
+      engine.registerExecutor('imageGen', failingExecutor);
 
       const workflow = makeWorkflow(
-        [makeNode('n1', 'generate'), makeNode('n2', 'upscale')],
+        [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
         [makeEdge('n1', 'n2')],
       );
 
@@ -333,13 +345,13 @@ describe('WorkflowEngine', () => {
       // Create a scenario where executionOrder has a nodeId not in nodes
       // This is hard to trigger directly; instead test missing dependency
       const workflow = makeWorkflow(
-        [makeNode('n1', 'generate'), makeNode('n2', 'upscale')],
+        [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
         [makeEdge('n1', 'n2')],
       );
 
       // Remove n1 executor to force failure
       engine.registerExecutor(
-        'generate',
+        'imageGen',
         vi.fn().mockRejectedValue(new Error('fail')),
       );
 
@@ -353,7 +365,7 @@ describe('WorkflowEngine', () => {
     it('should skip locked nodes with cached output', async () => {
       const workflow = makeWorkflow(
         [
-          makeNode('n1', 'generate', {
+          makeNode('n1', 'imageGen', {
             cachedOutput: { image: 'cached.png' },
             isLocked: true,
           }),
@@ -383,7 +395,7 @@ describe('WorkflowEngine', () => {
 
       const workflow = makeWorkflow(
         [
-          makeNode('n1', 'generate', {
+          makeNode('n1', 'imageGen', {
             cachedOutput: { image: 'cached.png' },
             isLocked: true,
           }),
@@ -401,7 +413,7 @@ describe('WorkflowEngine', () => {
     it('should execute locked nodes when respectLocks is false', async () => {
       const workflow = makeWorkflow(
         [
-          makeNode('n1', 'generate', {
+          makeNode('n1', 'imageGen', {
             cachedOutput: { image: 'cached.png' },
             isLocked: true,
           }),
@@ -424,11 +436,11 @@ describe('WorkflowEngine', () => {
       const engineWithCosts = new WorkflowEngine({
         creditCosts: { generate: 10, upscale: 5 },
       });
-      engineWithCosts.registerExecutor('generate', mockExecutor);
+      engineWithCosts.registerExecutor('imageGen', mockExecutor);
       engineWithCosts.registerExecutor('upscale', mockExecutor);
 
       const workflow = makeWorkflow([
-        makeNode('n1', 'generate'),
+        makeNode('n1', 'imageGen'),
         makeNode('n2', 'upscale'),
       ]);
 
@@ -444,9 +456,9 @@ describe('WorkflowEngine', () => {
       const engineWithCosts = new WorkflowEngine({
         creditCosts: { generate: 10 },
       });
-      engineWithCosts.registerExecutor('generate', mockExecutor);
+      engineWithCosts.registerExecutor('imageGen', mockExecutor);
 
-      const workflow = makeWorkflow([makeNode('n1', 'generate')]);
+      const workflow = makeWorkflow([makeNode('n1', 'imageGen')]);
 
       const result = await engineWithCosts.execute(workflow, {
         availableCredits: 100,
@@ -459,11 +471,11 @@ describe('WorkflowEngine', () => {
       const engineWithCosts = new WorkflowEngine({
         creditCosts: { generate: 10, upscale: 5 },
       });
-      engineWithCosts.registerExecutor('generate', mockExecutor);
+      engineWithCosts.registerExecutor('imageGen', mockExecutor);
       engineWithCosts.registerExecutor('upscale', mockExecutor);
 
       const workflow = makeWorkflow([
-        makeNode('n1', 'generate'),
+        makeNode('n1', 'imageGen'),
         makeNode('n2', 'upscale'),
       ]);
 
@@ -475,7 +487,7 @@ describe('WorkflowEngine', () => {
 
   describe('execute — dry run', () => {
     it('should return completed without executing any nodes', async () => {
-      const workflow = makeWorkflow([makeNode('n1', 'generate')]);
+      const workflow = makeWorkflow([makeNode('n1', 'imageGen')]);
 
       const result = await engine.execute(workflow, { dryRun: true });
 
@@ -493,7 +505,7 @@ describe('WorkflowEngine', () => {
       });
 
       const workflow = makeWorkflow(
-        [makeNode('n1', 'generate'), makeNode('n2', 'upscale')],
+        [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
         [makeEdge('n1', 'n2')],
       );
 
@@ -513,7 +525,7 @@ describe('WorkflowEngine', () => {
         });
       });
 
-      const workflow = makeWorkflow([makeNode('n1', 'generate')]);
+      const workflow = makeWorkflow([makeNode('n1', 'imageGen')]);
 
       await engine.execute(workflow, { onNodeStatusChange });
 
@@ -529,7 +541,7 @@ describe('WorkflowEngine', () => {
         throw new Error('callback error');
       });
 
-      const workflow = makeWorkflow([makeNode('n1', 'generate')]);
+      const workflow = makeWorkflow([makeNode('n1', 'imageGen')]);
 
       const result = await engine.execute(workflow, { onProgress });
 
@@ -545,13 +557,13 @@ describe('WorkflowEngine', () => {
         return `output-${node.id}`;
       });
 
-      engine.registerExecutor('generate', trackingExecutor);
+      engine.registerExecutor('imageGen', trackingExecutor);
       engine.registerExecutor('upscale', trackingExecutor);
       engine.registerExecutor('publish', trackingExecutor);
 
       const workflow = makeWorkflow(
         [
-          makeNode('n1', 'generate'),
+          makeNode('n1', 'imageGen'),
           makeNode('n2', 'upscale'),
           makeNode('n3', 'publish'),
         ],
@@ -570,7 +582,7 @@ describe('WorkflowEngine', () => {
     it('should succeed with selected nodes when dependencies are cached', async () => {
       const workflow = makeWorkflow(
         [
-          makeNode('n1', 'generate', {
+          makeNode('n1', 'imageGen', {
             cachedOutput: 'cached-n1-output',
             isLocked: true,
           }),
@@ -587,7 +599,7 @@ describe('WorkflowEngine', () => {
     });
 
     it('should fail for non-existent nodeIds', async () => {
-      const workflow = makeWorkflow([makeNode('n1', 'generate')]);
+      const workflow = makeWorkflow([makeNode('n1', 'imageGen')]);
 
       const result = await engine.execute(workflow, {
         nodeIds: ['nonexistent'],
@@ -612,11 +624,11 @@ describe('WorkflowEngine', () => {
         return `output-${node.id}`;
       });
 
-      engine.registerExecutor('generate', executorThatFailsOnce);
+      engine.registerExecutor('imageGen', executorThatFailsOnce);
       engine.registerExecutor('upscale', executorThatFailsOnce);
 
       const workflow = makeWorkflow(
-        [makeNode('n1', 'generate'), makeNode('n2', 'upscale')],
+        [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
         [makeEdge('n1', 'n2')],
       );
 
@@ -633,7 +645,7 @@ describe('WorkflowEngine', () => {
     });
 
     it('should not resume a completed run', async () => {
-      const workflow = makeWorkflow([makeNode('n1', 'generate')]);
+      const workflow = makeWorkflow([makeNode('n1', 'imageGen')]);
 
       const completedRun = await engine.execute(workflow);
       expect(completedRun.status).toBe('completed');
@@ -657,14 +669,14 @@ describe('WorkflowEngine', () => {
         return { result: node.id };
       });
 
-      engine.registerExecutor('generate', abortingExecutor);
+      engine.registerExecutor('imageGen', abortingExecutor);
       engine.registerExecutor('upscale', abortingExecutor);
       engine.registerExecutor('publish', abortingExecutor);
 
       // Sequential chain so the abort lands before n2/n3 are dispatched.
       const workflow = makeWorkflow(
         [
-          makeNode('n1', 'generate'),
+          makeNode('n1', 'imageGen'),
           makeNode('n2', 'upscale'),
           makeNode('n3', 'publish'),
         ],
@@ -698,14 +710,14 @@ describe('WorkflowEngine', () => {
         throw new Error('sibling failed during drain');
       });
 
-      cancelEngine.registerExecutor('generate', aborter);
+      cancelEngine.registerExecutor('imageGen', aborter);
       cancelEngine.registerExecutor('upscale', failer);
       cancelEngine.registerExecutor('publish', aborter);
 
       // n1 + n2 occupy both slots; n3 is deferred so the dispatch phase re-runs
       // after n1 settles and observes the abort, then n2 fails during drain.
       const workflow = makeWorkflow([
-        makeNode('n1', 'generate'),
+        makeNode('n1', 'imageGen'),
         makeNode('n2', 'upscale'),
         makeNode('n3', 'publish'),
       ]);
@@ -741,16 +753,16 @@ describe('WorkflowEngine', () => {
       });
 
       // engine from beforeEach is configured with maxConcurrency: 3.
-      engine.registerExecutor('generate', gatedExecutor);
+      engine.registerExecutor('imageGen', gatedExecutor);
 
       // 6 independent branches (no edges) all eligible to run at once.
       const workflow = makeWorkflow([
-        makeNode('n1', 'generate'),
-        makeNode('n2', 'generate'),
-        makeNode('n3', 'generate'),
-        makeNode('n4', 'generate'),
-        makeNode('n5', 'generate'),
-        makeNode('n6', 'generate'),
+        makeNode('n1', 'imageGen'),
+        makeNode('n2', 'imageGen'),
+        makeNode('n3', 'imageGen'),
+        makeNode('n4', 'imageGen'),
+        makeNode('n5', 'imageGen'),
+        makeNode('n6', 'imageGen'),
       ]);
 
       let done = false;
@@ -783,7 +795,7 @@ describe('WorkflowEngine', () => {
 
   describe('estimateCredits', () => {
     it('should return 0 for unknown node types', () => {
-      const result = engine.estimateCredits([makeNode('n1', 'generate')]);
+      const result = engine.estimateCredits([makeNode('n1', 'imageGen')]);
 
       expect(result).toBe(0);
     });
@@ -794,9 +806,9 @@ describe('WorkflowEngine', () => {
       });
 
       const result = engineWithCosts.estimateCredits([
-        makeNode('n1', 'generate'),
+        makeNode('n1', 'imageGen'),
         makeNode('n2', 'upscale'),
-        makeNode('n3', 'generate'),
+        makeNode('n3', 'imageGen'),
       ]);
 
       expect(result).toBe(25);

@@ -362,16 +362,22 @@ describe('AgentToolExecutorService', () => {
           name: 'Generated Workflow',
           nodes: [
             {
-              data: { config: {}, label: 'Start' },
+              data: {
+                config: { actionId: 'postGen', parameters: {} },
+                label: 'Start',
+              },
               id: 'node-1',
               position: { x: 0, y: 0 },
-              type: 'ai-generate-post',
+              type: 'genfeedAction',
             },
             {
-              data: { config: {}, label: 'Finish' },
+              data: {
+                config: { actionId: 'postGen', parameters: {} },
+                label: 'Finish',
+              },
               id: 'node-2',
               position: { x: 240, y: 0 },
-              type: 'ai-generate-post',
+              type: 'genfeedAction',
             },
           ],
         },
@@ -4261,7 +4267,10 @@ describe('AgentToolExecutorService', () => {
         isScheduleEnabled: true,
         nodes: [
           expect.objectContaining({
-            type: 'ai-generate-image',
+            data: expect.objectContaining({
+              config: expect.objectContaining({ actionId: 'imageGen' }),
+            }),
+            type: 'genfeedAction',
           }),
         ],
         schedule: '0 17 * * *',
@@ -4517,24 +4526,26 @@ describe('AgentToolExecutorService', () => {
           {
             data: {
               config: {
-                prompt: 'Plan next week of content',
+                actionId: 'postGen',
+                parameters: { prompt: 'Plan next week of content' },
               },
               label: 'Plan Content',
             },
             id: 'plan',
             position: { x: 120, y: 120 },
-            type: 'ai-generate-post',
+            type: 'genfeedAction',
           },
           {
             data: {
               config: {
-                prompt: 'Draft the strongest option',
+                actionId: 'postGen',
+                parameters: { prompt: 'Draft the strongest option' },
               },
               label: 'Draft Content',
             },
             id: 'draft',
             position: { x: 420, y: 120 },
-            type: 'ai-generate-post',
+            type: 'genfeedAction',
           },
         ],
         schedule: ' 0 9 * * 1 ',
@@ -4634,12 +4645,15 @@ describe('AgentToolExecutorService', () => {
           expect.objectContaining({
             data: expect.objectContaining({
               config: expect.objectContaining({
-                brandId: testId('currentbrand'),
-                brandLabel: 'Genfeed',
-                prompt: 'Create one daily post draft about product learnings',
+                actionId: 'postGen',
+                parameters: expect.objectContaining({
+                  brandId: testId('currentbrand'),
+                  brandLabel: 'Genfeed',
+                  prompt: 'Create one daily post draft about product learnings',
+                }),
               }),
             }),
-            type: 'ai-generate-post',
+            type: 'genfeedAction',
           }),
         ],
       }),
@@ -4678,13 +4692,17 @@ describe('AgentToolExecutorService', () => {
           expect.objectContaining({
             data: expect.objectContaining({
               config: expect.objectContaining({
-                brandId: testId('currentbrand'),
-                brandLabel: 'Genfeed',
-                instructions: 'Keep the issue practical and operator-focused.',
-                prompt: 'Draft the next daily newsletter issue',
+                actionId: 'newsletterGen',
+                parameters: expect.objectContaining({
+                  brandId: testId('currentbrand'),
+                  brandLabel: 'Genfeed',
+                  instructions:
+                    'Keep the issue practical and operator-focused.',
+                  prompt: 'Draft the next daily newsletter issue',
+                }),
               }),
             }),
-            type: 'ai-generate-newsletter',
+            type: 'genfeedAction',
           }),
         ],
       }),

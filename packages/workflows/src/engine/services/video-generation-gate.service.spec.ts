@@ -58,14 +58,14 @@ const disabledConfig: VideoGenerationGateConfig = {
 };
 
 describe('isVideoGenerationNodeType', () => {
-  it('matches video generation node types', () => {
+  it('matches only the canonical video generation action', () => {
     expect(isVideoGenerationNodeType('videoGen')).toBe(true);
-    expect(isVideoGenerationNodeType('generateVideo')).toBe(true);
-    expect(isVideoGenerationNodeType('video-generator')).toBe(true);
   });
 
   it('does not match image, processing, or other node types', () => {
     expect(isVideoGenerationNodeType('imageGen')).toBe(false);
+    expect(isVideoGenerationNodeType('generateVideo')).toBe(false);
+    expect(isVideoGenerationNodeType('video-generator')).toBe(false);
     expect(isVideoGenerationNodeType('lipSync')).toBe(false);
     expect(isVideoGenerationNodeType('reframe')).toBe(false);
     expect(isVideoGenerationNodeType('upscale')).toBe(false);

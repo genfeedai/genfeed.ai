@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { VIDEO_GENERATION_GATE_HALT_PREFIX } from '../../services/video-generation-gate.service';
 import type { ExecutableNode, ExecutableWorkflow } from '../../types';
+import { createExecutableActionNode } from '../../utils/action-node';
 import {
   DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
   type VideoGenerationLineage,
@@ -12,6 +13,23 @@ function makeNode(
   type: string,
   overrides: Partial<ExecutableNode> = {},
 ): ExecutableNode {
+  if (type === 'imageGen' || type === 'videoGen') {
+    return {
+      ...createExecutableActionNode({
+        actionId: type,
+        id,
+        label: id,
+        parameters: overrides.config ?? {},
+      }),
+      ...overrides,
+      config: {
+        actionId: type,
+        parameters: overrides.config ?? {},
+      },
+      type: 'genfeedAction',
+    };
+  }
+
   return {
     config: {},
     id,
@@ -30,6 +48,7 @@ function makeWorkflow(nodes: ExecutableNode[]): ExecutableWorkflow {
     nodes,
     organizationId: 'org-1',
     userId: 'user-1',
+    versionId: 'version-1',
   };
 }
 
@@ -41,16 +60,16 @@ const zeroRetry = {
 };
 
 describe('WorkflowEngine video generation gate', () => {
-  it('does not change executeNode for non-video types when the gate is enabled', async () => {
+  it('does not gate non-video actions when the gate is enabled', async () => {
     const executor: NodeExecutor = vi.fn().mockResolvedValue({ result: 'ok' });
     const engine = new WorkflowEngine({
-      creditCosts: { generate: 10 },
+      creditCosts: { imageGen: 10 },
       retryConfig: zeroRetry,
     });
-    engine.registerExecutor('generate', executor);
+    engine.registerExecutor('imageGen', executor);
 
     const result = await engine.execute(
-      makeWorkflow([makeNode('n1', 'generate')]),
+      makeWorkflow([makeNode('n1', 'imageGen')]),
     );
 
     expect(executor).toHaveBeenCalledTimes(1);

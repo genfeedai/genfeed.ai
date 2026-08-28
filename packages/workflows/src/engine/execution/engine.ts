@@ -1,4 +1,7 @@
-import { GENFEED_ACTION_NODE_TYPE } from '@genfeedai/actions';
+import {
+  GENFEED_ACTION_NODE_TYPE,
+  getActionDefinition,
+} from '@genfeedai/actions';
 import { v4 as uuidv4 } from 'uuid';
 import {
   createVideoGenerationLineage,
@@ -17,6 +20,10 @@ import type {
   RetryConfig,
 } from '../types';
 import { DEFAULT_RETRY_CONFIG } from '../types';
+import {
+  getExecutableNodeOperationId,
+  isEngineNativeNodeType,
+} from '../utils/action-node';
 import {
   DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
   type EngineExecutionOptions,
@@ -62,31 +69,6 @@ const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   videoGenerationGate: DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
 };
 
-const ENGINE_NATIVE_NODE_TYPES = new Set([
-  'commentTrigger',
-  'condition',
-  'control-branch',
-  'control-delay',
-  'control-loop',
-  'delay',
-  'engagementTrigger',
-  'input-image',
-  'input-video',
-  'keywordTrigger',
-  'mentionTrigger',
-  'newFollowerTrigger',
-  'newLikeTrigger',
-  'newRepostTrigger',
-  'postPublishTrigger',
-  'reviewGate',
-]);
-
-function isEngineNativeNodeType(nodeType: string): boolean {
-  return (
-    ENGINE_NATIVE_NODE_TYPES.has(nodeType) || nodeType.startsWith('trigger-')
-  );
-}
-
 function readRecord(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -111,6 +93,9 @@ export class WorkflowEngine {
   }
 
   registerExecutor(nodeType: string, executor: NodeExecutor): void {
+    if (!isEngineNativeNodeType(nodeType) && !getActionDefinition(nodeType)) {
+      throw new Error(`Cannot register unknown Genfeed action: ${nodeType}`);
+    }
     const registry = isEngineNativeNodeType(nodeType)
       ? this.nativeExecutors
       : this.actionExecutors;
@@ -731,14 +716,12 @@ export class WorkflowEngine {
   }
 
   estimateCredits(nodes: ExecutableNode[]): number {
-    return nodes.reduce((total, node) => {
-      const executionType =
-        node.type === GENFEED_ACTION_NODE_TYPE &&
-        typeof node.config.actionId === 'string'
-          ? node.config.actionId
-          : node.type;
-      return total + (this.config.creditCosts[executionType] ?? 0);
-    }, 0);
+    return nodes.reduce(
+      (total, node) =>
+        total +
+        (this.config.creditCosts[getExecutableNodeOperationId(node)] ?? 0),
+      0,
+    );
   }
 
   private resolveNodeExecutor(
@@ -762,6 +745,9 @@ export class WorkflowEngine {
     const actionId = node.config.actionId;
     if (typeof actionId !== 'string' || actionId.length === 0) {
       throw new Error('A Genfeed action node requires a non-empty actionId');
+    }
+    if (!getActionDefinition(actionId)) {
+      throw new Error(`Unknown Genfeed action: ${actionId}`);
     }
 
     const executor = this.actionExecutors.get(actionId);

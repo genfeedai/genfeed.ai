@@ -1,3 +1,4 @@
+import { createGenfeedActionNode } from '@genfeedai/actions';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { WorkflowTrigger } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
@@ -445,9 +446,13 @@ export class AgentWorkflowToolCreateService {
     brandLabel: string,
   ): Array<Record<string, unknown>> {
     if (parsed.contentType === 'image') {
-      return Array.from({ length: parsed.count }, (_, idx) => ({
-        data: {
-          config: {
+      return Array.from({ length: parsed.count }, (_, idx) =>
+        this.buildRecurringActionNode({
+          actionId: 'imageGen',
+          id: `generate-image-${idx + 1}`,
+          label:
+            parsed.count > 1 ? `Generate Image ${idx + 1}` : 'Generate Image',
+          parameters: {
             aspectRatio:
               typeof params.aspectRatio === 'string'
                 ? params.aspectRatio
@@ -466,71 +471,92 @@ export class AgentWorkflowToolCreateService {
             ),
             style: parsed.styleNotes || 'social-media',
           },
-          label:
-            parsed.count > 1 ? `Generate Image ${idx + 1}` : 'Generate Image',
-        },
-        id: `generate-image-${idx + 1}`,
-        position: { x: 120 + idx * 220, y: 120 },
-        type: 'ai-generate-image',
-      }));
+          position: { x: 120 + idx * 220, y: 120 },
+        }),
+      );
     }
 
+    const actionId =
+      parsed.contentType === 'video'
+        ? 'videoGen'
+        : parsed.contentType === 'post'
+          ? 'postGen'
+          : 'newsletterGen';
+    const label =
+      parsed.contentType === 'video'
+        ? 'Generate Video'
+        : parsed.contentType === 'post'
+          ? 'Generate Post'
+          : 'Generate Newsletter';
+
     return [
-      {
-        data: {
-          config:
-            parsed.contentType === 'video'
-              ? {
-                  aspectRatio:
-                    typeof params.aspectRatio === 'string'
-                      ? params.aspectRatio
-                      : '9:16',
-                  duration:
-                    typeof params.duration === 'number' ? params.duration : 8,
-                  model:
-                    typeof params.model === 'string'
-                      ? params.model
-                      : 'kling-v2',
-                  prompt: parsed.prompt,
-                }
-              : parsed.contentType === 'post'
-                ? {
-                    brandId,
-                    brandLabel,
-                    credentialId:
-                      typeof params.credentialId === 'string'
-                        ? params.credentialId
-                        : undefined,
-                    prompt: parsed.prompt,
-                    timezone: parsed.timezone,
-                  }
-                : {
-                    brandId,
-                    brandLabel,
-                    instructions:
-                      typeof params.instructions === 'string'
-                        ? params.instructions
-                        : undefined,
-                    prompt: parsed.prompt,
-                    timezone: parsed.timezone,
-                  },
-          label:
-            parsed.contentType === 'video'
-              ? 'Generate Video'
-              : parsed.contentType === 'post'
-                ? 'Generate Post'
-                : 'Generate Newsletter',
-        },
+      this.buildRecurringActionNode({
+        actionId,
         id: 'generate-primary',
-        position: { x: 120, y: 120 },
-        type:
+        label,
+        parameters:
           parsed.contentType === 'video'
-            ? 'ai-generate-video'
+            ? {
+                aspectRatio:
+                  typeof params.aspectRatio === 'string'
+                    ? params.aspectRatio
+                    : '9:16',
+                duration:
+                  typeof params.duration === 'number' ? params.duration : 8,
+                model:
+                  typeof params.model === 'string' ? params.model : 'kling-v2',
+                prompt: parsed.prompt,
+              }
             : parsed.contentType === 'post'
-              ? 'ai-generate-post'
-              : 'ai-generate-newsletter',
-      },
+              ? {
+                  brandId,
+                  brandLabel,
+                  credentialId:
+                    typeof params.credentialId === 'string'
+                      ? params.credentialId
+                      : undefined,
+                  prompt: parsed.prompt,
+                  timezone: parsed.timezone,
+                }
+              : {
+                  brandId,
+                  brandLabel,
+                  instructions:
+                    typeof params.instructions === 'string'
+                      ? params.instructions
+                      : undefined,
+                  prompt: parsed.prompt,
+                  timezone: parsed.timezone,
+                },
+        position: { x: 120, y: 120 },
+      }),
     ];
+  }
+
+  private buildRecurringActionNode(input: {
+    actionId: string;
+    id: string;
+    label: string;
+    parameters: Record<string, unknown>;
+    position: { x: number; y: number };
+  }): Record<string, unknown> {
+    const node = createGenfeedActionNode({
+      actionId: input.actionId,
+      id: input.id,
+      label: input.label,
+      position: input.position,
+    });
+
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        config: {
+          actionId: input.actionId,
+          parameters: input.parameters,
+        },
+      },
+    };
   }
 
   private buildImageVariationPrompt(

@@ -3,6 +3,7 @@ import type {
   CreditEstimate,
   ExecutableNode,
 } from '../types';
+import { getExecutableNodeOperationId } from './action-node';
 
 /**
  * Credit costs per node type execution.
@@ -30,17 +31,21 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   newFollowerTrigger: 0,
   newLikeTrigger: 0,
   newRepostTrigger: 0,
-  noop: 0,
   postPublishTrigger: 0, // trigger node — the optimization workflow it starts bills itself
   promptConstructor: 0,
   castPrompt: 0,
-  'cast-prompt-generator': 0,
   trendTrigger: 0,
-  // videoInput is a core input node (see @genfeedai/types); free like other inputs
-  videoInput: 0,
+  // Engine-native media inputs are free.
+  'input-image': 0,
+  'input-video': 0,
 
   // ----- control flow (free) -----
-  loop: 0, // legacy alias
+  'control-branch': 0,
+  'control-delay': 0,
+  'control-loop': 0,
+  condition: 0,
+  delay: 0,
+  reviewGate: 0,
 
   // ----- publish / output (free — billed by platform API limits, not credits) -----
   publish: 0,
@@ -51,47 +56,43 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   // trendDigest assembles the email payload only; the credit is deducted by the
   // adapter post-run hook on a confirmed send, not via the engine accumulator.
   trendDigest: 0,
-  webhook: 0, // legacy alias
+  'output-webhook': 0,
 
   // ----- text / content generation -----
-  caption: 1, // legacy alias
-  generateArticle: 3, // legacy alias
+  'effect-captions': 1,
   hookGenerator: 1, // [ESTIMATED] deterministic content generation; comparable to caption
   iterativeSeoRefine: 15, // [ESTIMATED] default maxIterations(3) x (score 2 + rewrite 3) -> ~15; the engine reads this flat value for budgeting, while executor.estimateCost scales with the configured maxIterations
   postReply: 1, // [ESTIMATED] comparable to caption
-  seoRewrite: 3, // [ESTIMATED] LLM rewrite; comparable to generateArticle
+  seoRewrite: 3, // [ESTIMATED] full LLM rewrite
   seoScore: 2, // [ESTIMATED] LLM-assisted scoring pass; lighter than a full rewrite
-  talkingHeadScript: 3, // Full structured script generation; comparable to generateArticle
+  talkingHeadScript: 3, // Full structured script generation
   trendHashtagInspiration: 1, // [ESTIMATED] lightweight prompt synthesis from trend context
   trendSoundInspiration: 1, // [ESTIMATED] cached trend lookup / sound selection
   trendVideoInspiration: 1, // [ESTIMATED] lightweight prompt synthesis from trend context
 
   // ----- image generation / processing -----
-  generateImage: 5, // legacy alias
   imageGen: 5,
-  resize: 1, // legacy alias
-  transform: 1, // legacy alias
+  'process-resize': 1,
+  'process-transform': 1,
 
   // ----- video generation / processing -----
   cinematicColorGrade: 2, // [ESTIMATED] heavier FFmpeg pass than colorGrade
-  clip: 2, // legacy alias
   colorGrade: 1, // [ESTIMATED] FFmpeg filter pass; comparable to resize
   filmGrain: 1, // [ESTIMATED] FFmpeg noise filter; comparable to colorGrade
-  generateVideo: 10, // legacy alias
   lensEffects: 1, // [ESTIMATED] FFmpeg composite; comparable to colorGrade
-  lipSync: 8, // [ESTIMATED] AI video synthesis; comparable to generateMusic
+  lipSync: 8, // [ESTIMATED] AI video synthesis
   reframe: 3, // [ESTIMATED] AI reframe; heavier than colorGrade, cheaper than full gen
   soundOverlay: 1, // [ESTIMATED] simple FFmpeg audio mux
   videoQa: 1, // FFmpeg-pass tier: ffprobe + blackdetect/freezedetect/ebur128
+  videoFrameExtract: 2,
   videoStitch: 1, // FFmpeg concat pass
   upscale: 2,
   // Pilot runs reuse this videoGen cost at min duration — there is no
   // `videoPilot` key. VideoGenerationGateService scales by duration.
-  videoGen: 10, // legacy alias
+  videoGen: 10,
 
   // ----- audio / voice -----
-  generateMusic: 8, // legacy alias
-  textToSpeech: 3, // [ESTIMATED] TTS synthesis; comparable to generateArticle
+  textToSpeech: 3, // [ESTIMATED] TTS synthesis
   voiceChange: 5, // [ESTIMATED] AI voice conversion; comparable to imageGen
 };
 
@@ -106,11 +107,12 @@ export function calculateCreditEstimate(
   let totalCredits = 0;
 
   for (const node of nodes) {
-    const credits = costs[node.type] ?? 0;
+    const operationId = getExecutableNodeOperationId(node);
+    const credits = costs[operationId] ?? 0;
     breakdown.push({
       credits,
       nodeId: node.id,
-      nodeType: node.type,
+      nodeType: operationId,
     });
     totalCredits += credits;
   }
@@ -189,7 +191,7 @@ export function filterByBudget(
       continue;
     }
 
-    const cost = costs[node.type] ?? 0;
+    const cost = costs[getExecutableNodeOperationId(node)] ?? 0;
 
     if (cost <= remainingCredits) {
       result.push(node);
@@ -218,12 +220,13 @@ export function groupCostsByCategory(
     {};
 
   for (const node of nodes) {
-    const category = getNodeCategory(node.type);
+    const operationId = getExecutableNodeOperationId(node);
+    const category = getNodeCategory(operationId);
     if (!categories[category]) {
       categories[category] = { nodes: [], totalCredits: 0 };
     }
     categories[category].nodes.push(node.id);
-    categories[category].totalCredits += costs[node.type] ?? 0;
+    categories[category].totalCredits += costs[operationId] ?? 0;
   }
 
   return categories;
@@ -241,28 +244,29 @@ const NODE_CATEGORY_MAP: Record<string, string> = {
   newFollowerTrigger: 'input',
   newLikeTrigger: 'input',
   newRepostTrigger: 'input',
-  noop: 'input',
   postPublishTrigger: 'input',
   socialRead: 'input',
   trendTrigger: 'input',
-  videoInput: 'input',
+  'input-image': 'input',
+  'input-video': 'input',
 
   // control
-  loop: 'control',
+  'control-branch': 'control',
+  'control-delay': 'control',
+  'control-loop': 'control',
+  condition: 'control',
+  delay: 'control',
   promptConstructor: 'control',
+  reviewGate: 'control',
 
   // output
   publish: 'output',
   reportDelivery: 'output',
   sendDm: 'output',
-  webhook: 'output',
+  'output-webhook': 'output',
   postReply: 'output',
 
   // ai
-  generateArticle: 'ai',
-  generateImage: 'ai',
-  generateMusic: 'ai',
-  generateVideo: 'ai',
   hookGenerator: 'ai',
   imageGen: 'ai',
   iterativeSeoRefine: 'ai',
@@ -278,18 +282,18 @@ const NODE_CATEGORY_MAP: Record<string, string> = {
   voiceChange: 'ai',
 
   // processing
-  caption: 'processing',
+  'effect-captions': 'processing',
   cinematicColorGrade: 'processing',
-  clip: 'processing',
   colorGrade: 'processing',
   filmGrain: 'processing',
   lensEffects: 'processing',
   reframe: 'processing',
-  resize: 'processing',
+  'process-resize': 'processing',
+  'process-transform': 'processing',
   soundOverlay: 'processing',
   videoQa: 'processing',
-  transform: 'processing',
   upscale: 'processing',
+  videoFrameExtract: 'processing',
 };
 
 function getNodeCategory(nodeType: string): string {
