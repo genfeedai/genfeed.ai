@@ -4,6 +4,7 @@ import {
 } from '@genfeedai/constants';
 import {
   AgentAutonomyMode,
+  AgentMessageRole,
   AgentType,
   ApiKeyScope,
   GenerationPriority,
