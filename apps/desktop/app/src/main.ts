@@ -1922,7 +1922,7 @@ void app
         process.stderr.write(
           `[desktop] local runtime could not start: ${error instanceof Error ? error.stack || error.message : String(error)}\n`,
         );
-        logService.error(
+        logService?.error(
           `local runtime could not start: ${error instanceof Error ? error.stack || error.message : String(error)}`,
         );
         telemetryService.captureException(error, { surface: 'local-runtime' });
