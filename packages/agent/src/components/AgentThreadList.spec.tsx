@@ -305,7 +305,14 @@ describe('AgentThreadList', () => {
       getThreads: vi.fn().mockRejectedValue(new Error('Network down')),
     });
 
-    render(<AgentThreadList apiService={apiService as never} />);
+    render(
+      <AgentThreadList
+        apiService={apiService as never}
+        resolveThreadHref={(candidate) =>
+          `/acme/moonrise/agent/${candidate.id}`
+        }
+      />,
+    );
 
     expect(
       await screen.findByText('Failed to load threads'),
@@ -457,7 +464,7 @@ describe('AgentThreadList', () => {
 
     const threadLink = screen.getByText('Linked thread').closest('a');
 
-    expect(threadLink).toHaveAttribute('href', '/agent/conv-1');
+    expect(threadLink).toHaveAttribute('href', '/acme/moonrise/agent/conv-1');
     // Row chrome is flex min-h-0 stretch (not a fixed min-h-14 pill).
     expect(threadLink?.parentElement).toHaveClass('min-h-0');
   });

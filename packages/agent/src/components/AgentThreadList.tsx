@@ -1,3 +1,4 @@
+import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import {
   ConversationSidebarSearch,
@@ -25,6 +26,8 @@ export type AgentThreadListProps = {
    */
   brandId?: string | null;
   onNavigate?: (path: string) => void;
+  /** Resolve the final app-scoped route without a proxy redirect. */
+  resolveThreadHref?: (thread: AgentThread) => string;
   searchAction?: ReactNode;
   /** When true, render the Conversations label above search. */
   showTitle?: boolean;
@@ -35,6 +38,7 @@ export function AgentThreadList({
   isActive = true,
   brandId = null,
   onNavigate,
+  resolveThreadHref,
   searchAction,
   showTitle = true,
 }: AgentThreadListProps): ReactElement {
@@ -76,7 +80,13 @@ export function AgentThreadList({
     handleToggleView,
     handleRetryLoad,
     handleRefresh,
-  } = useAgentThreadList({ apiService, isActive, brandId, onNavigate });
+  } = useAgentThreadList({
+    apiService,
+    isActive,
+    brandId,
+    onNavigate,
+    resolveThreadHref,
+  });
   const { prefetchThread, cancelPrefetch } = useAgentThreadPrefetch({
     apiService,
   });

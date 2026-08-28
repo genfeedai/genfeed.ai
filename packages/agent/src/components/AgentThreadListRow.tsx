@@ -52,7 +52,7 @@ interface AgentThreadListRowProps {
   renameDraft: string;
   renameInputRef: RefObject<HTMLInputElement | null>;
   isArchivedView: boolean;
-  getThreadHref: (threadId: string) => string;
+  getThreadHref: (thread: AgentThread) => string;
   onContextMenu: (event: React.MouseEvent, threadId: string) => void;
   onSelect: (thread: AgentThread) => void;
   onMenuOpenChange: (threadId: string, open: boolean) => void;
@@ -246,7 +246,7 @@ export function AgentThreadListRow({
         </div>
       ) : (
         <Link
-          href={getThreadHref(conv.id)}
+          href={getThreadHref(conv)}
           className="flex min-w-0 flex-1 gap-2 rounded px-2.5 py-1.5 pr-8 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60"
           onClick={() => {
             // Do not abort an in-flight prefetch for this row. The switch
