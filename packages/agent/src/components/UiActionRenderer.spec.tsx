@@ -485,4 +485,44 @@ describe('UiActionRenderer', () => {
         .onUiAction,
     ).toBeUndefined();
   });
+
+  it('keeps busy action cards visible but inert and drops their handler', () => {
+    const onUiAction = vi.fn();
+    const action = {
+      id: 'brand-confirmation-busy',
+      type: 'brand_identity_confirmation_card',
+    } as AgentUiAction;
+
+    render(
+      <UiActionRenderer action={action} isDisabled onUiAction={onUiAction} />,
+    );
+
+    expect(screen.getByTestId('ui-action-busy')).toHaveAttribute('inert');
+    expect(
+      cardPropsSpies.brandIdentityConfirmation.mock.calls.at(-1)?.[0]
+        .onUiAction,
+    ).toBeUndefined();
+  });
+
+  it('keeps busy api-backed cards visible inside the inert shell', () => {
+    const apiService = { marker: 'workflow-trigger' };
+    const action = {
+      id: 'workflow-trigger-busy',
+      type: 'workflow_trigger_card',
+    } as AgentUiAction;
+
+    render(
+      <UiActionRenderer
+        action={action}
+        apiService={apiService as never}
+        isDisabled
+      />,
+    );
+
+    expect(screen.getByTestId('workflow-trigger-card')).toBeInTheDocument();
+    expect(screen.getByTestId('ui-action-busy')).toHaveAttribute('inert');
+    expect(
+      cardPropsSpies.workflowTrigger.mock.calls.at(-1)?.[0].apiService,
+    ).toBe(apiService);
+  });
 });

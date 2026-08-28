@@ -85,6 +85,21 @@ describe('handleAgentUiAction', () => {
 
     expect(deps.followLatestTurn).toHaveBeenCalledWith('smooth');
     expect(deps.sendMessage).toHaveBeenCalledWith('Retry with a new angle');
+    expect(deps.setActiveUiAction).toHaveBeenNthCalledWith(1, 'send_prompt');
+    expect(deps.setActiveUiAction).toHaveBeenLastCalledWith(null);
+  });
+
+  it('silently ignores send_prompt while another action is pending', async () => {
+    const deps = makeDeps({ activeUiAction: 'other_action' });
+
+    await handleAgentUiAction(
+      'send_prompt',
+      { prompt: 'Retry with a new angle' },
+      deps,
+    );
+
+    expect(deps.sendMessage).not.toHaveBeenCalled();
+    expect(deps.setError).not.toHaveBeenCalled();
   });
 
   it('send_prompt without a prompt errors', async () => {
@@ -144,14 +159,13 @@ describe('handleAgentUiAction', () => {
     expect(deps.setError).toHaveBeenCalledWith('No active thread selected.');
   });
 
-  it('rejects concurrent UI actions', async () => {
+  it('silently ignores concurrent UI actions', async () => {
     const deps = makeDeps({ activeUiAction: 'other_action' });
 
     await handleAgentUiAction('approve_plan', undefined, deps);
 
-    expect(deps.setError).toHaveBeenCalledWith(
-      'A UI action is already in progress.',
-    );
+    expect(deps.setError).not.toHaveBeenCalled();
+    expect(deps.apiService.respondToUiActionEffect).not.toHaveBeenCalled();
   });
 
   it('runs a thread-bound action and applies the response', async () => {

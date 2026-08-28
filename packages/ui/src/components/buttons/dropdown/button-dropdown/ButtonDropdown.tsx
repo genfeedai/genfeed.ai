@@ -43,6 +43,8 @@ export default function ButtonDropdown({
 
   const trigger = (
     <PrimitiveButton
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       className={cn(
         buttonVariants({
           size: ButtonSize.SM,

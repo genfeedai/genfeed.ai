@@ -550,6 +550,38 @@ describe('AgentChatMessage', () => {
     expect(screen.queryByRole('img', { name: /Variant/i })).toBeNull();
   });
 
+  it('makes structured actions inert while the conversation is busy', () => {
+    render(
+      <AgentChatMessage
+        isBusy
+        message={{
+          ...buildMessage('assistant', ''),
+          metadata: {
+            uiActions: [
+              {
+                id: 'completion-card-busy',
+                secondaryCtas: [
+                  {
+                    action: 'send_prompt',
+                    label: 'Retry',
+                    payload: { prompt: 'Retry this request' },
+                  },
+                ],
+                status: 'completed',
+                summaryText: 'Ready to retry.',
+                title: 'Done',
+                type: 'completion_summary_card',
+              } as never,
+            ],
+          },
+        }}
+        onUiAction={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('ui-action-busy')).toHaveAttribute('inert');
+  });
+
   it('collapses missing oauth platforms into one generic integrations card', () => {
     render(
       <AgentChatMessage

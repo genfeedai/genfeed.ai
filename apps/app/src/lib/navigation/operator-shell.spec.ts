@@ -193,6 +193,13 @@ describe('operator-shell helpers', () => {
     expect(resolveOrganizationScopePath('/settings/brands')).toBe(
       '/settings/brands',
     );
+    expect(resolveOrganizationScopePath(`/agent/${threadId}`)).toBe(
+      '/agent/new',
+    );
+    expect(resolveOrganizationScopePath('/agent')).toBe('/agent/new');
+    expect(resolveOrganizationScopePath('/agent/onboarding/thread-1')).toBe(
+      '/agent/new',
+    );
     expect(resolveOrganizationScopePath('/agent/new')).toBe('/agent/new');
     expect(resolveOrganizationScopePath('/studio/storyboard')).toBe(
       '/studio/storyboard',

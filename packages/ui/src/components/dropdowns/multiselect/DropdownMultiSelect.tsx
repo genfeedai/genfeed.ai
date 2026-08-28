@@ -208,6 +208,8 @@ export default function MultiSelectDropdown({
       <DropdownMenuTrigger asChild disabled={isDisabled}>
         <PrimitiveButton
           ref={externalButtonRef}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           className={cn(
             buttonVariants({
               size: ButtonSize.SM,

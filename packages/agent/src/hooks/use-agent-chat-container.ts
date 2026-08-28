@@ -197,7 +197,7 @@ export function useAgentChatContainer({
     });
 
   const sendMessage = isStreaming ? sendStreaming : sendNonStreaming;
-  const isBusy = isGenerating || (isStreaming && isStreamingActive);
+  const isTransportBusy = isGenerating || (isStreaming && isStreamingActive);
 
   const {
     attachments: chatAttachments,
@@ -257,7 +257,15 @@ export function useAgentChatContainer({
   const [elapsedNow, setElapsedNow] = useState(() => Date.now());
   const [isSubmittingInputRequest, setIsSubmittingInputRequest] =
     useState(false);
-  const [activeUiAction, setActiveUiAction] = useState<string | null>(null);
+  const activeUiActionRef = useRef<string | null>(null);
+  const [activeUiAction, setActiveUiActionState] = useState<string | null>(
+    null,
+  );
+  const setActiveUiAction = useCallback((action: string | null) => {
+    activeUiActionRef.current = action;
+    setActiveUiActionState(action);
+  }, []);
+  const isBusy = isTransportBusy || Boolean(activeUiAction);
   const [isCreatingFollowUpTasks, setIsCreatingFollowUpTasks] = useState(false);
   const [followUpTaskMessage, setFollowUpTaskMessage] = useState<string | null>(
     null,
@@ -652,7 +660,7 @@ export function useAgentChatContainer({
     async (action: string, payload?: Record<string, unknown>) => {
       return await handleAgentUiAction(action, payload, {
         activeThreadId,
-        activeUiAction,
+        activeUiAction: activeUiActionRef.current,
         addMessage,
         apiService,
         draftPlanModeEnabled,
@@ -672,7 +680,6 @@ export function useAgentChatContainer({
     },
     [
       activeThreadId,
-      activeUiAction,
       addMessage,
       apiService,
       draftPlanModeEnabled,
@@ -682,6 +689,7 @@ export function useAgentChatContainer({
       followLatestTurn,
       sendMessage,
       setActiveThread,
+      setActiveUiAction,
       setCreditsRemaining,
       setError,
       setLatestProposedPlan,

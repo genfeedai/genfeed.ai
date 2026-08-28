@@ -36,6 +36,8 @@ describe('Popover overlay surface', () => {
     for (const token of overlayMenuSurfaceClassName.split(' ')) {
       expect(panel).toHaveClass(token);
     }
+    expect(panel).not.toHaveClass('border');
+    expect(panel).not.toHaveClass('border-border');
     expect(panel).not.toHaveClass('bg-card');
     expect(panel).not.toHaveClass('gen-shell-panel');
   });
@@ -51,5 +53,7 @@ describe('Popover overlay surface', () => {
     for (const token of overlayMenuSurfaceClassName.split(' ')) {
       expect(panel).toHaveClass(token);
     }
+    expect(panel).not.toHaveClass('border');
+    expect(panel).not.toHaveClass('border-border');
   });
 });

@@ -54,6 +54,7 @@ import type { ReactElement } from 'react';
 export function UiActionRenderer({
   action,
   apiService,
+  isDisabled = false,
   isReadOnly = false,
   onCopy,
   onOAuthConnect,
@@ -65,6 +66,8 @@ export function UiActionRenderer({
 }: {
   action: AgentUiAction;
   apiService?: AgentApiService;
+  /** A live thread action is already running; keep the card visible but inert. */
+  isDisabled?: boolean;
   /**
    * Archived / read-only threads: cards stay visible for reference but every
    * control (including href CTAs like Review Draft) is inert.
@@ -85,15 +88,17 @@ export function UiActionRenderer({
   onRetry?: () => void | Promise<void>;
   onUiAction?: AgentUiActionHandler;
 }): ReactElement | null {
-  // Drop mutating handlers when archived — pointer-events-none alone is not
-  // enough for keyboard / programmatic activation of nested controls.
-  const liveOnCopy = isReadOnly ? undefined : onCopy;
-  const liveOnOAuthConnect = isReadOnly ? undefined : onOAuthConnect;
-  const liveOnBrandCreate = isReadOnly ? undefined : onBrandCreate;
-  const liveOnSelectCreditPack = isReadOnly ? undefined : onSelectCreditPack;
-  const liveOnSelectIngredient = isReadOnly ? undefined : onSelectIngredient;
-  const liveOnRetry = isReadOnly ? undefined : onRetry;
-  const liveOnUiAction = isReadOnly ? undefined : onUiAction;
+  const isInert = isReadOnly || isDisabled;
+  // Drop mutating handlers when archived or temporarily busy —
+  // pointer-events-none alone is not enough for keyboard / programmatic
+  // activation of nested controls.
+  const liveOnCopy = isInert ? undefined : onCopy;
+  const liveOnOAuthConnect = isInert ? undefined : onOAuthConnect;
+  const liveOnBrandCreate = isInert ? undefined : onBrandCreate;
+  const liveOnSelectCreditPack = isInert ? undefined : onSelectCreditPack;
+  const liveOnSelectIngredient = isInert ? undefined : onSelectIngredient;
+  const liveOnRetry = isInert ? undefined : onRetry;
+  const liveOnUiAction = isInert ? undefined : onUiAction;
   // Cards that take apiService for live mutations must not receive it while
   // the thread is archived — otherwise their internal CTAs stay fully live.
   const liveApiService = isReadOnly ? undefined : apiService;
@@ -307,19 +312,21 @@ export function UiActionRenderer({
     return null;
   }
 
-  if (!isReadOnly) {
+  if (!isInert) {
     return card;
   }
 
-  // `inert` blocks pointer + keyboard focus (pointer-events-none alone left
-  // nested buttons Enter-activatable). Strip handlers/apiService above so
-  // mutation-capable cards render null rather than live CTAs.
+  // `inert` blocks pointer + keyboard focus. Archived mutation cards omit
+  // apiService and render null; temporarily busy cards retain it so their
+  // state remains visible while their handlers stay disconnected.
   return (
     <div
       aria-disabled="true"
       className="select-none opacity-60"
-      data-archived-readonly="true"
-      data-testid="ui-action-archived-readonly"
+      data-archived-readonly={isReadOnly ? 'true' : undefined}
+      data-testid={
+        isReadOnly ? 'ui-action-archived-readonly' : 'ui-action-busy'
+      }
       // React 19 supports the inert boolean attribute.
       inert
     >

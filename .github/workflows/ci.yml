@@ -408,7 +408,7 @@ jobs:
       - name: Run tests
         run: |
           if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
-            bunx turbo run test --filter='./packages/*'
+            bunx turbo run test --continue --filter='./packages/*'
           else
             BASE="$CI_BASE_SHA"
             # Force-push / new-branch pushes report an all-zero "before"; fall back
@@ -416,7 +416,7 @@ jobs:
             if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
               BASE="HEAD~1"
             fi
-            TURBO_SCM_BASE="$BASE" bunx turbo run test --affected --filter='./packages/*'
+            TURBO_SCM_BASE="$BASE" bunx turbo run test --continue --affected --filter='./packages/*'
           fi
 
   test-server-services:
@@ -439,7 +439,7 @@ jobs:
       - name: Run server service tests
         run: |
           if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
-            bunx turbo run test --filter='./apps/server/*' --filter='!@genfeedai/api'
+            bunx turbo run test --continue --filter='./apps/server/*' --filter='!@genfeedai/api'
           else
             BASE="$CI_BASE_SHA"
             # Force-push / new-branch pushes report an all-zero "before"; fall back
@@ -447,7 +447,7 @@ jobs:
             if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
               BASE="HEAD~1"
             fi
-            TURBO_SCM_BASE="$BASE" bunx turbo run test --affected --filter='./apps/server/*' --filter='!@genfeedai/api'
+            TURBO_SCM_BASE="$BASE" bunx turbo run test --continue --affected --filter='./apps/server/*' --filter='!@genfeedai/api'
           fi
 
   test-web-desktop-mobile:
@@ -472,7 +472,7 @@ jobs:
           # Temporarily disabled while desktop is not an active delivery surface:
           # --filter=@genfeedai/desktop
           if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
-            bunx turbo run test --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/mobile
+            bunx turbo run test --continue --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/mobile
           else
             BASE="$CI_BASE_SHA"
             # Force-push / new-branch pushes report an all-zero "before"; fall back
@@ -480,7 +480,7 @@ jobs:
             if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
               BASE="HEAD~1"
             fi
-            TURBO_SCM_BASE="$BASE" bunx turbo run test --affected --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/mobile
+            TURBO_SCM_BASE="$BASE" bunx turbo run test --continue --affected --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/mobile
           fi
 
   test-extensions:
@@ -513,7 +513,7 @@ jobs:
       - name: Run extension tests
         run: |
           if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
-            bunx turbo run test --filter=@genfeedai/extension-browser --filter=extension-ide
+            bunx turbo run test --continue --filter=@genfeedai/extension-browser --filter=extension-ide
           else
             BASE="$CI_BASE_SHA"
             # Force-push / new-branch pushes report an all-zero "before"; fall back
@@ -521,7 +521,7 @@ jobs:
             if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
               BASE="HEAD~1"
             fi
-            TURBO_SCM_BASE="$BASE" bunx turbo run test --affected --filter=@genfeedai/extension-browser --filter=extension-ide
+            TURBO_SCM_BASE="$BASE" bunx turbo run test --continue --affected --filter=@genfeedai/extension-browser --filter=extension-ide
           fi
 
   test-app:
