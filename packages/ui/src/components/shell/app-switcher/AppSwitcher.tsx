@@ -558,9 +558,9 @@ export function AppSwitcher({
     : 0;
   const previewRowTopClass = [
     'top-[3.375rem]',
-    'top-[8.25rem]',
-    'top-[13.125rem]',
-    'top-[18rem]',
+    'top-[8.125rem]',
+    'top-[12.875rem]',
+    'top-[17.625rem]',
   ][previewRowIndex];
   const PreviewIcon = previewApp
     ? (APP_SWITCHER_ICON_OVERRIDES[previewApp.itemKey] ?? previewApp.icon)
@@ -628,7 +628,7 @@ export function AppSwitcher({
           <div
             aria-label={`${previewApp.label}: ${previewApp.description}`}
             className={cn(
-              'absolute right-[calc(100%-1px)] z-[10002] flex min-h-[4.5rem] w-64 items-start gap-2.5 rounded-l-md rounded-r-none border border-r-0 border-border bg-popover px-3 py-1.5 font-normal shadow-dropdown',
+              'absolute right-[calc(100%-1px)] z-[10002] flex h-[4.5rem] w-64 items-center gap-2.5 rounded-l-md rounded-r-none border-y border-l border-border bg-popover px-3 font-normal shadow-none',
               previewRowTopClass,
             )}
             role="tooltip"
@@ -636,7 +636,7 @@ export function AppSwitcher({
             <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-background-secondary text-foreground">
               <PreviewIcon aria-hidden="true" className="size-[1.125rem]" />
             </span>
-            <span className="min-w-0 pt-0.5">
+            <span className="min-w-0">
               <span className="block text-sm font-semibold text-foreground">
                 {previewApp.label}
               </span>

@@ -280,9 +280,12 @@ describe('AppSwitcher', () => {
       'top-[3.375rem]',
       'rounded-l-md',
       'rounded-r-none',
-      'border-r-0',
+      'border-y',
+      'border-l',
+      'shadow-none',
       'bg-popover',
     );
+    expect(tooltip.className).not.toContain('border-r');
     expect(tooltip.querySelector('svg')).toBeInTheDocument();
     expect(tooltip).toHaveTextContent('Agent');
     expect(tooltip).toHaveTextContent('Ask and execute.');
@@ -298,7 +301,7 @@ describe('AppSwitcher', () => {
 
     expect(
       screen.getByRole('tooltip', { name: 'Discover: Find winners.' }),
-    ).toHaveClass('top-[13.125rem]');
+    ).toHaveClass('top-[12.875rem]');
   });
 
   it('hides Studio when its app-switcher discovery flag is disabled', () => {
