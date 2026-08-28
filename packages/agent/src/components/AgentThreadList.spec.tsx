@@ -1067,8 +1067,15 @@ describe('AgentThreadList', () => {
 
     expect(await screen.findByText('Failed thread')).toBeInTheDocument();
     const failed = screen.getByRole('status', { name: 'Failed' });
+    const title = screen.getByText('Failed thread');
     expect(failed).toHaveClass('rounded-full', 'bg-destructive');
     expect(failed).toHaveTextContent('');
+    expect(
+      Boolean(
+        failed.compareDocumentPosition(title) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+    ).toBe(true);
   });
 
   it('does not show a status pill for a non-active thread with stale running status', async () => {
