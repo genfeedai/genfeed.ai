@@ -1,5 +1,3 @@
-import { UsersService } from '@server/collections/users/services/users.service';
-import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import {
@@ -7,7 +5,6 @@ import {
   extractInvoiceSubscriptionMetadata,
 } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
 import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
-import type { StripeInvoice } from '@server/services/integrations/stripe/services/stripe.service';
 import {
   ActivitySource,
   ByokBillingStatus,
@@ -20,6 +17,19 @@ import {
 } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
+import { UsersService } from '@server/collections/users/services/users.service';
+import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
+import type { StripeInvoice } from '@server/services/integrations/stripe/services/stripe.service';
+
+type SubscriptionInvoiceBillingReason =
+  | 'subscription_create'
+  | 'subscription_cycle';
+
+function isSubscriptionInvoiceBillingReason(
+  value: StripeInvoice['billing_reason'],
+): value is SubscriptionInvoiceBillingReason {
+  return value === 'subscription_create' || value === 'subscription_cycle';
+}
 
 /** Handles invoice.paid / invoice.payment_failed Stripe webhook events. */
 @Injectable()
@@ -44,10 +54,8 @@ export class StripeInvoiceWebhookHandler {
         return;
       }
 
-      if (
-        invoice.billing_reason !== 'subscription_cycle' &&
-        invoice.billing_reason !== 'subscription_create'
-      ) {
+      const billingReason = invoice.billing_reason;
+      if (!isSubscriptionInvoiceBillingReason(billingReason)) {
         return;
       }
 
@@ -56,7 +64,7 @@ export class StripeInvoiceWebhookHandler {
       if (!stripeSubscriptionId) {
         return this.loggerService.warn(
           `${url} invoice carries no subscription id, skipping`,
-          { billingReason: invoice.billing_reason, invoiceId: invoice.id },
+          { billingReason, invoiceId: invoice.id },
         );
       }
 
@@ -105,7 +113,7 @@ export class StripeInvoiceWebhookHandler {
       );
 
       await this.creditReconciler.reconcile({
-        billingReason: invoice.billing_reason,
+        billingReason,
         invoiceId: invoice.id,
         ...(invoice.period_end
           ? { periodEnd: new Date(invoice.period_end * 1000) }
@@ -120,7 +128,7 @@ export class StripeInvoiceWebhookHandler {
       });
 
       // Mark onboarding as completed server-side on first subscription payment
-      if (invoice.billing_reason === 'subscription_create') {
+      if (billingReason === 'subscription_create') {
         await this.markOnboardingCompleteFromInvoice(subscription, url);
       }
 
