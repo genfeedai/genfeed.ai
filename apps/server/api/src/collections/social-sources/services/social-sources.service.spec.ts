@@ -6,9 +6,9 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { SocialSourcesService } from '@api/collections/social-sources/services/social-sources.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { SocialSourcePlatform, SocialSourceType } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 describe('SocialSourcesService', () => {
   const logger = {
@@ -175,9 +175,10 @@ describe('SocialSourcesService', () => {
       ],
       provider: 'app-bearer',
     });
-    sourcePostsService.upsertCollectedPosts.mockResolvedValue([
-      { id: 'post-1' },
-    ]);
+    sourcePostsService.upsertCollectedPosts.mockResolvedValue({
+      posts: [{ externalId: 'tweet-1', id: 'post-1' }],
+      rejectedCount: 0,
+    });
     socialSource.update.mockResolvedValue({ id: 'source-1' });
 
     const result = await service.syncSource('source-1', {
@@ -209,6 +210,68 @@ describe('SocialSourcesService', () => {
       ],
     );
     expect(result.count).toBe(1);
+  });
+
+  it('persists valid posts and reports identifier-less collector records', async () => {
+    socialSource.findFirst.mockResolvedValue({
+      brandId: 'brand-1',
+      handle: 'openai',
+      id: 'source-1',
+      organizationId: 'org-1',
+      platform: SocialSourcePlatform.TWITTER,
+      userId: 'user-1',
+    });
+    sourceCollector.collectTimeline.mockResolvedValue({
+      handle: 'openai',
+      platform: SocialSourcePlatform.TWITTER,
+      posts: [
+        {
+          authorUsername: 'openai',
+          id: undefined,
+          platform: SocialSourcePlatform.TWITTER,
+          text: 'identifier missing',
+        },
+        {
+          authorUsername: 'openai',
+          id: 'tweet-2',
+          platform: SocialSourcePlatform.TWITTER,
+          text: 'valid post',
+        },
+      ],
+      provider: 'apify',
+    } as never);
+    sourcePostsService.upsertCollectedPosts.mockResolvedValue({
+      posts: [
+        {
+          authorHandle: 'openai',
+          externalId: 'tweet-2',
+          id: 'post-2',
+        },
+      ],
+      rejectedCount: 1,
+    });
+    socialSource.update.mockResolvedValue({ id: 'source-1' });
+
+    const result = await service.syncSource('source-1', {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+    });
+
+    expect(result).toMatchObject({ count: 1, rejectedCount: 1 });
+    expect(socialSource.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        lastPostExternalId: 'tweet-2',
+        lastSyncError:
+          'Skipped 1 collected post without a stable external identifier',
+        lastSyncStatus: 'success',
+      }),
+      where: {
+        brandId: 'brand-1',
+        id: 'source-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
   });
 
   it('records a scoped sync failure before rethrowing', async () => {
@@ -273,7 +336,10 @@ describe('SocialSourcesService', () => {
         posts: [],
         provider: 'brand-oauth',
       });
-    sourcePostsService.upsertCollectedPosts.mockResolvedValue([]);
+    sourcePostsService.upsertCollectedPosts.mockResolvedValue({
+      posts: [],
+      rejectedCount: 0,
+    });
     socialSource.update.mockResolvedValue({ id: 'source-updated' });
 
     const result = await service.syncBrand({
@@ -316,6 +382,26 @@ describe('SocialSourcesService', () => {
       expect(sourceCollector.collectPost).not.toHaveBeenCalled();
     });
 
+    it('maps an identifier-less collected post to a bounded import error', async () => {
+      brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+      sourceCollector.collectPost.mockResolvedValue({
+        handle: 'openai',
+        platform: SocialSourcePlatform.TWITTER,
+        posts: [{ ...collectedTweet, id: undefined }],
+        provider: 'apify',
+      } as never);
+
+      await expect(
+        service.importPostScoped(
+          { url: 'https://x.com/openai/status/123' },
+          context,
+        ),
+      ).rejects.toThrow('missing a stable external identifier');
+
+      expect(sourcePostsService.findByExternalIdScoped).not.toHaveBeenCalled();
+      expect(sourcePostsService.upsertCollectedPosts).not.toHaveBeenCalled();
+    });
+
     it('imports a post into a new inactive post-type container', async () => {
       brand.findFirst.mockResolvedValue({ id: 'brand-1' });
       sourceCollector.collectPost.mockResolvedValue({
@@ -335,9 +421,10 @@ describe('SocialSourcesService', () => {
         sourceType: SocialSourceType.POST,
         userId: 'user-1',
       });
-      sourcePostsService.upsertCollectedPosts.mockResolvedValue([
-        { externalId: '123', id: 'post-1' },
-      ]);
+      sourcePostsService.upsertCollectedPosts.mockResolvedValue({
+        posts: [{ externalId: '123', id: 'post-1' }],
+        rejectedCount: 0,
+      });
 
       const result = await service.importPostScoped(
         { url: 'https://x.com/openai/status/123' },
@@ -378,7 +465,7 @@ describe('SocialSourcesService', () => {
       sourceCollector.collectPost.mockResolvedValue({
         handle: 'openai',
         platform: SocialSourcePlatform.TWITTER,
-        posts: [collectedTweet],
+        posts: [{ ...collectedTweet, id: ' 123 ' }],
         provider: 'apify',
       });
       sourcePostsService.findByExternalIdScoped.mockResolvedValue({
@@ -395,9 +482,10 @@ describe('SocialSourcesService', () => {
         sourceType: SocialSourceType.ACCOUNT,
         userId: 'user-1',
       });
-      sourcePostsService.upsertCollectedPosts.mockResolvedValue([
-        { externalId: '123', id: 'post-1' },
-      ]);
+      sourcePostsService.upsertCollectedPosts.mockResolvedValue({
+        posts: [{ externalId: '123', id: 'post-1' }],
+        rejectedCount: 0,
+      });
 
       const result = await service.importPostScoped(
         { url: 'https://x.com/openai/status/123' },
@@ -409,6 +497,10 @@ describe('SocialSourcesService', () => {
         context,
         SocialSourcePlatform.TWITTER,
         '123',
+      );
+      expect(sourcePostsService.upsertCollectedPosts).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'source-1' }),
+        [expect.objectContaining({ externalId: '123' })],
       );
       expect(result.deduplicated).toBe(true);
     });
