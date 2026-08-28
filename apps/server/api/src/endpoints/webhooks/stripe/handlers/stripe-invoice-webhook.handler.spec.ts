@@ -1,6 +1,3 @@
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { UsersService } from '@server/collections/users/services/users.service';
-import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
@@ -18,6 +15,9 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { UsersService } from '@server/collections/users/services/users.service';
+import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
 import type Stripe from 'stripe';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -132,6 +132,19 @@ describe('StripeInvoiceWebhookHandler', () => {
   });
 
   describe('handleInvoicePaid', () => {
+    it('ignores forward-compatible non-subscription billing reasons', async () => {
+      await handler.handleInvoicePaid(
+        invoiceWith({ billing_reason: 'future_reason' }),
+        'test',
+      );
+
+      expect(subscriptionsService.findOne).not.toHaveBeenCalled();
+      expect(subscriptionsService.patch).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.resetOrganizationCredits,
+      ).not.toHaveBeenCalled();
+    });
+
     it('allocates monthly credits on a subscription_cycle invoice', async () => {
       await handler.handleInvoicePaid(
         invoiceWith({
