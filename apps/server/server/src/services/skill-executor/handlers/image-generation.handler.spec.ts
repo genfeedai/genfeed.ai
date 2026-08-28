@@ -93,16 +93,14 @@ describe('ImageGenerationHandler', () => {
       apiKey: 'leo-key',
       source: 'byok',
     });
-    mockLeonardoService.generateImage.mockResolvedValue({
-      url: 'https://img.test/leo.jpg',
-    });
+    mockLeonardoService.generateImage.mockResolvedValue('generation-123');
 
     const result = await handler.execute(baseContext, {
       model: ImageTaskModel.LEONARDO,
       prompt: 'sunset landscape',
     });
 
-    expect(result.mediaUrls).toEqual(['https://img.test/leo.jpg']);
+    expect(result.mediaUrls).toEqual(['generation-123']);
     expect(result.metadata).toEqual(
       expect.objectContaining({ model: ImageTaskModel.LEONARDO }),
     );
