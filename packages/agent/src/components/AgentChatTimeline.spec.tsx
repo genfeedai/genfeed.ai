@@ -41,7 +41,12 @@ vi.mock('./AgentChatMessage', () => ({
   }) {
     return <div data-testid={`message-${message.id}`}>{message.content}</div>;
   },
-  UiActionRenderer: () => null,
+  UiActionRenderer: ({ isDisabled }: { isDisabled?: boolean }) => (
+    <div
+      data-testid={isDisabled ? 'ui-action-busy' : 'ui-action-interactive'}
+      inert={isDisabled ? true : undefined}
+    />
+  ),
 }));
 
 vi.mock('./TimelineWorkGroup', () => ({
