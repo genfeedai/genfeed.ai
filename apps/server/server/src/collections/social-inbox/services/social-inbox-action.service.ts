@@ -456,7 +456,9 @@ export class SocialInboxActionService implements OnModuleInit {
       return {
         ...state,
         externalMessageId: result.messageId,
-        externalUrl: 'url' in result ? result.url : undefined,
+        ...('url' in result && typeof result.url === 'string'
+          ? { externalUrl: result.url }
+          : {}),
       };
     } catch (error: unknown) {
       return {
@@ -592,7 +594,9 @@ export class SocialInboxActionService implements OnModuleInit {
 
       return {
         messageId: result.commentId,
-        url: conversation.sourceContentUrl ?? undefined,
+        ...(conversation.sourceContentUrl
+          ? { url: conversation.sourceContentUrl }
+          : {}),
       };
     }
 
@@ -613,7 +617,9 @@ export class SocialInboxActionService implements OnModuleInit {
 
       return {
         messageId: result.commentId,
-        url: conversation.sourceContentUrl ?? undefined,
+        ...(conversation.sourceContentUrl
+          ? { url: conversation.sourceContentUrl }
+          : {}),
       };
     }
 

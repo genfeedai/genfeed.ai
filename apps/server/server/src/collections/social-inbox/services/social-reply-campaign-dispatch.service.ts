@@ -285,7 +285,7 @@ export class SocialReplyCampaignDispatchService implements OnModuleInit {
       messageType:
         campaign.messageType === SocialMessageType.DM ? 'dm' : 'reply',
       organizationId: campaign.organizationId,
-      userId: campaign.userId ?? undefined,
+      ...(campaign.userId ? { userId: campaign.userId } : {}),
       workflowRunId: action.provenance.executionId,
     };
   }
