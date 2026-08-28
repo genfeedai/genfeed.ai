@@ -101,6 +101,9 @@ describe('Genfeed action registry', () => {
     expect(getActionDefinition('clip.handoff.prepare-publish')).toBeDefined();
     expect(getActionDefinition('clip.handoff.create-editor')).toBeDefined();
     expect(getActionDefinition('clip.handoff.link-library')).toBeDefined();
+    expect(getActionDefinition('clip.continuity.begin')).toBeDefined();
+    expect(getActionDefinition('clip.continuity.fail')).toBeDefined();
+    expect(getActionDefinition('clip.continuity.persist-report')).toBeDefined();
   });
 
   it('owns workflow credit policy instead of delegating it to the engine', () => {

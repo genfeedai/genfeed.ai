@@ -4098,7 +4098,8 @@ model WorkflowExecution {
 
   posts        Post[]
   nodeResults  WorkflowExecutionNodeResult[]
-  clipProject  ClipProject?
+  clipGenerationProject ClipProject? @relation("clip_generation_workflow_execution")
+  clipContinuityProject ClipProject? @relation("clip_continuity_workflow_execution")
 
   trigger String?
 
@@ -5523,8 +5524,11 @@ model ClipProject {
   brand               Brand?             @relation(fields: [brandId], references: [id])
   userId              String?
   user                User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
-  workflowExecutionId String?            @unique
-  workflowExecution   WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id], onDelete: SetNull)
+  workflowExecutionId           String?            @unique
+  workflowExecution             WorkflowExecution? @relation("clip_generation_workflow_execution", fields: [workflowExecutionId], references: [id], onDelete: SetNull)
+  continuityWorkflowExecutionId String?            @unique
+  continuityWorkflowExecution   WorkflowExecution? @relation("clip_continuity_workflow_execution", fields: [continuityWorkflowExecutionId], references: [id], onDelete: SetNull)
+  continuityQaStatus            String              @default("not-required")
   results             ClipResult[]
   status              String             @default("pending")
   progress            Int                @default(0)

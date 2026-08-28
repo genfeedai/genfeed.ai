@@ -35,6 +35,7 @@ import { FileQueueModule } from '@api/services/files-microservice/queue/file-que
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
+import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
@@ -64,6 +65,7 @@ import { PaidCreativeResearchWorkflowService } from '@server/collections/workflo
 import { ReplyPollingWorkflowService } from '@server/collections/workflows/services/reply-polling-workflow.service';
 import { ReviewGateNotificationService } from '@server/collections/workflows/services/review-gate-notification.service';
 import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
+import { VideoQaContinuityResolverService } from '@server/collections/workflows/services/video-qa-continuity-resolver.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionAuthorizationService } from '@server/collections/workflows/services/workflow-execution-authorization.service';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
@@ -129,6 +131,7 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     NotificationsModule,
     NotificationsPublisherModule,
     OpenRouterModule,
+    LlmDispatcherModule,
     PostsModule,
     ReplyBotConfigsModule,
     forwardRef(() => ReplyBotModule),
@@ -191,6 +194,7 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     WorkflowTemplateSeederService,
     WorkflowWebhookService,
     PaidCreativeResearchWorkflowService,
+    VideoQaContinuityResolverService,
   ],
 })
 export class WorkflowsModule {}

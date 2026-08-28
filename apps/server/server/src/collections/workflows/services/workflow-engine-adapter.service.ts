@@ -42,6 +42,7 @@ import { OutreachCampaignDispatchWorkflowService } from '@server/collections/wor
 import { PaidCreativeResearchWorkflowService } from '@server/collections/workflows/services/paid-creative-research-workflow.service';
 import { ReplyPollingWorkflowService } from '@server/collections/workflows/services/reply-polling-workflow.service';
 import { TrendNotificationWorkflowService } from '@server/collections/workflows/services/trend-notification-workflow.service';
+import { VideoQaContinuityResolverService } from '@server/collections/workflows/services/video-qa-continuity-resolver.service';
 import { WorkflowAutomationExecutorRegistrarService } from '@server/collections/workflows/services/workflow-automation-executor-registrar.service';
 import { WorkflowContentExecutorRegistrarService } from '@server/collections/workflows/services/workflow-content-executor-registrar.service';
 import { WorkflowCoreExecutorRegistrarService } from '@server/collections/workflows/services/workflow-core-executor-registrar.service';
@@ -149,6 +150,8 @@ export class WorkflowEngineAdapterService {
     private readonly outreachCampaignDispatchWorkflowService?: OutreachCampaignDispatchWorkflowService,
     @Optional()
     private readonly postAccountFanoutService?: PostAccountFanoutService,
+    @Optional()
+    private readonly videoQaContinuityResolver?: VideoQaContinuityResolverService,
   ) {
     this.engine = new WorkflowEngine({ maxConcurrency: 3 });
     this.converter = new WorkflowEngineConverterService();
@@ -192,6 +195,7 @@ export class WorkflowEngineAdapterService {
         this.sharedService,
         this.videoMusicOrchestrationService,
         this.whisperService,
+        this.videoQaContinuityResolver,
       );
     const mediaGenerationRegistrar =
       new WorkflowMediaGenerationExecutorRegistrarService(

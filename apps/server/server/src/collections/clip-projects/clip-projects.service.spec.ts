@@ -13,6 +13,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import type { LoggerService } from '@libs/logger/logger.service';
 import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
 import type { CreateClipProjectDto } from '@server/collections/clip-projects/dto/create-clip-project.dto';
+import type { ClipContinuityWorkflowService } from '@server/collections/clip-projects/services/clip-continuity-workflow.service';
 import type { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
 import { ValidationException } from '@server/exceptions/validation.exception';
 import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
@@ -39,6 +40,8 @@ function createPrisma() {
             { name: 'brandId' },
             { name: 'userId' },
             { name: 'workflowExecutionId' },
+            { name: 'continuityQaStatus' },
+            { name: 'continuityWorkflowExecutionId' },
             { name: 'status' },
             { name: 'progress' },
             { name: 'error' },
@@ -69,16 +72,21 @@ describe('ClipProjectsService', () => {
   let prisma: ReturnType<typeof createPrisma>;
   let service: ClipProjectsService;
   let clipResultsService: { findByProject: ReturnType<typeof vi.fn> };
+  let continuityWorkflow: { queueIfReady: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     prisma = createPrisma();
     clipResultsService = {
       findByProject: vi.fn(),
     };
+    continuityWorkflow = {
+      queueIfReady: vi.fn().mockResolvedValue(false),
+    };
     service = new ClipProjectsService(
       prisma as unknown as PrismaService,
       createLogger(),
       clipResultsService as unknown as ClipResultsService,
+      continuityWorkflow as unknown as ClipContinuityWorkflowService,
     );
   });
 
@@ -619,6 +627,9 @@ describe('ClipProjectsService', () => {
       }),
       where: { id: 'project-1' },
     });
+    expect(continuityWorkflow.queueIfReady).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'partially-completed' }),
+    );
   });
 
   it('keeps a clip project active while its workflow review gate is pending', async () => {

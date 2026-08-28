@@ -145,6 +145,25 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(clipModule).not.toContain('ClipOrchestratorModule');
   });
 
+  it('executes clip continuity as queued action nodes without Redis polling', () => {
+    const continuity = readSourceOf('ClipContinuityWorkflowService', {
+      root: API_SRC,
+    });
+    const definition = readSourceOf('buildClipContinuityWorkflowDefinition', {
+      root: API_SRC,
+    });
+    const workflowQueue = readSourceOf('WorkflowExecutionQueueService', {
+      root: API_SRC,
+    });
+
+    expect(continuity).toContain('queueSystemWorkflowDefinition');
+    expect(continuity).toContain('CLIP_CONTINUITY_ACTION_IDS.PERSIST_REPORT');
+    expect(continuity).not.toContain('@Interval');
+    expect(continuity).not.toContain('ClipOrchestratorStateStore');
+    expect(definition).toContain("actionId: 'videoQa'");
+    expect(workflowQueue).toContain("'system-run'");
+  });
+
   it('treats completed and cancelled prior executions as terminal on continue', () => {
     const source = readSourceOf('WorkflowExecutorService', { root: API_SRC });
     expect(source).toContain('continueExistingExecution');

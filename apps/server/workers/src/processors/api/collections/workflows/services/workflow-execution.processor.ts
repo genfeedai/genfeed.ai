@@ -1,3 +1,9 @@
+import { ActionOrigin } from '@genfeedai/enums';
+import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
+import { runWithActionOrigin } from '@genfeedai/server';
+import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import {
   WorkflowExecutionJobData,
   WorkflowExecutionQueueService,
@@ -7,12 +13,7 @@ import {
   WorkflowExecutorService,
 } from '@server/collections/workflows/services/workflow-executor.service';
 import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
-import { ActionOrigin } from '@genfeedai/enums';
-import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
-import { runWithActionOrigin } from '@genfeedai/server';
-import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { Job } from 'bullmq';
 
 /**
@@ -23,6 +24,7 @@ import { Job } from 'bullmq';
  * - `delay-resume` jobs: delegates to WorkflowExecutorService.resumeAfterDelay
  * - `scheduled-fire` jobs (produced by BullMQ Job Schedulers): delegates to
  *   WorkflowSchedulerService.executeScheduledWorkflow
+ * - `system-run` jobs: executes one code-owned graph through the same engine
  *
  * When a workflow execution encounters a delay node, the executor returns
  * delay metadata. This processor detects it and schedules a new delayed job
@@ -43,6 +45,7 @@ export class WorkflowExecutionProcessor extends WorkerHost {
     private readonly executorService: WorkflowExecutorService,
     private readonly queueService: WorkflowExecutionQueueService,
     private readonly schedulerService: WorkflowSchedulerService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
   ) {
     super();
   }
@@ -76,6 +79,9 @@ export class WorkflowExecutionProcessor extends WorkerHost {
         case 'scheduled-fire':
           return await this.processScheduledFire(job);
 
+        case 'system-run':
+          return await this.processSystemRun(job);
+
         default:
           throw new Error(`Unknown workflow execution job type: ${data.type}`);
       }
@@ -84,6 +90,38 @@ export class WorkflowExecutionProcessor extends WorkerHost {
         jobId: job.id,
         type: data.type,
       });
+      throw error;
+    }
+  }
+
+  private async processSystemRun(
+    job: Job<WorkflowExecutionJobData>,
+  ): Promise<unknown> {
+    const systemRun = job.data.systemRun;
+    if (!systemRun) {
+      throw new Error('System workflow job missing graph definition');
+    }
+    try {
+      const result = await this.systemWorkflowRunner.runWorkflowDefinition(
+        systemRun.definition,
+        systemRun.input,
+      );
+      return {
+        executionId: result.provenance.executionId,
+        workflowId: result.provenance.workflowId,
+      };
+    } catch (error: unknown) {
+      const failureAction = systemRun.failureAction;
+      if (failureAction) {
+        await this.systemWorkflowRunner.runAction({
+          actionType: failureAction.actionId,
+          canonicalId: failureAction.actionId,
+          inputValues: failureAction.inputValues,
+          organizationId: systemRun.input.organizationId,
+          source: 'system-workflow-failure',
+          userId: systemRun.input.userId,
+        });
+      }
       throw error;
     }
   }

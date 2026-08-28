@@ -1443,6 +1443,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'brand',
       'brandId',
       'config',
+      'continuityQaStatus',
+      'continuityWorkflowExecution',
+      'continuityWorkflowExecutionId',
       'createdAt',
       'error',
       'failedClipCount',
@@ -1459,13 +1462,17 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'updatedAt',
       'user',
       'userId',
+      'workflowExecution',
+      'workflowExecutionId',
     ],
     listFields: ['results'],
     enumFields: {},
     relationIdFields: {
       brand: 'brandId',
+      continuityWorkflowExecution: 'continuityWorkflowExecutionId',
       organization: 'organizationId',
       user: 'userId',
+      workflowExecution: 'workflowExecutionId',
     },
   },
   ClipResult: {
@@ -5787,6 +5794,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   WorkflowExecution: {
     allFields: [
+      'clipContinuityProject',
+      'clipGenerationProject',
       'completedAt',
       'createdAt',
       'creditsUsed',

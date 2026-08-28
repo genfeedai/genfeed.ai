@@ -1,8 +1,3 @@
-import type {
-  DelayResumeJobData,
-  TriggerEvent,
-} from '@server/collections/workflows/services/workflow-executor.service';
-import { isProtectedSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
 import {
   ActionOrigin,
   type ActionOriginContext,
@@ -17,6 +12,15 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
+import type {
+  DelayResumeJobData,
+  TriggerEvent,
+} from '@server/collections/workflows/services/workflow-executor.service';
+import { isProtectedSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
+import type {
+  RunSystemWorkflowInput,
+  SystemWorkflowGraphDefinition,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { Queue } from 'bullmq';
 
 // =============================================================================
@@ -25,7 +29,7 @@ import { Queue } from 'bullmq';
 
 export interface WorkflowExecutionJobData {
   actionContext?: ActionOriginContext;
-  type: 'trigger' | 'delay-resume' | 'scheduled-fire';
+  type: 'trigger' | 'delay-resume' | 'scheduled-fire' | 'system-run';
   triggerEvent?: TriggerEvent;
   delayResumeData?: DelayResumeJobData;
   workflowId?: string;
@@ -36,6 +40,14 @@ export interface WorkflowExecutionJobData {
    * already terminal, or continues from their persisted nodeResults.
    */
   priorExecutionIds?: string[];
+  systemRun?: {
+    definition: SystemWorkflowGraphDefinition;
+    failureAction?: {
+      actionId: string;
+      inputValues: Record<string, unknown>;
+    };
+    input: Omit<RunSystemWorkflowInput, 'runtimeContext'>;
+  };
 }
 
 export interface WorkflowSchedulerUpsertInput {
@@ -92,9 +104,11 @@ function requireQueueJobId(
 /**
  * Queue service for workflow execution jobs.
  *
- * Handles two job types:
+ * Handles workflow entry jobs:
  * 1. `trigger` — Execute workflows in response to a trigger event
  * 2. `delay-resume` — Resume a paused workflow after a delay
+ * 3. `scheduled-fire` — Execute one persisted scheduled workflow
+ * 4. `system-run` — Execute one code-owned immutable graph
  */
 @Injectable()
 export class WorkflowExecutionQueueService {
@@ -136,6 +150,44 @@ export class WorkflowExecutionQueueService {
     });
 
     return requireQueueJobId(job.id, 'queueing a workflow trigger');
+  }
+
+  async queueSystemWorkflowDefinition(
+    definition: SystemWorkflowGraphDefinition,
+    input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
+    jobId: string,
+    failureAction?: {
+      actionId: string;
+      inputValues: Record<string, unknown>;
+    },
+  ): Promise<string> {
+    const job = await this.executionQueue.add(
+      'system-run',
+      {
+        actionContext: sanitizeActionOriginContext(getActionOriginContext()),
+        systemRun: {
+          definition,
+          ...(failureAction ? { failureAction } : {}),
+          input,
+        },
+        type: 'system-run',
+      },
+      {
+        attempts: 3,
+        backoff: { delay: 5000, type: 'exponential' },
+        jobId,
+        removeOnComplete: 200,
+        removeOnFail: 100,
+      },
+    );
+
+    this.logger.log(`${this.logContext} queued system workflow`, {
+      canonicalId: definition.canonicalId,
+      jobId: job.id,
+      organizationId: input.organizationId,
+    });
+
+    return requireQueueJobId(job.id, 'queueing a system workflow');
   }
 
   /**

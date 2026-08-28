@@ -61,6 +61,8 @@ type ClipProjectRecord = Omit<
 >;
 
 export interface ClipProjectDocument extends ClipProjectRecord {
+  continuityQaStatus: string;
+  continuityWorkflowExecutionId?: string | null;
   error?: string | null;
   failedClipCount: number;
   highlights?: ClipProjectHighlight[];

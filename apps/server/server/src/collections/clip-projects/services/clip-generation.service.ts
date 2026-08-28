@@ -778,6 +778,10 @@ export class ClipGenerationService implements OnModuleInit {
         clipHookReviewAttempt: reviewContext.attempt,
         clipHookReviewFeedback: reviewContext.feedback ?? null,
         clipHookReviewLastAction: reviewContext.lastAction ?? null,
+        continuityQaStatus: this.isHookReviewRequired(input)
+          ? 'pending'
+          : 'not-required',
+        continuityWorkflowExecutionId: null,
         workflowExecutionId: provenance.executionId,
       },
       [],

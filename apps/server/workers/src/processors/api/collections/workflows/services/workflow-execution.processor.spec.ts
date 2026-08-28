@@ -1,6 +1,6 @@
-import type { WorkflowExecutionJobData } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { ActionOrigin, WorkflowExecutionStatus } from '@genfeedai/enums';
 import { getActionOriginContext } from '@genfeedai/server';
+import type { WorkflowExecutionJobData } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -57,6 +57,16 @@ function createMockSchedulerService() {
   };
 }
 
+function createMockSystemWorkflowRunner() {
+  return {
+    runAction: vi.fn().mockResolvedValue({ result: { status: 'failed' } }),
+    runWorkflowDefinition: vi.fn().mockResolvedValue({
+      provenance: { executionId: 'exec-system', workflowId: 'wf-system' },
+      result: { status: 'completed' },
+    }),
+  };
+}
+
 function createMockJob(
   data: WorkflowExecutionJobData,
   overrides: Record<string, unknown> = {},
@@ -77,18 +87,105 @@ describe('WorkflowExecutionProcessor', () => {
   let mockExecutor: ReturnType<typeof createMockExecutorService>;
   let mockQueue: ReturnType<typeof createMockQueueService>;
   let mockScheduler: ReturnType<typeof createMockSchedulerService>;
+  let mockSystemWorkflowRunner: ReturnType<
+    typeof createMockSystemWorkflowRunner
+  >;
 
   beforeEach(() => {
     mockLogger = createMockLogger();
     mockExecutor = createMockExecutorService();
     mockQueue = createMockQueueService();
     mockScheduler = createMockSchedulerService();
+    mockSystemWorkflowRunner = createMockSystemWorkflowRunner();
 
     processor = new (
       WorkflowExecutionProcessor as unknown as new (
         ...args: unknown[]
       ) => WorkflowExecutionProcessor
-    )(mockLogger, mockExecutor, mockQueue, mockScheduler);
+    )(
+      mockLogger,
+      mockExecutor,
+      mockQueue,
+      mockScheduler,
+      mockSystemWorkflowRunner,
+    );
+  });
+
+  describe('process - system workflow jobs', () => {
+    it('runs the queued graph through the system workflow runner', async () => {
+      const definition = {
+        canonicalId: 'clip-continuity:v1:1',
+        definition: { edges: [], inputVariables: [], nodes: [] },
+        description: 'Continuity',
+        label: 'Continuity',
+        resultNodeId: 'persist',
+      };
+      const input = {
+        actionType: 'clip-continuity',
+        canonicalId: definition.canonicalId,
+        organizationId: 'org-1',
+        source: 'clip-generation-completion',
+      };
+
+      await expect(
+        processor.process(
+          createMockJob({
+            systemRun: { definition, input },
+            type: 'system-run',
+          }) as never,
+        ),
+      ).resolves.toEqual({
+        executionId: 'exec-system',
+        workflowId: 'wf-system',
+      });
+      expect(
+        mockSystemWorkflowRunner.runWorkflowDefinition,
+      ).toHaveBeenCalledWith(definition, input);
+    });
+
+    it('projects terminal failure through a registered action before retry', async () => {
+      mockSystemWorkflowRunner.runWorkflowDefinition.mockRejectedValueOnce(
+        new Error('QA failed'),
+      );
+      const definition = {
+        canonicalId: 'clip-continuity:v1:1',
+        definition: { edges: [], inputVariables: [], nodes: [] },
+        description: 'Continuity',
+        label: 'Continuity',
+        resultNodeId: 'persist',
+      };
+      const input = {
+        actionType: 'clip-continuity',
+        canonicalId: definition.canonicalId,
+        organizationId: 'org-1',
+        source: 'clip-generation-completion',
+        userId: 'user-1',
+      };
+
+      await expect(
+        processor.process(
+          createMockJob({
+            systemRun: {
+              definition,
+              failureAction: {
+                actionId: 'clip.continuity.fail',
+                inputValues: { projectId: 'project-1' },
+              },
+              input,
+            },
+            type: 'system-run',
+          }) as never,
+        ),
+      ).rejects.toThrow('QA failed');
+      expect(mockSystemWorkflowRunner.runAction).toHaveBeenCalledWith({
+        actionType: 'clip.continuity.fail',
+        canonicalId: 'clip.continuity.fail',
+        inputValues: { projectId: 'project-1' },
+        organizationId: 'org-1',
+        source: 'system-workflow-failure',
+        userId: 'user-1',
+      });
+    });
   });
 
   describe('process - trigger jobs', () => {

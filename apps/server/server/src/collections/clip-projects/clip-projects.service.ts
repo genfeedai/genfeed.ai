@@ -12,6 +12,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateClipProjectDto } from '@server/collections/clip-projects/dto/create-clip-project.dto';
 import { UpdateClipProjectDto } from '@server/collections/clip-projects/dto/update-clip-project.dto';
 import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
+import { ClipContinuityWorkflowService } from '@server/collections/clip-projects/services/clip-continuity-workflow.service';
 import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
 import {
   buildClipProjectReadiness,
@@ -37,6 +38,8 @@ type ClipProjectCreateInput = CreateClipProjectDto & {
 const PROJECT_SCALAR_KEYS = new Set([
   'brandId',
   'config',
+  'continuityQaStatus',
+  'continuityWorkflowExecutionId',
   'error',
   'failedClipCount',
   'isDeleted',
@@ -61,6 +64,7 @@ export class ClipProjectsService extends BaseService<
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly clipResultsService: ClipResultsService,
+    private readonly clipContinuityWorkflow: ClipContinuityWorkflowService,
   ) {
     super(prisma, 'clipProject', logger);
   }
@@ -246,11 +250,11 @@ export class ClipProjectsService extends BaseService<
       );
     }
 
-    if (!this.hasReconciliationChange(project, update)) {
-      return project;
-    }
-
-    return this.patch(canonicalProjectId, update, [], organizationId);
+    const reconciledProject = this.hasReconciliationChange(project, update)
+      ? await this.patch(canonicalProjectId, update, [], organizationId)
+      : project;
+    await this.clipContinuityWorkflow.queueIfReady(reconciledProject);
+    return reconciledProject;
   }
 
   async claimFailedResultRetry(
@@ -310,6 +314,8 @@ export class ClipProjectsService extends BaseService<
     this.assignIfOwn(data, dto, 'terminalAt');
     this.assignIfOwn(data, dto, 'isDeleted');
     this.assignIfOwn(data, dto, 'workflowExecutionId');
+    this.assignIfOwn(data, dto, 'continuityQaStatus');
+    this.assignIfOwn(data, dto, 'continuityWorkflowExecutionId');
 
     for (const [key, value] of Object.entries(dto)) {
       if (PROJECT_SCALAR_KEYS.has(key) || value === undefined) {

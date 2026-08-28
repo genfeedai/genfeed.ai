@@ -1,9 +1,9 @@
 /**
  * ClipProjectsCoreModule
  *
- * Minimal module providing ClipProjectsService + schema registration only.
- * Intentionally has NO dependency on ClipAnalyzeModule or ClipFactoryModule,
- * allowing queue modules to import it without creating circular references.
+ * Core clip services plus their workflow-backed terminal actions. It has no
+ * dependency on ClipAnalyzeModule or ClipFactoryModule, allowing queue modules
+ * to import it without creating circular clip-queue references.
  *
  * ClipProjectsModule re-exports everything from here and adds the queue modules.
  */
@@ -14,12 +14,14 @@ import { ClipResultsModule } from '@api/collections/clip-results/clip-results.mo
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { AvatarVideoModule } from '@api/services/avatar-video/avatar-video.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { Module } from '@nestjs/common';
 import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import { ClipContinuityWorkflowService } from '@server/collections/clip-projects/services/clip-continuity-workflow.service';
 import { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
 import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
 import { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
@@ -32,6 +34,7 @@ import { RawCutClipCompletionService } from '@server/collections/clip-projects/s
 @Module({
   exports: [
     ClipProjectsService,
+    ClipContinuityWorkflowService,
     ClipGenerationService,
     ClipGenerationRequestService,
     ClipIdentityResolutionService,
@@ -52,9 +55,11 @@ import { RawCutClipCompletionService } from '@server/collections/clip-projects/s
     OpenRouterModule,
     FileQueueModule,
     FilesClientModule,
+    WorkflowsModule,
   ],
   providers: [
     ClipProjectsService,
+    ClipContinuityWorkflowService,
     ClipGenerationService,
     ClipGenerationRequestService,
     ClipIdentityResolutionService,

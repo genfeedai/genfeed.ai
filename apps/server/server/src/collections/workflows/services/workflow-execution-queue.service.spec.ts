@@ -1,3 +1,5 @@
+import { ActionOrigin, WorkflowStatus } from '@genfeedai/enums';
+import { runWithActionOrigin } from '@genfeedai/server';
 import {
   WorkflowExecutionQueueService,
   workflowSchedulerId,
@@ -7,8 +9,6 @@ import type {
   TriggerEvent,
 } from '@server/collections/workflows/services/workflow-executor.service';
 import { buildSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
-import { ActionOrigin, WorkflowStatus } from '@genfeedai/enums';
-import { runWithActionOrigin } from '@genfeedai/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockQueue() {
@@ -140,6 +140,45 @@ describe('WorkflowExecutionQueueService', () => {
         expect.anything(),
         expect.objectContaining({
           jobId: 'social-comment-trigger-org-1-message-1',
+        }),
+      );
+    });
+  });
+
+  describe('queueSystemWorkflowDefinition', () => {
+    it('queues the immutable graph and its runtime input as a workflow job', async () => {
+      const definition = {
+        canonicalId: 'clip-continuity:v1:1',
+        definition: { edges: [], inputVariables: [], nodes: [] },
+        description: 'Continuity',
+        label: 'Continuity',
+        resultNodeId: 'persist',
+      };
+      const input = {
+        actionType: 'clip-continuity',
+        canonicalId: definition.canonicalId,
+        inputValues: { projectId: 'project-1' },
+        organizationId: 'org-1',
+        source: 'clip-generation-completion',
+      };
+
+      await expect(
+        service.queueSystemWorkflowDefinition(
+          definition,
+          input,
+          'clip-continuity-project-1',
+        ),
+      ).resolves.toBe('job-123');
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'system-run',
+        {
+          actionContext: { origin: ActionOrigin.UNKNOWN },
+          systemRun: { definition, input },
+          type: 'system-run',
+        },
+        expect.objectContaining({
+          attempts: 3,
+          jobId: 'clip-continuity-project-1',
         }),
       );
     });

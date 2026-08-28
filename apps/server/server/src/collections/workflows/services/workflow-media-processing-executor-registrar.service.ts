@@ -22,6 +22,7 @@ import { MetadataService } from '@server/collections/metadata/services/metadata.
 import { MusicsService } from '@server/collections/musics/services/musics.service';
 import { AvatarVideoGenerationService } from '@server/collections/videos/services/avatar-video-generation.service';
 import { VideoMusicOrchestrationService } from '@server/collections/videos/services/video-music-orchestration.service';
+import { VideoQaContinuityResolverService } from '@server/collections/workflows/services/video-qa-continuity-resolver.service';
 import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
@@ -42,6 +43,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     private readonly sharedService?: SharedService,
     private readonly videoMusicOrchestrationService?: VideoMusicOrchestrationService,
     private readonly whisperService?: WhisperService,
+    private readonly continuityResolver?: VideoQaContinuityResolverService,
   ) {}
 
   register(engine: WorkflowEngine): void {
@@ -320,14 +322,19 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     if (!filesClientService) {
       return;
     }
+    const continuityResolver = this.continuityResolver;
 
-    const executor = createVideoQaExecutor(async (params) =>
-      filesClientService.inspectVideoQa({
-        blackDurationSeconds: params.blackDurationSeconds,
-        freezeDurationSeconds: params.freezeDurationSeconds,
-        isContactSheetEnabled: params.isContactSheetEnabled,
-        videoUrl: params.videoUrl,
-      }),
+    const executor = createVideoQaExecutor(
+      async (params) =>
+        filesClientService.inspectVideoQa({
+          blackDurationSeconds: params.blackDurationSeconds,
+          freezeDurationSeconds: params.freezeDurationSeconds,
+          isContactSheetEnabled: params.isContactSheetEnabled,
+          videoUrl: params.videoUrl,
+        }),
+      continuityResolver
+        ? (params) => continuityResolver.resolve(params)
+        : undefined,
     );
 
     engine.registerExecutor(

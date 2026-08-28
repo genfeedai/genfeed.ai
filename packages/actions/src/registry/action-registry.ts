@@ -485,6 +485,21 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Builds one user-confirmed publish handoff for a ready clip.',
   ),
   internalAction(
+    'clip.continuity.begin',
+    'Begin Clip Continuity QA',
+    'Claims one queued clip project continuity run.',
+  ),
+  internalAction(
+    'clip.continuity.fail',
+    'Fail Clip Continuity QA',
+    'Projects a failed queued continuity workflow onto its clip project.',
+  ),
+  internalAction(
+    'clip.continuity.persist-report',
+    'Persist Clip Continuity Report',
+    'Persists one aggregate continuity report and its workflow provenance.',
+  ),
+  internalAction(
     'clip.analysis.persist',
     'Persist Clip Analysis',
     'Persists one completed clip analysis.',
