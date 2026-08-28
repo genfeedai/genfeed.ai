@@ -83,7 +83,6 @@ describe('TwitterPipelineService workflow boundary', () => {
             brandId: 'brand-1',
             credentialId: 'credential-1',
             organizationId: 'org-1',
-            targetTweetId: undefined,
             text: 'Hello',
             type: 'original',
           },

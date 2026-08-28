@@ -46,9 +46,14 @@ type InsightData = {
 };
 
 type InsightGenerationPlan = {
-  existing: Insight[];
+  existingIds: string[];
   missingCount: number;
   organizationId: string;
+};
+
+type PersistedInsightGeneration = {
+  insightIds: string[];
+  persisted: number;
 };
 
 type ForecastData = {
@@ -378,9 +383,17 @@ export class InsightsService implements OnModuleInit {
     request: InsightGenerationWorkflowInput,
   ): Promise<InsightGenerationPlan> {
     const limit = this.capInsightLimit(request.limit);
-    const existing = await this.getInsights(request.organizationId, limit);
+    const existing = await this.prisma.insight.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+      take: limit,
+      where: scopedWhere(
+        request.organizationId,
+        this.activeInsightFilters(new Date()),
+      ),
+    });
     return {
-      existing,
+      existingIds: existing.map(({ id }) => id),
       missingCount: Math.max(0, limit - existing.length),
       organizationId: request.organizationId,
     };
@@ -727,8 +740,8 @@ Confidence: 0-100`;
   private async persistGeneratedInsights(
     plan: InsightGenerationPlan,
     generated: { drafts?: InsightData[] },
-  ): Promise<Insight[]> {
-    const savedInsights: Insight[] = [];
+  ): Promise<PersistedInsightGeneration> {
+    const savedInsightIds: string[] = [];
     for (const insightData of generated.drafts ?? []) {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
@@ -751,10 +764,13 @@ Confidence: 0-100`;
         },
       });
 
-      savedInsights.push(this.toInsightDocument(insight));
+      savedInsightIds.push(insight.id);
     }
 
-    return [...plan.existing, ...savedInsights];
+    return {
+      insightIds: [...plan.existingIds, ...savedInsightIds],
+      persisted: savedInsightIds.length,
+    };
   }
 
   private async generateTextCompletion(

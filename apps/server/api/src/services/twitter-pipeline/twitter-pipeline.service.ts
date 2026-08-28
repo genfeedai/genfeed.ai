@@ -192,9 +192,13 @@ export class TwitterPipelineService implements OnModuleInit {
           inputValues: {
             request: {
               brandId,
-              credentialId: request.credentialId,
+              ...(request.credentialId
+                ? { credentialId: request.credentialId }
+                : {}),
               organizationId: orgId,
-              targetTweetId: request.targetTweetId,
+              ...(request.targetTweetId
+                ? { targetTweetId: request.targetTweetId }
+                : {}),
               text: request.text,
               type: request.type,
             },
@@ -321,10 +325,10 @@ export class TwitterPipelineService implements OnModuleInit {
         publish.request.text,
       );
       return {
-        error: result.error,
+        ...(result.error ? { error: result.error } : {}),
         success: result.success,
-        tweetId: result.contentId,
-        tweetUrl: result.contentUrl,
+        ...(result.contentId ? { tweetId: result.contentId } : {}),
+        ...(result.contentUrl ? { tweetUrl: result.contentUrl } : {}),
       };
     }
     if (!publish.request.targetTweetId) {
@@ -359,10 +363,10 @@ export class TwitterPipelineService implements OnModuleInit {
             );
 
     return {
-      error: result.error,
+      ...(result.error ? { error: result.error } : {}),
       success: result.success,
-      tweetId: result.contentId,
-      tweetUrl: result.contentUrl,
+      ...(result.contentId ? { tweetId: result.contentId } : {}),
+      ...(result.contentUrl ? { tweetUrl: result.contentUrl } : {}),
     };
   }
 
