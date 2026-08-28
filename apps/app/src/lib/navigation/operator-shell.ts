@@ -216,7 +216,10 @@ export function resolveBrandSwitchSurfacePath(brandScopedPath: string): string {
   const conversation = resolveAgentConversationRoute(path);
 
   if (conversation?.threadId || conversation?.isOnboarding) {
-    return APP_ROUTES.AGENT.ROOT;
+    // Bare /agent resumes the organization's most recent conversation. A
+    // brand switch must instead stay unthreaded so that bootstrap cannot
+    // reopen the conversation (and brand) the operator just left.
+    return APP_ROUTES.AGENT.NEW;
   }
 
   return path;

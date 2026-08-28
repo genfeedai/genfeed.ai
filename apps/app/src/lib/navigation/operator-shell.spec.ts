@@ -145,9 +145,11 @@ describe('operator-shell helpers', () => {
   });
 
   it('drops a selected conversation when resolving a brand-switch surface', () => {
-    expect(resolveBrandSwitchSurfacePath(`/agent/${threadId}`)).toBe('/agent');
+    expect(resolveBrandSwitchSurfacePath(`/agent/${threadId}`)).toBe(
+      '/agent/new',
+    );
     expect(resolveBrandSwitchSurfacePath('/agent/onboarding/thread-1')).toBe(
-      '/agent',
+      '/agent/new',
     );
     expect(resolveBrandSwitchSurfacePath('/agent/new')).toBe('/agent/new');
     expect(resolveBrandSwitchSurfacePath('/studio/storyboard')).toBe(
@@ -237,7 +239,7 @@ describe('operator-shell helpers', () => {
         nextOrgSlug: 'acme',
         pathname: '/acme/~/agent',
       }),
-    ).toBe('/acme/sunrise/agent');
+    ).toBe('/acme/sunrise/agent/new');
 
     expect(
       getBrandSwitchHref({
@@ -245,7 +247,7 @@ describe('operator-shell helpers', () => {
         nextOrgSlug: 'acme',
         pathname: `/acme/werwer/agent/${threadId}`,
       }),
-    ).toBe('/acme/sunrise/agent');
+    ).toBe('/acme/sunrise/agent/new');
 
     expect(
       getBrandSwitchHref({
