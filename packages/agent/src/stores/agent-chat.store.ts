@@ -539,12 +539,18 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
     })),
   setUiActionStatus: (actionId, status) =>
     set((state) => {
+      let messagesChanged = false;
       const messages = state.messages.map((message) => {
         const uiActions = message.metadata?.uiActions;
-        if (!uiActions?.some((action) => action.id === actionId)) {
+        if (
+          !uiActions?.some(
+            (action) => action.id === actionId && action.status !== status,
+          )
+        ) {
           return message;
         }
 
+        messagesChanged = true;
         return {
           ...message,
           metadata: {
@@ -556,14 +562,16 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
         };
       });
       const pendingUiActions = state.stream.pendingUiActions.map((action) =>
-        action.id === actionId ? { ...action, status } : action,
+        action.id === actionId && action.status !== status
+          ? { ...action, status }
+          : action,
       );
       const pendingChanged = pendingUiActions.some(
         (action, index) => action !== state.stream.pendingUiActions[index],
       );
 
       return {
-        messages,
+        messages: messagesChanged ? messages : state.messages,
         stream: pendingChanged
           ? { ...state.stream, pendingUiActions }
           : state.stream,

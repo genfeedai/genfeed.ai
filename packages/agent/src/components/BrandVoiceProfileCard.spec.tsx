@@ -143,4 +143,39 @@ describe('BrandVoiceProfileCard', () => {
       screen.queryByRole('button', { name: 'Approve and save' }),
     ).not.toBeInTheDocument();
   });
+
+  it('keeps approval available for a later draft of the same brand', () => {
+    useAgentChatStore
+      .getState()
+      .setUiActionStatus('brand-voice-brand-1-first-draft', 'completed');
+
+    render(
+      <BrandVoiceProfileCard
+        action={{
+          ctas: [
+            {
+              action: 'confirm_save_brand_voice_profile',
+              label: 'Approve and save',
+              payload: {
+                brandId: 'brand-1',
+                sourceActionId: 'brand-voice-brand-1-second-draft',
+              },
+            },
+          ],
+          data: { brandId: 'brand-1' },
+          id: 'brand-voice-brand-1-second-draft',
+          title: 'Brand Voice Draft',
+          type: 'brand_voice_profile_card',
+        }}
+        onUiAction={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Approve and save' }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByText('Brand voice saved to this brand.'),
+    ).not.toBeInTheDocument();
+  });
 });
