@@ -134,9 +134,6 @@ export class ClipsClient {
     return this.base.request(
       'generating clips',
       async (http) => {
-        // `mode` is forwarded verbatim; the API honors it once #1238 lands and
-        // strips it (whitelist validation) until then, so raw-cut slots in with
-        // no client change.
         const response = await http.post(
           `/clip-projects/${params.projectId}/generate`,
           {
