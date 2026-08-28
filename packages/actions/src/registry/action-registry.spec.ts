@@ -93,6 +93,14 @@ describe('Genfeed action registry', () => {
     ).toBe(true);
   });
 
+  it('owns the atomic clip-generation graph actions', () => {
+    expect(getActionDefinition('clip.generation.generate-one')).toBeDefined();
+    expect(
+      getActionDefinition('clip.generation.collect-results'),
+    ).toBeDefined();
+    expect(getActionDefinition('clip.handoff.prepare-publish')).toBeDefined();
+  });
+
   it('owns workflow credit policy instead of delegating it to the engine', () => {
     expect(getActionDefinition('imageGen')?.credits).toEqual({
       amount: 5,

@@ -1,7 +1,16 @@
-import type { BrandsService } from '@server/collections/brands/services/brands.service';
 import { ClipProjectHandoffsController } from '@api/collections/clip-projects/clip-project-handoffs.controller';
 import { ClipProjectReferenceFramesController } from '@api/collections/clip-projects/clip-project-reference-frames.controller';
 import { ClipProjectsController } from '@api/collections/clip-projects/clip-projects.controller';
+import { SelectClipReferenceFrameDto } from '@api/collections/clip-projects/dto/select-clip-reference-frame.dto';
+import type { ClipPublishHandoffWorkflowService } from '@api/collections/clip-projects/services/clip-publish-handoff-workflow.service';
+import type { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
+import type {
+  AgentClipRunIdentity,
+  AgentClipRunIdentityField,
+} from '@genfeedai/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { BrandsService } from '@server/collections/brands/services/brands.service';
 import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
 import type { CreateClipProjectDto } from '@server/collections/clip-projects/dto/create-clip-project.dto';
 import {
@@ -9,7 +18,6 @@ import {
   GenerateClipsDto,
   SubmitHookClipDecisionDto,
 } from '@server/collections/clip-projects/dto/generate-clips.dto';
-import { SelectClipReferenceFrameDto } from '@api/collections/clip-projects/dto/select-clip-reference-frame.dto';
 import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
 import type { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
 import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
@@ -21,14 +29,6 @@ import type { ClipLibraryLinkService } from '@server/collections/clip-projects/s
 import type { HookClipApprovalService } from '@server/collections/clip-projects/services/hook-clip-approval.service';
 import type { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import type { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
-import type { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';
-import type {
-  AgentClipRunIdentity,
-  AgentClipRunIdentityField,
-} from '@genfeedai/interfaces';
-import { testId } from '@helpers/testing/test-id.helper';
-import type { LoggerService } from '@libs/logger/logger.service';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
 import type { Request } from 'express';
@@ -265,7 +265,7 @@ describe('ClipProjectsController', () => {
       clipProjectsService as ClipProjectsService,
       clipResultsService as unknown as ClipResultsService,
       editorProjectsService as unknown as EditorProjectsService,
-      publishHandoffService as unknown as PublishHandoffService,
+      publishHandoffService as unknown as ClipPublishHandoffWorkflowService,
     );
     referenceFramesController = new ClipProjectReferenceFramesController(
       createMockLogger(),
@@ -1216,20 +1216,26 @@ describe('ClipProjectsController', () => {
     );
 
     expect(publishHandoffService.preparePublishHandoff).toHaveBeenCalledWith(
-      projectId,
-      ['ingredient-1'],
-      expect.objectContaining({
-        assets: {
-          'ingredient-1': expect.objectContaining({
-            caption: 'Clip summary',
-            mediaUrl: 'https://cdn.genfeed.ai/clip.mp4',
+      {
+        assetIds: ['ingredient-1'],
+        clipProjectId: projectId,
+        options: expect.objectContaining({
+          assets: {
+            'ingredient-1': expect.objectContaining({
+              caption: 'Clip summary',
+              mediaUrl: 'https://cdn.genfeed.ai/clip.mp4',
+            }),
+          },
+          metadata: expect.objectContaining({
+            clipResultId: 'clip-result-1',
+            ingredientId: 'ingredient-1',
           }),
-        },
-        metadata: expect.objectContaining({
-          clipResultId: 'clip-result-1',
-          ingredientId: 'ingredient-1',
         }),
-      }),
+      },
+      {
+        organizationId,
+        userId: currentUser.userId ?? currentUser.id,
+      },
     );
     expect(result.payload).toEqual(
       expect.objectContaining({

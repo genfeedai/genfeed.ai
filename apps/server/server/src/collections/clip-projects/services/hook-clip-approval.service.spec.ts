@@ -1,307 +1,236 @@
+import type { ModuleRef } from '@nestjs/core';
 import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import type { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
 import type { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
 import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
-import type { ClipOrchestratorService } from '@server/services/clip-orchestrator/clip-orchestrator.service';
-import { ClipRunState } from '@server/services/clip-orchestrator/clip-run-state.enum';
-import { BadRequestException } from '@nestjs/common';
-import type { Mocked } from 'vitest';
-import type {
-  ClipGenerationInput,
-  ClipGenerationService,
-} from './clip-generation.service';
+import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HookClipApprovalService } from './hook-clip-approval.service';
 
-const hookInput: ClipGenerationInput = {
-  avatarId: 'avatar-1',
+const request = {
   highlights: [
     {
       clip_type: 'hook',
-      end_time: 5,
+      end_time: 20,
       start_time: 0,
-      summary: 'Stop scrolling',
-      tags: ['hook'],
+      summary: 'Hook summary',
+      tags: [],
       title: 'Hook',
-      virality_score: 95,
+      virality_score: 90,
     },
-  ],
-  hookApprovalRequired: false,
-  orgId: 'org-1',
-  projectId: 'project-1',
-  runReferences: [
-    {
-      assetId: 'face-1',
-      description: 'Hero character sheet',
-      role: 'character',
-      url: 'https://cdn.example.com/face.png',
-    },
-  ],
-  userId: 'user-1',
-  voiceId: 'voice-1',
-};
-
-const remainingInput: ClipGenerationInput = {
-  ...hookInput,
-  highlights: [
     {
       clip_type: 'body',
-      end_time: 10,
-      start_time: 5,
-      summary: 'The product story',
-      tags: ['body'],
+      end_time: 40,
+      start_time: 20,
+      summary: 'Body summary',
+      tags: [],
       title: 'Body',
       virality_score: 80,
     },
   ],
+  hookApprovalRequired: true,
+  orgId: 'org-1',
+  projectId: 'project-1',
+  userId: 'user-1',
 };
 
-function makeRun(state: ClipRunState = ClipRunState.Generating) {
+function createExecution() {
   return {
-    confirmationRequired: true,
-    createdAt: new Date(),
-    currentState: state,
-    id: 'run-1',
+    id: 'execution-1',
+    inputValues: { request },
     metadata: {
-      hookApproval: {
-        attempt: 1,
-        hookClipResultId: 'hook-result-1',
-        hookInput,
-        phase: 'generating_hook',
-        remainingInput,
-      },
+      clipHookReviewAttempt: 1,
+      pendingApproval: { nodeId: 'review-hook' },
     },
-    organizationId: 'org-1',
-    projectId: 'project-1',
-    runReferences: [],
-    skipMerging: false,
-    steps: [],
-    updatedAt: new Date(),
-    userId: 'user-1',
+    nodeResults: [
+      {
+        nodeId: 'generate-clip-1',
+        nodeType: 'genfeedAction',
+        output: {
+          clipResultIds: ['hook-result'],
+          providerJobIds: ['hook-job'],
+          queuedClipCount: 1,
+        },
+        status: 'completed',
+      },
+    ],
+    status: 'RUNNING',
+    workflowId: 'workflow-1',
   };
 }
 
-describe('HookClipApprovalService', () => {
+describe('HookClipApprovalService workflow review gate', () => {
+  let clipGeneration: { generateClips: ReturnType<typeof vi.fn> };
+  let clipProjects: {
+    findOne: ReturnType<typeof vi.fn>;
+    patch: ReturnType<typeof vi.fn>;
+  };
+  let clipResults: {
+    findOne: ReturnType<typeof vi.fn>;
+    patch: ReturnType<typeof vi.fn>;
+  };
+  let credits: {
+    checkOrganizationCreditsAvailable: ReturnType<typeof vi.fn>;
+    getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
+  };
+  let executions: { findOne: ReturnType<typeof vi.fn> };
+  let executor: { submitReviewGateApproval: ReturnType<typeof vi.fn> };
   let service: HookClipApprovalService;
-  let orchestrator: Mocked<
-    Pick<
-      ClipOrchestratorService,
-      | 'claimConfirmation'
-      | 'completeStep'
-      | 'confirm'
-      | 'getProjectRun'
-      | 'reject'
-      | 'requestConfirmation'
-      | 'updateMetadata'
-    >
-  >;
-  let clipResults: Mocked<Pick<ClipResultsService, 'findOne' | 'patch'>>;
-  let generation: Mocked<Pick<ClipGenerationService, 'generateClips'>>;
-  let projects: Mocked<Pick<ClipProjectsService, 'patch'>>;
-  let credits: Mocked<
-    Pick<
-      CreditsUtilsService,
-      'checkOrganizationCreditsAvailable' | 'getOrganizationCreditsBalance'
-    >
-  >;
 
   beforeEach(() => {
-    orchestrator = {
-      claimConfirmation: vi.fn().mockResolvedValue(true),
-      completeStep: vi.fn().mockResolvedValue(makeRun()),
-      confirm: vi.fn().mockResolvedValue(makeRun(ClipRunState.Generating)),
-      getProjectRun: vi.fn().mockResolvedValue(makeRun()),
-      reject: vi.fn().mockResolvedValue(makeRun(ClipRunState.Failed)),
-      requestConfirmation: vi
-        .fn()
-        .mockResolvedValue(makeRun(ClipRunState.AwaitingConfirmation)),
-      updateMetadata: vi.fn().mockResolvedValue(makeRun()),
+    clipGeneration = { generateClips: vi.fn().mockResolvedValue({}) };
+    clipProjects = {
+      findOne: vi.fn().mockResolvedValue({
+        id: 'project-1',
+        workflowExecutionId: 'execution-1',
+      }),
+      patch: vi.fn().mockResolvedValue({}),
     };
     clipResults = {
-      findOne: vi.fn().mockResolvedValue({
-        id: 'hook-result-1',
-        status: 'completed',
-      } as never),
-      patch: vi.fn().mockResolvedValue({} as never),
+      findOne: vi.fn().mockResolvedValue({ status: 'completed' }),
+      patch: vi.fn().mockResolvedValue({}),
     };
-    generation = {
-      generateClips: vi.fn().mockResolvedValue({
-        clipResultIds: ['remaining-result-1'],
-        providerJobIds: ['remaining-job-1'],
-        queuedClipCount: 1,
-      }),
-    };
-    projects = { patch: vi.fn().mockResolvedValue({} as never) };
     credits = {
       checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
-      getOrganizationCreditsBalance: vi.fn().mockResolvedValue(20),
+      getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
+    };
+    executions = { findOne: vi.fn().mockResolvedValue(createExecution()) };
+    executor = {
+      submitReviewGateApproval: vi.fn().mockResolvedValue({
+        status: 'approved',
+      }),
+    };
+    const moduleRef = {
+      get: vi.fn((token: unknown) =>
+        token === WorkflowExecutorService ? executor : executions,
+      ),
     };
     service = new HookClipApprovalService(
-      orchestrator as unknown as ClipOrchestratorService,
       clipResults as unknown as ClipResultsService,
-      generation as unknown as ClipGenerationService,
-      projects as unknown as ClipProjectsService,
+      clipGeneration as unknown as ClipGenerationService,
+      clipProjects as unknown as ClipProjectsService,
       credits as unknown as CreditsUtilsService,
+      moduleRef as unknown as ModuleRef,
     );
   });
 
-  it('exposes a decision only after the hook clip completes', async () => {
-    await expect(service.getStatus('project-1', 'org-1')).resolves.toEqual(
-      expect.objectContaining({
-        hookClipResultId: 'hook-result-1',
-        remainingClipCount: 1,
-        state: 'awaiting_confirmation',
-      }),
-    );
-    expect(orchestrator.requestConfirmation).toHaveBeenCalledWith(
-      'run-1',
-      ClipRunState.Generating,
-    );
-    expect(orchestrator.completeStep).toHaveBeenCalledWith('run-1', {
-      hookClipResultId: 'hook-result-1',
+  it('projects a completed hook and pending workflow gate as awaiting confirmation', async () => {
+    await expect(service.getStatus('project-1', 'org-1')).resolves.toEqual({
+      attempt: 1,
+      hookClipResultId: 'hook-result',
+      remainingClipCount: 1,
+      state: 'awaiting_confirmation',
     });
+    expect(executions.findOne).toHaveBeenCalledWith({
+      id: 'execution-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+    });
+  });
 
-    clipResults.findOne.mockResolvedValueOnce({
-      id: 'hook-result-1',
-      status: 'extracting',
-    } as never);
+  it('keeps the UI in hook generation until provider completion', async () => {
+    clipResults.findOne.mockResolvedValue({ status: 'extracting' });
+
     await expect(service.getStatus('project-1', 'org-1')).resolves.toEqual(
       expect.objectContaining({ state: 'generating_hook' }),
     );
   });
 
-  it('approves once, checks remaining credits, and resumes with the immutable references', async () => {
-    orchestrator.getProjectRun.mockResolvedValue(
-      makeRun(ClipRunState.AwaitingConfirmation),
-    );
+  it('approves the native review gate and never invokes clip generation directly', async () => {
+    executions.findOne
+      .mockResolvedValueOnce(createExecution())
+      .mockResolvedValueOnce({
+        ...createExecution(),
+        metadata: { clipHookReviewAttempt: 1 },
+        status: 'COMPLETED',
+      });
 
-    const result = await service.submitDecision({
-      action: 'approve',
-      organizationId: 'org-1',
-      projectId: 'project-1',
-      userId: 'user-1',
-    });
-
-    expect(orchestrator.claimConfirmation).toHaveBeenCalledWith('run-1', 1);
-    expect(credits.checkOrganizationCreditsAvailable).toHaveBeenCalledWith(
+    await expect(
+      service.submitDecision({
+        action: 'approve',
+        organizationId: 'org-1',
+        projectId: 'project-1',
+        userId: 'reviewer-1',
+      }),
+    ).resolves.toEqual(expect.objectContaining({ state: 'approved' }));
+    expect(executor.submitReviewGateApproval).toHaveBeenCalledWith(
+      'workflow-1',
+      'execution-1',
+      'reviewer-1',
       'org-1',
-      1,
+      'review-hook',
+      true,
     );
-    expect(orchestrator.confirm).toHaveBeenCalledWith('run-1');
-    expect(generation.generateClips).toHaveBeenCalledWith(remainingInput);
-    expect(result.state).toBe('approved');
+    expect(clipGeneration.generateClips).not.toHaveBeenCalled();
   });
 
-  it('request-changes regenerates only the hook and leaves remaining clips undispatched', async () => {
-    orchestrator.getProjectRun.mockResolvedValue(
-      makeRun(ClipRunState.AwaitingConfirmation),
-    );
-    generation.generateClips.mockResolvedValueOnce({
-      clipResultIds: ['hook-result-2'],
-      providerJobIds: ['hook-job-2'],
-      queuedClipCount: 1,
-    });
+  it('rejects the current execution and starts a new workflow for revision', async () => {
+    executions.findOne
+      .mockResolvedValueOnce(createExecution())
+      .mockResolvedValueOnce({
+        ...createExecution(),
+        id: 'execution-2',
+        metadata: {
+          clipHookReviewAttempt: 2,
+          clipHookReviewFeedback: 'Stronger opening',
+          clipHookReviewLastAction: 'request_changes',
+          pendingApproval: { nodeId: 'review-hook' },
+        },
+      });
+    clipProjects.findOne
+      .mockResolvedValueOnce({
+        id: 'project-1',
+        workflowExecutionId: 'execution-1',
+      })
+      .mockResolvedValueOnce({
+        id: 'project-1',
+        workflowExecutionId: 'execution-2',
+      });
 
-    const result = await service.submitDecision({
-      action: 'request_changes',
-      feedback: 'Use a warmer delivery and hold eye contact.',
-      organizationId: 'org-1',
-      projectId: 'project-1',
-      userId: 'user-1',
-    });
-
-    expect(credits.checkOrganizationCreditsAvailable).toHaveBeenCalledWith(
-      'org-1',
-      1,
-    );
-    expect(generation.generateClips).toHaveBeenCalledTimes(1);
-    expect(generation.generateClips).toHaveBeenCalledWith(
+    await expect(
+      service.submitDecision({
+        action: 'request_changes',
+        feedback: 'Stronger opening',
+        organizationId: 'org-1',
+        projectId: 'project-1',
+        userId: 'reviewer-1',
+      }),
+    ).resolves.toEqual(
       expect.objectContaining({
-        highlights: [
+        attempt: 2,
+        lastAction: 'request_changes',
+      }),
+    );
+    expect(executor.submitReviewGateApproval).toHaveBeenCalledWith(
+      'workflow-1',
+      'execution-1',
+      'reviewer-1',
+      'org-1',
+      'review-hook',
+      false,
+      'Stronger opening',
+    );
+    expect(clipGeneration.generateClips).toHaveBeenCalledWith(
+      expect.objectContaining({
+        highlights: expect.arrayContaining([
           expect.objectContaining({
-            summary:
-              'Stop scrolling\nRevision guidance: Use a warmer delivery and hold eye contact.',
+            summary: expect.stringContaining(
+              'Revision guidance: Stronger opening',
+            ),
           }),
-        ],
-        runReferences: hookInput.runReferences,
+        ]),
       }),
+      {
+        attempt: 2,
+        feedback: 'Stronger opening',
+        lastAction: 'request_changes',
+      },
     );
-    expect(orchestrator.updateMetadata).toHaveBeenCalledWith(
-      'run-1',
-      expect.objectContaining({
-        hookApproval: expect.objectContaining({
-          attempt: 2,
-          feedback: 'Use a warmer delivery and hold eye contact.',
-          hookClipResultId: 'hook-result-2',
-          phase: 'generating_hook',
-        }),
-      }),
+    expect(clipResults.patch).toHaveBeenCalledWith(
+      'hook-result',
+      { isDeleted: true },
+      [],
+      'org-1',
     );
-    expect(clipResults.patch).toHaveBeenCalledWith('hook-result-1', {
-      isDeleted: true,
-    });
-    expect(result.state).toBe('generating_hook');
-  });
-
-  it('rejects without checking credits or dispatching remaining clips', async () => {
-    orchestrator.getProjectRun.mockResolvedValue(
-      makeRun(ClipRunState.AwaitingConfirmation),
-    );
-
-    const result = await service.submitDecision({
-      action: 'reject',
-      feedback: 'The identity is not usable.',
-      organizationId: 'org-1',
-      projectId: 'project-1',
-      userId: 'user-1',
-    });
-
-    expect(credits.checkOrganizationCreditsAvailable).not.toHaveBeenCalled();
-    expect(generation.generateClips).not.toHaveBeenCalled();
-    expect(orchestrator.reject).toHaveBeenCalledWith(
-      'run-1',
-      'The identity is not usable.',
-    );
-    expect(projects.patch).toHaveBeenCalledWith('project-1', {
-      error: 'The identity is not usable.',
-      progress: 100,
-      status: 'failed',
-    });
-    expect(result.state).toBe('rejected');
-  });
-
-  it('does not dispatch when another reviewer already claimed the decision', async () => {
-    orchestrator.getProjectRun.mockResolvedValue(
-      makeRun(ClipRunState.AwaitingConfirmation),
-    );
-    orchestrator.claimConfirmation.mockResolvedValue(false);
-
-    await expect(
-      service.submitDecision({
-        action: 'approve',
-        organizationId: 'org-1',
-        projectId: 'project-1',
-        userId: 'user-1',
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    expect(generation.generateClips).not.toHaveBeenCalled();
-  });
-
-  it('checks credits before claiming approval or dispatching remaining clips', async () => {
-    orchestrator.getProjectRun.mockResolvedValue(
-      makeRun(ClipRunState.AwaitingConfirmation),
-    );
-    credits.checkOrganizationCreditsAvailable.mockResolvedValue(false);
-    credits.getOrganizationCreditsBalance.mockResolvedValue(0);
-
-    await expect(
-      service.submitDecision({
-        action: 'approve',
-        organizationId: 'org-1',
-        projectId: 'project-1',
-        userId: 'user-1',
-      }),
-    ).rejects.toBeInstanceOf(InsufficientCreditsException);
-    expect(orchestrator.claimConfirmation).not.toHaveBeenCalled();
-    expect(generation.generateClips).not.toHaveBeenCalled();
   });
 });

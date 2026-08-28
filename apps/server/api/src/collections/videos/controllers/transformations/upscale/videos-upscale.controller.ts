@@ -117,8 +117,7 @@ export class VideosUpscaleController {
     }
 
     // A presigned S3 URL, not the public stream route: the source video is
-    // user- or organization-scoped, and that route now serves public assets
-    // only. Same handoff `PortraitConversionService` uses for Replicate.
+    // user- or organization-scoped, and that route serves public assets only.
     const videoUrl = await this.filesClientService.getPresignedDownloadUrl(
       videoId,
       'videos',

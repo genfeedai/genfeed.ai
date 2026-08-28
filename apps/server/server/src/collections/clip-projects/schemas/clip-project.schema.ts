@@ -78,5 +78,6 @@ export interface ClipProjectDocument extends ClipProjectRecord {
   status: SharedClipProjectStatus | string;
   terminalAt?: Date | null;
   transcriptText?: string;
+  workflowExecutionId?: string | null;
   [key: string]: unknown;
 }

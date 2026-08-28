@@ -127,6 +127,24 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(processors).not.toContain('ContentPipelineProcessor');
   });
 
+  it('executes clip generation and hook review through persisted workflow nodes', () => {
+    const generation = readSourceOf('ClipGenerationService', {
+      root: API_SRC,
+    });
+    const approval = readSourceOf('HookClipApprovalService', {
+      root: API_SRC,
+    });
+    const clipModule = readSourceOf('ClipProjectsModule', { root: API_SRC });
+
+    expect(generation).toContain('buildClipGenerationWorkflowDefinition');
+    expect(generation).toContain('startWorkflowDefinition');
+    expect(generation).toContain("'clip.generation.generate-one'");
+    expect(generation).not.toContain('ClipOrchestratorService');
+    expect(approval).toContain('submitReviewGateApproval');
+    expect(approval).not.toContain('claimConfirmation');
+    expect(clipModule).not.toContain('ClipOrchestratorModule');
+  });
+
   it('treats completed and cancelled prior executions as terminal on continue', () => {
     const source = readSourceOf('WorkflowExecutorService', { root: API_SRC });
     expect(source).toContain('continueExistingExecution');

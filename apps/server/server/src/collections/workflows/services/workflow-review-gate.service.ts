@@ -115,6 +115,7 @@ export class WorkflowReviewGateService {
         approvedAt,
         approvedAtIso,
         executionId,
+        keepsWorkflowActive: execution.metadata?.isSystemAction === true,
         nodeId,
         pendingApproval,
         rejectionReason,
@@ -340,6 +341,7 @@ export class WorkflowReviewGateService {
     approvedAtIso: string;
     pendingApproval: PendingReviewGateState;
     rejectionReason?: string;
+    keepsWorkflowActive: boolean;
   }): Promise<ReviewGateApprovalResult> {
     const rejectionMessage = input.rejectionReason || 'Rejected by reviewer';
 
@@ -380,13 +382,15 @@ export class WorkflowReviewGateService {
       input.executionId,
       rejectionMessage,
     );
-    await this.prisma.workflow.update({
-      data: {
-        completedAt: input.approvedAt,
-        status: WorkflowStatus.FAILED,
-      },
-      where: { id: input.workflowId },
-    });
+    if (!input.keepsWorkflowActive) {
+      await this.prisma.workflow.update({
+        data: {
+          completedAt: input.approvedAt,
+          status: WorkflowStatus.FAILED,
+        },
+        where: { id: input.workflowId },
+      });
+    }
 
     return {
       approvedAt: input.approvedAtIso,
@@ -414,6 +418,8 @@ export class WorkflowReviewGateService {
       Awaited<ReturnType<WorkflowExecutionsService['findOne']>>
     >;
   }): Promise<ReviewGateApprovalResult> {
+    const keepsWorkflowActive =
+      input.execution.metadata?.isSystemAction === true;
     const approvedOutput = this.buildReviewGateApprovedOutput(
       input.pendingApproval,
     );
@@ -488,13 +494,15 @@ export class WorkflowReviewGateService {
 
     if (remainingNodeIds.length === 0) {
       await this.executionsService.completeExecution(input.executionId);
-      await this.prisma.workflow.update({
-        data: {
-          completedAt: input.approvedAt,
-          status: WorkflowStatus.COMPLETED,
-        },
-        where: { id: input.workflowId },
-      });
+      if (!keepsWorkflowActive) {
+        await this.prisma.workflow.update({
+          data: {
+            completedAt: input.approvedAt,
+            status: WorkflowStatus.COMPLETED,
+          },
+          where: { id: input.workflowId },
+        });
+      }
 
       return {
         approvedAt: input.approvedAtIso,
@@ -546,8 +554,9 @@ export class WorkflowReviewGateService {
         finalStatus,
         result,
         workflowId: input.workflowId,
-        workflowStatus:
-          finalStatus === WorkflowExecutionStatus.COMPLETED
+        workflowStatus: keepsWorkflowActive
+          ? WorkflowStatus.ACTIVE
+          : finalStatus === WorkflowExecutionStatus.COMPLETED
             ? WorkflowStatus.COMPLETED
             : WorkflowStatus.FAILED,
       });

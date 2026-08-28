@@ -1,20 +1,12 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
 import {
-  type ClipLibraryLinkResult,
-  ClipLibraryLinkService,
-} from '@server/collections/clip-projects/services/clip-library-link.service';
-import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
-import type { ClipResultDocument } from '@server/collections/clip-results/schemas/clip-result.schema';
+  ClipPublishHandoffWorkflowService,
+  type PublishHandoffPayload,
+} from '@api/collections/clip-projects/services/clip-publish-handoff-workflow.service';
 import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';
 import { EditorTrackType, IngredientFormat } from '@genfeedai/enums';
 import type { ClipReadyAction } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -28,6 +20,17 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
+import {
+  type ClipLibraryLinkResult,
+  ClipLibraryLinkService,
+} from '@server/collections/clip-projects/services/clip-library-link.service';
+import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
+import type { ClipResultDocument } from '@server/collections/clip-results/schemas/clip-result.schema';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { v4 as uuidv4 } from 'uuid';
 
 interface ClipEditorHandoffResponse {
@@ -41,7 +44,7 @@ interface ClipEditorHandoffResponse {
 interface ClipPublishHandoffResponse {
   clipProjectId: string;
   clipResultId: string;
-  payload: Awaited<ReturnType<PublishHandoffService['preparePublishHandoff']>>;
+  payload: PublishHandoffPayload;
 }
 
 @AutoSwagger()
@@ -56,7 +59,7 @@ export class ClipProjectHandoffsController {
     private readonly clipProjectsService: ClipProjectsService,
     private readonly clipResultsService: ClipResultsService,
     private readonly editorProjectsService: EditorProjectsService,
-    private readonly publishHandoffService: PublishHandoffService,
+    private readonly publishHandoffWorkflow: ClipPublishHandoffWorkflowService,
   ) {}
 
   @Post(':projectId/results/:clipResultId/editor-handoff')
@@ -182,23 +185,29 @@ export class ClipProjectHandoffsController {
     const resolvedClipResultId = String(clipResult.id);
     const ingredientId = this.requireLinkedIngredientId(clipResult);
     const videoUrl = this.resolveClipVideoUrl(clipResult);
-    const payload = await this.publishHandoffService.preparePublishHandoff(
-      projectId,
-      [ingredientId],
+    const payload = await this.publishHandoffWorkflow.preparePublishHandoff(
       {
-        assets: {
-          [ingredientId]: {
-            caption: this.readString(clipResult.summary) ?? undefined,
-            mediaUrl: videoUrl,
-            mimeType: 'video/mp4',
+        assetIds: [ingredientId],
+        clipProjectId: projectId,
+        options: {
+          assets: {
+            [ingredientId]: {
+              caption: this.readString(clipResult.summary) ?? undefined,
+              mediaUrl: videoUrl,
+              mimeType: 'video/mp4',
+            },
+          },
+          metadata: {
+            clipResultId: resolvedClipResultId,
+            ingredientId,
+            summary: this.readString(clipResult.summary),
+            title: this.readString(clipResult.title),
           },
         },
-        metadata: {
-          clipResultId: resolvedClipResultId,
-          ingredientId,
-          summary: this.readString(clipResult.summary),
-          title: this.readString(clipResult.title),
-        },
+      },
+      {
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
       },
     );
 

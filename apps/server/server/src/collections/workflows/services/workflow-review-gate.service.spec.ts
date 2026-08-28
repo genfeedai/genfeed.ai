@@ -1,6 +1,6 @@
-import { WorkflowReviewGateService } from '@server/collections/workflows/services/workflow-review-gate.service';
 import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
+import { WorkflowReviewGateService } from '@server/collections/workflows/services/workflow-review-gate.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const WORKFLOW_ID = 'workflow-1';
@@ -229,5 +229,35 @@ describe('WorkflowReviewGateService — atomic gate claim', () => {
     );
     expect(executionsService.updateNodeResult).toHaveBeenCalledTimes(1);
     expect(executionsService.completeExecution).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a reusable system workflow active when one execution is rejected', async () => {
+    executionsService.findOne.mockResolvedValue(
+      buildExecution({
+        metadata: {
+          isSystemAction: true,
+          pendingApproval: {
+            autoApproveIfNoResponse: false,
+            nodeId: NODE_ID,
+            notifyChannels: [],
+            requestedAt: new Date().toISOString(),
+            timeoutHours: 1,
+          },
+        },
+      }),
+    );
+
+    await service.submitReviewGateApproval(
+      WORKFLOW_ID,
+      EXECUTION_ID,
+      'user-1',
+      ORGANIZATION_ID,
+      NODE_ID,
+      false,
+      'regenerate the hook',
+    );
+
+    expect(executionsService.completeExecution).toHaveBeenCalledTimes(1);
+    expect(prisma.workflow.update).not.toHaveBeenCalled();
   });
 });

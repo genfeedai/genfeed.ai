@@ -16,6 +16,7 @@ import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
+import type { WorkflowExecutionResult } from '@server/collections/workflows/services/workflow-executor.types';
 import {
   buildSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
@@ -226,12 +227,56 @@ export class SystemWorkflowRunnerService {
     return this.executeDefinition<T>(definition, input);
   }
 
+  async startWorkflowDefinition(
+    definition: SystemWorkflowGraphDefinition,
+    input: RunSystemWorkflowInput,
+  ): Promise<{
+    execution: WorkflowExecutionResult;
+    provenance: SystemWorkflowProvenance;
+  }> {
+    if (definition.canonicalId !== input.canonicalId) {
+      throw new Error(
+        `System workflow definition ${definition.canonicalId} cannot execute as ${input.canonicalId}`,
+      );
+    }
+    return this.startDefinition(definition, input);
+  }
+
   private async executeDefinition<T>(
     definition: SystemWorkflowGraphDefinition,
     input: RunSystemWorkflowInput,
   ): Promise<{
     provenance: SystemWorkflowProvenance;
     result: T;
+  }> {
+    const { execution, provenance } = await this.startDefinition(
+      definition,
+      input,
+    );
+
+    if (execution.status !== WorkflowExecutionStatus.COMPLETED) {
+      throw new Error(
+        execution.error ?? `System workflow ${input.canonicalId} failed`,
+      );
+    }
+
+    const actionResult = execution.nodeResults.find(
+      (nodeResult) => nodeResult.nodeId === definition.resultNodeId,
+    );
+    if (!actionResult) {
+      throw new Error(
+        `System workflow ${input.canonicalId} completed without an action result`,
+      );
+    }
+    return { provenance, result: actionResult.output as T };
+  }
+
+  private async startDefinition(
+    definition: SystemWorkflowGraphDefinition,
+    input: RunSystemWorkflowInput,
+  ): Promise<{
+    execution: WorkflowExecutionResult;
+    provenance: SystemWorkflowProvenance;
   }> {
     const userId = await this.resolveUserId(input.organizationId, input.userId);
     const workflow = await this.ensureSystemWorkflow(
@@ -255,13 +300,6 @@ export class SystemWorkflowRunnerService {
         input.trigger ?? WorkflowExecutionTrigger.API,
       ),
     );
-
-    if (execution.status !== WorkflowExecutionStatus.COMPLETED) {
-      throw new Error(
-        execution.error ?? `System workflow ${input.canonicalId} failed`,
-      );
-    }
-
     const provenance = {
       executionId: execution.executionId,
       workflowId: workflow.id,
@@ -274,16 +312,7 @@ export class SystemWorkflowRunnerService {
         input.organizationId,
       );
     }
-
-    const actionResult = execution.nodeResults.find(
-      (nodeResult) => nodeResult.nodeId === definition.resultNodeId,
-    );
-    if (!actionResult) {
-      throw new Error(
-        `System workflow ${input.canonicalId} completed without an action result`,
-      );
-    }
-    return { provenance, result: actionResult.output as T };
+    return { execution, provenance };
   }
 
   private async ensureSystemWorkflow(

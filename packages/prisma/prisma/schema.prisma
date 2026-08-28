@@ -4096,8 +4096,9 @@ model WorkflowExecution {
   etaCurrentPhase     String?
   etaUpdatedAt        DateTime?
 
-  posts       Post[]
-  nodeResults WorkflowExecutionNodeResult[]
+  posts        Post[]
+  nodeResults  WorkflowExecutionNodeResult[]
+  clipProject  ClipProject?
 
   trigger String?
 
@@ -5515,26 +5516,28 @@ model Caption {
 }
 
 model ClipProject {
-  id               String       @id @default(cuid())
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id])
-  brandId          String?
-  brand            Brand?       @relation(fields: [brandId], references: [id])
-  userId           String?
-  user             User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  results          ClipResult[]
-  status           String       @default("pending")
-  progress         Int          @default(0)
-  error            String?
-  readyClipCount   Int          @default(0)
-  failedClipCount  Int          @default(0)
-  pendingClipCount Int          @default(0)
-  readiness        Json         @default("{\"state\":\"pending\",\"terminal\":false,\"readyActions\":[],\"blockingReasons\":[]}")
-  terminalAt       DateTime?
-  config           Json         @default("{}")
-  isDeleted        Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  id                  String             @id @default(cuid())
+  organizationId      String
+  organization        Organization       @relation(fields: [organizationId], references: [id])
+  brandId             String?
+  brand               Brand?             @relation(fields: [brandId], references: [id])
+  userId              String?
+  user                User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  workflowExecutionId String?            @unique
+  workflowExecution   WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id], onDelete: SetNull)
+  results             ClipResult[]
+  status              String             @default("pending")
+  progress            Int                @default(0)
+  error               String?
+  readyClipCount      Int                @default(0)
+  failedClipCount     Int                @default(0)
+  pendingClipCount    Int                @default(0)
+  readiness           Json               @default("{\"state\":\"pending\",\"terminal\":false,\"readyActions\":[],\"blockingReasons\":[]}")
+  terminalAt          DateTime?
+  config              Json               @default("{}")
+  isDeleted           Boolean            @default(false)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
   @@index([organizationId, status, isDeleted])
   @@index([userId])

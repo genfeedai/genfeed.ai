@@ -1,3 +1,14 @@
+import {
+  ClipReferenceFrameValidationError,
+  normalizeClipReferenceFrameSet,
+} from '@genfeedai/helpers';
+import type {
+  ClipReferenceFrameSet,
+  ClipSourceContract,
+} from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateClipProjectDto } from '@server/collections/clip-projects/dto/create-clip-project.dto';
 import { UpdateClipProjectDto } from '@server/collections/clip-projects/dto/update-clip-project.dto';
 import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
@@ -13,17 +24,6 @@ import {
   BaseService,
   type PopulateInput,
 } from '@server/shared/services/base/base.service';
-import {
-  ClipReferenceFrameValidationError,
-  normalizeClipReferenceFrameSet,
-} from '@genfeedai/helpers';
-import type {
-  ClipReferenceFrameSet,
-  ClipSourceContract,
-} from '@genfeedai/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
-import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
 
 type ClipProjectWriteDto = Partial<
   CreateClipProjectDto & UpdateClipProjectDto
@@ -48,6 +48,7 @@ const PROJECT_SCALAR_KEYS = new Set([
   'status',
   'terminalAt',
   'userId',
+  'workflowExecutionId',
 ]);
 
 @Injectable()
@@ -212,8 +213,17 @@ export class ClipProjectsService extends BaseService<
       readyClipCount,
     };
     const settledClipCount = readyClipCount + failedClipCount;
+    const workflowReviewPending = await this.isWorkflowReviewPending(
+      project.workflowExecutionId,
+      String(project.organizationId),
+    );
 
-    if (pendingClipCount === 0) {
+    if (workflowReviewPending) {
+      update.error = null;
+      update.progress = Math.min(99, Math.max(project.progress, 60));
+      update.status = 'generating';
+      update.terminalAt = null;
+    } else if (pendingClipCount === 0) {
       update.progress = 100;
 
       if (readyClipCount > 0) {
@@ -299,6 +309,7 @@ export class ClipProjectsService extends BaseService<
     this.assignIfOwn(data, dto, 'readiness');
     this.assignIfOwn(data, dto, 'terminalAt');
     this.assignIfOwn(data, dto, 'isDeleted');
+    this.assignIfOwn(data, dto, 'workflowExecutionId');
 
     for (const [key, value] of Object.entries(dto)) {
       if (PROJECT_SCALAR_KEYS.has(key) || value === undefined) {
@@ -387,6 +398,30 @@ export class ClipProjectsService extends BaseService<
     }
 
     return null;
+  }
+
+  private async isWorkflowReviewPending(
+    workflowExecutionId: string | null | undefined,
+    organizationId: string,
+  ): Promise<boolean> {
+    if (!workflowExecutionId) {
+      return false;
+    }
+    const execution = await this.prisma.workflowExecution.findFirst({
+      select: { result: true, status: true },
+      where: {
+        id: workflowExecutionId,
+        isDeleted: false,
+        organizationId,
+      },
+    });
+    if (!execution || String(execution.status) !== 'RUNNING') {
+      return false;
+    }
+    const result = this.readRecord(execution.result);
+    const metadata = this.readRecord(result.metadata);
+    const pendingApproval = this.readRecord(metadata.pendingApproval);
+    return typeof pendingApproval.nodeId === 'string';
   }
 
   private normalizeReferenceFrames(value: unknown): ClipReferenceFrameSet {

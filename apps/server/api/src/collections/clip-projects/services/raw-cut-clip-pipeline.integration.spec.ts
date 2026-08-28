@@ -1,23 +1,28 @@
-import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import type { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
-import type { CreateClipResultDto } from '@server/collections/clip-results/dto/create-clip-result.dto';
-import type { ClipResultDocument } from '@server/collections/clip-results/schemas/clip-result.schema';
-import type { AvatarVideoService } from '@server/services/avatar-video/avatar-video.service';
-import type { AvatarVideoProvider } from '@server/services/avatar-video/avatar-video-provider.interface';
-import type {
-  FileProcessingJob,
-  FileQueueService,
-} from '@server/services/files-microservice/queue/file-queue.service';
 import { Status } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
-import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import type { ModuleRef } from '@nestjs/core';
+import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
 import {
   type ClipGenerationInput,
   ClipGenerationService,
 } from '@server/collections/clip-projects/services/clip-generation.service';
 import { RawCutClipService } from '@server/collections/clip-projects/services/raw-cut-clip.service';
 import { RawCutClipCompletionService } from '@server/collections/clip-projects/services/raw-cut-clip-completion.service';
+import type { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
+import type { CreateClipResultDto } from '@server/collections/clip-results/dto/create-clip-result.dto';
+import type { ClipResultDocument } from '@server/collections/clip-results/schemas/clip-result.schema';
+import type {
+  SystemWorkflowActionExecutor,
+  SystemWorkflowGraphDefinition,
+} from '@server/collections/workflows/system-workflow-runner.service';
+import type { AvatarVideoService } from '@server/services/avatar-video/avatar-video.service';
+import type { AvatarVideoProvider } from '@server/services/avatar-video/avatar-video-provider.interface';
+import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import type {
+  FileProcessingJob,
+  FileQueueService,
+} from '@server/services/files-microservice/queue/file-queue.service';
 
 const ORGANIZATION_ID = testId('org');
 const PROJECT_ID = testId('project');
@@ -150,12 +155,95 @@ function makeRawCutInput(): ClipGenerationInput {
   };
 }
 
+function createWorkflowHarness() {
+  const actions = new Map<string, SystemWorkflowActionExecutor>();
+  return {
+    registerAction(
+      actionId: string,
+      executor: SystemWorkflowActionExecutor,
+    ): void {
+      actions.set(actionId, executor);
+    },
+    async startWorkflowDefinition(
+      definition: SystemWorkflowGraphDefinition,
+      input: { inputValues?: Record<string, unknown> },
+    ) {
+      const request = input.inputValues?.request;
+      const collectedInputs: Record<string, unknown> = {};
+      for (const node of definition.definition.nodes) {
+        if (node.type !== 'genfeedAction') {
+          continue;
+        }
+        const actionId = String(node.data.config?.actionId ?? '');
+        if (actionId !== 'clip.generation.generate-one') {
+          continue;
+        }
+        const parameters = node.data.config?.parameters as
+          | Record<string, unknown>
+          | undefined;
+        const originalIndex = Number(parameters?.originalIndex);
+        const executor = actions.get(actionId);
+        if (!executor) {
+          throw new Error(`Missing test action ${actionId}`);
+        }
+        collectedInputs[`clip${originalIndex}`] = await executor({
+          context: {} as never,
+          input: { originalIndex, request },
+          provenance: {
+            executionId: 'execution-1',
+            workflowId: 'workflow-1',
+            workflowLabel: 'Clip Generation',
+          },
+        });
+      }
+      const collector = actions.get('clip.generation.collect-results');
+      if (!collector) {
+        throw new Error('Missing test result collector');
+      }
+      const result = await collector({
+        context: {} as never,
+        input: collectedInputs,
+        provenance: {
+          executionId: 'execution-1',
+          workflowId: 'workflow-1',
+          workflowLabel: 'Clip Generation',
+        },
+      });
+      return {
+        execution: {
+          executionId: 'execution-1',
+          nodeResults: [
+            {
+              creditsUsed: 0,
+              nodeId: definition.resultNodeId,
+              nodeType: 'genfeedAction',
+              output: result,
+              retryCount: 0,
+              status: 'COMPLETED',
+            },
+          ],
+          startedAt: new Date(),
+          status: 'COMPLETED',
+          totalCreditsUsed: 0,
+          workflowId: 'workflow-1',
+        },
+        provenance: {
+          executionId: 'execution-1',
+          workflowId: 'workflow-1',
+          workflowLabel: 'Clip Generation',
+        },
+      };
+    },
+  };
+}
+
 describe('raw-cut clip pipeline integration', () => {
   let avatarProvider: AvatarVideoProvider;
   let avatarVideoService: {
     getProvider: ReturnType<typeof vi.fn>;
   };
   let clipProjectsService: {
+    patch: ReturnType<typeof vi.fn>;
     reconcileTerminalState: ReturnType<typeof vi.fn>;
   };
   let clipResultsService: ReturnType<typeof createInMemoryClipResultsService>;
@@ -170,6 +258,7 @@ describe('raw-cut clip pipeline integration', () => {
       getProvider: vi.fn().mockReturnValue(avatarProvider),
     };
     clipProjectsService = {
+      patch: vi.fn().mockResolvedValue(undefined),
       reconcileTerminalState: vi.fn().mockResolvedValue(undefined),
     };
     clipResultsService = createInMemoryClipResultsService();
@@ -179,12 +268,19 @@ describe('raw-cut clip pipeline integration', () => {
       fileQueueService as unknown as FileQueueService,
       logger,
     );
+    const workflowRunner = createWorkflowHarness();
     generationService = new ClipGenerationService(
       clipResultsService as unknown as ClipResultsService,
       avatarVideoService as unknown as AvatarVideoService,
       rawCutClipService,
       logger,
+      undefined,
+      clipProjectsService as unknown as ClipProjectsService,
+      {
+        get: vi.fn().mockReturnValue(workflowRunner),
+      } as unknown as ModuleRef,
     );
+    generationService.onModuleInit();
     completionService = new RawCutClipCompletionService(
       {
         linkReadyClip: vi.fn().mockResolvedValue({

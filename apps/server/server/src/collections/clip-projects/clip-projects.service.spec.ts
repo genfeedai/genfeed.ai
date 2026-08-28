@@ -10,12 +10,12 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import type { LoggerService } from '@libs/logger/logger.service';
 import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
 import type { CreateClipProjectDto } from '@server/collections/clip-projects/dto/create-clip-project.dto';
 import type { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
 import { ValidationException } from '@server/exceptions/validation.exception';
 import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createLogger(): LoggerService {
@@ -38,6 +38,7 @@ function createPrisma() {
             { name: 'organizationId' },
             { name: 'brandId' },
             { name: 'userId' },
+            { name: 'workflowExecutionId' },
             { name: 'status' },
             { name: 'progress' },
             { name: 'error' },
@@ -57,6 +58,9 @@ function createPrisma() {
       findFirst: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
+    },
+    workflowExecution: {
+      findFirst: vi.fn(),
     },
   };
 }
@@ -612,6 +616,57 @@ describe('ClipProjectsService', () => {
           state: 'blocked',
         }),
         status: 'partially-completed',
+      }),
+      where: { id: 'project-1' },
+    });
+  });
+
+  it('keeps a clip project active while its workflow review gate is pending', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue({
+      config: {},
+      failedClipCount: 0,
+      id: 'project-1',
+      organizationId: 'org-1',
+      pendingClipCount: 1,
+      progress: 60,
+      readyClipCount: 0,
+      readiness: {},
+      status: 'generating',
+      workflowExecutionId: 'execution-1',
+    });
+    prisma.workflowExecution.findFirst.mockResolvedValue({
+      result: {
+        metadata: { pendingApproval: { nodeId: 'review-hook' } },
+      },
+      status: 'RUNNING',
+    });
+    prisma.clipProject.update.mockImplementation(async ({ data }) => ({
+      config: {},
+      id: 'project-1',
+      organizationId: 'org-1',
+      ...data,
+    }));
+    clipResultsService.findByProject.mockResolvedValue([
+      { status: 'completed' },
+    ]);
+
+    await service.reconcileTerminalState('project-1', 'org-1');
+
+    expect(prisma.workflowExecution.findFirst).toHaveBeenCalledWith({
+      select: { result: true, status: true },
+      where: {
+        id: 'execution-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(prisma.clipProject.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        pendingClipCount: 0,
+        progress: 60,
+        readyClipCount: 1,
+        status: 'generating',
+        terminalAt: null,
       }),
       where: { id: 'project-1' },
     });

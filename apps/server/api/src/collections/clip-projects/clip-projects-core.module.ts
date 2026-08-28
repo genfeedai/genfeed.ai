@@ -10,6 +10,15 @@
 
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
+import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
+import { CreditsModule } from '@api/collections/credits/credits.module';
+import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
+import { MetadataModule } from '@api/collections/metadata/metadata.module';
+import { AvatarVideoModule } from '@api/services/avatar-video/avatar-video.module';
+import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
+import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
+import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
+import { Module } from '@nestjs/common';
 import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
 import { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
 import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
@@ -19,16 +28,6 @@ import { HighlightRewriteService } from '@server/collections/clip-projects/servi
 import { HookClipApprovalService } from '@server/collections/clip-projects/services/hook-clip-approval.service';
 import { RawCutClipService } from '@server/collections/clip-projects/services/raw-cut-clip.service';
 import { RawCutClipCompletionService } from '@server/collections/clip-projects/services/raw-cut-clip-completion.service';
-import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
-import { CreditsModule } from '@api/collections/credits/credits.module';
-import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
-import { MetadataModule } from '@api/collections/metadata/metadata.module';
-import { AvatarVideoModule } from '@api/services/avatar-video/avatar-video.module';
-import { ClipOrchestratorModule } from '@api/services/clip-orchestrator/clip-orchestrator.module';
-import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
-import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
-import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
-import { Module } from '@nestjs/common';
 
 @Module({
   exports: [
@@ -46,7 +45,6 @@ import { Module } from '@nestjs/common';
     BrandsCoreModule,
     CaptionsModule,
     ClipResultsModule,
-    ClipOrchestratorModule,
     CreditsModule,
     IngredientsModule,
     MetadataModule,

@@ -460,6 +460,21 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Persists one failed clip analysis.',
   ),
   internalAction(
+    'clip.generation.collect-results',
+    'Collect Clip Generation Results',
+    'Collects the results of one clip-generation workflow.',
+  ),
+  internalAction(
+    'clip.generation.generate-one',
+    'Generate One Clip',
+    'Creates and dispatches exactly one clip result.',
+  ),
+  internalAction(
+    'clip.handoff.prepare-publish',
+    'Prepare Clip Publish Handoff',
+    'Builds one user-confirmed publish handoff for a ready clip.',
+  ),
+  internalAction(
     'clip.analysis.persist',
     'Persist Clip Analysis',
     'Persists one completed clip analysis.',

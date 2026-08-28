@@ -6,14 +6,15 @@ import { ClipProjectReferenceFramesController } from '@api/collections/clip-proj
 import { ClipProjectsController } from '@api/collections/clip-projects/clip-projects.controller';
 import { ClipProjectsCoreModule } from '@api/collections/clip-projects/clip-projects-core.module';
 import { ClipProjectIngestionService } from '@api/collections/clip-projects/services/clip-project-ingestion.service';
+import { ClipPublishHandoffWorkflowService } from '@api/collections/clip-projects/services/clip-publish-handoff-workflow.service';
 import { PublicYoutubeClipClaimService } from '@api/collections/clip-projects/services/public-youtube-clip-claim.service';
 import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { EditorProjectsModule } from '@api/collections/editor-projects/editor-projects.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { ClipAnalyzeModule } from '@api/queues/clip-analyze/clip-analyze.module';
 import { ClipFactoryModule } from '@api/queues/clip-factory/clip-factory.module';
-import { ClipOrchestratorModule } from '@api/services/clip-orchestrator/clip-orchestrator.module';
 import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
 import { UploadsModule } from '@api/services/uploads/uploads.module';
 import { Module } from '@nestjs/common';
@@ -36,10 +37,14 @@ import { Module } from '@nestjs/common';
     IngredientsModule,
     ClipAnalyzeModule,
     ClipFactoryModule,
-    ClipOrchestratorModule,
     PublicClipToolStoreModule,
     UploadsModule,
+    WorkflowsModule,
   ],
-  providers: [ClipProjectIngestionService, PublicYoutubeClipClaimService],
+  providers: [
+    ClipProjectIngestionService,
+    ClipPublishHandoffWorkflowService,
+    PublicYoutubeClipClaimService,
+  ],
 })
 export class ClipProjectsModule {}
