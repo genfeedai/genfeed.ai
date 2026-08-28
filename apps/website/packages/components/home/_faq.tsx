@@ -19,7 +19,7 @@ const EYEBROW_CLASS =
 
 export default function HomeFAQ(): React.ReactElement {
   return (
-    <section id="faq" className="gen-section-spacing-lg border-b border-edge/5">
+    <section id="faq" className="gen-section-spacing border-b border-edge/5">
       <div className="container mx-auto max-w-3xl px-6">
         <div className="flex flex-col mb-8 gap-4">
           <Text className={EYEBROW_CLASS}>FAQ</Text>
