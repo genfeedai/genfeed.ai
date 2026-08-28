@@ -641,7 +641,8 @@ export class WorkflowExecutorService {
     const startedAt = new Date();
     const keepsWorkflowActive =
       trigger === WorkflowExecutionTrigger.SCHEDULED ||
-      trigger === WorkflowExecutionTrigger.EVENT;
+      trigger === WorkflowExecutionTrigger.EVENT ||
+      metadata?.isSystemAction === true;
 
     let executableWorkflow =
       this.engineAdapter.convertToExecutableWorkflow(workflowDoc);

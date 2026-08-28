@@ -393,10 +393,12 @@ export class WorkflowNodeGraphRunnerService {
     if (hasFailedNodes || executionStatus === 'failed') {
       executionStatus = 'failed';
       if (!executionError) {
-        const failedNodeIds = Array.from(nodeResults.entries())
+        const failedNodes = Array.from(nodeResults.entries())
           .filter(([, result]) => result.status === 'failed')
-          .map(([id]) => id);
-        executionError = `Nodes failed: ${failedNodeIds.join(', ')}`;
+          .map(([id, result]) =>
+            result.error ? `${id}: ${result.error}` : id,
+          );
+        executionError = `Nodes failed: ${failedNodes.join(', ')}`;
       }
     }
 

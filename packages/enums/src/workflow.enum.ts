@@ -62,5 +62,4 @@ export enum WorkflowExecutionTrigger {
   SCHEDULED = 'scheduled',
   EVENT = 'event',
   API = 'api',
-  LEGACY_STEPS = 'legacy-steps',
 }

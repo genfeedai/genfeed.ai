@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { getToolByName } from '@genfeedai/actions';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
@@ -39,7 +41,7 @@ export type SystemWorkflowActionId =
   (typeof SYSTEM_WORKFLOW_ACTION_IDS)[keyof typeof SYSTEM_WORKFLOW_ACTION_IDS];
 
 export type SystemWorkflowActionDefinition = {
-  canonicalId: SystemWorkflowActionId;
+  canonicalId: string;
   changeSummary?: string;
   description: string;
   label: string;
@@ -166,6 +168,7 @@ export type SystemWorkflowActionRequest = {
   context: ExecutionContext;
   input: Record<string, unknown>;
   provenance: SystemWorkflowProvenance;
+  runtimeContext?: unknown;
 };
 
 export type SystemWorkflowActionExecutor = (
@@ -174,7 +177,7 @@ export type SystemWorkflowActionExecutor = (
 
 export type RunSystemWorkflowInput = {
   actionType: string;
-  canonicalId: SystemWorkflowActionId;
+  canonicalId: string;
   inputValues?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
   organizationId: string;
@@ -182,19 +185,23 @@ export type RunSystemWorkflowInput = {
   source: string;
   trigger?: WorkflowExecutionTrigger;
   userId?: string;
+  runtimeContext?: unknown;
 };
 
 @Injectable()
 export class SystemWorkflowRunnerService {
+  private readonly runtimeContext = new AsyncLocalStorage<unknown>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly moduleRef: ModuleRef,
   ) {}
 
   registerAction(
-    actionId: SystemWorkflowActionId,
+    actionId: string,
     executor: SystemWorkflowActionExecutor,
   ): void {
+    const definition = this.resolveDefinition(actionId);
     this.getEngineAdapter().registerExecutor(
       actionId,
       async (node, _inputs, context) => {
@@ -205,8 +212,9 @@ export class SystemWorkflowRunnerService {
           provenance: {
             executionId: context.executionId ?? context.runId,
             workflowId: context.workflowId,
-            workflowLabel: DEFINITIONS_BY_ID.get(actionId)?.label ?? actionId,
+            workflowLabel: definition.label,
           },
+          runtimeContext: this.runtimeContext.getStore(),
         });
       },
     );
@@ -216,10 +224,7 @@ export class SystemWorkflowRunnerService {
     provenance: SystemWorkflowProvenance;
     result: T;
   }> {
-    const definition = DEFINITIONS_BY_ID.get(input.canonicalId);
-    if (!definition) {
-      throw new Error(`Unknown system workflow action: ${input.canonicalId}`);
-    }
+    const definition = this.resolveDefinition(input.canonicalId);
 
     const userId = await this.resolveUserId(input.organizationId, input.userId);
     const workflow = await this.ensureSystemWorkflow(
@@ -227,18 +232,21 @@ export class SystemWorkflowRunnerService {
       input.organizationId,
       userId,
     );
-    const execution = await this.getWorkflowExecutor().executeManualWorkflow(
-      workflow.id,
-      userId,
-      input.organizationId,
-      { payload: input.inputValues ?? {} },
-      {
-        ...(input.metadata ?? {}),
-        actionType: input.actionType,
-        canonicalId: input.canonicalId,
-        source: input.source,
-      },
-      input.trigger ?? WorkflowExecutionTrigger.API,
+    const execution = await this.runtimeContext.run(input.runtimeContext, () =>
+      this.getWorkflowExecutor().executeManualWorkflow(
+        workflow.id,
+        userId,
+        input.organizationId,
+        { payload: input.inputValues ?? {} },
+        {
+          ...(input.metadata ?? {}),
+          actionType: input.actionType,
+          canonicalId: input.canonicalId,
+          isSystemAction: true,
+          source: input.source,
+        },
+        input.trigger ?? WorkflowExecutionTrigger.API,
+      ),
     );
 
     if (execution.status !== WorkflowExecutionStatus.COMPLETED) {
@@ -263,7 +271,12 @@ export class SystemWorkflowRunnerService {
     const actionResult = execution.nodeResults.find(
       (nodeResult) => nodeResult.nodeId === 'system-action',
     );
-    return { provenance, result: actionResult?.output as T };
+    if (!actionResult) {
+      throw new Error(
+        `System workflow ${input.canonicalId} completed without an action result`,
+      );
+    }
+    return { provenance, result: actionResult.output as T };
   }
 
   private async ensureSystemWorkflow(
@@ -354,6 +367,27 @@ export class SystemWorkflowRunnerService {
       },
       { isolationLevel: 'Serializable' },
     );
+  }
+
+  private resolveDefinition(actionId: string): SystemWorkflowActionDefinition {
+    const systemDefinition = DEFINITIONS_BY_ID.get(actionId);
+    if (systemDefinition) {
+      return systemDefinition;
+    }
+    const action = getToolByName(actionId);
+    if (!action) {
+      throw new Error(`Unknown Genfeed action: ${actionId}`);
+    }
+    return {
+      canonicalId: action.name,
+      description: action.description,
+      label: action.name
+        .split('_')
+        .map(
+          (part: string) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`,
+        )
+        .join(' '),
+    };
   }
 
   private async linkPostsToExecution(

@@ -1,3 +1,22 @@
+import { getToolByName } from '@genfeedai/actions';
+import {
+  ActionOrigin,
+  type RouterPriority,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
+import type {
+  AgentToolResult,
+  ValidatedAgentScope,
+} from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/interfaces';
+import {
+  AgentScopeContextService,
+  resolveNestedActionOrigin,
+  runWithActionOrigin,
+} from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import {
   type ApiKeyPublishingContext,
   assertApiKeyAgentPublishingScope as assertScope,
@@ -28,20 +47,6 @@ import { AgentTrendsToolHandler } from '@server/services/agent-orchestrator/tool
 import { AgentWorkflowToolHandler } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkspaceToolHandler } from '@server/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@server/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
-import type { RouterPriority } from '@genfeedai/enums';
-import { ActionOrigin } from '@genfeedai/enums';
-import type {
-  AgentToolResult,
-  ValidatedAgentScope,
-} from '@genfeedai/interfaces';
-import { AgentToolName } from '@genfeedai/interfaces';
-import {
-  AgentScopeContextService,
-  resolveNestedActionOrigin,
-  runWithActionOrigin,
-} from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
 
 export interface ToolExecutionContext {
   apiKeyContext?: ApiKeyPublishingContext;
@@ -118,7 +123,7 @@ const BRANDLESS_AGENT_TOOLS = new Set<AgentToolName>([
  * Thin agent tool router. Tool families live in dedicated handlers (#519).
  */
 @Injectable()
-export class AgentToolExecutorService {
+export class AgentToolExecutorService implements OnModuleInit {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
@@ -151,7 +156,58 @@ export class AgentToolExecutorService {
     private readonly agentScopeContextService?: AgentScopeContextService,
     @Optional()
     private readonly transferHandler?: AgentTransferToolHandler,
+    @Optional()
+    private readonly systemWorkflowRunner?: SystemWorkflowRunnerService,
   ) {}
+
+  onModuleInit(): void {
+    const runner = this.requireWorkflowRunner();
+    for (const toolName of Object.values(AgentToolName)) {
+      const definition = getToolByName(toolName);
+      if (
+        !definition ||
+        (!definition.surfaces.agent && !definition.surfaces.mcp)
+      ) {
+        continue;
+      }
+      runner.registerAction(
+        toolName,
+        async ({ context: workflowContext, input, runtimeContext }) => {
+          const persistedContext =
+            input.context &&
+            typeof input.context === 'object' &&
+            !Array.isArray(input.context)
+              ? (input.context as Partial<ToolExecutionContext>)
+              : {};
+          const liveContext =
+            runtimeContext &&
+            typeof runtimeContext === 'object' &&
+            !Array.isArray(runtimeContext)
+              ? (runtimeContext as ToolExecutionContext)
+              : undefined;
+          const parameters =
+            input.parameters &&
+            typeof input.parameters === 'object' &&
+            !Array.isArray(input.parameters)
+              ? (input.parameters as Record<string, unknown>)
+              : {};
+          const result = await this.executeToolWithActionOrigin(
+            toolName,
+            parameters,
+            liveContext ?? {
+              ...persistedContext,
+              organizationId: workflowContext.organizationId,
+              userId: workflowContext.userId,
+            },
+          );
+          if (!result.success) {
+            throw new Error(result.error ?? `Action ${toolName} failed`);
+          }
+          return result;
+        },
+      );
+    }
+  }
 
   async executeTool(
     toolName: AgentToolName,
@@ -159,10 +215,59 @@ export class AgentToolExecutorService {
     context: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     assertScope(context.apiKeyContext ?? {}, toolName, parameters);
-    return runWithActionOrigin(
-      resolveNestedActionOrigin(ActionOrigin.AGENT),
-      () => this.executeToolWithActionOrigin(toolName, parameters, context),
-    );
+    try {
+      return await runWithActionOrigin(
+        resolveNestedActionOrigin(ActionOrigin.AGENT),
+        async () => {
+          const { result } =
+            await this.requireWorkflowRunner().runAction<AgentToolResult>({
+              actionType: toolName,
+              canonicalId: toolName,
+              inputValues: {
+                context: this.toPersistedContext(context),
+                parameters,
+              },
+              metadata: {
+                brandId: context.brandId,
+                origin: 'agent',
+                threadId: context.threadId,
+              },
+              organizationId: context.organizationId,
+              runtimeContext: context,
+              source: 'AgentToolExecutorService.executeTool',
+              trigger: WorkflowExecutionTrigger.API,
+              userId: context.userId,
+            });
+          return result;
+        },
+      );
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.loggerService.error(
+        `Tool ${toolName} workflow failed: ${errorMessage}`,
+        this.constructorName,
+      );
+      return { creditsUsed: 0, error: errorMessage, success: false };
+    }
+  }
+
+  private requireWorkflowRunner(): SystemWorkflowRunnerService {
+    if (!this.systemWorkflowRunner) {
+      throw new Error('Workflow action runner is unavailable');
+    }
+    return this.systemWorkflowRunner;
+  }
+
+  private toPersistedContext(
+    context: ToolExecutionContext,
+  ): Omit<ToolExecutionContext, 'apiKeyContext' | 'authToken'> {
+    const {
+      apiKeyContext: _apiKeyContext,
+      authToken: _authToken,
+      ...persisted
+    } = context;
+    return persisted;
   }
 
   private async executeToolWithActionOrigin(

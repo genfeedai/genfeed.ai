@@ -20,7 +20,6 @@ export type {
   ToolRequiredRole,
   ToolSurfaceConfig,
 } from './interfaces/tool-definition.interface.js';
-export { ActionExecutorRegistry } from './registry/action-executor-registry.js';
 export type {
   CuratedActionCatalogEntry,
   CuratedActionName,

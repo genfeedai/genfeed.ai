@@ -20,6 +20,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
+import type { SystemWorkflowActionExecutor } from '@server/collections/workflows/system-workflow-runner.service';
 import { AiActionType } from '@server/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentAdsResearchToolHandler } from '@server/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@server/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
@@ -61,6 +62,49 @@ import { Effect } from 'effect';
 import { of } from 'rxjs';
 
 describe('AgentToolExecutorService', () => {
+  const createWorkflowRunner = () => {
+    const executors = new Map<string, SystemWorkflowActionExecutor>();
+    return {
+      registerAction: vi.fn(
+        (actionId: string, executor: SystemWorkflowActionExecutor) => {
+          executors.set(actionId, executor);
+        },
+      ),
+      runAction: vi.fn(
+        async (request: {
+          canonicalId: string;
+          inputValues?: Record<string, unknown>;
+          organizationId: string;
+          runtimeContext?: unknown;
+          userId?: string;
+        }) => {
+          const executor = executors.get(request.canonicalId);
+          if (!executor) {
+            throw new Error(`Missing test action ${request.canonicalId}`);
+          }
+          const provenance = {
+            executionId: 'execution-1',
+            workflowId: 'workflow-1',
+            workflowLabel: request.canonicalId,
+          };
+          const result = await executor({
+            context: {
+              organizationId: request.organizationId,
+              runId: 'run-1',
+              userId: request.userId ?? testId('user'),
+              workflowId: 'workflow-1',
+              workflowVersionId: 'workflow-version-1',
+            },
+            input: request.inputValues ?? {},
+            provenance,
+            runtimeContext: request.runtimeContext,
+          });
+          return { provenance, result };
+        },
+      ),
+    };
+  };
+
   const scopedContext = (brandId: string): ToolExecutionContext => ({
     brandId,
     organizationId: testId('org'),
@@ -994,6 +1038,7 @@ describe('AgentToolExecutorService', () => {
     );
     const spawnHandler = new AgentSpawnToolHandler(loggerService, undefined);
 
+    const systemWorkflowRunner = createWorkflowRunner();
     const service = new AgentToolExecutorService(
       loggerService,
       routeRewriteService,
@@ -1021,7 +1066,10 @@ describe('AgentToolExecutorService', () => {
       prepareHandler,
       spawnHandler,
       agentScopeContextService as never,
+      undefined,
+      systemWorkflowRunner as never,
     );
+    service.onModuleInit();
 
     return {
       adsResearchService,
@@ -5254,6 +5302,7 @@ describe('AgentToolExecutorService', () => {
       usersService as never,
       undefined,
     );
+    const systemWorkflowRunner = createWorkflowRunner();
     const serviceWithoutScorer = new AgentToolExecutorService(
       loggerService,
       new AgentRouteRewriteService(
@@ -5374,7 +5423,10 @@ describe('AgentToolExecutorService', () => {
       ),
       new AgentSpawnToolHandler(loggerService, undefined),
       undefined as never, // agentScopeContextService
+      undefined,
+      systemWorkflowRunner as never,
     );
+    serviceWithoutScorer.onModuleInit();
 
     const result = await serviceWithoutScorer.executeTool(
       AgentToolName.RATE_CONTENT,
