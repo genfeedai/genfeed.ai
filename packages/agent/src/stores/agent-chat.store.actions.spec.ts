@@ -3,6 +3,7 @@ import type {
   AgentInputRequest,
   AgentMemoryEntry,
   AgentProposedPlan,
+  AgentUiAction,
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import {
@@ -87,6 +88,29 @@ describe('agent-chat.store messages and plans', () => {
     const state = useAgentChatStore.getState();
     expect(state.messages).toHaveLength(2);
     expect(state.latestProposedPlan).toEqual(plan);
+  });
+
+  it('persists a completed UI action across message row remounts', () => {
+    const action: AgentUiAction = {
+      id: 'brand-voice-card-1',
+      title: 'Brand Voice Draft',
+      type: 'brand_voice_profile_card',
+    };
+    const store = useAgentChatStore.getState();
+    store.setMessages([
+      makeMessage('m-1', { metadata: { uiActions: [action] } }),
+    ]);
+    store.addPendingUiActions([action]);
+
+    useAgentChatStore
+      .getState()
+      .setUiActionStatus('brand-voice-card-1', 'completed');
+
+    const state = useAgentChatStore.getState();
+    expect(state.messages[0]?.metadata?.uiActions?.[0]?.status).toBe(
+      'completed',
+    );
+    expect(state.stream.pendingUiActions[0]?.status).toBe('completed');
   });
 
   it('setMessages derives the latest proposed plan from the newest message', () => {
