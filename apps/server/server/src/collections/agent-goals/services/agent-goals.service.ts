@@ -1,3 +1,7 @@
+import { toPrismaJson } from '@genfeedai/prisma';
+import { brandScope, scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateAgentGoalDto } from '@server/collections/agent-goals/dto/create-agent-goal.dto';
 import { UpdateAgentGoalDto } from '@server/collections/agent-goals/dto/update-agent-goal.dto';
 import type { AgentGoalMetric } from '@server/collections/agent-goals/schemas/agent-goal.schema';
@@ -7,10 +11,6 @@ import {
   findOrThrow,
   findUniqueOrThrow,
 } from '@server/shared/utils/find-or-throw/find-or-throw.util';
-import { toPrismaJson } from '@genfeedai/prisma';
-import { brandScope, scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
 
 interface AnalyticsOverview {
   avgEngagementRate: number;
@@ -204,14 +204,10 @@ export class AgentGoalsService {
     dto: Partial<CreateAgentGoalDto>,
   ): Record<string, unknown> {
     return {
-      endDate:
-        dto.endDate?.toISOString() ??
-        (dto.endDate as unknown as string | undefined),
+      endDate: dto.endDate?.toISOString(),
       isActive: dto.isActive,
       metric: dto.metric,
-      startDate:
-        dto.startDate?.toISOString() ??
-        (dto.startDate as unknown as string | undefined),
+      startDate: dto.startDate?.toISOString(),
       targetValue: dto.targetValue,
     };
   }
