@@ -1,6 +1,6 @@
+import { Test, TestingModule } from '@nestjs/testing';
 import { TrendQueryService } from '@server/collections/trends/services/modules/trend-query.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { Test, TestingModule } from '@nestjs/testing';
 
 type PrismaMock = {
   trend: {
@@ -167,6 +167,32 @@ describe('TrendQueryService', () => {
       const result = await service.getTrendById('org-only-id');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('countActiveGlobalTrends', () => {
+    it('pushes current and expiry predicates into the database query', async () => {
+      prisma.trend.findMany.mockResolvedValue(
+        [
+          makeDoc('real', {}).data,
+          makeDoc('synthetic', {
+            metadata: { prelaunchCorpus: true },
+          }).data,
+        ].map((data) => ({ data })),
+      );
+
+      await expect(service.countActiveGlobalTrends()).resolves.toBe(1);
+      expect(prisma.trend.findMany).toHaveBeenCalledWith({
+        select: { data: true },
+        where: {
+          AND: [
+            { data: { equals: true, path: ['isCurrent'] } },
+            { data: { gt: expect.any(String), path: ['expiresAt'] } },
+          ],
+          isDeleted: false,
+          organizationId: null,
+        },
+      });
     });
   });
 
