@@ -1,4 +1,4 @@
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus, WorkflowExecutionTrigger } from '@genfeedai/enums';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
@@ -14,6 +14,7 @@ import {
 import { runWorkflow } from '@/operations/workflows';
 import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
+import { parsePositiveInteger } from '@/utils/options';
 
 interface ListOptions {
   json?: boolean;
@@ -25,6 +26,12 @@ interface RunListOptions extends ListOptions {
   workflow?: string;
 }
 
+interface RunOptions {
+  inputs?: string;
+  json?: boolean;
+  trigger: WorkflowExecutionTrigger;
+}
+
 function parseExecutionStatus(value: string): WorkflowExecutionStatus {
   const normalized = value.trim().toUpperCase();
   if (!Object.values(WorkflowExecutionStatus).includes(normalized as WorkflowExecutionStatus)) {
@@ -34,6 +41,17 @@ function parseExecutionStatus(value: string): WorkflowExecutionStatus {
     );
   }
   return normalized as WorkflowExecutionStatus;
+}
+
+function parseExecutionTrigger(value: string): WorkflowExecutionTrigger {
+  const normalized = value.trim().toLowerCase();
+  if (!Object.values(WorkflowExecutionTrigger).includes(normalized as WorkflowExecutionTrigger)) {
+    throw new GenfeedError(
+      `Unknown workflow trigger "${value}"`,
+      `Use one of: ${Object.values(WorkflowExecutionTrigger).join(', ')}`
+    );
+  }
+  return normalized as WorkflowExecutionTrigger;
 }
 
 function parseInputsOption(value: string): Record<string, unknown> {
@@ -82,7 +100,7 @@ export const workflowCommand = new Command('workflow')
   .addCommand(
     new Command('list')
       .description('List available workflows')
-      .option('-l, --limit <n>', 'Max items', (value) => Number.parseInt(value, 10), 20)
+      .option('-l, --limit <n>', 'Max items', parsePositiveInteger, 20)
       .option('--json', 'Output as JSON')
       .action((options: ListOptions) =>
         withCommandError(async () => {
@@ -106,9 +124,14 @@ export const workflowCommand = new Command('workflow')
       .description('Execute a workflow by ID, key, or exact label')
       .argument('<workflow>', 'Workflow ID, key, or exact label')
       .option('--inputs <json>', 'JSON object of workflow input variables')
-      .option('-t, --trigger <trigger>', 'Execution trigger', 'manual')
+      .option(
+        '-t, --trigger <trigger>',
+        'Execution trigger',
+        parseExecutionTrigger,
+        WorkflowExecutionTrigger.MANUAL
+      )
       .option('--json', 'Output as JSON')
-      .action((reference: string, options: { inputs?: string; json?: boolean; trigger: string }) =>
+      .action((reference: string, options: RunOptions) =>
         withCommandError(async () => {
           const inputs = options.inputs ? parseInputsOption(options.inputs) : undefined;
           const spinner = ora('Executing workflow...').start();
@@ -135,7 +158,7 @@ export const workflowCommand = new Command('workflow')
       .description('List workflow runs')
       .option('--workflow <id>', 'Filter by workflow ID')
       .option('--status <status>', 'Filter by run status', parseExecutionStatus)
-      .option('-l, --limit <n>', 'Max items', (value) => Number.parseInt(value, 10), 20)
+      .option('-l, --limit <n>', 'Max items', parsePositiveInteger, 20)
       .option('--json', 'Output as JSON')
       .action((options: RunListOptions) =>
         withCommandError(async () => {

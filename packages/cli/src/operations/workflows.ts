@@ -1,3 +1,4 @@
+import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import {
   createWorkflowExecution,
   getWorkflow,
@@ -46,7 +47,7 @@ export interface RunWorkflowResult {
 export async function runWorkflow(
   reference: string,
   inputValues?: Record<string, unknown>,
-  trigger = 'manual'
+  trigger: WorkflowExecutionTrigger = WorkflowExecutionTrigger.MANUAL
 ): Promise<RunWorkflowResult> {
   const workflow = await resolveWorkflow(reference);
   const execution = await createWorkflowExecution({

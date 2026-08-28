@@ -237,7 +237,7 @@ export function createStatusCommand(name = 'status'): Command {
           }
         }
 
-        if (IN_PROGRESS_STATUSES.has(result.status)) {
+        if (result.type !== 'article' && IN_PROGRESS_STATUSES.has(result.status)) {
           print();
           print(chalk.dim('Generation is still in progress. Check again later.'));
         }

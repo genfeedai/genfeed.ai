@@ -1,4 +1,4 @@
-import type { WorkflowExecutionStatus } from '@genfeedai/enums';
+import type { WorkflowExecutionStatus, WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { get, post } from './client';
 import {
   flattenCollection,
@@ -50,7 +50,7 @@ export interface ListWorkflowExecutionsOptions {
 
 export type CreateWorkflowExecutionInput = {
   inputValues?: Record<string, unknown>;
-  trigger?: string;
+  trigger?: WorkflowExecutionTrigger;
   workflowId: string;
 };
 

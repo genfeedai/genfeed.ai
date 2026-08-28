@@ -11,6 +11,7 @@ import {
 import { getActiveBrand } from '@/config/store';
 import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
 import { handleError, NoBrandError } from '@/utils/errors';
+import { parsePositiveInteger } from '@/utils/options';
 
 export const performanceCommand = new Command('performance').description(
   'Content performance analytics'
@@ -140,7 +141,7 @@ performanceCommand
   .command('top')
   .description('Show top performing content')
   .option('-b, --brand <id>', 'Brand ID (overrides active brand)')
-  .option('-l, --limit <n>', 'Max items', Number.parseInt, 10)
+  .option('-l, --limit <n>', 'Max items', parsePositiveInteger, 10)
   .option('--start <iso>', 'Start date')
   .option('--end <iso>', 'End date')
   .option('--json', 'Output as JSON')

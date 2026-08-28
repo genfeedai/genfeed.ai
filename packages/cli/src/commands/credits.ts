@@ -15,6 +15,7 @@ import {
 import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
 import { openExternalUrl } from '@/utils/browser';
 import { GenfeedError, handleError } from '@/utils/errors';
+import { parsePositiveInteger } from '@/utils/options';
 
 interface CreditsBuyOptions {
   json?: boolean;
@@ -131,7 +132,7 @@ export function createCreditsCommand(): Command {
   creditsCommand
     .command('history')
     .description('Show credit ledger history')
-    .option('-l, --limit <n>', 'Maximum rows', (value) => Number.parseInt(value, 10), 50)
+    .option('-l, --limit <n>', 'Maximum rows', parsePositiveInteger, 50)
     .option('--json', 'Output as JSON')
     .action(async (options) => {
       try {

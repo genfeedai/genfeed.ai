@@ -14,6 +14,7 @@ import {
 } from '@/api/templates';
 import { formatHeader, formatLabel, formatSuccess, print, printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
+import { parsePositiveInteger } from '@/utils/options';
 
 export const templateCommand = new Command('template').description('Manage content templates');
 
@@ -38,7 +39,7 @@ templateCommand
   .description('List templates')
   .option('--purpose <purpose>', 'Filter by purpose (prompt, workflow)')
   .option('--category <cat>', 'Filter by category')
-  .option('-l, --limit <n>', 'Max items', Number.parseInt, 20)
+  .option('-l, --limit <n>', 'Max items', parsePositiveInteger, 20)
   .option('--json', 'Output as JSON')
   .action(async (options) => {
     try {
@@ -192,7 +193,7 @@ templateCommand
 templateCommand
   .command('popular')
   .description('List popular templates')
-  .option('-l, --limit <n>', 'Max items', Number.parseInt, 10)
+  .option('-l, --limit <n>', 'Max items', parsePositiveInteger, 10)
   .option('--json', 'Output as JSON')
   .action(async (options) => {
     try {

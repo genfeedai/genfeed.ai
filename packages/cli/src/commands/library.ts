@@ -7,10 +7,11 @@ import { downloadGeneratedFile } from '@/commands/generate/helpers';
 import { readAsset, readAssets } from '@/operations/assets';
 import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
+import { parsePositiveInteger } from '@/utils/options';
 
 interface AssetListOptions {
   json?: boolean;
-  limit: string;
+  limit: number;
   type?: string;
 }
 
@@ -20,7 +21,7 @@ async function runAssetList(options: AssetListOptions): Promise<void> {
   try {
     const assets = await readAssets({
       category: options.type,
-      limit: Number.parseInt(options.limit, 10),
+      limit: options.limit,
     });
     spinner?.stop();
     if (options.json) return printJson(assets);
@@ -46,7 +47,7 @@ async function runAssetList(options: AssetListOptions): Promise<void> {
 function addListOptions(command: Command): Command {
   return command
     .option('-t, --type <type>', 'Filter by type (image, video, music, avatar)')
-    .option('-l, --limit <limit>', 'Max items to show', '20')
+    .option('-l, --limit <limit>', 'Max items to show', parsePositiveInteger, 20)
     .option('--json', 'Output as JSON');
 }
 

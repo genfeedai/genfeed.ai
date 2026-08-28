@@ -107,12 +107,37 @@ describe('workflow command', () => {
     expect(mockGet).toHaveBeenCalledWith('/workflows?limit=25');
   });
 
+  it('rejects non-numeric workflow limits before making an API request', async () => {
+    await expect(
+      workflowCommand.parseAsync(['list', '--limit', 'abc', '--json'], { from: 'user' })
+    ).rejects.toThrow('Invalid positive integer');
+
+    expect(mockGet).not.toHaveBeenCalled();
+  });
+
   it('normalizes workflow run statuses to the API enum spelling', async () => {
     await workflowCommand.parseAsync(['runs', '--status', 'completed', '--json'], {
       from: 'user',
     });
 
     expect(mockGet).toHaveBeenCalledWith('/workflow-executions?limit=20&status=COMPLETED');
+  });
+
+  it('normalizes and validates workflow execution triggers', async () => {
+    await workflowCommand.parseAsync(['run', 'workflow-1', '--trigger', 'MANUAL', '--json'], {
+      from: 'user',
+    });
+
+    expect(mockPost).toHaveBeenCalledWith('/workflow-executions', {
+      trigger: 'manual',
+      workflowId: 'workflow-1',
+    });
+
+    await expect(
+      workflowCommand.parseAsync(['run', 'workflow-1', '--trigger', 'typo', '--json'], {
+        from: 'user',
+      })
+    ).rejects.toThrow('Unknown workflow trigger');
   });
 
   it('posts object inputs for workflow execution', async () => {

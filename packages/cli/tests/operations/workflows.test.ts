@@ -1,3 +1,4 @@
+import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { ApiError } from '@genfeedai/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -39,7 +40,11 @@ describe('workflow operations', () => {
     async (reference) => {
       const { runWorkflow } = await import('../../src/operations/workflows');
 
-      const result = await runWorkflow(reference, { topic: 'launch' }, 'manual');
+      const result = await runWorkflow(
+        reference,
+        { topic: 'launch' },
+        WorkflowExecutionTrigger.MANUAL
+      );
 
       expect(mockCreateWorkflowExecution).toHaveBeenCalledWith({
         inputValues: { topic: 'launch' },

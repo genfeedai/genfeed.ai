@@ -7,6 +7,7 @@ import { requireAuth } from '@/api/client';
 import { getActiveBrand } from '@/config/store';
 import { formatHeader, formatLabel, formatSuccess, print, printJson } from '@/ui/theme';
 import { GenfeedError, handleError, NoBrandError } from '@/utils/errors';
+import { parsePositiveInteger } from '@/utils/options';
 
 const BATCH_STATUS_VALUES = Object.values(BatchStatus);
 
@@ -93,7 +94,7 @@ batchCommand
   .command('list')
   .description('List batch jobs')
   .option('--status <status>', `Filter by status (${BATCH_STATUS_VALUES.join(', ')})`)
-  .option('-l, --limit <n>', 'Max items to return', Number.parseInt, 20)
+  .option('-l, --limit <n>', 'Max items to return', parsePositiveInteger, 20)
   .option('--json', 'Output as JSON')
   .action(async (options) => {
     try {

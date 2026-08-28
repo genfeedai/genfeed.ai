@@ -12,10 +12,11 @@ import {
 } from '@/api/insights';
 import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
+import { parsePositiveInteger } from '@/utils/options';
 
 export const insightsCommand = new Command('insights')
   .description('AI-powered content insights')
-  .option('-l, --limit <n>', 'Max insights', Number.parseInt, 5)
+  .option('-l, --limit <n>', 'Max insights', parsePositiveInteger, 5)
   .option('--json', 'Output as JSON')
   .action(async (options) => {
     try {
