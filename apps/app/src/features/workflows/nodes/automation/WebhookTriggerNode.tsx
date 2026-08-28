@@ -6,6 +6,7 @@ import {
   selectUpdateNodeData,
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
+import { logger } from '@services/core/logger.service';
 import {
   Collapsible,
   CollapsibleContent,
@@ -48,6 +49,22 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
   const [showSecret, setShowSecret] = useState(false);
   const [copied, setCopied] = useState<'url' | 'secret' | null>(null);
 
+  const reportActionError = useCallback(
+    (action: string, error: unknown, fallback: string) => {
+      const message = error instanceof Error ? error.message : fallback;
+      logger.error(`Webhook ${action} failed`, {
+        error,
+        nodeId: id,
+        workflowId: useWorkflowStore.getState().workflowId,
+      });
+      updateNodeData(id, {
+        error: message,
+        status: WorkflowNodeStatus.ERROR,
+      });
+    },
+    [id, updateNodeData],
+  );
+
   const handleAuthTypeChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
       updateNodeData(id, {
@@ -60,6 +77,10 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
   const handleGenerateWebhook = useCallback(async () => {
     const workflowId = useWorkflowStore.getState().workflowId;
     if (!workflowId) {
+      updateNodeData(id, {
+        error: 'Save the workflow before generating a webhook.',
+        status: WorkflowNodeStatus.ERROR,
+      });
       return;
     }
 
@@ -73,15 +94,21 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
         webhookId: webhook.webhookId,
         webhookSecret: webhook.webhookSecret,
         webhookUrl: webhook.webhookUrl,
+        error: undefined,
+        status: WorkflowNodeStatus.IDLE,
       });
-    } catch {
-      // Webhook generation failed
+    } catch (error) {
+      reportActionError('generation', error, 'Failed to generate webhook');
     }
-  }, [id, getService, updateNodeData, data.authType]);
+  }, [id, getService, updateNodeData, data.authType, reportActionError]);
 
   const handleRegenerateSecret = useCallback(async () => {
     const workflowId = useWorkflowStore.getState().workflowId;
     if (!workflowId) {
+      updateNodeData(id, {
+        error: 'Save the workflow before regenerating its webhook secret.',
+        status: WorkflowNodeStatus.ERROR,
+      });
       return;
     }
 
@@ -89,20 +116,30 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
       const service = await getService();
       const webhook = await service.regenerateWebhookSecret(workflowId);
       updateNodeData(id, {
+        error: undefined,
+        status: WorkflowNodeStatus.IDLE,
         webhookSecret: webhook.webhookSecret,
       });
-    } catch {
-      // Secret regeneration failed
+    } catch (error) {
+      reportActionError(
+        'secret regeneration',
+        error,
+        'Failed to regenerate webhook secret',
+      );
     }
-  }, [id, getService, updateNodeData]);
+  }, [id, getService, updateNodeData, reportActionError]);
 
   const copyToClipboard = useCallback(
     async (text: string, type: 'url' | 'secret') => {
-      await navigator.clipboard.writeText(text);
-      setCopied(type);
-      setTimeout(() => setCopied(null), 2000);
+      try {
+        await navigator.clipboard.writeText(text);
+        setCopied(type);
+        setTimeout(() => setCopied(null), 2000);
+      } catch (error) {
+        reportActionError('copy', error, 'Failed to copy webhook value');
+      }
     },
-    [],
+    [reportActionError],
   );
 
   const authHeaderText =
@@ -148,7 +185,9 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
             <div className="flex items-center gap-2 mt-1">
               <Code className="flex-1 truncate">{data.webhookUrl}</Code>
               <NodeIconButton
-                onClick={() => copyToClipboard(data.webhookUrl!, 'url')}
+                onClick={() =>
+                  data.webhookUrl && copyToClipboard(data.webhookUrl, 'url')
+                }
                 title="Copy URL"
               >
                 {copied === 'url' ? (
@@ -193,7 +232,10 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
                   )}
                 </NodeIconButton>
                 <NodeIconButton
-                  onClick={() => copyToClipboard(data.webhookSecret!, 'secret')}
+                  onClick={() =>
+                    data.webhookSecret &&
+                    copyToClipboard(data.webhookSecret, 'secret')
+                  }
                   title="Copy secret"
                 >
                   {copied === 'secret' ? (
@@ -245,6 +287,12 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
               </span>
             )}
           </div>
+        </div>
+      )}
+
+      {data.error && (
+        <div className="rounded border border-red-500/20 bg-red-500/10 px-2 py-1 text-xs text-red-300">
+          {data.error}
         </div>
       )}
     </NodeCard>

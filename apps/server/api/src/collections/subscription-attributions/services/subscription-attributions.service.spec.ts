@@ -1,7 +1,7 @@
 import type { TrackSubscriptionDto } from '@api/collections/subscription-attributions/dto/track-subscription.dto';
 import type { SubscriptionAttributionDocument } from '@api/collections/subscription-attributions/schemas/subscription-attribution.schema';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SubscriptionAttributionsService } from './subscription-attributions.service';
 
@@ -9,15 +9,15 @@ type MockFn = ReturnType<typeof vi.fn>;
 
 interface AttributionDelegate {
   create: MockFn;
-  findMany: MockFn;
+  findFirst: MockFn;
   update: MockFn;
 }
 
 const ORGANIZATION_ID = 'org_1';
 
 /**
- * Prisma types `metadata` as `JsonValue`; specs hand in loose records (and a
- * bad-data string) on purpose, so the override drops the strict shape.
+ * Prisma types `metadata` as `JsonValue`; specs hand in loose records, so the
+ * override drops the strict shape.
  */
 type AttributionOverrides = Partial<
   Omit<SubscriptionAttributionDocument, 'metadata'>
@@ -67,15 +67,18 @@ function metadataFromCall(call: unknown): Record<string, unknown> {
 
 describe('SubscriptionAttributionsService', () => {
   let delegate: AttributionDelegate;
+  let queryRaw: MockFn;
   let service: SubscriptionAttributionsService;
 
   beforeEach(() => {
     delegate = {
       create: vi.fn(),
-      findMany: vi.fn().mockResolvedValue([]),
+      findFirst: vi.fn().mockResolvedValue(null),
       update: vi.fn(),
     };
+    queryRaw = vi.fn().mockResolvedValue([]);
     service = new SubscriptionAttributionsService({
+      $queryRaw: queryRaw,
       subscriptionAttribution: delegate,
     } as unknown as PrismaService);
     // Silence the Nest logger this service constructs internally.
@@ -101,8 +104,14 @@ describe('SubscriptionAttributionsService', () => {
         ORGANIZATION_ID,
       );
 
-      expect(delegate.findMany).toHaveBeenCalledWith({
-        where: { organizationId: ORGANIZATION_ID },
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: {
+          metadata: {
+            equals: 'sub_1',
+            path: ['stripeSubscriptionId'],
+          },
+          organizationId: ORGANIZATION_ID,
+        },
       });
       const metadata = metadataFromCall(delegate.create.mock.calls[0]);
       expect(metadata).toEqual(
@@ -253,7 +262,7 @@ describe('SubscriptionAttributionsService', () => {
         sourceContentId: 'post_old',
         sourceLinkId: 'link_old',
       });
-      delegate.findMany.mockResolvedValue([existing]);
+      delegate.findFirst.mockResolvedValue(existing);
       delegate.update.mockImplementation(
         (args: { data: Record<string, unknown> }) =>
           Promise.resolve(
@@ -290,12 +299,12 @@ describe('SubscriptionAttributionsService', () => {
     });
 
     it('stamps subscribedAt on an existing row that never had one', async () => {
-      delegate.findMany.mockResolvedValue([
+      delegate.findFirst.mockResolvedValue(
         buildAttribution({
           id: 'attr_existing',
           metadata: { stripeSubscriptionId: 'sub_1' },
         }),
-      ]);
+      );
       delegate.update.mockImplementation(
         (args: { data: Record<string, unknown> }) =>
           Promise.resolve(
@@ -314,13 +323,7 @@ describe('SubscriptionAttributionsService', () => {
       );
     });
 
-    it('creates a new row when the stored attributions belong to other subscriptions', async () => {
-      delegate.findMany.mockResolvedValue([
-        buildAttribution({
-          id: 'attr_other',
-          metadata: { stripeSubscriptionId: 'sub_other' },
-        }),
-      ]);
+    it('creates a new row when no matching subscription exists', async () => {
       delegate.create.mockResolvedValue(buildAttribution());
 
       await service.trackSubscription(buildDto(), ORGANIZATION_ID);
@@ -328,56 +331,51 @@ describe('SubscriptionAttributionsService', () => {
       expect(delegate.create).toHaveBeenCalledTimes(1);
       expect(delegate.update).not.toHaveBeenCalled();
     });
-
-    it('discards non-object stored metadata when merging', async () => {
-      delegate.findMany.mockResolvedValue([
-        buildAttribution({
-          id: 'attr_existing',
-          metadata: 'corrupted',
-        }),
-      ]);
-      delegate.create.mockResolvedValue(buildAttribution());
-
-      // A non-object metadata blob normalizes to `undefined`, so the row no
-      // longer matches by stripeSubscriptionId — it takes the create path.
-      await service.trackSubscription(buildDto(), ORGANIZATION_ID);
-
-      expect(delegate.create).toHaveBeenCalledTimes(1);
-    });
   });
 
   describe('getContentSubscriptionStats', () => {
     it('aggregates revenue, average order value, plan split and timeline', async () => {
-      delegate.findMany.mockResolvedValue([
-        buildAttribution({
-          id: 'a1',
-          metadata: {
-            amount: 100,
-            currency: 'USD',
-            plan: 'pro',
-            source: { content: 'post_1', contentType: 'post', platform: 'x' },
-            subscribedAt: '2026-02-01T10:00:00.000Z',
-          },
-          sourceContentId: 'post_1',
-        }),
-        buildAttribution({
-          id: 'a2',
-          metadata: {
-            amount: 50,
-            currency: 'USD',
-            plan: 'pro',
-            subscribedAt: '2026-02-01T18:00:00.000Z',
-          },
-          sourceContentId: 'post_1',
-        }),
-        buildAttribution({
-          id: 'a3',
-          metadata: {
-            currency: 'USD',
-            subscribedAt: '2026-02-02T09:00:00.000Z',
-          },
-          sourceContentId: 'post_1',
-        }),
+      queryRaw.mockResolvedValue([
+        {
+          bucket: 'all',
+          contentType: 'post',
+          count: 3n,
+          currency: 'USD',
+          dimension: 'summary',
+          revenue: 150,
+        },
+        {
+          bucket: 'pro',
+          contentType: 'post',
+          count: 2n,
+          currency: 'USD',
+          dimension: 'plan',
+          revenue: 150,
+        },
+        {
+          bucket: 'unknown',
+          contentType: 'post',
+          count: 1n,
+          currency: 'USD',
+          dimension: 'plan',
+          revenue: 0,
+        },
+        {
+          bucket: '2026-02-01',
+          contentType: 'post',
+          count: 2n,
+          currency: 'USD',
+          dimension: 'date',
+          revenue: 150,
+        },
+        {
+          bucket: '2026-02-02',
+          contentType: 'post',
+          count: 1n,
+          currency: 'USD',
+          dimension: 'date',
+          revenue: 0,
+        },
       ]);
 
       const stats = await service.getContentSubscriptionStats(
@@ -385,9 +383,7 @@ describe('SubscriptionAttributionsService', () => {
         ORGANIZATION_ID,
       );
 
-      expect(delegate.findMany).toHaveBeenCalledWith({
-        where: { organizationId: ORGANIZATION_ID, sourceContentId: 'post_1' },
-      });
+      expect(queryRaw).toHaveBeenCalledOnce();
       expect(stats.totalSubscriptions).toBe(3);
       expect(stats.totalRevenue).toBe(150);
       expect(stats.avgOrderValue).toBe(50);
@@ -404,8 +400,6 @@ describe('SubscriptionAttributionsService', () => {
     });
 
     it('returns zeroed stats and a null currency for content with no subscriptions', async () => {
-      delegate.findMany.mockResolvedValue([]);
-
       const stats = await service.getContentSubscriptionStats(
         'post_empty',
         ORGANIZATION_ID,
@@ -424,12 +418,15 @@ describe('SubscriptionAttributionsService', () => {
     });
 
     it('falls back to createdAt when the stored subscribedAt is unparseable', async () => {
-      delegate.findMany.mockResolvedValue([
-        buildAttribution({
-          createdAt: new Date('2026-03-03T00:00:00.000Z'),
-          metadata: { amount: 5, subscribedAt: 'not-a-date' },
-          sourceContentId: 'post_1',
-        }),
+      queryRaw.mockResolvedValue([
+        {
+          bucket: '2026-03-03',
+          contentType: 'unknown',
+          count: 1n,
+          currency: null,
+          dimension: 'date',
+          revenue: 5,
+        },
       ]);
 
       const stats = await service.getContentSubscriptionStats(
@@ -443,47 +440,31 @@ describe('SubscriptionAttributionsService', () => {
 
   describe('getTopContentBySubscriptions', () => {
     it('groups by content, sorts by subscription count and applies the limit', async () => {
-      delegate.findMany.mockResolvedValue([
-        buildAttribution({
-          id: 'a1',
-          metadata: {
-            amount: 10,
-            currency: 'USD',
-            source: { content: 'post_1', contentType: 'post', platform: 'x' },
-            subscribedAt: new Date().toISOString(),
-          },
-          sourceContentId: 'post_1',
-        }),
-        buildAttribution({
-          id: 'a2',
-          metadata: {
-            amount: 15,
-            currency: 'USD',
-            subscribedAt: new Date().toISOString(),
-          },
-          sourceContentId: 'post_1',
-        }),
-        buildAttribution({
-          id: 'a3',
-          metadata: {
-            amount: 40,
-            currency: 'EUR',
-            subscribedAt: new Date().toISOString(),
-          },
-          sourceContentId: 'post_2',
-        }),
-      ]);
+      const topRows = [
+        {
+          contentId: 'post_1',
+          contentType: 'post',
+          currency: 'USD',
+          revenue: 25,
+          subscriptions: 2n,
+        },
+        {
+          contentId: 'post_2',
+          contentType: 'unknown',
+          currency: 'EUR',
+          revenue: 40,
+          subscriptions: 1n,
+        },
+      ];
+      queryRaw
+        .mockResolvedValueOnce(topRows)
+        .mockResolvedValueOnce(topRows.slice(0, 1));
 
       const rows = await service.getTopContentBySubscriptions({
         organizationId: ORGANIZATION_ID,
       });
 
-      expect(delegate.findMany).toHaveBeenCalledWith({
-        where: {
-          organizationId: ORGANIZATION_ID,
-          sourceContentId: { not: null },
-        },
-      });
+      expect(queryRaw).toHaveBeenCalledOnce();
       expect(rows).toEqual([
         {
           contentId: 'post_1',
@@ -510,10 +491,6 @@ describe('SubscriptionAttributionsService', () => {
     });
 
     it('skips rows whose sourceContentId is null', async () => {
-      delegate.findMany.mockResolvedValue([
-        buildAttribution({ metadata: { amount: 10 }, sourceContentId: null }),
-      ]);
-
       await expect(
         service.getTopContentBySubscriptions({
           organizationId: ORGANIZATION_ID,
@@ -522,20 +499,21 @@ describe('SubscriptionAttributionsService', () => {
     });
 
     it('filters out subscriptions older than the requested period', async () => {
-      const recent = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
-      const stale = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-      delegate.findMany.mockResolvedValue([
-        buildAttribution({
-          id: 'recent',
-          metadata: { amount: 10, subscribedAt: recent.toISOString() },
-          sourceContentId: 'post_recent',
-        }),
-        buildAttribution({
-          id: 'stale',
-          metadata: { amount: 10, subscribedAt: stale.toISOString() },
-          sourceContentId: 'post_stale',
-        }),
-      ]);
+      const recentRow = {
+        contentId: 'post_recent',
+        contentType: 'unknown',
+        currency: null,
+        revenue: 10,
+        subscriptions: 1n,
+      };
+      const staleRow = {
+        ...recentRow,
+        contentId: 'post_stale',
+      };
+      queryRaw
+        .mockResolvedValueOnce([recentRow])
+        .mockResolvedValueOnce([recentRow, staleRow])
+        .mockResolvedValueOnce([recentRow]);
 
       const weekly = await service.getTopContentBySubscriptions({
         organizationId: ORGANIZATION_ID,
@@ -557,44 +535,6 @@ describe('SubscriptionAttributionsService', () => {
         period: Timeframe.D30,
       });
       expect(monthly.map((row) => row.contentId)).toEqual(['post_recent']);
-    });
-  });
-
-  describe('updateSubscriptionStatus', () => {
-    it('updates only the attributions carrying the given Stripe subscription id', async () => {
-      delegate.findMany.mockResolvedValue([
-        buildAttribution({
-          id: 'match_1',
-          metadata: { stripeSubscriptionId: 'sub_1' },
-        }),
-        buildAttribution({
-          id: 'other',
-          metadata: { stripeSubscriptionId: 'sub_2' },
-        }),
-      ]);
-      delegate.update.mockResolvedValue(buildAttribution());
-
-      await service.updateSubscriptionStatus('sub_1', 'canceled');
-
-      expect(delegate.update).toHaveBeenCalledTimes(1);
-      const updateArgs = delegate.update.mock.calls[0] as [
-        { data: { metadata: Record<string, unknown> }; where: { id: string } },
-      ];
-      expect(updateArgs[0].where).toEqual({ id: 'match_1' });
-      expect(updateArgs[0].data.metadata).toEqual({
-        status: 'canceled',
-        stripeSubscriptionId: 'sub_1',
-      });
-    });
-
-    it('is a no-op when nothing matches', async () => {
-      delegate.findMany.mockResolvedValue([
-        buildAttribution({ metadata: { stripeSubscriptionId: 'sub_other' } }),
-      ]);
-
-      await service.updateSubscriptionStatus('sub_1', 'past_due');
-
-      expect(delegate.update).not.toHaveBeenCalled();
     });
   });
 });

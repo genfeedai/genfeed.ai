@@ -1,4 +1,3 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import {
   RedirectController,
   TrackedLinksController,
@@ -10,6 +9,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import type { Request, Response } from 'express';
 
 const organizationId = testId('org');
@@ -330,10 +330,11 @@ describe('RedirectController', () => {
   describe('redirect', () => {
     it('should redirect to original URL', async () => {
       const shortCode = 'abc123';
-      const req = {
+      const req: Partial<Request> = {
+        get: vi.fn().mockReturnValue(undefined),
         headers: {},
         ip: '127.0.0.1',
-      } as Request;
+      };
       const res = {
         redirect: vi.fn(),
         send: vi.fn(),
@@ -343,7 +344,7 @@ describe('RedirectController', () => {
       mockTrackedLinksService.getByShortCode.mockResolvedValue(mockTrackedLink);
       mockTrackedLinksService.trackClick.mockResolvedValue(undefined);
 
-      await controller.redirect(shortCode, req, res);
+      await controller.redirect(shortCode, req as Request, res);
 
       expect(service.getByShortCode).toHaveBeenCalledWith(shortCode);
       expect(res.redirect).toHaveBeenCalledWith(

@@ -1,8 +1,6 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-tracked-link.dto';
 import { TrackClickDto } from '@api/collections/tracked-links/dto/track-click.dto';
 import { TrackedLinksService } from '@api/collections/tracked-links/services/tracked-links.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -25,7 +23,12 @@ import {
   Res,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import type { Request as ExpressRequest } from 'express';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import type {
+  Request as ExpressRequest,
+  Response as ExpressResponse,
+} from 'express';
 
 @AutoSwagger()
 @ApiTags('Tracking')
@@ -169,7 +172,7 @@ export class TrackedLinksController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async trackClick(@Body() dto: TrackClickDto, @Req() req: ExpressRequest) {
     await this.trackedLinksService.trackClick(dto, {
-      headers: req.headers as unknown as Record<string, string | undefined>,
+      headers: req.headers,
       ip: req.ip,
     });
     return { success: true };
@@ -197,49 +200,37 @@ export class RedirectController {
   async redirect(
     @Param('shortCode') shortCode: string,
     @Req() req: ExpressRequest,
-    @Res() res: Response,
+    @Res() res: ExpressResponse,
   ) {
-    // Find link
     const link = await this.trackedLinksService.getByShortCode(shortCode);
 
     if (!link) {
-      // @ts-expect-error TS2349
       return res.status(404).send('Link not found');
     }
 
-    // Check expiration
     if (link.expiresAt && link.expiresAt < new Date()) {
-      // @ts-expect-error TS2349
       return res.status(410).send('Link expired');
     }
 
-    // Track click asynchronously (don't block redirect)
     this.trackedLinksService
       .trackClick(
         {
-          gaClientId: req.headers['x-ga-client-id'] as string,
-          linkId: (
-            link as unknown as { id: { toString: () => string } }
-          ).id.toString(),
-          sessionId: req.headers['x-session-id'] as string,
+          gaClientId: req.get('x-ga-client-id'),
+          linkId: link.id,
+          sessionId: req.get('x-session-id'),
         },
         {
-          headers: req.headers as unknown as Record<string, string | undefined>,
+          headers: req.headers,
           ip: req.ip,
         },
       )
       .catch((error) => {
-        // Log but don't fail the redirect
         this.logger.error('Click tracking failed', error, {
-          linkId: (
-            link as unknown as { id: { toString: () => string } }
-          ).id.toString(),
+          linkId: link.id,
           shortCode,
         });
       });
 
-    // Redirect
-    // @ts-expect-error TS2551
     return res.redirect(302, link.originalUrl);
   }
 }

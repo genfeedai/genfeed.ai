@@ -1,16 +1,15 @@
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { ByokBillingStatus, CreditTransactionCategory } from '@genfeedai/enums';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/interfaces/billing';
-import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Inject, Injectable } from '@nestjs/common';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 interface ByokInvoiceMetadata {
   billableCredits: string;
@@ -44,6 +43,10 @@ interface ByokInvoiceResult {
   skipped: boolean;
 }
 
+interface ByokUsageAggregateRow {
+  totalUsage: number;
+}
+
 @Injectable()
 export class ByokBillingService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -66,18 +69,16 @@ export class ByokBillingService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const transactions = await this.prisma.creditTransaction.findMany({
-        select: { amount: true },
-        where: scopedWhere(organizationId, {
-          createdAt: { gte: startDate, lte: endDate },
-          source: CreditTransactionCategory.BYOK_USAGE,
-        }),
-      });
-
-      const totalUsage = transactions.reduce(
-        (sum, t) => sum + Math.abs(t.amount),
-        0,
-      );
+      const [aggregate] = await this.prisma.$queryRaw<ByokUsageAggregateRow[]>`
+        SELECT COALESCE(SUM(ABS("amount")), 0)::double precision AS "totalUsage"
+        FROM "credit_transactions"
+        WHERE "organizationId" = ${organizationId}
+          AND "isDeleted" = false
+          AND "source" = ${CreditTransactionCategory.BYOK_USAGE}
+          AND "createdAt" >= ${startDate}
+          AND "createdAt" <= ${endDate}
+      `;
+      const totalUsage = aggregate?.totalUsage ?? 0;
 
       this.loggerService.debug(`${url} aggregated`, {
         endDate,

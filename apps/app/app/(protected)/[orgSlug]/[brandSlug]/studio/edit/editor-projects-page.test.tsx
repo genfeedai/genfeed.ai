@@ -10,6 +10,18 @@ const mocks = vi.hoisted(() => ({
   deleteProject: vi.fn(),
   findAll: vi.fn(),
   getEditorService: vi.fn(),
+  loggerError: vi.fn(),
+  notificationError: vi.fn(),
+}));
+
+vi.mock('@services/core/logger.service', () => ({
+  logger: { error: mocks.loggerError },
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({ error: mocks.notificationError }),
+  },
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -177,9 +189,42 @@ describe('EditorProjectsPage', () => {
     mocks.findAll.mockRejectedValueOnce(new Error('offline'));
     render(<EditorProjectsPage />);
     expect(await screen.findByText('Failed to load projects')).toBeVisible();
+    expect(mocks.loggerError).toHaveBeenCalledWith(
+      'Failed to load editor projects',
+      expect.any(Error),
+    );
 
     mocks.findAll.mockResolvedValueOnce([]);
     fireEvent.click(screen.getByText('Try again'));
     expect(await screen.findByText('Create Your First Project')).toBeVisible();
+  });
+
+  it('keeps the project and reports a failed deletion', async () => {
+    const deleteError = new Error('offline');
+    mocks.findAll.mockResolvedValue([
+      {
+        id: 'project-1',
+        name: 'Launch cut',
+        status: 'draft',
+        tracks: [],
+        updatedAt: new Date().toISOString(),
+      },
+    ]);
+    mocks.deleteProject.mockRejectedValue(deleteError);
+
+    render(<EditorProjectsPage />);
+    expect(await screen.findByText('Launch cut')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete project' }));
+
+    await waitFor(() => {
+      expect(mocks.loggerError).toHaveBeenCalledWith(
+        'Failed to delete editor project',
+        { error: deleteError, projectId: 'project-1' },
+      );
+      expect(mocks.notificationError).toHaveBeenCalledWith(
+        'Failed to delete project',
+      );
+    });
+    expect(screen.getByText('Launch cut')).toBeVisible();
   });
 });

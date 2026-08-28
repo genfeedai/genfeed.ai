@@ -1,21 +1,13 @@
 import { BETTER_AUTH_USER_CREATED_EVENT } from '@api/auth/better-auth/better-auth.constants';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { CustomersService } from '@api/collections/customers/services/customers.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
-import { UsersService } from '@server/collections/users/services/users.service';
-import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
 import { StripeAttributionTrackerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-attribution-tracker.service';
 import { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import type { ManagedCheckoutResult } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
-import type { StripeCheckoutSession } from '@server/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   type ISubscriptionOssReadModel,
   SUBSCRIPTIONS_SERVICE,
@@ -24,6 +16,14 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { UsersService } from '@server/collections/users/services/users.service';
+import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
+import type { StripeCheckoutSession } from '@server/services/integrations/stripe/services/stripe.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type ProvisionAccessor = {
@@ -61,7 +61,7 @@ describe('StripeCheckoutWebhookHandler', () => {
   const organizationsService = { findOne: vi.fn() };
   const userSubscriptionsService = { updateFromStripeSession: vi.fn() };
   const organizationSettingsService = { findOne: vi.fn(), patch: vi.fn() };
-  const prisma = { skillReceipt: { create: vi.fn(), findMany: vi.fn() } };
+  const prisma = { skillReceipt: { create: vi.fn(), findFirst: vi.fn() } };
   const accessBootstrapCacheService = { invalidateForUser: vi.fn() };
   const userSetupService = { initializeUserResources: vi.fn() };
   const eventEmitter = { emitAsync: vi.fn() };
@@ -112,7 +112,7 @@ describe('StripeCheckoutWebhookHandler', () => {
       async (_sessionId: string, _kind: string, fn: () => Promise<unknown>) =>
         await fn(),
     );
-    prisma.skillReceipt.findMany.mockResolvedValue([]);
+    prisma.skillReceipt.findFirst.mockResolvedValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -558,8 +558,11 @@ describe('StripeCheckoutWebhookHandler', () => {
         'skills-pro-receipt',
         expect.any(Function),
       );
-      expect(prisma.skillReceipt.findMany).toHaveBeenCalledWith({
-        where: { isDeleted: false },
+      expect(prisma.skillReceipt.findFirst).toHaveBeenCalledWith({
+        where: {
+          data: { equals: 'cs_skills_1', path: ['stripeSessionId'] },
+          isDeleted: false,
+        },
       });
       expect(prisma.skillReceipt.create).toHaveBeenCalledWith({
         data: {
@@ -599,9 +602,9 @@ describe('StripeCheckoutWebhookHandler', () => {
     });
 
     it('does not create a duplicate skills-pro receipt when a persisted receipt already has the session id', async () => {
-      prisma.skillReceipt.findMany.mockResolvedValueOnce([
-        { data: { stripeSessionId: 'cs_skills_1' } },
-      ]);
+      prisma.skillReceipt.findFirst.mockResolvedValueOnce({
+        data: { stripeSessionId: 'cs_skills_1' },
+      });
 
       await handler.handleCheckoutCompleted(session, 'test');
 

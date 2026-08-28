@@ -1,12 +1,12 @@
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { firstValueFrom } from 'rxjs';
 
 interface MediumUser {
@@ -34,6 +34,9 @@ interface MediumPost {
 export class MediumService {
   private readonly constructorName: string = String(this.constructor.name);
   private readonly MEDIUM_API_BASE = 'https://api.medium.com/v1';
+  private readonly clientId: string | undefined;
+  private readonly clientSecret: string | undefined;
+  private readonly redirectUri: string | undefined;
 
   constructor(
     private readonly configService: ConfigService,
@@ -41,18 +44,36 @@ export class MediumService {
     private readonly loggerService: LoggerService,
     private readonly httpService: HttpService,
     private readonly articlesService: ArticlesService,
-  ) {}
+  ) {
+    this.clientId = this.configService.get('MEDIUM_CLIENT_ID');
+    this.clientSecret = this.configService.get('MEDIUM_CLIENT_SECRET');
+    this.redirectUri = this.configService.get('MEDIUM_REDIRECT_URI');
+  }
 
   /**
    * Generate Medium OAuth URL
    */
   public generateAuthUrl(state: string): string {
-    const clientId = this.configService.get('MEDIUM_CLIENT_ID');
-    const redirectUri = this.configService.get('MEDIUM_REDIRECT_URI');
-    const scope = 'basicProfile,publishPost';
+    if (!this.clientId || !this.redirectUri) {
+      throw new HttpException(
+        {
+          detail:
+            'Medium OAuth configuration is missing. Please set MEDIUM_CLIENT_ID and MEDIUM_REDIRECT_URI environment variables.',
+          title: 'Configuration Error',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
 
-    // @ts-expect-error TS2345
-    return `https://medium.com/m/oauth/authorize?client_id=${clientId}&scope=${scope}&state=${state}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    const params = new URLSearchParams({
+      client_id: this.clientId,
+      redirect_uri: this.redirectUri,
+      response_type: 'code',
+      scope: 'basicProfile,publishPost',
+      state,
+    });
+
+    return `https://medium.com/m/oauth/authorize?${params.toString()}`;
   }
 
   /**
@@ -65,16 +86,27 @@ export class MediumService {
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
+    if (!this.clientId || !this.clientSecret || !this.redirectUri) {
+      throw new HttpException(
+        {
+          detail:
+            'Medium OAuth configuration is missing. Please set MEDIUM_CLIENT_ID, MEDIUM_CLIENT_SECRET, and MEDIUM_REDIRECT_URI environment variables.',
+          title: 'Configuration Error',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
     try {
       const response = await firstValueFrom(
         this.httpService.post(
           'https://api.medium.com/v1/tokens',
           {
-            client_id: this.configService.get('MEDIUM_CLIENT_ID'),
-            client_secret: this.configService.get('MEDIUM_CLIENT_SECRET'),
+            client_id: this.clientId,
+            client_secret: this.clientSecret,
             code,
             grant_type: OAuthGrantType.AUTHORIZATION_CODE,
-            redirect_uri: this.configService.get('MEDIUM_REDIRECT_URI'),
+            redirect_uri: this.redirectUri,
           },
           {
             headers: {
@@ -233,6 +265,17 @@ export class MediumService {
       throw new Error('Medium credential not found');
     }
 
+    if (credentials.refreshToken && (!this.clientId || !this.clientSecret)) {
+      throw new HttpException(
+        {
+          detail:
+            'Medium OAuth configuration is missing. Please set MEDIUM_CLIENT_ID and MEDIUM_CLIENT_SECRET environment variables.',
+          title: 'Configuration Error',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
     try {
       if (credentials.refreshToken) {
         // Decrypt the refresh token before use
@@ -244,8 +287,8 @@ export class MediumService {
           this.httpService.post(
             'https://api.medium.com/v1/tokens',
             {
-              client_id: this.configService.get('MEDIUM_CLIENT_ID'),
-              client_secret: this.configService.get('MEDIUM_CLIENT_SECRET'),
+              client_id: this.clientId,
+              client_secret: this.clientSecret,
               grant_type: OAuthGrantType.REFRESH_TOKEN,
               refresh_token: decryptedRefreshToken,
             },

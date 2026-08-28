@@ -14,6 +14,7 @@ import {
   AnalyticsService,
   type IBrandWithStats,
 } from '@services/analytics/analytics.service';
+import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
@@ -69,7 +70,6 @@ export default function AnalyticsBrandsList({
     }
 
     const fetchBrandsData = async () => {
-      // Don't fetch if not signed in (prevents API calls during logout)
       if (!isSignedIn) {
         return;
       }
@@ -92,8 +92,9 @@ export default function AnalyticsBrandsList({
           startDate,
         });
         setBrandsData(response.data);
-      } catch {
-        // Error handling
+      } catch (error) {
+        logger.error('Failed to fetch brand analytics list', error);
+        setBrandsData([]);
       } finally {
         setIsLoading(false);
       }

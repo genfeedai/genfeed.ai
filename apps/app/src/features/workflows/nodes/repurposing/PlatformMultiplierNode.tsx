@@ -9,6 +9,7 @@ import {
   selectUpdateNodeData,
   useWorkflowStore,
 } from '@genfeedai/workflows/ui/stores';
+import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback } from 'react';
@@ -87,15 +88,37 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
   }, [id, executeNode]);
 
   const handleDownload = useCallback(
-    (_platform: ExportPlatform, media: string) => {
+    (platform: ExportPlatform, media: string) => {
       const link = document.createElement('a');
       link.href = media;
-      link.download = `${_platform}_export.mp4`;
+      link.download = `${platform}_export.mp4`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     },
     [],
+  );
+
+  const handleCopyCaption = useCallback(
+    async (caption: string) => {
+      try {
+        await navigator.clipboard.writeText(caption);
+        updateNodeData(id, {
+          error: undefined,
+          status: WorkflowNodeStatus.IDLE,
+        });
+      } catch (error) {
+        logger.error('Platform caption copy failed', {
+          error,
+          nodeId: id,
+        });
+        updateNodeData(id, {
+          error: 'Failed to copy the platform caption.',
+          status: WorkflowNodeStatus.ERROR,
+        });
+      }
+    },
+    [id, updateNodeData],
   );
 
   const completedCount = data.outputs.filter(
@@ -127,7 +150,6 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
         click.
       </NodeDescription>
 
-      {/* Platform Selection */}
       <div className="space-y-2">
         <span className="text-xs text-muted-foreground">Target Platforms</span>
         <div className="grid grid-cols-2 gap-2">
@@ -148,7 +170,6 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
         </div>
       </div>
 
-      {/* Caption Generation Toggle */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-sm">Generate platform captions</span>
@@ -173,7 +194,6 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
         )}
       </div>
 
-      {/* Output Results */}
       {data.outputs.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
@@ -183,40 +203,38 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
             </span>
           </div>
           <div className="max-h-48 overflow-y-auto space-y-2">
-            {data.outputs.map((output) => (
-              <div
-                key={output.platform}
-                className="p-2 border border-border bg-muted/30 text-xs"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">
-                    {getPlatformLabel(output.platform)}
-                  </span>
-                  <span className={getStatusColor(output.status)}>
-                    <StatusIcon status={output.status} />
-                  </span>
-                </div>
-                {output.status === WorkflowNodeStatus.COMPLETE &&
-                  output.media && (
+            {data.outputs.map((output) => {
+              const { caption, media, platform, status } = output;
+
+              return (
+                <div
+                  key={platform}
+                  className="p-2 border border-border bg-muted/30 text-xs"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">
+                      {getPlatformLabel(platform)}
+                    </span>
+                    <span className={getStatusColor(status)}>
+                      <StatusIcon status={status} />
+                    </span>
+                  </div>
+                  {status === WorkflowNodeStatus.COMPLETE && media && (
                     <div className="flex items-center gap-2 mt-2">
                       <Button
                         variant={ButtonVariant.DEFAULT}
                         size={ButtonSize.XS}
-                        onClick={() =>
-                          handleDownload(output.platform, output.media!)
-                        }
+                        onClick={() => handleDownload(platform, media)}
                         className="flex-1"
                       >
                         <DownloadIcon className="size-4" />
                         Download
                       </Button>
-                      {output.caption && (
+                      {caption && (
                         <Button
                           variant={ButtonVariant.SECONDARY}
                           size={ButtonSize.XS}
-                          onClick={() =>
-                            navigator.clipboard.writeText(output.caption!)
-                          }
+                          onClick={() => handleCopyCaption(caption)}
                           tooltip="Copy caption"
                         >
                           Copy caption
@@ -224,11 +242,12 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
                       )}
                     </div>
                   )}
-                {output.status === WorkflowNodeStatus.ERROR && output.error && (
-                  <p className="text-red-500 mt-1">{output.error}</p>
-                )}
-              </div>
-            ))}
+                  {status === WorkflowNodeStatus.ERROR && output.error && (
+                    <p className="text-red-500 mt-1">{output.error}</p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -250,6 +269,12 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
       )}
 
       {showHelpText && <HelpText>Connect a video to multiply</HelpText>}
+
+      {data.error && (
+        <div className="rounded border border-red-500/20 bg-red-500/10 px-2 py-1 text-xs text-red-300">
+          {data.error}
+        </div>
+      )}
     </NodeCard>
   );
 }

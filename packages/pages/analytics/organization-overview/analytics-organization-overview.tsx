@@ -17,6 +17,7 @@ import type {
   PlatformBreakdownData,
 } from '@services/analytics/analytics.service';
 import { AnalyticsService } from '@services/analytics/analytics.service';
+import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
@@ -186,7 +187,6 @@ export default function AnalyticsOrganizationOverview({
 
   useEffect(() => {
     const fetchBrandsData = async () => {
-      // Don't fetch if not signed in (prevents API calls during logout)
       if (!isSignedIn) {
         return;
       }
@@ -205,8 +205,9 @@ export default function AnalyticsOrganizationOverview({
           startDate,
         });
         setBrandsData(response.data);
-      } catch {
-        // Error handling
+      } catch (error) {
+        logger.error('Failed to fetch organization brand analytics', error);
+        setBrandsData([]);
       } finally {
         setLoadingBrands(false);
       }
@@ -217,7 +218,6 @@ export default function AnalyticsOrganizationOverview({
 
   useEffect(() => {
     const fetchPlatformData = async () => {
-      // Don't fetch if not signed in (prevents API calls during logout)
       if (!isSignedIn) {
         return;
       }
@@ -231,7 +231,6 @@ export default function AnalyticsOrganizationOverview({
           startDate,
         })) as Record<string, { posts?: number; views?: number }>;
 
-        // Transform response to PlatformBreakdownData format
         const transformed = Object.entries(response).map(
           ([platform, data]) => ({
             platform,
@@ -241,8 +240,9 @@ export default function AnalyticsOrganizationOverview({
         );
 
         setPlatformData(transformed);
-      } catch {
-        // Error handling
+      } catch (error) {
+        logger.error('Failed to fetch organization platform analytics', error);
+        setPlatformData([]);
       } finally {
         setLoadingPlatform(false);
       }

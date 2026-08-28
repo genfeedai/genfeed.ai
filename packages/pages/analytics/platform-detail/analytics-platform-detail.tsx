@@ -9,6 +9,7 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Post } from '@models/content/post.model';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
+import { logger } from '@services/core/logger.service';
 import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
 import Table from '@ui/display/table/Table';
@@ -76,8 +77,10 @@ export default function AnalyticsPlatformDetail({
           (post) => post.platform?.toLowerCase() === platform.toLowerCase(),
         );
         setPosts(platformPosts);
-      } catch {
-        // Error handling
+      } catch (error) {
+        logger.error('Failed to fetch platform analytics', error);
+        setBrandName('');
+        setPosts([]);
       } finally {
         setIsLoading(false);
       }

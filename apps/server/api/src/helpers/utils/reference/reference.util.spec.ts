@@ -1,5 +1,3 @@
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import {
   buildReferenceImageUrl,
   buildReferenceImageUrls,
@@ -8,6 +6,8 @@ import { AssetCategory, IngredientCategory } from '@genfeedai/enums';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 
 const BASE_URL = 'https://cdn.genfeed.ai';
 const ORGANIZATION_ID = testId('org');
@@ -268,15 +268,22 @@ describe('buildReferenceImageUrls', () => {
     const { ingredientsService, assetsService, configService, loggerService } =
       createMocks();
 
-    (ingredientsService.findOne as vi.Mock)
-      .mockResolvedValueOnce({ id: id1 })
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
-      .mockRejectedValueOnce(new Error('Invalid ObjectId'));
+    (ingredientsService.findOne as vi.Mock).mockImplementation(
+      (query: ReferenceLookupQuery) => {
+        if (query.id === invalidId) {
+          return Promise.reject(new Error('Invalid ObjectId'));
+        }
+        if (query.id === id1 && query.category === IngredientCategory.IMAGE) {
+          return Promise.resolve({ id: id1 });
+        }
+        return Promise.resolve(null);
+      },
+    );
 
-    (assetsService.findOne as vi.Mock).mockResolvedValueOnce({
-      id: id2,
-    });
+    (assetsService.findOne as vi.Mock).mockImplementation(
+      (query: ReferenceLookupQuery) =>
+        Promise.resolve(query.id === id2 ? { id: id2 } : null),
+    );
 
     const result = await buildReferenceImageUrls(
       withOrganization(
@@ -297,6 +304,55 @@ describe('buildReferenceImageUrls', () => {
       isDeleted: false,
       organizationId: ORGANIZATION_ID,
     });
+  });
+
+  it('starts independent reference lookups concurrently', async () => {
+    const { ingredientsService, assetsService, configService, loggerService } =
+      createMocks();
+    let releaseFirstLookup = () => {};
+    const firstLookup = new Promise<{ id: string }>((resolve) => {
+      releaseFirstLookup = () => resolve({ id: id1 });
+    });
+
+    (ingredientsService.findOne as vi.Mock).mockImplementation(
+      (query: ReferenceLookupQuery) =>
+        query.id === id1
+          ? firstLookup
+          : Promise.resolve({ id: query.id as string }),
+    );
+
+    const resultPromise = buildReferenceImageUrls(
+      withOrganization(
+        { assetsService, configService, ingredientsService, loggerService },
+        { referenceIds: [id1, id2] },
+      ),
+    );
+
+    expect(ingredientsService.findOne).toHaveBeenCalledTimes(2);
+    releaseFirstLookup();
+    await expect(resultPromise).resolves.toEqual([
+      `${BASE_URL}/ingredients/images/${id1}`,
+      `${BASE_URL}/ingredients/images/${id2}`,
+    ]);
+  });
+
+  it('reuses the lookup for duplicate reference ids', async () => {
+    const { ingredientsService, assetsService, configService, loggerService } =
+      createMocks();
+    (ingredientsService.findOne as vi.Mock).mockResolvedValue({ id: id1 });
+
+    await expect(
+      buildReferenceImageUrls(
+        withOrganization(
+          { assetsService, configService, ingredientsService, loggerService },
+          { referenceIds: [id1, id1] },
+        ),
+      ),
+    ).resolves.toEqual([
+      `${BASE_URL}/ingredients/images/${id1}`,
+      `${BASE_URL}/ingredients/images/${id1}`,
+    ]);
+    expect(ingredientsService.findOne).toHaveBeenCalledTimes(1);
   });
 });
 

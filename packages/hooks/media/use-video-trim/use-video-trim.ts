@@ -14,7 +14,6 @@ export interface VideoThumbnail {
 }
 
 export function useVideoTrim({
-  // videoUrl,
   videoDuration,
   minDuration = 2,
   maxDuration = 15,

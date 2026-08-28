@@ -1,11 +1,11 @@
-import { BrandsService } from '@server/collections/brands/services/brands.service';
 import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
-import { UsersService } from '@server/collections/users/services/users.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { UsersService } from '@server/collections/users/services/users.service';
 import type { IBetterAuthResolvedIdentity } from '../better-auth.types';
 import { isPlatformSuperAdmin } from '../better-auth-access.util';
 
@@ -140,67 +140,50 @@ export class BetterAuthIdentityResolverService {
     };
   }
 
-  private async findAccessibleOrganizationId(
-    candidate: string,
-    members: MemberDocument[],
-  ): Promise<string | undefined> {
-    const organization = await this.organizationsService.findOne({
-      id: candidate,
-      isDeleted: false,
-    });
-    const organizationId = getEntityId(
-      organization as Record<string, unknown> | null | undefined,
-    );
-    if (!organizationId) {
-      return undefined;
-    }
-
-    const isMember = members.some(
-      (member) => getMemberOrganizationId(member) === organizationId,
-    );
-
-    // Ownership without an active membership is not enough: RolesGuard still
-    // 403s catalog and onboarding requests for that org. Recover via membership.
-    return isMember ? organizationId : undefined;
-  }
-
   private async resolveOrganizationId(
     members: MemberDocument[],
     lastUsedOrganizationId?: string,
   ): Promise<string | undefined> {
-    // DB-authoritative active org (epic #735, Phase C): prefer lastUsed only
-    // when the user still has an active membership there. A stale session org
-    // must not ride into RolesGuard.
+    const memberOrganizationIds = [
+      ...new Set(
+        members
+          .map(getMemberOrganizationId)
+          .filter((organizationId) => organizationId.length > 0),
+      ),
+    ];
+    if (memberOrganizationIds.length === 0) {
+      return undefined;
+    }
+
+    const organizations = await this.organizationsService.findAll(
+      {
+        select: { id: true },
+        where: {
+          id: { in: memberOrganizationIds },
+          isDeleted: false,
+        },
+      },
+      { pagination: false },
+      false,
+    );
+    const accessibleOrganizationIds = new Set(
+      organizations.docs
+        .map((organization) =>
+          getEntityId(organization as unknown as Record<string, unknown>),
+        )
+        .filter((organizationId) => organizationId.length > 0),
+    );
+
     if (
       lastUsedOrganizationId &&
-      members.some(
-        (member) => getMemberOrganizationId(member) === lastUsedOrganizationId,
-      )
+      accessibleOrganizationIds.has(lastUsedOrganizationId)
     ) {
-      const accessibleOrgId = await this.findAccessibleOrganizationId(
-        lastUsedOrganizationId,
-        members,
-      );
-      if (accessibleOrgId) {
-        return accessibleOrgId;
-      }
+      return lastUsedOrganizationId;
     }
 
-    for (const member of members) {
-      const memberOrgId = getMemberOrganizationId(member);
-      if (!memberOrgId || memberOrgId === lastUsedOrganizationId) {
-        continue;
-      }
-      const accessibleOrgId = await this.findAccessibleOrganizationId(
-        memberOrgId,
-        members,
-      );
-      if (accessibleOrgId) {
-        return accessibleOrgId;
-      }
-    }
-
-    return undefined;
+    return memberOrganizationIds.find((organizationId) =>
+      accessibleOrganizationIds.has(organizationId),
+    );
   }
 
   private async persistActiveOrganizationIfStale(

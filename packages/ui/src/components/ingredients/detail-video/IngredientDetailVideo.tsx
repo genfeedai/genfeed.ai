@@ -53,7 +53,6 @@ export default function IngredientDetailVideo({
   childIngredients = EMPTY_ARRAY,
   // credentials = EMPTY_ARRAY,
   onConvertToGif,
-  // onVoteIngredient,
   onReverseVideo,
   onPortraitVideo,
   onMirrorVideo,

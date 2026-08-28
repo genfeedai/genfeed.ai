@@ -72,6 +72,8 @@ export default function AnalyticsBrandOverview({
         setBrandName(brand.label);
       } catch (error) {
         logger.error('Failed to fetch brand analytics', error);
+        setAnalytics(null);
+        setBrandName('');
       } finally {
         setIsLoading(false);
       }
@@ -91,8 +93,9 @@ export default function AnalyticsBrandOverview({
           sort: '-createdAt',
         });
         setPosts(postsData);
-      } catch {
-        // Error handling
+      } catch (error) {
+        logger.error('Failed to fetch brand posts', error);
+        setPosts([]);
       } finally {
         setIsLoadingPosts(false);
       }
@@ -112,8 +115,9 @@ export default function AnalyticsBrandOverview({
             cred.platform?.toLowerCase() ? [cred.platform.toLowerCase()] : [],
           );
         setConnectedPlatforms(connected);
-      } catch {
-        // Error handling
+      } catch (error) {
+        logger.error('Failed to fetch brand credentials', error);
+        setConnectedPlatforms([]);
       }
     };
 

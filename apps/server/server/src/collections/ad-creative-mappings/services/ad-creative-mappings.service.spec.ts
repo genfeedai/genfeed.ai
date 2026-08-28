@@ -115,7 +115,7 @@ describe('AdCreativeMappingsService', () => {
   });
 
   describe('JSON-column lookups', () => {
-    beforeEach(() => {
+    it('queries genfeedContentId inside the tenant scope', async () => {
       findMany.mockResolvedValue([
         makeRow('map-1', {
           adAccountId: 'act_1',
@@ -127,41 +127,73 @@ describe('AdCreativeMappingsService', () => {
           externalAdId: 'ad-2',
           genfeedContentId: 'content-1',
         }),
-        { data: null, id: 'map-3', isDeleted: false, organizationId: 'org-1' },
       ]);
-    });
-
-    it('filters by genfeedContentId in memory under the tenant scope', async () => {
       const rows = await service.findByContentId('content-1', 'org-1');
 
       expect(rows.map((row) => row.id)).toEqual(['map-1', 'map-2']);
       expect(findMany).toHaveBeenCalledWith({
-        where: { isDeleted: false, organizationId: 'org-1' },
+        where: {
+          data: { equals: 'content-1', path: ['genfeedContentId'] },
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
       });
     });
 
     it('returns an empty list when no row matches the content id', async () => {
+      findMany.mockResolvedValue([]);
+
       await expect(
         service.findByContentId('content-missing', 'org-1'),
       ).resolves.toEqual([]);
     });
 
-    it('finds a single row by external ad id', async () => {
+    it('queries a single row by external ad id inside the tenant scope', async () => {
+      findFirst.mockResolvedValue(
+        makeRow('map-2', {
+          adAccountId: 'act_2',
+          externalAdId: 'ad-2',
+          genfeedContentId: 'content-1',
+        }),
+      );
       const row = await service.findByExternalAdId('ad-2', 'org-1');
 
       expect(row?.id).toBe('map-2');
+      expect(findFirst).toHaveBeenCalledWith({
+        where: {
+          data: { equals: 'ad-2', path: ['externalAdId'] },
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
     });
 
     it('returns null when no row carries the external ad id', async () => {
+      findFirst.mockResolvedValue(null);
+
       await expect(
         service.findByExternalAdId('ad-missing', 'org-1'),
       ).resolves.toBeNull();
     });
 
-    it('filters by ad account id', async () => {
+    it('queries ad account id inside the tenant scope', async () => {
+      findMany.mockResolvedValue([
+        makeRow('map-1', {
+          adAccountId: 'act_1',
+          externalAdId: 'ad-1',
+          genfeedContentId: 'content-1',
+        }),
+      ]);
       const rows = await service.findByAdAccount('act_1', 'org-1');
 
       expect(rows.map((row) => row.id)).toEqual(['map-1']);
+      expect(findMany).toHaveBeenCalledWith({
+        where: {
+          data: { equals: 'act_1', path: ['adAccountId'] },
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
     });
   });
 

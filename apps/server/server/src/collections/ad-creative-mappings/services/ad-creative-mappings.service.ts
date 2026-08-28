@@ -85,13 +85,10 @@ export class AdCreativeMappingsService {
     genfeedContentId: string,
     organizationId: string,
   ): Promise<Record<string, unknown>[]> {
-    // genfeedContentId lives in data JSON — fetch by org then filter in memory
-    const rows = await this.prisma.adCreativeMapping.findMany({
-      where: scopedWhere(organizationId),
-    });
-    return rows.filter((row) => {
-      const d = row.data as Record<string, unknown> | null;
-      return d?.genfeedContentId === genfeedContentId;
+    return this.prisma.adCreativeMapping.findMany({
+      where: scopedWhere(organizationId, {
+        data: { equals: genfeedContentId, path: ['genfeedContentId'] },
+      }),
     });
   }
 
@@ -99,29 +96,21 @@ export class AdCreativeMappingsService {
     externalAdId: string,
     organizationId: string,
   ): Promise<Record<string, unknown> | null> {
-    // externalAdId lives in data JSON — fetch by org then filter in memory
-    const rows = await this.prisma.adCreativeMapping.findMany({
-      where: scopedWhere(organizationId),
+    return this.prisma.adCreativeMapping.findFirst({
+      where: scopedWhere(organizationId, {
+        data: { equals: externalAdId, path: ['externalAdId'] },
+      }),
     });
-    return (
-      rows.find((row) => {
-        const d = row.data as Record<string, unknown> | null;
-        return d?.externalAdId === externalAdId;
-      }) ?? null
-    );
   }
 
   async findByAdAccount(
     adAccountId: string,
     organizationId: string,
   ): Promise<Record<string, unknown>[]> {
-    // adAccountId lives in data JSON — fetch by org then filter in memory
-    const rows = await this.prisma.adCreativeMapping.findMany({
-      where: scopedWhere(organizationId),
-    });
-    return rows.filter((row) => {
-      const d = row.data as Record<string, unknown> | null;
-      return d?.adAccountId === adAccountId;
+    return this.prisma.adCreativeMapping.findMany({
+      where: scopedWhere(organizationId, {
+        data: { equals: adAccountId, path: ['adAccountId'] },
+      }),
     });
   }
 
