@@ -3537,22 +3537,6 @@
       "workspace": "server"
     },
     {
-      "code": 2345,
-      "count": 6,
-      "file": "apps/server/server/src/services/bot-gateway/services/bot-generation.service.spec.ts",
-      "fingerprint": "0d4484dedb481d8091cf",
-      "message": "Argument of type '{ brandId: string; organizationId: string; userId: string; }' is not assignable to parameter of type 'IBotResolvedUser'.   Property 'credentialId' is missing in type '{ brandId: string; organizationId: string; userId: string; }' but required in type 'IBotResolvedUser'.",
-      "workspace": "server"
-    },
-    {
-      "code": 2503,
-      "count": 7,
-      "file": "apps/server/server/src/services/bot-gateway/services/bot-generation.service.spec.ts",
-      "fingerprint": "1d205118e189234d4ed0",
-      "message": "Cannot find namespace 'vi'.",
-      "workspace": "server"
-    },
-    {
       "code": 2503,
       "count": 3,
       "file": "apps/server/server/src/services/bot-gateway/services/bot-user-resolver.service.spec.ts",
