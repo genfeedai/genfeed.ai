@@ -413,7 +413,7 @@ export class AgentRunProcessor extends WorkerHost {
       data.runId,
       data.organizationId,
     );
-    const configuredAttempts = Number(job.opts.attempts) || 1;
+    const configuredAttempts = Number(job.opts?.attempts) || 1;
     const isDurableRetry =
       job.attemptsMade > 0 && job.attemptsMade < configuredAttempts;
     if (
