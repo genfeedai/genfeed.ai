@@ -13,10 +13,6 @@ export class CreateWorkflowExecutionDto extends WorkflowActionContextDto {
   @ApiProperty({ description: 'Workflow ID to execute' })
   readonly workflowId!: string;
 
-  @IsEntityId()
-  @ApiProperty({ description: 'Immutable workflow version ID to execute' })
-  readonly workflowVersionId!: string;
-
   @IsEnum(WorkflowExecutionTrigger)
   @IsOptional()
   @ApiProperty({

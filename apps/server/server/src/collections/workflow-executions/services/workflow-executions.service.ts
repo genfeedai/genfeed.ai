@@ -94,6 +94,7 @@ type WorkflowExecutionCreateInput = CreateWorkflowExecutionDto & {
   etaCurrentPhase?: string;
   remainingDurationMs?: number;
   totalNodes?: number;
+  workflowVersionId: string;
 };
 
 type WorkflowExecutionCompletionFields = {
