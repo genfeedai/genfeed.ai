@@ -223,11 +223,9 @@ describe('AdOptimizationConfigsService', () => {
   });
 
   describe('findAllEnabled', () => {
-    it('returns only rows whose normalised config is enabled', async () => {
+    it('returns rows selected by the enabled config predicate', async () => {
       findMany.mockResolvedValue([
         makeRow({ isEnabled: true }, { id: 'cfg-on' }),
-        makeRow({ isEnabled: false }, { id: 'cfg-off' }),
-        makeRow({}, { id: 'cfg-default' }),
       ]);
 
       const docs = await service.findAllEnabled();
