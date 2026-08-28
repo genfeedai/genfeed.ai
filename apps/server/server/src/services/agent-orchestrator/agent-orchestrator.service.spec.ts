@@ -4,6 +4,7 @@ import {
 } from '@genfeedai/constants';
 import {
   AgentAutonomyMode,
+  AgentExecutionStatus,
   AgentType,
   ApiKeyScope,
   GenerationPriority,
@@ -381,7 +382,10 @@ describe('AgentOrchestratorService', () => {
       ),
     };
     const agentRunsServiceMock = {
-      complete: vi.fn().mockResolvedValue({ durationMs: 100 }),
+      complete: vi.fn().mockResolvedValue({
+        durationMs: 100,
+        status: AgentExecutionStatus.COMPLETED,
+      }),
       create: vi.fn().mockResolvedValue({ id: RUN_ID }),
       fail: vi.fn().mockResolvedValue({}),
       isCancelled: vi.fn().mockResolvedValue(false),
@@ -2507,6 +2511,36 @@ describe('AgentOrchestratorService', () => {
       getAgentChatModelRoundCredits(DEFAULT_AGENT_CHAT_MODEL_KEY),
       `Agent chat turn (${DEFAULT_AGENT_CHAT_MODEL_KEY})`,
       expect.anything(),
+    );
+    expect(streamPublisher.publishDone).not.toHaveBeenCalled();
+  });
+
+  it('does not publish completion when cancellation wins the terminal transition', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    agentRunsService.complete.mockResolvedValueOnce({
+      status: AgentExecutionStatus.CANCELLED,
+    } as never);
+
+    await service.chatStream(
+      { content: 'Cancel at the completion boundary' },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    for (let i = 0; i < 20; i++) {
+      if (
+        streamPublisher.publishWorkEvent.mock.calls.some(
+          (call) => (call[0] as { event?: string }).event === 'cancelled',
+        )
+      ) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+
+    expect(streamPublisher.publishWorkEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'cancelled', status: 'cancelled' }),
     );
     expect(streamPublisher.publishDone).not.toHaveBeenCalled();
   });

@@ -1,4 +1,5 @@
 import {
+  AgentExecutionStatus,
   AgentMessageRole,
   AgentType,
   type RouterPriority,
@@ -454,6 +455,11 @@ export class AgentOrchestratorStreamLoopService {
             );
           const reasoning = assistantMessage.reasoning_content ?? null;
 
+          if (await this.isRunCancelled(context)) {
+            await this.handleCancelledStream(context, threadId);
+            return;
+          }
+
           await runEffectPromise(
             this.streamEffects.publishStreamAssistantResponseEffect({
               content,
@@ -482,6 +488,10 @@ export class AgentOrchestratorStreamLoopService {
             context,
             artifactMetadata,
           );
+          if (await this.isRunCancelled(context)) {
+            await this.handleCancelledStream(context, threadId);
+            return;
+          }
           await this.agentMessagesService.addMessage({
             brandId: context.scope?.brandId,
             content,
@@ -538,6 +548,24 @@ export class AgentOrchestratorStreamLoopService {
               context.organizationId,
               content.slice(0, 200),
             );
+            if (completedRun?.status === AgentExecutionStatus.CANCELLED) {
+              await this.handleCancelledStream(context, threadId);
+              return;
+            }
+            if (
+              !completedRun ||
+              completedRun.status !== AgentExecutionStatus.COMPLETED
+            ) {
+              this.loggerService.warn(
+                `${this.constructorName} skipped a stale completion event`,
+                {
+                  organizationId: context.organizationId,
+                  runId: context.runId,
+                  status: completedRun?.status ?? 'missing',
+                },
+              );
+              return;
+            }
             runDurationMs =
               typeof completedRun?.durationMs === 'number'
                 ? completedRun.durationMs

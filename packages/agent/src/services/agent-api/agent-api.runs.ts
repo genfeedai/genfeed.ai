@@ -12,6 +12,7 @@ import {
   createAgentRunPage,
   type ListAgentRunsParams,
 } from '@genfeedai/agent/services/agent-run-api.helpers';
+import { AgentExecutionStatus } from '@genfeedai/enums';
 import type { JsonApiResponseDocument } from '@helpers/data/json-api/json-api.helper';
 import { Effect } from 'effect';
 
@@ -86,7 +87,7 @@ export function cancelRunEffect(
   return api.fetchResourceEffect<AgentRunSummary>(
     `${api.config.baseUrl}/runs/${runId}${buildAgentRunBrandQuery(brandId)}`,
     {
-      body: JSON.stringify({ status: 'cancelled' }),
+      body: JSON.stringify({ status: AgentExecutionStatus.CANCELLED }),
       method: 'PATCH',
       signal,
     },

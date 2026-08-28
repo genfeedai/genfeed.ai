@@ -159,6 +159,19 @@ export class AgentRunProcessor extends WorkerHost {
       if (!run) {
         throw new Error(`Agent run ${data.runId} not found`);
       }
+      if (
+        [
+          AgentRunStatus.CANCELLED,
+          AgentRunStatus.COMPLETED,
+          AgentRunStatus.FAILED,
+        ].includes(String(run.status) as AgentRunStatus)
+      ) {
+        this.logger.log(`${url} skipped terminal run delivery`, {
+          runId: data.runId,
+          status: run.status,
+        });
+        return;
+      }
 
       // 2. Publish run start event
       const runLabel = readString((run as Record<string, unknown>).label) ?? '';
@@ -235,6 +248,16 @@ export class AgentRunProcessor extends WorkerHost {
         data.organizationId,
         summary,
       );
+      if (
+        !completedRun ||
+        String(completedRun.status) !== AgentRunStatus.COMPLETED
+      ) {
+        this.logger.log(`${url} skipped stale completion effects`, {
+          runId: data.runId,
+          status: completedRun?.status ?? 'missing',
+        });
+        return;
+      }
 
       // 5. Update strategy state with actual execution metrics
       if (data.strategyId && completedRun) {
@@ -320,11 +343,18 @@ export class AgentRunProcessor extends WorkerHost {
 
       this.logger.error(`${url} failed`, error);
 
-      await this.agentRunsService.fail(
+      const failedRun = await this.agentRunsService.fail(
         data.runId,
         data.organizationId,
         errorMessage,
       );
+      if (failedRun && String(failedRun.status) !== AgentRunStatus.FAILED) {
+        this.logger.log(`${url} skipped stale failure effects`, {
+          runId: data.runId,
+          status: failedRun.status,
+        });
+        return;
+      }
 
       // Update strategy failure tracking
       if (data.strategyId) {
@@ -388,9 +418,11 @@ export class AgentRunProcessor extends WorkerHost {
       job.attemptsMade > 0 && job.attemptsMade < configuredAttempts;
     if (
       persistedRun &&
-      [AgentRunStatus.COMPLETED, AgentRunStatus.CANCELLED].includes(
-        String(persistedRun.status) as AgentRunStatus,
-      )
+      [
+        AgentRunStatus.CANCELLED,
+        AgentRunStatus.COMPLETED,
+        AgentRunStatus.FAILED,
+      ].includes(String(persistedRun.status) as AgentRunStatus)
     ) {
       this.logger.log(`${this.logContext} skipped terminal chat redelivery`, {
         organizationId: data.organizationId,
@@ -406,11 +438,23 @@ export class AgentRunProcessor extends WorkerHost {
     ) {
       const persistedError =
         'Agent generation stopped before it could complete safely.';
-      await this.agentRunsService.fail(
+      const failedRun = await this.agentRunsService.fail(
         data.runId,
         data.organizationId,
         persistedError,
       );
+      if (failedRun && String(failedRun.status) !== AgentRunStatus.FAILED) {
+        this.logger.log(
+          `${this.logContext} skipped stale redelivery failure effects`,
+          {
+            organizationId: data.organizationId,
+            runId: data.runId,
+            status: failedRun.status,
+            threadId: data.threadId,
+          },
+        );
+        return;
+      }
       await this.agentStreamPublisherService.publishError({
         error: 'Agent generation stopped safely. Please retry.',
         runId: data.runId,
@@ -459,11 +503,23 @@ export class AgentRunProcessor extends WorkerHost {
       if (isLastAttempt) {
         const persistedError =
           'Agent generation could not be completed after durable retries.';
-        await this.agentRunsService.fail(
+        const failedRun = await this.agentRunsService.fail(
           data.runId,
           data.organizationId,
           persistedError,
         );
+        if (failedRun && String(failedRun.status) !== AgentRunStatus.FAILED) {
+          this.logger.log(
+            `${this.logContext} skipped stale chat failure effects`,
+            {
+              organizationId: data.organizationId,
+              runId: data.runId,
+              status: failedRun.status,
+              threadId: data.threadId,
+            },
+          );
+          return;
+        }
         await this.agentStreamPublisherService.publishError({
           error: 'Agent generation could not be completed. Please retry.',
           runId: data.runId,
