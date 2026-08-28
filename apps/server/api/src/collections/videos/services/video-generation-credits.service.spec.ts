@@ -1,6 +1,7 @@
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ByokProvider, ModelProvider } from '@genfeedai/enums';
+import type { IReserveCreditsInput } from '@genfeedai/interfaces/billing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -8,6 +9,7 @@ describe('VideoGenerationCreditsService', () => {
   const creditsUtilsService = {
     checkOrganizationCreditsAvailable: vi.fn(),
     getOrganizationCreditsBalance: vi.fn(),
+    reserveCredits: vi.fn(),
   };
   const modelsService = {
     findOne: vi.fn(),
@@ -26,6 +28,14 @@ describe('VideoGenerationCreditsService', () => {
     byokService.isByokBillingInGoodStanding.mockResolvedValue(true);
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       true,
+    );
+    creditsUtilsService.reserveCredits.mockImplementation(
+      (input: IReserveCreditsInput) =>
+        Promise.resolve({
+          amount: input.amount,
+          id: 'reservation-1',
+          status: 'RESERVED',
+        }),
     );
     service = new VideoGenerationCreditsService(
       creditsUtilsService as never,
@@ -96,6 +106,34 @@ describe('VideoGenerationCreditsService', () => {
     });
   });
 
+  it('reserves resolved generation credits before provider dispatch', async () => {
+    const request = {
+      body: { sourceActionId: 'video-action-1' },
+      creditsConfig: { deferred: true },
+      user: { userId: 'user-1' },
+    };
+
+    await service.ensureDeferredCredits(
+      { duration: 5 } as never,
+      'kling/model',
+      'org-1',
+      request as never,
+    );
+
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith({
+      actorUserId: 'user-1',
+      amount: 10,
+      expiresAt: expect.any(Date),
+      idempotencyKey: 'generation:video-action-1',
+      organizationId: 'org-1',
+      workloadId: 'video-action-1',
+      workloadType: 'generation',
+    });
+    expect(request.creditsConfig).toMatchObject({
+      reservationId: 'reservation-1',
+    });
+  });
+
   it('adds only the stitch cost for a fabricated extension', async () => {
     const request = {
       creditsConfig: { amount: 10, modelKey: 'google/veo-3.1' },
@@ -113,6 +151,27 @@ describe('VideoGenerationCreditsService', () => {
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).toHaveBeenCalledWith('org-1', 11);
+  });
+
+  it('reserves the final fabricated extension amount including stitch cost', async () => {
+    const request = {
+      body: { sourceActionId: 'extension-action-1' },
+      creditsConfig: { deferred: true },
+      user: { userId: 'user-1' },
+    };
+
+    await service.ensureExtensionCredits(
+      { duration: 8 },
+      'google/veo-3.1',
+      'org-1',
+      request as never,
+      'fabricated',
+    );
+
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledOnce();
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 11 }),
+    );
   });
 
   it('does not add a stitch cost to native extension', async () => {

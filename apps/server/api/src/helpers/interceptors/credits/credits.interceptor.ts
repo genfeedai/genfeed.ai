@@ -1,4 +1,3 @@
-import { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ActivitySource } from '@genfeedai/enums';
 import type { CreditsConfig } from '@genfeedai/interfaces';
@@ -9,18 +8,22 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { mergeMap, tap } from 'rxjs/operators';
+import { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { from, Observable, throwError } from 'rxjs';
+import { catchError, mergeMap } from 'rxjs/operators';
 
 type DeferredCreditsConfig = CreditsConfig & {
   deferred?: boolean;
   maxOverdraftCredits?: number;
+  reservationId?: string;
 };
 
 @Injectable()
 export class CreditsInterceptor implements NestInterceptor {
   constructor(
     private creditDeductionQueueService: CreditDeductionQueueService,
+    private creditsUtilsService: CreditsUtilsService,
     private loggerService: LoggerService,
   ) {}
 
@@ -41,18 +44,6 @@ export class CreditsInterceptor implements NestInterceptor {
     const identity: AuthenticatedUser = user;
 
     return next.handle().pipe(
-      tap({
-        error: () => {
-          const currentCreditsConfig: DeferredCreditsConfig | undefined =
-            request.creditsConfig;
-
-          // Don't deduct credits if the operation failed
-          this.loggerService.debug('Operation failed, credits not deducted', {
-            amount: currentCreditsConfig?.amount,
-            organizationId: identity.organizationId,
-          });
-        },
-      }),
       mergeMap(async (response: unknown) => {
         const currentCreditsConfig: DeferredCreditsConfig | undefined =
           request.creditsConfig;
@@ -63,6 +54,15 @@ export class CreditsInterceptor implements NestInterceptor {
           currentCreditsConfig.deferred === true ||
           (currentCreditsConfig.amount ?? 0) <= 0
         ) {
+          if (
+            currentCreditsConfig?.reservationId &&
+            currentCreditsConfig.deferred !== true
+          ) {
+            await this.releaseReservation(
+              currentCreditsConfig.reservationId,
+              identity.organizationId,
+            );
+          }
           this.loggerService.debug(
             'Credits deduction skipped: no finalized credits config',
             {
@@ -81,12 +81,15 @@ export class CreditsInterceptor implements NestInterceptor {
             type: 'record-byok-usage',
           });
         } else {
-          const sourceActionId =
-            typeof request.body?.sourceActionId === 'string'
-              ? request.body.sourceActionId.trim()
-              : undefined;
+          const sourceActionId = this.readSourceActionId(request.body);
           const settlementAssetId = this.readResponseAssetId(response);
           if (sourceActionId && !settlementAssetId) {
+            if (currentCreditsConfig.reservationId) {
+              await this.releaseReservation(
+                currentCreditsConfig.reservationId,
+                identity.organizationId,
+              );
+            }
             this.loggerService.warn(
               'Confirmed media returned no persisted asset; credits not queued',
               {
@@ -111,6 +114,9 @@ export class CreditsInterceptor implements NestInterceptor {
                   settlementAssetId,
                 }
               : {}),
+            ...(currentCreditsConfig.reservationId
+              ? { reservationId: currentCreditsConfig.reservationId }
+              : {}),
             organizationId: identity.organizationId,
             source: currentCreditsConfig.source || ActivitySource.SCRIPT,
             type: 'deduct-credits',
@@ -126,6 +132,14 @@ export class CreditsInterceptor implements NestInterceptor {
         });
         return response;
       }),
+      catchError((error: unknown) =>
+        from(
+          this.releaseFailedReservation(
+            request.creditsConfig,
+            identity.organizationId,
+          ),
+        ).pipe(mergeMap(() => throwError(() => error))),
+      ),
     );
   }
 
@@ -139,5 +153,46 @@ export class CreditsInterceptor implements NestInterceptor {
     }
     const id = (data as { id?: unknown }).id;
     return typeof id === 'string' && id.trim() ? id.trim() : undefined;
+  }
+
+  private readSourceActionId(body: unknown): string | undefined {
+    if (!body || typeof body !== 'object') return undefined;
+    const bodyRecord = body as Record<string, unknown>;
+    const data = bodyRecord.data as Record<string, unknown> | undefined;
+    const attributes =
+      (data?.attributes as Record<string, unknown> | undefined) ??
+      (bodyRecord.attributes as Record<string, unknown> | undefined);
+    const raw = bodyRecord.sourceActionId ?? attributes?.sourceActionId;
+    return typeof raw === 'string' && raw.trim() ? raw.trim() : undefined;
+  }
+
+  private async releaseFailedReservation(
+    config: DeferredCreditsConfig | undefined,
+    organizationId: string,
+  ): Promise<void> {
+    this.loggerService.debug('Operation failed, credits not deducted', {
+      amount: config?.amount,
+      organizationId,
+    });
+    if (config?.reservationId) {
+      await this.releaseReservation(config.reservationId, organizationId);
+    }
+  }
+
+  private async releaseReservation(
+    reservationId: string,
+    organizationId: string,
+  ): Promise<void> {
+    try {
+      await this.creditsUtilsService.releaseReservation({
+        organizationId,
+        reservationId,
+      });
+    } catch (error: unknown) {
+      this.loggerService.error('Credit reservation release failed', error, {
+        organizationId,
+        reservationId,
+      });
+    }
   }
 }

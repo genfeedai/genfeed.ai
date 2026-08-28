@@ -1,12 +1,12 @@
+import { BATCH_GENERATION_QUEUE } from '@genfeedai/queue-contracts';
+import { LoggerService } from '@libs/logger/logger.service';
+import { getQueueToken } from '@nestjs/bullmq';
+import { Test, type TestingModule } from '@nestjs/testing';
 import {
   BatchGenerationQueueService,
   batchGenerationJobId,
 } from '@server/queues/batch-generation/batch-generation-queue.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BATCH_GENERATION_QUEUE } from '@genfeedai/queue-contracts';
-import { LoggerService } from '@libs/logger/logger.service';
-import { getQueueToken } from '@nestjs/bullmq';
-import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const JOB = { batchId: 'batch-1', organizationId: 'org-1', userId: 'user-1' };
@@ -96,6 +96,48 @@ describe('BatchGenerationQueueService', () => {
     };
     expect(stamped.queuedAt).toEqual(expect.any(String));
     expect(stamped.totalCount).toBe(2);
+  });
+
+  it('leaves a durable recovery claim when Redis rejects the hand-off', async () => {
+    queue.add.mockRejectedValue(new Error('redis unavailable'));
+
+    await expect(service.queueBatch(JOB)).resolves.toBe(
+      'batch-generation-batch-1',
+    );
+
+    expect(batchDelegate.updateMany).toHaveBeenCalledOnce();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('deferred to stranded-batch recovery'),
+      expect.objectContaining({ batchId: 'batch-1' }),
+    );
+  });
+
+  it('leaves a durable recovery claim when queue ownership is ambiguous', async () => {
+    queue.getJob.mockRejectedValue(new Error('redis unavailable'));
+
+    await expect(service.queueBatch(JOB)).resolves.toBe(
+      'batch-generation-batch-1',
+    );
+
+    expect(batchDelegate.updateMany).toHaveBeenCalledOnce();
+    expect(queue.add).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('lookup deferred to stranded-batch recovery'),
+      expect.objectContaining({ batchId: 'batch-1' }),
+    );
+  });
+
+  it('fails before queue ownership when the durable claim cannot be recorded', async () => {
+    batchDelegate.updateMany.mockRejectedValue(
+      new Error('database unavailable'),
+    );
+
+    await expect(service.queueBatch(JOB)).rejects.toThrow(
+      'database unavailable',
+    );
+
+    expect(queue.getJob).toHaveBeenCalledWith('batch-generation-batch-1');
+    expect(queue.add).not.toHaveBeenCalled();
   });
 
   it('does not fork a second run while a job is still in flight', async () => {

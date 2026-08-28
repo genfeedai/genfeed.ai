@@ -395,6 +395,8 @@ describe('AgentToolExecutorService', () => {
         credits: [],
         totalBalance: 0,
       }),
+      releaseReservation: vi.fn().mockResolvedValue(undefined),
+      reserveCredits: vi.fn().mockResolvedValue({ id: 'reservation-1' }),
     };
     const batchGenerationService = {
       approveItems: vi.fn(),
@@ -406,6 +408,10 @@ describe('AgentToolExecutorService', () => {
       getBatch: vi.fn(),
       getReviewInboxSummary: vi.fn(),
       processBatch: vi.fn().mockResolvedValue(undefined),
+    };
+    const batchCreditsService = {
+      recordUpfrontCharge: vi.fn().mockResolvedValue(true),
+      settleBatchCredits: vi.fn().mockResolvedValue({ settledCredits: 0 }),
     };
     const streamPublisher = {
       publishDone: vi.fn().mockResolvedValue(undefined),
@@ -962,7 +968,7 @@ describe('AgentToolExecutorService', () => {
         credentialsService as never,
         streamPublisher as never,
         creditsUtilsService as never,
-        undefined,
+        batchCreditsService as never,
         // Real, not mocked: the async batch path only streams into the thread
         // when this builder hands back callbacks, so stubbing it would assert
         // nothing about whether progress actually reaches the user.

@@ -1,6 +1,9 @@
 import { VideosExtendController } from '@api/collections/videos/controllers/transformations/extend/videos-extend.controller';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
+import {
+  CREDITS_DEFER_MODEL_RESOLUTION_KEY,
+  CREDITS_KEY,
+} from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -131,6 +134,9 @@ describe('VideosExtendController', () => {
       description: 'Video extension',
       source: ActivitySource.VIDEO_GENERATION,
     });
+    expect(
+      Reflect.getMetadata(CREDITS_DEFER_MODEL_RESOLUTION_KEY, handler),
+    ).toBe(true);
     expect(Reflect.getMetadata('__guards__', handler)).toEqual([
       SubscriptionGuard,
       CreditsGuard,

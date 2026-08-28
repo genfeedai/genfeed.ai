@@ -15,10 +15,11 @@ describe('CreditReservationService', () => {
       findFirst: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     creditTransaction: { updateMany: vi.fn() },
   };
-  const logger = { log: vi.fn() };
+  const logger = { error: vi.fn(), log: vi.fn() };
   const creditBalanceService = {
     applyDelta: vi.fn(),
     getOrCreateBalance: vi.fn(),
@@ -44,7 +45,21 @@ describe('CreditReservationService', () => {
   );
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    prisma.creditReservation.create.mockReset();
+    prisma.creditReservation.findFirst.mockReset();
+    prisma.creditReservation.findMany.mockReset();
+    prisma.creditReservation.update.mockReset();
+    prisma.creditReservation.updateMany
+      .mockReset()
+      .mockResolvedValue({ count: 1 });
+    prisma.creditTransaction.updateMany.mockReset();
+    logger.error.mockReset();
+    logger.log.mockReset();
+    creditBalanceService.applyDelta.mockReset();
+    creditBalanceService.getOrCreateBalance.mockReset();
+    creditBalanceService.toSnapshot.mockReset();
+    creditTransactionsService.createTransactionEntry.mockReset();
+    transactionUtil.runInTransaction.mockClear();
     creditBalanceService.applyDelta.mockResolvedValue({
       available: 80,
       billingAccountId: 'ba_1',
@@ -54,6 +69,10 @@ describe('CreditReservationService', () => {
       settled: 100,
       version: 2,
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('is idempotent for an existing reservation key', async () => {
@@ -112,6 +131,91 @@ describe('CreditReservationService', () => {
       }),
     ).rejects.toBeInstanceOf(BusinessLogicException);
     expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+  });
+
+  it('moves the wallet only after atomically claiming a reserved settlement', async () => {
+    prisma.creditReservation.findFirst.mockResolvedValue({
+      amount: 20,
+      billingAccountId: 'ba_1',
+      id: 'res_1',
+      organizationId: 'org_1',
+      status: CreditReservationStatus.RESERVED,
+    });
+
+    await service.settle({
+      actualAmount: 15,
+      actorUserId: 'user_1',
+      description: 'generation complete',
+      organizationId: 'org_1',
+      reservationId: 'res_1',
+    });
+
+    expect(prisma.creditReservation.updateMany).toHaveBeenCalledWith({
+      data: {
+        settledAmount: 15,
+        status: CreditReservationStatus.SETTLED,
+      },
+      where: {
+        id: 'res_1',
+        isDeleted: false,
+        organizationId: 'org_1',
+        status: CreditReservationStatus.RESERVED,
+      },
+    });
+    expect(creditBalanceService.applyDelta).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats a settlement claim lost to a concurrent caller as an idempotent replay', async () => {
+    prisma.creditReservation.findFirst
+      .mockResolvedValueOnce({
+        amount: 20,
+        billingAccountId: 'ba_1',
+        id: 'res_1',
+        organizationId: 'org_1',
+        status: CreditReservationStatus.RESERVED,
+      })
+      .mockResolvedValueOnce({
+        amount: 20,
+        billingAccountId: 'ba_1',
+        id: 'res_1',
+        organizationId: 'org_1',
+        settledAmount: 15,
+        status: CreditReservationStatus.SETTLED,
+      });
+    prisma.creditReservation.updateMany.mockResolvedValueOnce({ count: 0 });
+    creditBalanceService.getOrCreateBalance.mockResolvedValue({
+      balance: 85,
+      billingAccountId: 'ba_1',
+      heldAmount: 0,
+      id: 'bal_1',
+      isDeleted: false,
+      organizationId: 'org_1',
+      version: 3,
+    });
+    creditBalanceService.toSnapshot.mockReturnValue({
+      available: 85,
+      billingAccountId: 'ba_1',
+      held: 0,
+      id: 'bal_1',
+      organizationId: 'org_1',
+      settled: 85,
+      version: 3,
+    });
+
+    await expect(
+      service.settle({
+        actualAmount: 15,
+        actorUserId: 'user_1',
+        description: 'generation complete',
+        organizationId: 'org_1',
+        reservationId: 'res_1',
+      }),
+    ).resolves.toMatchObject({ settled: 85 });
+
+    expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+    expect(
+      creditTransactionsService.createTransactionEntry,
+    ).not.toHaveBeenCalled();
   });
 
   it.each([-1, Number.NaN, Number.POSITIVE_INFINITY])(
@@ -179,6 +283,26 @@ describe('CreditReservationService', () => {
       'org_1',
       { billingAccountId: 'ba_1', heldDelta: -20 },
       txClient,
+    );
+  });
+
+  it('continues expiring later reservations when one tenant fails', async () => {
+    prisma.creditReservation.findMany.mockResolvedValue([
+      { id: 'res_1', organizationId: 'org_1' },
+      { id: 'res_2', organizationId: 'org_2' },
+    ]);
+    const release = vi
+      .spyOn(service, 'release')
+      .mockRejectedValueOnce(new Error('wallet unavailable'))
+      .mockResolvedValueOnce({} as never);
+
+    await expect(service.expireDue()).resolves.toBe(1);
+
+    expect(release).toHaveBeenCalledTimes(2);
+    expect(logger.error).toHaveBeenCalledWith(
+      'Credit reservation expiry failed',
+      expect.any(Error),
+      { organizationId: 'org_1', reservationId: 'res_1' },
     );
   });
 });

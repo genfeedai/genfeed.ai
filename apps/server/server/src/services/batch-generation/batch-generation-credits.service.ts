@@ -1,11 +1,3 @@
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import {
-  type BatchConfig,
-  type BatchCreditsLedger,
-  resolveBatchItems,
-} from '@server/services/batch-generation/batch-generation.types';
-import { batchItemRowsReadArgs } from '@server/services/batch-generation/batch-item-rows';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   type BatchPricingOptions,
   reconcileBatchGenerationCredits,
@@ -14,8 +6,20 @@ import { ActivitySource, BatchItemStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Optional,
+} from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import {
+  type BatchConfig,
+  type BatchCreditsLedger,
+  resolveBatchItems,
+} from '@server/services/batch-generation/batch-generation.types';
+import { batchItemRowsReadArgs } from '@server/services/batch-generation/batch-item-rows';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 /** Refunded credits expire a year out, matching other refund paths. */
 const REFUND_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
@@ -56,28 +60,31 @@ export class BatchGenerationCreditsService {
   ) {}
 
   /**
-   * Record credits the caller has already deducted before the run starts, so
-   * settlement bills the delta rather than the full amount a second time.
+   * Pin the preflight amount and pricing before work starts. New callers also
+   * persist the reservation identity; legacy in-flight batches retain the old
+   * up-front-charge settlement behavior until they finish.
    */
   async recordUpfrontCharge(params: {
     batchId: string;
     credits: number;
     organizationId: string;
     pricingOptions?: BatchPricingOptions;
-  }): Promise<void> {
+    reservationId?: string;
+  }): Promise<boolean> {
     const batch = await this.prisma.batch.findFirst({
       select: { config: true, updatedAt: true },
       where: scopedWhere(params.organizationId, { id: params.batchId }),
     });
 
     if (!batch) {
-      return;
+      return false;
     }
 
     const config = (batch.config ?? {}) as BatchConfig;
     const ledger: BatchCreditsLedger = {
       ...(config.credits ?? {}),
       chargedCredits: (config.credits?.chargedCredits ?? 0) + params.credits,
+      ...(params.reservationId ? { reservationId: params.reservationId } : {}),
     };
 
     // Name the shape before the cast. An inline literal widens the optional
@@ -104,7 +111,9 @@ export class BatchGenerationCreditsService {
         `Batch ${params.batchId} up-front charge not recorded: row changed`,
         { batchId: params.batchId, credits: params.credits },
       );
+      return false;
     }
+    return true;
   }
 
   /**
@@ -143,6 +152,15 @@ export class BatchGenerationCreditsService {
       const config = (batch.config ?? {}) as BatchConfig;
       const alreadyCharged = Math.max(0, config.credits?.chargedCredits ?? 0);
 
+      if (config.credits?.reservationSettledAt) {
+        return {
+          additionalCredits: 0,
+          isAlreadySettled: true,
+          refundCredits: 0,
+          settledCredits: alreadyCharged,
+        };
+      }
+
       // Bill completed drafts only, at the rates captured when the batch was
       // created — media-aware, so an item that gained a mediaUrl costs more.
       const billableItems = resolveBatchItems(batch)
@@ -159,6 +177,83 @@ export class BatchGenerationCreditsService {
           billableItems,
           config.pricing ?? {},
         );
+
+      if (config.credits?.reservationId) {
+        if (!this.creditsUtilsService) {
+          throw new InternalServerErrorException(
+            'Credit reservation settlement service unavailable',
+          );
+        }
+
+        if (settledCredits > 0) {
+          // A reservation may only settle up to its held amount. Batch pricing
+          // starts caption-only, so media attached during processing can make
+          // the final cost higher. Settle the hold itself, then collect the
+          // reviewed overage through the existing idempotent shortfall path.
+          const reservationSettlement =
+            additionalCredits > 0 ? alreadyCharged : settledCredits;
+          await this.creditsUtilsService.settleReservation({
+            actualAmount: reservationSettlement,
+            actorUserId: params.userId,
+            description: `Batch generation ${params.batchId} settlement`,
+            organizationId: params.organizationId,
+            reservationId: config.credits.reservationId,
+            source: ActivitySource.SCRIPT,
+          });
+        } else {
+          await this.creditsUtilsService.releaseReservation({
+            organizationId: params.organizationId,
+            reservationId: config.credits.reservationId,
+          });
+        }
+
+        const reservationSettledAt = new Date().toISOString();
+        const settlementSeq = (config.credits.settlementSeq ?? 0) + 1;
+        const reservationLedger: BatchCreditsLedger = {
+          ...config.credits,
+          chargedCredits: settledCredits,
+          refundedCredits:
+            (config.credits.refundedCredits ?? 0) + refundCredits,
+          reservationSettledAt,
+          settledAt: reservationSettledAt,
+          settlementSeq,
+        };
+        const reservationConfig: BatchConfig = {
+          ...config,
+          credits: reservationLedger,
+        };
+        const claimed = await this.prisma.batch.updateMany({
+          data: {
+            config: reservationConfig as Prisma.InputJsonValue,
+          },
+          where: scopedWhere(params.organizationId, {
+            id: params.batchId,
+            updatedAt: batch.updatedAt,
+          }),
+        });
+
+        if (claimed.count !== 1) {
+          continue;
+        }
+
+        if (additionalCredits > 0) {
+          await this.moveSettlementCredits({
+            additionalCredits,
+            batchId: params.batchId,
+            organizationId: params.organizationId,
+            refundCredits: 0,
+            settlementSeq,
+            userId: params.userId,
+          });
+        }
+
+        return {
+          additionalCredits,
+          isAlreadySettled: false,
+          refundCredits,
+          settledCredits,
+        };
+      }
 
       const settlementSeq = (config.credits?.settlementSeq ?? 0) + 1;
       const ledger: BatchCreditsLedger = {

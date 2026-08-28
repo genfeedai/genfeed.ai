@@ -1089,38 +1089,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "creditReservation",
-      "file": "apps/server/server/src/collections/credits/services/credit-reservation.service.ts",
-      "fingerprint": "314d74918d370273de1c",
-      "method": "update",
-      "model": "CreditReservation",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "creditReservation",
-      "file": "apps/server/server/src/collections/credits/services/credit-reservation.service.ts",
-      "fingerprint": "e93f2f32215b57520442",
-      "method": "update",
-      "model": "CreditReservation",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "creditReservation",
-      "file": "apps/server/server/src/collections/credits/services/credit-reservation.service.ts",
-      "fingerprint": "6b4d2ecf9733cb965d12",
-      "method": "update",
-      "model": "CreditReservation",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "creditReservation",
-      "file": "apps/server/server/src/collections/credits/services/credit-reservation.service.ts",
-      "fingerprint": "9f3ce045a51e3c8da3d0",
-      "method": "update",
-      "model": "CreditReservation",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "creditTransaction",
       "file": "apps/server/server/src/collections/credits/services/credit-reservation.service.ts",
       "fingerprint": "2b5126a1b19958dca9d2",

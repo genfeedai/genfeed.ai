@@ -3221,7 +3221,7 @@
       "count": 2,
       "file": "apps/server/notifications/src/services/discord/discord-bot.service.spec.ts",
       "fingerprint": "f724cb270f1881193a0e",
-      "message": "Argument of type '(key: string) => string' is not assignable to parameter of type '(key: keyof IEnvConfig) => string | number | boolean | undefined'.   Types of parameters 'key' and 'key' are incompatible.     Type 'keyof IEnvConfig' is not assignable to type 'string'.       Type 'number' is not assignable to type 'string'.",
+      "message": "Argument of type '(key: string) => string' is not assignable to parameter of type '(key: keyof NotificationsEnvConfig) => string | number | boolean | undefined'.   Types of parameters 'key' and 'key' are incompatible.     Type 'keyof NotificationsEnvConfig' is not assignable to type 'string'.       Type 'number' is not assignable to type 'string'.",
       "workspace": "notifications"
     },
     {
