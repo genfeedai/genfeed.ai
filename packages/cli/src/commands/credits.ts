@@ -22,6 +22,14 @@ interface CreditsBuyOptions {
   open: boolean;
 }
 
+interface JsonOptions extends Record<string, unknown> {
+  json?: boolean;
+}
+
+function wantsJson(command: Command): boolean {
+  return Boolean(command.optsWithGlobals<JsonOptions>().json);
+}
+
 async function promptForCredits(): Promise<number> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     throw new GenfeedError(
@@ -78,10 +86,10 @@ export function createCreditsCommand(): Command {
     .command('packs')
     .description('List canonical credit packs and custom purchase bounds')
     .option('--json', 'Output as JSON')
-    .action((options) => {
+    .action((_options, command: Command) => {
       const result = readCreditPacks();
 
-      if (options.json) {
+      if (wantsJson(command)) {
         printJson(result);
         return;
       }
@@ -104,16 +112,17 @@ export function createCreditsCommand(): Command {
     .argument('[credits]', 'Whole credits to purchase', parseCreditQuantity)
     .option('--no-open', 'Print the Checkout URL without opening a browser')
     .option('--json', 'Output as JSON')
-    .action(async (credits: number | undefined, options: CreditsBuyOptions) => {
+    .action(async (credits: number | undefined, options: CreditsBuyOptions, command: Command) => {
       try {
         await requireAuth();
         const quantity = credits ?? (await promptForCredits());
-        const spinner = options.json ? undefined : ora('Creating secure Checkout...').start();
+        const json = wantsJson(command);
+        const spinner = json ? undefined : ora('Creating secure Checkout...').start();
         const checkout = await startCreditsCheckout(quantity);
         const opened = options.open ? await openExternalUrl(checkout.url) : false;
         spinner?.succeed(opened ? 'Checkout opened' : 'Checkout ready');
 
-        if (options.json) {
+        if (json) {
           printJson({ credits: quantity, opened, url: checkout.url });
           return;
         }
@@ -134,14 +143,15 @@ export function createCreditsCommand(): Command {
     .description('Show credit ledger history')
     .option('-l, --limit <n>', 'Maximum rows', parsePositiveInteger, 50)
     .option('--json', 'Output as JSON')
-    .action(async (options) => {
+    .action(async (options, command: Command) => {
       try {
         await requireAuth();
-        const spinner = options.json ? undefined : ora('Fetching credit history...').start();
+        const json = wantsJson(command);
+        const spinner = json ? undefined : ora('Fetching credit history...').start();
         const transactions = await readCreditHistory(options.limit);
         spinner?.stop();
 
-        if (options.json) {
+        if (json) {
           printJson(transactions);
           return;
         }
@@ -173,15 +183,16 @@ export function createCreditsCommand(): Command {
     .command('usage')
     .description('Show credit usage')
     .option('--json', 'Output as JSON')
-    .action(async (options) => {
+    .action(async (_options, command: Command) => {
       try {
         await requireAuth();
 
-        const spinner = options.json ? undefined : ora('Fetching credit usage...').start();
+        const json = wantsJson(command);
+        const spinner = json ? undefined : ora('Fetching credit usage...').start();
         const usage = await getCreditUsage();
         spinner?.stop();
 
-        if (options.json) {
+        if (json) {
           printJson(usage);
           return;
         }
@@ -215,15 +226,16 @@ export function createCreditsCommand(): Command {
     .command('summary')
     .description('Show BYOK billing summary')
     .option('--json', 'Output as JSON')
-    .action(async (options) => {
+    .action(async (_options, command: Command) => {
       try {
         await requireAuth();
 
-        const spinner = options.json ? undefined : ora('Fetching billing summary...').start();
+        const json = wantsJson(command);
+        const spinner = json ? undefined : ora('Fetching billing summary...').start();
         const summary = await getCreditSummary();
         spinner?.stop();
 
-        if (options.json) {
+        if (json) {
           printJson(summary);
           return;
         }
