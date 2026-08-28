@@ -10,8 +10,8 @@ import {
 /**
  * Matches the desktop client's own push slice — it never sends more than 500
  * threads per request (`thread-sync.service.ts` `pushCandidates.slice(0, 500)`).
- * Each thread costs a findUnique + upsert + createMany in
- * `desktop-sync.service.ts` `pushThreads`.
+ * The server prefetches existing thread versions once; each newer thread then
+ * costs an upsert and optional message createMany.
  */
 const MAX_THREADS = 500;
 

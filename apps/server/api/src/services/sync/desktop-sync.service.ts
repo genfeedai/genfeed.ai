@@ -1,7 +1,3 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/enums';
 import { AssetCategory, AssetParent } from '@genfeedai/prisma';
@@ -11,7 +7,11 @@ import {
   PayloadTooLargeException,
   UnsupportedMediaTypeException,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
 import {
   advanceCursorPosition,
   buildCursorWhere,
@@ -47,6 +47,13 @@ type DesktopSyncOpPushResult = {
   id: string;
   reason?: string;
   status: 'accepted' | 'rejected';
+};
+
+type DesktopThreadVersionRow = {
+  id: string;
+  organizationId: string | null;
+  updatedAt: Date;
+  userId: string | null;
 };
 
 const MAX_DESKTOP_ASSET_BYTES = 500 * 1024 * 1024; // 500 MB
@@ -158,6 +165,29 @@ export class DesktopSyncService {
     return `${organizationId}/${asset.sha256}/${safeName}`;
   }
 
+  private async loadDesktopThreadVersions(
+    threadIds: string[],
+  ): Promise<Map<string, DesktopThreadVersionRow> | null> {
+    if (threadIds.length === 0) {
+      return new Map();
+    }
+
+    try {
+      const existingThreads = await this.prisma.desktopThread.findMany({
+        select: {
+          id: true,
+          organizationId: true,
+          updatedAt: true,
+          userId: true,
+        },
+        where: { id: { in: threadIds } },
+      });
+      return new Map(existingThreads.map((thread) => [thread.id, thread]));
+    } catch {
+      return null;
+    }
+  }
+
   private normalizeLimit(
     value: number | undefined,
     defaultLimit: number,
@@ -267,13 +297,17 @@ export class DesktopSyncService {
     const { organizationId, userId } = this.getCloudContext(user);
     let accepted = 0;
     let rejected = 0;
+    const threadIds = [...new Set(dto.threads.map((thread) => thread.id))];
+    const existingThreadsById = await this.loadDesktopThreadVersions(threadIds);
 
     for (const thread of dto.threads) {
       try {
-        const existing = await this.prisma.desktopThread.findUnique({
-          select: { organizationId: true, updatedAt: true, userId: true },
-          where: { id: thread.id },
-        });
+        const existing = existingThreadsById
+          ? existingThreadsById.get(thread.id)
+          : await this.prisma.desktopThread.findUnique({
+              select: { organizationId: true, updatedAt: true, userId: true },
+              where: { id: thread.id },
+            });
 
         if (
           existing &&
@@ -285,29 +319,37 @@ export class DesktopSyncService {
         }
 
         if (!existing || thread.updatedAt > existing.updatedAt.toISOString()) {
+          const createdAt = new Date(thread.createdAt);
+          const updatedAt = new Date(thread.updatedAt);
           await this.prisma.desktopThread.upsert({
             create: {
-              createdAt: new Date(thread.createdAt),
+              createdAt,
               id: thread.id,
               localUserId: dto.localUserId,
               organizationId,
               status: thread.status ?? 'idle',
               title: thread.title,
-              updatedAt: new Date(thread.updatedAt),
+              updatedAt,
               userId,
               workspaceId: thread.workspaceId,
             },
             update: {
-              createdAt: new Date(thread.createdAt),
+              createdAt,
               localUserId: dto.localUserId,
               organizationId,
               status: thread.status ?? 'idle',
               title: thread.title,
-              updatedAt: new Date(thread.updatedAt),
+              updatedAt,
               userId,
               workspaceId: thread.workspaceId,
             },
             where: { id: thread.id },
+          });
+          existingThreadsById?.set(thread.id, {
+            id: thread.id,
+            organizationId,
+            updatedAt,
+            userId,
           });
 
           if (thread.messages.length > 0) {
@@ -733,7 +775,7 @@ export class DesktopSyncService {
   @LogMethod()
   async confirmAssetUpload(user: User, id: string) {
     const { organizationId, userId } = this.getCloudContext(user);
-    const asset = await findOrThrow(
+    await findOrThrow(
       this.prisma.asset,
       {
         where: {
