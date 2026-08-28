@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { PGlite, Transaction } from '@electric-sql/pglite';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { runDesktopPrismaMigrations } from '../src/migrations';
 
 const MIGRATIONS_DIRECTORY = path.resolve(
@@ -74,6 +74,10 @@ function buildFakePGlite(appliedMigrationNames: string[]): FakePGlite {
 describe('runDesktopPrismaMigrations', () => {
   let migrationNames: string[] = [];
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   beforeEach(async () => {
     const entries = await fs.readdir(MIGRATIONS_DIRECTORY, {
       withFileTypes: true,
@@ -120,5 +124,17 @@ describe('runDesktopPrismaMigrations', () => {
 
     expect(fake.transactionCount).toBe(0);
     expect(fake.inserts).toEqual([]);
+  });
+
+  it('propagates unexpected migration directory errors', async () => {
+    const fake = buildFakePGlite([]);
+    const permissionError = Object.assign(new Error('Permission denied'), {
+      code: 'EACCES',
+    });
+    vi.spyOn(fs, 'stat').mockRejectedValue(permissionError);
+
+    await expect(runDesktopPrismaMigrations(fake.instance)).rejects.toBe(
+      permissionError,
+    );
   });
 });
