@@ -1,3 +1,6 @@
+import { toRouterPriority } from '@genfeedai/enums';
+import { AgentToolName, type AgentToolResult } from '@genfeedai/interfaces';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { runIdempotent } from '@server/helpers/utils/idempotency/idempotency.util';
 import type { ThreadUiActionExecutionParams } from '@server/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 import { throwFailedUiActionResult } from '@server/services/agent-orchestrator/agent-orchestrator-ui-action-error';
@@ -9,9 +12,6 @@ import type {
 } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentToolExecutorService } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { CacheService } from '@server/services/cache/cache.service';
-import { toRouterPriority } from '@genfeedai/enums';
-import { AgentToolName, type AgentToolResult } from '@genfeedai/interfaces';
-import { BadRequestException, Injectable } from '@nestjs/common';
 
 type ConfirmedToolAction =
   | 'confirm_agent_transfer'
@@ -310,6 +310,18 @@ export class AgentOrchestratorUiActionConfirmedToolService {
       typeof params.payload?.model === 'string' && params.payload.model.trim()
         ? params.payload.model.trim()
         : undefined;
+    const references = Array.isArray(params.payload?.references)
+      ? params.payload.references.filter(
+          (value): value is string =>
+            typeof value === 'string' && value.trim().length > 0,
+        )
+      : undefined;
+    const videoReferences = Array.isArray(params.payload?.videoReferences)
+      ? params.payload.videoReferences.filter(
+          (value): value is string =>
+            typeof value === 'string' && value.trim().length > 0,
+        )
+      : undefined;
     return {
       generationType,
       model,
@@ -331,8 +343,18 @@ export class AgentOrchestratorUiActionConfirmedToolService {
             ? params.payload.aspectRatio
             : undefined,
         duration,
+        endFrame:
+          typeof params.payload?.endFrame === 'string'
+            ? params.payload.endFrame
+            : undefined,
         outputs,
         prompt,
+        references,
+        resolution:
+          typeof params.payload?.resolution === 'string'
+            ? params.payload.resolution
+            : undefined,
+        videoReferences,
       },
     };
   }

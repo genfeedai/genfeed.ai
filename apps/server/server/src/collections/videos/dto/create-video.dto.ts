@@ -261,11 +261,23 @@ export class CreateVideoDto extends CreateIngredientDto {
   @ArrayMaxSize(10)
   @IsEntityId({ each: true })
   @ApiProperty({
-    description: 'Source ingredient IDs used as video references',
+    description: 'Source image ingredient IDs used as still references',
     required: false,
     type: [String],
   })
   readonly references?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsEntityId({ each: true })
+  @ApiProperty({
+    description:
+      'Stored video ingredient IDs used as native video references by supported models',
+    required: false,
+    type: [String],
+  })
+  readonly videoReferences?: string[];
 
   @IsString()
   @IsOptional()
@@ -341,13 +353,13 @@ export class CreateVideoDto extends CreateIngredientDto {
 
   @IsOptional()
   @IsNumber()
-  @Min(4)
+  @Min(1)
   @Max(60)
   @ApiProperty({
     default: 10,
     description: 'Duration in seconds',
     maximum: 60,
-    minimum: 4,
+    minimum: 1,
     required: false,
   })
   readonly duration?: number;
@@ -355,8 +367,8 @@ export class CreateVideoDto extends CreateIngredientDto {
   @IsString()
   @IsOptional()
   @ApiProperty({
-    description: 'Resolution for video generation',
-    enum: ['720p', '1080p'],
+    description:
+      'Model-specific video resolution from the selected model capability list',
     required: false,
   })
   readonly resolution?: string;

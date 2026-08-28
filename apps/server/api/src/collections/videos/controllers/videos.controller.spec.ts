@@ -1076,8 +1076,8 @@ describe('VideosController', () => {
       expect(httpError.getStatus()).toBe(HttpStatus.BAD_REQUEST);
       expect(httpError.getResponse()).toEqual(
         expect.objectContaining({
-          detail: expect.stringContaining('first_frame_image'),
-          title: 'Validation failed',
+          detail: expect.stringContaining('first-frame reference image'),
+          title: 'Generation brief compilation failed',
         }),
       );
       expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
@@ -1126,10 +1126,11 @@ describe('VideosController', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('doubles the authorized amount for high resolution', async () => {
+    it('applies the selected model resolution band before authorization', async () => {
       const dto: CreateVideoDto = {
         ...baseCreateDto,
-        resolution: 'high',
+        model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+        resolution: 'pro',
       };
 
       await controller.create(deferredRequest(), dto, mockUser);
@@ -1139,7 +1140,7 @@ describe('VideosController', () => {
       ).toHaveBeenCalledTimes(1);
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).toHaveBeenCalledWith(mockOrgId.toString(), 20); // 10 * 2 for high resolution
+      ).toHaveBeenCalledWith(mockOrgId.toString(), 14);
       expect(
         creditsUtilsService.deductCreditsFromOrganization,
       ).not.toHaveBeenCalled();
@@ -1149,7 +1150,6 @@ describe('VideosController', () => {
       const dto: CreateVideoDto = {
         ...baseCreateDto,
         outputs: 3,
-        resolution: 'standard',
       };
 
       await controller.create(deferredRequest(), dto, mockUser);

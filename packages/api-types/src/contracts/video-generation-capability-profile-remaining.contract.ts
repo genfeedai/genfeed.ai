@@ -36,6 +36,7 @@ export const remainingVideoCapabilityProfileSchema = z
     id: z.string().trim().min(1).max(255),
     isBatchSupported: z.boolean(),
     maxOutputs: z.number().int().positive().max(8),
+    maxVideoReferences: z.number().int().nonnegative().max(10).optional(),
     mediaKind: z.literal('video'),
     modelKey: z.string().trim().min(1).max(255),
     negativePrompt: generationCapabilityNegativePromptSchema,
@@ -62,12 +63,14 @@ const REMAINING_VIDEO_ASPECT_RATIOS = [
 
 const FIRST_FRAME_NATIVE_FIELDS = new Set([
   'image',
+  'image_url',
   'input_reference',
   'start_image',
 ]);
 const LAST_FRAME_NATIVE_FIELDS = new Set([
   'end_image',
   'last_frame',
+  'last_frame_image',
   'last_image',
 ]);
 
@@ -82,7 +85,10 @@ export function deriveRemainingVideoReferenceRoles(
   if (nativeFields.some((field) => LAST_FRAME_NATIVE_FIELDS.has(field))) {
     roles.add('last_frame');
   }
-  if (nativeFields.includes('reference_images')) {
+  if (
+    nativeFields.includes('image_urls') ||
+    nativeFields.includes('reference_images')
+  ) {
     for (const role of [
       'subject',
       'character',
@@ -93,15 +99,24 @@ export function deriveRemainingVideoReferenceRoles(
       roles.add(role);
     }
   }
+  if (
+    nativeFields.includes('reference_video') ||
+    nativeFields.includes('reference_videos')
+  ) {
+    roles.add('reference_video');
+  }
   return generationReferenceRoleValues.filter((role) => roles.has(role));
 }
 
 export function buildRemainingVideoCapabilityProfile(input: {
+  aspectRatios?: readonly string[];
   audioSupported?: boolean;
   defaultAspectRatio?: string;
+  defaultResolution?: string;
   defaultSeconds?: number;
   id: string;
   maxReferences: number;
+  maxVideoReferences?: number;
   maxSeconds?: number;
   minSeconds?: number;
   modelKey: string;
@@ -113,10 +128,12 @@ export function buildRemainingVideoCapabilityProfile(input: {
   const maxReferences = input.maxReferences;
   const nativeFields = input.nativeFields ?? [];
   return remainingVideoCapabilityProfileSchema.parse({
-    aspectRatios: [...REMAINING_VIDEO_ASPECT_RATIOS],
+    aspectRatios: [...(input.aspectRatios ?? REMAINING_VIDEO_ASPECT_RATIOS)],
     audio: { supported: input.audioSupported === true },
     defaultAspectRatio: input.defaultAspectRatio ?? '16:9',
-    defaults: {},
+    defaults: input.defaultResolution
+      ? { resolution: input.defaultResolution }
+      : {},
     duration: {
       defaultSeconds: input.defaultSeconds ?? 5,
       maxSeconds: input.maxSeconds ?? 15,
@@ -129,6 +146,9 @@ export function buildRemainingVideoCapabilityProfile(input: {
     id: input.id,
     isBatchSupported: false,
     maxOutputs: 4,
+    ...(input.maxVideoReferences === undefined
+      ? {}
+      : { maxVideoReferences: input.maxVideoReferences }),
     mediaKind: 'video',
     modelKey: input.modelKey,
     negativePrompt: { supported: input.negativePromptSupported === true },
@@ -145,7 +165,7 @@ export function buildRemainingVideoCapabilityProfile(input: {
           ? deriveRemainingVideoReferenceRoles(nativeFields)
           : [],
     },
-    resolution: { supported: false },
+    resolution: { supported: input.defaultResolution !== undefined },
     seed: { supported: input.seedSupported !== false },
     textRendering: 'prompt_only',
     version: 1,

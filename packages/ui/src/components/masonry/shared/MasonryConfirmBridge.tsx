@@ -2,8 +2,22 @@
 
 import { IngredientCategory, MediaType } from '@genfeedai/enums';
 import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
+import type {
+  UpscaleConfirmData,
+  VideoUpscaleSelection,
+} from '@genfeedai/hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
+import type {
+  VideoExtendConfirmData,
+  VideoExtendSelection,
+} from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { ModalConfirmProps } from '@genfeedai/props/modals/modal.props';
+import VideoExtendConfirmControls, {
+  getDefaultVideoExtendSelection,
+} from '@ui/modals/ingredients/VideoExtendConfirmControls';
+import VideoUpscaleConfirmControls, {
+  getDefaultVideoUpscaleSelection,
+} from '@ui/modals/ingredients/VideoUpscaleConfirmControls';
 import ModalConfirm from '@ui/modals/system/confirm/ModalConfirm';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -13,9 +27,12 @@ export interface ConfirmData {
 }
 
 export interface MasonryConfirmBridgeProps {
-  upscaleConfirmData: ConfirmData | null;
-  executeUpscale: () => Promise<void>;
+  upscaleConfirmData: UpscaleConfirmData | null;
+  executeUpscale: (selection?: VideoUpscaleSelection) => Promise<void>;
   clearUpscaleConfirm: () => void;
+  extendConfirmData?: VideoExtendConfirmData | null;
+  executeExtend?: (selection: VideoExtendSelection) => Promise<void>;
+  clearExtendConfirm?: () => void;
   enhanceConfirmData?: ConfirmData | null;
   executeEnhance?: () => Promise<void>;
   clearEnhanceConfirm?: () => void;
@@ -29,6 +46,9 @@ export default function MasonryConfirmBridge({
   upscaleConfirmData,
   executeUpscale,
   clearUpscaleConfirm,
+  extendConfirmData,
+  executeExtend,
+  clearExtendConfirm,
   enhanceConfirmData,
   executeEnhance,
   clearEnhanceConfirm,
@@ -54,6 +74,14 @@ export default function MasonryConfirmBridge({
   const clearUpscaleConfirmRef = useRef(clearUpscaleConfirm);
   const executeEnhanceRef = useRef(executeEnhance);
   const clearEnhanceConfirmRef = useRef(clearEnhanceConfirm);
+  const videoUpscaleSelectionRef = useRef<VideoUpscaleSelection | undefined>(
+    undefined,
+  );
+  const videoExtendSelectionRef = useRef<VideoExtendSelection | undefined>(
+    undefined,
+  );
+  const executeExtendRef = useRef(executeExtend);
+  const clearExtendConfirmRef = useRef(clearExtendConfirm);
 
   useEffect(() => {
     executeUpscaleRef.current = executeUpscale;
@@ -70,6 +98,14 @@ export default function MasonryConfirmBridge({
   useEffect(() => {
     clearEnhanceConfirmRef.current = clearEnhanceConfirm;
   }, [clearEnhanceConfirm]);
+
+  useEffect(() => {
+    executeExtendRef.current = executeExtend;
+  }, [executeExtend]);
+
+  useEffect(() => {
+    clearExtendConfirmRef.current = clearExtendConfirm;
+  }, [clearExtendConfirm]);
 
   const closeConfirm = useCallback(() => {
     if (!confirmConfig) {
@@ -109,22 +145,68 @@ export default function MasonryConfirmBridge({
       upscaleConfirmData.ingredient?.category === IngredientCategory.VIDEO
         ? MediaType.VIDEO
         : MediaType.IMAGE;
-    const message = `Upscale ${category} with Topaz AI?\n\nThis will cost ${formatNumberWithCommas(cost)} credits.`;
+    const isVideo = category === MediaType.VIDEO;
+    const modelOptions = upscaleConfirmData.videoModelOptions ?? [];
+    videoUpscaleSelectionRef.current = isVideo
+      ? getDefaultVideoUpscaleSelection(modelOptions)
+      : undefined;
+    const message = isVideo
+      ? 'Choose the model, output resolution, and frame rate. The source video remains unchanged.'
+      : `Upscale ${category} with Topaz AI?\n\nThis will cost ${formatNumberWithCommas(cost)} credits.`;
 
     openConfirm({
       cancelLabel: 'Cancel',
       confirmLabel: 'Upscale',
       label: 'Confirm Upscale',
       message,
+      children:
+        isVideo && modelOptions.length > 0 ? (
+          <VideoUpscaleConfirmControls
+            modelOptions={modelOptions}
+            onChange={(selection) => {
+              videoUpscaleSelectionRef.current = selection;
+            }}
+          />
+        ) : undefined,
       onClose: () => {
         lastUpscaleDataRef.current = null;
         clearUpscaleConfirmRef.current();
       },
       onConfirm: async () => {
-        await executeUpscaleRef.current();
+        await executeUpscaleRef.current(videoUpscaleSelectionRef.current);
       },
     });
   }, [upscaleConfirmData, openConfirm]);
+
+  useEffect(() => {
+    if (!extendConfirmData || !executeExtend || !clearExtendConfirm) {
+      return;
+    }
+    const modelOptions = extendConfirmData.modelOptions;
+    videoExtendSelectionRef.current =
+      getDefaultVideoExtendSelection(modelOptions);
+    openConfirm({
+      cancelLabel: 'Cancel',
+      children: (
+        <VideoExtendConfirmControls
+          modelOptions={modelOptions}
+          onChange={(selection) => {
+            videoExtendSelectionRef.current = selection;
+          }}
+        />
+      ),
+      confirmLabel: 'Extend',
+      label: 'Extend Video',
+      message:
+        'The original stays unchanged. A generated continuation will be stitched into a new child video.',
+      onClose: () => clearExtendConfirmRef.current?.(),
+      onConfirm: async () => {
+        if (videoExtendSelectionRef.current) {
+          await executeExtendRef.current?.(videoExtendSelectionRef.current);
+        }
+      },
+    });
+  }, [clearExtendConfirm, executeExtend, extendConfirmData, openConfirm]);
 
   // Enhance confirmation (optional)
   useEffect(() => {

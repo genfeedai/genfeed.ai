@@ -9,12 +9,12 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 
 vi.mock('@server/collections/activities/services/activities.service', () => ({
   ActivitiesService: class {},
@@ -50,27 +50,32 @@ vi.mock(
   () => ({ FilesClientService: class {} }),
 );
 
+import { VideosUpscaleController } from '@api/collections/videos/controllers/transformations/upscale/videos-upscale.controller';
+import type { VideoEditDto } from '@api/collections/videos/dto/video-edit.dto';
+import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  ActivitySource,
+  IngredientCategory,
+  IngredientStatus,
+  TransformationCategory,
+} from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { ActivitiesService } from '@server/collections/activities/services/activities.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { ModelsService } from '@server/collections/models/services/models.service';
-import { VideosUpscaleController } from '@api/collections/videos/controllers/transformations/upscale/videos-upscale.controller';
-import type { VideoEditDto } from '@api/collections/videos/dto/video-edit.dto';
 import { VideosService } from '@server/collections/videos/services/videos.service';
-import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@server/services/router/router.service';
 import { FailedGenerationService } from '@server/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@server/shared/services/shared/shared.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ActivitySource, TransformationCategory } from '@genfeedai/enums';
-import { testId } from '@helpers/testing/test-id.helper';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
 const mockReq = {} as Request;
@@ -82,9 +87,10 @@ const videoUserId = testId('user');
 
 const mockVideo = {
   brandId: videoBrandId,
-  category: 'video',
+  category: IngredientCategory.VIDEO,
   id: videoId,
   organizationId: videoOrganizationId,
+  status: IngredientStatus.GENERATED,
   userId: videoUserId,
 };
 
@@ -127,7 +133,7 @@ describe('VideosUpscaleController', () => {
     routerService: {
       getDefaultModel: vi
         .fn()
-        .mockResolvedValue('replicate-topaz-video-upscale'),
+        .mockResolvedValue(MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE),
     },
     sharedService: {
       createMediaDocuments: vi.fn().mockResolvedValue({
@@ -219,6 +225,114 @@ describe('VideosUpscaleController', () => {
     );
     expect(result).toBeDefined();
     expect(result.id).toEqual(ingredientId);
+    expect(mockServices.promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+      MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+      expect.objectContaining({
+        target_fps: 60,
+        target_resolution: '4k',
+      }),
+    );
+    expect(mockServices.replicateService.runModel).toHaveBeenCalledWith(
+      MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+      expect.anything(),
+    );
+  });
+
+  it('dispatches the selected ByteDance upscale model and options', async () => {
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+
+    await controller.upscaleVideo(mockReq, mockUser, videoId, {
+      model: MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER,
+      targetFps: 60,
+      targetResolution: '2k',
+    });
+
+    expect(mockServices.promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+      MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER,
+      expect.objectContaining({
+        target_fps: 60,
+        target_resolution: '2k',
+      }),
+    );
+    expect(mockServices.replicateService.runModel).toHaveBeenCalledWith(
+      MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER,
+      expect.anything(),
+    );
+  });
+
+  it('rejects an unsupported target before creating a child', async () => {
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+
+    await expect(
+      controller.upscaleVideo(mockReq, mockUser, videoId, {
+        model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        targetResolution: '2k',
+      }),
+    ).rejects.toThrow('does not support target resolution');
+    expect(
+      mockServices.sharedService.createMediaDocuments,
+    ).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE, 120],
+    [MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER, 25],
+  ])(
+    'rejects target FPS outside the selected model schema (%s, %s)',
+    async (model, targetFps) => {
+      mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+
+      await expect(
+        controller.upscaleVideo(mockReq, mockUser, videoId, {
+          model,
+          targetFps,
+        }),
+      ).rejects.toThrow('does not support target FPS');
+      expect(
+        mockServices.sharedService.createMediaDocuments,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
+  it('scopes source lookup to active videos in the organization', async () => {
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+
+    await controller.upscaleVideo(mockReq, mockUser, videoId, {});
+
+    expect(mockServices.videosService.findOne).toHaveBeenCalledWith({
+      category: IngredientCategory.VIDEO,
+      id: videoId,
+      isDeleted: false,
+      organizationId: videoOrganizationId,
+    });
+  });
+
+  it('rejects a source that is not completed before creating an output', async () => {
+    mockServices.videosService.findOne.mockResolvedValue({
+      ...mockVideo,
+      status: IngredientStatus.PROCESSING,
+    });
+
+    await expect(
+      controller.upscaleVideo(mockReq, mockUser, videoId, {}),
+    ).rejects.toThrow('Only completed videos can be upscaled');
+    expect(
+      mockServices.sharedService.createMediaDocuments,
+    ).not.toHaveBeenCalled();
+    expect(mockServices.replicateService.runModel).not.toHaveBeenCalled();
+  });
+
+  it('accepts a validated keep as a completed upscale source', async () => {
+    mockServices.videosService.findOne.mockResolvedValue({
+      ...mockVideo,
+      status: IngredientStatus.VALIDATED,
+    });
+
+    await controller.upscaleVideo(mockReq, mockUser, videoId, {
+      targetResolution: '4k',
+    });
+
+    expect(mockServices.replicateService.runModel).toHaveBeenCalled();
   });
 
   it('should hand the model a presigned URL, not the public stream route', async () => {
@@ -296,21 +410,6 @@ describe('VideosUpscaleController', () => {
     expect(mockServices.routerService.getDefaultModel).toHaveBeenCalled();
   });
 
-  it('should query video with OR for user and organization', async () => {
-    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    const dto: VideoEditDto = {};
-    await controller.upscaleVideo(mockReq, mockUser, videoId, dto);
-    expect(mockServices.videosService.findOne).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: videoId,
-        OR: expect.arrayContaining([
-          expect.objectContaining({ userId: expect.anything() }),
-          expect.objectContaining({ organizationId: expect.anything() }),
-        ]),
-      }),
-    );
-  });
-
   it('should save ingredient with UPSCALED transformation', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const dto: VideoEditDto = {};
@@ -334,6 +433,15 @@ describe('VideosUpscaleController', () => {
     await expect(
       controller.upscaleVideo(mockReq, mockUser, videoId, dto),
     ).rejects.toThrow();
+    expect(
+      mockServices.failedGenerationService.handleFailedVideoGeneration,
+    ).toHaveBeenCalledWith(
+      mockServices.videosService,
+      ingredientId,
+      `/videos/${ingredientId}`,
+      mockUser.id,
+      `user:${mockUser.id}`,
+    );
     expect(mockServices.loggerService.error).toHaveBeenCalled();
   });
 });

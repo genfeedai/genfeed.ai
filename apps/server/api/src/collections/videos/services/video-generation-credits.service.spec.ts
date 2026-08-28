@@ -96,6 +96,44 @@ describe('VideoGenerationCreditsService', () => {
     });
   });
 
+  it('adds only the stitch cost for a fabricated extension', async () => {
+    const request = {
+      creditsConfig: { amount: 10, modelKey: 'google/veo-3.1' },
+    };
+
+    await service.ensureExtensionCredits(
+      { duration: 8 },
+      'google/veo-3.1',
+      'org-1',
+      request as never,
+      'fabricated',
+    );
+
+    expect(request.creditsConfig.amount).toBe(11);
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith('org-1', 11);
+  });
+
+  it('does not add a stitch cost to native extension', async () => {
+    const request = {
+      creditsConfig: { amount: 10, modelKey: 'bytedance/seedance-2.5' },
+    };
+
+    await service.ensureExtensionCredits(
+      { duration: 8 },
+      'bytedance/seedance-2.5',
+      'org-1',
+      request as never,
+      'native',
+    );
+
+    expect(request.creditsConfig.amount).toBe(10);
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+  });
+
   it('records resolved-provider BYOK usage without requiring platform credits', async () => {
     modelsService.findOne.mockResolvedValue({
       cost: 10,

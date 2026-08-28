@@ -154,7 +154,7 @@ export const PRUNAAI_P_VIDEO_CAPABILITY_PROFILE =
 // ---------------------------------------------------------------------------
 
 export const MINIMAX_H3_CAPABILITY_PROFILE_ID = 'minimax-h3-capability';
-export const MINIMAX_H3_CAPABILITY_PROFILE_VERSION = 1;
+export const MINIMAX_H3_CAPABILITY_PROFILE_VERSION = 2;
 export const MINIMAX_H3_MODEL_KEY = 'minimax/h3';
 
 export const minimaxH3DispatchDefaultsSchema = z
@@ -173,6 +173,7 @@ export const minimaxH3CapabilityProfileSchema = z
     generationModes: z.array(videoGenerationModeSchema).min(1).max(8),
     id: videoGenerationCapabilityIdSchema,
     isBatchSupported: z.boolean(),
+    maxVideoReferences: z.number().int().nonnegative().max(32),
     maxOutputs: z.number().int().positive().max(8),
     mediaKind: generationBriefMediaKindSchema,
     modelKey: videoGenerationCapabilityIdSchema,
@@ -207,7 +208,7 @@ export const MINIMAX_H3_CAPABILITY_PROFILE =
     aspectRatios: [...MINIMAX_H3_ASPECT_RATIOS],
     audio: { supported: true },
     defaultAspectRatio: '16:9',
-    defaults: { resolution: '768P' },
+    defaults: { resolution: '2K' },
     duration: {
       defaultSeconds: 5,
       maxSeconds: 15,
@@ -217,6 +218,7 @@ export const MINIMAX_H3_CAPABILITY_PROFILE =
     generationModes: ['text_to_video', 'image_to_video'],
     id: MINIMAX_H3_CAPABILITY_PROFILE_ID,
     isBatchSupported: false,
+    maxVideoReferences: 3,
     maxOutputs: 1,
     mediaKind: 'video',
     modelKey: MINIMAX_H3_MODEL_KEY,
@@ -232,6 +234,7 @@ export const MINIMAX_H3_CAPABILITY_PROFILE =
         'first_frame_image',
         'last_frame_image',
         'reference_image_urls',
+        'reference_video_urls',
       ],
       roles: [
         'first_frame',
@@ -241,6 +244,7 @@ export const MINIMAX_H3_CAPABILITY_PROFILE =
         'character',
         'style',
         'composition',
+        'reference_video',
       ],
     },
     resolution: { supported: true },

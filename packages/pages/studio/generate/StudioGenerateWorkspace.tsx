@@ -7,11 +7,21 @@ import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions'
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
 import { useStudioCharacterMentions } from '@genfeedai/agent/hooks/use-studio-character-mentions';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
+import {
+  getModelMaxVideoReferences,
+  hasEndFrame,
+  hasInterpolation,
+  hasVideoReferences,
+  MODEL_KEYS,
+} from '@genfeedai/constants';
 import { AlertCategory, ComponentSize, ViewType } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { StudioGenerateJob } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
-import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
+import type {
+  StudioGenerateComposerProps,
+  StudioGenerateReferenceRole,
+} from '@genfeedai/props/studio/studio-generate.props';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import StudioGenerateInspector from '@pages/studio/generate/components/StudioGenerateInspector';
@@ -59,7 +69,12 @@ import {
   useState,
 } from 'react';
 
-const STUDIO_REFERENCE_TYPES = ['image/*'];
+const STUDIO_REFERENCE_TYPES = ['image/*', 'video/*'];
+
+interface StudioContentReference {
+  item: ContentMentionItem;
+  role: StudioGenerateReferenceRole;
+}
 
 /**
  * The Studio playground. One prompt bar generates every asset type Genfeed
@@ -90,9 +105,14 @@ export default function StudioGenerateWorkspace(): ReactElement {
   >(ViewType.MASONRY);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [isContentLibraryOpen, setIsContentLibraryOpen] = useState(false);
+  const [contentLibraryRole, setContentLibraryRole] =
+    useState<StudioGenerateReferenceRole>('reference');
   const [contentReferences, setContentReferences] = useState<
-    ContentMentionItem[]
+    StudioContentReference[]
   >([]);
+  const uploadRolesRef = useRef(
+    new WeakMap<File, StudioGenerateReferenceRole>(),
+  );
 
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
@@ -122,18 +142,24 @@ export default function StudioGenerateWorkspace(): ReactElement {
     removeAttachment,
   } = useAttachments({
     acceptedTypes: STUDIO_REFERENCE_TYPES,
-    maxFiles: 4,
+    maxFiles: 8,
     onUpload: uploadReference,
   });
 
   const { isLoading: isContentLibraryLoading, mentions } =
     useContentMentions(agentApiService);
-  const contentLibraryItems = useMemo(
-    () => mentions.filter((item) => Boolean(item.thumbnailUrl)),
-    [mentions],
-  );
+  const contentLibraryItems = useMemo(() => {
+    const requiresVideo = contentLibraryRole === 'videoReference';
+    return mentions.filter((item) => {
+      if (!item.thumbnailUrl) {
+        return false;
+      }
+      const isVideo = item.contentType.toLowerCase().includes('video');
+      return requiresVideo ? isVideo : !isVideo;
+    });
+  }, [contentLibraryRole, mentions]);
   const selectedContentIds = useMemo(
-    () => new Set(contentReferences.map((item) => item.id)),
+    () => new Set(contentReferences.map((reference) => reference.item.id)),
     [contentReferences],
   );
 
@@ -179,18 +205,21 @@ export default function StudioGenerateWorkspace(): ReactElement {
       }
 
       setContentReferences((current) =>
-        current.some((reference) => reference.id === ingredient.id)
+        current.some((reference) => reference.item.id === ingredient.id)
           ? current
           : [
               ...current,
               {
-                contentTitle:
-                  ingredient.metadataLabel ||
-                  ingredient.promptText ||
-                  'Generated reference',
-                contentType: String(ingredient.category),
-                id: ingredient.id,
-                thumbnailUrl: previewUrl,
+                item: {
+                  contentTitle:
+                    ingredient.metadataLabel ||
+                    ingredient.promptText ||
+                    'Generated reference',
+                  contentType: String(ingredient.category),
+                  id: ingredient.id,
+                  thumbnailUrl: previewUrl,
+                },
+                role: targetType === 'video' ? 'startFrame' : 'reference',
               },
             ],
       );
@@ -296,15 +325,42 @@ export default function StudioGenerateWorkspace(): ReactElement {
     }
   }, [selectedJob, selectedJobId]);
 
-  const referenceUrls = useMemo(
-    () => [
-      ...getCompletedAttachments().map((attachment) => attachment.url),
-      ...contentReferences.flatMap((item) =>
-        item.thumbnailUrl ? [item.thumbnailUrl] : [],
-      ),
-    ],
-    [contentReferences, getCompletedAttachments],
-  );
+  const resolvedReferences = useMemo(() => {
+    const entries = [
+      ...getCompletedAttachments().map((completed) => {
+        const attachment = attachments.find(
+          (candidate) => candidate.ingredientId === completed.ingredientId,
+        );
+        const explicitRole = attachment?.file
+          ? uploadRolesRef.current.get(attachment.file)
+          : undefined;
+        const role: StudioGenerateReferenceRole =
+          explicitRole ??
+          (type === 'video'
+            ? completed.kind === 'video'
+              ? 'videoReference'
+              : 'startFrame'
+            : 'reference');
+        return { id: completed.ingredientId, role };
+      }),
+      ...contentReferences.map((reference) => ({
+        id: reference.item.id,
+        role: reference.role,
+      })),
+    ];
+
+    return {
+      endFrameId: entries.find((entry) => entry.role === 'endFrame')?.id,
+      imageReferenceIds: entries
+        .filter(
+          (entry) => entry.role === 'reference' || entry.role === 'startFrame',
+        )
+        .map((entry) => entry.id),
+      videoReferenceIds: entries
+        .filter((entry) => entry.role === 'videoReference')
+        .map((entry) => entry.id),
+    };
+  }, [attachments, contentReferences, getCompletedAttachments, type]);
 
   const handleSubmit = useCallback(() => {
     if (isUploading || isListening || isTranscribing) {
@@ -323,7 +379,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
             prompt,
             settings,
             type,
-            contentReferences.map((reference) => reference.id),
+            contentReferences.map((reference) => reference.item.id),
           ),
         );
       }
@@ -331,13 +387,16 @@ export default function StudioGenerateWorkspace(): ReactElement {
     }
     const prepared = resolveCharacterMentions({
       document: promptDocumentRef.current,
-      existingReferenceIds: referenceUrls,
+      existingReferenceIds: resolvedReferences.imageReferenceIds,
       text: prompt,
     });
     for (const notice of prepared.notices) {
       notificationsService.warning(notice);
     }
-    void submit(prepared.text, prepared.referenceIds);
+    void submit(prepared.text, {
+      ...resolvedReferences,
+      imageReferenceIds: prepared.referenceIds,
+    });
   }, [
     isListening,
     isTranscribing,
@@ -345,7 +404,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     notificationsService,
     prompt,
     contentReferences,
-    referenceUrls,
+    resolvedReferences,
     resolveCharacterMentions,
     remixRun,
     settings,
@@ -359,15 +418,250 @@ export default function StudioGenerateWorkspace(): ReactElement {
       if (!item.thumbnailUrl) {
         return;
       }
+      const supportsInterpolation = hasInterpolation(settings.modelKey);
+      const hasStartFrame =
+        contentReferences.some(
+          (reference) => reference.role === 'startFrame',
+        ) ||
+        attachments.some(
+          (attachment) =>
+            attachment.file &&
+            uploadRolesRef.current.get(attachment.file) === 'startFrame',
+        );
+      if (
+        contentLibraryRole === 'endFrame' &&
+        supportsInterpolation &&
+        !hasStartFrame
+      ) {
+        notificationsService.warning(
+          'Choose a Start Frame before the End Frame.',
+        );
+        return;
+      }
+      if (
+        contentLibraryRole === 'videoReference' &&
+        !contentReferences.some((reference) => reference.item.id === item.id)
+      ) {
+        const selectedVideoReferences =
+          contentReferences.filter(
+            (reference) => reference.role === 'videoReference',
+          ).length +
+          attachments.filter(
+            (attachment) =>
+              attachment.file &&
+              uploadRolesRef.current.get(attachment.file) === 'videoReference',
+          ).length;
+        const maxVideoReferences = getModelMaxVideoReferences(
+          settings.modelKey,
+        );
+        if (selectedVideoReferences >= maxVideoReferences) {
+          notificationsService.warning(
+            `The selected model accepts at most ${maxVideoReferences} video references.`,
+          );
+          return;
+        }
+      }
       setContentReferences((current) =>
-        current.some((reference) => reference.id === item.id)
+        current.some((reference) => reference.item.id === item.id)
           ? current
-          : [...current, item],
+          : contentLibraryRole === 'endFrame' ||
+              contentLibraryRole === 'startFrame'
+            ? [
+                ...current.filter(
+                  (reference) =>
+                    reference.role !== contentLibraryRole &&
+                    (supportsInterpolation ||
+                      (reference.role !== 'startFrame' &&
+                        reference.role !== 'endFrame')),
+                ),
+                { item, role: contentLibraryRole },
+              ]
+            : [...current, { item, role: contentLibraryRole }],
       );
+      if (
+        contentLibraryRole === 'videoReference' &&
+        settings.modelKey ===
+          MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO &&
+        settings.resolution === '4k'
+      ) {
+        updateSettings({ resolution: 'pro' });
+        notificationsService.warning(
+          'Kling Omni video references use Pro quality; 4K is not compatible.',
+        );
+      }
       setIsContentLibraryOpen(false);
     },
-    [],
+    [
+      attachments,
+      contentLibraryRole,
+      contentReferences,
+      notificationsService,
+      settings.modelKey,
+      settings.resolution,
+      updateSettings,
+    ],
   );
+
+  const handleAddFiles = useCallback<StudioGenerateComposerProps['onAddFiles']>(
+    (files, role = 'reference') => {
+      const supportsInterpolation = hasInterpolation(settings.modelKey);
+      const hasStartFrame =
+        contentReferences.some(
+          (reference) => reference.role === 'startFrame',
+        ) ||
+        attachments.some(
+          (attachment) =>
+            attachment.file &&
+            uploadRolesRef.current.get(attachment.file) === 'startFrame',
+        );
+      if (role === 'endFrame' && supportsInterpolation && !hasStartFrame) {
+        notificationsService.warning(
+          'Choose a Start Frame before the End Frame.',
+        );
+        return;
+      }
+      if (role === 'endFrame' || role === 'startFrame') {
+        setContentReferences((current) =>
+          current.filter(
+            (reference) =>
+              reference.role !== role &&
+              (supportsInterpolation ||
+                (reference.role !== 'startFrame' &&
+                  reference.role !== 'endFrame')),
+          ),
+        );
+        for (const attachment of attachments) {
+          const attachmentRole = attachment.file
+            ? uploadRolesRef.current.get(attachment.file)
+            : undefined;
+          if (
+            attachmentRole === role ||
+            (!supportsInterpolation &&
+              (attachmentRole === 'startFrame' ||
+                attachmentRole === 'endFrame'))
+          ) {
+            removeAttachment(attachment.id);
+          }
+        }
+      }
+      let acceptedFiles = files;
+      if (role === 'videoReference') {
+        const selectedVideoReferences =
+          contentReferences.filter(
+            (reference) => reference.role === 'videoReference',
+          ).length +
+          attachments.filter(
+            (attachment) =>
+              attachment.file &&
+              uploadRolesRef.current.get(attachment.file) === 'videoReference',
+          ).length;
+        const maxVideoReferences = getModelMaxVideoReferences(
+          settings.modelKey,
+        );
+        const remaining = Math.max(
+          0,
+          maxVideoReferences - selectedVideoReferences,
+        );
+        acceptedFiles = files.slice(0, remaining);
+        if (acceptedFiles.length < files.length) {
+          notificationsService.warning(
+            `The selected model accepts at most ${maxVideoReferences} video references.`,
+          );
+        }
+      }
+      for (const file of acceptedFiles) {
+        uploadRolesRef.current.set(file, role);
+      }
+      if (
+        role === 'videoReference' &&
+        settings.modelKey ===
+          MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO &&
+        settings.resolution === '4k'
+      ) {
+        updateSettings({ resolution: 'pro' });
+        notificationsService.warning(
+          'Kling Omni video references use Pro quality; 4K is not compatible.',
+        );
+      }
+      if (acceptedFiles.length > 0) {
+        addFiles(acceptedFiles);
+      }
+    },
+    [
+      addFiles,
+      attachments,
+      contentReferences,
+      notificationsService,
+      removeAttachment,
+      settings.modelKey,
+      settings.resolution,
+      updateSettings,
+    ],
+  );
+
+  const handleOpenLibrary = useCallback<
+    StudioGenerateComposerProps['onOpenLibrary']
+  >((role = 'reference') => {
+    setContentLibraryRole(role);
+    setIsContentLibraryOpen(true);
+  }, []);
+
+  useEffect(() => {
+    if (type !== 'video') {
+      return;
+    }
+    const unsupportedRoles = new Set<StudioGenerateReferenceRole>();
+    const supportsInterpolation = hasInterpolation(settings.modelKey);
+    const hasStartFrame =
+      contentReferences.some((reference) => reference.role === 'startFrame') ||
+      attachments.some(
+        (attachment) =>
+          attachment.file &&
+          uploadRolesRef.current.get(attachment.file) === 'startFrame',
+      );
+    if (!hasEndFrame(settings.modelKey)) {
+      unsupportedRoles.add('endFrame');
+    } else if (supportsInterpolation && !hasStartFrame) {
+      unsupportedRoles.add('endFrame');
+    } else if (!supportsInterpolation && hasStartFrame) {
+      unsupportedRoles.add('endFrame');
+    }
+    if (!hasVideoReferences(settings.modelKey)) {
+      unsupportedRoles.add('videoReference');
+    }
+    const removedContentCount = contentReferences.filter((reference) =>
+      unsupportedRoles.has(reference.role),
+    ).length;
+    const unsupportedAttachments = attachments.filter((attachment) => {
+      const role = attachment.file
+        ? uploadRolesRef.current.get(attachment.file)
+        : undefined;
+      return role ? unsupportedRoles.has(role) : false;
+    });
+    if (removedContentCount === 0 && unsupportedAttachments.length === 0) {
+      return;
+    }
+    setContentReferences((current) =>
+      current.filter((reference) => !unsupportedRoles.has(reference.role)),
+    );
+    for (const attachment of unsupportedAttachments) {
+      removeAttachment(attachment.id);
+    }
+    notificationsService.warning(
+      !supportsInterpolation &&
+        hasStartFrame &&
+        unsupportedRoles.has('endFrame')
+        ? 'End Frame was cleared because the selected model accepts only one frame.'
+        : 'Unsupported frame or video references were cleared for the selected model.',
+    );
+  }, [
+    attachments,
+    contentReferences,
+    notificationsService,
+    removeAttachment,
+    settings.modelKey,
+    type,
+  ]);
 
   const attachedAssets = useMemo<PromptBarAttachedAsset[]>(
     () => [
@@ -376,19 +670,29 @@ export default function StudioGenerateWorkspace(): ReactElement {
         kind: attachment.kind,
         name: attachment.name,
         previewUrl: attachment.previewUrl,
-        role: 'reference' as const,
+        role:
+          (attachment.file
+            ? uploadRolesRef.current.get(attachment.file)
+            : undefined) ??
+          (type === 'video'
+            ? attachment.kind === 'video'
+              ? ('videoReference' as const)
+              : ('startFrame' as const)
+            : ('reference' as const)),
         source: 'upload' as const,
       })),
       ...contentReferences.map((reference) => ({
-        id: reference.id,
-        kind: 'image' as const,
-        name: reference.contentTitle,
-        previewUrl: reference.thumbnailUrl,
-        role: 'reference' as const,
+        id: reference.item.id,
+        kind: reference.item.contentType.toLowerCase().includes('video')
+          ? ('video' as const)
+          : ('image' as const),
+        name: reference.item.contentTitle,
+        previewUrl: reference.item.thumbnailUrl,
+        role: reference.role,
         source: 'library' as const,
       })),
     ],
-    [attachments, contentReferences],
+    [attachments, contentReferences, type],
   );
 
   const handleRemoveAttachedAsset = useCallback<
@@ -400,7 +704,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         return;
       }
       setContentReferences((current) =>
-        current.filter((reference) => reference.id !== assetId),
+        current.filter((reference) => reference.item.id !== assetId),
       );
     },
     [attachments, removeAttachment],
@@ -565,8 +869,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
               isTranscribing={isTranscribing}
               isUploading={isUploading}
               models={models}
-              onAddFiles={addFiles}
-              onOpenLibrary={() => setIsContentLibraryOpen(true)}
+              onAddFiles={handleAddFiles}
+              onOpenLibrary={handleOpenLibrary}
               onPromptChange={setPrompt}
               onPromptDocumentChange={(document) => {
                 promptDocumentRef.current = document;

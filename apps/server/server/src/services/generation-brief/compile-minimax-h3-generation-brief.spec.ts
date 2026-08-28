@@ -1,12 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { compileMinimaxH3GenerationBrief } from '@server/services/generation-brief/compile-minimax-h3-generation-brief';
-import { GenerationBriefCompileError } from '@server/services/generation-brief/generation-brief-compile.error';
-import { assertRedactedVideoGenerationBriefEvidence } from '@server/services/generation-brief/redact-generation-brief-evidence';
 import { videoGenerationBriefSchema } from '@api-types/contracts/generation-brief.contract';
 import { minimaxH3DispatchSchema } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import { compileMinimaxH3GenerationBrief } from '@server/services/generation-brief/compile-minimax-h3-generation-brief';
+import { GenerationBriefCompileError } from '@server/services/generation-brief/generation-brief-compile.error';
+import { assertRedactedVideoGenerationBriefEvidence } from '@server/services/generation-brief/redact-generation-brief-evidence';
 import { describe, expect, it } from 'vitest';
 
 const fixturesDir = join(
@@ -92,6 +92,77 @@ describe('compileMinimaxH3GenerationBrief', () => {
 
     expect(result.dispatch.prompt).toBe('a neon skyline timelapse at dusk');
     expect(result.evidence.omittedSignals).toEqual([]);
+  });
+
+  it('honors the requested MiniMax H3 resolution', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'a neon skyline timelapse at dusk' },
+      mediaKind: 'video',
+      output: { aspectRatio: '16:9', resolution: '2K' },
+      version: 1,
+    });
+
+    const result = compileMinimaxH3GenerationBrief({ brief });
+
+    expect(result.dispatch.resolution).toBe('2K');
+    expect(result.evidence.output.resolution).toBe('2K');
+  });
+
+  it('dispatches native video references separately from image references', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'Continue the reference clip' },
+      mediaKind: 'video',
+      output: {},
+      references: [
+        { assetId: 'frame-image', role: 'first_frame' },
+        { assetId: 'source-video', role: 'reference_video' },
+      ],
+      version: 1,
+    });
+
+    const result = compileMinimaxH3GenerationBrief({ brief });
+
+    expect(result.dispatch.reference_image_urls).toEqual([]);
+    expect(result.dispatch.reference_video_urls).toEqual(['source-video']);
+  });
+
+  it('rejects a last frame without its required first frame', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'arrive at the final composition' },
+      mediaKind: 'video',
+      output: {},
+      references: [{ assetId: 'end-frame-1', role: 'last_frame' }],
+      version: 1,
+    });
+
+    expect(() => compileMinimaxH3GenerationBrief({ brief })).toThrow(
+      'requires a first-frame reference',
+    );
+  });
+
+  it('rejects more than the three published reference videos', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'Continue the movement references' },
+      mediaKind: 'video',
+      output: {},
+      references: Array.from({ length: 4 }, (_, index) => ({
+        assetId: `source-video-${index + 1}`,
+        role: 'reference_video' as const,
+      })),
+      version: 1,
+    });
+
+    expect(() => compileMinimaxH3GenerationBrief({ brief })).toThrow(
+      'at most 3 video references',
+    );
   });
 
   it('rejects strict required signals beyond MiniMax H3 reference capacity', () => {

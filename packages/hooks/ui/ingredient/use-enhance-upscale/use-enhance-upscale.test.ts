@@ -9,24 +9,32 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockPostUpscale = vi.fn();
 const mockSuccess = vi.fn();
 const mockError = vi.fn();
+const mockUseElements = vi.hoisted(() => vi.fn());
+
+const defaultElements = {
+  imageEditModels: [
+    {
+      cost: 10,
+      key: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+      name: 'Topaz Image Upscale',
+    },
+  ],
+  videoEditModels: [
+    {
+      cost: 20,
+      key: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+      label: 'Topaz Video Upscale',
+    },
+    {
+      cost: 30,
+      key: MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER,
+      label: 'ByteDance Video Upscaler',
+    },
+  ],
+};
 
 vi.mock('@hooks/data/elements/use-elements/use-elements', () => ({
-  useElements: vi.fn(() => ({
-    imageEditModels: [
-      {
-        cost: 10,
-        key: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-        name: 'Topaz Image Upscale',
-      },
-    ],
-    videoEditModels: [
-      {
-        cost: 20,
-        key: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
-        name: 'Topaz Video Upscale',
-      },
-    ],
-  })),
+  useElements: mockUseElements,
 }));
 
 vi.mock('@hooks/utils/service-operation/service-operation.util', () => ({
@@ -87,6 +95,7 @@ describe('useEnhanceUpscale', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseElements.mockReturnValue(defaultElements);
     mockPostUpscale.mockResolvedValue({ id: 'new-ingredient' });
   });
 
@@ -143,6 +152,47 @@ describe('useEnhanceUpscale', () => {
         cost: 20,
         ingredient,
         modelKey: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        videoModelOptions: [
+          {
+            cost: 20,
+            fps: [15, 24, 30, 60],
+            key: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+            label: 'Topaz Video Upscale',
+            resolutions: ['720p', '1080p', '4k'],
+          },
+          {
+            cost: 30,
+            fps: [24, 30, 60, 120],
+            key: MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER,
+            label: 'ByteDance Video Upscaler',
+            resolutions: ['720p', '1080p', '2k', '4k'],
+          },
+        ],
+      });
+    });
+
+    it('uses ByteDance when it is the only active video upscale model', async () => {
+      mockUseElements.mockReturnValue({
+        imageEditModels: defaultElements.imageEditModels,
+        videoEditModels: [defaultElements.videoEditModels[1]],
+      });
+      const ingredient: Partial<IIngredient> = {
+        category: IngredientCategory.VIDEO,
+        id: 'vid-bytedance',
+      };
+      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
+
+      await act(async () => {
+        await result.current.handleUpscale(ingredient as IIngredient);
+      });
+      await act(async () => {
+        await result.current.executeUpscale();
+      });
+
+      expect(mockPostUpscale).toHaveBeenCalledWith('vid-bytedance', {
+        model: MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER,
+        targetFps: 30,
+        targetResolution: '1080p',
       });
     });
 
@@ -272,6 +322,32 @@ describe('useEnhanceUpscale', () => {
         model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
         targetFps: 30,
         targetResolution: '1080p',
+      });
+    });
+
+    it('dispatches the selected video upscale model and 4K target', async () => {
+      const ingredient: Partial<IIngredient> = {
+        category: IngredientCategory.VIDEO,
+        id: 'vid-4k',
+      };
+      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
+
+      await act(async () => {
+        await result.current.handleUpscale(ingredient as IIngredient);
+      });
+      await act(async () => {
+        await result.current.executeUpscale({
+          cost: 30,
+          model: MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER,
+          targetFps: 60,
+          targetResolution: '4k',
+        });
+      });
+
+      expect(mockPostUpscale).toHaveBeenCalledWith('vid-4k', {
+        model: MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER,
+        targetFps: 60,
+        targetResolution: '4k',
       });
     });
 

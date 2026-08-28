@@ -1,5 +1,10 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientFormat, RouterPriority } from '@genfeedai/enums';
+import {
+  getDefaultVideoResolution,
+  getVideoResolutionLabel,
+  getVideoResolutionsByModel,
+} from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import type { StudioGenerateSettings, StudioGenerateType } from '../types';
 import { getStudioGenerateTypeConfig } from './studio-generate-types';
@@ -19,8 +24,6 @@ export const STUDIO_ASPECT_RATIOS = [
 ] as const;
 
 export const STUDIO_IMAGE_RESOLUTIONS = ['1K', '2K'] as const;
-export const STUDIO_VIDEO_RESOLUTIONS = ['480p', '720p', '1080p'] as const;
-
 export const STUDIO_VIDEO_DURATIONS = [5, 8, 10] as const;
 export const STUDIO_MUSIC_DURATIONS = [10, 15, 30] as const;
 
@@ -28,11 +31,18 @@ export const STUDIO_MAX_OUTPUTS = 8;
 
 /** Long edge in pixels for each resolution label. */
 const RESOLUTION_LONG_EDGE: Record<string, number> = {
+  '360p': 640,
   '1080p': 1920,
   '1K': 1024,
   '2K': 2048,
   '480p': 854,
   '720p': 1280,
+  '768P': 1366,
+  '768p': 1366,
+  '4k': 3840,
+  high: 1920,
+  pro: 1920,
+  standard: 1280,
 };
 
 const DEFAULT_LONG_EDGE = 1024;
@@ -119,13 +129,17 @@ export function getStudioAspectRatios(
 
 export function getStudioResolutions(
   type: StudioGenerateType,
-): readonly string[] {
+  modelKey?: string,
+): ReadonlyArray<{ isDraft?: boolean; label: string; value: string }> {
   if (type === 'video') {
-    return STUDIO_VIDEO_RESOLUTIONS;
+    return modelKey ? getVideoResolutionsByModel(modelKey) : [];
   }
 
   return getStudioGenerateTypeConfig(type).capabilities.hasAspectRatio
-    ? STUDIO_IMAGE_RESOLUTIONS
+    ? STUDIO_IMAGE_RESOLUTIONS.map((resolution) => ({
+        label: resolution,
+        value: resolution,
+      }))
     : [];
 }
 
@@ -221,6 +235,16 @@ export function buildStudioPromptData({
     resolveLongEdge(settings.resolution),
   );
 
+  const videoResolutionOptions =
+    type === 'video' && !isAutoSelectModel
+      ? getStudioResolutions(type, settings.modelKey)
+      : [];
+  const requestedVideoResolution = videoResolutionOptions.some(
+    (option) => option.value === settings.resolution,
+  )
+    ? settings.resolution
+    : getDefaultVideoResolution(settings.modelKey);
+
   // Avatar and voice are driven by the spoken script, so speech alone is a
   // valid submission there.
   const isValid = capabilities.hasSpeech
@@ -265,7 +289,12 @@ export function buildStudioPromptData({
       : undefined,
     quality: 'standard',
     references: capabilities.hasReferences ? references : [],
-    resolution: settings.resolution,
+    resolution:
+      type === 'video'
+        ? isAutoSelectModel
+          ? undefined
+          : requestedVideoResolution
+        : settings.resolution,
     scene: capabilities.hasLook ? optionalText(settings.scene) : undefined,
     sounds: [],
     speech: capabilities.hasSpeech ? speech : undefined,
@@ -293,7 +322,14 @@ export function describeStudioGenerateSettings(
     segments.push(settings.aspectRatio);
   }
 
-  if (getStudioResolutions(type).length > 0) {
+  if (type === 'video') {
+    if (settings.modelKey !== AUTO_MODEL_OPTION_VALUE) {
+      segments.push(
+        getVideoResolutionLabel(settings.modelKey, settings.resolution) ??
+          settings.resolution,
+      );
+    }
+  } else if (getStudioResolutions(type).length > 0) {
     segments.push(settings.resolution);
   }
 

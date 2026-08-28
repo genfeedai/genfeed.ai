@@ -1,4 +1,3 @@
-import { GenerationBriefCompileError } from '@server/services/generation-brief/generation-brief-compile.error';
 import type {
   GenerationFidelityPolicy,
   VideoGenerationBrief,
@@ -22,6 +21,7 @@ import {
   PRUNAAI_P_VIDEO_MODEL_KEY,
 } from '@api-types/contracts/video-generation-capability-profile.contract';
 import { normalizeAspectRatioForModel } from '@genfeedai/helpers';
+import { GenerationBriefCompileError } from '@server/services/generation-brief/generation-brief-compile.error';
 
 export interface CompilePrunaaiPVideoGenerationBriefInput {
   brief: VideoGenerationBrief;
@@ -189,6 +189,13 @@ export function compilePrunaaiPVideoGenerationBrief(
   const prompt = buildPrompt(input.brief, policy, omitted);
   const aspectRatio = resolveAspectRatio(input.brief);
   const duration = resolveDuration(input.brief);
+  const resolution = input.brief.output.resolution ?? '720p';
+  if (resolution !== '720p' && resolution !== '1080p') {
+    throw new GenerationBriefCompileError(
+      `PrunaAI P-Video does not support resolution "${resolution}".`,
+      'invalid_brief',
+    );
+  }
   const firstFrameAssetId = resolveFirstFrameAssetId(
     input.brief,
     policy,
@@ -200,6 +207,7 @@ export function compilePrunaaiPVideoGenerationBrief(
     duration,
     prompt,
     prompt_upsampling: true,
+    resolution,
     ...(firstFrameAssetId !== undefined ? { image: firstFrameAssetId } : {}),
     ...(input.seed !== undefined ? { seed: input.seed } : {}),
   };
@@ -208,6 +216,7 @@ export function compilePrunaaiPVideoGenerationBrief(
     'intent.objective',
     'output.aspectRatio',
     'output.durationSeconds',
+    'output.resolution',
     ...(input.brief.intent.subjects.length > 0 ? ['intent.subjects'] : []),
     ...(input.brief.intent.scene ? ['intent.scene'] : []),
     ...(input.brief.intent.composition ? ['intent.composition'] : []),
@@ -241,6 +250,7 @@ export function compilePrunaaiPVideoGenerationBrief(
       aspectRatio,
       durationSeconds: duration,
       hasSeed: input.seed !== undefined,
+      resolution,
     },
     profileId: PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_ID,
     profileVersion: PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_VERSION,

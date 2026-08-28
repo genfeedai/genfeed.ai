@@ -1,3 +1,10 @@
+import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
+import { RouterPriority, Status } from '@genfeedai/enums';
+import type { AgentToolResult } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { PersonasService } from '@server/collections/personas/services/personas.service';
 import { IMAGE_GENERATION_RESULT_ERROR } from '@server/services/agent-orchestrator/agent-image-generation-result.constant';
 import {
@@ -10,13 +17,6 @@ import type { ToolExecutionContext } from '@server/services/agent-orchestrator/t
 import { AgentToolInternalApiService } from '@server/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { ContentQualityScorerService } from '@server/services/content-quality/content-quality-scorer.service';
 import { HarnessGenerationService } from '@server/services/harness/harness-generation.service';
-import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
-import { RouterPriority, Status } from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 
 @Injectable()
 export class AgentMediaAssetGenerationService {
@@ -356,6 +356,10 @@ export class AgentMediaAssetGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const requestedModel =
+      typeof params.model === 'string' && params.model.trim().length > 0
+        ? params.model.trim()
+        : (ctx.generationModelOverride ?? undefined);
     const dimensions = this.aspectRatioToDimensions(
       (params.aspectRatio as string) || '16:9',
     );
@@ -365,10 +369,7 @@ export class AgentMediaAssetGenerationService {
       ctx,
       explicitReferences: params.references,
       handles: params.characterHandles,
-      modelKey:
-        typeof ctx.generationModelOverride === 'string'
-          ? ctx.generationModelOverride
-          : undefined,
+      modelKey: requestedModel,
     });
     if (resolvedReferences.error) {
       return resolvedReferences.error;
@@ -386,9 +387,15 @@ export class AgentMediaAssetGenerationService {
       ctx,
       dimensions,
       duration: (params.duration as number) || 10,
+      endFrame:
+        typeof params.endFrame === 'string' ? params.endFrame : undefined,
       extraReferences: resolvedReferences.references,
       imageUrl,
+      model: requestedModel,
       prompt,
+      resolution:
+        typeof params.resolution === 'string' ? params.resolution : undefined,
+      videoReferences: this.readStringArray(params.videoReferences, 10),
     });
     const response = await this.internalApi.callInternalApi(
       'POST',
@@ -591,9 +598,13 @@ export class AgentMediaAssetGenerationService {
     ctx: ToolExecutionContext;
     dimensions: { height: number; width: number };
     duration: number;
+    endFrame?: string;
     extraReferences?: string[];
     imageUrl?: string;
+    model?: string;
     prompt: string;
+    resolution?: string;
+    videoReferences?: string[];
   }): Record<string, unknown> {
     const body: Record<string, unknown> = {
       duration: params.duration,
@@ -610,14 +621,19 @@ export class AgentMediaAssetGenerationService {
       ...(params.ctx.strategyId
         ? { agentStrategyId: params.ctx.strategyId }
         : {}),
+      ...(params.endFrame ? { endFrame: params.endFrame } : {}),
+      ...(params.resolution ? { resolution: params.resolution } : {}),
+      ...(params.videoReferences && params.videoReferences.length > 0
+        ? { videoReferences: params.videoReferences }
+        : {}),
     };
     if (params.audioUrl && params.imageUrl) {
       // Avatar mode is selected only for the paired image + audio payload.
       body.model = 'kwaivgi/kling-avatar-v2';
       body.audioUrl = params.audioUrl;
       body.references = [params.imageUrl];
-    } else if (params.ctx.generationModelOverride) {
-      body.model = params.ctx.generationModelOverride;
+    } else if (params.model) {
+      body.model = params.model;
       if (params.imageUrl) body.references = [params.imageUrl];
     } else {
       body.autoSelectModel = true;

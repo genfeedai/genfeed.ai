@@ -1,5 +1,6 @@
 import {
   FAL_STABLE_VIDEO_COMPILER_ID,
+  GEMINI_OMNI_VIDEO_COMPILER_ID,
   GROK_IMAGINE_VIDEO_COMPILER_ID,
   HAILUO_VIDEO_COMPILER_ID,
   KLING_VIDEO_COMPILER_ID,
@@ -17,17 +18,24 @@ import {
   buildRemainingVideoCapabilityProfile,
   type RemainingVideoCapabilityProfile,
 } from '@api-types/contracts/video-generation-capability-profile-remaining.contract';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { ASPECT_RATIOS, MODEL_KEYS } from '@genfeedai/constants';
+import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 
 export interface RemainingVideoFamilyDispatchSpec {
   aspectRatioField?: 'aspect_ratio' | 'ratio';
   durationField?: 'duration' | 'seconds';
   extraDefaults?: Record<string, boolean | number | string>;
-  firstFrameField?: 'image' | 'input_reference' | 'start_image';
-  lastFrameField?: 'end_image' | 'last_frame' | 'last_image';
+  firstFrameField?: 'image' | 'image_url' | 'input_reference' | 'start_image';
+  lastFrameField?:
+    | 'end_image'
+    | 'last_frame'
+    | 'last_frame_image'
+    | 'last_image';
   modelLabel: string;
   negativePromptField?: 'negative_prompt';
-  extraReferenceField?: 'reference_images';
+  extraReferenceField?: 'image_urls' | 'reference_images';
+  resolutionField?: 'mode' | 'resolution';
+  videoReferenceField?: 'reference_video' | 'reference_videos';
 }
 
 export interface RemainingVideoGenerationBriefFamily {
@@ -42,11 +50,14 @@ function profile(
   id: string,
   modelKey: string,
   extras?: {
+    aspectRatios?: readonly string[];
     audioSupported?: boolean;
     defaultAspectRatio?: string;
     defaultSeconds?: number;
     maxReferences?: number;
+    maxVideoReferences?: number;
     maxSeconds?: number;
+    minSeconds?: number;
     nativeFields?: string[];
     negativePromptSupported?: boolean;
     requireImageToVideo?: boolean;
@@ -54,12 +65,16 @@ function profile(
   },
 ): RemainingVideoCapabilityProfile {
   return buildRemainingVideoCapabilityProfile({
+    aspectRatios: extras?.aspectRatios,
     audioSupported: extras?.audioSupported,
     defaultAspectRatio: extras?.defaultAspectRatio,
     defaultSeconds: extras?.defaultSeconds,
+    defaultResolution: getDefaultVideoResolution(modelKey),
     id,
     maxReferences: extras?.maxReferences ?? 1,
+    maxVideoReferences: extras?.maxVideoReferences,
     maxSeconds: extras?.maxSeconds,
+    minSeconds: extras?.minSeconds,
     modelKey,
     nativeFields: extras?.nativeFields,
     negativePromptSupported: extras?.negativePromptSupported,
@@ -125,6 +140,7 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
         lastFrameField: 'last_frame',
         modelLabel: 'Veo',
         negativePromptField: 'negative_prompt',
+        resolutionField: 'resolution',
       },
     },
     {
@@ -153,6 +169,7 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
         durationField: 'seconds',
         firstFrameField: 'input_reference',
         modelLabel: 'Sora',
+        resolutionField: 'resolution',
       },
     },
     {
@@ -211,8 +228,14 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
           MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO,
           {
             audioSupported: true,
-            maxReferences: 4,
-            nativeFields: ['start_image', 'end_image', 'reference_images'],
+            maxReferences: 7,
+            maxVideoReferences: 1,
+            nativeFields: [
+              'start_image',
+              'end_image',
+              'reference_images',
+              'reference_video',
+            ],
             negativePromptSupported: true,
           },
         ),
@@ -256,6 +279,8 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
         lastFrameField: 'end_image',
         modelLabel: 'Kling',
         negativePromptField: 'negative_prompt',
+        resolutionField: 'mode',
+        videoReferenceField: 'reference_video',
       },
     },
     {
@@ -284,6 +309,7 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
         firstFrameField: 'image',
         lastFrameField: 'last_image',
         modelLabel: 'Wan',
+        resolutionField: 'resolution',
       },
     },
     {
@@ -295,32 +321,40 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
           MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0,
           {
             audioSupported: true,
-            nativeFields: ['image'],
+            nativeFields: ['image', 'reference_videos'],
           },
         ),
         profile(
           'seedance-2-0-fast-capability',
           MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0_FAST,
-          { audioSupported: true, nativeFields: ['image'] },
+          {
+            audioSupported: true,
+            nativeFields: ['image', 'reference_videos'],
+          },
         ),
         profile(
           'seedance-2-5-capability',
           MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
           {
             audioSupported: true,
-            nativeFields: ['image'],
+            maxReferences: 30,
+            maxVideoReferences: 10,
+            nativeFields: ['image', 'last_frame_image', 'reference_videos'],
           },
         ),
         profile('fal-seedance-2-0-capability', MODEL_KEYS.FAL_SEEDANCE_2_0, {
           audioSupported: true,
-          nativeFields: ['image'],
+          nativeFields: ['image', 'reference_videos'],
         }),
       ],
       spec: {
         aspectRatioField: 'aspect_ratio',
         durationField: 'duration',
         firstFrameField: 'image',
+        lastFrameField: 'last_frame_image',
         modelLabel: 'Seedance',
+        resolutionField: 'resolution',
+        videoReferenceField: 'reference_videos',
       },
     },
     {
@@ -339,6 +373,7 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
           MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
           {
             nativeFields: ['image'],
+            requireImageToVideo: true,
           },
         ),
       ],
@@ -347,6 +382,7 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
         durationField: 'duration',
         firstFrameField: 'image',
         modelLabel: 'Hailuo',
+        resolutionField: 'resolution',
       },
     },
     {
@@ -354,21 +390,23 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
       compilerVersion: REMAINING_VIDEO_COMPILER_VERSION,
       profiles: [
         profile('vidu-q3-pro-capability', MODEL_KEYS.REPLICATE_VIDU_Q3_PRO, {
-          nativeFields: ['image'],
+          nativeFields: ['start_image', 'end_image'],
         }),
         profile(
           'vidu-q3-turbo-capability',
           MODEL_KEYS.REPLICATE_VIDU_Q3_TURBO,
           {
-            nativeFields: ['image'],
+            nativeFields: ['start_image', 'end_image'],
           },
         ),
       ],
       spec: {
         aspectRatioField: 'aspect_ratio',
         durationField: 'duration',
-        firstFrameField: 'image',
+        firstFrameField: 'start_image',
+        lastFrameField: 'end_image',
         modelLabel: 'Vidu',
+        resolutionField: 'resolution',
       },
     },
     {
@@ -408,6 +446,7 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
         durationField: 'duration',
         firstFrameField: 'image',
         modelLabel: 'Grok Imagine Video',
+        resolutionField: 'resolution',
       },
     },
     {
@@ -452,6 +491,33 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
         durationField: 'duration',
         firstFrameField: 'image',
         modelLabel: 'Luma Dream Machine',
+      },
+    },
+    {
+      compilerId: GEMINI_OMNI_VIDEO_COMPILER_ID,
+      compilerVersion: REMAINING_VIDEO_COMPILER_VERSION,
+      profiles: [
+        profile(
+          'fal-google-gemini-omni-flash-capability',
+          MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
+          {
+            aspectRatios: ASPECT_RATIOS.VEO,
+            audioSupported: true,
+            defaultSeconds: 8,
+            maxReferences: 3,
+            maxSeconds: 10,
+            minSeconds: 3,
+            nativeFields: ['image_url', 'image_urls'],
+            seedSupported: false,
+          },
+        ),
+      ],
+      spec: {
+        aspectRatioField: 'aspect_ratio',
+        durationField: 'duration',
+        extraReferenceField: 'image_urls',
+        firstFrameField: 'image_url',
+        modelLabel: 'Gemini Omni Flash',
       },
     },
     {

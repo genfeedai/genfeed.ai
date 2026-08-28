@@ -32,6 +32,42 @@ type TopazVideoEnhancePayload = IVideoEditParams & {
   parent: string;
 };
 
+export interface VideoUpscaleSelection {
+  cost: number;
+  model: string;
+  targetFps: number;
+  targetResolution: string;
+}
+
+export interface VideoUpscaleModelOption {
+  cost: number;
+  fps: readonly number[];
+  key: string;
+  label: string;
+  resolutions: readonly string[];
+}
+
+export interface UpscaleConfirmData {
+  ingredient: IIngredient | null;
+  cost: number;
+  modelKey: string;
+  videoModelOptions?: VideoUpscaleModelOption[];
+}
+
+const VIDEO_UPSCALE_MODEL_CAPABILITIES: Record<
+  string,
+  Pick<VideoUpscaleModelOption, 'fps' | 'resolutions'>
+> = {
+  [MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER]: {
+    fps: [24, 30, 60, 120],
+    resolutions: ['720p', '1080p', '2k', '4k'],
+  },
+  [MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE]: {
+    fps: [15, 24, 30, 60],
+    resolutions: ['720p', '1080p', '4k'],
+  },
+};
+
 export interface UseEnhanceUpscaleParams {
   onRefresh?: () => void | Promise<void>;
   autoConfirm?: boolean; // not used here (parent typically opens confirm), kept for parity
@@ -58,11 +94,8 @@ export function useEnhanceUpscale({
     modelKey: string;
   } | null>(null);
 
-  const [upscaleConfirmData, setUpscaleConfirmData] = useState<{
-    ingredient: IIngredient | null;
-    cost: number;
-    modelKey: string;
-  } | null>(null);
+  const [upscaleConfirmData, setUpscaleConfirmData] =
+    useState<UpscaleConfirmData | null>(null);
 
   const handleUpscale = useCallback(
     async (ingredient: IIngredient) => {
@@ -84,69 +117,94 @@ export function useEnhanceUpscale({
             : MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE),
       );
 
-      if (!topazModel) {
-        return notificationsService.error('Topaz upscale model not available');
+      const videoModelOptions = isVideo
+        ? models.flatMap((model) => {
+            const capabilities = VIDEO_UPSCALE_MODEL_CAPABILITIES[model.key];
+            if (!capabilities) {
+              return [];
+            }
+            return [
+              {
+                ...capabilities,
+                cost: model.cost || 0,
+                key: model.key,
+                label: model.label,
+              },
+            ];
+          })
+        : undefined;
+      const selectedModel = isVideo
+        ? (topazModel ??
+          models.find((model) => VIDEO_UPSCALE_MODEL_CAPABILITIES[model.key]))
+        : topazModel;
+      if (!selectedModel) {
+        return notificationsService.error('Upscale model not available');
       }
-
-      const cost = topazModel.cost || 0;
+      const cost = selectedModel.cost || 0;
 
       setUpscaleConfirmData({
         cost,
         ingredient,
-        modelKey: topazModel.key as string,
+        modelKey: selectedModel.key as string,
+        ...(videoModelOptions ? { videoModelOptions } : {}),
       });
     },
     [videoEditModels, imageEditModels, notificationsService],
   );
 
-  const executeUpscale = useCallback(async () => {
-    if (!upscaleConfirmData?.ingredient) {
-      return;
-    }
+  const executeUpscale = useCallback(
+    async (selection?: VideoUpscaleSelection) => {
+      if (!upscaleConfirmData?.ingredient) {
+        return;
+      }
 
-    const ingredient = upscaleConfirmData.ingredient;
-    const isVideo = isVideoIngredient(ingredient);
-    const isImage = isImageIngredient(ingredient);
+      const ingredient = upscaleConfirmData.ingredient;
+      const isVideo = isVideoIngredient(ingredient);
+      const isImage = isImageIngredient(ingredient);
 
-    if (!isVideo && !isImage) {
-      return notificationsService.error('Cannot upscale this ingredient type');
-    }
+      if (!isVideo && !isImage) {
+        return notificationsService.error(
+          'Cannot upscale this ingredient type',
+        );
+      }
 
-    setUpscaleConfirmData(null);
+      setUpscaleConfirmData(null);
 
-    await executeSilentWithActionState({
-      errorMessage: 'Failed to upscale ingredient',
-      onSuccess: onRefresh,
-      operation: async () => {
-        if (isVideo) {
-          const service = await getVideosService();
-          return service.postUpscale(ingredient.id, {
-            model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
-            targetFps: 30,
-            targetResolution: '1080p',
-          });
-        } else {
-          const service = await getImagesService();
-          return service.postUpscale(ingredient.id, {
-            faceEnhancement: true,
-            model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-            subjectDetection: 'Foreground',
-            upscaleFactor: '4x',
-          });
-        }
-      },
+      await executeSilentWithActionState({
+        errorMessage: 'Failed to upscale ingredient',
+        onSuccess: onRefresh,
+        operation: async () => {
+          if (isVideo) {
+            const service = await getVideosService();
+            return service.postUpscale(ingredient.id, {
+              model: selection?.model ?? upscaleConfirmData.modelKey,
+              targetFps: selection?.targetFps ?? 30,
+              targetResolution: selection?.targetResolution ?? '1080p',
+            });
+          } else {
+            const service = await getImagesService();
+            return service.postUpscale(ingredient.id, {
+              faceEnhancement: true,
+              model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+              subjectDetection: 'Foreground',
+              upscaleFactor: '4x',
+            });
+          }
+        },
+        setActionStates,
+        stateKey: 'isUpscaling',
+        url: `POST /${isVideo ? 'videos' : 'images'}/${ingredient.id}/upscale`,
+      });
+    },
+    [
+      upscaleConfirmData,
+      getVideosService,
+      getImagesService,
+      notificationsService,
+      onRefresh,
       setActionStates,
-      stateKey: 'isUpscaling',
-      url: `POST /${isVideo ? 'videos' : 'images'}/${ingredient.id}/upscale`,
-    });
-  }, [
-    upscaleConfirmData,
-    getVideosService,
-    getImagesService,
-    notificationsService,
-    onRefresh,
-    setActionStates,
-  ]);
+    ],
+  );
 
   const clearUpscaleConfirm = useCallback(() => {
     setUpscaleConfirmData(null);

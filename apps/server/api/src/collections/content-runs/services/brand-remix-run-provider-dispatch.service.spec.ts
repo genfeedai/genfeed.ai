@@ -1,9 +1,12 @@
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
 import { BrandRemixRunProviderDispatchService } from '@api/collections/content-runs/services/brand-remix-run-provider-dispatch.service';
 import { BrandRemixRunStateService } from '@api/collections/content-runs/services/brand-remix-run-state.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { brandRemixRunConfigSchema } from '@api-types/contracts/brand-remix-run.contract';
+import {
+  type BrandRemixRunConfig,
+  brandRemixRunConfigSchema,
+} from '@api-types/contracts/brand-remix-run.contract';
 import { ConflictException } from '@nestjs/common';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeConfig() {
@@ -154,6 +157,40 @@ describe('BrandRemixRunProviderDispatchService', () => {
     expect(imageGenerationService.generateImage.mock.calls[0]?.[6]).toEqual(
       makeConfig().execution?.generationBrief.references,
     );
+  });
+
+  it('keeps video references out of image generation input', async () => {
+    imageGenerationService.generateImage.mockResolvedValue({
+      data: { id: 'image-1', type: 'ingredient' },
+    });
+    const base = makeConfig();
+    const config = {
+      ...base,
+      execution: {
+        ...base.execution,
+        generationBrief: {
+          ...base.execution?.generationBrief,
+          references: [
+            { assetId: 'product-still', role: 'product' },
+            { assetId: 'motion-reference', role: 'reference_video' },
+          ],
+        },
+      },
+    } as BrandRemixRunConfig;
+
+    await dispatch.dispatchVariant({
+      brandId: 'brand-1',
+      config,
+      onCreditsPrepared: async () => undefined,
+      onPlaceholderCreated: async () => undefined,
+      placeholderScope: { groupId: 'run-1', groupIndex: 0 },
+      request: {} as never,
+      user: { organizationId: 'org-1', userId: 'user-1' } as never,
+    });
+
+    expect(imageGenerationService.generateImage.mock.calls[0]?.[6]).toEqual([
+      { assetId: 'product-still', role: 'product' },
+    ]);
   });
 
   it('threads the immutable run references into every video dispatch', async () => {

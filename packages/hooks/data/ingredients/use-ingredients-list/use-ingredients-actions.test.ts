@@ -11,6 +11,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface ConfirmOptions {
+  children?: unknown;
   confirmLabel?: string;
   label?: string;
   message?: string;
@@ -59,6 +60,14 @@ const {
     upscaleConfirmData: null as {
       cost: number;
       ingredient?: { category: IngredientCategory };
+      modelKey?: string;
+      videoModelOptions?: Array<{
+        cost: number;
+        fps: number[];
+        key: string;
+        label: string;
+        resolutions: string[];
+      }>;
     } | null,
   },
   mockClearUpscaleConfirm: vi.fn(),
@@ -359,8 +368,7 @@ describe('useIngredientsActions', () => {
 
     const confirm = mockOpenConfirm.mock.calls[0][0] as ConfirmOptions;
     expect(confirm.label).toBe('Confirm Upscale');
-    expect(confirm.message).toContain('Upscale video with Topaz AI?');
-    expect(confirm.message).toContain('1200');
+    expect(confirm.message).toContain('Choose the model');
 
     confirm.onClose?.();
     expect(mockClearUpscaleConfirm).toHaveBeenCalled();

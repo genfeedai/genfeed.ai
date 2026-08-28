@@ -7,6 +7,7 @@ import type {
 } from '@genfeedai/interfaces';
 import type {
   IVideoEditParams,
+  IVideoExtendParams,
   IVideoMergeParams,
   IVideoResizeParams,
   IVideoTextOverlayParams,
@@ -87,6 +88,12 @@ export class VideosService extends IngredientsService<Video> {
         serializedData,
       )
       .then((res) => this.mapOne(res.data));
+  }
+
+  public async postExtend(id: string, body: IVideoExtendParams) {
+    return await this.instance
+      .post<JsonApiResponseDocument>(buildResourcePath(id, 'extend'), body)
+      .then((res) => res.data);
   }
 
   public async postResize(id: string, body: IVideoResizeParams) {

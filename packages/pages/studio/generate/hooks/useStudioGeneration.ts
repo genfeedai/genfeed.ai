@@ -65,7 +65,16 @@ export interface UseStudioGenerationReturn {
   jobs: readonly StudioGenerateJob[];
   rehydratePending: (jobs: readonly StudioGenerateJob[]) => void;
   removeJob: (id: string) => void;
-  submit: (promptText: string, references?: string[]) => Promise<void>;
+  submit: (
+    promptText: string,
+    references?: StudioGenerationReferences,
+  ) => Promise<void>;
+}
+
+export interface StudioGenerationReferences {
+  endFrameId?: string;
+  imageReferenceIds?: string[];
+  videoReferenceIds?: string[];
 }
 
 /**
@@ -355,7 +364,7 @@ export function useStudioGeneration({
   }, [brandId, subscribeToPendingJob]);
 
   const submit = useCallback(
-    async (promptText: string, references: string[] = []) => {
+    async (promptText: string, references: StudioGenerationReferences = {}) => {
       if (isGenerating) {
         return;
       }
@@ -369,7 +378,7 @@ export function useStudioGeneration({
       const promptData = buildStudioPromptData({
         brandId,
         promptText,
-        references,
+        references: references.imageReferenceIds ?? [],
         settings,
         type,
       });
@@ -422,9 +431,14 @@ export function useStudioGeneration({
 
           case 'video': {
             const service = await getVideosService();
+            const videoPromptData = {
+              ...promptData,
+              endFrame: references.endFrameId,
+              videoReferences: references.videoReferenceIds,
+            };
             const payload = buildVideoPayload(
-              buildBaseGenerationPayload(promptData, modelKey, brandId),
-              promptData,
+              buildBaseGenerationPayload(videoPromptData, modelKey, brandId),
+              videoPromptData,
             );
             const data = (await service.post({
               ...payload,

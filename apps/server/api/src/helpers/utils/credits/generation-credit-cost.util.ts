@@ -1,5 +1,6 @@
 import { type ByokProvider, PricingType } from '@genfeedai/enums';
 import type { CreditsPricingMetadata } from '@genfeedai/interfaces';
+import { getVideoGenerationResolutionCreditMultiplier } from '@genfeedai/pricing';
 
 export const FALLBACK_GENERATION_CREDIT_COST = 5;
 export const DEFAULT_GENERATION_WIDTH = 1920;
@@ -64,15 +65,14 @@ export function videoOutputCount(outputs?: number): number {
   return outputs || 1;
 }
 
-export function isHighResolutionVideo(resolution?: string): boolean {
-  return resolution === 'high' || resolution === '1080p';
-}
-
-export function applyHighResolutionVideoMultiplier(
+export function applyVideoResolutionCreditMultiplier(
   cost: number,
+  modelKey: string,
   resolution?: string,
 ): number {
-  return isHighResolutionVideo(resolution) ? cost * 2 : cost;
+  return Math.ceil(
+    cost * getVideoGenerationResolutionCreditMultiplier(modelKey, resolution),
+  );
 }
 
 export function doesImageProviderFanOutPerOutput(

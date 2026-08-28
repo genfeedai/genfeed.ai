@@ -72,6 +72,7 @@ export interface StudioQuickActionsProps {
   onManageTags?: (ingredient: IIngredient) => void;
   onPublish?: (ingredient: IIngredient, platform: string) => void;
   onUpscale?: (ingredient: IIngredient) => void;
+  onExtend?: (ingredient: IIngredient) => void;
   onDelete?: (ingredient: IIngredient) => void;
   onClone?: (ingredient: IIngredient) => void;
   onReverse?: (ingredient: IIngredient) => void;
@@ -110,6 +111,7 @@ export interface StudioQuickActionsProps {
   onScopeChange?: (scope: AssetScope, updatedItem?: IIngredient) => void;
   isPublishing?: boolean;
   isUpscaling?: boolean;
+  isExtending?: boolean;
   isDeleting?: boolean;
   isCloning?: boolean;
   isReversing?: boolean;

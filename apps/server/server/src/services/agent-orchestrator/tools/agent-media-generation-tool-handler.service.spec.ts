@@ -662,6 +662,38 @@ describe('AgentMediaGenerationToolHandler generateVideo', () => {
     );
   });
 
+  it('forwards model-native video controls shared by Agent and MCP', async () => {
+    const { handler, internalApi } = createHandler();
+    internalApi.callInternalApi.mockResolvedValue({
+      data: { attributes: { status: 'processing' }, id: 'video-queued' },
+    });
+
+    await handler.generateVideo(
+      {
+        endFrame: 'end-frame-1',
+        model: 'minimax/h3',
+        prompt: 'Continue the movement',
+        references: ['image-reference-1'],
+        resolution: '2K',
+        videoReferences: ['video-reference-1', 'video-reference-2'],
+      },
+      context,
+    );
+
+    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
+      'POST',
+      '/v1/videos',
+      expect.objectContaining({
+        endFrame: 'end-frame-1',
+        model: 'minimax/h3',
+        references: ['image-reference-1'],
+        resolution: '2K',
+        videoReferences: ['video-reference-1', 'video-reference-2'],
+      }),
+      context,
+    );
+  });
+
   it('preserves avatar provider payloads and attachment ownership', async () => {
     const { handler, internalApi } = createHandler();
     internalApi.callInternalApi.mockResolvedValue({

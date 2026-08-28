@@ -132,6 +132,13 @@ export function sanitizeStudioGenerateSettings(
     tags,
     voiceId,
   } = value;
+  const resolvedModelKey =
+    typeof modelKey === 'string' && modelKey.trim()
+      ? modelKey
+      : defaults.modelKey;
+  const allowedResolutions = getStudioResolutions(type, resolvedModelKey).map(
+    (option) => option.value,
+  );
 
   return {
     ...defaults,
@@ -150,19 +157,12 @@ export function sanitizeStudioGenerateSettings(
     isAudioEnabled: isAudioEnabled === true,
     lens: pickFreeText(lens),
     lighting: pickFreeText(lighting),
-    modelKey:
-      typeof modelKey === 'string' && modelKey.trim()
-        ? modelKey
-        : defaults.modelKey,
+    modelKey: resolvedModelKey,
     mood: pickFreeText(mood),
     outputs: pickOutputs(outputs, defaults.outputs),
     prioritize: isRouterPriority(prioritize) ? prioritize : defaults.prioritize,
     promptTemplate: pickFreeText(promptTemplate),
-    resolution: pickString(
-      resolution,
-      getStudioResolutions(type),
-      defaults.resolution,
-    ),
+    resolution: pickString(resolution, allowedResolutions, defaults.resolution),
     scene: pickFreeText(scene),
     // `speech` is per-submission copy, never restored from a previous session.
     speech: undefined,

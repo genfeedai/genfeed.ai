@@ -42,7 +42,7 @@ export const VIDEO_GENERATION_BRIEF_CONTRACT_VERSION = 1;
 export const PRUNAAI_P_VIDEO_COMPILER_ID = 'prunaai-p-video-compiler';
 export const PRUNAAI_P_VIDEO_COMPILER_VERSION = 1;
 export const MINIMAX_H3_COMPILER_ID = 'minimax-h3-compiler';
-export const MINIMAX_H3_COMPILER_VERSION = 1;
+export const MINIMAX_H3_COMPILER_VERSION = 2;
 
 export {
   generationBriefExemptionReasonSchema as videoGenerationBriefExemptionReasonSchema,
@@ -50,6 +50,14 @@ export {
 };
 
 const aspectRatioSchema = z.string().regex(/^[1-9]\d{0,3}:[1-9]\d{0,3}$/);
+const videoActionVerbSchema = z.enum([
+  'generate',
+  'interpolate',
+  'reference_video',
+  'extend',
+  'upscale',
+]);
+const videoDispatchModeSchema = z.enum(['native', 'fabricated']);
 
 // ---------------------------------------------------------------------------
 // Support (compiler resolution)
@@ -114,15 +122,18 @@ export const videoGenerationBriefCompileEvidenceOutputSchema = z
     aspectRatio: aspectRatioSchema,
     durationSeconds: z.number().positive().max(300),
     hasSeed: z.boolean(),
+    resolution: z.string().trim().min(1).max(32).optional(),
   })
   .strict();
 
 export const prunaaiPVideoCompileEvidenceSchema = z
   .object({
+    actionVerb: videoActionVerbSchema.optional(),
     appliedFields: z.array(z.string().trim().min(1).max(255)).max(50),
     briefVersion: z.literal(VIDEO_GENERATION_BRIEF_CONTRACT_VERSION),
     compilerId: z.literal(PRUNAAI_P_VIDEO_COMPILER_ID),
     compilerVersion: z.literal(PRUNAAI_P_VIDEO_COMPILER_VERSION),
+    dispatchMode: videoDispatchModeSchema.optional(),
     fidelityMode: generationFidelityModeSchema,
     mediaKind: z.literal('video'),
     modelKey: z.literal(PRUNAAI_P_VIDEO_MODEL_KEY),
@@ -138,10 +149,12 @@ export const prunaaiPVideoCompileEvidenceSchema = z
 
 export const minimaxH3CompileEvidenceSchema = z
   .object({
+    actionVerb: videoActionVerbSchema.optional(),
     appliedFields: z.array(z.string().trim().min(1).max(255)).max(50),
     briefVersion: z.literal(VIDEO_GENERATION_BRIEF_CONTRACT_VERSION),
     compilerId: z.literal(MINIMAX_H3_COMPILER_ID),
     compilerVersion: z.literal(MINIMAX_H3_COMPILER_VERSION),
+    dispatchMode: videoDispatchModeSchema.optional(),
     fidelityMode: generationFidelityModeSchema,
     mediaKind: z.literal('video'),
     modelKey: z.literal(MINIMAX_H3_MODEL_KEY),
@@ -157,8 +170,10 @@ export const minimaxH3CompileEvidenceSchema = z
 
 export const videoGenerationBriefExemptionEvidenceSchema = z
   .object({
+    actionVerb: videoActionVerbSchema.optional(),
     compilerId: z.null(),
     compilerVersion: z.null(),
+    dispatchMode: videoDispatchModeSchema.optional(),
     modelKey: z.string().trim().min(1).max(255),
     profileId: z.null(),
     profileVersion: z.null(),
@@ -170,10 +185,12 @@ export const videoGenerationBriefExemptionEvidenceSchema = z
 
 export const remainingVideoCompileEvidenceSchema = z
   .object({
+    actionVerb: videoActionVerbSchema.optional(),
     appliedFields: z.array(z.string().trim().min(1).max(255)).max(50),
     briefVersion: z.literal(VIDEO_GENERATION_BRIEF_CONTRACT_VERSION),
     compilerId: z.string().trim().min(1).max(255),
     compilerVersion: z.number().int().positive(),
+    dispatchMode: videoDispatchModeSchema.optional(),
     fidelityMode: generationFidelityModeSchema,
     mediaKind: z.literal('video'),
     modelKey: z.string().trim().min(1).max(255),
@@ -210,7 +227,7 @@ export type RemainingVideoDispatch = z.infer<
   typeof remainingVideoDispatchSchema
 >;
 
-export const REMAINING_VIDEO_COMPILER_VERSION = 1;
+export const REMAINING_VIDEO_COMPILER_VERSION = 2;
 export const VEO_VIDEO_COMPILER_ID = 'veo-video-compiler';
 export const SORA_VIDEO_COMPILER_ID = 'sora-video-compiler';
 export const KLING_VIDEO_COMPILER_ID = 'kling-video-compiler';
@@ -223,6 +240,7 @@ export const GROK_IMAGINE_VIDEO_COMPILER_ID = 'grok-imagine-video-compiler';
 export const RUNWAY_VIDEO_COMPILER_ID = 'runway-video-compiler';
 export const LUMA_VIDEO_COMPILER_ID = 'luma-video-compiler';
 export const FAL_STABLE_VIDEO_COMPILER_ID = 'fal-stable-video-compiler';
+export const GEMINI_OMNI_VIDEO_COMPILER_ID = 'gemini-omni-video-compiler';
 
 // ---------------------------------------------------------------------------
 // Dispatch shapes
@@ -235,6 +253,7 @@ export const prunaaiPVideoDispatchSchema = z
     image: z.string().trim().min(1).max(2_048).optional(),
     prompt: z.string().trim().min(1).max(10_000),
     prompt_upsampling: z.literal(true),
+    resolution: z.enum(['720p', '1080p']),
     seed: z.number().int().optional(),
   })
   .strict();

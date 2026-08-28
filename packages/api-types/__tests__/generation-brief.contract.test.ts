@@ -87,6 +87,19 @@ describe('generation brief contract', () => {
     ).toThrow();
   });
 
+  test('keeps video resolution as first-class requested output', () => {
+    const brief = generationBriefSchema.parse({
+      fidelityMode: 'guided',
+      intent: { objective: 'A cinematic reveal' },
+      mediaKind: 'video',
+      output: { resolution: '4k' },
+      references: [],
+      version: 1,
+    });
+
+    expect(brief.output.resolution).toBe('4k');
+  });
+
   test('rejects unknown versions, modes, missing intent, and unbounded fields', () => {
     const validBrief = {
       fidelityMode: 'off',

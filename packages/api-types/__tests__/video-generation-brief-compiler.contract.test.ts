@@ -35,7 +35,7 @@ describe('video generation brief compiler contract', () => {
     expect(
       videoGenerationBriefSupportSchema.parse({
         compilerId: 'minimax-h3-compiler',
-        compilerVersion: 1,
+        compilerVersion: 2,
         kind: 'compile',
         modelKey: MINIMAX_H3_MODEL_KEY,
         profileId: MINIMAX_H3_CAPABILITY_PROFILE_ID,
@@ -89,7 +89,7 @@ describe('video generation brief compiler contract', () => {
       appliedFields: ['intent.objective', 'output.aspectRatio'],
       briefVersion: 1,
       compilerId: 'minimax-h3-compiler',
-      compilerVersion: 1,
+      compilerVersion: 2,
       fidelityMode: 'off',
       mediaKind: 'video',
       modelKey: MINIMAX_H3_MODEL_KEY,
@@ -103,7 +103,7 @@ describe('video generation brief compiler contract', () => {
 
     expect(evidence).not.toHaveProperty('prompt');
     expect(buildMinimaxH3GenerationSource()).toBe(
-      `generation-brief:v1:${MINIMAX_H3_CAPABILITY_PROFILE_ID}@${MINIMAX_H3_CAPABILITY_PROFILE_VERSION}:minimax-h3-compiler@1`,
+      `generation-brief:v1:${MINIMAX_H3_CAPABILITY_PROFILE_ID}@${MINIMAX_H3_CAPABILITY_PROFILE_VERSION}:minimax-h3-compiler@2`,
     );
   });
 

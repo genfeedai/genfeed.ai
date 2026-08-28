@@ -32,11 +32,15 @@ export interface ImageModelCapability extends BaseModelCapability {
 export interface VideoModelCapability extends BaseModelCapability {
   category: ModelCategory.VIDEO;
   hasEndFrame?: boolean;
+  hasNativeExtend?: boolean;
+  hasVideoReferences?: boolean;
+  maxVideoReferences?: number;
   hasInterpolation?: boolean;
   hasSpeech?: boolean;
   hasAudioToggle?: boolean;
   hasDurationEditing?: boolean;
   hasResolutionOptions?: boolean;
+  requiresFirstFrame?: boolean;
   aspectRatios?: readonly string[];
   defaultAspectRatio?: string;
   usesOrientation?: boolean;
@@ -253,11 +257,15 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       hasAudioToggle: true,
       hasDurationEditing: true,
       hasEndFrame: true,
+      hasInterpolation: true,
+      hasNativeExtend: true,
       hasResolutionOptions: true,
+      hasVideoReferences: true,
       hasSpeech: true,
       isBatchSupported: false,
       maxOutputs: 1,
       maxReferences: 30,
+      maxVideoReferences: 10,
     },
     [MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER]: {
       aspectRatios: ASPECT_RATIOS.IDEOGRAM,
@@ -651,6 +659,7 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       hasAudioToggle: true,
       hasDurationEditing: true,
+      hasResolutionOptions: true,
       hasSpeech: true,
       isBatchSupported: false,
       maxOutputs: 4,
@@ -666,10 +675,13 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       hasDurationEditing: true,
       hasEndFrame: true,
       hasInterpolation: true,
+      hasResolutionOptions: true,
       hasSpeech: true,
+      hasVideoReferences: true,
       isBatchSupported: false,
       maxOutputs: 4,
       maxReferences: 7,
+      maxVideoReferences: 1,
     },
     [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2]: {
       aspectRatios: ASPECT_RATIOS.KLING,
@@ -745,12 +757,15 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
       hasDurationEditing: true,
       hasEndFrame: true,
+      hasInterpolation: true,
       hasResolutionOptions: true,
       hasSpeech: true,
+      hasVideoReferences: true,
       isBatchSupported: false,
       maxOutputs: 1,
       // One first frame plus up to nine reference images.
       maxReferences: 10,
+      maxVideoReferences: 3,
     },
     [MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3]: {
       aspectRatios: ASPECT_RATIOS.HAILUO,
@@ -776,6 +791,7 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       isBatchSupported: false,
       maxOutputs: 4,
       maxReferences: 1,
+      requiresFirstFrame: true,
     },
 
     // Vidu
@@ -788,6 +804,7 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       hasAudioToggle: true,
       hasDurationEditing: true,
       hasEndFrame: true,
+      hasInterpolation: true,
       hasResolutionOptions: true,
       hasSpeech: true,
       isBatchSupported: false,
@@ -803,6 +820,7 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       hasAudioToggle: true,
       hasDurationEditing: true,
       hasEndFrame: true,
+      hasInterpolation: true,
       hasResolutionOptions: true,
       hasSpeech: true,
       isBatchSupported: false,
@@ -1099,6 +1117,7 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       durations: [5, 10],
       hasDurationEditing: true,
       hasEndFrame: true,
+      hasInterpolation: true,
       isBatchSupported: false,
       maxOutputs: 4,
       maxReferences: 1,
@@ -1138,6 +1157,18 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       isBatchSupported: false,
       maxOutputs: 4,
       maxReferences: 1,
+    },
+    [MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH]: {
+      aspectRatios: ASPECT_RATIOS.VEO,
+      category: ModelCategory.VIDEO,
+      defaultAspectRatio: '16:9',
+      defaultDuration: 8,
+      durations: [3, 4, 5, 6, 7, 8, 9, 10],
+      hasDurationEditing: true,
+      hasSpeech: true,
+      isBatchSupported: false,
+      maxOutputs: 4,
+      maxReferences: 3,
     },
     [MODEL_KEYS.FAL_STABLE_VIDEO]: {
       aspectRatios: ASPECT_RATIOS.VEO,

@@ -1,4 +1,3 @@
-import { GenerationBriefCompileError } from '@server/services/generation-brief/generation-brief-compile.error';
 import type {
   GenerationFidelityPolicy,
   VideoGenerationBrief,
@@ -22,6 +21,7 @@ import {
   MINIMAX_H3_MODEL_KEY,
 } from '@api-types/contracts/video-generation-capability-profile.contract';
 import { normalizeAspectRatioForModel } from '@genfeedai/helpers';
+import { GenerationBriefCompileError } from '@server/services/generation-brief/generation-brief-compile.error';
 
 export interface CompileMinimaxH3GenerationBriefInput {
   brief: VideoGenerationBrief;
@@ -32,6 +32,7 @@ interface ResolvedMinimaxH3References {
   firstFrameAssetId?: string;
   lastFrameAssetId?: string;
   referenceImageAssetIds: string[];
+  referenceVideoAssetIds: string[];
 }
 
 function joinPromptParts(parts: string[]): string {
@@ -89,8 +90,14 @@ function resolveReferences(
   let firstFrameAssetId: string | undefined;
   let lastFrameAssetId: string | undefined;
   const referenceImageAssetIds: string[] = [];
+  const referenceVideoAssetIds: string[] = [];
 
   for (const reference of brief.references) {
+    if (reference.role === 'reference_video') {
+      referenceVideoAssetIds.push(reference.assetId);
+      continue;
+    }
+
     if (reference.role === 'first_frame' && firstFrameAssetId === undefined) {
       firstFrameAssetId = reference.assetId;
       continue;
@@ -115,7 +122,12 @@ function resolveReferences(
     );
   }
 
-  return { firstFrameAssetId, lastFrameAssetId, referenceImageAssetIds };
+  return {
+    firstFrameAssetId,
+    lastFrameAssetId,
+    referenceImageAssetIds,
+    referenceVideoAssetIds,
+  };
 }
 
 function buildPrompt(
@@ -209,8 +221,27 @@ export function compileMinimaxH3GenerationBrief(
   const prompt = buildPrompt(input.brief, policy, omitted);
   const aspectRatio = resolveAspectRatio(input.brief);
   const duration = resolveDuration(input.brief);
-  const { firstFrameAssetId, lastFrameAssetId, referenceImageAssetIds } =
-    resolveReferences(input.brief, policy, omitted);
+  const {
+    firstFrameAssetId,
+    lastFrameAssetId,
+    referenceImageAssetIds,
+    referenceVideoAssetIds,
+  } = resolveReferences(input.brief, policy, omitted);
+  if (lastFrameAssetId && !firstFrameAssetId) {
+    throw new GenerationBriefCompileError(
+      'MiniMax H3 requires a first-frame reference before a last-frame reference.',
+      'invalid_brief',
+    );
+  }
+  if (
+    referenceVideoAssetIds.length >
+    MINIMAX_H3_CAPABILITY_PROFILE.maxVideoReferences
+  ) {
+    throw new GenerationBriefCompileError(
+      `MiniMax H3 accepts at most ${MINIMAX_H3_CAPABILITY_PROFILE.maxVideoReferences} video references.`,
+      'invalid_brief',
+    );
+  }
 
   if (input.seed !== undefined) {
     recordOmitted(
@@ -223,6 +254,19 @@ export function compileMinimaxH3GenerationBrief(
   }
 
   const defaults = MINIMAX_H3_CAPABILITY_PROFILE.defaults;
+  const requestedResolution = input.brief.output.resolution;
+  const resolution =
+    requestedResolution === '768P' || requestedResolution === '2K'
+      ? requestedResolution
+      : requestedResolution === undefined
+        ? defaults.resolution
+        : null;
+  if (resolution === null) {
+    throw new GenerationBriefCompileError(
+      `MiniMax H3 does not support resolution "${requestedResolution}".`,
+      'invalid_brief',
+    );
+  }
 
   const dispatch: MinimaxH3Dispatch = {
     duration,
@@ -230,8 +274,8 @@ export function compileMinimaxH3GenerationBrief(
     ratio: firstFrameAssetId !== undefined ? 'adaptive' : aspectRatio,
     reference_audio_urls: [],
     reference_image_urls: referenceImageAssetIds,
-    reference_video_urls: [],
-    resolution: defaults.resolution,
+    reference_video_urls: referenceVideoAssetIds,
+    resolution,
     ...(firstFrameAssetId !== undefined
       ? { first_frame_image: firstFrameAssetId }
       : {}),
@@ -244,6 +288,7 @@ export function compileMinimaxH3GenerationBrief(
     'intent.objective',
     'output.aspectRatio',
     'output.durationSeconds',
+    'output.resolution',
     ...(input.brief.intent.subjects.length > 0 ? ['intent.subjects'] : []),
     ...(input.brief.intent.scene ? ['intent.scene'] : []),
     ...(input.brief.intent.composition ? ['intent.composition'] : []),
@@ -263,6 +308,9 @@ export function compileMinimaxH3GenerationBrief(
     ...(firstFrameAssetId !== undefined ? ['references.first_frame'] : []),
     ...(lastFrameAssetId !== undefined ? ['references.last_frame'] : []),
     ...(referenceImageAssetIds.length > 0 ? ['references.additional'] : []),
+    ...(referenceVideoAssetIds.length > 0
+      ? ['references.reference_video']
+      : []),
   ];
 
   const evidence = {
@@ -278,6 +326,7 @@ export function compileMinimaxH3GenerationBrief(
       aspectRatio,
       durationSeconds: duration,
       hasSeed: false,
+      resolution,
     },
     profileId: MINIMAX_H3_CAPABILITY_PROFILE_ID,
     profileVersion: MINIMAX_H3_CAPABILITY_PROFILE_VERSION,

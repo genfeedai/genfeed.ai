@@ -16,11 +16,14 @@ import {
   LayoutGrid,
   Paintbrush,
 } from 'lucide-react';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useMemo } from 'react';
 
 type GenerationActionCanvasProps = {
   generationType: 'image' | 'video';
+  assetType?: 'image' | 'video';
   /** Current card result (not yet in thread messages). */
   currentResult?: {
     id: string;
@@ -30,6 +33,11 @@ type GenerationActionCanvasProps = {
   referenceIds: string[];
   onToggleReference: (asset: ThreadAsset) => void;
   onOpenCanvas?: () => void;
+  selectionLabel?: string;
+};
+
+type VisualThreadAsset = ThreadAsset & {
+  type: 'image' | 'video';
 };
 
 function libraryHref(type: 'image' | 'video', id: string): string {
@@ -46,20 +54,29 @@ function studioEditHref(type: 'image' | 'video', id: string): string {
 
 export function GenerationActionCanvas({
   generationType,
+  assetType = generationType,
   currentResult,
   isDisabled = false,
   referenceIds,
   onToggleReference,
   onOpenCanvas,
+  selectionLabel,
 }: GenerationActionCanvasProps): ReactElement | null {
+  const translate = useTranslations('agent.generationActionCard.canvas');
   const messages = useAgentChatStore((state) => state.messages);
+  const resolvedSelectionLabel =
+    selectionLabel ?? translate('generationReference');
 
   const assets = useMemo(() => {
     const fromThread = extractThreadAssets(messages).filter(
-      (asset) => asset.type === generationType,
+      (asset): asset is VisualThreadAsset => asset.type === assetType,
     );
 
-    if (!currentResult?.url || !currentResult.id) {
+    if (
+      assetType !== generationType ||
+      !currentResult?.url ||
+      !currentResult.id
+    ) {
       return fromThread;
     }
 
@@ -75,14 +92,14 @@ export function GenerationActionCanvas({
       {
         id: currentResult.id,
         messageId: 'current',
-        title: 'Latest generation',
+        title: translate('latestGeneration'),
         type: generationType,
         url: currentResult.url,
         thumbnailUrl: currentResult.url,
-      } satisfies ThreadAsset,
+      } satisfies VisualThreadAsset,
       ...fromThread,
     ];
-  }, [currentResult, generationType, messages]);
+  }, [assetType, currentResult, generationType, messages, translate]);
 
   if (assets.length === 0) {
     return null;
@@ -94,10 +111,10 @@ export function GenerationActionCanvas({
         <div className="flex min-w-0 items-center gap-1.5">
           <LayoutGrid className="size-3.5 shrink-0 text-muted-foreground" />
           <span className="text-2xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Canvas
+            {translate('title')}
           </span>
           <span className="text-2xs text-muted-foreground/70">
-            {assets.length} asset{assets.length === 1 ? '' : 's'}
+            {translate('assetCount', { count: assets.length })}
           </span>
         </div>
         {onOpenCanvas ? (
@@ -109,13 +126,13 @@ export function GenerationActionCanvas({
             className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-2xs font-medium text-primary hover:bg-primary/10"
           >
             <Paintbrush className="size-3" />
-            Expand
+            {translate('expand')}
           </Button>
         ) : null}
       </div>
 
       <p className="text-2xs leading-snug text-muted-foreground">
-        Select assets to use as generation references, or open them to edit.
+        {translate('instructions', { label: resolvedSelectionLabel })}
       </p>
 
       <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
@@ -133,9 +150,11 @@ export function GenerationActionCanvas({
                   : 'border-border',
               )}
             >
-              <button
+              <Button
                 type="button"
-                disabled={isDisabled}
+                isDisabled={isDisabled}
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 onClick={() => onToggleReference(asset)}
                 className={cn(
                   'relative block aspect-square w-full overflow-hidden',
@@ -146,8 +165,14 @@ export function GenerationActionCanvas({
                 aria-pressed={isSelected}
                 aria-label={
                   isSelected
-                    ? `Remove ${asset.title ?? 'asset'} from references`
-                    : `Use ${asset.title ?? 'asset'} as reference`
+                    ? translate('removeReferenceAria', {
+                        label: resolvedSelectionLabel,
+                        title: asset.title ?? translate('assetFallback'),
+                      })
+                    : translate('useReferenceAria', {
+                        label: resolvedSelectionLabel,
+                        title: asset.title ?? translate('assetFallback'),
+                      })
                 }
               >
                 {asset.type === 'video' ? (
@@ -162,7 +187,7 @@ export function GenerationActionCanvas({
                 ) : (
                   <img
                     src={previewUrl}
-                    alt={asset.title ?? 'Generated asset'}
+                    alt={asset.title ?? translate('generatedAssetAlt')}
                     className="size-full object-cover"
                   />
                 )}
@@ -173,25 +198,25 @@ export function GenerationActionCanvas({
                     </span>
                   </span>
                 ) : null}
-              </button>
+              </Button>
 
               <div className="flex border-t border-border">
-                <a
-                  href={libraryHref(generationType, asset.id)}
+                <Link
+                  href={libraryHref(asset.type, asset.id)}
                   className="flex flex-1 items-center justify-center gap-0.5 px-1 py-1 text-2xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
-                  title="Open in library"
+                  title={translate('openLibraryTitle')}
                 >
                   <ImageIcon className="size-3" />
-                  Library
-                </a>
-                <a
-                  href={studioEditHref(generationType, asset.id)}
+                  {translate('library')}
+                </Link>
+                <Link
+                  href={studioEditHref(asset.type, asset.id)}
                   className="flex flex-1 items-center justify-center gap-0.5 border-l border-border px-1 py-1 text-2xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
-                  title="Open in Studio"
+                  title={translate('openStudioTitle')}
                 >
                   <ExternalLink className="size-3" />
-                  Studio
-                </a>
+                  {translate('studio')}
+                </Link>
               </div>
             </div>
           );
@@ -200,8 +225,10 @@ export function GenerationActionCanvas({
 
       {referenceIds.length > 0 ? (
         <p className="text-2xs text-primary">
-          {referenceIds.length} reference
-          {referenceIds.length === 1 ? '' : 's'} selected for next generate
+          {translate('selectedCount', {
+            count: referenceIds.length,
+            label: resolvedSelectionLabel,
+          })}
         </p>
       ) : null}
     </div>

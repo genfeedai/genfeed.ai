@@ -9,6 +9,7 @@ import { TriangleAlert } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export default function ModalConfirm({
+  children,
   label = 'Confirm',
   message = 'Are you sure?',
   confirmLabel = 'Yes',
@@ -79,6 +80,8 @@ export default function ModalConfirm({
 
         <p>{message}</p>
       </div>
+
+      {children}
 
       <ModalActions>
         <Button

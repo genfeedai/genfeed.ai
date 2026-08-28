@@ -398,6 +398,7 @@ export interface ModalPostSimpleActionsProps {
 }
 
 export interface ModalConfirmProps extends ModalVisibilityProps {
+  children?: ReactNode;
   label?: string;
   message?: string;
   confirmLabel?: string;

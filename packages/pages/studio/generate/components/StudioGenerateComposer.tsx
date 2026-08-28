@@ -1,11 +1,19 @@
 'use client';
 
 import {
+  hasEndFrame,
+  hasVideoReferences,
+  MODEL_KEYS,
+  requiresFirstFrame,
+} from '@genfeedai/constants';
+import {
   ButtonSize,
   ButtonVariant,
   type RouterPriority,
 } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
+import { quoteVideoGenerationCredits } from '@genfeedai/pricing';
 import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
 import StudioGenerateSettingsPopover from '@pages/studio/generate/components/StudioGenerateSettingsPopover';
 import StudioGenerateTypeSelector from '@pages/studio/generate/components/StudioGenerateTypeSelector';
@@ -71,20 +79,60 @@ export default function StudioGenerateComposer({
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
 
   const isPromptEmpty = prompt.trim().length === 0;
+  const isAutoMode = settings.modelKey === AUTO_MODEL_OPTION_VALUE;
+  const selectedModel = models.find((model) => model.key === settings.modelKey);
+  const isFirstFrameMissing =
+    type === 'video' &&
+    !isAutoMode &&
+    requiresFirstFrame(settings.modelKey) &&
+    !attachedAssets.some((asset) => asset.role === 'startFrame');
+  const isReferenceCombinationInvalid =
+    type === 'video' &&
+    settings.modelKey === MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5 &&
+    attachedAssets.some((asset) => asset.role === 'videoReference') &&
+    attachedAssets.some(
+      (asset) => asset.role === 'startFrame' || asset.role === 'endFrame',
+    );
+  const isKling4KReferenceInvalid =
+    type === 'video' &&
+    settings.modelKey === MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO &&
+    settings.resolution === '4k' &&
+    attachedAssets.some((asset) => asset.role === 'videoReference');
   // Submitting mid-catalog-load would resolve the model against an empty or
   // stale list, so the send button waits for the type's models to land.
   const isAwaitingModels = capabilities.hasModelSelection && isLoadingModels;
   const isSubmitBlocked =
     isGenerating ||
     isPromptEmpty ||
+    isFirstFrameMissing ||
+    isReferenceCombinationInvalid ||
+    isKling4KReferenceInvalid ||
     isAwaitingModels ||
     isListening ||
     isTranscribing ||
     isUploading;
-  const isAutoMode = settings.modelKey === AUTO_MODEL_OPTION_VALUE;
+  const estimatedCredits =
+    type === 'video' && selectedModel
+      ? quoteVideoGenerationCredits({
+          cost: selectedModel.cost,
+          costPerUnit: selectedModel.costPerUnit,
+          duration: settings.duration,
+          minCost: selectedModel.minCost,
+          modelKey: selectedModel.key,
+          outputs: settings.outputs,
+          pricingType: selectedModel.pricingType,
+          resolution: settings.resolution,
+        })
+      : null;
 
   const handleModelChange = (_name: string, values: string[]) => {
-    onSettingsChange({ modelKey: values[0] ?? AUTO_MODEL_OPTION_VALUE });
+    const modelKey = values[0] ?? AUTO_MODEL_OPTION_VALUE;
+    onSettingsChange({
+      modelKey,
+      ...(type === 'video' && modelKey !== AUTO_MODEL_OPTION_VALUE
+        ? { resolution: getDefaultVideoResolution(modelKey) ?? '' }
+        : {}),
+    });
   };
 
   return (
@@ -95,7 +143,7 @@ export default function StudioGenerateComposer({
             <PromptBarAttachedAssetsTray
               assets={attachedAssets}
               isDisabled={isGenerating}
-              onBrowseAssets={onOpenLibrary}
+              onBrowseAssets={() => onOpenLibrary('reference')}
               onRemoveAttachedAsset={onRemoveAttachedAsset}
             />
           </div>
@@ -186,18 +234,83 @@ export default function StudioGenerateComposer({
             type={type}
           />
 
-          {capabilities.hasReferences ? (
+          {capabilities.hasReferences && type === 'image' ? (
             <PromptBarReferenceControls
               accept="image/*"
               isAttachmentDisabled={isGenerating || isUploading}
               isLibraryDisabled={isGenerating}
-              onAddFiles={onAddFiles}
-              onOpenLibrary={onOpenLibrary}
+              onAddFiles={(files) => onAddFiles(files, 'reference')}
+              onOpenLibrary={() => onOpenLibrary('reference')}
             />
+          ) : null}
+
+          {type === 'video' ? (
+            <>
+              <PromptBarReferenceControls
+                accept="image/*"
+                isAttachmentDisabled={isGenerating || isUploading}
+                isLibraryDisabled={isGenerating}
+                label={translate('startFrame')}
+                onAddFiles={(files) => onAddFiles(files, 'startFrame')}
+                onOpenLibrary={() => onOpenLibrary('startFrame')}
+              />
+              {!isAutoMode && hasEndFrame(settings.modelKey) ? (
+                <PromptBarReferenceControls
+                  accept="image/*"
+                  isAttachmentDisabled={isGenerating || isUploading}
+                  isLibraryDisabled={isGenerating}
+                  label={translate('endFrame')}
+                  onAddFiles={(files) => onAddFiles(files, 'endFrame')}
+                  onOpenLibrary={() => onOpenLibrary('endFrame')}
+                />
+              ) : null}
+              {!isAutoMode && hasVideoReferences(settings.modelKey) ? (
+                <PromptBarReferenceControls
+                  accept="video/*"
+                  isAttachmentDisabled={isGenerating || isUploading}
+                  isLibraryDisabled={isGenerating}
+                  label={translate('videoReference')}
+                  onAddFiles={(files) => onAddFiles(files, 'videoReference')}
+                  onOpenLibrary={() => onOpenLibrary('videoReference')}
+                />
+              ) : null}
+            </>
           ) : null}
         </div>
 
         <div className="-mr-2 flex shrink-0 items-center">
+          {isFirstFrameMissing ? (
+            <span
+              aria-live="polite"
+              className="mr-2 text-xs font-medium text-destructive"
+            >
+              {translate('startFrameRequired')}
+            </span>
+          ) : null}
+          {isReferenceCombinationInvalid ? (
+            <span
+              aria-live="polite"
+              className="mr-2 text-xs font-medium text-destructive"
+            >
+              {translate('seedanceReferenceConflict')}
+            </span>
+          ) : null}
+          {isKling4KReferenceInvalid ? (
+            <span
+              aria-live="polite"
+              className="mr-2 text-xs font-medium text-destructive"
+            >
+              {translate('kling4KReferenceConflict')}
+            </span>
+          ) : null}
+          {estimatedCredits !== null ? (
+            <span
+              aria-live="polite"
+              className="mr-2 text-xs font-medium text-muted-foreground"
+            >
+              {translate('estimatedCredits', { credits: estimatedCredits })}
+            </span>
+          ) : null}
           {isListening || isTranscribing || shouldShowVoiceInput ? (
             <PromptBarVoiceControl
               isDisabled={isGenerating}

@@ -1,7 +1,7 @@
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
-  IsEnum,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -20,20 +20,20 @@ export class VideoEditDto {
 
   @IsNumber()
   @IsOptional()
-  @Min(24)
+  @Min(1)
   @Max(120)
   @ApiProperty({
     default: 60,
     description: 'Target FPS for video upscaling',
-    maximum: 60,
-    minimum: 24,
+    maximum: 120,
+    minimum: 1,
     required: false,
   })
   readonly targetFps?: number;
 
   @IsString()
   @IsOptional()
-  @IsEnum(['720p', '1080p', '2k', '4k'])
+  @IsIn(['720p', '1080p', '2k', '4k'])
   @ApiProperty({
     default: '4k',
     description: 'Target resolution for video upscaling',

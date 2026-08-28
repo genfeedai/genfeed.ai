@@ -199,6 +199,13 @@ describe('VideoGenerationService', () => {
       cdnUrl: REFERENCE_CDN,
       ingredientsEndpoint: REFERENCE_INGREDIENTS_ENDPOINT,
     };
+    const filesClientService = {
+      getPresignedDownloadUrl: vi
+        .fn()
+        .mockImplementation((id: string) =>
+          Promise.resolve(`https://s3.example.com/videos/${id}?signed=true`),
+        ),
+    };
     const loggerService = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -210,6 +217,7 @@ describe('VideoGenerationService', () => {
       assetsService as never,
       brandsService as never,
       configService as never,
+      filesClientService as never,
       ingredientsService as never,
       loggerService,
       modelRegistrationService as never,
@@ -263,6 +271,7 @@ describe('VideoGenerationService', () => {
       creditsUtilsService,
       failedGenerationService,
       falService,
+      filesClientService,
       ingredientsService,
       klingAIService,
       metadataService,
@@ -581,14 +590,19 @@ describe('VideoGenerationService', () => {
 
       await service.generateVideo(
         buildUser(),
-        baseDto({ outputs: 2, resolution: 'high' }),
+        baseDto({
+          model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+          outputs: 2,
+          resolution: 'pro',
+        }),
         buildRequest({ creditsConfig: { deferred: true } }),
       );
 
-      // base 10 x2 (high res) x2 (two non-batch outputs) = 40
+      // Base 10 × Kling Pro's published 4/3 band, rounded to 14, × two
+      // non-batch outputs = 28.
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).toHaveBeenCalledWith(ORG, 40);
+      ).toHaveBeenCalledWith(ORG, 28);
     });
 
     it('does not multiply authorization by outputs for batch-capable models', async () => {
@@ -702,6 +716,44 @@ describe('VideoGenerationService', () => {
       expect(externalIds).toContain('kling-gen-1');
       expect(externalIds).not.toContain('');
     });
+
+    it('preserves every reference role on additional output lineage', async () => {
+      const { ingredientsService, service, sharedService } = createService();
+      ingredientsService.findOne.mockImplementation(
+        ({ category, id }: { category: string; id: string }) =>
+          Promise.resolve(
+            category === IngredientCategory.IMAGE || id === 'video-reference-1'
+              ? {
+                  id,
+                  ...(id === 'video-reference-1'
+                    ? { metadata: { duration: 5 } }
+                    : {}),
+                }
+              : null,
+          ),
+      );
+
+      await service.generateVideo(
+        buildUser(),
+        baseDto({
+          endFrame: 'end-frame-1',
+          model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO,
+          outputs: 2,
+          references: ['start-frame-1'],
+          videoReferences: ['video-reference-1'],
+        }),
+        buildRequest(),
+      );
+
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledTimes(2);
+      for (const [, payload] of sharedService.createMediaDocuments.mock.calls) {
+        expect(payload.sourceIds).toEqual([
+          'start-frame-1',
+          'end-frame-1',
+          'video-reference-1',
+        ]);
+      }
+    });
   });
 
   // Finding 7 — bust the shared video cache tag after the write.
@@ -807,6 +859,41 @@ describe('VideoGenerationService', () => {
       );
     });
 
+    it('dispatches a tenant-scoped video reference through a provider-readable signed URL', async () => {
+      const {
+        filesClientService,
+        ingredientsService,
+        replicateService,
+        service,
+      } = createService();
+      ingredientsService.findOne.mockResolvedValue({
+        id: 'video-reference-1',
+        metadata: { duration: 8 },
+      });
+
+      await service.generateVideo(
+        buildUser(),
+        baseDto({
+          model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+          videoReferences: ['video-reference-1'],
+        }),
+        buildRequest(),
+      );
+
+      expect(filesClientService.getPresignedDownloadUrl).toHaveBeenCalledWith(
+        'video-reference-1',
+        'videos',
+      );
+      expect(replicateService.generateTextToVideo).toHaveBeenCalledWith(
+        MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+        expect.objectContaining({
+          reference_videos: [
+            'https://s3.example.com/videos/video-reference-1?signed=true',
+          ],
+        }),
+      );
+    });
+
     it('records an omitted signal when Guided fidelity cannot honor a constraint', async () => {
       const { service, sharedService } = createService();
 
@@ -879,15 +966,14 @@ describe('VideoGenerationService', () => {
 
       await service.generateVideo(
         buildUser(),
-        baseDto({ model: COMPILED_MODEL_MINIMAX, resolution: 'high' }),
+        baseDto({ model: COMPILED_MODEL_MINIMAX, resolution: '2K' }),
         buildRequest({ creditsConfig: { deferred: true } }),
       );
 
-      // base 10 x2 (high res), single non-batch output — identical
-      // multiplication rule as the exempt-path assertion above (finding 4).
+      // MiniMax H3's published 2K default keeps the base reservation.
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).toHaveBeenCalledWith(ORG, 20);
+      ).toHaveBeenCalledWith(ORG, 10);
     });
 
     // Security: the persisted snapshot is the only durable record of what was

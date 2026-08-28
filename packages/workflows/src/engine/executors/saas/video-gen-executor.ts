@@ -74,8 +74,20 @@ export class VideoGenExecutor extends BaseExecutor {
         'lastFrame',
         undefined,
       );
+    const videoReference =
+      (inputs.get('videoReference') as string) ??
+      this.getOptionalConfig<string | undefined>(
+        node.config,
+        'videoReference',
+        undefined,
+      );
 
     const params: Record<string, unknown> = {
+      actionVerb: this.getOptionalConfig<string | undefined>(
+        node.config,
+        'actionVerb',
+        undefined,
+      ),
       brandId: this.getOptionalConfig<string | undefined>(
         node.config,
         'brandId',
@@ -93,6 +105,11 @@ export class VideoGenExecutor extends BaseExecutor {
         'negativePrompt',
         undefined,
       ),
+      parentIngredientId: this.getOptionalConfig<string | undefined>(
+        node.config,
+        'parentIngredientId',
+        undefined,
+      ),
       prompt,
       references: image ? [image] : undefined,
       seed: this.getOptionalConfig<number | undefined>(
@@ -100,6 +117,7 @@ export class VideoGenExecutor extends BaseExecutor {
         'seed',
         undefined,
       ),
+      videoReferences: videoReference ? [videoReference] : undefined,
       width: this.getOptionalConfig<number>(node.config, 'width', 1920),
     };
 
