@@ -143,6 +143,7 @@ export class AdOptimizationRecommendationsService {
 
     try {
       const now = new Date();
+      // tenant-scope-ignore: platform maintenance sweep intentionally finds stale recommendations across organizations; each mutation below is scoped by the row's organizationId
       const docs = await this.prisma.adOptimizationRecommendation.findMany({
         where: {
           AND: [
