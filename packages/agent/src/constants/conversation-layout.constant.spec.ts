@@ -41,6 +41,10 @@ describe('conversation-layout.constant', () => {
     expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).not.toContain(
       'bg-transparent',
     );
+    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain('-mx-3');
+    expect(AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS).toContain(
+      'w-[calc(100%+1.5rem)]',
+    );
   });
 
   it('keeps a masked spacing step above the sticky user prompt', () => {

@@ -11,6 +11,7 @@ vi.mock('next-intl', () => ({
 vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
   AgentChatInput: (props: {
     disabled?: boolean;
+    isTopAttached?: boolean;
     showStop?: boolean;
     willQueueFollowUp?: boolean;
   }) => (
@@ -18,6 +19,7 @@ vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
       data-disabled={props.disabled ? 'true' : 'false'}
       data-show-stop={props.showStop ? 'true' : 'false'}
       data-testid="chat-input"
+      data-top-attached={props.isTopAttached ? 'true' : 'false'}
       data-will-queue={props.willQueueFollowUp ? 'true' : 'false'}
     />
   ),
@@ -32,8 +34,18 @@ vi.mock('@genfeedai/agent/components/ConversationComposerShellContext', () => ({
 }));
 
 vi.mock('@genfeedai/agent/components/GenerationActionCard', () => ({
-  GenerationActionCard: ({ className }: { className?: string }) => (
-    <div className={className} data-testid="generation-action-card" />
+  GenerationActionCard: ({
+    className,
+    defaultCollapsed,
+  }: {
+    className?: string;
+    defaultCollapsed?: boolean;
+  }) => (
+    <div
+      className={className}
+      data-default-collapsed={defaultCollapsed ? 'true' : 'false'}
+      data-testid="generation-action-card"
+    />
   ),
 }));
 
@@ -141,12 +153,17 @@ describe('AgentChatPromptBar', () => {
     expect(card.parentElement).not.toHaveClass('pb-2');
   });
 
-  it('keeps the generation card 5% narrower than the prompt bar', () => {
+  it('attaches a collapsed generation mode strip to the one prompt bar', () => {
     renderPromptBar(false);
 
     const card = screen.getByTestId('generation-action-card');
-    expect(card).toHaveClass('w-[95%]');
-    expect(card).toHaveClass('mx-auto');
+    expect(card).toHaveClass('w-full');
+    expect(card).not.toHaveClass('w-[95%]');
+    expect(card).toHaveAttribute('data-default-collapsed', 'true');
+    expect(screen.getByTestId('chat-input')).toHaveAttribute(
+      'data-top-attached',
+      'true',
+    );
   });
 
   it('renders queued follow-ups above the composer', () => {

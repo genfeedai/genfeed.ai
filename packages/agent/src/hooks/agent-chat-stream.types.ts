@@ -1,3 +1,4 @@
+import type { ConversationComposerGenerationMode } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
@@ -18,6 +19,7 @@ export interface SendStreamMessageOptions {
   brandId?: string;
   /** Reused only for recovery of an ambiguous acknowledgement. */
   clientRequestId?: string;
+  generationMode?: ConversationComposerGenerationMode;
   planModeEnabled?: boolean;
 }
 

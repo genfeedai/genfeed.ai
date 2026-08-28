@@ -24,7 +24,6 @@ import {
   SquarePen,
   Undo2,
 } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactElement, RefObject } from 'react';
 import {
@@ -107,6 +106,17 @@ function ThreadActivityIndicator({
     tone: statusMeta.tone,
   });
 
+  if (statusMeta.tone === 'failed') {
+    return (
+      <span
+        aria-label={statusMeta.label}
+        className="size-2 shrink-0 rounded-full bg-destructive"
+        role="status"
+        title={statusMeta.label}
+      />
+    );
+  }
+
   return (
     <Badge
       className="shrink-0 capitalize"
@@ -180,31 +190,9 @@ export function AgentThreadListRow({
   const shouldShowActions = renamingThreadId === conv.id || isMenuOpen;
   const preview = resolveThreadListPreview(conv);
   const threadTitle = conv.title || 'Untitled';
-  const generatedAssetUrl = conv.lastGeneratedAssetUrl?.trim() || null;
-
   const activityIndicator = statusMeta ? (
     <ThreadActivityIndicator statusMeta={statusMeta} />
   ) : null;
-
-  const thumbSlot = (
-    <span className="mt-0.5 size-8 shrink-0">
-      {generatedAssetUrl ? (
-        <Image
-          alt={`Latest generated output for ${threadTitle}`}
-          className="size-8 rounded-md object-cover"
-          height={32}
-          src={generatedAssetUrl}
-          unoptimized
-          width={32}
-        />
-      ) : (
-        <span
-          className="block size-8 rounded-md bg-foreground/[0.06]"
-          aria-hidden
-        />
-      )}
-    </span>
-  );
 
   return (
     <div
@@ -221,7 +209,6 @@ export function AgentThreadListRow({
     >
       {renamingThreadId === conv.id ? (
         <div className="flex min-h-10 flex-1 items-center gap-2 px-2.5 py-1.5">
-          {thumbSlot}
           <Input
             ref={renameInputRef}
             aria-label={`Rename ${conv.title || 'thread'}`}
@@ -278,7 +265,6 @@ export function AgentThreadListRow({
             onCancelPrefetch(conv.id);
           }}
         >
-          {thumbSlot}
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
               {conv.isPinned ? (

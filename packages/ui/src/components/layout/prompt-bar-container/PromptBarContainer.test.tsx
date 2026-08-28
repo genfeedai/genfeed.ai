@@ -91,7 +91,7 @@ describe('PromptBarContainer', () => {
     expect(topStack).toHaveTextContent('banner');
   });
 
-  it('paints an opaque background block so transcript text cannot pass under the dock', () => {
+  it('leaves the prompt slot transparent so the glass surface can sample the canvas', () => {
     const { container } = render(
       <PromptBarContainer>
         <div>content</div>
@@ -99,14 +99,10 @@ describe('PromptBarContainer', () => {
     );
 
     const block = container.querySelector('[data-composer-bg-block]');
-    expect(block).toBeInTheDocument();
-    expect(block).toHaveAttribute('aria-hidden', 'true');
-    expect(block).toHaveClass('bg-background');
-    expect(block).toHaveClass('absolute');
-    expect(block).toHaveClass('inset-0');
+    expect(block).not.toBeInTheDocument();
   });
 
-  it('keeps the opaque block on the prompt bar only so top cards are not cut', () => {
+  it('does not insert opaque blocks between attached content and the prompt bar', () => {
     const { container } = render(
       <PromptBarContainer topContent={<div>banner</div>}>
         <div>content</div>
@@ -120,7 +116,7 @@ describe('PromptBarContainer', () => {
       container.querySelector(
         '[data-composer-prompt-slot] > [data-composer-bg-block]',
       ),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
     expect(
       container.querySelector(
         '[data-composer-top-stack] [data-composer-bg-block]',

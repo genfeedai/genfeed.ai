@@ -8,7 +8,7 @@ import type { HTMLAttributes, ReactNode } from 'react';
  * Keep visual tokens here so both bars stay cousins, not look-alikes by accident.
  */
 export const PROMPT_BAR_SURFACE_CLASS =
-  'overflow-hidden rounded-2xl border border-border bg-background/70 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.65),0_0_0_1px_rgba(0,0,0,0.25)] backdrop-blur-xl backdrop-saturate-150 transition-[border-color,background-color,box-shadow] focus-within:border-border-strong focus-within:bg-background/78';
+  'overflow-hidden rounded-[var(--radius-workspace-composer)] bg-background/70 shadow-composer backdrop-blur-xl backdrop-saturate-150 transition-[background-color,box-shadow] focus-within:bg-background/80 focus-within:shadow-composer-strong';
 
 export interface PromptBarShellProps extends HTMLAttributes<HTMLDivElement> {
   /**

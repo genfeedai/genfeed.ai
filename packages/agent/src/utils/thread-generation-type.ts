@@ -8,20 +8,16 @@ function isThreadGenerationType(
   return value === 'image' || value === 'video';
 }
 
-/**
- * First image/video generation card in a thread locks that conversation.
- * Image and video do not share a thread — a later video card must not
- * replace the docked Generate Image form (and vice versa).
- */
+/** Resolve the most recently prepared media type for the docked controls. */
 export function resolveThreadGenerationType(
   messages: readonly AgentChatMessage[],
   threadId?: string | null,
 ): ThreadGenerationType | null {
-  const chronological = [...messages].toSorted((left, right) =>
-    left.createdAt.localeCompare(right.createdAt),
+  const reverseChronological = [...messages].toSorted((left, right) =>
+    right.createdAt.localeCompare(left.createdAt),
   );
 
-  for (const message of chronological) {
+  for (const message of reverseChronological) {
     if (threadId && message.threadId !== threadId) {
       continue;
     }

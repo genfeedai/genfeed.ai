@@ -145,6 +145,24 @@ describe('AgentChatMessage', () => {
     vi.useRealTimers();
   });
 
+  it('aligns assistant text and padded user-card text to one content rail', () => {
+    const assistant = render(
+      <AgentChatMessage message={buildMessage('assistant', 'Aligned reply')} />,
+    );
+    const assistantSurface = assistant.container.querySelector(
+      '[data-message-role="assistant"]',
+    );
+    expect(assistantSurface).not.toHaveClass('px-0.5');
+
+    assistant.unmount();
+    const user = render(
+      <AgentChatMessage message={buildMessage('user', 'Aligned prompt')} />,
+    );
+    expect(
+      user.container.querySelector('[data-message-role="user"]'),
+    ).toHaveClass('-mx-3', 'px-3');
+  });
+
   it('does not truncate long assistant content', () => {
     const longAssistantContent = `${'A'.repeat(700)} tail-marker-assistant`;
 

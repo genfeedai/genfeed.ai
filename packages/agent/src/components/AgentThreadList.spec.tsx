@@ -732,7 +732,7 @@ describe('AgentThreadList', () => {
     expect(storeState.threads[0]?.title).toBe('Renamed thread');
   });
 
-  it('renders compact context previews below thread titles', async () => {
+  it('renders compact context previews without an avatar or thumbnail column', async () => {
     const thread = createThread('conv-1', 'Compact row', {
       lastAssistantPreview: 'Three portraits are ready',
       lastGeneratedAssetUrl: 'https://cdn.test/portrait.png',
@@ -747,10 +747,10 @@ describe('AgentThreadList', () => {
     expect(await screen.findByText('Compact row')).toBeInTheDocument();
     expect(screen.getByText('Three portraits are ready')).toBeInTheDocument();
     expect(
-      screen.getByRole('img', {
+      screen.queryByRole('img', {
         name: 'Latest generated output for Compact row',
       }),
-    ).toHaveAttribute('src', 'https://cdn.test/portrait.png');
+    ).toBeNull();
     expect(screen.queryByText('Running')).toBeNull();
   });
 
@@ -1052,6 +1052,23 @@ describe('AgentThreadList', () => {
     const status = screen.getByText('Running');
     expect(status.querySelector('svg')).not.toBeNull();
     expect(status.querySelector('.animate-ping')).toBeNull();
+  });
+
+  it('shows failed state as an accessible red dot without a text badge', async () => {
+    const thread = createThread('conv-1', 'Failed thread', {
+      runStatus: 'failed',
+    } as Partial<AgentThread>);
+    const apiService = createApiService({
+      getThreads: vi.fn().mockResolvedValue([thread]),
+      unarchiveThread: vi.fn(),
+    });
+
+    render(<AgentThreadList apiService={apiService as never} />);
+
+    expect(await screen.findByText('Failed thread')).toBeInTheDocument();
+    const failed = screen.getByRole('status', { name: 'Failed' });
+    expect(failed).toHaveClass('rounded-full', 'bg-destructive');
+    expect(failed).toHaveTextContent('');
   });
 
   it('does not show a status pill for a non-active thread with stale running status', async () => {

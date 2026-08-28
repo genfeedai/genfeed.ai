@@ -1,3 +1,16 @@
+import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
+import {
+  AgentMessageRole,
+  AgentType,
+  SubscriptionTier,
+} from '@genfeedai/enums';
+import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
+import {
+  AgentScopeContextService,
+  type PreparedAgentScope,
+} from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
 import { AgentCampaignsService } from '@server/collections/agent-campaigns/services/agent-campaigns.service';
 import { type AgentMemoryDocument } from '@server/collections/agent-memories/schemas/agent-memory.schema';
 import {
@@ -40,25 +53,24 @@ import {
 import { ThreadContextCompressorService } from '@server/services/agent-threading/services/thread-context-compressor.service';
 import type { OpenRouterMessage } from '@server/services/integrations/openrouter/dto/openrouter.dto';
 import { SkillRuntimeService } from '@server/services/skill-runtime/skill-runtime.service';
-import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
-import {
-  AgentMessageRole,
-  AgentType,
-  SubscriptionTier,
-} from '@genfeedai/enums';
-import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
-import {
-  AgentScopeContextService,
-  type PreparedAgentScope,
-} from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
 
 const PAID_SUBSCRIPTION_TIERS = new Set<string>([
   SubscriptionTier.PRO,
   SubscriptionTier.SCALE,
   SubscriptionTier.ENTERPRISE,
 ]);
+
+function buildGenerationModePrompt(
+  mode: AgentChatRequest['generationMode'],
+): string {
+  if (mode === 'image') {
+    return 'The operator explicitly selected Image mode for this turn. When preparing media generation, call prepare_generation with generationType=image. Do not choose video.';
+  }
+  if (mode === 'video') {
+    return 'The operator explicitly selected Video mode for this turn. When preparing media generation, call prepare_generation with generationType=video. Do not choose image.';
+  }
+  return '';
+}
 
 @Injectable()
 export class AgentOrchestratorContextService {
@@ -215,6 +227,9 @@ export class AgentOrchestratorContextService {
     const skillPromptSuffix = this.skillRuntimeService
       ? this.skillRuntimeService.buildSkillPromptSections(resolvedSkills)
       : '';
+    const generationModePrompt = buildGenerationModePrompt(
+      request.generationMode,
+    );
 
     if (shouldUseOnboardingPrompt) {
       return {
@@ -248,7 +263,12 @@ export class AgentOrchestratorContextService {
     );
 
     if (thread?.systemPrompt) {
-      const prompt = [thread.systemPrompt, skillPromptSuffix, pageContextPrompt]
+      const prompt = [
+        thread.systemPrompt,
+        skillPromptSuffix,
+        generationModePrompt,
+        pageContextPrompt,
+      ]
         .filter(Boolean)
         .join('\n\n');
       return {
@@ -265,6 +285,7 @@ export class AgentOrchestratorContextService {
       const prompt = [
         request.systemPromptOverride,
         skillPromptSuffix,
+        generationModePrompt,
         pageContextPrompt,
       ]
         .filter(Boolean)
@@ -278,11 +299,17 @@ export class AgentOrchestratorContextService {
         systemPrompt: composeAgentGuardrails(prompt),
       };
     }
+    const typeSuffix = [
+      agentTypeConfig?.systemPromptSuffix,
+      generationModePrompt,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
     const basePrompt = buildAgentSystemPrompt({
       content: request.content,
       pageContextPrompt,
       skillPromptSuffix,
-      typeSuffix: agentTypeConfig?.systemPromptSuffix,
+      typeSuffix: typeSuffix || undefined,
     });
 
     if (brandContext) {
@@ -301,7 +328,7 @@ export class AgentOrchestratorContextService {
       };
     }
 
-    if (replyStyle || agentTypeConfig?.systemPromptSuffix) {
+    if (replyStyle || typeSuffix) {
       return {
         memories,
         model: await resolveModel(),
@@ -320,9 +347,7 @@ export class AgentOrchestratorContextService {
       policy,
       preparedScope,
       resolvedSkills,
-      systemPrompt: agentTypeConfig?.systemPromptSuffix
-        ? composeAgentGuardrails(basePrompt)
-        : undefined,
+      systemPrompt: typeSuffix ? composeAgentGuardrails(basePrompt) : undefined,
     };
   }
   buildMessageHistory(

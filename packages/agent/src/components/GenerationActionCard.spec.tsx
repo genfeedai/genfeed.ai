@@ -304,6 +304,30 @@ function createApiServiceMock(options?: {
 }
 
 describe('GenerationActionCard', () => {
+  it('can start as a compact inferred-mode strip and reveal settings on demand', async () => {
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A launch-day portrait.' },
+          generationType: 'image',
+          id: 'action-collapsed-mode-strip',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+        defaultCollapsed
+      />,
+    );
+
+    expect(screen.queryByRole('textbox', { name: 'Prompt' })).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Expand generation card' }),
+    );
+    expect(
+      await screen.findByRole('textbox', { name: 'Prompt' }),
+    ).toBeVisible();
+  });
+
   it('resolves prompt editor copy through the host agent catalog', () => {
     const source = readFileSync(
       join(__dirname, 'GenerationActionCardControls.tsx'),

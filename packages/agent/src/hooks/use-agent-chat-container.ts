@@ -420,6 +420,7 @@ export function useAgentChatContainer({
           artifactReferences: item.options?.artifactReferences,
           attachments: item.attachments,
           ...(item.options?.brandId ? { brandId: item.options.brandId } : {}),
+          generationMode: item.options?.generationMode,
           planModeEnabled: item.options?.planModeEnabled ?? false,
         });
         return true;
@@ -488,6 +489,7 @@ export function useAgentChatContainer({
           options: {
             artifactReferences: options?.artifactReferences,
             ...(options?.brandId ? { brandId: options.brandId } : {}),
+            generationMode: options?.generationMode,
             planModeEnabled: options?.planModeEnabled ?? false,
           },
         });
@@ -501,6 +503,7 @@ export function useAgentChatContainer({
         artifactReferences: options?.artifactReferences,
         attachments,
         ...(options?.brandId ? { brandId: options.brandId } : {}),
+        generationMode: options?.generationMode,
         planModeEnabled: options?.planModeEnabled ?? false,
       });
       return true;

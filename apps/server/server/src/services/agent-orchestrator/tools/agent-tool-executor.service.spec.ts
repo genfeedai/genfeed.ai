@@ -1072,6 +1072,29 @@ describe('AgentToolExecutorService', () => {
     };
   };
 
+  it('enforces an explicit generation mode over the model tool arguments', async () => {
+    const { service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.PREPARE_GENERATION,
+      { generationType: 'video', prompt: 'Launch-day portrait' },
+      {
+        generationMode: 'image',
+        organizationId: testId('org'),
+        userId: testId('user'),
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual({
+      generationType: 'image',
+      prompt: 'Launch-day portrait',
+    });
+    expect(result.nextActions?.[0]).toEqual(
+      expect.objectContaining({ generationType: 'image' }),
+    );
+  });
+
   it('should create a goal via agent tool', async () => {
     const { agentGoalsService, service } = createService();
 

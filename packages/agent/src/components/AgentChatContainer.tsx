@@ -389,6 +389,14 @@ export function AgentChatContainer({
       onSend={handleSuggestionSend}
     />
   ) : null;
+  const emptyStatePromptBarSuggestions = suggestedActions?.length ? (
+    <AgentChatSuggestionsBar
+      suggestedActions={suggestedActions}
+      isReadOnly={isReadOnly}
+      layout="equal"
+      onSend={handleSuggestionSend}
+    />
+  ) : null;
   const threadGenerationType = useMemo(
     () => resolveThreadGenerationType(messages, activeThreadId),
     [activeThreadId, messages],
@@ -535,7 +543,7 @@ export function AgentChatContainer({
             isInterruptingFollowUps={container.followUpQueue.isInterrupting}
             onStop={container.handleStopRun}
             placeholder={placeholder}
-            promptBarSuggestions={promptBarSuggestions}
+            promptBarSuggestions={emptyStatePromptBarSuggestions}
             removeAttachment={container.removeAttachment}
             selectedModel={selectedModel}
             onModelChange={handleModelChange}
