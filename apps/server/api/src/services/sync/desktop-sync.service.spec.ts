@@ -72,9 +72,9 @@ function buildService() {
       findMany: vi.fn().mockResolvedValue([]),
     },
     desktopThread: {
+      create: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
-      findUnique: vi.fn(),
-      upsert: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     ingredient: {
       findMany: vi.fn().mockResolvedValue([]),
@@ -105,7 +105,6 @@ describe('DesktopSyncService', () => {
 
   it('pushes threads with canonical Genfeed user and organization ids', async () => {
     const { prisma, service } = buildService();
-    prisma.desktopThread.upsert.mockResolvedValue({});
 
     const result = await service.pushThreads(makeUser(), {
       localUserId: 'desktop-local-user',
@@ -132,26 +131,16 @@ describe('DesktopSyncService', () => {
     });
 
     expect(result.data).toMatchObject({ accepted: 2, rejected: 0 });
-    expect(prisma.desktopThread.findMany).toHaveBeenCalledTimes(1);
-    expect(prisma.desktopThread.findMany).toHaveBeenCalledWith({
-      select: { organizationId: true, updatedAt: true, userId: true, id: true },
-      where: { id: { in: ['thread-local', 'thread-second'] } },
-    });
-    expect(prisma.desktopThread.findUnique).not.toHaveBeenCalled();
-    expect(prisma.desktopThread.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({
-          localUserId: 'desktop-local-user',
-          organizationId,
-          userId,
-        }),
-        update: expect.objectContaining({
-          localUserId: 'desktop-local-user',
-          organizationId,
-          userId,
-        }),
+    expect(prisma.desktopThread.updateMany).toHaveBeenCalledTimes(2);
+    expect(prisma.desktopThread.create).toHaveBeenCalledTimes(2);
+    expect(prisma.desktopThread.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        id: 'thread-local',
+        localUserId: 'desktop-local-user',
+        organizationId,
+        userId,
       }),
-    );
+    });
   });
 
   it('pulls threads with bounded child message queries', async () => {
@@ -241,7 +230,9 @@ describe('DesktopSyncService', () => {
       updatedAt: '2026-05-01T11:00:00.000Z',
       workspaceId: 'workspace-local',
     };
-    prisma.desktopThread.upsert.mockResolvedValue({});
+    prisma.desktopThread.create
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce({ code: 'P2002' });
 
     const result = await service.pushThreads(makeUser(), {
       localUserId: 'desktop-local-user',
@@ -249,22 +240,53 @@ describe('DesktopSyncService', () => {
     });
 
     expect(result.data).toMatchObject({ accepted: 1, rejected: 1 });
-    expect(prisma.desktopThread.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: { in: ['thread-local'] } } }),
-    );
-    expect(prisma.desktopThread.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.desktopThread.create).toHaveBeenCalledTimes(2);
+    expect(prisma.desktopThread.updateMany).toHaveBeenCalledTimes(3);
+  });
+
+  it('retries the conditional update when a concurrent push wins the create race', async () => {
+    const { prisma, service } = buildService();
+    prisma.desktopThread.updateMany
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 });
+    prisma.desktopThread.create.mockRejectedValueOnce({ code: 'P2002' });
+
+    const result = await service.pushThreads(makeUser(), {
+      localUserId: 'desktop-local-user',
+      threads: [
+        {
+          createdAt: '2026-05-01T10:00:00.000Z',
+          id: 'thread-local',
+          messages: [],
+          status: 'idle',
+          title: 'Newest offline plan',
+          updatedAt: '2026-05-01T12:00:00.000Z',
+          workspaceId: 'workspace-local',
+        },
+      ],
+    });
+
+    expect(result.data).toMatchObject({ accepted: 1, rejected: 0 });
+    expect(prisma.desktopThread.updateMany).toHaveBeenCalledTimes(2);
+    expect(prisma.desktopThread.updateMany).toHaveBeenLastCalledWith({
+      data: expect.objectContaining({
+        organizationId,
+        title: 'Newest offline plan',
+        updatedAt: new Date('2026-05-01T12:00:00.000Z'),
+        userId,
+      }),
+      where: {
+        id: 'thread-local',
+        organizationId,
+        updatedAt: { lt: new Date('2026-05-01T12:00:00.000Z') },
+        userId,
+      },
+    });
   });
 
   it('rejects thread pushes that collide with another owner', async () => {
     const { prisma, service } = buildService();
-    prisma.desktopThread.findMany.mockResolvedValue([
-      {
-        id: 'thread-local',
-        organizationId,
-        updatedAt: new Date('2026-05-01T09:00:00.000Z'),
-        userId: 'other-user',
-      },
-    ]);
+    prisma.desktopThread.create.mockRejectedValueOnce({ code: 'P2002' });
 
     const result = await service.pushThreads(makeUser(), {
       localUserId: 'desktop-local-user',
@@ -282,14 +304,21 @@ describe('DesktopSyncService', () => {
     });
 
     expect(result.data).toMatchObject({ accepted: 0, rejected: 1 });
-    expect(prisma.desktopThread.upsert).not.toHaveBeenCalled();
+    expect(prisma.desktopThread.updateMany).toHaveBeenCalledTimes(2);
+    expect(prisma.desktopThread.updateMany).toHaveBeenCalledWith({
+      data: expect.any(Object),
+      where: {
+        id: 'thread-local',
+        organizationId,
+        updatedAt: { lt: new Date('2026-05-01T11:00:00.000Z') },
+        userId,
+      },
+    });
   });
 
-  it('falls back to per-thread reads when the batch prefetch fails', async () => {
+  it('rejects a thread when its create fails for a non-conflict reason', async () => {
     const { prisma, service } = buildService();
-    prisma.desktopThread.findMany.mockRejectedValue(new Error('db timeout'));
-    prisma.desktopThread.findUnique.mockResolvedValue(null);
-    prisma.desktopThread.upsert.mockResolvedValue({});
+    prisma.desktopThread.create.mockRejectedValue(new Error('db timeout'));
 
     const result = await service.pushThreads(makeUser(), {
       localUserId: 'desktop-local-user',
@@ -306,11 +335,8 @@ describe('DesktopSyncService', () => {
       ],
     });
 
-    expect(result.data).toMatchObject({ accepted: 1, rejected: 0 });
-    expect(prisma.desktopThread.findUnique).toHaveBeenCalledWith({
-      select: { organizationId: true, updatedAt: true, userId: true },
-      where: { id: 'thread-local' },
-    });
+    expect(result.data).toMatchObject({ accepted: 0, rejected: 1 });
+    expect(prisma.desktopThread.updateMany).toHaveBeenCalledTimes(1);
   });
 
   it('scopes pushed local assets to the selected brand and requests full upload', async () => {

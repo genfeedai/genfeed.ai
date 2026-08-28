@@ -1897,22 +1897,6 @@
       "reason": "unresolved-where"
     },
     {
-      "delegate": "sourcePost",
-      "file": "apps/server/server/src/collections/source-posts/services/source-posts.service.ts",
-      "fingerprint": "7b8f64ebd5020ada66e1",
-      "method": "upsert",
-      "model": "SourcePost",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "sourcePost",
-      "file": "apps/server/server/src/collections/source-posts/services/source-posts.service.ts",
-      "fingerprint": "44971bad3faef55ed466",
-      "method": "upsert",
-      "model": "SourcePost",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "streak",
       "file": "apps/server/server/src/collections/streaks/services/streaks.service.ts",
       "fingerprint": "88d597799049df4ffb10",

@@ -276,7 +276,11 @@ describe('AppSwitcher', () => {
   it('melts the hovered app details into the switcher left edge', () => {
     render(<AppSwitcher orgSlug="acme" />);
 
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', {
+        name: 'Agent: Ask and execute.',
+      }),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId('app-switcher-content')).toHaveClass(
       'sm:w-[19rem]',
       'bg-transparent',

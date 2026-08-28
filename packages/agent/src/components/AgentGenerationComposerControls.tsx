@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useEffect, useMemo, useState } from 'react';
 
 type AgentGenerationComposerControlsProps = {
@@ -60,6 +61,7 @@ export function AgentGenerationComposerControls({
     settings: organizationSettings,
     settingsLoading,
   } = useBrand();
+  const translate = useTranslations('agent.generationActionCard');
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
   const [models, setModels] = useState<GenerationModel[]>([]);
   const [isLoading, setIsLoading] = useState(Boolean(apiService));
@@ -227,7 +229,7 @@ export function AgentGenerationComposerControls({
           <SelectContent side="top">
             {controls.durationOptions.map((seconds) => (
               <SelectItem key={seconds} value={String(seconds)}>
-                {seconds}s
+                {translate('durationSeconds', { seconds })}
               </SelectItem>
             ))}
           </SelectContent>

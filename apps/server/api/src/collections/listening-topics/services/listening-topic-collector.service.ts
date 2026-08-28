@@ -1,10 +1,7 @@
 import type { CollectListeningTopicDto } from '@api/collections/listening-topics/dto/collect-listening-topic.dto';
 import type { ListeningTopicDocument } from '@api/collections/listening-topics/schemas/listening-topic.schema';
-import { SourcePostsService } from '@server/collections/source-posts/services/source-posts.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
 import type { CollectedSourcePost } from '@api/services/source-collector/source-collector.types';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { ListeningEvidenceType, SocialSourcePlatform } from '@genfeedai/enums';
 import type {
   IListeningScope,
@@ -13,6 +10,9 @@ import type {
 import { LISTENING_CONTRACT_VERSION } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
+import { SourcePostsService } from '@server/collections/source-posts/services/source-posts.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const finalTopicInclude = {
   sources: {
@@ -147,23 +147,43 @@ export class ListeningTopicCollectorService {
         return;
       }
 
-      const sourcePosts = await this.sourcePostsService.upsertCollectedPosts(
-        topicSource.source,
-        matchingPosts.map((post) => normalizeSourcePost(topicSource, post)),
-      );
+      const { posts: sourcePosts, rejectedCount } =
+        await this.sourcePostsService.upsertCollectedPosts(
+          topicSource.source,
+          matchingPosts.map((post) => normalizeSourcePost(topicSource, post)),
+        );
+      const rejectedPostMessage =
+        rejectedCount > 0
+          ? `Skipped ${rejectedCount} collected ${rejectedCount === 1 ? 'post' : 'posts'} without a stable external identifier`
+          : null;
+
+      if (sourcePosts.length === 0) {
+        await this.commitEmptyState(
+          topic,
+          topicSource,
+          collectedAt,
+          rejectedPostMessage,
+        );
+        return;
+      }
 
       await this.prisma.$transaction(async (transaction) => {
-        for (const [index, post] of matchingPosts.entries()) {
-          const sourcePost = sourcePosts[index];
-          if (!sourcePost) {
+        for (const sourcePost of sourcePosts) {
+          const post = matchingPosts.find(
+            (candidate) =>
+              typeof candidate.id === 'string' &&
+              candidate.id.trim() === sourcePost.externalId,
+          );
+          if (!post) {
             throw new Error(
-              `Source post persistence did not return ${post.id}`,
+              `Source post persistence did not return ${sourcePost.externalId}`,
             );
           }
+          const normalizedPost = { ...post, id: sourcePost.externalId };
           const evidence = buildEvidence(
             topic,
             topicSource,
-            post,
+            normalizedPost,
             sourcePost.id,
             collected.provider,
             collectedAt,
@@ -189,7 +209,7 @@ export class ListeningTopicCollectorService {
             },
             where: {
               topicId_platform_externalId: {
-                externalId: post.id,
+                externalId: normalizedPost.id,
                 platform: topicSource.platform,
                 topicId: topic.id,
               },
@@ -199,10 +219,10 @@ export class ListeningTopicCollectorService {
 
         await transaction.listeningTopicSource.update({
           data: {
-            collectionCursor: matchingPosts[0].id,
+            collectionCursor: sourcePosts[0].externalId,
             collectionState: 'success',
             lastCollectedAt: collectedAt,
-            lastCollectionError: null,
+            lastCollectionError: rejectedPostMessage,
             rateLimitedAt: null,
           },
           where: scopedWhere(topic.organizationId, {
@@ -228,13 +248,14 @@ export class ListeningTopicCollectorService {
     topic: CollectorTopic,
     topicSource: CollectorTopicSource,
     collectedAt: Date,
+    lastCollectionError: string | null = null,
   ): Promise<void> {
     await this.prisma.$transaction(async (transaction) => {
       await transaction.listeningTopicSource.update({
         data: {
           collectionState: 'empty',
           lastCollectedAt: collectedAt,
-          lastCollectionError: null,
+          lastCollectionError,
           rateLimitedAt: null,
         },
         where: scopedWhere(topic.organizationId, {

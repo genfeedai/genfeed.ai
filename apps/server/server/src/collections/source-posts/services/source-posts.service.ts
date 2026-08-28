@@ -1,8 +1,4 @@
 import { createHash } from 'node:crypto';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import type { SourcePostDocument } from '@server/collections/source-posts/schemas/source-post.schema';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
   PostVisibility,
@@ -20,6 +16,10 @@ import { MAX_LISTENING_ATTRIBUTION_EVIDENCE_IDS } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import type { SourcePostDocument } from '@server/collections/source-posts/schemas/source-post.schema';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 type SourceRecord = {
   id: string;
@@ -126,6 +126,11 @@ export interface WeeklySourceCorpusResult {
   count: number;
 }
 
+export interface SourcePostUpsertResult {
+  posts: SourcePostDocument[];
+  rejectedCount: number;
+}
+
 @Injectable()
 export class SourcePostsService {
   constructor(
@@ -205,16 +210,25 @@ export class SourcePostsService {
   async upsertCollectedPosts(
     source: SourceRecord,
     posts: SourcePostCreateInput[],
-  ): Promise<SourcePostDocument[]> {
+  ): Promise<SourcePostUpsertResult> {
     const collected: SourcePostDocument[] = [];
+    let rejectedCount = 0;
 
     for (const post of posts) {
+      const externalId =
+        typeof post.externalId === 'string' ? post.externalId.trim() : '';
+      if (!externalId) {
+        rejectedCount++;
+        continue;
+      }
+
       const postData = this.buildCollectedPostData(post, source);
+      // tenant-scope-ignore: sourceId is tenant-owned and globally unique; isDeleted is omitted so recollection reactivates a matching tombstoned post.
       const saved = await this.db.sourcePost.upsert({
         create: {
           ...postData,
           brandId: source.brandId,
-          externalId: post.externalId,
+          externalId,
           organizationId: source.organizationId,
           sourceId: source.id,
         },
@@ -224,7 +238,7 @@ export class SourcePostsService {
         },
         where: {
           sourceId_externalId: {
-            externalId: post.externalId,
+            externalId,
             sourceId: source.id,
           },
         },
@@ -232,7 +246,14 @@ export class SourcePostsService {
       collected.push(saved);
     }
 
-    return collected;
+    if (rejectedCount > 0) {
+      this._logger.warn(
+        'Rejected collected posts without stable external identifiers',
+        { rejectedCount, sourceId: source.id },
+      );
+    }
+
+    return { posts: collected, rejectedCount };
   }
 
   private buildCollectedPostData(
