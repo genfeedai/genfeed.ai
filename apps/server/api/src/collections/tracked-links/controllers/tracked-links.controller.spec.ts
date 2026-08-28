@@ -330,11 +330,11 @@ describe('RedirectController', () => {
   describe('redirect', () => {
     it('should redirect to original URL', async () => {
       const shortCode = 'abc123';
-      const req = {
+      const req: Partial<Request> = {
         get: vi.fn().mockReturnValue(undefined),
         headers: {},
         ip: '127.0.0.1',
-      } as Request;
+      };
       const res = {
         redirect: vi.fn(),
         send: vi.fn(),
@@ -344,7 +344,7 @@ describe('RedirectController', () => {
       mockTrackedLinksService.getByShortCode.mockResolvedValue(mockTrackedLink);
       mockTrackedLinksService.trackClick.mockResolvedValue(undefined);
 
-      await controller.redirect(shortCode, req, res);
+      await controller.redirect(shortCode, req as Request, res);
 
       expect(service.getByShortCode).toHaveBeenCalledWith(shortCode);
       expect(res.redirect).toHaveBeenCalledWith(
