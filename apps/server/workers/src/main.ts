@@ -102,12 +102,15 @@ async function main() {
   const port = configService.get('PORT');
 
   try {
-    app.enableShutdownHooks();
     const healthServer = await startHealthServer(port, logger);
 
     logger.debug(`Workers service is running on port ${port}`);
     logger.debug(`Cron jobs are active`);
 
+    // This process owns a standalone health server in addition to the Nest
+    // context, so one custom signal path closes both. Registering Nest's signal
+    // hooks here as well runs every destroy hook twice and closes Redis clients
+    // a second time during every hot reload.
     const shutdown = async (signal: string) => {
       logger.warn(`Received ${signal}, shutting down workers gracefully`);
 
