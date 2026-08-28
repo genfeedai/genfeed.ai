@@ -64,6 +64,11 @@ describe('SourcePostsService', () => {
 
   it('rejects missing and blank external identifiers before the Prisma upsert', async () => {
     const savedPost = { externalId: 'post-1', id: 'source-post-1' };
+    const postScope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      sourceId: 'source-1',
+    };
     sourcePost.upsert.mockResolvedValue(savedPost);
 
     const result = await service.upsertCollectedPosts(
@@ -77,16 +82,19 @@ describe('SourcePostsService', () => {
       },
       [
         {
+          ...postScope,
           contentType: 'tweet',
-          externalId: undefined,
+          externalId: undefined as never,
           platform: SocialSourcePlatform.TWITTER,
-        } as never,
+        },
         {
+          ...postScope,
           contentType: 'tweet',
           externalId: '   ',
           platform: SocialSourcePlatform.TWITTER,
         },
         {
+          ...postScope,
           contentType: 'tweet',
           externalId: 'post-1',
           platform: SocialSourcePlatform.TWITTER,
