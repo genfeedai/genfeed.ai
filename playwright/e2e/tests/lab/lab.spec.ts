@@ -1,5 +1,5 @@
 import { expect, test } from '../../fixtures/auth.fixture';
-import { assertRouteRenders, tryClick } from '../../utils/route-assertions';
+import { assertRouteRenders } from '../../utils/route-assertions';
 
 const BRAND = '/test-org/brand-1';
 
@@ -7,7 +7,6 @@ test.describe('Lab', () => {
   test.setTimeout(60_000);
 
   const routes = [
-    `${BRAND}/lab/articles`,
     `${BRAND}/lab/library-preview`,
     `${BRAND}/lab/twitter-engage`,
   ];
@@ -17,13 +16,6 @@ test.describe('Lab', () => {
       await assertRouteRenders(authenticatedPage, route);
     });
   }
-
-  test('articles view stays interactive', async ({ authenticatedPage }) => {
-    await assertRouteRenders(authenticatedPage, `${BRAND}/lab/articles`);
-    await tryClick(authenticatedPage, 'button');
-    await tryClick(authenticatedPage, '[role="tab"]');
-    await expect(authenticatedPage.locator('body')).toBeVisible();
-  });
 
   test('cron-jobs lab redirects to workflows', async ({
     authenticatedPage,

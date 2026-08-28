@@ -24,7 +24,7 @@ export default function ArticleEditorContent({
 
   const backHref = resolveArtifactEditorBackHref(
     searchParams.get(ARTIFACT_EDITOR_RETURN_PARAM),
-    href(APP_ROUTES.LAB.ARTICLES),
+    `${href(APP_ROUTES.PUBLISH.POSTS)}?type=article`,
   );
   const credentialId = searchParams.get('credentialId') ?? undefined;
 
