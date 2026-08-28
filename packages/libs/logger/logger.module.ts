@@ -29,6 +29,7 @@ function shouldFilterMessage(message: unknown): boolean {
   exports: [LoggerService],
   imports: [
     WinstonModule.forRootAsync({
+      imports: [],
       useFactory: () => {
         const consoleTransport = new transports.Console({
           format: combine(
