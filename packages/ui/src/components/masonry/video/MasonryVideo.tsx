@@ -72,6 +72,9 @@ export default function MasonryVideo({
     enhanceConfirmData,
     executeEnhance,
     clearEnhanceConfirm,
+    extendConfirmData,
+    executeExtend,
+    clearExtendConfirm,
     handleDownload,
     handleMouseHover,
     handleQuickActionsMouseEnter,
@@ -206,6 +209,9 @@ export default function MasonryVideo({
           enhanceConfirmData={enhanceConfirmData}
           executeEnhance={executeEnhance}
           clearEnhanceConfirm={clearEnhanceConfirm}
+          extendConfirmData={extendConfirmData}
+          executeExtend={executeExtend}
+          clearExtendConfirm={clearExtendConfirm}
         />
       )}
     </>

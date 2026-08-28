@@ -846,5 +846,24 @@
       },
       "viewTweet": "View tweet"
     }
+  },
+  "videoCreativeActions": {
+    "extend": {
+      "continuationPromptLabel": "Continuation prompt",
+      "continuationPromptPlaceholder": "Describe what happens next…",
+      "durationSeconds": "{seconds} seconds",
+      "fabricatedMode": "Fabricated last-frame and stitch extension",
+      "generationModelLabel": "Generation model",
+      "nativeMode": "Native extension; the provider chooses the exact continuation length",
+      "newClipDurationLabel": "New clip duration",
+      "summary": "{mode} · quoted charge: {cost} credits"
+    },
+    "upscale": {
+      "framesPerSecond": "{fps} fps",
+      "quotedCharge": "Quoted charge: {cost} credits",
+      "targetFrameRateLabel": "Target frame rate",
+      "targetResolutionLabel": "Target resolution",
+      "upscaleModelLabel": "Upscale model"
+    }
   }
 }

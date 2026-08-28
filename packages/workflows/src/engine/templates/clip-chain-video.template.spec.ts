@@ -5,6 +5,7 @@ import type { ExecutableWorkflow } from '../types';
 import { DEFAULT_CREDIT_COSTS } from '../utils/credit-calculator';
 import {
   buildClipChainVideoTemplate,
+  buildVideoExtensionTemplate,
   CLIP_CHAIN_VIDEO_TEMPLATE,
   composeClipChainSegmentPrompt,
   createClipChainWorkflowInstance,
@@ -330,6 +331,69 @@ describe('ClipChainVideoTemplate', () => {
       expect(() => buildClipChainVideoTemplate({ segmentCount: 1 })).toThrow(
         'at least 2',
       );
+    });
+  });
+
+  describe('buildVideoExtensionTemplate', () => {
+    it('keeps the source immutable and stitches it before a last-frame continuation', () => {
+      const template = buildVideoExtensionTemplate({
+        brandId: 'brand-1',
+        model: 'seedance-2.5',
+        prompt: 'Continue walking through the market',
+        sourceVideoId: 'video-source-1',
+      });
+
+      expect(template.nodes.map((node) => node.type)).toEqual([
+        'input-video',
+        'videoFrameExtract',
+        'videoGen',
+        'videoStitch',
+      ]);
+      expect(
+        template.nodes.find((node) => node.id === 'source-video')?.config,
+      ).toMatchObject({ itemId: 'video-source-1' });
+      expect(
+        template.nodes.find((node) => node.id === 'extended-video')?.config,
+      ).toMatchObject({
+        dispatchMode: 'fabricated',
+        parentId: 'video-source-1',
+      });
+      expect(template.edges).toContainEqual(
+        expect.objectContaining({
+          source: 'source-last-frame',
+          sourceHandle: 'last_frame',
+          target: 'extension-video',
+          targetHandle: 'image',
+        }),
+      );
+    });
+
+    it('uses the source video directly and preserves parentage for native extension', () => {
+      const template = buildVideoExtensionTemplate({
+        brandId: 'brand-1',
+        dispatchMode: 'native',
+        model: 'bytedance/seedance-2.5',
+        prompt: 'Continue walking through the market',
+        sourceVideoId: 'video-source-1',
+      });
+
+      expect(template.nodes.map((node) => node.type)).toEqual([
+        'input-video',
+        'videoGen',
+      ]);
+      expect(template.edges).toContainEqual(
+        expect.objectContaining({
+          source: 'source-video',
+          target: 'extension-video',
+          targetHandle: 'videoReference',
+        }),
+      );
+      expect(
+        template.nodes.find((node) => node.id === 'extension-video')?.config,
+      ).toMatchObject({
+        actionVerb: 'extend',
+        parentIngredientId: 'video-source-1',
+      });
     });
   });
 });

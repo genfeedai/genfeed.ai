@@ -32,6 +32,7 @@ export function getDimensionsForAspectRatio(ratio: string): {
 export function buildAgentGenerationRequestBody({
   aspectRatio,
   duration,
+  endFrame,
   identity,
   modelKey,
   outputs,
@@ -39,10 +40,13 @@ export function buildAgentGenerationRequestBody({
   promptId,
   promptText,
   references,
+  resolution,
+  videoReferences,
   waitForCompletion,
 }: {
   aspectRatio: string;
   duration?: number;
+  endFrame?: string;
   identity?: AgentClipRunIdentity;
   modelKey?: string;
   outputs?: number;
@@ -51,6 +55,8 @@ export function buildAgentGenerationRequestBody({
   promptText: string;
   /** Source ingredient IDs used as image/video references. */
   references?: string[];
+  resolution?: string;
+  videoReferences?: string[];
   waitForCompletion?: boolean;
 }): Record<string, unknown> {
   const { width, height } = getDimensionsForAspectRatio(aspectRatio);
@@ -71,6 +77,14 @@ export function buildAgentGenerationRequestBody({
     body.duration = duration;
   }
 
+  if (endFrame) {
+    body.endFrame = endFrame;
+  }
+
+  if (resolution) {
+    body.resolution = resolution;
+  }
+
   if (outputs != null && Number.isFinite(outputs) && outputs >= 1) {
     body.outputs = Math.min(8, Math.round(outputs));
   }
@@ -81,6 +95,10 @@ export function buildAgentGenerationRequestBody({
 
   if (references && references.length > 0) {
     body.references = references;
+  }
+
+  if (videoReferences && videoReferences.length > 0) {
+    body.videoReferences = videoReferences;
   }
 
   if (identity?.avatarId) {

@@ -83,6 +83,53 @@ export function hasEndFrame(
   return (cap as VideoModelCapability).hasEndFrame ?? false;
 }
 
+export function hasNativeExtend(
+  modelKey: string,
+  capability?: ModelOutputCapability | null,
+): boolean {
+  const cap = resolveCapability(modelKey, capability);
+  if (!cap || cap.category !== ModelCategory.VIDEO) {
+    return false;
+  }
+  return (cap as VideoModelCapability).hasNativeExtend ?? false;
+}
+
+export function requiresFirstFrame(
+  modelKey: string,
+  capability?: ModelOutputCapability | null,
+): boolean {
+  const cap = resolveCapability(modelKey, capability);
+  if (!cap || cap.category !== ModelCategory.VIDEO) {
+    return false;
+  }
+  return (cap as VideoModelCapability).requiresFirstFrame ?? false;
+}
+
+export function hasVideoReferences(
+  modelKey: string,
+  capability?: ModelOutputCapability | null,
+): boolean {
+  const cap = resolveCapability(modelKey, capability);
+  if (!cap || cap.category !== ModelCategory.VIDEO) {
+    return false;
+  }
+  return (cap as VideoModelCapability).hasVideoReferences ?? false;
+}
+
+export function getModelMaxVideoReferences(
+  modelKey: string,
+  capability?: ModelOutputCapability | null,
+): number {
+  const cap = resolveCapability(modelKey, capability);
+  if (!cap || cap.category !== ModelCategory.VIDEO) {
+    return 0;
+  }
+  const videoCapability = cap as VideoModelCapability;
+  return videoCapability.hasVideoReferences
+    ? (videoCapability.maxVideoReferences ?? 1)
+    : 0;
+}
+
 export function hasSpeech(
   modelKey: string,
   capability?: ModelOutputCapability | null,

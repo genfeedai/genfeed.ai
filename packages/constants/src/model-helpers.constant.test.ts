@@ -5,6 +5,7 @@ import {
   getModelDurations,
   getModelMaxOutputs,
   getModelMaxReferences,
+  getModelMaxVideoReferences,
   getModelMinDuration,
   hasAnyAudioToggle,
   hasAnyEndFrame,
@@ -17,11 +18,13 @@ import {
   hasEndFrame,
   hasInterpolation,
   hasModelWithoutDurationEditing,
+  hasNativeExtend,
   hasResolutionOptions,
   hasSpeech,
   isImagenModel,
   isOnlyImagenModels,
   isReferencesMandatory,
+  requiresFirstFrame,
   supportsMultipleOutputs,
   supportsMultipleReferences,
 } from './model-helpers.constant';
@@ -59,6 +62,25 @@ describe('model-helpers.constant', () => {
     });
   });
 
+  describe('getModelMaxVideoReferences', () => {
+    it('uses the video field cap rather than the generic image-reference cap', () => {
+      expect(
+        getModelMaxVideoReferences(
+          MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO,
+        ),
+      ).toBe(1);
+      expect(
+        getModelMaxVideoReferences(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5),
+      ).toBe(10);
+      expect(getModelMaxVideoReferences(MODEL_KEYS.REPLICATE_MINIMAX_H3)).toBe(
+        3,
+      );
+      expect(
+        getModelMaxVideoReferences(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3),
+      ).toBe(0);
+    });
+  });
+
   describe('isReferencesMandatory', () => {
     it('returns false for unknown model', () => {
       expect(isReferencesMandatory(UNKNOWN)).toBe(false);
@@ -68,6 +90,27 @@ describe('model-helpers.constant', () => {
   describe('hasEndFrame', () => {
     it('returns false for unknown model', () => {
       expect(hasEndFrame(UNKNOWN)).toBe(false);
+    });
+  });
+
+  describe('hasNativeExtend', () => {
+    it('advertises only the documented Seedance extension route', () => {
+      expect(hasNativeExtend(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5)).toBe(
+        true,
+      );
+      expect(hasNativeExtend(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1)).toBe(false);
+      expect(hasNativeExtend(UNKNOWN)).toBe(false);
+    });
+  });
+
+  describe('requiresFirstFrame', () => {
+    it('blocks Hailuo Fast without changing text-to-video models', () => {
+      expect(
+        requiresFirstFrame(MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST),
+      ).toBe(true);
+      expect(requiresFirstFrame(MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3)).toBe(
+        false,
+      );
     });
   });
 

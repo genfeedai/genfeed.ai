@@ -6,6 +6,7 @@ import {
 } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import {
   MINIMAX_H3_CAPABILITY_PROFILE_ID,
+  MINIMAX_H3_CAPABILITY_PROFILE_VERSION,
   MINIMAX_H3_MODEL_KEY,
   PRUNAAI_P_VIDEO_CAPABILITY_PROFILE_ID,
   PRUNAAI_P_VIDEO_MODEL_KEY,
@@ -49,7 +50,7 @@ describe('resolveVideoGenerationBriefSupport', () => {
       kind: 'compile',
       modelKey: MINIMAX_H3_MODEL_KEY,
       profileId: MINIMAX_H3_CAPABILITY_PROFILE_ID,
-      profileVersion: 1,
+      profileVersion: MINIMAX_H3_CAPABILITY_PROFILE_VERSION,
     });
   });
 

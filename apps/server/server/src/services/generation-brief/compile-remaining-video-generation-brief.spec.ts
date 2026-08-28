@@ -156,4 +156,322 @@ describe('compileRemainingVideoGenerationBrief', () => {
       compileRemainingVideoGenerationBrief({ brief, family, modelKey }),
     ).toThrow(GenerationBriefCompileError);
   });
+
+  it('dispatches Seedance 2.5 published draft resolution explicitly', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'a premium product reveal' },
+      mediaKind: 'video',
+      output: { resolution: '480p' },
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5),
+      modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+    });
+
+    expect(result.dispatch.resolution).toBe('480p');
+    expect(result.evidence.output.resolution).toBe('480p');
+  });
+
+  it('rejects a Seedance last frame without its required first frame', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'arrive at the final composition' },
+      mediaKind: 'video',
+      output: {},
+      references: [{ assetId: 'end-frame-1', role: 'last_frame' }],
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5),
+        modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      }),
+    ).toThrow('requires a first-frame reference');
+  });
+
+  it('maps Kling v3 native quality onto mode', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'a cinematic launch sequence' },
+      mediaKind: 'video',
+      output: { resolution: '4k' },
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO),
+      modelKey: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+    });
+
+    expect(result.dispatch.mode).toBe('4k');
+  });
+
+  it('rejects a resolution the selected model does not advertise', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'a cinematic launch sequence' },
+      mediaKind: 'video',
+      output: { resolution: '360p' },
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST),
+        modelKey: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST,
+      }),
+    ).toThrow(GenerationBriefCompileError);
+  });
+
+  it('dispatches Seedance native video references', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'Follow the movement language of the clip' },
+      mediaKind: 'video',
+      output: { resolution: '720p' },
+      references: [{ assetId: 'video-1', role: 'reference_video' }],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5),
+      modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+    });
+
+    expect(result.dispatch.reference_videos).toEqual(['video-1']);
+  });
+
+  it('dispatches Seedance 2.5 last-frame interpolation through the documented field', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'Move between the supplied keyframes' },
+      mediaKind: 'video',
+      output: { resolution: '720p' },
+      references: [
+        { assetId: 'start-frame', role: 'first_frame' },
+        { assetId: 'end-frame', role: 'last_frame' },
+      ],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5),
+      modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+    });
+
+    expect(result.dispatch).toMatchObject({
+      aspect_ratio: 'adaptive',
+      image: 'start-frame',
+      last_frame_image: 'end-frame',
+    });
+  });
+
+  it('rejects Seedance frames combined with a video reference', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'Follow the supplied source' },
+      mediaKind: 'video',
+      output: { resolution: '720p' },
+      references: [
+        { assetId: 'start-frame', role: 'first_frame' },
+        { assetId: 'source-video', role: 'reference_video' },
+      ],
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5),
+        modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      }),
+    ).toThrow('cannot combine');
+  });
+
+  it('rejects Kling Omni video references in incompatible 4K mode', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'Follow the movement language of the clip' },
+      mediaKind: 'video',
+      output: { resolution: '4k' },
+      references: [{ assetId: 'video-1', role: 'reference_video' }],
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO),
+        modelKey: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO,
+      }),
+    ).toThrow(GenerationBriefCompileError);
+  });
+
+  it('dispatches Kling Omni video references outside 4K mode', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'Follow the movement language of the clip' },
+      mediaKind: 'video',
+      output: { resolution: 'pro' },
+      references: [{ assetId: 'video-1', role: 'reference_video' }],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO),
+      modelKey: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO,
+    });
+
+    expect(result.dispatch.reference_video).toBe('video-1');
+  });
+
+  it('rejects more than one Kling Omni video reference', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'Follow both movement clips' },
+      mediaKind: 'video',
+      output: { resolution: 'pro' },
+      references: [
+        { assetId: 'video-1', role: 'reference_video' },
+        { assetId: 'video-2', role: 'reference_video' },
+      ],
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO),
+        modelKey: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO,
+      }),
+    ).toThrow('at most 1 video reference');
+  });
+
+  it('applies Kling Omni reduced image-reference cap when video is present', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'Follow the character and movement references' },
+      mediaKind: 'video',
+      output: { resolution: 'pro' },
+      references: [
+        { assetId: 'start-frame', role: 'first_frame' },
+        ...Array.from({ length: 5 }, (_, index) => ({
+          assetId: `image-reference-${index + 1}`,
+          role: 'subject' as const,
+        })),
+        { assetId: 'video-reference', role: 'reference_video' },
+      ],
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO),
+        modelKey: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO,
+      }),
+    ).toThrow('at most 4 image references');
+  });
+
+  it('compiles only fal-published Gemini Omni Flash fields', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'a drummer performing under neon lights' },
+      mediaKind: 'video',
+      output: { aspectRatio: '9:16', durationSeconds: 2 },
+      references: [
+        { assetId: 'frame-1', role: 'first_frame' },
+        { assetId: 'subject-1', role: 'subject' },
+        { assetId: 'style-1', role: 'style' },
+      ],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH),
+      modelKey: MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
+      seed: 42,
+    });
+
+    expect(result.dispatch).toEqual({
+      aspect_ratio: '9:16',
+      duration: 3,
+      image_url: 'frame-1',
+      image_urls: ['subject-1', 'style-1'],
+      prompt: 'a drummer performing under neon lights',
+    });
+    expect(result.evidence.output).toMatchObject({
+      aspectRatio: '9:16',
+      durationSeconds: 3,
+      hasSeed: false,
+    });
+  });
+
+  it('rejects resolution for Gemini Omni Flash because fal publishes none', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'a cinematic city flyover' },
+      mediaKind: 'video',
+      output: { resolution: '720p' },
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH),
+        modelKey: MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
+      }),
+    ).toThrow(GenerationBriefCompileError);
+  });
+
+  it('rejects more image references than Gemini Omni Flash publishes', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'a cinematic city flyover' },
+      mediaKind: 'video',
+      output: {},
+      references: [
+        { assetId: 'frame-1', role: 'first_frame' },
+        { assetId: 'subject-1', role: 'subject' },
+        { assetId: 'style-1', role: 'style' },
+        { assetId: 'composition-1', role: 'composition' },
+      ],
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH),
+        modelKey: MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
+      }),
+    ).toThrow('at most 3 image references');
+  });
 });

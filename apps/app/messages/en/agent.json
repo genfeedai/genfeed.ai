@@ -34,10 +34,30 @@
   "generationActionCard": {
     "acceptFullRun": "Accept full run",
     "acceptFullRunAria": "Accept the pilot and generate the full-length video",
+    "canvas": {
+      "assetCount": "{count, plural, one {# asset} other {# assets}}",
+      "assetFallback": "asset",
+      "expand": "Expand",
+      "generatedAssetAlt": "Generated asset",
+      "generationReference": "generation reference",
+      "instructions": "Select an asset to use as the {label}, or open it to edit.",
+      "latestGeneration": "Latest generation",
+      "library": "Library",
+      "openLibraryTitle": "Open in library",
+      "openStudioTitle": "Open in Studio",
+      "removeReferenceAria": "Remove {title} as {label}",
+      "selectedCount": "{count, plural, one {# reference selected as {label}} other {# references selected as {label}}}",
+      "studio": "Studio",
+      "title": "Canvas",
+      "useReferenceAria": "Use {title} as {label}"
+    },
     "durationSeconds": "{seconds}s",
+    "endFrame": "End Frame",
+    "estimatedCredits": "~{credits} credits",
     "generateAria": "Generate image",
     "generateTooltip": "Generate",
     "generateVideoAria": "Generate video",
+    "generationReference": "generation reference",
     "loadingModels": "Loading Genfeed models…",
     "noModelsEnabled": "No models enabled",
     "noModelsEnabledTitle": "No models enabled for this workspace",
@@ -52,8 +72,11 @@
     "readFullAria": "Read and edit the full prompt",
     "rejectPilot": "Reject",
     "rejectPilotAria": "Reject this pilot",
+    "startFrame": "Start Frame",
     "stop": "Stop",
-    "stopAria": "Stop generation"
+    "stopAria": "Stop generation",
+    "videoReference": "Video Reference",
+    "videoReferenceRoleAria": "Video reference role"
   },
   "postingSets": {
     "disconnected": "Disconnected",

@@ -27,7 +27,7 @@ describe('getVideoResolutionsByModel', () => {
       MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
     );
     expect(resolutions).toEqual([
-      { label: '720p', value: '720p' },
+      { isDraft: true, label: '720p · Draft', value: '720p' },
       { label: '1080p', value: '1080p' },
     ]);
   });
@@ -47,10 +47,39 @@ describe('getVideoResolutionsByModel', () => {
   it('returns the official MiniMax H3 resolution values', () => {
     expect(getVideoResolutionsByModel(MODEL_KEYS.REPLICATE_MINIMAX_H3)).toEqual(
       [
-        { label: '768P', value: '768P' },
+        { isDraft: true, label: '768P · Draft', value: '768P' },
         { label: '2K', value: '2K' },
       ],
     );
+  });
+
+  it('lists only the two resolutions published for Seedance 2.5', () => {
+    expect(
+      getVideoResolutionsByModel(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5),
+    ).toEqual([
+      { isDraft: true, label: '480p · Draft', value: '480p' },
+      { label: '720p', value: '720p' },
+    ]);
+  });
+
+  it('uses provider-native Kling modes behind resolution labels', () => {
+    expect(
+      getVideoResolutionsByModel(
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO,
+      ),
+    ).toEqual([
+      { isDraft: true, label: '720p · Draft', value: 'standard' },
+      { label: '1080p', value: 'pro' },
+      { label: '4K', value: '4k' },
+    ]);
+  });
+
+  it('does not expose 360p when the catalog model does not advertise it', () => {
+    for (const entry of videoModelResolutions) {
+      expect(
+        entry.resolutions.map((resolution) => resolution.value),
+      ).not.toContain('360p');
+    }
   });
 });
 

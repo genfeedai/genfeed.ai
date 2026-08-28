@@ -102,9 +102,19 @@ describe('option lists', () => {
   });
 
   it('offers pixel tiers to image and named tiers to video', () => {
-    expect(getStudioResolutions('image')).toContain('2K');
-    expect(getStudioResolutions('video')).toContain('1080p');
+    expect(
+      getStudioResolutions('image').map((option) => option.value),
+    ).toContain('2K');
+    expect(
+      getStudioResolutions('video', 'bytedance/seedance-2.5').map(
+        (option) => option.value,
+      ),
+    ).toEqual(['480p', '720p']);
     expect(getStudioResolutions('voice')).toEqual([]);
+  });
+
+  it('waits for an explicit video model instead of posting an illegal generic resolution', () => {
+    expect(getStudioResolutions('video')).toEqual([]);
   });
 
   it('offers durations only where the provider bills by length', () => {
@@ -180,6 +190,28 @@ describe('buildStudioPromptData', () => {
     expect(promptData.width).toBe(2048);
     expect(promptData.height).toBe(1152);
     expect(promptData.format).toBe(IngredientFormat.LANDSCAPE);
+  });
+
+  it('drops resolution for auto-routed video and normalizes a stale explicit value', () => {
+    const auto = buildStudioPromptData({
+      brandId: 'brand-1',
+      promptText: 'A product reveal',
+      settings: getDefaultStudioGenerateSettings('video'),
+      type: 'video',
+    });
+    expect(auto.resolution).toBeUndefined();
+
+    const explicit = buildStudioPromptData({
+      brandId: 'brand-1',
+      promptText: 'A product reveal',
+      settings: {
+        ...getDefaultStudioGenerateSettings('video'),
+        modelKey: 'bytedance/seedance-2.5',
+        resolution: 'illegal-stale-value',
+      },
+      type: 'video',
+    });
+    expect(explicit.resolution).toBe('720p');
   });
 
   it('is invalid without prompt text', () => {
@@ -311,7 +343,7 @@ describe('describeStudioGenerateSettings', () => {
     };
 
     expect(describeStudioGenerateSettings(settings, 'video')).toBe(
-      '16:9 \u00b7 720p \u00b7 5s \u00b7 Brand',
+      '16:9 \u00b7 5s \u00b7 Brand',
     );
   });
 

@@ -13,6 +13,7 @@ import type { MouseEvent } from 'react';
 type VideoActionHandlers = {
   handlePublish: (ingredient: IVideo) => void;
   handleUpscale: (ingredient: IVideo) => void;
+  handleExtend: (ingredient: IVideo) => void;
   handleClone: (ingredient: IVideo) => void;
   handleDelete: (ingredient: IVideo) => void;
   handleConvertToGif: (ingredient: IVideo) => void;
@@ -148,6 +149,7 @@ export default function MasonryVideoActionsBar({
                   onPublish={handlers.handlePublish}
                   onShare={onShareIngredient || handlers.handleShare}
                   onUpscale={handlers.handleUpscale}
+                  onExtend={handlers.handleExtend}
                   onClone={handlers.handleClone}
                   onDelete={handlers.handleDelete}
                   onConvertToGif={handlers.handleConvertToGif}

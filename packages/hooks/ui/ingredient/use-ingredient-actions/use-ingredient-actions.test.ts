@@ -33,6 +33,10 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(),
 }));
 
+vi.mock('@hooks/data/elements/use-elements/use-elements', () => ({
+  useElements: vi.fn(() => ({ videoModels: [] })),
+}));
+
 vi.mock(
   '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services',
   () => ({

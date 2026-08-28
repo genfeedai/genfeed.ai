@@ -262,7 +262,7 @@ export interface PromptBarAttachedAsset {
   id: string;
   kind: 'image' | 'video' | 'audio';
   source: 'upload' | 'library';
-  role: 'reference' | 'startFrame' | 'endFrame' | 'input';
+  role: 'reference' | 'startFrame' | 'endFrame' | 'videoReference' | 'input';
   previewUrl?: string;
   name?: string;
 }

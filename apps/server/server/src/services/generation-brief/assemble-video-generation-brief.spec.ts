@@ -82,4 +82,20 @@ describe('assembleVideoGenerationBrief', () => {
       source: 'user',
     });
   });
+
+  it('keeps native video references distinct from frame images', () => {
+    const brief = assembleVideoGenerationBrief({
+      endFrameId: 'end-frame',
+      fidelityMode: 'guided',
+      objective: 'Continue the scene',
+      referenceIds: ['start-frame'],
+      videoReferenceIds: ['reference-video'],
+    });
+
+    expect(brief.references).toEqual([
+      { assetId: 'start-frame', role: 'first_frame' },
+      { assetId: 'end-frame', role: 'last_frame' },
+      { assetId: 'reference-video', role: 'reference_video' },
+    ]);
+  });
 });

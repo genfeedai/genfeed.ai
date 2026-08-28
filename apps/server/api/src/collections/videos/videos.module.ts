@@ -71,6 +71,7 @@ import { HiggsFieldService } from '@server/services/integrations/higgsfield/higg
     VideosUploadController,
   ],
   exports: [
+    VideoGenerationCreditsService,
     VideoGenerationService,
     VideoMusicOrchestrationService,
     VideoProvenanceService,

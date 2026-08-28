@@ -23,6 +23,7 @@ import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useEnhanceUpscale } from '@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
@@ -71,6 +72,29 @@ export interface UseIngredientActionsOptions {
   onReprompt?: (ingredient: IIngredient) => void | Promise<void>;
 }
 
+export interface VideoExtendModelOption {
+  cost: number;
+  costPerUnit?: number;
+  defaultDuration?: number;
+  durations?: readonly number[];
+  key: string;
+  label: string;
+  minCost?: number;
+  pricingType?: string;
+}
+
+export interface VideoExtendSelection {
+  cost: number;
+  duration: number;
+  model: string;
+  prompt: string;
+}
+
+export interface VideoExtendConfirmData {
+  ingredient: IIngredient;
+  modelOptions: VideoExtendModelOption[];
+}
+
 export function useIngredientActions({
   onDeleteIngredient,
   onPublishIngredient,
@@ -93,6 +117,7 @@ export function useIngredientActions({
   );
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const { brandId } = useBrand();
+  const { videoModels } = useElements();
   const { href } = useOrgUrl();
   const { subscribe } = useSocketManager();
 
@@ -112,6 +137,8 @@ export function useIngredientActions({
 
   // UI state
   const [showActions, setShowActions] = useState(false);
+  const [extendConfirmData, setExtendConfirmData] =
+    useState<VideoExtendConfirmData | null>(null);
 
   // Loading states with proper TypeScript typing
   const [actionStates, setActionStates] = useState<MasonryActionStates>({
@@ -120,6 +147,7 @@ export function useIngredientActions({
     isConverting: false,
     isConvertingToVideo: false,
     isDeleting: false,
+    isExtending: false,
     isDownloading: false,
     isEnhancing: false,
     isGeneratingCaptions: initialGeneratingCaptions,
@@ -163,12 +191,83 @@ export function useIngredientActions({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      abortControllersRef.current.forEach((controller) => controller.abort());
+      abortControllersRef.current.forEach((controller) => {
+        controller.abort();
+      });
     };
   }, []);
 
   // Parent components can watch enhanceConfirmData/upscaleConfirmData
   // and call openConfirm from useConfirmModal hook to display the modal.
+
+  const handleExtend = useCallback(
+    (ingredient: IIngredient) => {
+      if (!isVideoIngredient(ingredient)) {
+        return notificationsService.error('Can only extend videos');
+      }
+      if (
+        ingredient.status !== IngredientStatus.GENERATED &&
+        ingredient.status !== IngredientStatus.VALIDATED
+      ) {
+        return notificationsService.error(
+          'Only completed videos can be extended',
+        );
+      }
+      const modelOptions = [...videoModels]
+        .sort((left, right) => {
+          if (left.key === ingredient.model) return -1;
+          if (right.key === ingredient.model) return 1;
+          return 0;
+        })
+        .map((model) => ({
+          cost: model.cost || 0,
+          costPerUnit: model.costPerUnit,
+          defaultDuration: model.defaultDuration,
+          durations: model.durations,
+          key: model.key,
+          label: model.label,
+          minCost: model.minCost,
+          pricingType: model.pricingType,
+        }));
+      if (modelOptions.length === 0) {
+        return notificationsService.error(
+          'No video generation model is available',
+        );
+      }
+      setExtendConfirmData({ ingredient, modelOptions });
+    },
+    [notificationsService, videoModels],
+  );
+
+  const clearExtendConfirm = useCallback(() => {
+    setExtendConfirmData(null);
+  }, []);
+
+  const executeExtend = useCallback(
+    async (selection: VideoExtendSelection) => {
+      if (!extendConfirmData) {
+        return;
+      }
+      const ingredient = extendConfirmData.ingredient;
+      setExtendConfirmData(null);
+      await executeSilentWithActionState({
+        errorMessage: 'Failed to extend video',
+        onSuccess: onRefresh,
+        operation: async () => {
+          const service = (await getVideosService()) as VideosService;
+          return service.postExtend(ingredient.id, {
+            duration: selection.duration,
+            model: selection.model,
+            prompt: selection.prompt,
+          });
+        },
+        setActionStates,
+        stateKey: 'isExtending',
+        url: `POST /videos/${ingredient.id}/extend`,
+      });
+    },
+    [extendConfirmData, getVideosService, onRefresh],
+  );
 
   // Listen for asset status updates via websocket (for set as logo/banner)
   useEffect(() => {
@@ -968,11 +1067,13 @@ export function useIngredientActions({
   return {
     actionStates,
     clearEnhanceConfirm,
+    clearExtendConfirm,
     clearUpscaleConfirm,
     // Enhance confirm modal data
     enhanceConfirmData,
     enhanceConfirmMessage,
     executeEnhance,
+    executeExtend,
     executeUpscale,
     handlers: {
       handleAddTextOverlay,
@@ -983,6 +1084,7 @@ export function useIngredientActions({
       handleDelete,
       handleDownload,
       handleEnhance,
+      handleExtend,
       handleGenerateCaptions,
       handleLandscape,
       handleMarkArchived,
@@ -1013,6 +1115,7 @@ export function useIngredientActions({
       isDeleting: actionStates.isDeleting,
       isDownloading: actionStates.isDownloading,
       isEnhancing: actionStates.isEnhancing,
+      isExtending: actionStates.isExtending,
       isGeneratingCaptions: actionStates.isGeneratingCaptions,
       isLandscaping: actionStates.isLandscaping,
       isMarkingArchived: actionStates.isMarkingArchived,
@@ -1031,6 +1134,7 @@ export function useIngredientActions({
     setActionStates,
     setShowActions,
     showActions,
+    extendConfirmData,
     // Upscale confirm modal data
     upscaleConfirmData,
     upscaleConfirmMessage,

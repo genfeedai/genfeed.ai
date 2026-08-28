@@ -1,14 +1,3 @@
-import { CaptionsService } from '@server/collections/captions/services/captions.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { MusicsService } from '@server/collections/musics/services/musics.service';
-import { AvatarVideoGenerationService } from '@server/collections/videos/services/avatar-video-generation.service';
-import { VideoMusicOrchestrationService } from '@server/collections/videos/services/video-music-orchestration.service';
-import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import { WhisperService } from '@server/services/whisper/whisper.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
 import {
   CaptionFormat,
   CaptionLanguage,
@@ -26,7 +15,18 @@ import {
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
+import { CaptionsService } from '@server/collections/captions/services/captions.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { MusicsService } from '@server/collections/musics/services/musics.service';
+import { AvatarVideoGenerationService } from '@server/collections/videos/services/avatar-video-generation.service';
+import { VideoMusicOrchestrationService } from '@server/collections/videos/services/video-music-orchestration.service';
+import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { WhisperService } from '@server/services/whisper/whisper.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 
 export class WorkflowMediaProcessingExecutorRegistrarService {
   constructor(
@@ -49,6 +49,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     this.registerCaptionsExecutor(engine);
     this.registerMusicSourceExecutor(engine);
     this.registerSoundOverlayExecutor(engine);
+    this.registerVideoFrameExtractExecutor(engine);
     this.registerVideoQaExecutor(engine);
     this.registerVideoStitchExecutor(engine);
     this.registerDirectMediaInputExecutors(engine);
@@ -335,6 +336,65 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     );
   }
 
+  private registerVideoFrameExtractExecutor(engine: WorkflowEngine): void {
+    const filesClientService = this.filesClientService;
+    if (!filesClientService) {
+      return;
+    }
+
+    engine.registerExecutor('videoFrameExtract', async (_node, inputs) => {
+      const source = inputs.get('video');
+      const videoUrl = this.helper.extractMediaUrl(source);
+      const ingredientId = this.helper.extractIngredientId(source);
+      if (!videoUrl || !ingredientId) {
+        throw new Error(
+          'videoFrameExtract requires a source video ingredient URL',
+        );
+      }
+
+      const providerVideoUrl = await filesClientService.getPresignedDownloadUrl(
+        ingredientId,
+        'videos',
+      );
+
+      const metadata =
+        await filesClientService.extractMetadataFromUrl(providerVideoUrl);
+      if (
+        typeof metadata.duration !== 'number' ||
+        !Number.isFinite(metadata.duration) ||
+        metadata.duration <= 0
+      ) {
+        throw new Error(
+          'videoFrameExtract requires a source video with a readable duration',
+        );
+      }
+      const selectionMode = this.helper.readConfigString(
+        _node.config,
+        'selectionMode',
+      );
+      const requestedTimestamp = this.helper.getOptionalNumberConfig(
+        _node.config,
+        'timestampSeconds',
+        0,
+      );
+      const timestamp =
+        selectionMode === 'last'
+          ? Math.max(0, metadata.duration - 0.05)
+          : requestedTimestamp;
+      const frameUrl = await filesClientService.generateThumbnail(
+        providerVideoUrl,
+        ingredientId,
+        timestamp,
+      );
+
+      return {
+        image: frameUrl,
+        last_frame: frameUrl,
+        sourceVideo: videoUrl,
+      };
+    });
+  }
+
   private registerVideoStitchExecutor(engine: WorkflowEngine): void {
     const fileQueueService = this.fileQueueService;
     const filesClientService = this.filesClientService;
@@ -375,50 +435,63 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           organizationId: params.organizationId,
+          parentId: params.parentId,
+          providerData: params.providerData,
           sourceIds,
           status: IngredientStatus.PROCESSING,
           userId: params.userId,
         });
 
       const ingredientId = ingredientData.id.toString();
-      const job = await fileQueueService.processVideo({
-        ingredientId,
-        organizationId: params.organizationId,
-        params: {
-          sourceIds,
-          transition: params.transitionType,
-          transitionDuration: params.transitionDuration,
-        },
-        room: getUserRoomName(params.userId),
-        type: 'merge-videos',
-        userId: params.userId,
-        websocketUrl: `/videos/${ingredientId}`,
-      });
+      try {
+        const job = await fileQueueService.processVideo({
+          ingredientId,
+          organizationId: params.organizationId,
+          params: {
+            sourceIds,
+            transition: params.transitionType,
+            transitionDuration: params.transitionDuration,
+          },
+          room: getUserRoomName(params.userId),
+          type: 'merge-videos',
+          userId: params.userId,
+          websocketUrl: `/videos/${ingredientId}`,
+        });
 
-      const result = await fileQueueService.waitForJob(job.jobId, 300_000);
-      const outputPath = this.helper.getRequiredJobOutputPath(result);
-      const uploaded = await filesClientService.uploadToS3(
-        ingredientId,
-        'videos',
-        {
-          path: outputPath,
-          type: FileInputType.FILE,
-        },
-      );
+        const result = await fileQueueService.waitForJob(job.jobId, 300_000);
+        const outputPath = this.helper.getRequiredJobOutputPath(result);
+        const uploaded = await filesClientService.uploadToS3(
+          ingredientId,
+          'videos',
+          {
+            path: outputPath,
+            type: FileInputType.FILE,
+          },
+        );
 
-      await ingredientsService.patch(ingredientId, {
-        status: IngredientStatus.GENERATED,
-        transformations: [TransformationCategory.MERGED],
-      });
-      await metadataService.patch(
-        metadataData.id,
-        new MetadataEntity(uploaded),
-      );
+        await ingredientsService.patch(ingredientId, {
+          status: IngredientStatus.GENERATED,
+          transformations: [TransformationCategory.MERGED],
+        });
+        await metadataService.patch(
+          metadataData.id,
+          new MetadataEntity(uploaded),
+        );
 
-      return {
-        jobId: job.jobId,
-        outputVideoUrl: this.helper.buildVideoIngredientUrl(ingredientId),
-      };
+        return {
+          jobId: job.jobId,
+          outputVideoUrl: this.helper.buildVideoIngredientUrl(ingredientId),
+        };
+      } catch (error: unknown) {
+        try {
+          await ingredientsService.patch(ingredientId, {
+            status: IngredientStatus.FAILED,
+          });
+        } catch {
+          // Preserve the processing failure that caused the workflow node to fail.
+        }
+        throw error;
+      }
     });
 
     engine.registerExecutor(

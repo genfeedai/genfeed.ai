@@ -4,8 +4,11 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { ThreadAsset } from '@genfeedai/agent/utils/extract-thread-assets';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Button } from '@ui/primitives/button';
 import { Image, Video } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -51,6 +54,7 @@ export function GenerationActionCard({
   onUiAction,
   className,
 }: GenerationActionCardProps): ReactElement {
+  const translate = useTranslations('agent.generationActionCard');
   const {
     generationType,
     prompt,
@@ -76,6 +80,8 @@ export function GenerationActionCard({
     availableAspectRatios,
     showDuration,
     durationOptions,
+    estimatedCredits,
+    endFrameId,
     textareaRef,
     onRegenerateProp,
     handleRetryVoid,
@@ -93,6 +99,18 @@ export function GenerationActionCard({
     handleDurationChange,
     handleOutputsChange,
     referenceIds,
+    referenceNotice,
+    resolution,
+    resolutionOptions,
+    startFrameId,
+    supportsEndFrame,
+    supportsInterpolation,
+    supportsVideoReferences,
+    videoReferenceIds,
+    handleResolutionChange,
+    handleToggleEndFrame,
+    handleToggleStartFrame,
+    handleToggleVideoReference,
   } = useGenerationActionCard({
     action,
     apiService,
@@ -104,6 +122,9 @@ export function GenerationActionCard({
   // is not a header sliver. A new error or idle state expands once so the
   // operator sees it; they can still collapse the card by hand after that.
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [videoReferenceMode, setVideoReferenceMode] = useState<
+    'startFrame' | 'endFrame' | 'videoReference'
+  >('startFrame');
 
   useEffect(() => {
     if (status === 'error' || status === 'idle' || status === 'pilot_review') {
@@ -111,11 +132,39 @@ export function GenerationActionCard({
     }
   }, [status]);
 
+  useEffect(() => {
+    if (
+      (videoReferenceMode === 'endFrame' && !supportsEndFrame) ||
+      (videoReferenceMode === 'videoReference' && !supportsVideoReferences)
+    ) {
+      setVideoReferenceMode('startFrame');
+    }
+  }, [supportsEndFrame, supportsVideoReferences, videoReferenceMode]);
+
   const handleToggleAssetReference = useCallback(
     (asset: ThreadAsset) => {
-      handleToggleReference(asset.id);
+      if (generationType === 'image') {
+        handleToggleReference(asset.id);
+        return;
+      }
+      if (videoReferenceMode === 'endFrame') {
+        handleToggleEndFrame(asset.id);
+        return;
+      }
+      if (videoReferenceMode === 'videoReference') {
+        handleToggleVideoReference(asset.id);
+        return;
+      }
+      handleToggleStartFrame(asset.id);
     },
-    [handleToggleReference],
+    [
+      generationType,
+      handleToggleEndFrame,
+      handleToggleReference,
+      handleToggleStartFrame,
+      handleToggleVideoReference,
+      videoReferenceMode,
+    ],
   );
 
   const handleUseAsReference = useCallback(() => {
@@ -192,7 +241,11 @@ export function GenerationActionCard({
             showDuration={showDuration}
             duration={duration}
             durationOptions={durationOptions}
+            estimatedCredits={estimatedCredits}
             onDurationChange={handleDurationChange}
+            resolution={resolution}
+            resolutionOptions={resolutionOptions}
+            onResolutionChange={handleResolutionChange}
             isImage={isImage}
             isPromptEmpty={!prompt.trim()}
             showGenerate={
@@ -203,6 +256,65 @@ export function GenerationActionCard({
             onGenerate={handleGenerateVoid}
             onStop={handleStop}
           />
+
+          {!isImage ? (
+            <div
+              aria-label={translate('videoReferenceRoleAria')}
+              className="flex flex-wrap items-center gap-1.5"
+              role="group"
+            >
+              <Button
+                aria-pressed={videoReferenceMode === 'startFrame'}
+                onClick={() => setVideoReferenceMode('startFrame')}
+                size={ButtonSize.SM}
+                variant={
+                  videoReferenceMode === 'startFrame'
+                    ? ButtonVariant.SECONDARY
+                    : ButtonVariant.GHOST
+                }
+                withWrapper={false}
+              >
+                {translate('startFrame')}
+              </Button>
+              {supportsEndFrame ? (
+                <Button
+                  aria-pressed={videoReferenceMode === 'endFrame'}
+                  isDisabled={supportsInterpolation && !startFrameId}
+                  onClick={() => setVideoReferenceMode('endFrame')}
+                  size={ButtonSize.SM}
+                  variant={
+                    videoReferenceMode === 'endFrame'
+                      ? ButtonVariant.SECONDARY
+                      : ButtonVariant.GHOST
+                  }
+                  withWrapper={false}
+                >
+                  {translate('endFrame')}
+                </Button>
+              ) : null}
+              {supportsVideoReferences ? (
+                <Button
+                  aria-pressed={videoReferenceMode === 'videoReference'}
+                  onClick={() => setVideoReferenceMode('videoReference')}
+                  size={ButtonSize.SM}
+                  variant={
+                    videoReferenceMode === 'videoReference'
+                      ? ButtonVariant.SECONDARY
+                      : ButtonVariant.GHOST
+                  }
+                  withWrapper={false}
+                >
+                  {translate('videoReference')}
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+
+          {referenceNotice ? (
+            <p className="text-xs text-warning" role="status">
+              {referenceNotice}
+            </p>
+          ) : null}
 
           {status === 'error' ? (
             <GenerationActionCardStatusPanel
@@ -226,12 +338,38 @@ export function GenerationActionCard({
           ) : null}
 
           <GenerationActionCanvas
+            assetType={
+              !isImage && videoReferenceMode === 'videoReference'
+                ? 'video'
+                : 'image'
+            }
             generationType={generationType}
             currentResult={
               resultId && resultUrl ? { id: resultId, url: resultUrl } : null
             }
             isDisabled={status === 'generating'}
-            referenceIds={referenceIds}
+            referenceIds={
+              isImage
+                ? referenceIds
+                : videoReferenceMode === 'endFrame'
+                  ? endFrameId
+                    ? [endFrameId]
+                    : []
+                  : videoReferenceMode === 'videoReference'
+                    ? videoReferenceIds
+                    : startFrameId
+                      ? [startFrameId]
+                      : []
+            }
+            selectionLabel={
+              isImage
+                ? translate('generationReference')
+                : videoReferenceMode === 'endFrame'
+                  ? translate('endFrame')
+                  : videoReferenceMode === 'videoReference'
+                    ? translate('videoReference')
+                    : translate('startFrame')
+            }
             onToggleReference={handleToggleAssetReference}
           />
 

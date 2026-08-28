@@ -1,4 +1,5 @@
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import type { FalService } from '@server/services/integrations/fal/services/fal.service';
 import { FalSchemaFamily } from '@server/services/integrations/fal/services/fal-contract';
 
@@ -45,4 +46,76 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
       },
     );
   });
+
+  it.each([
+    {
+      endpoint: 'google/gemini-omni-flash',
+      expectedInput: {
+        aspect_ratio: '9:16',
+        duration: 8,
+        prompt: 'a musician under neon lights',
+      },
+      promptParams: { aspect_ratio: '9:16', duration: 8 },
+    },
+    {
+      endpoint: 'google/gemini-omni-flash/image-to-video',
+      expectedInput: {
+        aspect_ratio: '9:16',
+        duration: 8,
+        image_url: 'https://cdn.test/start.png',
+        prompt: 'a musician under neon lights',
+      },
+      promptParams: {
+        aspect_ratio: '9:16',
+        duration: 8,
+        image_url: 'https://cdn.test/start.png',
+      },
+    },
+    {
+      endpoint: 'google/gemini-omni-flash/reference-to-video',
+      expectedInput: {
+        aspect_ratio: '9:16',
+        duration: 8,
+        image_urls: [
+          'https://cdn.test/start.png',
+          'https://cdn.test/style.png',
+        ],
+        prompt: 'a musician under neon lights, cinematic dolly shot',
+      },
+      promptParams: {
+        aspect_ratio: '9:16',
+        duration: 8,
+        image_url: 'https://cdn.test/start.png',
+        image_urls: ['https://cdn.test/style.png'],
+        prompt: 'a musician under neon lights, cinematic dolly shot',
+      },
+    },
+  ])(
+    'routes Gemini Omni Flash to $endpoint without inventing schema fields',
+    async ({ endpoint, expectedInput, promptParams }) => {
+      const falService = {
+        generateVideo: vi
+          .fn()
+          .mockResolvedValue({ url: 'https://cdn.test/out.mp4' }),
+      };
+      const adapter = new FalVideoGenerationProviderAdapter(
+        falService as unknown as FalService,
+      );
+
+      await adapter.generate({
+        duration: endpoint.endsWith('/image-to-video') ? 2 : 8,
+        height: 1920,
+        model: MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
+        modelEndpoint: MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
+        prompt: 'a musician under neon lights',
+        promptParams,
+        width: 1080,
+      });
+
+      expect(falService.generateVideo).toHaveBeenCalledWith(
+        endpoint,
+        expectedInput,
+      );
+    },
+  );
 });

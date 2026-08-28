@@ -11,12 +11,14 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { VideosEditsController } from '@api/collections/videos/controllers/transformations/edits/videos-edits.controller';
 import { VideosEffectsController } from '@api/collections/videos/controllers/transformations/effects/videos-effects.controller';
+import { VideosExtendController } from '@api/collections/videos/controllers/transformations/extend/videos-extend.controller';
 import { VideosGifController } from '@api/collections/videos/controllers/transformations/gif/videos-gif.controller';
 import { VideosLipSyncController } from '@api/collections/videos/controllers/transformations/lip-sync/videos-lip-sync.controller';
 import { VideosReframeController } from '@api/collections/videos/controllers/transformations/reframe/videos-reframe.controller';
 import { VideosResizeController } from '@api/collections/videos/controllers/transformations/resize/videos-resize.controller';
 import { VideosUpscaleController } from '@api/collections/videos/controllers/transformations/upscale/videos-upscale.controller';
 import { VideosModule } from '@api/collections/videos/videos.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -35,6 +37,7 @@ import { Module } from '@nestjs/common';
   controllers: [
     VideosEditsController,
     VideosEffectsController,
+    VideosExtendController,
     VideosGifController,
     VideosLipSyncController,
     VideosReframeController,
@@ -62,6 +65,7 @@ import { Module } from '@nestjs/common';
     RouterModule,
     // Core video module for VideosService
     VideosModule,
+    WorkflowsCoreModule,
   ],
   providers: [CreditsGuard, CreditsInterceptor, ModelsGuard],
 })

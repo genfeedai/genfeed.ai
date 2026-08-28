@@ -1,7 +1,3 @@
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
 import {
   IngredientCategory,
   IngredientStatus,
@@ -15,6 +11,10 @@ import type {
   NodeExecutor,
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 
 export interface PendingWorkflowOutput {
   ingredientId: string;
@@ -171,15 +171,26 @@ export class WorkflowEngineExecutorHelperService {
     const pendingOutput = await this.createWorkflowOutputIngredient(
       args.output,
     );
-    const externalId = await args.runProvider(pendingOutput.ingredientId);
+    try {
+      const externalId = await args.runProvider(pendingOutput.ingredientId);
 
-    await this.metadataService.patch(
-      pendingOutput.metadataId,
-      new MetadataEntity({
-        externalId,
-        result: args.resultUrl(pendingOutput.ingredientId),
-      }),
-    );
+      await this.metadataService.patch(
+        pendingOutput.metadataId,
+        new MetadataEntity({
+          externalId,
+          result: args.resultUrl(pendingOutput.ingredientId),
+        }),
+      );
+    } catch (error: unknown) {
+      try {
+        await this.ingredientsService?.patch(pendingOutput.ingredientId, {
+          status: IngredientStatus.FAILED,
+        });
+      } catch {
+        // Preserve the provider failure that caused the workflow node to fail.
+      }
+      throw error;
+    }
 
     return pendingOutput;
   }
@@ -268,7 +279,7 @@ export class WorkflowEngineExecutorHelperService {
   extractIngredientId(value: unknown): string | undefined {
     if (typeof value === 'string') {
       const match = value.match(
-        /\/(?:images|videos|musics|audios|avatars)\/([a-f\d]{24})(?:[/?#]|$)/i,
+        /\/(?:images|videos|musics|audios|avatars)\/([^/?#]+)(?:[/?#]|$)/i,
       );
       return match?.[1];
     }

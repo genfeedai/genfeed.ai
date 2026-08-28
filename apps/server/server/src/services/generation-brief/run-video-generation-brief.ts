@@ -7,6 +7,7 @@ import type { GenerationBriefSurface } from '@api-types/contracts/generation-bri
 import { buildGenerationBriefCompileSource } from '@api-types/contracts/generation-brief-compiler.contract';
 import type { VideoGenerationBriefPersistedEvidence } from '@api-types/contracts/video-generation-brief-compiler.contract';
 import { buildVideoGenerationBriefExemptionSource } from '@api-types/contracts/video-generation-brief-compiler.contract';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { assembleVideoGenerationBrief } from '@server/services/generation-brief/assemble-video-generation-brief';
 import { assertRedactedVideoGenerationBriefEvidence } from '@server/services/generation-brief/redact-generation-brief-evidence';
@@ -15,6 +16,12 @@ import { resolveVideoGenerationFidelityMode } from '@server/services/generation-
 import { getVideoGenerationBriefRegistryEntry } from '@server/services/generation-brief/video-generation-brief-registry';
 
 export interface RunVideoGenerationBriefInput {
+  actionVerb?:
+    | 'generate'
+    | 'interpolate'
+    | 'reference_video'
+    | 'extend'
+    | 'upscale';
   audioDirection?: string;
   avoid?: string[];
   brandingMode?: 'off' | 'brand';
@@ -31,10 +38,12 @@ export interface RunVideoGenerationBriefInput {
   objective: string;
   referenceIds?: string[];
   references?: readonly GenerationBriefReference[];
+  resolution?: string;
   scene?: string;
   seed?: number;
   surface: GenerationBriefSurface;
   visualDirection?: string;
+  videoReferenceIds?: string[];
   width: number;
 }
 
@@ -43,6 +52,19 @@ export interface RunVideoGenerationBriefResult {
   dispatch?: Record<string, unknown>;
   evidence: VideoGenerationBriefPersistedEvidence;
   generationSource: string;
+}
+
+function resolveVideoActionVerb(appliedFields: string[]) {
+  if (appliedFields.includes('references.reference_video')) {
+    return 'reference_video' as const;
+  }
+  if (
+    appliedFields.includes('references.first_frame') &&
+    appliedFields.includes('references.last_frame')
+  ) {
+    return 'interpolate' as const;
+  }
+  return 'generate' as const;
 }
 
 /**
@@ -57,8 +79,10 @@ export function runVideoGenerationBrief(
   if (support.kind === 'exempt') {
     return {
       evidence: assertRedactedVideoGenerationBriefEvidence({
+        actionVerb: 'generate',
         compilerId: null,
         compilerVersion: null,
+        dispatchMode: 'native',
         modelKey: support.modelKey,
         profileId: null,
         profileVersion: null,
@@ -97,9 +121,11 @@ export function runVideoGenerationBrief(
     objective: input.objective,
     referenceIds: input.referenceIds,
     references: input.references,
+    resolution: input.resolution,
     scene: input.scene,
     visualDirection: input.visualDirection,
     visualDirectionSource: 'user',
+    videoReferenceIds: input.videoReferenceIds,
     width: input.width,
   });
   const compiled = entry.compile({
@@ -107,12 +133,26 @@ export function runVideoGenerationBrief(
     modelKey: support.modelKey,
     seed: input.seed,
   });
+  const dispatch =
+    input.actionVerb === 'extend' &&
+    support.modelKey === MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5 &&
+    compiled.dispatch
+      ? { ...compiled.dispatch, aspect_ratio: 'adaptive', duration: -1 }
+      : compiled.dispatch;
 
   return {
     brief: compiled.brief,
-    dispatch: compiled.dispatch,
+    dispatch,
     evidence: assertRedactedVideoGenerationBriefEvidence({
       ...compiled.evidence,
+      actionVerb:
+        input.actionVerb ??
+        resolveVideoActionVerb(
+          compiled.evidence.status === 'compiled'
+            ? compiled.evidence.appliedFields
+            : [],
+        ),
+      dispatchMode: 'native',
       surface: input.surface,
     }),
     generationSource: buildGenerationBriefCompileSource({

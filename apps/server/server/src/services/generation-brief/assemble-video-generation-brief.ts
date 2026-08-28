@@ -22,11 +22,13 @@ export interface AssembleVideoGenerationBriefInput {
   objective: string;
   referenceIds?: string[];
   references?: readonly GenerationBriefReference[];
+  resolution?: string;
   requestedText?: string[];
   scene?: string;
   subjects?: string[];
   visualDirection?: string;
   visualDirectionSource?: GenerationBriefProvenance['source'];
+  videoReferenceIds?: string[];
   width?: number;
 }
 
@@ -107,6 +109,13 @@ export function assembleVideoGenerationBrief(
     provenance.push({ field: 'references.last_frame', source: 'user' });
   }
 
+  for (const assetId of uniqueTexts(input.videoReferenceIds)) {
+    references.push({ assetId, role: 'reference_video' as const });
+  }
+  if (input.videoReferenceIds?.length) {
+    provenance.push({ field: 'references.reference_video', source: 'user' });
+  }
+
   const width = input.width;
   const height = input.height;
   const hasPairedDimensions =
@@ -142,6 +151,9 @@ export function assembleVideoGenerationBrief(
     output: {
       ...(aspectRatio ? { aspectRatio } : {}),
       ...(durationSeconds ? { durationSeconds } : {}),
+      ...(optionalText(input.resolution)
+        ? { resolution: optionalText(input.resolution) }
+        : {}),
       ...(hasPairedDimensions ? { height, width } : {}),
     },
     provenance,

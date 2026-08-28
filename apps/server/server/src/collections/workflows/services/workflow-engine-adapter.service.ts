@@ -1,5 +1,17 @@
+import type {
+  ExecutableNode,
+  ExecutableWorkflow,
+  ExecutionOptions,
+  ExecutionRunResult,
+  NodeExecutor,
+} from '@genfeedai/workflows/engine';
+import { WorkflowEngine } from '@genfeedai/workflows/engine';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { CaptionsService } from '@server/collections/captions/services/captions.service';
+import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
 import { WinnerPromotionWorkflowService } from '@server/collections/content-performance/services/winner-promotion-workflow.service';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
@@ -45,9 +57,12 @@ import { WorkflowMediaProcessingExecutorRegistrarService } from '@server/collect
 import { WorkflowSocialExecutorRegistrarService } from '@server/collections/workflows/services/workflow-social-executor-registrar.service';
 import { WorkflowTrendPublishExecutorRegistrarService } from '@server/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
 import { CacheService } from '@server/services/cache/cache.service';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { HeyGenService } from '@server/services/integrations/heygen/services/heygen.service';
 import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
 import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
@@ -55,21 +70,6 @@ import { SeoScorerService } from '@server/services/seo/seo-scorer.service';
 import { WhisperService } from '@server/services/whisper/whisper.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { SharedService } from '@server/shared/services/shared/shared.service';
-import type {
-  ExecutableNode,
-  ExecutableWorkflow,
-  ExecutionOptions,
-  ExecutionRunResult,
-  NodeExecutor,
-} from '@genfeedai/workflows/engine';
-import { WorkflowEngine } from '@genfeedai/workflows/engine';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
-import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 /**
  * Bridges NestJS services with the pure workflow-engine package.
@@ -202,6 +202,7 @@ export class WorkflowEngineAdapterService {
         this.heyGenService,
         this.elevenLabsService,
         this.replicateService,
+        this.filesClientService,
       );
     const contentRegistrar = new WorkflowContentExecutorRegistrarService(
       helper,

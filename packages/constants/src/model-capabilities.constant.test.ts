@@ -43,4 +43,22 @@ describe('model-capabilities.constant', () => {
       MODEL_OUTPUT_CAPABILITIES[MODEL_KEYS.REPLICATE_OPENAI_CLIP],
     ).toBeUndefined();
   });
+
+  it('advertises only fal-published Gemini Omni Flash controls', () => {
+    const capability =
+      MODEL_OUTPUT_CAPABILITIES[MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH];
+
+    expect(capability).toMatchObject({
+      aspectRatios: ['16:9', '9:16'],
+      category: ModelCategory.VIDEO,
+      defaultDuration: 8,
+      durations: [3, 4, 5, 6, 7, 8, 9, 10],
+      hasDurationEditing: true,
+      hasSpeech: true,
+      maxReferences: 3,
+    });
+    expect(capability).not.toHaveProperty('hasEndFrame');
+    expect(capability).not.toHaveProperty('hasResolutionOptions');
+    expect(capability).not.toHaveProperty('hasVideoReferences');
+  });
 });

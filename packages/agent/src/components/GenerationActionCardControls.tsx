@@ -64,7 +64,11 @@ type GenerationActionCardControlsProps = {
   showDuration: boolean;
   duration: number;
   durationOptions: number[];
+  estimatedCredits?: number | null;
   onDurationChange: (value: number) => void;
+  resolution?: string;
+  resolutionOptions: readonly { label: string; value: string }[];
+  onResolutionChange: (value: string) => void;
   isImage: boolean;
   isPromptEmpty: boolean;
   showGenerate: boolean;
@@ -98,7 +102,11 @@ export function GenerationActionCardControls({
   showDuration,
   duration,
   durationOptions,
+  estimatedCredits,
   onDurationChange,
+  resolution,
+  resolutionOptions,
+  onResolutionChange,
   isImage,
   isPromptEmpty,
   showGenerate,
@@ -324,9 +332,40 @@ export function GenerationActionCardControls({
               </Select>
             </div>
           ) : null}
+          {!isImage && resolutionOptions.length > 0 ? (
+            <div className="shrink-0">
+              <Select
+                disabled={isDisabled}
+                onValueChange={onResolutionChange}
+                value={resolution}
+              >
+                <SelectTrigger
+                  aria-label="Video resolution"
+                  className={cn('w-32', SHELL_CONTROL_HEIGHT_CLASS)}
+                >
+                  <SelectValue placeholder="Resolution" />
+                </SelectTrigger>
+                <SelectContent>
+                  {resolutionOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
+          {estimatedCredits !== null && estimatedCredits !== undefined ? (
+            <span
+              aria-live="polite"
+              className="mr-1 text-xs font-medium text-muted-foreground"
+            >
+              {translate('estimatedCredits', { credits: estimatedCredits })}
+            </span>
+          ) : null}
           {showStop ? (
             <Button
               ariaLabel={translate('stopAria')}

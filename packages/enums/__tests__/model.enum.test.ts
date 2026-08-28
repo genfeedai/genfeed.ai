@@ -11,8 +11,8 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 117 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(117);
+    it('should have 118 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(118);
     });
 
     it('should have correct values', () => {
@@ -38,6 +38,9 @@ describe('model.enum', () => {
       );
       expect(MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE).toBe(
         'google/nano-banana-2-lite',
+      );
+      expect(MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH).toBe(
+        'fal/google/gemini-omni-flash',
       );
       expect(MODEL_KEYS.REPLICATE_GOOGLE_VEO_2).toBe('google/veo-2');
       expect(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3).toBe('google/veo-3');

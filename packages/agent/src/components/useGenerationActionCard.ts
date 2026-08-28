@@ -28,12 +28,25 @@ import {
   resolveVideoPilotDuration,
   VIDEO_PILOT_PAID_RETRY_CEILING,
 } from '@genfeedai/agent/utils/video-pilot-gate.util';
+import {
+  getModelMaxVideoReferences,
+  hasEndFrame,
+  hasInterpolation,
+  hasVideoReferences,
+  MODEL_KEYS,
+  requiresFirstFrame,
+} from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ModelCategory,
   type RouterPriority,
   toRouterPriority,
 } from '@genfeedai/enums';
+import {
+  getDefaultVideoResolution,
+  getVideoResolutionsByModel,
+} from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
+import { quoteVideoGenerationCredits } from '@genfeedai/pricing';
 import { resolveGenerationModelControls } from '@helpers/generation-controls.helper';
 import {
   resolveOrgAllowlistedModels,
@@ -129,6 +142,17 @@ export function useGenerationActionCard({
     initParams?.aspectRatio ?? '1:1',
   );
   const [duration, setDuration] = useState(initParams?.duration ?? 5);
+  const [resolution, setResolution] = useState(initParams?.resolution ?? '');
+  const [startFrameId, setStartFrameId] = useState<string | null>(
+    generationType === 'video' ? (initParams?.references?.[0] ?? null) : null,
+  );
+  const [endFrameId, setEndFrameId] = useState<string | null>(
+    initParams?.endFrame ?? null,
+  );
+  const [videoReferenceIds, setVideoReferenceIds] = useState<string[]>(
+    initParams?.videoReferences ?? [],
+  );
+  const [referenceNotice, setReferenceNotice] = useState<string | null>(null);
   const [outputs, setOutputs] = useState(() => {
     const requested = preferredOutputs ?? initParams?.outputs;
     return typeof requested === 'number' &&
@@ -155,7 +179,9 @@ export function useGenerationActionCard({
   const [modelsError, setModelsError] = useState<string | null>(null);
   const [modelsReloadToken, setModelsReloadToken] = useState(0);
   /** Ingredient IDs selected on the generation canvas as model references. */
-  const [referenceIds, setReferenceIds] = useState<string[]>([]);
+  const [referenceIds, setReferenceIds] = useState<string[]>(
+    generationType === 'image' ? (initParams?.references ?? []) : [],
+  );
   const setThreadUiBusy = useAgentChatStore((s) => s.setThreadUiBusy);
   const setComposerError = useAgentChatStore((s) => s.setError);
   const abortRef = useRef<AbortController | null>(null);
@@ -297,6 +323,37 @@ export function useGenerationActionCard({
     durationOptions,
     showDuration,
   } = modelControls;
+  const supportsEndFrame =
+    generationType === 'video' && !isAutoMode && hasEndFrame(modelKey);
+  const supportsInterpolation = supportsEndFrame && hasInterpolation(modelKey);
+  const supportsVideoReferences =
+    generationType === 'video' && !isAutoMode && hasVideoReferences(modelKey);
+  const maxVideoReferences = supportsVideoReferences
+    ? getModelMaxVideoReferences(modelKey)
+    : 0;
+  const resolutionOptions = useMemo(
+    () =>
+      generationType === 'video' && !isAutoMode
+        ? getVideoResolutionsByModel(modelKey).map((option) => ({
+            label: option.label,
+            value: option.value,
+          }))
+        : [],
+    [generationType, isAutoMode, modelKey],
+  );
+  const estimatedCredits =
+    generationType === 'video' && selectedModel
+      ? quoteVideoGenerationCredits({
+          cost: selectedModel.cost,
+          costPerUnit: selectedModel.costPerUnit,
+          duration,
+          minCost: selectedModel.minCost,
+          modelKey: selectedModel.key,
+          outputs,
+          pricingType: selectedModel.pricingType,
+          resolution,
+        })
+      : null;
   const maxOutputs =
     typeof selectedModel?.maxOutputs === 'number' &&
     Number.isFinite(selectedModel.maxOutputs) &&
@@ -326,6 +383,65 @@ export function useGenerationActionCard({
     }
   }, [maxOutputs, outputs]);
 
+  useEffect(() => {
+    if (resolutionOptions.length === 0) {
+      setResolution('');
+      return;
+    }
+
+    if (!resolutionOptions.some((option) => option.value === resolution)) {
+      setResolution(
+        getDefaultVideoResolution(modelKey) ??
+          resolutionOptions[0]?.value ??
+          '',
+      );
+    }
+  }, [modelKey, resolution, resolutionOptions]);
+
+  useEffect(() => {
+    const cleared: string[] = [];
+    if (!supportsEndFrame && endFrameId) {
+      setEndFrameId(null);
+      cleared.push('End Frame');
+    } else if (supportsInterpolation && !startFrameId && endFrameId) {
+      setEndFrameId(null);
+      cleared.push('End Frame');
+    } else if (
+      supportsEndFrame &&
+      !supportsInterpolation &&
+      startFrameId &&
+      endFrameId
+    ) {
+      setEndFrameId(null);
+      cleared.push('End Frame');
+    }
+    if (!supportsVideoReferences && videoReferenceIds.length > 0) {
+      setVideoReferenceIds([]);
+      cleared.push('Video Reference');
+    } else if (
+      supportsVideoReferences &&
+      videoReferenceIds.length > maxVideoReferences
+    ) {
+      setVideoReferenceIds((current) => current.slice(0, maxVideoReferences));
+      setReferenceNotice(
+        `Video References limited to ${maxVideoReferences} for the selected model.`,
+      );
+    }
+    if (cleared.length > 0) {
+      setReferenceNotice(
+        `${cleared.join(' and ')} cleared because the selected model does not support it.`,
+      );
+    }
+  }, [
+    endFrameId,
+    maxVideoReferences,
+    startFrameId,
+    supportsEndFrame,
+    supportsInterpolation,
+    supportsVideoReferences,
+    videoReferenceIds.length,
+  ]);
+
   // Auto-resize textarea
   useEffect(() => {
     const el = textareaRef.current;
@@ -348,6 +464,39 @@ export function useGenerationActionCard({
       isAllowlistEmpty ||
       isPilotCeilingReached
     ) {
+      return;
+    }
+
+    if (
+      generationType === 'video' &&
+      !isAutoMode &&
+      requiresFirstFrame(modelKey) &&
+      !startFrameId
+    ) {
+      setError('Start Frame is required for the selected model.');
+      setStatus('error');
+      return;
+    }
+    if (
+      generationType === 'video' &&
+      modelKey === MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO &&
+      resolution === '4k' &&
+      videoReferenceIds.length > 0
+    ) {
+      setError('Kling Omni video references require Pro quality, not 4K.');
+      setStatus('error');
+      return;
+    }
+    if (
+      generationType === 'video' &&
+      modelKey === MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5 &&
+      videoReferenceIds.length > 0 &&
+      (startFrameId !== null || endFrameId !== null)
+    ) {
+      setError(
+        'Seedance 2.5 accepts first/last frames or a video reference, not both.',
+      );
+      setStatus('error');
       return;
     }
 
@@ -385,13 +534,22 @@ export function useGenerationActionCard({
         const outcome = await onUiAction('confirm_generate_media', {
           aspectRatio,
           duration: requestDuration,
+          endFrame: endFrameId ?? undefined,
           generationType,
           model: !isAutoMode && modelKey ? modelKey : undefined,
           outputs: generationType === 'image' ? outputs : undefined,
           prioritize,
           prompt,
-          references: referenceIds.length > 0 ? referenceIds : undefined,
+          references:
+            generationType === 'video' && startFrameId
+              ? [startFrameId]
+              : referenceIds.length > 0
+                ? referenceIds
+                : undefined,
+          resolution: resolution || undefined,
           sourceActionId: action.id,
+          videoReferences:
+            videoReferenceIds.length > 0 ? videoReferenceIds : undefined,
         });
         // handleAgentUiAction returns false and writes the composer error
         // instead of throwing. Treating that as success marked the card Done
@@ -426,12 +584,21 @@ export function useGenerationActionCard({
       const body = buildAgentGenerationRequestBody({
         aspectRatio,
         duration: requestDuration,
+        endFrame: endFrameId ?? undefined,
         modelKey: !isAutoMode && modelKey ? modelKey : undefined,
         outputs: generationType === 'image' ? outputs : undefined,
         prioritize,
         promptId: promptDoc.id,
         promptText: prompt,
-        references: referenceIds.length > 0 ? referenceIds : undefined,
+        references:
+          generationType === 'video' && startFrameId
+            ? [startFrameId]
+            : referenceIds.length > 0
+              ? referenceIds
+              : undefined,
+        resolution: resolution || undefined,
+        videoReferences:
+          videoReferenceIds.length > 0 ? videoReferenceIds : undefined,
         waitForCompletion: false,
       });
 
@@ -481,6 +648,7 @@ export function useGenerationActionCard({
     aspectRatio,
     duration,
     durationOptions,
+    endFrameId,
     outputs,
     generationType,
     isPilotCeilingReached,
@@ -488,10 +656,13 @@ export function useGenerationActionCard({
     clearGenerationOutcome,
     prioritize,
     referenceIds,
+    resolution,
+    startFrameId,
     onUiAction,
     setComposerError,
     setThreadUiBusy,
     isAllowlistEmpty,
+    videoReferenceIds,
   ]);
 
   const handleRetry = useCallback(async () => {
@@ -562,12 +733,24 @@ export function useGenerationActionCard({
     if (!resultId) {
       return;
     }
+    if (generationType === 'video') {
+      if (!supportsVideoReferences) {
+        setReferenceNotice(
+          'The selected model accepts stills only and cannot use this video as a reference.',
+        );
+        return;
+      }
+      setVideoReferenceIds([resultId]);
+      setReferenceNotice(null);
+      setStatus('idle');
+      return;
+    }
     setReferenceIds((current) =>
       current.includes(resultId) ? current : [...current, resultId],
     );
     // Return to idle so the user can re-generate with the result as input.
     setStatus('idle');
-  }, [resultId]);
+  }, [generationType, resultId, supportsVideoReferences]);
 
   const handlePrioritizeChange = useCallback(
     (next: RouterPriority) => {
@@ -620,6 +803,57 @@ export function useGenerationActionCard({
     [],
   );
 
+  const handleResolutionChange = useCallback((value: string) => {
+    setResolution(value);
+  }, []);
+
+  const handleToggleStartFrame = useCallback(
+    (assetId: string) => {
+      setStartFrameId((current) => (current === assetId ? null : assetId));
+      if (!supportsInterpolation) {
+        setEndFrameId(null);
+      }
+      setReferenceNotice(null);
+    },
+    [supportsInterpolation],
+  );
+
+  const handleToggleEndFrame = useCallback(
+    (assetId: string) => {
+      if (supportsInterpolation && !startFrameId) {
+        setReferenceNotice('Choose a Start Frame before the End Frame.');
+        return;
+      }
+      setEndFrameId((current) => (current === assetId ? null : assetId));
+      if (!supportsInterpolation) {
+        setStartFrameId(null);
+      }
+      setReferenceNotice(null);
+    },
+    [startFrameId, supportsInterpolation],
+  );
+
+  const handleToggleVideoReference = useCallback(
+    (assetId: string) => {
+      if (videoReferenceIds.includes(assetId)) {
+        setVideoReferenceIds((current) =>
+          current.filter((id) => id !== assetId),
+        );
+        setReferenceNotice(null);
+        return;
+      }
+      if (videoReferenceIds.length >= maxVideoReferences) {
+        setReferenceNotice(
+          `The selected model accepts at most ${maxVideoReferences} video references.`,
+        );
+        return;
+      }
+      setVideoReferenceIds((current) => [...current, assetId]);
+      setReferenceNotice(null);
+    },
+    [maxVideoReferences, videoReferenceIds],
+  );
+
   const handleOutputsChange = useCallback(
     (value: number) => {
       setOutputs(value);
@@ -636,6 +870,7 @@ export function useGenerationActionCard({
     isAutoMode,
     aspectRatio,
     duration,
+    endFrameId,
     outputs,
     maxOutputs,
     status,
@@ -654,7 +889,15 @@ export function useGenerationActionCard({
     availableAspectRatios,
     showDuration,
     durationOptions,
+    estimatedCredits,
     referenceIds,
+    referenceNotice,
+    resolution,
+    resolutionOptions,
+    startFrameId,
+    supportsEndFrame,
+    supportsInterpolation,
+    supportsVideoReferences,
     textareaRef: textareaRef as RefObject<HTMLTextAreaElement | null>,
     onRegenerateProp,
     handleRetryVoid,
@@ -670,6 +913,11 @@ export function useGenerationActionCard({
     handleModelChange,
     handleAspectRatioChange,
     handleDurationChange,
+    handleResolutionChange,
+    handleToggleEndFrame,
+    handleToggleStartFrame,
+    handleToggleVideoReference,
     handleOutputsChange,
+    videoReferenceIds,
   };
 }

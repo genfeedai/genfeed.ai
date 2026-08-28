@@ -17,6 +17,7 @@ import {
   getModelCatalogForDeployment,
   UNIFIED_MODEL_CATALOG,
 } from './model-catalog.constant';
+import { MODEL_KEYS } from './model-keys.constant';
 
 const agentRows = UNIFIED_MODEL_CATALOG.filter((entry) =>
   entry.capabilities?.includes(AGENT_CHAT_CAPABILITY),
@@ -160,6 +161,27 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(videoDefaults[0]?.pricingType).toBe('per-second');
     // Bill time multiplies this USD/s by duration then applyMargin(admin).
     expect(videoDefaults[0]?.providerCostUsd).toBe(0.13);
+  });
+
+  it('activates Gemini Omni Flash through the collision-safe fal partner key', () => {
+    const row = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.FAL_GOOGLE_GEMINI_OMNI_FLASH,
+    );
+
+    expect(row).toMatchObject({
+      aspectRatios: ['16:9', '9:16'],
+      defaultDuration: 8,
+      durations: [3, 4, 5, 6, 7, 8, 9, 10],
+      isActive: true,
+      key: 'fal/google/gemini-omni-flash',
+      label: 'Gemini Omni Flash',
+      maxReferences: 3,
+      pricingType: 'per-second',
+      provider: ModelProvider.FAL,
+      providerCostUsd: 0.13,
+    });
+    expect(row).not.toHaveProperty('hasEndFrame');
+    expect(row).not.toHaveProperty('hasResolutionOptions');
   });
 
   it('promotes lowest-cost image, video, and chat defaults off cloud production', () => {

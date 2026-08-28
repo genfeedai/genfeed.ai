@@ -71,7 +71,9 @@ export class BrandRemixRunProviderDispatchService {
     }
     const imageRunReferences: ImageGenerationBriefReference[] =
       runReferences.flatMap((reference) =>
-        reference.role === 'first_frame' || reference.role === 'last_frame'
+        reference.role === 'first_frame' ||
+        reference.role === 'last_frame' ||
+        reference.role === 'reference_video'
           ? []
           : [{ ...reference, role: reference.role }],
       );

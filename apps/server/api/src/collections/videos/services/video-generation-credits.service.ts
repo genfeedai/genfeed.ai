@@ -1,10 +1,6 @@
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { baseModelKey } from '@server/collections/models/utils/model-key.util';
-import { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import {
-  applyHighResolutionVideoMultiplier,
+  applyVideoResolutionCreditMultiplier,
   calculateDynamicVideoCost,
   commitDeferredCredits,
   type DeferredCreditsRequest,
@@ -15,12 +11,19 @@ import {
   videoOutputCount,
 } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
-import { ByokService } from '@server/services/byok/byok.service';
-import { resolveModelByokProvider } from '@server/services/byok/byok-provider-map.util';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import type { ByokProvider } from '@genfeedai/enums';
-import { buildPricingAuditStamp } from '@genfeedai/pricing';
+import {
+  buildPricingAuditStamp,
+  FABRICATED_VIDEO_EXTENSION_STITCH_CREDITS,
+} from '@genfeedai/pricing';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { baseModelKey } from '@server/collections/models/utils/model-key.util';
+import type { CreateVideoDto } from '@server/collections/videos/dto/create-video.dto';
+import { ByokService } from '@server/services/byok/byok.service';
+import { resolveModelByokProvider } from '@server/services/byok/byok-provider-map.util';
 
 @Injectable()
 export class VideoGenerationCreditsService {
@@ -31,7 +34,10 @@ export class VideoGenerationCreditsService {
   ) {}
 
   async ensureDeferredCredits(
-    createVideoDto: CreateVideoDto,
+    createVideoDto: Pick<
+      CreateVideoDto,
+      'duration' | 'height' | 'outputs' | 'resolution' | 'width'
+    >,
     model: string,
     organization: string,
     request: Request,
@@ -76,6 +82,52 @@ export class VideoGenerationCreditsService {
     }
   }
 
+  async ensureExtensionCredits(
+    createVideoDto: Pick<
+      CreateVideoDto,
+      'duration' | 'height' | 'outputs' | 'resolution' | 'width'
+    >,
+    model: string,
+    organization: string,
+    request: Request,
+    dispatchMode: 'fabricated' | 'native',
+  ): Promise<void> {
+    await this.ensureDeferredCredits(
+      createVideoDto,
+      model,
+      organization,
+      request,
+    );
+
+    if (dispatchMode !== 'fabricated') {
+      return;
+    }
+
+    const reqWithCredits = request as unknown as DeferredCreditsRequest;
+    const config = reqWithCredits.creditsConfig;
+    if (config?.amount === undefined) {
+      return;
+    }
+
+    const requiredCredits =
+      config.amount + FABRICATED_VIDEO_EXTENSION_STITCH_CREDITS;
+    if (
+      !config.isByokBypass &&
+      !(await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+        organization,
+        requiredCredits,
+      ))
+    ) {
+      const balance =
+        await this.creditsUtilsService.getOrganizationCreditsBalance(
+          organization,
+        );
+      throw createInsufficientCreditsException(requiredCredits, balance);
+    }
+
+    reqWithCredits.creditsConfig = { ...config, amount: requiredCredits };
+  }
+
   private async resolveActiveByokProvider(
     organizationId: string,
     modelKey: string,
@@ -105,7 +157,10 @@ export class VideoGenerationCreditsService {
   }
 
   private async resolveRequiredCredits(
-    createVideoDto: CreateVideoDto,
+    createVideoDto: Pick<
+      CreateVideoDto,
+      'duration' | 'height' | 'outputs' | 'resolution' | 'width'
+    >,
     model: string,
   ) {
     const resolvedModelDoc = await this.modelsService.findOne({
@@ -123,8 +178,9 @@ export class VideoGenerationCreditsService {
         createVideoDto.duration || 0,
       ),
     );
-    const resolutionAdjusted = applyHighResolutionVideoMultiplier(
+    const resolutionAdjusted = applyVideoResolutionCreditMultiplier(
       baseCost,
+      model,
       createVideoDto.resolution,
     );
     const isBatchSupported =

@@ -46,6 +46,7 @@ export interface BrandsReturn {
 export interface MasonryActionStates extends Record<string, boolean> {
   isPublishing: boolean;
   isUpscaling: boolean;
+  isExtending: boolean;
   isDeleting: boolean;
   isCloning: boolean;
   isReversing: boolean;

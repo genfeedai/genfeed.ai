@@ -81,6 +81,7 @@ export function buildVideoPayload(
     resolution: promptData.resolution?.trim() || undefined,
     sounds: promptData.sounds || [],
     speech: promptData.speech?.trim() || undefined,
+    videoReferences: promptData.videoReferences,
   };
 }
 

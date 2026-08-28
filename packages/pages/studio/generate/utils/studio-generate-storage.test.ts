@@ -79,6 +79,21 @@ describe('sanitizeStudioGenerateSettings', () => {
     ).toBe(5);
   });
 
+  it('validates a persisted video resolution against its selected model', () => {
+    expect(
+      sanitizeStudioGenerateSettings('video', {
+        modelKey: 'kwaivgi/kling-v3-omni-video',
+        resolution: '4k',
+      }).resolution,
+    ).toBe('4k');
+    expect(
+      sanitizeStudioGenerateSettings('video', {
+        modelKey: 'google/veo-3.1',
+        resolution: '4k',
+      }).resolution,
+    ).toBe('720p');
+  });
+
   it('never restores speech copy from a previous session', () => {
     expect(
       sanitizeStudioGenerateSettings('voice', { speech: 'old script' }).speech,
