@@ -13,7 +13,6 @@ import {
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
-  WORKSPACE_TASK_QUEUE,
 } from '@genfeedai/queue-contracts';
 import { SERVER_TOKENS } from '@genfeedai/server';
 import { ConfigModule } from '@libs/config/config.module';
@@ -31,7 +30,7 @@ import { WorkflowExecutionQueueService } from '@server/collections/workflows/ser
 import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
 import { QueueService } from '@server/queues/core/queue.service';
 import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
-import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/workspace-task-queue.service';
+import { WorkspaceTaskWorkflowQueueService } from '@server/services/task-orchestration/workspace-task-workflow-queue.service';
 
 @Module({
   exports: [
@@ -39,7 +38,7 @@ import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/w
     HeygenPollQueueService,
     ScheduledPostWorkflowQueueService,
     QueueService,
-    WorkspaceTaskQueueService,
+    WorkspaceTaskWorkflowQueueService,
     WorkflowExecutionQueueService,
   ],
   imports: [
@@ -88,15 +87,6 @@ import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/w
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: WORKSPACE_TASK_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 2,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
         name: HEYGEN_POLL_QUEUE,
       },
     ),
@@ -105,7 +95,7 @@ import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/w
   providers: [
     QueueService,
     AgentRunQueueService,
-    WorkspaceTaskQueueService,
+    WorkspaceTaskWorkflowQueueService,
     HeygenPollQueueService,
     ScheduledPostWorkflowQueueService,
     WorkflowExecutionQueueService,

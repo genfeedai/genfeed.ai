@@ -6,9 +6,7 @@ import {
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
-  TRIGGER_EVALUATION_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
-  WORKSPACE_TASK_QUEUE,
 } from './queue-names.constant';
 
 describe('queue-names.constant', () => {
@@ -17,12 +15,10 @@ describe('queue-names.constant', () => {
     // in-flight jobs in Redis. Lock them down.
     expect(DEFAULT_QUEUE).toBe('default');
     expect(AGENT_RUN_QUEUE).toBe('agent-run');
-    expect(WORKSPACE_TASK_QUEUE).toBe('workspace-task');
     expect(HEYGEN_POLL_QUEUE).toBe('heygen-poll');
     expect(NOTIFICATION_DELIVERY_QUEUE).toBe('notification-delivery');
     expect(CREDIT_DEDUCTION_QUEUE).toBe('credit-deduction');
     expect(WORKFLOW_EXECUTION_QUEUE).toBe('workflow-execution');
-    expect(TRIGGER_EVALUATION_QUEUE).toBe('triggers.evaluate');
   });
 
   it('lists every queue exactly once', () => {

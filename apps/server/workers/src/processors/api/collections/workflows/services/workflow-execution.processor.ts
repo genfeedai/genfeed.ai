@@ -99,16 +99,48 @@ export class WorkflowExecutionProcessor extends WorkerHost {
   ): Promise<unknown> {
     const systemRun = job.data.systemRun;
     if (!systemRun) {
-      throw new Error('System workflow job missing graph definition');
+      throw new Error('System workflow job missing registered workflow input');
     }
+    try {
+      return await this.executeSystemRun(job, systemRun);
+    } catch (error: unknown) {
+      const attempts = Math.max(job.opts.attempts ?? 1, 1);
+      const isTerminalAttempt = (job.attemptsMade ?? 0) + 1 >= attempts;
+      if (!systemRun.failureWorkflow || !isTerminalAttempt) {
+        throw error;
+      }
+      try {
+        await this.systemWorkflowRunner.runWorkflow({
+          actionType: systemRun.failureWorkflow.canonicalId,
+          canonicalId: systemRun.failureWorkflow.canonicalId,
+          inputValues: systemRun.failureWorkflow.inputValues,
+          metadata: {
+            failedCanonicalId: systemRun.input.canonicalId,
+            failedJobId: job.id,
+          },
+          organizationId: systemRun.input.organizationId,
+          source: `workflow-failure:${systemRun.input.canonicalId}`,
+          userId: systemRun.input.userId,
+        });
+      } catch (compensationError: unknown) {
+        throw new AggregateError(
+          [error, compensationError],
+          `System workflow ${systemRun.input.canonicalId} and registered failure workflow ${systemRun.failureWorkflow.canonicalId} both failed`,
+        );
+      }
+      throw error;
+    }
+  }
+
+  private async executeSystemRun(
+    job: Job<WorkflowExecutionJobData>,
+    systemRun: NonNullable<WorkflowExecutionJobData['systemRun']>,
+  ): Promise<unknown> {
     const prior = systemRun.priorExecution;
     const result =
       (job.attemptsMade ?? 0) > 0 && prior
         ? await this.continuePriorSystemRun(systemRun, prior)
-        : await this.systemWorkflowRunner.startWorkflowDefinition(
-            systemRun.definition,
-            systemRun.input,
-          );
+        : await this.systemWorkflowRunner.startWorkflow(systemRun.input);
     try {
       await job.updateData({
         ...job.data,
@@ -122,6 +154,7 @@ export class WorkflowExecutionProcessor extends WorkerHost {
             status: result.execution.status,
             userId: result.userId,
             workflowId: result.provenance.workflowId,
+            workflowLabel: result.provenance.workflowLabel,
           },
         },
       });
@@ -138,12 +171,12 @@ export class WorkflowExecutionProcessor extends WorkerHost {
     if (result.execution.status === WorkflowExecutionStatus.FAILED) {
       throw new Error(
         result.execution.error ??
-          `System workflow ${systemRun.definition.canonicalId} failed`,
+          `System workflow ${systemRun.input.canonicalId} failed`,
       );
     }
     if (result.execution.status === WorkflowExecutionStatus.CANCELLED) {
       throw new Error(
-        `System workflow ${systemRun.definition.canonicalId} was cancelled`,
+        `System workflow ${systemRun.input.canonicalId} was cancelled`,
       );
     }
     if (result.execution._delayJobData) {
@@ -198,7 +231,7 @@ export class WorkflowExecutionProcessor extends WorkerHost {
         provenance: {
           executionId: prior.executionId,
           workflowId: prior.workflowId,
-          workflowLabel: systemRun.definition.label,
+          workflowLabel: prior.workflowLabel,
         },
         userId: prior.userId,
       };
@@ -219,7 +252,7 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       provenance: {
         executionId: prior.executionId,
         workflowId: execution.workflowId,
-        workflowLabel: systemRun.definition.label,
+        workflowLabel: prior.workflowLabel,
       },
       userId: prior.userId,
     };

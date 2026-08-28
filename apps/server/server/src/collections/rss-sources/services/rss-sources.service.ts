@@ -48,12 +48,32 @@ const SIGNATURE_SELECT = {
   platforms: true,
 } as const;
 
+export type RssSourceWorkflowRequest = RssSourceScope & { sourceId: string };
+
+export type RssItemWorkflowRequest = {
+  channels: RssTargetChannel[];
+  context: RssSourceScope;
+  item: ParsedRssFeedItem;
+  signatures: StoredPostingSignatureRow[];
+  source: StoredRssSourceRow;
+};
+
+export type RssItemClaim = RssItemWorkflowRequest & {
+  itemRowId: string;
+  outcome?: 'skipped';
+  shouldImport: boolean;
+  shouldPublish: boolean;
+  targets: ChannelTargetInput[];
+};
+
+export type RssItemRelease = RssItemClaim & { releaseId: string };
+
 @Injectable()
 export class RssSourcesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly postGroupsService: PostGroupsService,
-    private readonly logger: LoggerService,
+    _logger: LoggerService,
   ) {}
 
   async createScoped(
@@ -160,82 +180,36 @@ export class RssSourcesService {
     return rows as StoredRssSourceRow[];
   }
 
-  async pollSource(
-    id: string,
-    context: RssSourceScope,
-  ): Promise<RssSourceDocument> {
-    const source = await this.requireRow(id, context);
+  async fetchWorkflowItems(
+    request: RssSourceWorkflowRequest,
+  ): Promise<{ items: RssItemWorkflowRequest[] }> {
+    const source = await this.requireRow(request.sourceId, request);
     const channels = parseStoredTargetChannels(source.targetChannels);
-
-    let xml: string;
-    try {
-      xml = await this.fetchFeedXml(source.feedUrl);
-    } catch (error: unknown) {
-      return this.recordSourceFailure(source, context, errorMessage(error));
-    }
-
-    let items: ParsedRssFeedItem[];
-    try {
-      items = parseRssFeed(xml);
-    } catch (error: unknown) {
-      return this.recordSourceFailure(source, context, errorMessage(error));
-    }
-
+    const xml = await this.fetchFeedXml(source.feedUrl);
+    const items = parseRssFeed(xml);
     const signatures = await this.loadSignatures(
       channels,
-      context.organizationId,
+      request.organizationId,
     );
-    let importedCount = 0;
-    let skippedCount = 0;
-    let failedCount = 0;
-
-    for (const item of items) {
-      try {
-        const outcome = await this.importFeedItem({
-          channels,
-          context,
-          item,
-          signatures,
-          source,
-        });
-        if (outcome === 'imported') {
-          importedCount += 1;
-        } else if (outcome === 'skipped') {
-          skippedCount += 1;
-        } else {
-          failedCount += 1;
-        }
-      } catch (error: unknown) {
-        failedCount += 1;
-        this.logger.error('RSS feed item import failed', {
-          error: errorMessage(error),
-          guid: item.guid,
-          sourceId: source.id,
-        });
-      }
-    }
-
-    const updated = await this.delegate().update({
-      data: {
-        failedCount: { increment: failedCount },
-        importedCount: { increment: importedCount },
-        lastError: null,
-        lastPolledAt: new Date(),
-        skippedCount: { increment: skippedCount },
-      },
-      where: scopedWhere(context.organizationId, { id: source.id }),
-    });
-    return this.toDocument(updated);
+    return {
+      items: items.map((item) => ({
+        channels,
+        context: {
+          ...(request.brandId ? { brandId: request.brandId } : {}),
+          organizationId: request.organizationId,
+          userId: request.userId,
+        },
+        item,
+        signatures,
+        source,
+      })),
+    };
   }
 
-  private async importFeedItem(params: {
-    channels: RssTargetChannel[];
-    context: RssSourceScope;
-    item: ParsedRssFeedItem;
-    signatures: StoredPostingSignatureRow[];
-    source: StoredRssSourceRow;
-  }): Promise<'imported' | 'skipped' | 'failed'> {
-    const { channels, context, item, signatures, source } = params;
+  async claimWorkflowItem(
+    request: RssItemWorkflowRequest,
+  ): Promise<RssItemClaim> {
+    const { channels, item, signatures, source } = request;
     const existing = await this.prisma.rssFeedItem.findFirst({
       where: {
         guid: item.guid,
@@ -245,7 +219,14 @@ export class RssSourcesService {
     });
 
     if (existing?.status === RssFeedItemStatus.IMPORTED) {
-      return 'skipped';
+      return {
+        ...request,
+        itemRowId: existing.id,
+        outcome: 'skipped',
+        shouldImport: false,
+        shouldPublish: false,
+        targets: [],
+      };
     }
 
     const itemRow =
@@ -281,62 +262,155 @@ export class RssSourcesService {
         },
         where: { id: itemRow.id },
       });
-      return 'skipped';
+      return {
+        ...request,
+        itemRowId: itemRow.id,
+        outcome: 'skipped',
+        shouldImport: false,
+        shouldPublish: false,
+        targets,
+      };
     }
-
-    const status = this.resolveReleaseStatus(source);
-    const baseContent = this.buildBaseContent(item);
-
-    try {
-      const release = await this.postGroupsService.create(
-        context.organizationId,
-        context.userId,
-        {
-          baseContent,
-          ...(source.brandId ? { brandId: source.brandId } : {}),
-          idempotencyKey: rssItemDedupeKey(source.id, item),
-          rssFeedItemId: itemRow.id,
-          rssSourceId: source.id,
-          ...(scheduledDate ? { scheduledDate } : {}),
-          status,
-          targets,
-          timezone: source.timezone,
-          title: item.title,
-        },
-        rssItemDedupeKey(source.id, item),
-        { source: 'rss' },
-      );
-
-      if (
+    return {
+      ...request,
+      itemRowId: itemRow.id,
+      shouldImport: true,
+      shouldPublish:
         source.importPolicy === RssImportPolicy.PUBLISH_NOW &&
-        source.approvalMode === RssApprovalMode.AUTO
-      ) {
-        await this.postGroupsService.publishNow(
-          context.organizationId,
-          context.userId,
-          release.id,
-        );
-      }
+        source.approvalMode === RssApprovalMode.AUTO,
+      targets,
+    };
+  }
 
+  async createWorkflowRelease(claim: RssItemClaim): Promise<RssItemRelease> {
+    const { context, item, source } = claim;
+    const scheduledDate = this.resolveScheduledDate(source);
+    const release = await this.postGroupsService.create(
+      context.organizationId,
+      context.userId,
+      {
+        baseContent: this.buildBaseContent(item),
+        ...(source.brandId ? { brandId: source.brandId } : {}),
+        idempotencyKey: rssItemDedupeKey(source.id, item),
+        rssFeedItemId: claim.itemRowId,
+        rssSourceId: source.id,
+        ...(scheduledDate ? { scheduledDate } : {}),
+        status: this.resolveReleaseStatus(source),
+        targets: claim.targets,
+        timezone: source.timezone,
+        title: item.title,
+      },
+      rssItemDedupeKey(source.id, item),
+      { source: 'rss' },
+    );
+    return { ...claim, releaseId: release.id };
+  }
+
+  async publishWorkflowRelease(
+    release: RssItemRelease,
+  ): Promise<RssItemRelease> {
+    await this.postGroupsService.publishNow(
+      release.context.organizationId,
+      release.context.userId,
+      release.releaseId,
+    );
+    return release;
+  }
+
+  async finalizeWorkflowItem(
+    request: RssItemWorkflowRequest,
+    outcome: RssItemClaim | RssItemRelease | undefined,
+    failure?: unknown,
+  ): Promise<{ outcome: 'failed' | 'imported' | 'skipped' }> {
+    const itemRow = await this.prisma.rssFeedItem.findFirst({
+      select: { id: true, status: true },
+      where: {
+        guid: request.item.guid,
+        isDeleted: false,
+        rssSourceId: request.source.id,
+      },
+    });
+    if (!itemRow) throw new Error('RSS feed item claim is missing');
+    if (failure) {
       await this.prisma.rssFeedItem.update({
         data: {
-          error: null,
-          postGroupId: release.id,
-          status: RssFeedItemStatus.IMPORTED,
-        },
-        where: { id: itemRow.id },
-      });
-      return 'imported';
-    } catch (error: unknown) {
-      await this.prisma.rssFeedItem.update({
-        data: {
-          error: errorMessage(error),
+          error: errorMessage(failure),
           status: RssFeedItemStatus.FAILED,
         },
         where: { id: itemRow.id },
       });
-      return 'failed';
+      return { outcome: 'failed' };
     }
+    if (
+      outcome?.outcome === 'skipped' ||
+      itemRow.status === RssFeedItemStatus.IMPORTED
+    ) {
+      return { outcome: 'skipped' };
+    }
+    const releaseId =
+      outcome && 'releaseId' in outcome ? outcome.releaseId : null;
+    if (!releaseId)
+      throw new Error('RSS item finalization is missing a release');
+    await this.prisma.rssFeedItem.update({
+      data: {
+        error: null,
+        postGroupId: releaseId,
+        status: RssFeedItemStatus.IMPORTED,
+      },
+      where: { id: itemRow.id },
+    });
+    return { outcome: 'imported' };
+  }
+
+  async finalizeWorkflowSource(
+    request: RssSourceWorkflowRequest,
+    results: unknown,
+    failure?: unknown,
+  ): Promise<RssSourceDocument> {
+    const source = await this.requireRow(request.sourceId, request);
+    const outcomes = this.readWorkflowOutcomes(results);
+    const updated = await this.delegate().update({
+      data: {
+        failedCount: { increment: failure ? 1 : outcomes.failed },
+        importedCount: { increment: outcomes.imported },
+        lastError: failure ? errorMessage(failure) : null,
+        lastPolledAt: new Date(),
+        skippedCount: { increment: outcomes.skipped },
+      },
+      where: scopedWhere(request.organizationId, { id: source.id }),
+    });
+    return this.toDocument(updated);
+  }
+
+  private readWorkflowOutcomes(results: unknown): {
+    failed: number;
+    imported: number;
+    skipped: number;
+  } {
+    const rows =
+      results && typeof results === 'object' && 'results' in results
+        ? (results as { results?: unknown }).results
+        : undefined;
+    if (!Array.isArray(rows)) return { failed: 0, imported: 0, skipped: 0 };
+    const totals = { failed: 0, imported: 0, skipped: 0 };
+    for (const row of rows) {
+      const result =
+        row && typeof row === 'object' && 'result' in row
+          ? (row as { result?: unknown }).result
+          : undefined;
+      const outcome =
+        result && typeof result === 'object' && 'outcome' in result
+          ? (result as { outcome?: unknown }).outcome
+          : undefined;
+      if (
+        outcome === 'failed' ||
+        outcome === 'imported' ||
+        outcome === 'skipped'
+      ) {
+        totals[outcome] += 1;
+      }
+    }
+    return totals;
   }
 
   private resolveReleaseStatus(source: StoredRssSourceRow): ReleaseStatus {
@@ -452,22 +526,6 @@ export class RssSourcesService {
       throw new Error(`Feed request failed with status ${response.status}.`);
     }
     return response.text();
-  }
-
-  private async recordSourceFailure(
-    source: StoredRssSourceRow,
-    context: RssSourceScope,
-    lastError: string,
-  ): Promise<RssSourceDocument> {
-    const updated = await this.delegate().update({
-      data: {
-        failedCount: { increment: 1 },
-        lastError,
-        lastPolledAt: new Date(),
-      },
-      where: scopedWhere(context.organizationId, { id: source.id }),
-    });
-    return this.toDocument(updated);
   }
 
   private async requireRow(

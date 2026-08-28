@@ -8,9 +8,6 @@ export const DEFAULT_QUEUE = 'default';
 
 // ---------- Agents & campaigns ----------
 export const AGENT_RUN_QUEUE = 'agent-run';
-export const ORCHESTRATOR_RUN_QUEUE = 'orchestrator-run';
-export const CAMPAIGN_MEMORY_EXTRACTION_QUEUE = 'campaign-memory-extraction';
-export const TRIGGER_EVALUATION_QUEUE = 'triggers.evaluate';
 
 // ---------- Workflows ----------
 export const WORKFLOW_EXECUTION_QUEUE = 'workflow-execution';
@@ -21,21 +18,16 @@ export const NOTIFICATION_DELIVERY_QUEUE = 'notification-delivery';
 export const WEBHOOK_CLIENT_QUEUE = 'webhook-client';
 
 // ---------- Platform ----------
-export const WORKSPACE_TASK_QUEUE = 'workspace-task';
 export const HEYGEN_POLL_QUEUE = 'heygen-poll';
 export const CREDIT_DEDUCTION_QUEUE = 'credit-deduction';
 
 export const ALL_QUEUE_NAMES = [
   DEFAULT_QUEUE,
   AGENT_RUN_QUEUE,
-  ORCHESTRATOR_RUN_QUEUE,
-  CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
-  TRIGGER_EVALUATION_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
   BATCH_WORKFLOW_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
-  WORKSPACE_TASK_QUEUE,
   HEYGEN_POLL_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
 ] as const;

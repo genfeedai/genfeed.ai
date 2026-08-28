@@ -2,6 +2,7 @@ import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { WORKFLOW_ARTIFACT_ACTION_IDS } from '@server/collections/workflows/services/workflow-artifact-lifecycle.service';
+import { buildWorkflowArtifactCleanupSweepDefinition } from '@server/collections/workflows/services/workflow-artifact-workflow-definition';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { WORKFLOW_EXECUTION_RETENTION_METADATA_KEY } from '@server/collections/workflows/workflow-execution-retention.contract';
 
@@ -18,11 +19,14 @@ export class CronWorkflowArtifactsService {
 
   async queueExpiredArtifactCleanup(now = new Date()): Promise<void> {
     const hourlyBucket = Math.floor(now.getTime() / (60 * 60 * 1000));
-    const jobId = await this.workflowQueue.queueSystemAction(
+    const definition = buildWorkflowArtifactCleanupSweepDefinition(
+      WORKFLOW_ARTIFACT_ACTION_IDS.DISCOVER_EXPIRED,
+    );
+    const jobId = await this.workflowQueue.queueSystemWorkflow(
       {
-        actionType: WORKFLOW_ARTIFACT_ACTION_IDS.CLEANUP_EXPIRED,
-        canonicalId: WORKFLOW_ARTIFACT_ACTION_IDS.CLEANUP_EXPIRED,
-        inputValues: {},
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request: { requestedAt: now.toISOString() } },
         metadata: {
           [WORKFLOW_EXECUTION_RETENTION_METADATA_KEY]: {
             purgeAfterHours: 1,
@@ -34,7 +38,8 @@ export class CronWorkflowArtifactsService {
         trigger: WorkflowExecutionTrigger.SCHEDULED,
         userId: WORKFLOW_HOUSEKEEPING_PRINCIPAL_ID,
       },
-      `${WORKFLOW_ARTIFACT_ACTION_IDS.CLEANUP_EXPIRED}-${hourlyBucket}`,
+      `workflow-artifact-cleanup-sweep-${hourlyBucket}`,
+      { attempts: 3, replaceTerminalJob: true },
     );
 
     this.logger.log('Queued workflow artifact cleanup workflow', {

@@ -9,7 +9,7 @@ describe('content optimization workflow definitions', () => {
   it('separates evidence loading, cycle execution, and analysis derivation', () => {
     const definition = buildContentAnalysisWorkflowDefinition();
     const actionIds = definition.definition.nodes.map(
-      (node) => node.data?.actionId,
+      (node) => node.data.config.actionId,
     );
 
     expect(actionIds).toEqual([
@@ -23,7 +23,7 @@ describe('content optimization workflow definitions', () => {
     const definition = buildPromptOptimizationWorkflowDefinition();
 
     expect(
-      definition.definition.nodes.map((node) => node.data?.actionId),
+      definition.definition.nodes.map((node) => node.data.config.actionId),
     ).toEqual([
       CONTENT_OPTIMIZATION_ACTION_IDS.LOAD_PROMPT_CONTEXT,
       CONTENT_OPTIMIZATION_ACTION_IDS.OPTIMIZE_PROMPT,

@@ -7,7 +7,6 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
-import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentRuntimeModule } from '@api/services/agent-runtime/agent-runtime.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
@@ -35,7 +34,6 @@ import { TriggerEvaluatorService } from '@server/services/agent-campaign/trigger
     AgentMemoriesModule,
     AnalyticsModule,
     TrendsModule,
-    QueuesModule,
     AgentRuntimeModule,
     WorkflowsModule,
   ],

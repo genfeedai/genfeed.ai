@@ -18,7 +18,8 @@ function createHarness() {
         actions.set(actionId, executor);
       },
     ),
-    runAction: vi.fn().mockResolvedValue({ result: { id: 'result-1' } }),
+    registerWorkflow: vi.fn(),
+    runWorkflow: vi.fn().mockResolvedValue({ result: { id: 'result-1' } }),
   };
   const clipLibrary = { linkReadyClip: vi.fn() };
   const clipProjects = {
@@ -87,9 +88,9 @@ describe('ClipHandoffWorkflowService', () => {
       { organizationId: 'org-1', userId: 'user-1' },
     );
 
-    expect(runner.runAction).toHaveBeenCalledWith({
+    expect(runner.runWorkflow).toHaveBeenCalledWith({
       actionType: 'clip.handoff.create-editor',
-      canonicalId: 'clip.handoff.create-editor',
+      canonicalId: 'clip.handoff.editor',
       inputValues: { clipResultId: 'clip-1', projectId: 'project-1' },
       organizationId: 'org-1',
       source: 'clip-project-handoff',

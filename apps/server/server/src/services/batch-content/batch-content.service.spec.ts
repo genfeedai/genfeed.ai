@@ -19,7 +19,7 @@ describe('BatchContentService', () => {
     findOne: vi.fn(),
   };
   const workflowQueue = {
-    queueSystemWorkflowDefinition: vi.fn(),
+    queueSystemWorkflow: vi.fn(),
   };
   const workflowRunner = {
     registerAction: vi.fn(),
@@ -39,9 +39,7 @@ describe('BatchContentService', () => {
       id: request.brandId,
       organizationId: request.organizationId,
     });
-    workflowQueue.queueSystemWorkflowDefinition.mockResolvedValue(
-      'workflow-job-1',
-    );
+    workflowQueue.queueSystemWorkflow.mockResolvedValue('workflow-job-1');
   });
 
   it('queues the immutable workflow through the shared workflow queue', async () => {
@@ -50,8 +48,7 @@ describe('BatchContentService', () => {
       status: 'queued',
     });
 
-    expect(workflowQueue.queueSystemWorkflowDefinition).toHaveBeenCalledWith(
-      expect.objectContaining({ canonicalId: 'content.batch.generate' }),
+    expect(workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         canonicalId: 'content.batch.generate',
         inputValues: { request },
@@ -59,7 +56,6 @@ describe('BatchContentService', () => {
         userId: 'user-1',
       }),
       expect.stringMatching(/^batch-content-/),
-      undefined,
       { attempts: 1 },
     );
   });
@@ -70,6 +66,6 @@ describe('BatchContentService', () => {
     await expect(service.queueBatch(request)).rejects.toBeInstanceOf(
       NotFoundException,
     );
-    expect(workflowQueue.queueSystemWorkflowDefinition).not.toHaveBeenCalled();
+    expect(workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
   });
 });

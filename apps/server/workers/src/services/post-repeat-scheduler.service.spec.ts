@@ -32,7 +32,9 @@ describe('PostRepeatSchedulerService', () => {
     shouldMaterialize: ReturnType<typeof vi.fn>;
   };
   let systemWorkflowRunner: {
-    runAction: ReturnType<typeof vi.fn>;
+    registerAction: ReturnType<typeof vi.fn>;
+    registerWorkflow: ReturnType<typeof vi.fn>;
+    runWorkflow: ReturnType<typeof vi.fn>;
   };
 
   const basePost = {
@@ -74,15 +76,12 @@ describe('PostRepeatSchedulerService', () => {
       shouldMaterialize: vi.fn().mockResolvedValue(false),
     };
     systemWorkflowRunner = {
-      runAction: vi.fn(
-        async (
-          _input: unknown,
-          action: (provenance: { executionId: string }) => Promise<unknown>,
-        ) => {
-          const provenance = { executionId: 'execution-1' };
-          return { provenance, result: await action(provenance) };
-        },
-      ),
+      registerAction: vi.fn(),
+      registerWorkflow: vi.fn(),
+      runWorkflow: vi.fn().mockResolvedValue({
+        provenance: { executionId: 'execution-1' },
+        result: { occurrenceId: 'release-2', status: 'created' },
+      }),
     };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -408,20 +407,15 @@ describe('PostRepeatSchedulerService', () => {
       userId: 'user-1',
     } as never);
 
-    expect(systemWorkflowRunner.runAction).toHaveBeenCalledWith(
+    expect(systemWorkflowRunner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
-        actionType: 'expand-evergreen-release',
-        canonicalId: 'evergreen-release-expansion',
+        actionType: 'evergreen.release.expand',
+        canonicalId: 'evergreen.release.expand',
         organizationId: 'organization-1',
       }),
-      expect.any(Function),
     );
     expect(
       releaseRecurrenceMaterializerService.materializeNext,
-    ).toHaveBeenCalledWith({
-      groupId: 'release-1',
-      organizationId: 'organization-1',
-      workflowExecutionId: 'execution-1',
-    });
+    ).not.toHaveBeenCalled();
   });
 });

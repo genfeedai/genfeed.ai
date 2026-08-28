@@ -65,10 +65,21 @@ type EmailTemplate = {
   actionUrl: string;
 };
 
+export type LifecycleEmailDeliveryState = {
+  delivery?: LifecycleEmailDeliveryRecord;
+  html?: string;
+  preference?: {
+    id: string;
+    marketingUnsubscribedAt: Date | null;
+    unsubscribeToken: string;
+  };
+  request: LifecycleEmailWorkflowInput;
+  skipReason?: string;
+  template?: EmailTemplate;
+};
+
 @Injectable()
 export class LifecycleEmailDeliveryService {
-  private readonly context = { service: LifecycleEmailDeliveryService.name };
-
   constructor(
     @Inject(SERVER_TOKENS.prisma)
     private readonly prisma: ServerPrisma,
@@ -79,6 +90,122 @@ export class LifecycleEmailDeliveryService {
     @Inject(SERVER_TOKENS.logger)
     private readonly logger: ServerLogger,
   ) {}
+
+  async loadLifecycleDelivery(
+    request: LifecycleEmailWorkflowInput,
+  ): Promise<LifecycleEmailDeliveryState> {
+    return {
+      delivery: (await this.findDelivery(request)) ?? undefined,
+      request,
+    };
+  }
+
+  async checkLifecycleEligibility(
+    state: LifecycleEmailDeliveryState,
+  ): Promise<LifecycleEmailDeliveryState> {
+    const delivery = state.delivery;
+    if (!delivery) return { ...state, skipReason: 'delivery record missing' };
+    if (delivery.status === DELIVERY_STATUS.SENT) {
+      return { ...state, skipReason: 'already sent' };
+    }
+    if (
+      delivery.status === DELIVERY_STATUS.CANCELED ||
+      delivery.status === DELIVERY_STATUS.SKIPPED
+    ) {
+      return { ...state, skipReason: delivery.status };
+    }
+    if (isSelfHostedDeployment()) {
+      return { ...state, skipReason: 'self-hosted deployment' };
+    }
+    if (delivery.user.isDeleted || !delivery.user.email) {
+      return { ...state, skipReason: 'recipient unavailable' };
+    }
+    const preference = await this.ensurePreference(delivery.user.id);
+    if (preference.marketingUnsubscribedAt) {
+      return { ...state, preference, skipReason: 'marketing unsubscribed' };
+    }
+    if (
+      state.request.sequence === 'activation-nudge' &&
+      (await this.hasActivated(delivery.user.id))
+    ) {
+      return { ...state, preference, skipReason: 'already activated' };
+    }
+    if (
+      state.request.sequence === 'win-back' &&
+      (await this.hasActiveSubscription(delivery.user.id))
+    ) {
+      return { ...state, preference, skipReason: 'subscription active' };
+    }
+    return { ...state, preference };
+  }
+
+  renderLifecycleDelivery(
+    state: LifecycleEmailDeliveryState,
+  ): LifecycleEmailDeliveryState {
+    if (state.skipReason || !state.delivery || !state.preference) return state;
+    const template = this.buildTemplate({
+      data: state.request,
+      metadata: this.parseMetadata(state.delivery.metadata),
+      user: state.delivery.user,
+    });
+    return {
+      ...state,
+      html: this.buildHtml(template, state.preference.unsubscribeToken),
+      template,
+    };
+  }
+
+  async deliverLifecycleEmail(
+    state: LifecycleEmailDeliveryState,
+  ): Promise<LifecycleEmailDeliveryState> {
+    if (
+      state.skipReason ||
+      !state.delivery?.user.email ||
+      !state.template ||
+      !state.html
+    ) {
+      return state;
+    }
+    await this.notificationsService.sendEmail(
+      state.delivery.user.email,
+      state.template.subject,
+      state.html,
+    );
+    return state;
+  }
+
+  async finalizeLifecycleDelivery(
+    state: LifecycleEmailDeliveryState | undefined,
+    error?: string,
+  ): Promise<{ delivered: boolean; skipped?: string }> {
+    if (!state?.delivery)
+      return { delivered: false, skipped: state?.skipReason };
+    if (error) {
+      await this.prisma.lifecycleEmailDelivery.update({
+        data: { failureReason: error, status: DELIVERY_STATUS.FAILED },
+        where: { id: state.delivery.id },
+      });
+      return { delivered: false };
+    }
+    if (state.skipReason) {
+      if (
+        state.skipReason !== 'already sent' &&
+        state.skipReason !== 'canceled'
+      ) {
+        await this.markDeliverySkipped(state.delivery.id, state.skipReason);
+      }
+      return { delivered: false, skipped: state.skipReason };
+    }
+    await this.prisma.lifecycleEmailDelivery.update({
+      data: {
+        failureReason: null,
+        sentAt: new Date(),
+        status: DELIVERY_STATUS.SENT,
+      },
+      where: { id: state.delivery.id },
+    });
+    return { delivered: true };
+  }
 
   async unsubscribe(token: string): Promise<boolean> {
     const normalized = token.trim();
@@ -102,96 +229,6 @@ export class LifecycleEmailDeliveryService {
     }
 
     return true;
-  }
-
-  async sendLifecycleEmail(data: LifecycleEmailWorkflowInput): Promise<void> {
-    const delivery = await this.findDelivery(data);
-    if (!delivery) {
-      this.logger.warn('Lifecycle email delivery record missing', {
-        ...this.context,
-        sequence: data.sequence,
-        step: data.step,
-        triggerKey: data.triggerKey,
-        userId: data.userId,
-      });
-      return;
-    }
-
-    if (delivery.status === DELIVERY_STATUS.SENT) {
-      return;
-    }
-
-    if (
-      delivery.status === DELIVERY_STATUS.CANCELED ||
-      delivery.status === DELIVERY_STATUS.SKIPPED
-    ) {
-      return;
-    }
-
-    if (isSelfHostedDeployment()) {
-      await this.markDeliverySkipped(delivery.id, 'self-hosted deployment');
-      return;
-    }
-
-    try {
-      const user = delivery.user;
-      if (user.isDeleted || !user.email) {
-        await this.markDeliverySkipped(delivery.id, 'recipient unavailable');
-        return;
-      }
-
-      const preference = await this.ensurePreference(user.id);
-      if (preference.marketingUnsubscribedAt) {
-        await this.markDeliverySkipped(delivery.id, 'marketing unsubscribed');
-        return;
-      }
-
-      if (
-        data.sequence === 'activation-nudge' &&
-        (await this.hasActivated(user.id))
-      ) {
-        await this.markDeliverySkipped(delivery.id, 'already activated');
-        return;
-      }
-
-      if (
-        data.sequence === 'win-back' &&
-        (await this.hasActiveSubscription(user.id))
-      ) {
-        await this.markDeliverySkipped(delivery.id, 'subscription active');
-        return;
-      }
-
-      const template = this.buildTemplate({
-        data,
-        metadata: this.parseMetadata(delivery.metadata),
-        user,
-      });
-
-      await this.notificationsService.sendEmail(
-        user.email,
-        template.subject,
-        this.buildHtml(template, preference.unsubscribeToken),
-      );
-
-      await this.prisma.lifecycleEmailDelivery.update({
-        data: {
-          failureReason: null,
-          sentAt: new Date(),
-          status: DELIVERY_STATUS.SENT,
-        },
-        where: { id: delivery.id },
-      });
-    } catch (error: unknown) {
-      await this.prisma.lifecycleEmailDelivery.update({
-        data: {
-          failureReason: this.errorMessage(error),
-          status: DELIVERY_STATUS.FAILED,
-        },
-        where: { id: delivery.id },
-      });
-      throw error;
-    }
   }
 
   private async ensurePreference(userId: string): Promise<{
@@ -425,9 +462,5 @@ export class LifecycleEmailDeliveryService {
       'code' in error &&
       (error as { code?: unknown }).code === 'P2002'
     );
-  }
-
-  private errorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
   }
 }

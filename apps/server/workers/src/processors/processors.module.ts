@@ -32,6 +32,7 @@ import { HeygenPollModule } from '@api/queues/heygen-poll/heygen-poll.module';
 import { AgentCampaignOrchestratorModule } from '@api/services/agent-campaign/agent-campaign-orchestrator.module';
 import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-orchestrator.module';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
+import { AiInfluencerModule } from '@api/services/ai-influencer/ai-influencer.module';
 import { BatchContentModule } from '@api/services/batch-content/batch-content.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { CampaignModule } from '@api/services/campaign/campaign.module';
@@ -62,7 +63,6 @@ import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/
 import { NotificationDeliveryProcessor } from '@workers/processors/api/queues/notification-delivery/notification-delivery.processor';
 import { NotificationDeliveryRecoveryService } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.service';
 // --- services/ processors ---
-import { WorkspaceTaskProcessor } from '@workers/processors/api/services/task-orchestration/workspace-task.processor';
 import { WebhookClientProcessor } from '@workers/processors/api/services/webhook-client/webhook-client.processor';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { AdsServicesModule } from '@workers/services/ads-services.module';
@@ -104,6 +104,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     forwardRef(() => AgentCampaignOrchestratorModule),
     forwardRef(() => AgentOrchestratorModule),
     AgentStreamPublisherModule,
+    forwardRef(() => AiInfluencerModule),
     forwardRef(() => BatchContentModule),
     forwardRef(() => BatchGenerationModule),
     forwardRef(() => CampaignModule),
@@ -130,7 +131,6 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
 
     // --- services/ processors ---
     WebhookClientProcessor,
-    WorkspaceTaskProcessor,
 
     // --- collections/ processors (3) ---
     BatchWorkflowProcessor,

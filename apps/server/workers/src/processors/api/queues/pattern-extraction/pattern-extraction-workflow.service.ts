@@ -147,8 +147,7 @@ export class PatternExtractionWorkflowService implements OnModuleInit {
     dateKey: string,
   ): Promise<string> {
     const definition = buildPatternExtractionWorkflowDefinition();
-    return this.workflowQueue.queueSystemWorkflowDefinition(
-      definition,
+    return this.workflowQueue.queueSystemWorkflow(
       {
         actionType: definition.canonicalId,
         canonicalId: definition.canonicalId,

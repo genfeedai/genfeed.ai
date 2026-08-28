@@ -1,3 +1,6 @@
+import type { AgentType } from '@genfeedai/enums';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { AGENT_TYPE_VALUES } from '@server/services/agent-orchestrator/constants/agent-type.constants';
 import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
 import {
@@ -9,9 +12,6 @@ import type {
   TaskDecompositionInput,
   TaskDecompositionResult,
 } from '@server/services/task-orchestration/interfaces/task-decomposition.interface';
-import { AgentType } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 const VALID_AGENT_TYPES = new Set<string>(AGENT_TYPE_VALUES);
 
@@ -24,43 +24,32 @@ export class TaskDecompositionService {
     private readonly logger: LoggerService,
   ) {}
 
-  /**
-   * Decompose a workspace task into agent-typed subtasks via a cheap LLM call.
-   * Falls back to a single GENERAL agent subtask if the LLM fails or returns garbage.
-   */
+  /** Decompose a workspace task into agent-typed subtasks via a cheap LLM call. */
   async decompose(
     input: TaskDecompositionInput,
     organizationId?: string,
   ): Promise<TaskDecompositionResult> {
     const userMessage = this.buildUserMessage(input);
 
-    try {
-      const response = await this.llmDispatcher.chatCompletion(
-        {
-          max_tokens: 1024,
-          messages: [
-            { content: TASK_DECOMPOSITION_SYSTEM_PROMPT, role: 'system' },
-            { content: userMessage, role: 'user' },
-          ],
-          model: TASK_DECOMPOSITION_MODEL,
-          temperature: 0.1,
-        },
-        organizationId,
-      );
+    const response = await this.llmDispatcher.chatCompletion(
+      {
+        max_tokens: 1024,
+        messages: [
+          { content: TASK_DECOMPOSITION_SYSTEM_PROMPT, role: 'system' },
+          { content: userMessage, role: 'user' },
+        ],
+        model: TASK_DECOMPOSITION_MODEL,
+        temperature: 0.1,
+      },
+      organizationId,
+    );
 
-      const raw = response.choices?.[0]?.message?.content;
-      if (!raw || typeof raw !== 'string') {
-        return this.fallback(input);
-      }
-
-      return this.parseResponse(raw, input);
-    } catch (error: unknown) {
-      this.logger.error(
-        `${this.logContext}: Decomposition LLM call failed, using fallback`,
-        error,
-      );
-      return this.fallback(input);
+    const raw = response.choices?.[0]?.message?.content;
+    if (!raw || typeof raw !== 'string') {
+      throw new Error('Task decomposition returned no content');
     }
+
+    return this.parseResponse(raw, input);
   }
 
   private buildUserMessage(input: TaskDecompositionInput): string {
@@ -92,17 +81,20 @@ export class TaskDecompositionService {
     let parsed: Record<string, unknown>;
     try {
       parsed = JSON.parse(cleaned) as Record<string, unknown>;
-    } catch {
-      this.logger.warn(
-        `${this.logContext}: Failed to parse decomposition JSON, using fallback`,
+    } catch (error: unknown) {
+      this.logger.error(
+        `${this.logContext}: Failed to parse decomposition JSON`,
+        error,
       );
-      return this.fallback(input);
+      throw new Error('Task decomposition returned invalid JSON', {
+        cause: error,
+      });
     }
 
     const rawSubtasks = Array.isArray(parsed.subtasks) ? parsed.subtasks : [];
 
     if (rawSubtasks.length === 0) {
-      return this.fallback(input);
+      throw new Error('Task decomposition returned no subtasks');
     }
 
     const subtasks: DecomposedSubtask[] = rawSubtasks
@@ -119,7 +111,7 @@ export class TaskDecompositionService {
       .sort((a, b) => a.order - b.order);
 
     if (subtasks.length === 0) {
-      return this.fallback(input);
+      throw new Error('Task decomposition returned no valid subtasks');
     }
 
     return {
@@ -133,44 +125,9 @@ export class TaskDecompositionService {
 
   private resolveAgentType(raw: string): AgentType {
     const normalized = raw.toLowerCase().trim();
-    if (VALID_AGENT_TYPES.has(normalized)) {
-      return normalized as AgentType;
+    if (!VALID_AGENT_TYPES.has(normalized)) {
+      throw new Error(`Task decomposition returned invalid agent type: ${raw}`);
     }
-    return AgentType.GENERAL;
-  }
-
-  /**
-   * Deterministic fallback: single GENERAL agent subtask.
-   */
-  private fallback(input: TaskDecompositionInput): TaskDecompositionResult {
-    const agentType = this.inferAgentTypeFromOutputType(input.outputType);
-
-    return {
-      isSingleAgent: true,
-      routingSummary: `Routed to ${agentType} agent for execution.`,
-      subtasks: [
-        {
-          agentType,
-          brief: input.request,
-          label: 'Content task',
-          order: 0,
-        },
-      ],
-    };
-  }
-
-  private inferAgentTypeFromOutputType(outputType?: string): AgentType {
-    switch (outputType) {
-      case 'image':
-        return AgentType.IMAGE_CREATOR;
-      case 'video':
-        return AgentType.VIDEO_CREATOR;
-      case 'caption':
-      case 'newsletter':
-      case 'post':
-        return AgentType.ARTICLE_WRITER;
-      default:
-        return AgentType.GENERAL;
-    }
+    return normalized as AgentType;
   }
 }

@@ -1,5 +1,6 @@
 import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
+import { createGenfeedActionNode } from '@genfeedai/actions';
 import { EditorTrackType, IngredientFormat } from '@genfeedai/enums';
 import type { ClipReadyAction } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -18,6 +19,7 @@ import { ClipResultsService } from '@server/collections/clip-results/clip-result
 import type { ClipResultDocument } from '@server/collections/clip-results/schemas/clip-result.schema';
 import {
   type SystemWorkflowActionRequest,
+  type SystemWorkflowGraphDefinition,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
@@ -28,6 +30,51 @@ const CLIP_HANDOFF_ACTION_IDS = {
   LINK_LIBRARY: 'clip.handoff.link-library',
   PREPARE_PUBLISH: 'clip.handoff.prepare-publish',
 } as const;
+
+const CLIP_HANDOFF_WORKFLOW_IDS = {
+  CREATE_EDITOR: 'clip.handoff.editor',
+  LINK_LIBRARY: 'clip.handoff.library-link',
+  PREPARE_PUBLISH: 'clip.handoff.publish-prepare',
+} as const;
+
+function clipHandoffDefinition(
+  canonicalId: string,
+  actionId: (typeof CLIP_HANDOFF_ACTION_IDS)[keyof typeof CLIP_HANDOFF_ACTION_IDS],
+  label: string,
+): SystemWorkflowGraphDefinition {
+  return {
+    canonicalId,
+    definition: {
+      edges: [],
+      inputVariables: [
+        {
+          key: 'projectId',
+          label: 'Clip project',
+          required: true,
+          type: 'string',
+        },
+        {
+          key: 'clipResultId',
+          label: 'Clip result',
+          required: true,
+          type: 'string',
+        },
+        { key: 'brandId', label: 'Brand', required: false, type: 'string' },
+      ],
+      nodes: [
+        createGenfeedActionNode({
+          actionId,
+          id: 'handoff',
+          inputVariableKeys: ['projectId', 'clipResultId', 'brandId'],
+        }),
+      ],
+    },
+    description: label,
+    label,
+    resultNodeId: 'handoff',
+    version: 1,
+  };
+}
 
 export interface ClipEditorHandoffResult {
   clipProjectId: string;
@@ -88,13 +135,35 @@ export class ClipHandoffWorkflowService implements OnModuleInit {
       CLIP_HANDOFF_ACTION_IDS.LINK_LIBRARY,
       (request) => this.executeLibraryLink(request),
     );
+    this.workflowRunner.registerWorkflow(
+      clipHandoffDefinition(
+        CLIP_HANDOFF_WORKFLOW_IDS.CREATE_EDITOR,
+        CLIP_HANDOFF_ACTION_IDS.CREATE_EDITOR,
+        'Create Clip Editor Project',
+      ),
+    );
+    this.workflowRunner.registerWorkflow(
+      clipHandoffDefinition(
+        CLIP_HANDOFF_WORKFLOW_IDS.PREPARE_PUBLISH,
+        CLIP_HANDOFF_ACTION_IDS.PREPARE_PUBLISH,
+        'Prepare Clip Publish Payload',
+      ),
+    );
+    this.workflowRunner.registerWorkflow(
+      clipHandoffDefinition(
+        CLIP_HANDOFF_WORKFLOW_IDS.LINK_LIBRARY,
+        CLIP_HANDOFF_ACTION_IDS.LINK_LIBRARY,
+        'Link Clip to Library',
+      ),
+    );
   }
 
   async createEditorHandoff(
     input: ClipHandoffInput,
     context: { organizationId: string; userId: string },
   ): Promise<ClipEditorHandoffResult> {
-    return this.runAction<ClipEditorHandoffResult>(
+    return this.runWorkflow<ClipEditorHandoffResult>(
+      CLIP_HANDOFF_WORKFLOW_IDS.CREATE_EDITOR,
       CLIP_HANDOFF_ACTION_IDS.CREATE_EDITOR,
       input,
       context,
@@ -105,7 +174,8 @@ export class ClipHandoffWorkflowService implements OnModuleInit {
     input: ClipHandoffInput,
     context: { organizationId: string; userId: string },
   ): Promise<ClipPublishHandoffResult> {
-    return this.runAction<ClipPublishHandoffResult>(
+    return this.runWorkflow<ClipPublishHandoffResult>(
+      CLIP_HANDOFF_WORKFLOW_IDS.PREPARE_PUBLISH,
       CLIP_HANDOFF_ACTION_IDS.PREPARE_PUBLISH,
       input,
       context,
@@ -116,21 +186,23 @@ export class ClipHandoffWorkflowService implements OnModuleInit {
     input: ClipHandoffInput,
     context: { organizationId: string; userId: string },
   ): Promise<ClipLibraryLinkResult> {
-    return this.runAction<ClipLibraryLinkResult>(
+    return this.runWorkflow<ClipLibraryLinkResult>(
+      CLIP_HANDOFF_WORKFLOW_IDS.LINK_LIBRARY,
       CLIP_HANDOFF_ACTION_IDS.LINK_LIBRARY,
       input,
       context,
     );
   }
 
-  private async runAction<T>(
+  private async runWorkflow<T>(
+    workflowId: (typeof CLIP_HANDOFF_WORKFLOW_IDS)[keyof typeof CLIP_HANDOFF_WORKFLOW_IDS],
     actionId: (typeof CLIP_HANDOFF_ACTION_IDS)[keyof typeof CLIP_HANDOFF_ACTION_IDS],
     input: ClipHandoffInput,
     context: { organizationId: string; userId: string },
   ): Promise<T> {
-    const { result } = await this.workflowRunner.runAction<T>({
+    const { result } = await this.workflowRunner.runWorkflow<T>({
       actionType: actionId,
-      canonicalId: actionId,
+      canonicalId: workflowId,
       inputValues: input,
       organizationId: context.organizationId,
       source: 'clip-project-handoff',

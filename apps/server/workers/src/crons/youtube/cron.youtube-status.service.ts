@@ -6,19 +6,22 @@ import {
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { PostEntity } from '@server/collections/posts/entities/post.entity';
 import { PostsService } from '@server/collections/posts/services/posts.service';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
   type SystemWorkflowProvenance,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
 import { customLabels } from '@server/helpers/utils/pagination.util';
 import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 import { PublishEventWebhookService } from '@server/services/webhook-client/publish-event-webhook.service';
+import {
+  buildYoutubeStatusReconcileDefinition,
+  buildYoutubeStatusSweepDefinition,
+  YOUTUBE_MAINTENANCE_ACTION_IDS,
+} from '@workers/crons/youtube/youtube-maintenance-workflow-definition';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 const YOUTUBE_PRIVACY_STATUS_MAP: Record<string, PostVisibility> = {
@@ -28,6 +31,7 @@ const YOUTUBE_PRIVACY_STATUS_MAP: Record<string, PostVisibility> = {
 };
 
 const YOUTUBE_SWEEP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';
 
 @Injectable()
 export class CronYoutubeStatusService implements OnModuleInit {
@@ -45,9 +49,59 @@ export class CronYoutubeStatusService implements OnModuleInit {
 
   onModuleInit(): void {
     this.systemWorkflowRunner.registerAction(
-      SYSTEM_WORKFLOW_ACTION_IDS.YOUTUBE_STATUS_RECONCILIATION,
+      YOUTUBE_MAINTENANCE_ACTION_IDS.DISCOVER_POSTS,
+      async ({ input }) => {
+        const request = input.request as { now?: unknown };
+        const now = new Date(String(request.now ?? ''));
+        if (!Number.isFinite(now.getTime())) {
+          throw new Error('YouTube status sweep requires a valid timestamp');
+        }
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const posts = (await this.postsService.findAll(
+          {
+            include: { credential: true },
+            where: {
+              createdAt: { gte: sevenDaysAgo },
+              externalId: { not: null },
+              isDeleted: false,
+              platform: CredentialPlatform.YOUTUBE,
+              OR: [
+                {
+                  visibility: {
+                    in: [PostVisibility.PRIVATE, PostVisibility.UNLISTED],
+                  },
+                },
+                {
+                  visibility: null,
+                  status: { in: [PostStatus.PRIVATE, PostStatus.UNLISTED] },
+                },
+                { targetExecutionState: TargetExecutionState.PUBLISHING },
+              ],
+            },
+          },
+          { customLabels, limit: 100 },
+        )) as unknown as { docs?: PostEntity[] };
+        return {
+          items: (posts.docs ?? []).map((post) => ({
+            organizationId: post.organizationId,
+            postId: String(post.id),
+          })),
+        };
+      },
+    );
+    this.systemWorkflowRunner.registerAction(
+      YOUTUBE_MAINTENANCE_ACTION_IDS.RECONCILE_STATUS,
       ({ input, provenance }) =>
-        this.executeStatusReconciliation(input, provenance),
+        this.executeStatusReconciliation(
+          input.request as Record<string, unknown>,
+          provenance,
+        ),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildYoutubeStatusSweepDefinition(),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildYoutubeStatusReconcileDefinition(),
     );
   }
 
@@ -58,81 +112,22 @@ export class CronYoutubeStatusService implements OnModuleInit {
    * system-sweeps BullMQ Job Scheduler (SystemSweepsProcessor).
    */
   async checkScheduledYoutubeVideos() {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.logger.log(`${url} started`);
-
-    try {
-      // Find YouTube posts that haven't reached PUBLIC status yet
-      // Check posts from the last 7 days to catch any status changes
-      const now = new Date();
-      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-      const options = {
-        customLabels,
-        limit: 100, // Check up to 100 posts per run
-      };
-
-      const posts = (await this.postsService.findAll(
-        {
-          include: { credential: true },
-          where: {
-            // Only check recent posts (last 7 days) to avoid checking old videos
-            createdAt: { gte: sevenDaysAgo },
-            externalId: { not: null },
-            isDeleted: false,
-            platform: CredentialPlatform.YOUTUBE,
-            OR: [
-              {
-                visibility: {
-                  in: [PostVisibility.PRIVATE, PostVisibility.UNLISTED],
-                },
-              },
-              {
-                visibility: null,
-                status: { in: [PostStatus.PRIVATE, PostStatus.UNLISTED] },
-              },
-              { targetExecutionState: TargetExecutionState.PUBLISHING },
-            ],
-          },
-        },
-        options,
-      )) as unknown as { docs?: PostEntity[] };
-
-      const postsChecked = posts.docs?.length || 0;
-
-      if (postsChecked === 0) {
-        this.logger.log(`${url} completed - no posts to check`);
-        return;
-      }
-
-      this.logger.log(`${url} checking ${postsChecked} YouTube posts`);
-
-      for (const post of posts.docs || []) {
-        await this.workflowQueue.queueSystemAction(
-          {
-            actionType:
-              SYSTEM_WORKFLOW_ACTION_IDS.YOUTUBE_STATUS_RECONCILIATION,
-            canonicalId:
-              SYSTEM_WORKFLOW_ACTION_IDS.YOUTUBE_STATUS_RECONCILIATION,
-            inputValues: {
-              organizationId: post.organizationId,
-              postId: String(post.id),
-            },
-            metadata: { platform: CredentialPlatform.YOUTUBE },
-            organizationId: post.organizationId,
-            postIds: [String(post.id)],
-            source: 'youtube_status_sweep',
-            trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId: post.userId,
-          },
-          `${SYSTEM_WORKFLOW_ACTION_IDS.YOUTUBE_STATUS_RECONCILIATION}-${post.id}-${Math.floor(now.getTime() / YOUTUBE_SWEEP_INTERVAL_MS)}`,
-        );
-      }
-
-      this.logger.log(`${url} completed - checked ${postsChecked} posts`);
-    } catch (error: unknown) {
-      this.logger.error(`${url} failed`, error);
-    }
+    const now = new Date();
+    const definition = buildYoutubeStatusSweepDefinition();
+    await this.workflowQueue.queueSystemWorkflow(
+      {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request: { now: now.toISOString() } },
+        metadata: { platform: CredentialPlatform.YOUTUBE },
+        organizationId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
+        source: 'youtube_status_sweep',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
+      },
+      `youtube-status-sweep-${Math.floor(now.getTime() / YOUTUBE_SWEEP_INTERVAL_MS)}`,
+      { attempts: 3, replaceTerminalJob: true },
+    );
   }
 
   /**

@@ -2,13 +2,13 @@ import type { WorkflowExecutionQueueService } from '@server/collections/workflow
 import { ClipFactoryWorkflowQueueService } from './clip-factory-workflow-queue.service';
 
 describe('ClipFactoryWorkflowQueueService', () => {
-  const workflowQueue = { queueSystemWorkflowDefinition: vi.fn() };
+  const workflowQueue = { queueSystemWorkflow: vi.fn() };
   const service = new ClipFactoryWorkflowQueueService(
     workflowQueue as unknown as WorkflowExecutionQueueService,
   );
 
   beforeEach(() => {
-    workflowQueue.queueSystemWorkflowDefinition.mockResolvedValue(
+    workflowQueue.queueSystemWorkflow.mockResolvedValue(
       'clip-factory-project-1',
     );
   });
@@ -28,8 +28,7 @@ describe('ClipFactoryWorkflowQueueService', () => {
     };
 
     await expect(service.enqueue(job)).resolves.toBe('clip-factory-project-1');
-    expect(workflowQueue.queueSystemWorkflowDefinition).toHaveBeenCalledWith(
-      expect.objectContaining({ canonicalId: 'clip.factory' }),
+    expect(workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         actionType: 'clip.factory',
         inputValues: { job: { ...job, mode: 'avatar' } },
@@ -38,10 +37,13 @@ describe('ClipFactoryWorkflowQueueService', () => {
       }),
       'clip-factory-project-1',
       {
-        actionId: 'clip.factory.fail',
-        inputValues: { job: { ...job, mode: 'avatar' } },
+        attempts: 2,
+        failureWorkflow: {
+          canonicalId: 'clip.factory.failure',
+          inputValues: { job: { ...job, mode: 'avatar' } },
+        },
+        replaceTerminalJob: true,
       },
-      { attempts: 2, replaceTerminalJob: true },
     );
   });
 });

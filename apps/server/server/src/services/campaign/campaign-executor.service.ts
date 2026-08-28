@@ -44,6 +44,9 @@ import {
   buildCampaignReplyPreviewWorkflowDefinition,
   buildCampaignReplyWorkflowDefinition,
   CAMPAIGN_REPLY_ACTION_IDS,
+  CAMPAIGN_REPLY_BATCH_WORKFLOW_ID,
+  CAMPAIGN_REPLY_PREVIEW_WORKFLOW_ID,
+  CAMPAIGN_REPLY_WORKFLOW_ID,
 } from '@server/services/campaign/campaign-reply-workflow-definition';
 import { resolveCampaignScope } from '@server/services/campaign/campaign-scope.util';
 import {
@@ -102,6 +105,9 @@ export class CampaignExecutorService implements OnModuleInit {
     this.systemWorkflowRunner.registerWorkflow(
       buildCampaignReplyBatchWorkflowDefinition(),
     );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildCampaignReplyPreviewWorkflowDefinition(),
+    );
     this.systemWorkflowRunner.registerAction(
       CAMPAIGN_REPLY_ACTION_IDS.DISCOVER_TARGETS,
       (request) => this.discoverTargetsAction(request),
@@ -153,26 +159,22 @@ export class CampaignExecutorService implements OnModuleInit {
 
     try {
       const scope = resolveCampaignScope(campaign);
-      const definition = buildCampaignReplyWorkflowDefinition();
       const { result } =
-        await this.systemWorkflowRunner.runWorkflowDefinition<ExecutionResult>(
-          definition,
-          {
-            actionType: definition.canonicalId,
-            canonicalId: definition.canonicalId,
-            inputValues: {
-              request: {
-                campaignId,
-                organizationId: scope.organizationId,
-                targetId,
-              },
+        await this.systemWorkflowRunner.runWorkflow<ExecutionResult>({
+          actionType: CAMPAIGN_REPLY_WORKFLOW_ID,
+          canonicalId: CAMPAIGN_REPLY_WORKFLOW_ID,
+          inputValues: {
+            request: {
+              campaignId,
+              organizationId: scope.organizationId,
+              targetId,
             },
-            organizationId: scope.organizationId,
-            source: 'CampaignExecutorService.executeTarget',
-            trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId: scope.userId,
           },
-        );
+          organizationId: scope.organizationId,
+          source: 'CampaignExecutorService.executeTarget',
+          trigger: WorkflowExecutionTrigger.SCHEDULED,
+          userId: scope.userId,
+        });
 
       if (result.success) {
         this.loggerService.log(`${url} success`, {
@@ -702,26 +704,21 @@ export class CampaignExecutorService implements OnModuleInit {
     target: CampaignTargetDocument,
   ): Promise<string> {
     const scope = resolveCampaignScope(campaign);
-    const definition = buildCampaignReplyPreviewWorkflowDefinition();
-    const { result } =
-      await this.systemWorkflowRunner.runWorkflowDefinition<string>(
-        definition,
-        {
-          actionType: definition.canonicalId,
-          canonicalId: definition.canonicalId,
-          inputValues: {
-            request: {
-              campaignId: campaign.id.toString(),
-              organizationId: scope.organizationId,
-              targetId: target.id.toString(),
-            },
-          },
+    const { result } = await this.systemWorkflowRunner.runWorkflow<string>({
+      actionType: CAMPAIGN_REPLY_PREVIEW_WORKFLOW_ID,
+      canonicalId: CAMPAIGN_REPLY_PREVIEW_WORKFLOW_ID,
+      inputValues: {
+        request: {
+          campaignId: campaign.id.toString(),
           organizationId: scope.organizationId,
-          source: 'CampaignExecutorService.previewReply',
-          trigger: WorkflowExecutionTrigger.API,
-          userId: scope.userId,
+          targetId: target.id.toString(),
         },
-      );
+      },
+      organizationId: scope.organizationId,
+      source: 'CampaignExecutorService.previewReply',
+      trigger: WorkflowExecutionTrigger.API,
+      userId: scope.userId,
+    });
     return result;
   }
 
@@ -781,13 +778,12 @@ export class CampaignExecutorService implements OnModuleInit {
         });
         return { failed: 0, processed: 0, skipped: 0, successful: 0 };
       }
-      const definition = buildCampaignReplyBatchWorkflowDefinition();
-      const { result } = await this.systemWorkflowRunner.runWorkflowDefinition<{
+      const { result } = await this.systemWorkflowRunner.runWorkflow<{
         count: number;
         results: Array<{ index: number; jobId: string }>;
-      }>(definition, {
-        actionType: definition.canonicalId,
-        canonicalId: definition.canonicalId,
+      }>({
+        actionType: CAMPAIGN_REPLY_BATCH_WORKFLOW_ID,
+        canonicalId: CAMPAIGN_REPLY_BATCH_WORKFLOW_ID,
         inputValues: {
           request: {
             campaignId: campaign.id.toString(),

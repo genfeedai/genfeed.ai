@@ -104,10 +104,7 @@ export type {
 } from './collections/models/model-record.types';
 export { PostEntity } from './collections/posts/entities/post.entity';
 export type { Post, PostDocument } from './collections/posts/post.schema';
-export {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowRunnerService,
-} from './collections/workflows/system-workflow-runner.service';
+export { SystemWorkflowRunnerService } from './collections/workflows/system-workflow-runner.service';
 export { BaseEntity } from './entities/base.entity';
 export {
   BusinessLogicException,

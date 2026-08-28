@@ -42,6 +42,10 @@ import { AgentRouteRewriteService } from '@server/services/agent-orchestrator/to
 import { AgentSpawnToolHandler } from '@server/services/agent-orchestrator/tools/agent-spawn-tool-handler.service';
 import { AgentToolCatalogHandler } from '@server/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
 import { readOptionalString } from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import {
+  AGENT_TOOL_WORKFLOW_DEFINITIONS,
+  findAgentToolWorkflowDefinition,
+} from '@server/services/agent-orchestrator/tools/agent-tool-workflow-definition';
 import { AgentTransferToolHandler } from '@server/services/agent-orchestrator/tools/agent-transfer-tool-handler.service';
 import { AgentTrendsToolHandler } from '@server/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
 import { AgentWorkflowToolHandler } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
@@ -207,6 +211,9 @@ export class AgentToolExecutorService implements OnModuleInit {
         },
       );
     }
+    for (const definition of AGENT_TOOL_WORKFLOW_DEFINITIONS) {
+      runner.registerWorkflow(definition);
+    }
   }
 
   async executeTool(
@@ -219,10 +226,11 @@ export class AgentToolExecutorService implements OnModuleInit {
       return await runWithActionOrigin(
         resolveNestedActionOrigin(ActionOrigin.AGENT),
         async () => {
+          const definition = findAgentToolWorkflowDefinition(toolName);
           const { result } =
-            await this.requireWorkflowRunner().runAction<AgentToolResult>({
+            await this.requireWorkflowRunner().runWorkflow<AgentToolResult>({
               actionType: toolName,
-              canonicalId: toolName,
+              canonicalId: definition.canonicalId,
               inputValues: {
                 context: this.toPersistedContext(context),
                 parameters,

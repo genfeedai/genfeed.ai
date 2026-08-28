@@ -13,6 +13,8 @@ export const SCHEDULED_POST_ACTION_IDS = {
 } as const;
 
 export const SCHEDULED_POST_WORKFLOW_ID = 'scheduled-post.publish';
+export const SCHEDULED_POST_FAILURE_WORKFLOW_ID =
+  'scheduled-post.publish.failure';
 
 export type ScheduledPostWorkflowSource =
   | 'manual_retry'
@@ -87,5 +89,26 @@ export function buildScheduledPostWorkflowDefinition(): SystemWorkflowGraphDefin
       'Claims an immutable publish approval, delivers the post, and finalizes its durable outcome.',
     label: 'Scheduled Post Publishing',
     resultNodeId: 'finalize-publish',
+  };
+}
+
+export function buildScheduledPostFailureWorkflowDefinition(): SystemWorkflowGraphDefinition {
+  return {
+    canonicalId: SCHEDULED_POST_FAILURE_WORKFLOW_ID,
+    definition: {
+      edges: [],
+      inputVariables: [
+        {
+          key: 'request',
+          label: 'Failed scheduled publish request',
+          required: true,
+          type: 'json',
+        },
+      ],
+      nodes: [actionNode(SCHEDULED_POST_ACTION_IDS.FAIL, 'fail-publish', 0)],
+    },
+    description: 'Projects terminal failure for one scheduled publish.',
+    label: 'Fail Scheduled Post Publishing',
+    resultNodeId: 'fail-publish',
   };
 }

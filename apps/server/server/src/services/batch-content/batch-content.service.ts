@@ -67,8 +67,7 @@ export class BatchContentService implements OnModuleInit {
   ): Promise<QueuedBatchContentResult> {
     await this.validateBrandOwnership(request.organizationId, request.brandId);
     const definition = buildBatchContentWorkflowDefinition();
-    const jobId = await this.workflowQueue.queueSystemWorkflowDefinition(
-      definition,
+    const jobId = await this.workflowQueue.queueSystemWorkflow(
       {
         actionType: definition.canonicalId,
         canonicalId: definition.canonicalId,

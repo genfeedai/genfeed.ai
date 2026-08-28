@@ -8,7 +8,7 @@ describe('OutreachCampaignDispatchWorkflowService', () => {
   };
   const workflowRunner = {
     registerAction: vi.fn(),
-    runWorkflowDefinition: vi.fn(),
+    runWorkflow: vi.fn(),
   };
   let service: OutreachCampaignDispatchWorkflowService;
 
@@ -44,13 +44,12 @@ describe('OutreachCampaignDispatchWorkflowService', () => {
       skipped: 0,
       status: 'completed',
     } as const;
-    workflowRunner.runWorkflowDefinition.mockResolvedValueOnce({ result });
+    workflowRunner.runWorkflow.mockResolvedValueOnce({ result });
 
     await expect(service.runActiveCampaignDispatch('org-1')).resolves.toEqual(
       result,
     );
-    expect(workflowRunner.runWorkflowDefinition).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(workflowRunner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         inputValues: { request: { organizationId: 'org-1' } },
         organizationId: 'org-1',

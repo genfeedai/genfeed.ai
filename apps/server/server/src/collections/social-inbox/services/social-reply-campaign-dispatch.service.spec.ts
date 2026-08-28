@@ -271,7 +271,7 @@ function createContext(options: {
     sendDm: vi.fn().mockResolvedValue({ id: 'dm-message-1' }),
   };
   const workflowQueue = {
-    queueSystemWorkflowDefinition: vi.fn().mockResolvedValue('job-1'),
+    queueSystemWorkflow: vi.fn().mockResolvedValue('job-1'),
   };
   const actionExecutors = new Map<
     string,
@@ -335,7 +335,7 @@ function createContext(options: {
         executor: (request: Record<string, unknown>) => Promise<unknown>,
       ) => actionExecutors.set(actionId, executor),
     ),
-    runWorkflowDefinition: vi.fn(
+    runWorkflow: vi.fn(
       async (
         definition: {
           definition: {
@@ -438,9 +438,7 @@ describe('SocialReplyCampaignDispatchService', () => {
 
       expect(result).toEqual({ outcome: 'campaign-inactive' });
       expect(context.actionService.postReply).not.toHaveBeenCalled();
-      expect(
-        context.workflowQueue.queueSystemWorkflowDefinition,
-      ).not.toHaveBeenCalled();
+      expect(context.workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
     });
 
     it('no-ops when a resume already moved the cursor past this tick', async () => {
@@ -498,9 +496,7 @@ describe('SocialReplyCampaignDispatchService', () => {
         dispatchCursor: 2,
         sentCount: 1,
       });
-      expect(
-        context.workflowQueue.queueSystemWorkflowDefinition,
-      ).toHaveBeenCalledWith(
+      expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           inputValues: {
@@ -533,9 +529,7 @@ describe('SocialReplyCampaignDispatchService', () => {
 
       await context.service.dispatchTick(TICK);
 
-      expect(
-        context.provenanceService.runWorkflowDefinition,
-      ).toHaveBeenCalledWith(
+      expect(context.provenanceService.runWorkflow).toHaveBeenCalledWith(
         expect.objectContaining({
           canonicalId: 'social.reply-campaign.dispatch-tick',
           resultNodeId: 'finalize-tick',
@@ -597,9 +591,7 @@ describe('SocialReplyCampaignDispatchService', () => {
       expect(result.outcome).toBe('throttled');
       expect(result.nextRunInSeconds).toBeGreaterThan(0);
       expect(context.actionService.postReply).not.toHaveBeenCalled();
-      expect(
-        context.workflowQueue.queueSystemWorkflowDefinition,
-      ).toHaveBeenCalledWith(
+      expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
         'social-reply-campaign-campaign-1-2',
@@ -649,9 +641,7 @@ describe('SocialReplyCampaignDispatchService', () => {
         nextRunAt: null,
         status: SocialReplyCampaignStatus.COMPLETED,
       });
-      expect(
-        context.workflowQueue.queueSystemWorkflowDefinition,
-      ).not.toHaveBeenCalled();
+      expect(context.workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
     });
   });
 
@@ -679,9 +669,7 @@ describe('SocialReplyCampaignDispatchService', () => {
       });
       expect(context.campaigns[0].skippedCount).toBe(1);
       // No cooldown for a skip — nothing was actually sent.
-      expect(
-        context.workflowQueue.queueSystemWorkflowDefinition,
-      ).toHaveBeenCalledWith(
+      expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
         'social-reply-campaign-campaign-1-2',
@@ -712,9 +700,7 @@ describe('SocialReplyCampaignDispatchService', () => {
         failedCount: 0,
         lastError: 'provider unavailable',
       });
-      expect(
-        context.workflowQueue.queueSystemWorkflowDefinition,
-      ).toHaveBeenCalledWith(
+      expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
         'social-reply-campaign-campaign-1-2',
@@ -845,9 +831,7 @@ describe('SocialReplyCampaignDispatchService', () => {
           (row) => row.status !== SocialReplyCampaignRecipientStatus.SENT,
         ),
       ).toBe(true);
-      expect(
-        context.workflowQueue.queueSystemWorkflowDefinition,
-      ).toHaveBeenCalledWith(
+      expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
         'social-reply-campaign-campaign-1-2',
@@ -866,9 +850,7 @@ describe('SocialReplyCampaignDispatchService', () => {
       const result = await context.service.dispatchTick(TICK);
 
       expect(result.outcome).toBe('recipient-sent');
-      expect(
-        context.workflowQueue.queueSystemWorkflowDefinition,
-      ).not.toHaveBeenCalled();
+      expect(context.workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
       expect(context.campaigns[0].dispatchCursor).toBe(1);
     });
 
@@ -910,9 +892,7 @@ describe('SocialReplyCampaignDispatchService', () => {
       expect(context.campaigns[0].status).toBe(
         SocialReplyCampaignStatus.RUNNING,
       );
-      expect(
-        context.workflowQueue.queueSystemWorkflowDefinition,
-      ).toHaveBeenCalled();
+      expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalled();
     });
   });
 

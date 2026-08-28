@@ -30,7 +30,7 @@ describe('AuthorReplyLoopService', () => {
         executor: (request: Record<string, unknown>) => Promise<unknown>,
       ) => actionExecutors.set(actionId, executor),
     ),
-    runWorkflowDefinition: vi.fn(
+    runWorkflow: vi.fn(
       async (
         definition: {
           definition: {
@@ -87,7 +87,7 @@ describe('AuthorReplyLoopService', () => {
     ),
   };
   const executeWorkflowDefinition =
-    systemWorkflowRunner.runWorkflowDefinition.getMockImplementation();
+    systemWorkflowRunner.runWorkflow.getMockImplementation();
   const replyBotConfigsService = {
     create: vi.fn(),
     find: vi.fn(),
@@ -111,7 +111,7 @@ describe('AuthorReplyLoopService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     if (executeWorkflowDefinition) {
-      systemWorkflowRunner.runWorkflowDefinition.mockImplementation(
+      systemWorkflowRunner.runWorkflow.mockImplementation(
         executeWorkflowDefinition,
       );
     }
@@ -291,7 +291,7 @@ describe('AuthorReplyLoopService', () => {
       id: 'x-cred',
       username: 'brandx',
     });
-    systemWorkflowRunner.runWorkflowDefinition.mockResolvedValue({
+    systemWorkflowRunner.runWorkflow.mockResolvedValue({
       provenance: { executionId: 'execution-1', workflowId: 'workflow-1' },
       result: {
         replyContentId: 'x-reply-1',
@@ -312,9 +312,9 @@ describe('AuthorReplyLoopService', () => {
       userId: 'user-1',
     });
 
-    expect(systemWorkflowRunner.runWorkflowDefinition).toHaveBeenCalledWith(
-      expect.objectContaining({ canonicalId: 'author-reply.send-reply' }),
+    expect(systemWorkflowRunner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
+        canonicalId: 'author-reply.send-reply',
         inputValues: {
           request: expect.objectContaining({
             replyText: 'Thanks!',
@@ -343,7 +343,7 @@ describe('AuthorReplyLoopService', () => {
       id: 'yt-cred',
       username: 'channel',
     });
-    systemWorkflowRunner.runWorkflowDefinition.mockResolvedValue({
+    systemWorkflowRunner.runWorkflow.mockResolvedValue({
       provenance: { executionId: 'execution-1', workflowId: 'workflow-1' },
       result: { replyContentId: 'yt-reply-1', replySent: true },
     });
@@ -361,9 +361,9 @@ describe('AuthorReplyLoopService', () => {
       userId: 'user-1',
     });
 
-    expect(systemWorkflowRunner.runWorkflowDefinition).toHaveBeenCalledWith(
-      expect.objectContaining({ canonicalId: 'author-reply.send-reply' }),
+    expect(systemWorkflowRunner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
+        canonicalId: 'author-reply.send-reply',
         inputValues: {
           request: expect.objectContaining({
             replyText: 'Thanks for watching!',
@@ -434,7 +434,7 @@ describe('AuthorReplyLoopService', () => {
       platform: 'twitter',
       username: 'brandx_labs',
     });
-    systemWorkflowRunner.runWorkflowDefinition.mockResolvedValue({
+    systemWorkflowRunner.runWorkflow.mockResolvedValue({
       provenance: { executionId: 'execution-1', workflowId: 'workflow-1' },
       result: {
         replyContentId: 'x-reply-2',
@@ -455,9 +455,9 @@ describe('AuthorReplyLoopService', () => {
       userId: 'user-1',
     });
 
-    expect(systemWorkflowRunner.runWorkflowDefinition).toHaveBeenCalledWith(
-      expect.objectContaining({ canonicalId: 'author-reply.send-reply' }),
+    expect(systemWorkflowRunner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
+        canonicalId: 'author-reply.send-reply',
         inputValues: {
           request: expect.not.objectContaining({
             accessToken: expect.anything(),

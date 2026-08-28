@@ -10,8 +10,12 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
 import {
+  buildClipContinuityFailureWorkflowDefinition,
+  buildClipContinuityQaWorkflowDefinition,
   buildClipContinuityWorkflowDefinition,
   CLIP_CONTINUITY_ACTION_IDS,
+  CLIP_CONTINUITY_FAILURE_WORKFLOW_ID,
+  CLIP_CONTINUITY_WORKFLOW_ID,
 } from '@server/collections/clip-projects/services/clip-continuity-workflow-definition';
 import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
@@ -54,6 +58,11 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
     this.runner.registerAction(
       CLIP_CONTINUITY_ACTION_IDS.PERSIST_REPORT,
       (request) => this.persistReport(request),
+    );
+    this.runner.registerWorkflow(buildClipContinuityWorkflowDefinition());
+    this.runner.registerWorkflow(buildClipContinuityQaWorkflowDefinition());
+    this.runner.registerWorkflow(
+      buildClipContinuityFailureWorkflowDefinition(),
     );
   }
 
@@ -133,7 +142,6 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
       };
       return [descriptor];
     });
-    const definition = buildClipContinuityWorkflowDefinition(qaIndex);
     const referenceAssetIds = {
       character: references
         .filter((reference) => reference.role === 'character')
@@ -143,25 +151,24 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
         .map((reference) => reference.assetId),
     };
     const workflowInputValues: Record<string, unknown> = {
-      characterReferenceUrls: references
-        .filter((reference) => reference.role === 'character')
-        .map((reference) => reference.url),
+      baseInput: {
+        characterReferenceUrls: references
+          .filter((reference) => reference.role === 'character')
+          .map((reference) => reference.url),
+        productReferenceUrls: references
+          .filter((reference) => reference.role === 'product')
+          .map((reference) => reference.url),
+      },
       clipDescriptors: descriptors,
       generationWorkflowExecutionId,
-      productReferenceUrls: references
-        .filter((reference) => reference.role === 'product')
-        .map((reference) => reference.url),
+      items: descriptors.flatMap((descriptor) =>
+        descriptor.qaIndex !== undefined && descriptor.videoUrl
+          ? [descriptor.videoUrl]
+          : [],
+      ),
       projectId,
       referenceAssetIds,
     };
-    for (const descriptor of descriptors) {
-      if (
-        descriptor.videoUrl !== undefined &&
-        descriptor.qaIndex !== undefined
-      ) {
-        workflowInputValues[`video${descriptor.qaIndex}`] = descriptor.videoUrl;
-      }
-    }
 
     const claimed = await this.prisma.clipProject.updateMany({
       data: { continuityQaStatus: 'queued' },
@@ -175,11 +182,10 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
       return false;
     }
     try {
-      await this.queue.queueSystemWorkflowDefinition(
-        definition,
+      await this.queue.queueSystemWorkflow(
         {
           actionType: 'clip-continuity',
-          canonicalId: definition.canonicalId,
+          canonicalId: CLIP_CONTINUITY_WORKFLOW_ID,
           inputValues: workflowInputValues,
           metadata: { generationWorkflowExecutionId, projectId },
           organizationId,
@@ -188,8 +194,10 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
         },
         `clip-continuity-${projectId}-${generationWorkflowExecutionId}`,
         {
-          actionId: CLIP_CONTINUITY_ACTION_IDS.FAIL,
-          inputValues: { projectId },
+          failureWorkflow: {
+            canonicalId: CLIP_CONTINUITY_FAILURE_WORKFLOW_ID,
+            inputValues: { projectId },
+          },
         },
       );
       return true;
@@ -256,13 +264,18 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
     const referenceAssetIds = this.readReferenceAssetIds(
       request.input.referenceAssetIds,
     );
-    const findings = descriptors.map((descriptor, index) =>
-      this.resolveFinding(request.input, descriptor, index),
+    const qaBatch = this.readRecord(request.input.qaBatch);
+    const qaReportsByIndex = (
+      Array.isArray(qaBatch.results) ? qaBatch.results : []
+    )
+      .map((entry) => this.readRecord(entry).result)
+      .map((value) => this.readContinuityReport(value));
+    const qaReports = qaReportsByIndex.filter(
+      (value): value is VideoContinuityQaReport => value !== undefined,
     );
-    const qaReports = Object.entries(request.input)
-      .filter(([key]) => /^qa\d+$/.test(key))
-      .map(([, value]) => this.readContinuityReport(value))
-      .filter((value): value is VideoContinuityQaReport => value !== undefined);
+    const findings = descriptors.map((descriptor, index) =>
+      this.resolveFinding(qaReportsByIndex, descriptor, index),
+    );
     const skipReason = qaReports.find(
       (report) => report.skipReason,
     )?.skipReason;
@@ -380,14 +393,12 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
   }
 
   private resolveFinding(
-    input: Record<string, unknown>,
+    qaReports: Array<VideoContinuityQaReport | undefined>,
     descriptor: ClipDescriptor,
     index: number,
   ): VideoContinuityClipFinding {
     if (descriptor.qaIndex !== undefined) {
-      const report = this.readContinuityReport(
-        input[`qa${descriptor.qaIndex}`],
-      );
+      const report = qaReports[descriptor.qaIndex];
       const finding = report?.clips[0];
       if (finding) {
         return {

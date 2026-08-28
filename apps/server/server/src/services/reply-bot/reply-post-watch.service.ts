@@ -75,8 +75,7 @@ export class ReplyPostWatchService implements OnModuleInit {
           postId: params.postId,
           postPreview: params.postPreview,
         };
-        return this.workflowQueue.queueSystemWorkflowDefinition(
-          definition,
+        return this.workflowQueue.queueSystemWorkflow(
           {
             actionType: definition.canonicalId,
             canonicalId: definition.canonicalId,
@@ -102,17 +101,14 @@ export class ReplyPostWatchService implements OnModuleInit {
   ): Promise<ReplyPostWatchWorkflowResult> {
     const definition = buildReplyPostWatchWorkflowDefinition();
     const { result } =
-      await this.workflowRunner.runWorkflowDefinition<ReplyPostWatchWorkflowResult>(
-        definition,
-        {
-          actionType: definition.canonicalId,
-          canonicalId: definition.canonicalId,
-          inputValues: { request: data },
-          organizationId: data.organizationId,
-          source: 'ReplyPostWatchService.runWatchAttempt',
-          trigger: WorkflowExecutionTrigger.SCHEDULED,
-        },
-      );
+      await this.workflowRunner.runWorkflow<ReplyPostWatchWorkflowResult>({
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request: data },
+        organizationId: data.organizationId,
+        source: 'ReplyPostWatchService.runWatchAttempt',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+      });
     return result;
   }
 

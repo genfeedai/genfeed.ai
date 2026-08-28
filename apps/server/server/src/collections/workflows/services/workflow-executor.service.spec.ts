@@ -4,19 +4,62 @@ import type {
   NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
 import { WorkflowEngineConverterService } from '@server/collections/workflows/services/workflow-engine-converter.service';
-import {
-  EXECUTABLE_WORKFLOW_SELECT,
-  WorkflowExecutorService,
-} from '@server/collections/workflows/services/workflow-executor.service';
+import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const converter = new WorkflowEngineConverterService();
+const WORKFLOW_VERSION_ID = 'workflow-version-1';
+
+function currentVersion(input: {
+  edges?: unknown[];
+  inputVariables?: unknown[];
+  lockedNodeIds?: string[];
+  nodes?: unknown[];
+}) {
+  return {
+    graph: {
+      edges: input.edges ?? [],
+      lockedNodeIds: input.lockedNodeIds ?? [],
+      nodes: input.nodes ?? [],
+    },
+    id: WORKFLOW_VERSION_ID,
+    inputSchema: input.inputVariables ?? [],
+    version: 1,
+  };
+}
+
+function pinnedVersion(input: {
+  brandId?: string;
+  edges?: unknown[];
+  id: string;
+  inputVariables?: unknown[];
+  label: string;
+  nodes?: unknown[];
+}) {
+  const version = currentVersion(input);
+  return {
+    ...version,
+    workflow: {
+      brandId: input.brandId,
+      config: {},
+      description: null,
+      id: input.id,
+      label: input.label,
+      metadata: {},
+      organizationId: 'org-1',
+      userId: 'user-1',
+    },
+  };
+}
 
 describe('WorkflowExecutorService', () => {
   const prisma = {
     workflow: {
       findFirst: vi.fn(),
       update: vi.fn(),
+    },
+    workflowVersion: {
+      findFirst: vi.fn(),
     },
     workflowNodeClaim: {
       create: vi.fn(),
@@ -106,12 +149,13 @@ describe('WorkflowExecutorService', () => {
 
     prisma.workflow.findFirst.mockResolvedValue({
       config: {},
-      edges: executableWorkflow.edges,
+      currentVersion: currentVersion({
+        edges: executableWorkflow.edges,
+        nodes: [],
+      }),
       id: 'workflow-1',
-      inputVariables: [],
       label: 'Multi-node workflow',
       metadata: {},
-      nodes: [],
       organizationId: 'org-1',
       userId: 'user-1',
     });
@@ -221,6 +265,7 @@ describe('WorkflowExecutorService', () => {
       expect.objectContaining({
         inputValues: { topic: 'launch' },
         workflowId: 'workflow-1',
+        workflowVersionId: WORKFLOW_VERSION_ID,
       }),
     );
     expect(executionsService.startExecution).toHaveBeenCalledWith(
@@ -242,6 +287,12 @@ describe('WorkflowExecutorService', () => {
         taskId: 'execution-1',
       }),
     );
+
+    await service.executeManualWorkflow('workflow-1', 'user-1', 'org-1', {
+      topic: 'second run',
+    });
+
+    expect(engineAdapter.executeWorkflow).toHaveBeenCalledTimes(4);
   });
 
   it('executes a 1-node prompt through the live Run path and records a node result', async () => {
@@ -263,7 +314,15 @@ describe('WorkflowExecutorService', () => {
       userId: 'user-1',
     };
 
-    prisma.workflow.findFirst.mockResolvedValue(workflowDoc);
+    prisma.workflow.findFirst.mockResolvedValue({
+      config: workflowDoc.config,
+      currentVersion: currentVersion(workflowDoc),
+      id: workflowDoc.id,
+      label: workflowDoc.label,
+      metadata: workflowDoc.metadata,
+      organizationId: workflowDoc.organizationId,
+      userId: workflowDoc.userId,
+    });
     prisma.workflow.update.mockResolvedValue({ id: 'workflow-prompt' });
     engineAdapter.convertToExecutableWorkflow.mockImplementation((doc) =>
       converter.convertToExecutableWorkflow(doc),
@@ -370,17 +429,19 @@ describe('WorkflowExecutorService', () => {
       ],
     };
 
-    prisma.workflow.findFirst.mockResolvedValue({
-      config: {},
-      edges: [],
-      id: 'workflow-1',
-      inputVariables: [],
-      label: 'Delayed workflow',
-      metadata: {},
-      nodes: [],
-      organizationId: 'org-1',
-      userId: 'user-1',
+    executionsService.findOne.mockResolvedValue({
+      id: 'exec-1',
+      workflowId: 'workflow-1',
+      workflowVersionId: WORKFLOW_VERSION_ID,
     });
+    prisma.workflowVersion.findFirst.mockResolvedValue(
+      pinnedVersion({
+        edges: [],
+        id: 'workflow-1',
+        label: 'Delayed workflow',
+        nodes: [],
+      }),
+    );
     engineAdapter.convertToExecutableWorkflow.mockReturnValue(
       executableWorkflow,
     );
@@ -446,16 +507,22 @@ describe('WorkflowExecutorService', () => {
       workflowId: 'workflow-1',
     });
 
-    expect(prisma.workflow.findFirst).toHaveBeenCalledWith({
-      select: EXECUTABLE_WORKFLOW_SELECT,
+    expect(prisma.workflowVersion.findFirst).toHaveBeenCalledWith({
+      select: expect.objectContaining({
+        graph: true,
+        id: true,
+      }),
       where: {
-        id: 'workflow-1',
-        isDeleted: false,
+        id: WORKFLOW_VERSION_ID,
         organizationId: 'org-1',
+        workflowId: 'workflow-1',
       },
     });
     expect(executionsService.getRuntimeState).toHaveBeenCalledWith('exec-1');
-    expect(executionsService.findOne).not.toHaveBeenCalled();
+    expect(executionsService.findOne).toHaveBeenCalledWith({
+      id: 'exec-1',
+      organizationId: 'org-1',
+    });
     expect(executionsService.updateExecutionProgress).toHaveBeenCalledWith(
       'exec-1',
       expect.objectContaining({
@@ -535,11 +602,18 @@ describe('WorkflowExecutorService', () => {
       undefined,
       scopeService as never,
     );
-    prisma.workflow.findFirst.mockResolvedValue({
-      brandId: 'brand-1',
-      id: 'workflow-1',
-      organizationId: 'org-1',
+    executionsService.findOne.mockResolvedValue({
+      id: 'exec-1',
+      workflowId: 'workflow-1',
+      workflowVersionId: WORKFLOW_VERSION_ID,
     });
+    prisma.workflowVersion.findFirst.mockResolvedValue(
+      pinnedVersion({
+        brandId: 'brand-1',
+        id: 'workflow-1',
+        label: 'Agent workflow',
+      }),
+    );
     executionsService.getRuntimeState.mockResolvedValue({
       metadata: {
         agentScope: {
@@ -605,7 +679,7 @@ describe('WorkflowExecutorService', () => {
         id: 'missing-exec',
         organizationId: 'org-1',
       });
-      expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
+      expect(prisma.workflowVersion.findFirst).not.toHaveBeenCalled();
     });
 
     it('no-ops when the prior execution already completed', async () => {
@@ -629,7 +703,7 @@ describe('WorkflowExecutorService', () => {
           workflowId: 'workflow-1',
         }),
       );
-      expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
+      expect(prisma.workflowVersion.findFirst).not.toHaveBeenCalled();
       expect(executionsService.createExecution).not.toHaveBeenCalled();
     });
 
@@ -654,7 +728,7 @@ describe('WorkflowExecutorService', () => {
           workflowId: 'workflow-1',
         }),
       );
-      expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
+      expect(prisma.workflowVersion.findFirst).not.toHaveBeenCalled();
       expect(executionsService.startExecution).not.toHaveBeenCalled();
       expect(executionsService.createExecution).not.toHaveBeenCalled();
     });
@@ -681,18 +755,14 @@ describe('WorkflowExecutorService', () => {
         id: 'exec-pending',
         status: WorkflowExecutionStatus.PENDING,
         workflowId: 'workflow-1',
+        workflowVersionId: WORKFLOW_VERSION_ID,
       });
-      prisma.workflow.findFirst.mockResolvedValue({
-        config: {},
-        edges: [],
-        id: 'workflow-1',
-        inputVariables: [],
-        label: 'Pending resume',
-        metadata: {},
-        nodes: [],
-        organizationId: 'org-1',
-        userId: 'user-1',
-      });
+      prisma.workflowVersion.findFirst.mockResolvedValue(
+        pinnedVersion({
+          id: 'workflow-1',
+          label: 'Pending resume',
+        }),
+      );
       engineAdapter.convertToExecutableWorkflow.mockReturnValue(
         executableWorkflow,
       );
@@ -731,11 +801,12 @@ describe('WorkflowExecutorService', () => {
         'exec-pending',
       );
       expect(result.executionId).toBe('exec-pending');
-      expect(prisma.workflow.findFirst).toHaveBeenCalledWith(
+      expect(prisma.workflowVersion.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            id: 'workflow-1',
+            id: WORKFLOW_VERSION_ID,
             organizationId: 'org-1',
+            workflowId: 'workflow-1',
           }),
         }),
       );
@@ -763,18 +834,14 @@ describe('WorkflowExecutorService', () => {
         id: 'exec-1',
         status: WorkflowExecutionStatus.FAILED,
         workflowId: 'workflow-1',
+        workflowVersionId: WORKFLOW_VERSION_ID,
       });
-      prisma.workflow.findFirst.mockResolvedValue({
-        config: {},
-        edges: [],
-        id: 'workflow-1',
-        inputVariables: [],
-        label: 'Retry workflow',
-        metadata: {},
-        nodes: [],
-        organizationId: 'org-1',
-        userId: 'user-1',
-      });
+      prisma.workflowVersion.findFirst.mockResolvedValue(
+        pinnedVersion({
+          id: 'workflow-1',
+          label: 'Retry workflow',
+        }),
+      );
       engineAdapter.convertToExecutableWorkflow.mockReturnValue(
         executableWorkflow,
       );

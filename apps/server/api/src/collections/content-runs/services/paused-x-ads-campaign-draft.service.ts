@@ -1,3 +1,8 @@
+import {
+  BRAND_REMIX_DOWNSTREAM_ACTION_IDS,
+  BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS,
+  buildBrandRemixXPausedDraftWorkflowDefinition,
+} from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
 import type {
   BrandRemixExecution,
   BrandRemixRunConfig,
@@ -14,7 +19,6 @@ import {
 } from '@nestjs/common';
 import { AdCreativeMappingsService } from '@server/collections/ad-creative-mappings/services/ad-creative-mappings.service';
 import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
   type SystemWorkflowProvenance,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
@@ -29,7 +33,6 @@ export interface PausedXAdsCampaignDraftInput {
   credentialId: string;
   organizationId: string;
   runId: string;
-  /** Id of an existing tweet to promote — X's Ads API has no capability to create new creative. */
   sourceTweetId: string;
   userId: string;
   variant: BrandRemixExecution['variants'][number];
@@ -52,13 +55,22 @@ export interface PausedXAdsCampaignDraftResult {
   workflowId: string;
 }
 
-/**
- * X's Ads API promotes existing tweets — it has no endpoint to create a
- * tweet or upload media as ad creative (unlike Meta, which builds the ad
- * from an uploaded image/video). Callers must supply `sourceTweetId`, the
- * id of an already-published tweet, as the promoted-tweet input. This is a
- * platform-intrinsic constraint of the X Ads API, not a Genfeed shortcut.
- */
+type XDraftState = {
+  adAccountId?: string;
+  campaignId?: string;
+  campaignName: string;
+  fundingInstrumentId?: string;
+  ingredientId: string;
+  input: PausedXAdsCampaignDraftInput;
+  lineItemId?: string;
+  lineItemName: string;
+  postId: string;
+  promotedTweetId?: string;
+  replayed: boolean;
+  result?: PausedXAdsCampaignDraftResult;
+  workflowLabel?: string;
+};
+
 @Injectable()
 export class PausedXAdsCampaignDraftService implements OnModuleInit {
   constructor(
@@ -69,13 +81,47 @@ export class PausedXAdsCampaignDraftService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
+    const actions = BRAND_REMIX_DOWNSTREAM_ACTION_IDS;
     this.systemWorkflowRunner.registerAction(
-      SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_PAUSED_X_ADS_DRAFT,
+      actions.X_VALIDATE_SOURCE,
+      ({ input }) =>
+        this.validateSource(input.request as PausedXAdsCampaignDraftInput),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.X_RESOLVE_ACCOUNT,
+      ({ input }) => this.resolveAccount(input.state as XDraftState),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.X_RESOLVE_FUNDING,
+      ({ input }) => this.resolveFunding(input.state as XDraftState),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.X_VALIDATE_TWEET,
+      ({ input }) => this.validateTweet(input.state as XDraftState),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.X_ENSURE_CAMPAIGN,
+      ({ input }) => this.ensureCampaign(input.state as XDraftState),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.X_ENSURE_LINE_ITEM,
+      ({ input }) => this.ensureLineItem(input.state as XDraftState),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.X_ENSURE_PROMOTED_TWEET,
+      ({ input }) => this.ensurePromotedTweet(input.state as XDraftState),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.X_PERSIST_MAPPING,
       ({ input, provenance }) =>
-        this.prepareAction(
-          input as unknown as PausedXAdsCampaignDraftInput,
-          provenance,
-        ),
+        this.persistMapping(input.state as XDraftState, provenance),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.X_PERSIST_LINEAGE,
+      ({ input }) => this.persistLineage(input.state as XDraftState),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildBrandRemixXPausedDraftWorkflowDefinition(),
     );
   }
 
@@ -83,70 +129,22 @@ export class PausedXAdsCampaignDraftService implements OnModuleInit {
     input: PausedXAdsCampaignDraftInput,
   ): Promise<PausedXAdsCampaignDraftResult> {
     const { result } =
-      await this.systemWorkflowRunner.runAction<PausedXAdsCampaignDraftResult>({
-        actionType: 'prepare-paused-x-ads-draft',
-        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_PAUSED_X_ADS_DRAFT,
-        inputValues: input as unknown as Record<string, unknown>,
-        organizationId: input.organizationId,
-        source: 'brand-remix-run',
-        userId: input.userId,
-      });
+      await this.systemWorkflowRunner.runWorkflow<PausedXAdsCampaignDraftResult>(
+        {
+          actionType: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.X_PAUSED_DRAFT,
+          canonicalId: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.X_PAUSED_DRAFT,
+          inputValues: { request: input },
+          organizationId: input.organizationId,
+          source: 'brand-remix-run',
+          userId: input.userId,
+        },
+      );
     return result;
   }
 
-  private async prepareAction(
+  private async validateSource(
     input: PausedXAdsCampaignDraftInput,
-    provenance: SystemWorkflowProvenance,
-  ): Promise<PausedXAdsCampaignDraftResult> {
-    const credential = await this.prisma.credential.findFirst({
-      select: {
-        accessToken: true,
-        accessTokenSecret: true,
-        id: true,
-      },
-      where: {
-        brandId: input.brandId,
-        id: input.credentialId,
-        isConnected: true,
-        isDeleted: false,
-        organizationId: input.organizationId,
-        platform: PrismaCredentialPlatform.X_ADS,
-      },
-    });
-    if (!credential?.accessToken || !credential.accessTokenSecret) {
-      throw new BadRequestException(
-        'The selected X Ads credential is unavailable.',
-      );
-    }
-    const oauthCredentials: XAdsRequestCredentials = {
-      accessToken: EncryptionUtil.decrypt(credential.accessToken),
-      accessTokenSecret: EncryptionUtil.decrypt(credential.accessTokenSecret),
-    };
-    const accounts = await this.xAdsService.getAdAccounts(oauthCredentials);
-    const selectedAccount = accounts.find(
-      (account) => account.id === input.adAccountId,
-    );
-    if (!selectedAccount) {
-      throw new BadRequestException(
-        'The selected X Ads account is unavailable for this credential.',
-      );
-    }
-    const resolvedAdAccountId = selectedAccount.id;
-
-    const fundingInstruments = await this.xAdsService.getFundingInstruments(
-      oauthCredentials,
-      resolvedAdAccountId,
-    );
-    const fundingInstrument =
-      fundingInstruments.find(
-        (instrument) => instrument.entityStatus === 'ACTIVE',
-      ) ?? fundingInstruments[0];
-    if (!fundingInstrument) {
-      throw new BadRequestException(
-        'The selected X Ads account has no available funding instrument.',
-      );
-    }
-
+  ): Promise<XDraftState> {
     const post = await this.prisma.post.findFirst({
       select: { externalId: true, id: true, platform: true },
       where: scopedWhere(input.organizationId, {
@@ -190,126 +188,232 @@ export class PausedXAdsCampaignDraftService implements OnModuleInit {
     ) {
       throw new ConflictException('The approved media output is not ready.');
     }
+    const suffix = `${input.runId}-${input.config.revision}-${input.variant.id}`;
+    const campaignName = `Genfeed Remix ${suffix}`;
+    return {
+      campaignName,
+      ingredientId,
+      input,
+      lineItemName: `${campaignName} Line Item`,
+      postId: post.id,
+      replayed: false,
+    };
+  }
 
-    const publishedTweets = await this.xAdsService.listPublishedTweets(
-      oauthCredentials,
-      resolvedAdAccountId,
-      [input.sourceTweetId],
+  private async resolveAccount(state: XDraftState): Promise<XDraftState> {
+    const credentials = await this.loadCredentials(state.input);
+    const accounts = await this.xAdsService.getAdAccounts(credentials);
+    const selected = accounts.find(
+      (account) => account.id === state.input.adAccountId,
     );
-    if (!publishedTweets.some((tweet) => tweet.id === input.sourceTweetId)) {
+    if (!selected) {
+      throw new BadRequestException(
+        'The selected X Ads account is unavailable for this credential.',
+      );
+    }
+    return { ...state, adAccountId: selected.id };
+  }
+
+  private async resolveFunding(state: XDraftState): Promise<XDraftState> {
+    const instruments = await this.xAdsService.getFundingInstruments(
+      await this.loadCredentials(state.input),
+      this.required(state.adAccountId, 'X Ads account'),
+    );
+    const selected =
+      instruments.find((instrument) => instrument.entityStatus === 'ACTIVE') ??
+      instruments[0];
+    if (!selected) {
+      throw new BadRequestException(
+        'The selected X Ads account has no available funding instrument.',
+      );
+    }
+    return { ...state, fundingInstrumentId: selected.id };
+  }
+
+  private async validateTweet(state: XDraftState): Promise<XDraftState> {
+    const tweets = await this.xAdsService.listPublishedTweets(
+      await this.loadCredentials(state.input),
+      this.required(state.adAccountId, 'X Ads account'),
+      [state.input.sourceTweetId],
+    );
+    if (!tweets.some((tweet) => tweet.id === state.input.sourceTweetId)) {
       throw new BadRequestException(
         'The published Tweet is unavailable to the selected X Ads account promotable user.',
       );
     }
+    return state;
+  }
 
-    const suffix = `${input.runId}-${input.config.revision}-${input.variant.id}`;
-    const campaignName = `Genfeed Remix ${suffix}`;
-    const lineItemName = `${campaignName} Line Item`;
+  private async ensureCampaign(state: XDraftState): Promise<XDraftState> {
+    const credentials = await this.loadCredentials(state.input);
+    const adAccountId = this.required(state.adAccountId, 'X Ads account');
     const campaigns = await this.xAdsService.listCampaigns(
-      oauthCredentials,
-      resolvedAdAccountId,
+      credentials,
+      adAccountId,
     );
-    const existingCampaign = campaigns.find(
-      (campaign) => campaign.name === campaignName,
+    const existing = campaigns.find(
+      (campaign) => campaign.name === state.campaignName,
     );
-    let replayed = Boolean(existingCampaign);
     const campaign =
-      existingCampaign ??
-      (await this.xAdsService.createCampaign(
-        oauthCredentials,
-        resolvedAdAccountId,
-        {
-          entityStatus: 'PAUSED',
-          fundingInstrumentId: fundingInstrument.id,
-          name: campaignName,
-        },
-      ));
-
-    const lineItems = await this.xAdsService.listLineItems(
-      oauthCredentials,
-      resolvedAdAccountId,
-      campaign.id,
-    );
-    const existingLineItem = lineItems.find(
-      (lineItem) => lineItem.name === lineItemName,
-    );
-    replayed ||= Boolean(existingLineItem);
-    const lineItem =
-      existingLineItem ??
-      (await this.xAdsService.createLineItem(
-        oauthCredentials,
-        resolvedAdAccountId,
-        {
-          campaignId: campaign.id,
-          entityStatus: 'PAUSED',
-          name: lineItemName,
-          objective: 'ENGAGEMENTS',
-          placements: ['ALL_ON_TWITTER'],
-          productType: 'PROMOTED_TWEETS',
-        },
-      ));
-
-    const promotedTweets = await this.xAdsService.listPromotedTweets(
-      oauthCredentials,
-      resolvedAdAccountId,
-      lineItem.id,
-    );
-    const existingPromotedTweet = promotedTweets.find(
-      (promotedTweet) => promotedTweet.tweetId === input.sourceTweetId,
-    );
-    replayed ||= Boolean(existingPromotedTweet);
-    const promotedTweet =
-      existingPromotedTweet ??
-      (await this.xAdsService.createPromotedTweet(
-        oauthCredentials,
-        resolvedAdAccountId,
-        {
-          lineItemId: lineItem.id,
-          tweetId: input.sourceTweetId,
-        },
-      ));
-
-    const result: PausedXAdsCampaignDraftResult = {
-      adAccountId: resolvedAdAccountId,
-      adId: promotedTweet.id,
-      adSetId: lineItem.id,
+      existing ??
+      (await this.xAdsService.createCampaign(credentials, adAccountId, {
+        entityStatus: 'PAUSED',
+        fundingInstrumentId: this.required(
+          state.fundingInstrumentId,
+          'X Ads funding instrument',
+        ),
+        name: state.campaignName,
+      }));
+    return {
+      ...state,
       campaignId: campaign.id,
-      credentialId: input.credentialId,
-      ingredientId,
-      postId: post.id,
-      recipeRevision: input.config.revision,
-      recipeVersion: 1,
-      replayed,
-      status: 'PAUSED',
-      variantId: input.variant.id,
-      workflowExecutionId: provenance.executionId,
-      workflowId: provenance.workflowId,
+      replayed: state.replayed || Boolean(existing),
     };
-    const existingMapping =
-      await this.adCreativeMappingsService.findByContentId(
-        ingredientId,
-        input.organizationId,
-      );
-    if (existingMapping.length === 0) {
+  }
+
+  private async ensureLineItem(state: XDraftState): Promise<XDraftState> {
+    const credentials = await this.loadCredentials(state.input);
+    const adAccountId = this.required(state.adAccountId, 'X Ads account');
+    const campaignId = this.required(state.campaignId, 'X Ads campaign');
+    const lineItems = await this.xAdsService.listLineItems(
+      credentials,
+      adAccountId,
+      campaignId,
+    );
+    const existing = lineItems.find(
+      (lineItem) => lineItem.name === state.lineItemName,
+    );
+    const lineItem =
+      existing ??
+      (await this.xAdsService.createLineItem(credentials, adAccountId, {
+        campaignId,
+        entityStatus: 'PAUSED',
+        name: state.lineItemName,
+        objective: 'ENGAGEMENTS',
+        placements: ['ALL_ON_TWITTER'],
+        productType: 'PROMOTED_TWEETS',
+      }));
+    return {
+      ...state,
+      lineItemId: lineItem.id,
+      replayed: state.replayed || Boolean(existing),
+    };
+  }
+
+  private async ensurePromotedTweet(state: XDraftState): Promise<XDraftState> {
+    const credentials = await this.loadCredentials(state.input);
+    const adAccountId = this.required(state.adAccountId, 'X Ads account');
+    const lineItemId = this.required(state.lineItemId, 'X Ads line item');
+    const promotedTweets = await this.xAdsService.listPromotedTweets(
+      credentials,
+      adAccountId,
+      lineItemId,
+    );
+    const existing = promotedTweets.find(
+      (promotedTweet) => promotedTweet.tweetId === state.input.sourceTweetId,
+    );
+    const promotedTweet =
+      existing ??
+      (await this.xAdsService.createPromotedTweet(credentials, adAccountId, {
+        lineItemId,
+        tweetId: state.input.sourceTweetId,
+      }));
+    return {
+      ...state,
+      promotedTweetId: promotedTweet.id,
+      replayed: state.replayed || Boolean(existing),
+    };
+  }
+
+  private async persistMapping(
+    state: XDraftState,
+    provenance: SystemWorkflowProvenance,
+  ): Promise<XDraftState> {
+    const result = this.toResult(state, provenance);
+    const existing = await this.adCreativeMappingsService.findByContentId(
+      state.ingredientId,
+      state.input.organizationId,
+    );
+    if (existing.length === 0) {
       await this.adCreativeMappingsService.create({
-        adAccountId: resolvedAdAccountId,
-        brandId: input.brandId,
+        adAccountId: result.adAccountId,
+        brandId: state.input.brandId,
         externalAdId: result.adId,
-        genfeedContentId: ingredientId,
+        genfeedContentId: state.ingredientId,
         metadata: { ...result },
-        organizationId: input.organizationId,
+        organizationId: state.input.organizationId,
         platform: 'x',
         status: 'paused',
       });
     }
+    return { ...state, result, workflowLabel: provenance.workflowLabel };
+  }
+
+  private async persistLineage(
+    state: XDraftState,
+  ): Promise<PausedXAdsCampaignDraftResult> {
+    const result = state.result;
+    if (!result) throw new Error('X Ads draft result is missing');
     await this.prisma.post.updateMany({
       data: {
-        sourceWorkflowId: provenance.workflowId,
-        sourceWorkflowName: provenance.workflowLabel,
-        workflowExecutionId: provenance.executionId,
+        sourceWorkflowId: result.workflowId,
+        sourceWorkflowName: state.workflowLabel,
+        workflowExecutionId: result.workflowExecutionId,
       },
-      where: scopedWhere(input.organizationId, { id: post.id }),
+      where: scopedWhere(state.input.organizationId, { id: state.postId }),
     });
     return result;
+  }
+
+  private toResult(
+    state: XDraftState,
+    provenance: SystemWorkflowProvenance,
+  ): PausedXAdsCampaignDraftResult {
+    return {
+      adAccountId: this.required(state.adAccountId, 'X Ads account'),
+      adId: this.required(state.promotedTweetId, 'X Ads promoted Tweet'),
+      adSetId: this.required(state.lineItemId, 'X Ads line item'),
+      campaignId: this.required(state.campaignId, 'X Ads campaign'),
+      credentialId: state.input.credentialId,
+      ingredientId: state.ingredientId,
+      postId: state.postId,
+      recipeRevision: state.input.config.revision,
+      recipeVersion: 1,
+      replayed: state.replayed,
+      status: 'PAUSED',
+      variantId: state.input.variant.id,
+      workflowExecutionId: provenance.executionId,
+      workflowId: provenance.workflowId,
+    };
+  }
+
+  private async loadCredentials(
+    input: PausedXAdsCampaignDraftInput,
+  ): Promise<XAdsRequestCredentials> {
+    const credential = await this.prisma.credential.findFirst({
+      select: { accessToken: true, accessTokenSecret: true, id: true },
+      where: {
+        brandId: input.brandId,
+        id: input.credentialId,
+        isConnected: true,
+        isDeleted: false,
+        organizationId: input.organizationId,
+        platform: PrismaCredentialPlatform.X_ADS,
+      },
+    });
+    if (!credential?.accessToken || !credential.accessTokenSecret) {
+      throw new BadRequestException(
+        'The selected X Ads credential is unavailable.',
+      );
+    }
+    return {
+      accessToken: EncryptionUtil.decrypt(credential.accessToken),
+      accessTokenSecret: EncryptionUtil.decrypt(credential.accessTokenSecret),
+    };
+  }
+
+  private required(value: string | undefined, label: string): string {
+    if (!value) throw new Error(`${label} is missing`);
+    return value;
   }
 }

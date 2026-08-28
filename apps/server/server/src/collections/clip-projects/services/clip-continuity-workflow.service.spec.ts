@@ -47,13 +47,14 @@ function createHarness() {
       },
     ]),
   };
-  const queue = { queueSystemWorkflowDefinition: vi.fn() };
+  const queue = { queueSystemWorkflow: vi.fn() };
   const runner = {
     registerAction: vi.fn(
       (actionId: string, executor: SystemWorkflowActionExecutor) => {
         actions.set(actionId, executor);
       },
     ),
+    registerWorkflow: vi.fn(),
   };
   const service = new ClipContinuityWorkflowService(
     { log: vi.fn() } as unknown as LoggerService,
@@ -83,20 +84,22 @@ describe('ClipContinuityWorkflowService', () => {
     expect(prisma.clipProject.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: { continuityQaStatus: 'queued' } }),
     );
-    expect(queue.queueSystemWorkflowDefinition).toHaveBeenCalledWith(
-      expect.objectContaining({ canonicalId: 'clip-continuity:v1:1' }),
+    expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
+        canonicalId: 'clip.continuity',
         inputValues: expect.objectContaining({
           clipDescriptors: [
             expect.objectContaining({ id: 'clip-1', qaIndex: 0 }),
           ],
-          video0: 'https://cdn.test/clip.mp4',
+          items: ['https://cdn.test/clip.mp4'],
         }),
       }),
       'clip-continuity-project-1-generation-execution-1',
       {
-        actionId: 'clip.continuity.fail',
-        inputValues: { projectId: 'project-1' },
+        failureWorkflow: {
+          canonicalId: 'clip.continuity.failure',
+          inputValues: { projectId: 'project-1' },
+        },
       },
     );
   });
@@ -106,7 +109,7 @@ describe('ClipContinuityWorkflowService', () => {
     prisma.clipProject.updateMany.mockResolvedValueOnce({ count: 0 });
 
     await expect(service.queueIfReady(project)).resolves.toBe(false);
-    expect(queue.queueSystemWorkflowDefinition).not.toHaveBeenCalled();
+    expect(queue.queueSystemWorkflow).not.toHaveBeenCalled();
   });
 
   it('persists the aggregate report only inside its final action node', async () => {
@@ -135,30 +138,38 @@ describe('ClipContinuityWorkflowService', () => {
           ],
           generationWorkflowExecutionId: 'generation-execution-1',
           projectId: 'project-1',
-          qa0: {
-            clips: [
+          qaBatch: {
+            count: 1,
+            results: [
               {
-                character: dimension,
-                clipId: 'workflow-video',
-                clipIndex: 0,
-                errors: [],
-                evidenceFrames: [],
-                outfit: dimension,
-                product: dimension,
+                index: 0,
+                result: {
+                  clips: [
+                    {
+                      character: dimension,
+                      clipId: 'workflow-video',
+                      clipIndex: 0,
+                      errors: [],
+                      evidenceFrames: [],
+                      outfit: dimension,
+                      product: dimension,
+                    },
+                  ],
+                  completedAt: '2026-08-28T00:00:00.000Z',
+                  projectId: 'workflow-1',
+                  referenceAssetIds: { character: [], product: [] },
+                  runId: 'run-1',
+                  schemaVersion: 1,
+                  status: 'completed',
+                  summary: {
+                    assessedClipCount: 1,
+                    driftClipCount: 0,
+                    errorClipCount: 0,
+                    totalClipCount: 1,
+                  },
+                },
               },
             ],
-            completedAt: '2026-08-28T00:00:00.000Z',
-            projectId: 'workflow-1',
-            referenceAssetIds: { character: [], product: [] },
-            runId: 'run-1',
-            schemaVersion: 1,
-            status: 'completed',
-            summary: {
-              assessedClipCount: 1,
-              driftClipCount: 0,
-              errorClipCount: 0,
-              totalClipCount: 1,
-            },
           },
           referenceAssetIds: { character: ['asset-1'], product: [] },
         },

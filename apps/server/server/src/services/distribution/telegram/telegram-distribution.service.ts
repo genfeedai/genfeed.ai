@@ -18,7 +18,7 @@ import { WorkflowExecutionQueueService } from '@server/collections/workflows/ser
 import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import {
   buildTelegramDistributionWorkflowDefinition,
-  TELEGRAM_DISTRIBUTION_ACTION_ID,
+  TELEGRAM_DISTRIBUTION_ACTION_IDS,
 } from '@server/services/distribution/telegram/telegram-distribution-workflow-definition';
 import { firstValueFrom } from 'rxjs';
 
@@ -50,6 +50,19 @@ interface ProcessScheduledOptions {
   platform: DistributionPlatform;
 }
 
+interface TelegramDeliveryContext {
+  brandId?: string;
+  caption?: string;
+  chatId: string;
+  contentType: DistributionContentType;
+  credentialId?: string;
+  distributionId: string;
+  mediaUrl?: string;
+  organizationId: string;
+  skipped?: boolean;
+  text?: string;
+}
+
 @Injectable()
 export class TelegramDistributionService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
@@ -66,13 +79,28 @@ export class TelegramDistributionService implements OnModuleInit {
 
   onModuleInit(): void {
     this.workflowRunner.registerAction(
-      TELEGRAM_DISTRIBUTION_ACTION_ID,
-      async ({ input }) => {
-        await this.processScheduled(
-          input.request as TelegramDistributionWorkflowInput,
-        );
-        return { delivered: true };
-      },
+      TELEGRAM_DISTRIBUTION_ACTION_IDS.CLAIM,
+      ({ input }) =>
+        this.claimScheduled(input.request as TelegramDistributionWorkflowInput),
+    );
+    this.workflowRunner.registerAction(
+      TELEGRAM_DISTRIBUTION_ACTION_IDS.RESOLVE_CREDENTIAL,
+      ({ input }) =>
+        this.resolveScheduledCredential(
+          input.delivery as TelegramDeliveryContext,
+        ),
+    );
+    this.workflowRunner.registerAction(
+      TELEGRAM_DISTRIBUTION_ACTION_IDS.SEND,
+      ({ input }) =>
+        this.sendScheduled(
+          input.delivery as TelegramDeliveryContext,
+          input.credential as { ready?: boolean },
+        ),
+    );
+    this.workflowRunner.registerAction(
+      TELEGRAM_DISTRIBUTION_ACTION_IDS.FINALIZE,
+      ({ input }) => this.finalizeScheduled(input),
     );
     this.workflowRunner.registerWorkflow(
       buildTelegramDistributionWorkflowDefinition(),
@@ -185,8 +213,7 @@ export class TelegramDistributionService implements OnModuleInit {
     };
 
     const definition = buildTelegramDistributionWorkflowDefinition();
-    await this.workflowQueue.queueSystemWorkflowDefinition(
-      definition,
+    await this.workflowQueue.queueSystemWorkflow(
       {
         actionType: definition.canonicalId,
         canonicalId: definition.canonicalId,
@@ -202,7 +229,9 @@ export class TelegramDistributionService implements OnModuleInit {
     return { distributionId };
   }
 
-  async processScheduled(options: ProcessScheduledOptions): Promise<void> {
+  private async claimScheduled(
+    options: ProcessScheduledOptions,
+  ): Promise<TelegramDeliveryContext> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const { distributionId, organizationId, platform } = options;
 
@@ -220,68 +249,102 @@ export class TelegramDistributionService implements OnModuleInit {
           distributionId,
         },
       );
-      return;
-    }
-
-    try {
-      const organizationId = distribution.organizationId;
-      const brandId = distribution.brandId ?? undefined;
-      // Which account was chosen when the send was scheduled — a brand may
-      // hold several Telegram bots, and the schedule picked one of them.
-      const credentialId = distribution.credentialId;
-      const chatId = distribution.chatId;
-      const contentType = distribution.contentType;
-
-      if (!organizationId || !chatId || !contentType) {
-        throw new Error(
-          'Scheduled Telegram distribution is missing required delivery config',
-        );
-      }
-
-      await this.distributionsService.patch(distribution.id, {
-        status: PublishStatus.PUBLISHING,
-      });
-
-      const botToken = await this.resolveBotToken(
-        organizationId,
-        brandId,
-        credentialId,
-      );
-
-      const result = await this.sendToTelegram(
-        botToken,
-        chatId,
-        contentType as DistributionContentType,
-        distribution.text,
-        distribution.mediaUrl,
-        distribution.caption,
-      );
-
-      const telegramMessageId = result.result?.message_id?.toString();
-
-      await this.distributionsService.markAsPublished(
-        distribution.id.toString(),
-        telegramMessageId,
-      );
-
-      this.loggerService.log(`${url} processed scheduled distribution`, {
+      return {
+        chatId: '',
+        contentType: DistributionContentType.TEXT,
         distributionId,
-      });
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-
-      await this.distributionsService.markAsFailed(
-        distribution.id.toString(),
-        errorMessage,
-      );
-
-      this.loggerService.error(
-        `${url} failed to process scheduled distribution`,
-        error,
-      );
-      throw error;
+        organizationId,
+        skipped: true,
+      };
     }
+
+    const deliveryOrganizationId = distribution.organizationId;
+    const brandId = distribution.brandId ?? undefined;
+    // Which account was chosen when the send was scheduled — a brand may
+    // hold several Telegram bots, and the schedule picked one of them.
+    const credentialId = distribution.credentialId;
+    const chatId = distribution.chatId;
+    const contentType = distribution.contentType;
+
+    if (!deliveryOrganizationId || !chatId || !contentType) {
+      throw new Error(
+        'Scheduled Telegram distribution is missing required delivery config',
+      );
+    }
+
+    await this.distributionsService.patch(distribution.id, {
+      status: PublishStatus.PUBLISHING,
+    });
+
+    return {
+      brandId,
+      caption: distribution.caption ?? undefined,
+      chatId,
+      contentType: contentType as DistributionContentType,
+      credentialId: credentialId ?? undefined,
+      distributionId: distribution.id.toString(),
+      mediaUrl: distribution.mediaUrl ?? undefined,
+      organizationId: deliveryOrganizationId,
+      text: distribution.text ?? undefined,
+    };
+  }
+
+  private async resolveScheduledCredential(
+    delivery: TelegramDeliveryContext,
+  ): Promise<{ ready?: boolean }> {
+    if (delivery.skipped) return {};
+    await this.resolveBotToken(
+      delivery.organizationId,
+      delivery.brandId,
+      delivery.credentialId,
+    );
+    return { ready: true };
+  }
+
+  private async sendScheduled(
+    delivery: TelegramDeliveryContext,
+    credential: { ready?: boolean },
+  ): Promise<{ skipped?: boolean; telegramMessageId?: string }> {
+    if (delivery.skipped) return { skipped: true };
+    if (!credential.ready) throw new Error('Telegram credential is missing');
+    const botToken = await this.resolveBotToken(
+      delivery.organizationId,
+      delivery.brandId,
+      delivery.credentialId,
+    );
+    const result = await this.sendToTelegram(
+      botToken,
+      delivery.chatId,
+      delivery.contentType,
+      delivery.text,
+      delivery.mediaUrl,
+      delivery.caption,
+    );
+    return { telegramMessageId: result.result?.message_id?.toString() };
+  }
+
+  private async finalizeScheduled(
+    input: Record<string, unknown>,
+  ): Promise<{ delivered: boolean }> {
+    const delivery = input.delivery as TelegramDeliveryContext | undefined;
+    if (!delivery || delivery.skipped) return { delivered: false };
+    const failure = input.failure as { error?: string } | undefined;
+    if (failure) {
+      await this.distributionsService.markAsFailed(
+        delivery.distributionId,
+        failure.error ?? 'Unknown error',
+      );
+      return { delivered: false };
+    }
+    const result = input.result as { telegramMessageId?: string } | undefined;
+    await this.distributionsService.markAsPublished(
+      delivery.distributionId,
+      result?.telegramMessageId,
+    );
+    this.loggerService.log('Processed scheduled Telegram distribution', {
+      distributionId: delivery.distributionId,
+    });
+    return { delivered: true };
   }
 
   private async resolveBotToken(

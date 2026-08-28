@@ -102,6 +102,33 @@ describe('RssSourcesService', () => {
 
   let service: RssSourcesService;
 
+  async function executeWorkflow() {
+    const request = { ...context, sourceId: 'rss-1' };
+    try {
+      const discovered = await service.fetchWorkflowItems(request);
+      const results = [];
+      for (const item of discovered.items) {
+        const claim = await service.claimWorkflowItem(item);
+        if (!claim.shouldImport) {
+          results.push({
+            result: await service.finalizeWorkflowItem(item, claim),
+          });
+          continue;
+        }
+        const release = await service.createWorkflowRelease(claim);
+        if (release.shouldPublish) {
+          await service.publishWorkflowRelease(release);
+        }
+        results.push({
+          result: await service.finalizeWorkflowItem(item, release),
+        });
+      }
+      return service.finalizeWorkflowSource(request, { results });
+    } catch (error: unknown) {
+      return service.finalizeWorkflowSource(request, undefined, error);
+    }
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     rssSource.create.mockImplementation(async ({ data }) =>
@@ -200,7 +227,7 @@ describe('RssSourcesService', () => {
   });
 
   it('imports a new feed item as a draft when approval is required', async () => {
-    await service.pollSource('rss-1', context);
+    await executeWorkflow();
 
     expect(postGroupsService.create).toHaveBeenCalledWith(
       'org-1',
@@ -232,7 +259,7 @@ describe('RssSourcesService', () => {
       status: RssFeedItemStatus.IMPORTED,
     });
 
-    await service.pollSource('rss-1', context);
+    await executeWorkflow();
 
     expect(postGroupsService.create).not.toHaveBeenCalled();
     expect(rssSource.update).toHaveBeenCalledWith(
@@ -252,7 +279,7 @@ describe('RssSourcesService', () => {
       }),
     );
 
-    await service.pollSource('rss-1', context);
+    await executeWorkflow();
 
     expect(postGroupsService.create).toHaveBeenCalledWith(
       'org-1',
@@ -274,7 +301,7 @@ describe('RssSourcesService', () => {
       }),
     );
 
-    await service.pollSource('rss-1', context);
+    await executeWorkflow();
 
     expect(postGroupsService.publishNow).toHaveBeenCalledWith(
       'org-1',
@@ -293,7 +320,7 @@ describe('RssSourcesService', () => {
       }),
     );
 
-    const result = await service.pollSource('rss-1', context);
+    const result = await executeWorkflow();
 
     expect(result.lastError).toContain('502');
     expect(postGroupsService.create).not.toHaveBeenCalled();

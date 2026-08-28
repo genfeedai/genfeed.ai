@@ -101,24 +101,23 @@ export class TwitterPipelineService implements OnModuleInit {
 
     try {
       const definition = buildTwitterSearchWorkflowDefinition();
-      const { result: results } =
-        await this.systemWorkflowRunner.runWorkflowDefinition<
-          ITwitterSearchResult[]
-        >(definition, {
-          actionType: definition.canonicalId,
-          canonicalId: definition.canonicalId,
-          inputValues: {
-            request: {
-              brandId,
-              maxResults: options.maxResults ?? 10,
-              organizationId: orgId,
-              query,
-            },
+      const { result: results } = await this.systemWorkflowRunner.runWorkflow<
+        ITwitterSearchResult[]
+      >({
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: {
+          request: {
+            brandId,
+            maxResults: options.maxResults ?? 10,
+            organizationId: orgId,
+            query,
           },
-          organizationId: orgId,
-          source: 'TwitterPipelineService.search',
-          trigger: WorkflowExecutionTrigger.API,
-        });
+        },
+        organizationId: orgId,
+        source: 'TwitterPipelineService.search',
+        trigger: WorkflowExecutionTrigger.API,
+      });
 
       this.loggerService.log(`${url} returned ${results.length} tweets`, {
         brandId,
@@ -147,9 +146,7 @@ export class TwitterPipelineService implements OnModuleInit {
     try {
       const definition = buildTwitterDraftWorkflowDefinition();
       const { result: opportunities } =
-        await this.systemWorkflowRunner.runWorkflowDefinition<
-          ITwitterOpportunity[]
-        >(definition, {
+        await this.systemWorkflowRunner.runWorkflow<ITwitterOpportunity[]>({
           actionType: definition.canonicalId,
           canonicalId: definition.canonicalId,
           inputValues: {
@@ -189,26 +186,23 @@ export class TwitterPipelineService implements OnModuleInit {
     try {
       const definition = buildTwitterPublishWorkflowDefinition();
       const { result } =
-        await this.systemWorkflowRunner.runWorkflowDefinition<ITwitterPublishResult>(
-          definition,
-          {
-            actionType: definition.canonicalId,
-            canonicalId: definition.canonicalId,
-            inputValues: {
-              request: {
-                brandId,
-                credentialId: request.credentialId,
-                organizationId: orgId,
-                targetTweetId: request.targetTweetId,
-                text: request.text,
-                type: request.type,
-              },
+        await this.systemWorkflowRunner.runWorkflow<ITwitterPublishResult>({
+          actionType: definition.canonicalId,
+          canonicalId: definition.canonicalId,
+          inputValues: {
+            request: {
+              brandId,
+              credentialId: request.credentialId,
+              organizationId: orgId,
+              targetTweetId: request.targetTweetId,
+              text: request.text,
+              type: request.type,
             },
-            organizationId: orgId,
-            source: 'TwitterPipelineService.publish',
-            trigger: WorkflowExecutionTrigger.API,
           },
-        );
+          organizationId: orgId,
+          source: 'TwitterPipelineService.publish',
+          trigger: WorkflowExecutionTrigger.API,
+        });
 
       return result;
     } catch (error: unknown) {

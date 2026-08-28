@@ -81,52 +81,50 @@ describe('ContentOrchestrationService', () => {
           workflowActionExecutors.set(actionId, executor);
         },
       ),
-      runWorkflowDefinition: vi.fn(
-        async (definition: SystemWorkflowGraphDefinition) => {
-          const outputs = new Map<string, unknown>();
-          for (const node of definition.definition.nodes ?? []) {
-            const actionId = node.data.config.actionId;
-            const executor = workflowActionExecutors.get(actionId);
-            if (!executor) {
-              throw new Error(`Missing test action executor ${actionId}`);
-            }
-            const input = { ...node.data.config.parameters };
-            for (const edge of definition.definition.edges ?? []) {
-              if (edge.target === node.id) {
-                input[edge.targetHandle ?? edge.source] = outputs.get(
-                  edge.source,
-                );
-              }
-            }
-            outputs.set(
-              node.id,
-              await executor({
-                context: {
-                  organizationId: baseConfig.organizationId,
-                  runId: 'run-1',
-                  userId: baseConfig.userId,
-                  workflowId: 'workflow-1',
-                  workflowVersionId: 'workflow-version-1',
-                },
-                input,
-                provenance: {
-                  executionId: 'execution-1',
-                  workflowId: 'workflow-1',
-                  workflowLabel: definition.label,
-                },
-              }),
-            );
+      runWorkflow: vi.fn(async (definition: SystemWorkflowGraphDefinition) => {
+        const outputs = new Map<string, unknown>();
+        for (const node of definition.definition.nodes ?? []) {
+          const actionId = node.data.config.actionId;
+          const executor = workflowActionExecutors.get(actionId);
+          if (!executor) {
+            throw new Error(`Missing test action executor ${actionId}`);
           }
-          return {
-            provenance: {
-              executionId: 'execution-1',
-              workflowId: 'workflow-1',
-              workflowLabel: definition.label,
-            },
-            result: outputs.get(definition.resultNodeId),
-          };
-        },
-      ),
+          const input = { ...node.data.config.parameters };
+          for (const edge of definition.definition.edges ?? []) {
+            if (edge.target === node.id) {
+              input[edge.targetHandle ?? edge.source] = outputs.get(
+                edge.source,
+              );
+            }
+          }
+          outputs.set(
+            node.id,
+            await executor({
+              context: {
+                organizationId: baseConfig.organizationId,
+                runId: 'run-1',
+                userId: baseConfig.userId,
+                workflowId: 'workflow-1',
+                workflowVersionId: 'workflow-version-1',
+              },
+              input,
+              provenance: {
+                executionId: 'execution-1',
+                workflowId: 'workflow-1',
+                workflowLabel: definition.label,
+              },
+            }),
+          );
+        }
+        return {
+          provenance: {
+            executionId: 'execution-1',
+            workflowId: 'workflow-1',
+            workflowLabel: definition.label,
+          },
+          result: outputs.get(definition.resultNodeId),
+        };
+      }),
     };
 
     mockLogger = {

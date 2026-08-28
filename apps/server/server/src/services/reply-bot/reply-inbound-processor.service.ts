@@ -51,8 +51,7 @@ export class ReplyInboundProcessorService implements OnModuleInit {
 
   async enqueue(data: ReplyInboundWorkflowInput): Promise<{ jobId: string }> {
     const definition = buildReplyInboundWorkflowDefinition();
-    const jobId = await this.workflowQueue.queueSystemWorkflowDefinition(
-      definition,
+    const jobId = await this.workflowQueue.queueSystemWorkflow(
       {
         actionType: definition.canonicalId,
         canonicalId: definition.canonicalId,
@@ -73,17 +72,14 @@ export class ReplyInboundProcessorService implements OnModuleInit {
   ): Promise<ReplyInboundWorkflowResult> {
     const definition = buildReplyInboundWorkflowDefinition();
     const { result } =
-      await this.workflowRunner.runWorkflowDefinition<ReplyInboundWorkflowResult>(
-        definition,
-        {
-          actionType: definition.canonicalId,
-          canonicalId: definition.canonicalId,
-          inputValues: { request: data },
-          organizationId: data.organizationId,
-          source: 'ReplyInboundProcessorService.process',
-          trigger: WorkflowExecutionTrigger.SCHEDULED,
-        },
-      );
+      await this.workflowRunner.runWorkflow<ReplyInboundWorkflowResult>({
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request: data },
+        organizationId: data.organizationId,
+        source: 'ReplyInboundProcessorService.process',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+      });
     return result;
   }
 

@@ -8,6 +8,8 @@ import {
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
 import {
+  buildClipFactoryFailureWorkflowDefinition,
+  buildClipFactoryWorkflowDefinition,
   buildClipGenerationChildWorkflowDefinition,
   CLIP_FACTORY_ACTION_IDS,
 } from '@server/collections/clip-projects/services/clip-factory-workflow-definition';
@@ -64,6 +66,8 @@ export class ClipFactoryWorkflowService implements OnModuleInit {
       CLIP_FACTORY_ACTION_IDS.FINALIZE_CHILD,
       (request) => this.finalizeChild(request),
     );
+    this.runner.registerWorkflow(buildClipFactoryWorkflowDefinition());
+    this.runner.registerWorkflow(buildClipFactoryFailureWorkflowDefinition());
     this.runner.registerWorkflow(buildClipGenerationChildWorkflowDefinition());
   }
 

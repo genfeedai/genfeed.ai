@@ -64,4 +64,46 @@ describe('buildWorkflowVersionDefinition', () => {
       }),
     ).toThrow('references unknown Genfeed action missing.action');
   });
+
+  it('rejects cycles before persisting an immutable graph version', () => {
+    expect(() =>
+      buildWorkflowVersionDefinition({
+        edges: [
+          { id: 'a-b', source: 'a', target: 'b' },
+          { id: 'b-a', source: 'b', target: 'a' },
+        ],
+        nodes: [
+          {
+            data: { config: {}, label: 'A' },
+            id: 'a',
+            position: { x: 0, y: 0 },
+            type: 'condition',
+          },
+          {
+            data: { config: {}, label: 'B' },
+            id: 'b',
+            position: { x: 100, y: 0 },
+            type: 'condition',
+          },
+        ],
+      }),
+    ).toThrow('Workflow contains a cycle');
+  });
+
+  it('rejects edges and locked IDs that reference missing nodes', () => {
+    expect(() =>
+      buildWorkflowVersionDefinition({
+        edges: [{ id: 'missing-edge', source: 'condition', target: 'missing' }],
+        lockedNodeIds: ['also-missing'],
+        nodes: [
+          {
+            data: { config: {}, label: 'Condition' },
+            id: 'condition',
+            position: { x: 0, y: 0 },
+            type: 'condition',
+          },
+        ],
+      }),
+    ).toThrow('references non-existent target node');
+  });
 });

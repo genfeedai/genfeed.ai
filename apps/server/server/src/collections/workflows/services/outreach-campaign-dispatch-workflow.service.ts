@@ -66,8 +66,7 @@ export class OutreachCampaignDispatchWorkflowService implements OnModuleInit {
   ): Promise<OutreachCampaignDispatchWorkflowResult> {
     const definition = buildCampaignDispatchWorkflowDefinition();
     const { result } =
-      await this.workflowRunner.runWorkflowDefinition<OutreachCampaignDispatchWorkflowResult>(
-        definition,
+      await this.workflowRunner.runWorkflow<OutreachCampaignDispatchWorkflowResult>(
         {
           actionType: definition.canonicalId,
           canonicalId: definition.canonicalId,

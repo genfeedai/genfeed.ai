@@ -1,9 +1,9 @@
 import { createGenfeedActionNode } from '@genfeedai/actions';
-import type {
-  WorkflowEdge,
-  WorkflowVisualNode,
-} from '@server/collections/workflows/schemas/workflow.schema';
 import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-runner.service';
+
+export const CLIP_CONTINUITY_WORKFLOW_ID = 'clip.continuity';
+export const CLIP_CONTINUITY_QA_WORKFLOW_ID = 'clip.continuity.qa-one';
+export const CLIP_CONTINUITY_FAILURE_WORKFLOW_ID = 'clip.continuity.failure';
 
 export const CLIP_CONTINUITY_ACTION_IDS = {
   BEGIN: 'clip.continuity.begin',
@@ -11,77 +11,24 @@ export const CLIP_CONTINUITY_ACTION_IDS = {
   PERSIST_REPORT: 'clip.continuity.persist-report',
 } as const;
 
-export function buildClipContinuityWorkflowDefinition(
-  clipCount: number,
-): SystemWorkflowGraphDefinition {
-  if (!Number.isInteger(clipCount) || clipCount < 0) {
-    throw new Error('Clip continuity workflow requires a valid clip count');
-  }
-  const beginNode = createGenfeedActionNode({
-    actionId: CLIP_CONTINUITY_ACTION_IDS.BEGIN,
-    id: 'begin-continuity',
-    inputVariableKeys: ['projectId'],
-    position: { x: 0, y: 0 },
-  });
-  const qaNodes: WorkflowVisualNode[] = Array.from(
-    { length: clipCount },
-    (_, index) =>
-      createGenfeedActionNode({
-        actionId: 'videoQa',
-        id: `continuity-qa-${index + 1}`,
-        inputVariableKeys: [
-          `video${index}`,
-          'characterReferenceUrls',
-          'productReferenceUrls',
-        ],
-        parameters: {
-          blackDurationSeconds: 0.5,
-          freezeDurationSeconds: 2,
-          inputVideoKey: `video${index}`,
-          isContactSheetEnabled: true,
-          isContinuityQaEnabled: true,
-        },
-        position: { x: 0, y: (index + 1) * 160 },
-      }),
-  );
-  const persistNode = createGenfeedActionNode({
-    actionId: CLIP_CONTINUITY_ACTION_IDS.PERSIST_REPORT,
-    id: 'persist-continuity-report',
-    inputVariableKeys: [
-      'projectId',
-      'generationWorkflowExecutionId',
-      'clipDescriptors',
-      'referenceAssetIds',
-    ],
-    position: { x: 0, y: (clipCount + 2) * 160 },
-  });
-  const edges: WorkflowEdge[] = qaNodes.flatMap((node, index) => [
-    {
-      id: `begin-to-${node.id}`,
-      source: beginNode.id,
-      target: node.id,
-      targetHandle: 'claim',
-    },
-    {
-      id: `${node.id}-to-persist`,
-      source: node.id,
-      sourceHandle: 'continuityQa',
-      target: persistNode.id,
-      targetHandle: `qa${index}`,
-    },
-  ]);
-  if (qaNodes.length === 0) {
-    edges.push({
-      id: 'begin-to-persist',
-      source: beginNode.id,
-      target: persistNode.id,
-      targetHandle: 'claim',
-    });
-  }
+export function buildClipContinuityWorkflowDefinition(): SystemWorkflowGraphDefinition {
   return {
-    canonicalId: `clip-continuity:v1:${clipCount}`,
+    canonicalId: CLIP_CONTINUITY_WORKFLOW_ID,
     definition: {
-      edges,
+      edges: [
+        {
+          id: 'begin-to-qa',
+          source: 'begin-continuity',
+          target: 'assess-clips',
+          targetHandle: 'claim',
+        },
+        {
+          id: 'qa-to-persist',
+          source: 'assess-clips',
+          target: 'persist-continuity-report',
+          targetHandle: 'qaBatch',
+        },
+      ],
       inputVariables: [
         {
           key: 'projectId',
@@ -108,6 +55,71 @@ export function buildClipContinuityWorkflowDefinition(
           type: 'json',
         },
         {
+          key: 'items',
+          label: 'Clip videos to assess',
+          required: true,
+          type: 'json',
+        },
+        {
+          key: 'baseInput',
+          label: 'Continuity reference inputs',
+          required: true,
+          type: 'json',
+        },
+      ],
+      nodes: [
+        createGenfeedActionNode({
+          actionId: CLIP_CONTINUITY_ACTION_IDS.BEGIN,
+          id: 'begin-continuity',
+          inputVariableKeys: ['projectId'],
+          position: { x: 0, y: 0 },
+        }),
+        createGenfeedActionNode({
+          actionId: 'workflow.for-each',
+          id: 'assess-clips',
+          inputVariableKeys: ['items', 'baseInput'],
+          parameters: {
+            childWorkflowId: CLIP_CONTINUITY_QA_WORKFLOW_ID,
+            itemInputKey: 'video',
+            maxConcurrency: 3,
+            mode: 'await',
+          },
+          position: { x: 0, y: 160 },
+        }),
+        createGenfeedActionNode({
+          actionId: CLIP_CONTINUITY_ACTION_IDS.PERSIST_REPORT,
+          id: 'persist-continuity-report',
+          inputVariableKeys: [
+            'projectId',
+            'generationWorkflowExecutionId',
+            'clipDescriptors',
+            'referenceAssetIds',
+          ],
+          position: { x: 0, y: 320 },
+        }),
+      ],
+    },
+    description:
+      'Assesses completed clips through one registered child workflow and persists an aggregate continuity report.',
+    label: 'Clip Continuity QA',
+    resultNodeId: 'persist-continuity-report',
+    version: 1,
+  };
+}
+
+export function buildClipContinuityQaWorkflowDefinition(): SystemWorkflowGraphDefinition {
+  return {
+    canonicalId: CLIP_CONTINUITY_QA_WORKFLOW_ID,
+    definition: {
+      edges: [],
+      inputVariables: [
+        {
+          key: 'video',
+          label: 'Clip video',
+          required: true,
+          type: 'video',
+        },
+        {
           key: 'characterReferenceUrls',
           label: 'Character reference URLs',
           required: true,
@@ -119,18 +131,59 @@ export function buildClipContinuityWorkflowDefinition(
           required: true,
           type: 'json',
         },
-        ...Array.from({ length: clipCount }, (_, index) => ({
-          key: `video${index}`,
-          label: `Clip ${index + 1} video`,
-          required: true,
-          type: 'video' as const,
-        })),
       ],
-      nodes: [beginNode, ...qaNodes, persistNode],
+      nodes: [
+        createGenfeedActionNode({
+          actionId: 'videoQa',
+          id: 'assess-clip',
+          inputVariableKeys: [
+            'video',
+            'characterReferenceUrls',
+            'productReferenceUrls',
+          ],
+          parameters: {
+            blackDurationSeconds: 0.5,
+            freezeDurationSeconds: 2,
+            inputVideoKey: 'video',
+            isContactSheetEnabled: true,
+            isContinuityQaEnabled: true,
+          },
+          position: { x: 0, y: 0 },
+        }),
+      ],
     },
-    description:
-      'Runs one canonical video QA action per completed clip and persists one aggregate continuity report.',
-    label: 'Clip Continuity QA',
-    resultNodeId: persistNode.id,
+    description: 'Runs canonical continuity QA for one completed clip.',
+    label: 'Assess One Clip for Continuity',
+    resultNodeId: 'assess-clip',
+    version: 1,
+  };
+}
+
+export function buildClipContinuityFailureWorkflowDefinition(): SystemWorkflowGraphDefinition {
+  return {
+    canonicalId: CLIP_CONTINUITY_FAILURE_WORKFLOW_ID,
+    definition: {
+      edges: [],
+      inputVariables: [
+        {
+          key: 'projectId',
+          label: 'Failed clip project ID',
+          required: true,
+          type: 'text',
+        },
+      ],
+      nodes: [
+        createGenfeedActionNode({
+          actionId: CLIP_CONTINUITY_ACTION_IDS.FAIL,
+          id: 'fail-continuity',
+          inputVariableKeys: ['projectId'],
+          position: { x: 0, y: 0 },
+        }),
+      ],
+    },
+    description: 'Projects terminal failure for one clip continuity run.',
+    label: 'Fail Clip Continuity QA',
+    resultNodeId: 'fail-continuity',
+    version: 1,
   };
 }

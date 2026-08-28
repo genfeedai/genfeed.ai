@@ -1,11 +1,3 @@
-import { AgentGoalsService } from '@server/collections/agent-goals/services/agent-goals.service';
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
-import { AiInfluencerService } from '@server/services/ai-influencer/ai-influencer.service';
-import { CacheService } from '@server/services/cache/cache.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   AgentAutonomyMode,
   AgentExecutionTrigger,
@@ -15,10 +7,15 @@ import { type AgentStrategy, toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { AgentGoalsService } from '@server/collections/agent-goals/services/agent-goals.service';
+import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
+import { CacheService } from '@server/services/cache/cache.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
-type AgentAutopilotWorkflowAction =
-  | 'proactiveAgentStrategies'
-  | 'aiInfluencerDailyPosts';
+type AgentAutopilotWorkflowAction = 'proactiveAgentStrategies';
 
 type ContentMixConfig = {
   carouselPercent: number;
@@ -85,7 +82,6 @@ const MAX_STRATEGIES_PER_CYCLE = 20;
 const FAILURES_BEFORE_PAUSE = 3;
 const FAILURE_RETRY_MINUTES = 30;
 const PROACTIVE_LOCK_TTL_SECONDS = 900;
-const AI_INFLUENCER_LOCK_TTL_SECONDS = 1800;
 
 @Injectable()
 export class AgentAutopilotWorkflowService {
@@ -98,7 +94,6 @@ export class AgentAutopilotWorkflowService {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly agentGoalsService: AgentGoalsService,
-    private readonly aiInfluencerService: AiInfluencerService,
     private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
   ) {}
@@ -173,58 +168,6 @@ export class AgentAutopilotWorkflowService {
         action,
         organizationId,
         'proactive_agent_cycle_failed',
-        0,
-        workflowHandoff,
-      );
-    } finally {
-      await this.cacheService.releaseLock(lockKey);
-    }
-  }
-
-  async runAiInfluencerDailyPosts(
-    organizationId: string,
-    workflowHandoff?: AgentWorkflowHandoffContext,
-  ): Promise<AgentAutopilotWorkflowResult> {
-    const action: AgentAutopilotWorkflowAction = 'aiInfluencerDailyPosts';
-    const lockKey = this.lockKey(action, organizationId);
-    const acquired = await this.cacheService.acquireLock(
-      lockKey,
-      AI_INFLUENCER_LOCK_TTL_SECONDS,
-    );
-
-    if (!acquired) {
-      return this.skipped(
-        action,
-        organizationId,
-        'ai_influencer_already_running',
-        0,
-        workflowHandoff,
-      );
-    }
-
-    try {
-      const results = await this.aiInfluencerService.scheduleDailyPosts({
-        organizationId,
-      });
-
-      return this.result(
-        action,
-        organizationId,
-        0,
-        results.length,
-        0,
-        results.length === 0 ? 'no_ai_influencer_posts_generated' : undefined,
-        workflowHandoff,
-      );
-    } catch (error) {
-      this.logger.error(`${this.logContext} AI influencer cycle failed`, {
-        error,
-        organizationId,
-      });
-      return this.skipped(
-        action,
-        organizationId,
-        'ai_influencer_cycle_failed',
         0,
         workflowHandoff,
       );

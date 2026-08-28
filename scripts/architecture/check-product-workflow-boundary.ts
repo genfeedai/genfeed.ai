@@ -3,14 +3,9 @@ import path from 'node:path';
 import { globSync } from 'glob';
 
 const DEFAULT_INCLUDE_GLOBS = [
-  'apps/server/api/src/collections/social-inbox/**/*.ts',
-  'apps/server/api/src/services/campaign/**/*.ts',
-  'apps/server/api/src/services/reply-bot/**/*.ts',
-  'apps/server/api/src/services/twitter-pipeline/**/*.ts',
-  'apps/server/server/src/collections/social-inbox/**/*.ts',
-  'apps/server/server/src/services/campaign/**/*.ts',
-  'apps/server/server/src/services/reply-bot/**/*.ts',
-  'apps/server/workers/src/crons/**/*.ts',
+  'apps/server/api/src/**/*.ts',
+  'apps/server/server/src/**/*.ts',
+  'apps/server/workers/src/**/*.ts',
 ];
 
 const DEFAULT_IGNORE_GLOBS = [
@@ -40,6 +35,7 @@ export type ProductWorkflowBoundaryException = {
 };
 
 export type ProductWorkflowBoundaryDetection = {
+  exceptionAllowed: boolean;
   file: string;
   ruleId: string;
   message: string;
@@ -85,6 +81,7 @@ export type ProductWorkflowBoundaryOptions = {
 };
 
 type ProductWorkflowBoundaryRule = {
+  exceptionAllowed?: boolean;
   id: string;
   message: string;
   matches: (file: string, source: string) => boolean;
@@ -170,32 +167,49 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     {
       classification: 'workflow-adapter',
       file: 'apps/server/workers/src/crons/engagement/cron.engagement-triggers.service.ts',
-      id: 'engagement-rule-evaluation',
+      id: 'engagement-sweep-actions',
       reason:
-        'The sweep discovers armed rules; each rule is reloaded and applied by the engagement-rule-evaluation action through a hidden workflow run.',
-      systemWorkflowIds: ['engagement-rule-evaluation'],
+        'Atomic engagement adapters are sequenced by the hidden sweep and per-rule workflow graphs.',
+      systemWorkflowIds: ['engagement.sweep', 'engagement.rule.process'],
     },
     {
       classification: 'workflow-adapter',
       file: 'apps/server/workers/src/crons/rss/cron.rss-autopost.service.ts',
-      id: 'rss-source-poll',
+      id: 'rss-sweep-actions',
       reason:
-        'The sweep discovers enabled sources; each source poll runs through the rss-source-poll hidden workflow action.',
-      systemWorkflowIds: ['rss-source-poll'],
+        'Atomic RSS adapters are sequenced by hidden sweep, source, and item workflow graphs.',
+      systemWorkflowIds: [
+        'rss.sweep',
+        'rss.source.process',
+        'rss.item.process',
+      ],
     },
     {
       classification: 'workflow-adapter',
       file: 'apps/server/workers/src/crons/youtube/cron.youtube-messages.service.ts',
-      id: 'youtube-comments-ingest',
+      id: 'youtube-comment-sweep-actions',
       reason:
-        'The sweep discovers connected credentials; each credential queues the youtube-comments-ingest hidden workflow action.',
-      systemWorkflowIds: ['youtube-comments-ingest'],
+        'The hidden sweep discovers connected credentials and fans out to the existing YouTube comment-sync workflow.',
+      systemWorkflowIds: [
+        'youtube.comments.sweep',
+        'social.inbox.sync.youtube-comments',
+      ],
     },
   ];
 
 const PRODUCT_CRON_PATH_SEGMENTS = ['/content-pipeline/', '/posts/'];
 
 const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
+  {
+    exceptionAllowed: false,
+    id: 'dynamic-system-action-workflow',
+    matches: (_file, source) =>
+      /\.\s*runAction\s*(?:<[^;{]*?>)?\s*\(/s.test(source) ||
+      /\.\s*queueSystemAction\s*\(/.test(source) ||
+      /\bcreateSystemActionWorkflowDefinition\s*\(/.test(source),
+    message:
+      'Dynamic single-action workflow wrappers are retired. Register and execute an explicit immutable workflow graph.',
+  },
   {
     id: 'direct-publish-call',
     matches: (_file, source) => /\bpublisher\.publish\s*\(/.test(source),
@@ -312,6 +326,7 @@ function detectProductWorkflowBoundaries(
   return PRODUCT_WORKFLOW_BOUNDARY_RULES.filter((rule) =>
     rule.matches(file, source),
   ).map((rule) => ({
+    exceptionAllowed: rule.exceptionAllowed ?? true,
     file,
     message: rule.message,
     ruleId: rule.id,
@@ -366,12 +381,13 @@ export function runCheckProductWorkflowBoundary(
     detectedFiles.add(detection.file);
     const exception = exceptionMap.get(detection.file);
 
-    if (!exception) {
+    if (!exception || !detection.exceptionAllowed) {
       violations.push({
         detection,
         kind: 'undocumented-product-workflow-boundary',
-        message:
-          'Hardcoded product automation must route through a workflow-backed action or be an explicitly documented low-level action adapter.',
+        message: detection.exceptionAllowed
+          ? 'Hardcoded product automation must route through a workflow-backed action or be an explicitly documented low-level action adapter.'
+          : 'This hard-cut workflow boundary cannot be bypassed with an exception.',
       });
       continue;
     }

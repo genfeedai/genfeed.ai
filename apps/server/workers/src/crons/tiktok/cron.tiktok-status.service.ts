@@ -7,20 +7,23 @@ import {
 import type { IChannelTargetError } from '@genfeedai/interfaces';
 import { SERVER_TOKENS, type ServerCredentialStore } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { PostEntity } from '@server/collections/posts/entities/post.entity';
 import { PostsService } from '@server/collections/posts/services/posts.service';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
   type SystemWorkflowProvenance,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
 import { customLabels } from '@server/helpers/utils/pagination.util';
 import { TiktokService } from '@server/services/integrations/tiktok/services/tiktok.service';
 import { PublishEventWebhookService } from '@server/services/webhook-client/publish-event-webhook.service';
+import {
+  buildTiktokStatusReconcileDefinition,
+  buildTiktokStatusSweepDefinition,
+  TIKTOK_STATUS_ACTION_IDS,
+} from '@workers/crons/tiktok/tiktok-status-workflow-definition';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 type TiktokError = {
@@ -43,6 +46,7 @@ type TiktokPost = PostEntity & {
 };
 
 const TIKTOK_SWEEP_INTERVAL_MS = 5 * 60 * 1000;
+const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';
 
 function readTiktokErrorCode(error: unknown): string | undefined {
   const response = (error as TiktokError | undefined)?.response;
@@ -83,9 +87,22 @@ export class CronTiktokStatusService implements OnModuleInit {
 
   onModuleInit(): void {
     this.systemWorkflowRunner.registerAction(
-      SYSTEM_WORKFLOW_ACTION_IDS.TIKTOK_STATUS_RECONCILIATION,
+      TIKTOK_STATUS_ACTION_IDS.DISCOVER,
+      ({ input }) => this.discoverPendingPosts(input.request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      TIKTOK_STATUS_ACTION_IDS.RECONCILE,
       ({ input, provenance }) =>
-        this.executeStatusReconciliation(input, provenance),
+        this.executeStatusReconciliation(
+          input.request as Record<string, unknown>,
+          provenance,
+        ),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildTiktokStatusSweepDefinition(),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildTiktokStatusReconcileDefinition(),
     );
   }
 
@@ -110,70 +127,54 @@ export class CronTiktokStatusService implements OnModuleInit {
    * system-sweeps BullMQ Job Scheduler (SystemSweepsProcessor).
    */
   async checkPendingTiktokPosts(): Promise<void> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.logger.log(`${url} started`);
+    const now = new Date();
+    const definition = buildTiktokStatusSweepDefinition();
+    await this.workflowQueue.queueSystemWorkflow(
+      {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request: { now: now.toISOString() } },
+        metadata: { platform: CredentialPlatform.TIKTOK },
+        organizationId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
+        source: 'tiktok_status_sweep',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
+      },
+      `tiktok-status-sweep-${Math.floor(now.getTime() / TIKTOK_SWEEP_INTERVAL_MS)}`,
+      { attempts: 3, replaceTerminalJob: true },
+    );
+  }
 
-    try {
-      const now = new Date();
-      const maxAge = new Date(
-        now.getTime() - this.MAX_PENDING_AGE_HOURS * 60 * 60 * 1000,
-      );
-
-      const options = {
-        customLabels,
-        limit: 50,
-      };
-
-      // Find TikTok posts with PENDING status
-      const posts = (await this.postsService.findAll(
-        {
-          include: { credential: true },
-          where: {
-            externalId: { not: null }, // Has publish_id
-            isDeleted: false,
-            platform: CredentialPlatform.TIKTOK,
-            targetExecutionState: TargetExecutionState.PUBLISHING,
-          },
-        },
-        options,
-      )) as unknown as { docs?: TiktokPost[] };
-
-      const postsToCheck = posts.docs?.length || 0;
-
-      if (postsToCheck === 0) {
-        this.logger.log(`${url} completed - no pending posts`);
-        return;
-      }
-
-      this.logger.log(`${url} checking ${postsToCheck} pending TikTok posts`);
-
-      for (const post of posts.docs || []) {
-        await this.workflowQueue.queueSystemAction(
-          {
-            actionType: SYSTEM_WORKFLOW_ACTION_IDS.TIKTOK_STATUS_RECONCILIATION,
-            canonicalId:
-              SYSTEM_WORKFLOW_ACTION_IDS.TIKTOK_STATUS_RECONCILIATION,
-            inputValues: {
-              maxAge: maxAge.toISOString(),
-              now: now.toISOString(),
-              organizationId: post.organizationId,
-              postId: String(post.id),
-            },
-            metadata: { platform: CredentialPlatform.TIKTOK },
-            organizationId: post.organizationId,
-            postIds: [String(post.id)],
-            source: 'tiktok_status_sweep',
-            trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId: post.userId,
-          },
-          `${SYSTEM_WORKFLOW_ACTION_IDS.TIKTOK_STATUS_RECONCILIATION}-${post.id}-${Math.floor(now.getTime() / TIKTOK_SWEEP_INTERVAL_MS)}`,
-        );
-      }
-
-      this.logger.log(`${url} completed`);
-    } catch (error: unknown) {
-      this.logger.error(`${url} failed`, error);
+  private async discoverPendingPosts(request: unknown) {
+    const now = new Date(
+      String((request as { now?: unknown } | undefined)?.now ?? ''),
+    );
+    if (!Number.isFinite(now.getTime())) {
+      throw new Error('TikTok status sweep requires a valid timestamp');
     }
+    const maxAge = new Date(
+      now.getTime() - this.MAX_PENDING_AGE_HOURS * 60 * 60 * 1000,
+    );
+    const posts = (await this.postsService.findAll(
+      {
+        include: { credential: true },
+        where: {
+          externalId: { not: null },
+          isDeleted: false,
+          platform: CredentialPlatform.TIKTOK,
+          targetExecutionState: TargetExecutionState.PUBLISHING,
+        },
+      },
+      { customLabels, limit: 50 },
+    )) as unknown as { docs?: TiktokPost[] };
+    return {
+      items: (posts.docs ?? []).map((post) => ({
+        maxAge: maxAge.toISOString(),
+        now: now.toISOString(),
+        organizationId: post.organizationId,
+        postId: String(post.id),
+      })),
+    };
   }
 
   /**

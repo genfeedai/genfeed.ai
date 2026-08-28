@@ -16,19 +16,22 @@ import {
   parsePlatform,
   ReleaseAttachmentKind,
   ReleaseStatus,
+  WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { type IPublisher, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowRunnerService,
-} from '@server/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { PublisherFactoryService } from '@server/services/integrations/publishers/publisher-factory.service';
+import {
+  buildEngagementRuleWorkflowDefinition,
+  buildEngagementSweepWorkflowDefinition,
+  ENGAGEMENT_SWEEP_ACTION_IDS,
+} from '@workers/crons/engagement/engagement-sweep-workflow-definition';
 
 const REPOST_PLATFORMS = new Set<string>([
   CredentialPlatform.FACEBOOK,
@@ -47,6 +50,7 @@ const EMPTY_SNAPSHOT: EngagementMetricSnapshot = {
 };
 
 const ENGAGEMENT_SWEEP_INTERVAL_MS = 15 * 60 * 1000;
+const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';
 
 type StoredRule = {
   actionPayload: unknown;
@@ -75,27 +79,50 @@ type PublisherWithComment = {
   ) => Promise<unknown>;
 };
 
+type RuleRequest = {
+  organizationId: string;
+  ruleId: string;
+  userId?: string;
+};
+
+type RuleEvaluation = {
+  outcome: 'expire' | 'ineligible' | 'skip' | 'trigger';
+  reason?: string;
+  rule?: StoredRule;
+  target?: {
+    brandId: string;
+    credentialId: string | null;
+    description: string;
+    externalId: string | null;
+    id: string;
+    label: string | null;
+    platform: string | null;
+  };
+};
+
+type RuleExecution = {
+  releaseId: string | null;
+  requiresPublish: boolean;
+};
+
 @Injectable()
-export class CronEngagementTriggersService {
+export class CronEngagementTriggersService implements OnModuleInit {
   constructor(
-    private readonly logger: LoggerService,
+    readonly _logger: LoggerService,
     private readonly prisma: PrismaService,
     private readonly postGroupsService: PostGroupsService,
     private readonly publisherFactory: PublisherFactoryService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
-  ) {
-    this.systemWorkflowRunner.registerAction(
-      SYSTEM_WORKFLOW_ACTION_IDS.ENGAGEMENT_RULE_EVALUATION,
-      async ({ input }) => {
-        const ruleId = this.readRequiredString(input.ruleId, 'ruleId');
-        const organizationId = this.readRequiredString(
-          input.organizationId,
-          'organizationId',
-        );
-        await this.processRuleById(ruleId, organizationId);
-        return { ruleId };
-      },
+  ) {}
+
+  onModuleInit(): void {
+    this.registerActions();
+    this.systemWorkflowRunner.registerWorkflow(
+      buildEngagementSweepWorkflowDefinition(),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildEngagementRuleWorkflowDefinition(),
     );
   }
 
@@ -105,61 +132,101 @@ export class CronEngagementTriggersService {
    * or expire and never re-arm after an ineligible credential.
    */
   async processArmedRules(): Promise<void> {
-    const rules = (await this.prisma.engagementRule.findMany({
+    const definition = buildEngagementSweepWorkflowDefinition();
+    const bucket = Math.floor(Date.now() / ENGAGEMENT_SWEEP_INTERVAL_MS);
+    await this.workflowQueue.queueSystemWorkflow(
+      {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: {
+          request: { requestedAt: new Date().toISOString() },
+        },
+        organizationId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
+        source: 'engagement_rule_sweep',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
+      },
+      `engagement-sweep-${bucket}`,
+      { attempts: 3, replaceTerminalJob: true },
+    );
+  }
+
+  private registerActions(): void {
+    this.systemWorkflowRunner.registerAction(
+      ENGAGEMENT_SWEEP_ACTION_IDS.DISCOVER,
+      () => this.discoverRules(),
+    );
+    this.systemWorkflowRunner.registerAction(
+      ENGAGEMENT_SWEEP_ACTION_IDS.EVALUATE,
+      ({ input }) => this.evaluateRule(input.request as RuleRequest),
+    );
+    this.systemWorkflowRunner.registerAction(
+      ENGAGEMENT_SWEEP_ACTION_IDS.EXPIRE,
+      ({ input }) => this.expireRule(input.request as RuleRequest),
+    );
+    this.systemWorkflowRunner.registerAction(
+      ENGAGEMENT_SWEEP_ACTION_IDS.MARK_INELIGIBLE,
+      ({ input }) =>
+        this.markIneligible(
+          input.request as RuleRequest,
+          this.unwrapBranch<RuleEvaluation>(input.evaluation),
+        ),
+    );
+    this.systemWorkflowRunner.registerAction(
+      ENGAGEMENT_SWEEP_ACTION_IDS.EXECUTE,
+      ({ input }) =>
+        this.executeRule(this.unwrapBranch<RuleEvaluation>(input.evaluation)),
+    );
+    this.systemWorkflowRunner.registerAction(
+      ENGAGEMENT_SWEEP_ACTION_IDS.PUBLISH,
+      ({ input }) =>
+        this.publishRelease(
+          input.request as RuleRequest,
+          this.unwrapBranch<RuleExecution>(input.execution),
+        ),
+    );
+    this.systemWorkflowRunner.registerAction(
+      ENGAGEMENT_SWEEP_ACTION_IDS.FINALIZE_SUCCESS,
+      ({ input }) =>
+        this.finalizeSuccess(
+          input.request as RuleRequest,
+          this.unwrapBranch<RuleExecution>(input.execution),
+        ),
+    );
+    this.systemWorkflowRunner.registerAction(
+      ENGAGEMENT_SWEEP_ACTION_IDS.FINALIZE_FAILURE,
+      ({ input }) =>
+        this.finalizeFailure(input.request as RuleRequest, input.failure),
+    );
+  }
+
+  private async discoverRules(): Promise<{ items: RuleRequest[] }> {
+    const rules = await this.prisma.engagementRule.findMany({
+      select: { id: true, organizationId: true, userId: true },
       where: {
         isDeleted: false,
         isEnabled: true,
         state: EngagementRuleState.ARMED,
       },
-    })) as StoredRule[];
-
-    this.logger.log('CronEngagementTriggersService found rules', {
-      total: rules.length,
     });
-
-    for (const rule of rules) {
-      try {
-        await this.workflowQueue.queueSystemAction(
-          {
-            actionType: SYSTEM_WORKFLOW_ACTION_IDS.ENGAGEMENT_RULE_EVALUATION,
-            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.ENGAGEMENT_RULE_EVALUATION,
-            inputValues: {
-              organizationId: rule.organizationId,
-              ruleId: rule.id,
-            },
-            organizationId: rule.organizationId,
-            source: 'engagement_rule_sweep',
-            userId: rule.userId,
-          },
-          `${SYSTEM_WORKFLOW_ACTION_IDS.ENGAGEMENT_RULE_EVALUATION}-${rule.id}-${Math.floor(Date.now() / ENGAGEMENT_SWEEP_INTERVAL_MS)}`,
-        );
-      } catch (error: unknown) {
-        this.logger.error('Engagement trigger failed for rule', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          organizationId: rule.organizationId,
-          ruleId: rule.id,
-        });
-      }
-    }
+    return {
+      items: rules.map((rule) => ({
+        organizationId: rule.organizationId,
+        ruleId: rule.id,
+        userId: rule.userId,
+      })),
+    };
   }
 
-  private async processRuleById(
-    ruleId: string,
-    organizationId: string,
-  ): Promise<void> {
+  private async evaluateRule(request: RuleRequest): Promise<RuleEvaluation> {
     const rule = (await this.prisma.engagementRule.findFirst({
-      where: scopedWhere(organizationId, {
-        id: ruleId,
+      where: scopedWhere(request.organizationId, {
+        id: request.ruleId,
         isEnabled: true,
         state: EngagementRuleState.ARMED,
       }),
     })) as StoredRule | null;
-    if (rule) {
-      await this.processRule(rule);
-    }
-  }
-
-  private async processRule(rule: StoredRule): Promise<void> {
+    if (!rule) return { outcome: 'skip' };
     const target = await this.prisma.post.findFirst({
       where: {
         groupId: rule.postGroupId,
@@ -177,9 +244,7 @@ export class CronEngagementTriggersService {
         platform: true,
       },
     });
-    if (!target) {
-      return;
-    }
+    if (!target) return { outcome: 'skip' };
 
     const snapshot = await this.loadSnapshot(rule);
     const eligibility = await this.loadEligibility(
@@ -201,55 +266,119 @@ export class CronEngagementTriggersService {
       snapshot,
     });
 
-    if (verdict.kind === 'skip') {
-      return;
-    }
-    if (verdict.kind === 'expire') {
-      await this.prisma.engagementRule.update({
-        data: { state: EngagementRuleState.EXPIRED },
-        where: { id: rule.id },
-      });
-      return;
-    }
+    if (verdict.kind === 'skip') return { outcome: 'skip', rule, target };
+    if (verdict.kind === 'expire') return { outcome: 'expire', rule, target };
     if (verdict.kind === 'ineligible') {
-      await this.prisma.engagementRule.update({
-        data: {
-          lastError: verdict.reason,
-          state: EngagementRuleState.COMPLETED,
-        },
-        where: { id: rule.id },
-      });
-      return;
+      return { outcome: 'ineligible', reason: verdict.reason, rule, target };
     }
-
-    await this.prisma.engagementRule.update({
+    await this.prisma.engagementRule.updateMany({
       data: {
         metricSnapshot: toPrismaJson(verdict.snapshot),
         state: EngagementRuleState.TRIGGERED,
         triggeredAt: new Date(),
       },
-      where: { id: rule.id },
+      where: scopedWhere(request.organizationId, {
+        id: request.ruleId,
+        state: EngagementRuleState.ARMED,
+      }),
     });
+    return { outcome: 'trigger', rule, target };
+  }
 
-    try {
-      const resultingReleaseId = await this.fireRule(rule, target);
-      await this.prisma.engagementRule.update({
-        data: {
-          ...(resultingReleaseId ? { resultingReleaseId } : {}),
-          state: EngagementRuleState.COMPLETED,
-        },
-        where: { id: rule.id },
-      });
-    } catch (error: unknown) {
-      await this.prisma.engagementRule.update({
-        data: {
-          lastError:
-            error instanceof Error ? error.message : 'Engagement action failed',
-          state: EngagementRuleState.COMPLETED,
-        },
-        where: { id: rule.id },
-      });
+  private async expireRule(
+    request: RuleRequest,
+  ): Promise<{ expired: boolean }> {
+    const result = await this.prisma.engagementRule.updateMany({
+      data: { state: EngagementRuleState.EXPIRED },
+      where: scopedWhere(request.organizationId, { id: request.ruleId }),
+    });
+    return { expired: result.count > 0 };
+  }
+
+  private async markIneligible(
+    request: RuleRequest,
+    evaluation: RuleEvaluation,
+  ): Promise<{ completed: boolean }> {
+    const result = await this.prisma.engagementRule.updateMany({
+      data: {
+        lastError: evaluation.reason ?? 'Engagement rule is ineligible',
+        state: EngagementRuleState.COMPLETED,
+      },
+      where: scopedWhere(request.organizationId, { id: request.ruleId }),
+    });
+    return { completed: result.count > 0 };
+  }
+
+  private async executeRule(
+    evaluation: RuleEvaluation,
+  ): Promise<RuleExecution> {
+    if (!evaluation.rule || !evaluation.target) {
+      throw new Error('Engagement rule execution is missing evaluated context');
     }
+    const releaseId = await this.fireRule(evaluation.rule, evaluation.target);
+    return {
+      releaseId,
+      requiresPublish:
+        evaluation.rule.actionType === EngagementRuleAction.REPOST &&
+        evaluation.rule.mode === EngagementRuleMode.AUTO,
+    };
+  }
+
+  private async publishRelease(
+    request: RuleRequest,
+    execution: RuleExecution,
+  ): Promise<RuleExecution> {
+    if (!execution.releaseId || !request.userId) {
+      throw new Error(
+        'Engagement repost publication is missing release context',
+      );
+    }
+    await this.postGroupsService.publishNow(
+      request.organizationId,
+      request.userId,
+      execution.releaseId,
+    );
+    return execution;
+  }
+
+  private async finalizeSuccess(
+    request: RuleRequest,
+    execution: RuleExecution,
+  ): Promise<{ completed: boolean; releaseId: string | null }> {
+    const result = await this.prisma.engagementRule.updateMany({
+      data: {
+        ...(execution.releaseId
+          ? { resultingReleaseId: execution.releaseId }
+          : {}),
+        state: EngagementRuleState.COMPLETED,
+      },
+      where: scopedWhere(request.organizationId, { id: request.ruleId }),
+    });
+    return { completed: result.count > 0, releaseId: execution.releaseId };
+  }
+
+  private async finalizeFailure(
+    request: RuleRequest,
+    failure: unknown,
+  ): Promise<{ completed: boolean }> {
+    const message =
+      failure instanceof Error
+        ? failure.message
+        : typeof failure === 'object' && failure && 'message' in failure
+          ? String((failure as { message: unknown }).message)
+          : 'Engagement action failed';
+    const result = await this.prisma.engagementRule.updateMany({
+      data: { lastError: message, state: EngagementRuleState.COMPLETED },
+      where: scopedWhere(request.organizationId, { id: request.ruleId }),
+    });
+    return { completed: result.count > 0 };
+  }
+
+  private unwrapBranch<T>(value: unknown): T {
+    if (value && typeof value === 'object' && 'data' in value) {
+      return (value as { data: T }).data;
+    }
+    return value as T;
   }
 
   private async fireRule(
@@ -297,13 +426,6 @@ export class CronEngagementTriggersService {
       undefined,
       { source: 'engagement' },
     );
-    if (rule.mode === EngagementRuleMode.AUTO) {
-      await this.postGroupsService.publishNow(
-        rule.organizationId,
-        rule.userId,
-        release.id,
-      );
-    }
     return release.id;
   }
 
@@ -485,12 +607,5 @@ export class CronEngagementTriggersService {
       return undefined;
     }
     return candidate.bind(publisher);
-  }
-
-  private readRequiredString(value: unknown, field: string): string {
-    if (typeof value !== 'string' || value.trim().length === 0) {
-      throw new Error(`Engagement rule evaluation requires ${field}`);
-    }
-    return value;
   }
 }

@@ -1,16 +1,16 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { WorkflowCrudController } from '@api/collections/workflows/controllers/workflow-crud.controller';
-import { CreateWorkflowDto } from '@server/collections/workflows/dto/create-workflow.dto';
 import { WorkflowQueryDto } from '@api/collections/workflows/dto/query-workflow.dto';
-import { UpdateWorkflowDto } from '@server/collections/workflows/dto/update-workflow.dto';
-import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
-import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
-import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreateWorkflowDto } from '@server/collections/workflows/dto/create-workflow.dto';
+import { UpdateWorkflowDto } from '@server/collections/workflows/dto/update-workflow.dto';
+import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
+import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
+import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import type { Request } from 'express';
 
 describe('WorkflowCrudController', () => {
@@ -37,7 +37,6 @@ describe('WorkflowCrudController', () => {
     label: 'Test Workflow',
     organizationId,
     status: WorkflowStatus.DRAFT,
-    steps: [],
     updatedAt: new Date(),
     userId,
   };
@@ -105,8 +104,9 @@ describe('WorkflowCrudController', () => {
     it('should create a workflow', async () => {
       const createDto: CreateWorkflowDto = {
         description: 'Automated workflow',
+        edges: [],
         label: 'Test Workflow',
-        steps: [],
+        nodes: [],
       };
 
       mockWorkflowsService.createWorkflow.mockResolvedValue(mockWorkflow);

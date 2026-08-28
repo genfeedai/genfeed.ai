@@ -523,18 +523,15 @@ export class AuthorReplyLoopService implements OnModuleInit {
   }): Promise<AuthorReplyDraftResult> {
     const definition = buildAuthorReplyDraftWorkflowDefinition();
     const { result } =
-      await this.systemWorkflowRunner.runWorkflowDefinition<AuthorReplyDraftResult>(
-        definition,
-        {
-          actionType: definition.canonicalId,
-          canonicalId: definition.canonicalId,
-          inputValues: { request: params },
-          organizationId: params.organizationId,
-          source: 'AuthorReplyLoopService.draftReply',
-          trigger: WorkflowExecutionTrigger.API,
-          userId: params.userId,
-        },
-      );
+      await this.systemWorkflowRunner.runWorkflow<AuthorReplyDraftResult>({
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request: params },
+        organizationId: params.organizationId,
+        source: 'AuthorReplyLoopService.draftReply',
+        trigger: WorkflowExecutionTrigger.API,
+        userId: params.userId,
+      });
     return result;
   }
 
@@ -554,22 +551,19 @@ export class AuthorReplyLoopService implements OnModuleInit {
   }): Promise<AuthorReplySendResult> {
     const definition = buildAuthorReplySendWorkflowDefinition();
     const { result } =
-      await this.systemWorkflowRunner.runWorkflowDefinition<AuthorReplySendResult>(
-        definition,
-        {
-          actionType: definition.canonicalId,
-          canonicalId: definition.canonicalId,
-          inputValues: { request: params },
-          metadata: {
-            brandId: params.brandId,
-            parentPostId: params.parentPostId,
-          },
-          organizationId: params.organizationId,
-          source: 'AuthorReplyLoopService.sendReply',
-          trigger: WorkflowExecutionTrigger.API,
-          userId: params.userId,
+      await this.systemWorkflowRunner.runWorkflow<AuthorReplySendResult>({
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request: params },
+        metadata: {
+          brandId: params.brandId,
+          parentPostId: params.parentPostId,
         },
-      );
+        organizationId: params.organizationId,
+        source: 'AuthorReplyLoopService.sendReply',
+        trigger: WorkflowExecutionTrigger.API,
+        userId: params.userId,
+      });
     return result;
   }
 

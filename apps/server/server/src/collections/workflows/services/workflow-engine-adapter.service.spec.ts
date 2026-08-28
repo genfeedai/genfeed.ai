@@ -8,9 +8,9 @@ import { isPersistableWorkflowNodeType } from '@server/collections/workflows/wor
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowEngineAdapterService', () => {
-  const AGENT_AUTOPILOT_SERVICE_INDEX = 30;
+  const AGENT_AUTOPILOT_SERVICE_INDEX = 29;
   const SOCIAL_ADAPTER_FACTORY_INDEX = 2;
-  const SOCIAL_INBOX_SERVICE_INDEX = 39;
+  const SOCIAL_INBOX_SERVICE_INDEX = 38;
   let service: WorkflowEngineAdapterService;
   let loggerService: {
     debug: ReturnType<typeof vi.fn>;
@@ -98,7 +98,6 @@ describe('WorkflowEngineAdapterService', () => {
   }
 
   function createAdapterWithAgentAutopilot(agentAutopilotService: {
-    runAiInfluencerDailyPosts?: ReturnType<typeof vi.fn>;
     runProactiveStrategies?: ReturnType<typeof vi.fn>;
   }): WorkflowEngineAdapterService {
     const args = new Array(42).fill(undefined);

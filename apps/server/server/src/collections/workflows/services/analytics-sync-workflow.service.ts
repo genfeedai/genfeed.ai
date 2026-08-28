@@ -2,7 +2,7 @@ import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.con
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 import type {
   SocialAnalyticsCollectionInput,
   TwitterAnalyticsCollectionInput,
@@ -17,7 +17,10 @@ import { AnalyticsSyncService } from '@server/collections/content-performance/se
 import type { PostEntity } from '@server/collections/posts/entities/post.entity';
 import { PostsService } from '@server/collections/posts/services/posts.service';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-runner.service';
+import {
+  type SystemWorkflowGraphDefinition,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import {
   ANALYTICS_COLLECTION_CHILD_WORKFLOW_IDS,
   ANALYTICS_SYNC_ACTION_IDS,
@@ -62,9 +65,26 @@ export type QueuedAnalyticsWorkflowResult = {
 
 const DISCOVERY_LIMIT = 500;
 const HOUR_MS = 60 * 60 * 1000;
+const ANALYTICS_POST_REFRESH_PLATFORMS = [
+  CredentialPlatform.FACEBOOK,
+  CredentialPlatform.INSTAGRAM,
+  CredentialPlatform.LINKEDIN,
+  CredentialPlatform.MASTODON,
+  CredentialPlatform.PINTEREST,
+  CredentialPlatform.THREADS,
+  CredentialPlatform.TIKTOK,
+  CredentialPlatform.TWITTER,
+  CredentialPlatform.YOUTUBE,
+] as const;
+
+export function analyticsPostRefreshWorkflowId(
+  platform: CredentialPlatform,
+): string {
+  return `analytics.post-refresh.${platform}`;
+}
 
 @Injectable()
-export class AnalyticsSyncWorkflowService {
+export class AnalyticsSyncWorkflowService implements OnModuleInit {
   constructor(
     private readonly postsService: PostsService,
     private readonly collectionState: PostAnalyticsCollectionStateService,
@@ -74,7 +94,18 @@ export class AnalyticsSyncWorkflowService {
     private readonly youtubeCollection: AnalyticsYouTubeCollectionService,
     private readonly analyticsSync: AnalyticsSyncService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
   ) {}
+
+  onModuleInit(): void {
+    this.workflowRunner.registerWorkflow(this.definition('analytics-sync'));
+    this.workflowRunner.registerWorkflow(this.organizationRefreshDefinition());
+    for (const platform of ANALYTICS_POST_REFRESH_PLATFORMS) {
+      this.workflowRunner.registerWorkflow(
+        this.postRefreshDefinition(platform),
+      );
+    }
+  }
 
   async queueGenericSync(input: {
     brandId?: string;
@@ -83,8 +114,7 @@ export class AnalyticsSyncWorkflowService {
     userId?: string;
   }): Promise<QueuedAnalyticsWorkflowResult> {
     const definition = this.definition('analytics-sync');
-    const jobId = await this.workflowQueue.queueSystemWorkflowDefinition(
-      definition,
+    const jobId = await this.workflowQueue.queueSystemWorkflow(
       {
         actionType: definition.canonicalId,
         canonicalId: definition.canonicalId,
@@ -107,8 +137,7 @@ export class AnalyticsSyncWorkflowService {
     userId?: string;
   }): Promise<QueuedAnalyticsWorkflowResult> {
     const definition = this.organizationRefreshDefinition();
-    const jobId = await this.workflowQueue.queueSystemWorkflowDefinition(
-      definition,
+    const jobId = await this.workflowQueue.queueSystemWorkflow(
       {
         actionType: definition.canonicalId,
         canonicalId: definition.canonicalId,
@@ -129,12 +158,11 @@ export class AnalyticsSyncWorkflowService {
     postId: string;
     userId?: string;
   }): Promise<QueuedAnalyticsWorkflowResult> {
-    const definition = this.postRefreshDefinition(input.platform);
-    const jobId = await this.workflowQueue.queueSystemWorkflowDefinition(
-      definition,
+    const canonicalId = analyticsPostRefreshWorkflowId(input.platform);
+    const jobId = await this.workflowQueue.queueSystemWorkflow(
       {
-        actionType: definition.canonicalId,
-        canonicalId: definition.canonicalId,
+        actionType: canonicalId,
+        canonicalId,
         inputValues: { postId: input.postId },
         organizationId: input.organizationId,
         postIds: [input.postId],
@@ -144,7 +172,7 @@ export class AnalyticsSyncWorkflowService {
       `analytics-post-refresh-${input.postId}-${this.windowKey(HOUR_MS)}`,
       { attempts: 1 },
     );
-    return { jobId, workflowId: definition.canonicalId };
+    return { jobId, workflowId: canonicalId };
   }
 
   async discoverPosts(
@@ -435,7 +463,7 @@ export class AnalyticsSyncWorkflowService {
   ): SystemWorkflowGraphDefinition {
     const childWorkflowId = this.collectionWorkflowForPlatform(platform);
     return {
-      canonicalId: 'analytics.post-refresh',
+      canonicalId: analyticsPostRefreshWorkflowId(platform),
       definition: {
         edges: [
           {

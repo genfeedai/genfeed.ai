@@ -338,8 +338,7 @@ export class SocialInboxActionService implements OnModuleInit {
   ): Promise<SocialMessageDocument> {
     const definition = buildSocialInboxOutboundWorkflowDefinition(messageType);
     const { result } =
-      await this.systemWorkflowRunner.runWorkflowDefinition<SocialInboxOutboundWorkflowState>(
-        definition,
+      await this.systemWorkflowRunner.runWorkflow<SocialInboxOutboundWorkflowState>(
         {
           actionType: definition.canonicalId,
           canonicalId: definition.canonicalId,

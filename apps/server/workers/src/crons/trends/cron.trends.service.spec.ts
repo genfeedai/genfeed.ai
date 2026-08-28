@@ -1,276 +1,135 @@
-import { TrendsService } from '@server/collections/trends/services/trends.service';
-import { CacheService } from '@server/services/cache/cache.service';
+import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
+import { TrendsService } from '@server/collections/trends/services/trends.service';
+import {
+  TRENDS_MAINTENANCE_ACTION_IDS,
+  TRENDS_MAINTENANCE_WORKFLOW_IDS,
+} from '@server/collections/trends/services/trends-maintenance-workflow-definition';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { ConfigService } from '@workers/config/config.service';
 import { CronTrendsService } from '@workers/crons/trends/cron.trends.service';
 
+type CapturedAction = (request: {
+  input: Record<string, unknown>;
+}) => Promise<unknown> | unknown;
+
 describe('CronTrendsService', () => {
   let service: CronTrendsService;
-  let trendsService: vi.Mocked<TrendsService>;
-  let cacheService: vi.Mocked<CacheService>;
-  let loggerService: vi.Mocked<LoggerService>;
-  let configService: { isDevSchedulersEnabled: boolean };
+  let actions: Map<string, CapturedAction>;
+  let config: { isDevSchedulersEnabled: boolean };
+  let queue: { queueSystemWorkflow: ReturnType<typeof vi.fn> };
+  let cache: Record<string, ReturnType<typeof vi.fn>>;
+  let trends: Record<string, ReturnType<typeof vi.fn>>;
 
   beforeEach(async () => {
-    configService = {
-      isDevSchedulersEnabled: true,
+    actions = new Map();
+    config = { isDevSchedulersEnabled: true };
+    queue = {
+      queueSystemWorkflow: vi.fn().mockResolvedValue('job-1'),
     };
-
+    cache = {
+      claimOnce: vi.fn().mockResolvedValue('claimed'),
+      del: vi.fn().mockResolvedValue(true),
+      get: vi.fn().mockResolvedValue(null),
+      set: vi.fn().mockResolvedValue(true),
+    };
+    trends = {
+      fetchAndCacheHashtags: vi.fn().mockResolvedValue([]),
+      fetchAndCacheSounds: vi.fn().mockResolvedValue([]),
+      fetchAndCacheTrends: vi.fn().mockResolvedValue([{ id: 'trend-1' }]),
+      fetchAndCacheViralVideos: vi.fn().mockResolvedValue([]),
+      getGlobalCorpusStats: vi
+        .fn()
+        .mockResolvedValue({ activeTrends: 0, referenceRecords: 0 }),
+      markExpiredHashtagsAsHistorical: vi.fn().mockResolvedValue(0),
+      markExpiredSoundsAsHistorical: vi.fn().mockResolvedValue(0),
+      markExpiredTrendsAsHistorical: vi.fn().mockResolvedValue(0),
+      markExpiredVideosAsHistorical: vi.fn().mockResolvedValue(0),
+      precomputeGlobalTrendSourcePreview: vi.fn().mockResolvedValue({}),
+    };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CronTrendsService,
+        { provide: TrendsService, useValue: trends },
+        { provide: CacheService, useValue: cache },
+        { provide: ConfigService, useValue: config },
+        { provide: WorkflowExecutionQueueService, useValue: queue },
         {
-          provide: TrendsService,
+          provide: SystemWorkflowRunnerService,
           useValue: {
-            fetchAndCacheHashtags: vi.fn().mockResolvedValue([]),
-            fetchAndCacheSounds: vi.fn().mockResolvedValue([]),
-            fetchAndCacheTrends: vi
-              .fn()
-              .mockResolvedValue([{ id: 'trend-1' }, { id: 'trend-2' }]),
-            fetchAndCacheViralVideos: vi.fn().mockResolvedValue([]),
-            getGlobalCorpusStats: vi.fn().mockResolvedValue({
-              activeTrends: 0,
-              referenceRecords: 0,
+            registerAction: vi.fn((id: string, action: CapturedAction) => {
+              actions.set(id, action);
             }),
-            markExpiredHashtagsAsHistorical: vi.fn().mockResolvedValue(0),
-            markExpiredSoundsAsHistorical: vi.fn().mockResolvedValue(0),
-            markExpiredTrendsAsHistorical: vi.fn().mockResolvedValue(0),
-            markExpiredVideosAsHistorical: vi.fn().mockResolvedValue(0),
-          },
-        },
-        {
-          provide: CacheService,
-          useValue: {
-            claimOnce: vi.fn().mockResolvedValue('claimed'),
-            del: vi.fn().mockResolvedValue(true),
-            get: vi.fn().mockResolvedValue(null),
-            set: vi.fn().mockResolvedValue(true),
-            withLock: vi
-              .fn()
-              .mockImplementation(async (_key, fn) => await fn()),
+            registerWorkflow: vi.fn(),
           },
         },
         {
           provide: LoggerService,
-          useValue: {
-            debug: vi.fn(),
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
-        },
-        {
-          provide: ConfigService,
-          useValue: configService,
+          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
         },
       ],
     }).compile();
-
-    service = module.get<CronTrendsService>(CronTrendsService);
-    trendsService = module.get(TrendsService);
-    cacheService = module.get(CacheService);
-    loggerService = module.get(LoggerService);
+    service = module.get(CronTrendsService);
+    service.onModuleInit();
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  it('refreshGlobalTrends should execute trend refresh under lock', async () => {
-    await service.refreshGlobalTrends();
-
-    expect(cacheService.withLock).toHaveBeenCalled();
-    expect(trendsService.markExpiredTrendsAsHistorical).toHaveBeenCalled();
-    expect(trendsService.fetchAndCacheTrends).toHaveBeenCalledTimes(1);
-    expect(trendsService.fetchAndCacheSounds).toHaveBeenCalledTimes(1);
-    expect(loggerService.log).toHaveBeenCalledWith(
-      expect.stringContaining('completed'),
+  it('queues the immutable refresh graph with scheduled provenance', async () => {
+    await service.refreshGlobalTrends(new Date('2026-08-28T06:00:00.000Z'));
+    expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
-        trendsResults: expect.objectContaining({
-          global: 2,
-          instagram: 1,
-          tiktok: 1,
-          twitter: 1,
-        }),
+        canonicalId: TRENDS_MAINTENANCE_WORKFLOW_IDS.REFRESH,
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
       }),
+      'trends-refresh-2026-08-28',
+      { attempts: 3, replaceTerminalJob: true },
     );
+    expect(trends.fetchAndCacheTrends).not.toHaveBeenCalled();
   });
 
-  it('refreshGlobalTrends should skip when lock is already held', async () => {
-    cacheService.withLock.mockResolvedValueOnce(null);
-
-    await service.refreshGlobalTrends();
-
-    expect(loggerService.log).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'skipped - lock already held by another instance',
-      ),
+  it('retains preview warmup as an action-backed workflow step', async () => {
+    const action = actions.get(
+      TRENDS_MAINTENANCE_ACTION_IDS.PRECOMPUTE_PREVIEW,
     );
+    await action?.({ input: {} });
+    expect(trends.precomputeGlobalTrendSourcePreview).toHaveBeenCalledOnce();
   });
 
-  it('refreshGlobalTrends should skip when local schedulers are disabled', async () => {
-    configService.isDevSchedulersEnabled = false;
-
-    await service.refreshGlobalTrends();
-
-    expect(cacheService.withLock).not.toHaveBeenCalled();
-    expect(loggerService.log).toHaveBeenCalledWith(
-      expect.stringContaining('local schedulers disabled'),
-    );
-  });
-
-  it('backfillGlobalTrendCorpus should refresh when corpus is below threshold', async () => {
-    trendsService.getGlobalCorpusStats
-      .mockResolvedValueOnce({
-        activeTrends: 12,
-        referenceRecords: 18,
-      })
-      .mockResolvedValueOnce({
-        activeTrends: 54,
-        referenceRecords: 121,
-      });
-
-    await service.backfillGlobalTrendCorpus();
-
-    expect(cacheService.withLock).toHaveBeenCalled();
-    expect(trendsService.fetchAndCacheTrends).toHaveBeenCalledTimes(1);
-    expect(loggerService.log).toHaveBeenCalledWith(
-      expect.stringContaining('completed'),
+  it('retains the twice-daily warmup and startup backfill adapters', async () => {
+    await service.warmGlobalTrendDatasets(new Date('2026-08-28T12:15:00.000Z'));
+    service.onApplicationBootstrap();
+    await Promise.resolve();
+    expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
-        stats: expect.objectContaining({
-          activeTrends: 54,
-          referenceRecords: 121,
-        }),
+        canonicalId: TRENDS_MAINTENANCE_WORKFLOW_IDS.REFRESH,
       }),
+      expect.stringMatching(/^trends-warmup-/),
+      expect.anything(),
     );
-  });
-
-  it('backfillGlobalTrendCorpus should skip when corpus thresholds are satisfied', async () => {
-    trendsService.getGlobalCorpusStats.mockResolvedValueOnce({
-      activeTrends: 72,
-      referenceRecords: 180,
-    });
-
-    await service.backfillGlobalTrendCorpus();
-
-    expect(trendsService.fetchAndCacheTrends).not.toHaveBeenCalled();
-    expect(loggerService.log).toHaveBeenCalledWith(
-      expect.stringContaining('skipped - corpus thresholds already satisfied'),
+    expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
-        activeTrends: 72,
-        referenceRecords: 180,
+        canonicalId: TRENDS_MAINTENANCE_WORKFLOW_IDS.BACKFILL,
       }),
+      expect.stringMatching(/^trends-backfill-/),
+      expect.anything(),
     );
   });
 
-  it('backfillGlobalTrendCorpus should skip when local schedulers are disabled', async () => {
-    configService.isDevSchedulersEnabled = false;
+  it('retains backoff evaluation inside the registered action', async () => {
+    const action = actions.get(TRENDS_MAINTENANCE_ACTION_IDS.EVALUATE_BACKFILL);
+    await action?.({ input: {} });
+    expect(cache.claimOnce).toHaveBeenCalledWith(
+      expect.stringContaining('backfill'),
+      60 * 60,
+    );
+  });
 
+  it('does not queue when local schedulers are disabled', async () => {
+    config.isDevSchedulersEnabled = false;
+    await service.refreshGlobalTrends();
     await service.backfillGlobalTrendCorpus();
-
-    expect(cacheService.withLock).not.toHaveBeenCalled();
-    expect(loggerService.log).toHaveBeenCalledWith(
-      expect.stringContaining('local schedulers disabled'),
-    );
-  });
-  describe('backfillGlobalTrendCorpus back-off', () => {
-    const belowThreshold = { activeTrends: 4, referenceRecords: 6 };
-
-    it('should skip the scrape while the back-off window is still held', async () => {
-      trendsService.getGlobalCorpusStats.mockResolvedValue(belowThreshold);
-      cacheService.claimOnce.mockResolvedValueOnce('duplicate');
-
-      await service.backfillGlobalTrendCorpus();
-
-      expect(trendsService.fetchAndCacheTrends).not.toHaveBeenCalled();
-      expect(loggerService.log).toHaveBeenCalledWith(
-        expect.stringContaining('backing off'),
-        expect.anything(),
-      );
-    });
-
-    it('should claim the base back-off window on the first unproductive attempt', async () => {
-      trendsService.getGlobalCorpusStats.mockResolvedValue(belowThreshold);
-
-      await service.backfillGlobalTrendCorpus();
-
-      expect(cacheService.claimOnce).toHaveBeenCalledWith(
-        expect.stringContaining('backfill'),
-        60 * 60,
-      );
-    });
-
-    it('should escalate the back-off window after consecutive unproductive attempts', async () => {
-      trendsService.getGlobalCorpusStats.mockResolvedValue(belowThreshold);
-      cacheService.get.mockResolvedValueOnce(2);
-
-      await service.backfillGlobalTrendCorpus();
-
-      expect(cacheService.claimOnce).toHaveBeenCalledWith(
-        expect.stringContaining('backfill'),
-        4 * 60 * 60,
-      );
-    });
-
-    it('should cap the escalated back-off window', async () => {
-      trendsService.getGlobalCorpusStats.mockResolvedValue(belowThreshold);
-      cacheService.get.mockResolvedValueOnce(99);
-
-      await service.backfillGlobalTrendCorpus();
-
-      expect(cacheService.claimOnce).toHaveBeenCalledWith(
-        expect.stringContaining('backfill'),
-        12 * 60 * 60,
-      );
-    });
-
-    it('should record an unproductive attempt when the corpus does not grow', async () => {
-      trendsService.getGlobalCorpusStats.mockResolvedValue(belowThreshold);
-
-      await service.backfillGlobalTrendCorpus();
-
-      expect(cacheService.set).toHaveBeenCalledWith(
-        expect.stringContaining('backfill'),
-        1,
-        expect.objectContaining({ ttl: expect.any(Number) }),
-      );
-    });
-
-    it('should clear the back-off after a productive backfill', async () => {
-      trendsService.getGlobalCorpusStats
-        .mockResolvedValueOnce(belowThreshold)
-        .mockResolvedValueOnce({ activeTrends: 21, referenceRecords: 40 });
-
-      await service.backfillGlobalTrendCorpus();
-
-      expect(cacheService.del).toHaveBeenCalled();
-      expect(cacheService.set).not.toHaveBeenCalled();
-    });
-
-    it('should clear the back-off when the corpus thresholds are already satisfied', async () => {
-      trendsService.getGlobalCorpusStats.mockResolvedValueOnce({
-        activeTrends: 72,
-        referenceRecords: 180,
-      });
-
-      await service.backfillGlobalTrendCorpus();
-
-      expect(cacheService.claimOnce).not.toHaveBeenCalled();
-      expect(cacheService.del).toHaveBeenCalled();
-    });
-
-    it('should still run when the cache is unavailable', async () => {
-      trendsService.getGlobalCorpusStats.mockResolvedValue(belowThreshold);
-      cacheService.claimOnce.mockResolvedValueOnce('unavailable');
-
-      await service.backfillGlobalTrendCorpus();
-
-      expect(trendsService.fetchAndCacheTrends).toHaveBeenCalledTimes(1);
-    });
+    expect(queue.queueSystemWorkflow).not.toHaveBeenCalled();
   });
 });

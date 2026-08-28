@@ -26,6 +26,7 @@ import { CreateRssSourceDto } from '@server/collections/rss-sources/dto/create-r
 import { RssSourcesQueryDto } from '@server/collections/rss-sources/dto/rss-sources-query.dto';
 import { UpdateRssSourceDto } from '@server/collections/rss-sources/dto/update-rss-source.dto';
 import type { RssSourceScope } from '@server/collections/rss-sources/schemas/rss-source.schema';
+import { RssSourceWorkflowService } from '@server/collections/rss-sources/services/rss-source-workflow.service';
 import { RssSourcesService } from '@server/collections/rss-sources/services/rss-sources.service';
 import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@server/helpers/utils/auth/api-key-publishing-scope.util';
@@ -35,7 +36,10 @@ import type { Request } from 'express';
 @ApiTags('RssSources')
 @Controller('rss-sources')
 export class RssSourcesController {
-  constructor(private readonly rssSourcesService: RssSourcesService) {}
+  constructor(
+    private readonly rssSourcesService: RssSourcesService,
+    private readonly rssSourceWorkflowService: RssSourceWorkflowService,
+  ) {}
 
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -111,14 +115,17 @@ export class RssSourcesController {
   @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async poll(
-    @Req() request: Request,
     @CurrentUser() user: User,
     @Query() query: RssSourcesQueryDto,
     @Param('id') id: string,
   ) {
     const context = this.requireScope(user, query);
-    const rssSource = await this.rssSourcesService.pollSource(id, context);
-    return serializeSingle(request, RssSourceSerializer, rssSource);
+    await this.rssSourcesService.findOneScoped(id, context);
+    const jobId = await this.rssSourceWorkflowService.enqueueSource({
+      ...context,
+      sourceId: id,
+    });
+    return { jobId, status: 'queued' };
   }
 
   private requireScope(user: User, query?: RssSourcesQueryDto): RssSourceScope {

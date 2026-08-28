@@ -1,3 +1,8 @@
+import {
+  BRAND_REMIX_DOWNSTREAM_ACTION_IDS,
+  BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS,
+  buildBrandRemixMetaPausedDraftWorkflowDefinition,
+} from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
 import type {
   BrandRemixExecution,
   BrandRemixRunConfig,
@@ -14,7 +19,6 @@ import {
 } from '@nestjs/common';
 import { AdCreativeMappingsService } from '@server/collections/ad-creative-mappings/services/ad-creative-mappings.service';
 import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
   type SystemWorkflowProvenance,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
@@ -56,6 +60,31 @@ export interface PausedMetaCampaignDraftResult {
   workflowId: string;
 }
 
+type MetaCreative =
+  | { imageHash: string }
+  | { thumbnailUrl?: string; videoId: string };
+
+type MetaDraftState = {
+  adAccountId?: string;
+  adId?: string;
+  adName: string;
+  adSetId?: string;
+  adSetName: string;
+  campaignId?: string;
+  campaignName: string;
+  category: IngredientCategory;
+  creative?: MetaCreative;
+  hasExistingAd?: boolean;
+  ingredientId: string;
+  input: PausedMetaCampaignDraftInput;
+  mediaUrl: string;
+  pageId?: string;
+  postId: string;
+  replayed: boolean;
+  result?: PausedMetaCampaignDraftResult;
+  workflowLabel?: string;
+};
+
 @Injectable()
 export class PausedMetaCampaignDraftService implements OnModuleInit {
   constructor(
@@ -66,91 +95,83 @@ export class PausedMetaCampaignDraftService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
+    const actions = BRAND_REMIX_DOWNSTREAM_ACTION_IDS;
     this.systemWorkflowRunner.registerAction(
-      SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_PAUSED_META_DRAFT,
+      actions.META_VALIDATE_SOURCE,
+      ({ input }) =>
+        this.validateSource(input.request as PausedMetaCampaignDraftInput),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.META_RESOLVE_ACCOUNT,
+      ({ input }) => this.resolveAccount(input.state as MetaDraftState),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.META_ENSURE_CAMPAIGN,
+      ({ input }) => this.ensureCampaign(input.state as MetaDraftState),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.META_ENSURE_AD_SET,
+      ({ input }) => this.ensureAdSet(input.state as MetaDraftState),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.META_FIND_AD,
+      ({ input }) => this.findAd(input.state as MetaDraftState),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.META_PREPARE_CREATIVE,
+      ({ input }) => this.prepareCreative(this.unwrapState(input.state)),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.META_CREATE_AD,
+      ({ input }) => this.createAd(input.state as MetaDraftState),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.META_PAUSE_CAMPAIGN,
+      ({ input }) => this.pauseCampaign(this.unwrapState(input.state)),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.META_PAUSE_AD_SET,
+      ({ input }) => this.pauseAdSet(input.state as MetaDraftState),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.META_PAUSE_AD,
+      ({ input }) => this.pauseAd(input.state as MetaDraftState),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.META_PERSIST_MAPPING,
       ({ input, provenance }) =>
-        this.prepareAction(
-          input as unknown as PausedMetaCampaignDraftInput,
-          provenance,
-        ),
+        this.persistMapping(input.state as MetaDraftState, provenance),
+    );
+    this.systemWorkflowRunner.registerAction(
+      actions.META_PERSIST_LINEAGE,
+      ({ input }) => this.persistLineage(input.state as MetaDraftState),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildBrandRemixMetaPausedDraftWorkflowDefinition(),
     );
   }
 
   async prepare(
     input: PausedMetaCampaignDraftInput,
   ): Promise<PausedMetaCampaignDraftResult> {
-    return this.systemWorkflowRunner
-      .runAction<PausedMetaCampaignDraftResult>({
-        actionType: 'prepare-paused-meta-draft',
-        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_PAUSED_META_DRAFT,
-        inputValues: input as unknown as Record<string, unknown>,
-        organizationId: input.organizationId,
-        source: 'brand-remix-run',
-        userId: input.userId,
-      })
-      .then(({ result }) => result)
-      .catch((error: unknown) => {
-        if (error instanceof MetaGraphPaginationLimitError) {
-          throw new ConflictException(
-            'Meta replay lookup exceeded the safe pagination limit; no duplicate object was created.',
-          );
-        }
-        throw error;
-      });
+    const { result } =
+      await this.systemWorkflowRunner.runWorkflow<PausedMetaCampaignDraftResult>(
+        {
+          actionType: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.META_PAUSED_DRAFT,
+          canonicalId: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.META_PAUSED_DRAFT,
+          inputValues: { request: input },
+          organizationId: input.organizationId,
+          source: 'brand-remix-run',
+          userId: input.userId,
+        },
+      );
+    return result;
   }
 
-  private async prepareAction(
+  private async validateSource(
     input: PausedMetaCampaignDraftInput,
-    provenance: SystemWorkflowProvenance,
-  ): Promise<PausedMetaCampaignDraftResult> {
+  ): Promise<MetaDraftState> {
     this.assertHttpsUrl(input.linkUrl, 'campaign destination');
-    const credential = await this.prisma.credential.findFirst({
-      select: {
-        accessToken: true,
-        externalId: true,
-        grantedScopes: true,
-        grantedScopesCapturedAt: true,
-        id: true,
-      },
-      where: {
-        brandId: input.brandId,
-        id: input.credentialId,
-        isConnected: true,
-        isDeleted: false,
-        organizationId: input.organizationId,
-        platform: CredentialPlatform.FACEBOOK,
-      },
-    });
-    if (!credential?.accessToken || !credential.externalId) {
-      throw new BadRequestException(
-        'The selected Meta credential or connected Page is unavailable.',
-      );
-    }
-    if (
-      !credential.grantedScopesCapturedAt ||
-      !credential.grantedScopes.includes('ads_management')
-    ) {
-      throw new BadRequestException(
-        'The selected Meta credential requires ads_management. Reconnect Meta and grant ads access.',
-      );
-    }
-    const accessToken = EncryptionUtil.decrypt(credential.accessToken);
-    const accounts = await this.metaAdsService.getAdAccounts(accessToken);
-    const selectedAccount = accounts.find(
-      (account) =>
-        account.id === input.adAccountId ||
-        `act_${account.id}` === input.adAccountId ||
-        account.id === input.adAccountId.replace(/^act_/, ''),
-    );
-    if (!selectedAccount) {
-      throw new BadRequestException(
-        'The selected Meta ad account is unavailable for this credential.',
-      );
-    }
-    const resolvedAdAccountId = selectedAccount.id.startsWith('act_')
-      ? selectedAccount.id
-      : `act_${selectedAccount.id}`;
-
     const post = await this.prisma.post.findFirst({
       select: { id: true },
       where: scopedWhere(input.organizationId, {
@@ -184,165 +205,339 @@ export class PausedMetaCampaignDraftService implements OnModuleInit {
       throw new ConflictException('The approved media output is not ready.');
     }
     this.assertHttpsUrl(ingredient.cdnUrl, 'approved media');
-    const mediaUrl = ingredient.cdnUrl;
-    const pageId = credential.externalId;
-
     const suffix = `${input.runId}-${input.config.revision}-${input.variant.id}`;
     const campaignName = `Genfeed Remix ${suffix}`;
-    const adSetName = `${campaignName} Ad Set`;
-    const adName = `${campaignName} Ad`;
-    const campaigns = await this.metaAdsService.listCampaigns(
-      accessToken,
-      resolvedAdAccountId,
-      { limit: 1, name: campaignName },
-    );
-    const existingCampaign = campaigns.find(
-      (campaign) => campaign.name === campaignName,
-    );
-    let replayed = Boolean(existingCampaign);
-    const campaignId =
-      existingCampaign?.id ??
-      (await this.metaAdsService.createCampaign(
-        accessToken,
-        resolvedAdAccountId,
-        {
-          dailyBudget: PAUSED_DRAFT_DAILY_BUDGET,
-          name: campaignName,
-          objective: 'OUTCOME_TRAFFIC',
-          specialAdCategories: [],
-          status: 'PAUSED',
-        },
-      ));
+    return {
+      adName: `${campaignName} Ad`,
+      adSetName: `${campaignName} Ad Set`,
+      campaignName,
+      category: ingredient.category as IngredientCategory,
+      ingredientId,
+      input,
+      mediaUrl: ingredient.cdnUrl,
+      postId: post.id,
+      replayed: false,
+    };
+  }
 
+  private async resolveAccount(state: MetaDraftState): Promise<MetaDraftState> {
+    const credential = await this.loadCredential(state.input);
+    const accounts = await this.metaAdsService.getAdAccounts(
+      credential.accessToken,
+    );
+    const selected = accounts.find(
+      (account) =>
+        account.id === state.input.adAccountId ||
+        `act_${account.id}` === state.input.adAccountId ||
+        account.id === state.input.adAccountId.replace(/^act_/, ''),
+    );
+    if (!selected) {
+      throw new BadRequestException(
+        'The selected Meta ad account is unavailable for this credential.',
+      );
+    }
+    return {
+      ...state,
+      adAccountId: selected.id.startsWith('act_')
+        ? selected.id
+        : `act_${selected.id}`,
+      pageId: credential.pageId,
+    };
+  }
+
+  private async ensureCampaign(state: MetaDraftState): Promise<MetaDraftState> {
+    const accessToken = await this.loadAccessToken(state.input);
+    const adAccountId = this.required(state.adAccountId, 'Meta ad account');
+    const campaigns = await this.withPaginationGuard(() =>
+      this.metaAdsService.listCampaigns(accessToken, adAccountId, {
+        limit: 1,
+        name: state.campaignName,
+      }),
+    );
+    const existing = campaigns.find(
+      (campaign) => campaign.name === state.campaignName,
+    );
+    const campaignId =
+      existing?.id ??
+      (await this.metaAdsService.createCampaign(accessToken, adAccountId, {
+        dailyBudget: PAUSED_DRAFT_DAILY_BUDGET,
+        name: state.campaignName,
+        objective: 'OUTCOME_TRAFFIC',
+        specialAdCategories: [],
+        status: 'PAUSED',
+      }));
+    return {
+      ...state,
+      campaignId,
+      replayed: state.replayed || Boolean(existing),
+    };
+  }
+
+  private async ensureAdSet(state: MetaDraftState): Promise<MetaDraftState> {
+    const accessToken = await this.loadAccessToken(state.input);
+    const adAccountId = this.required(state.adAccountId, 'Meta ad account');
+    const campaignId = this.required(state.campaignId, 'Meta campaign');
     const adSets = await this.metaAdsService.listAdSets(
       accessToken,
-      resolvedAdAccountId,
+      adAccountId,
       campaignId,
-      { name: adSetName },
+      { name: state.adSetName },
     );
-    const existingAdSet = adSets.find((adSet) => adSet.name === adSetName);
-    replayed ||= Boolean(existingAdSet);
+    const existing = adSets.find((adSet) => adSet.name === state.adSetName);
     const adSetId =
-      existingAdSet?.id ??
-      (await this.metaAdsService.createAdSet(accessToken, resolvedAdAccountId, {
+      existing?.id ??
+      (await this.metaAdsService.createAdSet(accessToken, adAccountId, {
         billingEvent: 'IMPRESSIONS',
         campaignId,
-        name: adSetName,
+        name: state.adSetName,
         optimizationGoal: 'LINK_CLICKS',
         targeting: { geoLocations: { countries: ['US'] } },
       }));
+    return { ...state, adSetId, replayed: state.replayed || Boolean(existing) };
+  }
 
+  private async findAd(state: MetaDraftState): Promise<MetaDraftState> {
+    const accessToken = await this.loadAccessToken(state.input);
     const ads = await this.metaAdsService.listAds(
       accessToken,
-      resolvedAdAccountId,
-      adSetId,
-      { name: adName },
+      this.required(state.adAccountId, 'Meta ad account'),
+      this.required(state.adSetId, 'Meta ad set'),
+      { name: state.adName },
     );
-    const existingAd = ads.find((ad) => ad.name === adName);
-    replayed ||= Boolean(existingAd);
-    let adId = existingAd?.id;
-    if (!adId) {
-      const creative = await (async () => {
-        if (ingredient.category === IngredientCategory.IMAGE) {
-          return this.metaAdsService.uploadAdImage(
-            accessToken,
-            resolvedAdAccountId,
-            mediaUrl,
-          );
-        }
-        const uploadedVideos = await this.metaAdsService.listAdVideos(
-          accessToken,
-          resolvedAdAccountId,
-          { allPages: true },
-        );
-        const existingVideo = uploadedVideos.find(
-          (video) => video.title === adName,
-        );
-        replayed ||= Boolean(existingVideo);
-        return (
-          (existingVideo ? { videoId: existingVideo.id } : undefined) ??
-          (await this.metaAdsService.uploadAdVideo(
-            accessToken,
-            resolvedAdAccountId,
-            mediaUrl,
-            adName,
-          ))
-        );
-      })();
-      const thumbnailUrl =
-        'videoId' in creative
-          ? await this.metaAdsService.getAdVideoThumbnailUrl(
-              accessToken,
-              creative.videoId,
-            )
-          : undefined;
-      adId = await this.metaAdsService.createAd(
-        accessToken,
-        resolvedAdAccountId,
-        {
-          adSetId,
-          creative: {
-            body: input.config.draft.intent.objective,
-            callToAction: 'LEARN_MORE',
-            ...('hash' in creative
-              ? { imageHash: creative.hash }
-              : { thumbnailUrl, videoId: creative.videoId }),
-            linkUrl: input.linkUrl,
-            pageId,
-            title: input.config.draft.intent.hook,
-          },
-          name: adName,
-        },
-      );
-    }
-    await Promise.all([
-      this.metaAdsService.pauseCampaign(accessToken, campaignId),
-      this.metaAdsService.pauseAdSet(accessToken, adSetId),
-      this.metaAdsService.pauseAd(accessToken, adId),
-    ]);
-
-    const result: PausedMetaCampaignDraftResult = {
-      adAccountId: resolvedAdAccountId,
-      adId,
-      adSetId,
-      campaignId,
-      credentialId: input.credentialId,
-      ingredientId,
-      postId: post.id,
-      recipeRevision: input.config.revision,
-      recipeVersion: 1,
-      replayed,
-      status: 'PAUSED',
-      variantId: input.variant.id,
-      workflowExecutionId: provenance.executionId,
-      workflowId: provenance.workflowId,
+    const existing = ads.find((ad) => ad.name === state.adName);
+    return {
+      ...state,
+      ...(existing ? { adId: existing.id } : {}),
+      hasExistingAd: Boolean(existing),
+      replayed: state.replayed || Boolean(existing),
     };
-    const existingMapping =
-      await this.adCreativeMappingsService.findByContentId(
-        ingredientId,
-        input.organizationId,
+  }
+
+  private async prepareCreative(
+    state: MetaDraftState,
+  ): Promise<MetaDraftState> {
+    const accessToken = await this.loadAccessToken(state.input);
+    const adAccountId = this.required(state.adAccountId, 'Meta ad account');
+    if (state.category === IngredientCategory.IMAGE) {
+      const uploaded = await this.metaAdsService.uploadAdImage(
+        accessToken,
+        adAccountId,
+        state.mediaUrl,
       );
-    if (existingMapping.length === 0) {
+      return { ...state, creative: { imageHash: uploaded.hash } };
+    }
+    const videos = await this.withPaginationGuard(() =>
+      this.metaAdsService.listAdVideos(accessToken, adAccountId, {
+        allPages: true,
+      }),
+    );
+    const existing = videos.find((video) => video.title === state.adName);
+    const videoId = existing
+      ? existing.id
+      : (
+          await this.metaAdsService.uploadAdVideo(
+            accessToken,
+            adAccountId,
+            state.mediaUrl,
+            state.adName,
+          )
+        ).videoId;
+    const thumbnailUrl = await this.metaAdsService.getAdVideoThumbnailUrl(
+      accessToken,
+      videoId,
+    );
+    return {
+      ...state,
+      creative: { thumbnailUrl, videoId },
+      replayed: state.replayed || Boolean(existing),
+    };
+  }
+
+  private async createAd(state: MetaDraftState): Promise<MetaDraftState> {
+    const accessToken = await this.loadAccessToken(state.input);
+    const creative = state.creative;
+    if (!creative) throw new Error('Meta creative is missing');
+    const adId = await this.metaAdsService.createAd(
+      accessToken,
+      this.required(state.adAccountId, 'Meta ad account'),
+      {
+        adSetId: this.required(state.adSetId, 'Meta ad set'),
+        creative: {
+          body: state.input.config.draft.intent.objective,
+          callToAction: 'LEARN_MORE',
+          ...('imageHash' in creative
+            ? { imageHash: creative.imageHash }
+            : {
+                thumbnailUrl: creative.thumbnailUrl,
+                videoId: creative.videoId,
+              }),
+          linkUrl: state.input.linkUrl,
+          pageId: this.required(state.pageId, 'Meta Page'),
+          title: state.input.config.draft.intent.hook,
+        },
+        name: state.adName,
+      },
+    );
+    return { ...state, adId };
+  }
+
+  private async pauseCampaign(state: MetaDraftState): Promise<MetaDraftState> {
+    await this.metaAdsService.pauseCampaign(
+      await this.loadAccessToken(state.input),
+      this.required(state.campaignId, 'Meta campaign'),
+    );
+    return state;
+  }
+
+  private async pauseAdSet(state: MetaDraftState): Promise<MetaDraftState> {
+    await this.metaAdsService.pauseAdSet(
+      await this.loadAccessToken(state.input),
+      this.required(state.adSetId, 'Meta ad set'),
+    );
+    return state;
+  }
+
+  private async pauseAd(state: MetaDraftState): Promise<MetaDraftState> {
+    await this.metaAdsService.pauseAd(
+      await this.loadAccessToken(state.input),
+      this.required(state.adId, 'Meta ad'),
+    );
+    return state;
+  }
+
+  private async persistMapping(
+    state: MetaDraftState,
+    provenance: SystemWorkflowProvenance,
+  ): Promise<MetaDraftState> {
+    const result = this.toResult(state, provenance);
+    const existing = await this.adCreativeMappingsService.findByContentId(
+      state.ingredientId,
+      state.input.organizationId,
+    );
+    if (existing.length === 0) {
       await this.adCreativeMappingsService.create({
-        adAccountId: resolvedAdAccountId,
-        brandId: input.brandId,
+        adAccountId: result.adAccountId,
+        brandId: state.input.brandId,
         externalAdId: result.adId,
-        genfeedContentId: ingredientId,
+        genfeedContentId: state.ingredientId,
         metadata: { ...result },
-        organizationId: input.organizationId,
+        organizationId: state.input.organizationId,
         platform: 'meta',
         status: 'paused',
       });
     }
+    return { ...state, result, workflowLabel: provenance.workflowLabel };
+  }
+
+  private async persistLineage(
+    state: MetaDraftState,
+  ): Promise<PausedMetaCampaignDraftResult> {
+    const result = state.result;
+    if (!result) throw new Error('Meta draft result is missing');
     await this.prisma.post.updateMany({
       data: {
-        sourceWorkflowId: provenance.workflowId,
-        sourceWorkflowName: provenance.workflowLabel,
-        workflowExecutionId: provenance.executionId,
+        sourceWorkflowId: result.workflowId,
+        sourceWorkflowName: state.workflowLabel,
+        workflowExecutionId: result.workflowExecutionId,
       },
-      where: scopedWhere(input.organizationId, { id: post.id }),
+      where: scopedWhere(state.input.organizationId, { id: state.postId }),
     });
     return result;
+  }
+
+  private toResult(
+    state: MetaDraftState,
+    provenance: SystemWorkflowProvenance,
+  ): PausedMetaCampaignDraftResult {
+    return {
+      adAccountId: this.required(state.adAccountId, 'Meta ad account'),
+      adId: this.required(state.adId, 'Meta ad'),
+      adSetId: this.required(state.adSetId, 'Meta ad set'),
+      campaignId: this.required(state.campaignId, 'Meta campaign'),
+      credentialId: state.input.credentialId,
+      ingredientId: state.ingredientId,
+      postId: state.postId,
+      recipeRevision: state.input.config.revision,
+      recipeVersion: 1,
+      replayed: state.replayed,
+      status: 'PAUSED',
+      variantId: state.input.variant.id,
+      workflowExecutionId: provenance.executionId,
+      workflowId: provenance.workflowId,
+    };
+  }
+
+  private async loadCredential(input: PausedMetaCampaignDraftInput): Promise<{
+    accessToken: string;
+    pageId: string;
+  }> {
+    const credential = await this.prisma.credential.findFirst({
+      select: {
+        accessToken: true,
+        externalId: true,
+        grantedScopes: true,
+        grantedScopesCapturedAt: true,
+        id: true,
+      },
+      where: {
+        brandId: input.brandId,
+        id: input.credentialId,
+        isConnected: true,
+        isDeleted: false,
+        organizationId: input.organizationId,
+        platform: CredentialPlatform.FACEBOOK,
+      },
+    });
+    if (!credential?.accessToken || !credential.externalId) {
+      throw new BadRequestException(
+        'The selected Meta credential or connected Page is unavailable.',
+      );
+    }
+    if (
+      !credential.grantedScopesCapturedAt ||
+      !credential.grantedScopes.includes('ads_management')
+    ) {
+      throw new BadRequestException(
+        'The selected Meta credential requires ads_management. Reconnect Meta and grant ads access.',
+      );
+    }
+    return {
+      accessToken: EncryptionUtil.decrypt(credential.accessToken),
+      pageId: credential.externalId,
+    };
+  }
+
+  private async loadAccessToken(
+    input: PausedMetaCampaignDraftInput,
+  ): Promise<string> {
+    return (await this.loadCredential(input)).accessToken;
+  }
+
+  private async withPaginationGuard<T>(
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await operation();
+    } catch (error: unknown) {
+      if (error instanceof MetaGraphPaginationLimitError) {
+        throw new ConflictException(
+          'Meta replay lookup exceeded the safe pagination limit; no duplicate object was created.',
+        );
+      }
+      throw error;
+    }
+  }
+
+  private required(value: string | undefined, label: string): string {
+    if (!value) throw new Error(`${label} is missing`);
+    return value;
+  }
+
+  private unwrapState(value: unknown): MetaDraftState {
+    if (value && typeof value === 'object' && 'data' in value) {
+      return (value as { data: MetaDraftState }).data;
+    }
+    return value as MetaDraftState;
   }
 
   private assertHttpsUrl(url: string, label: string): void {

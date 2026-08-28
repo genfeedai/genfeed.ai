@@ -145,35 +145,35 @@ describe('WorkflowExecutionQueueService', () => {
     });
   });
 
-  describe('queueSystemWorkflowDefinition', () => {
-    it('queues the immutable graph and its runtime input as a workflow job', async () => {
-      const definition = {
-        canonicalId: 'clip-continuity:v1:1',
-        definition: { edges: [], inputVariables: [], nodes: [] },
-        description: 'Continuity',
-        label: 'Continuity',
-        resultNodeId: 'persist',
-      };
+  describe('queueSystemWorkflow', () => {
+    it('queues registered workflow identity and runtime input without a graph', async () => {
       const input = {
         actionType: 'clip-continuity',
-        canonicalId: definition.canonicalId,
+        canonicalId: 'clip-continuity:v1:1',
         inputValues: { projectId: 'project-1' },
         organizationId: 'org-1',
         source: 'clip-generation-completion',
       };
 
       await expect(
-        service.queueSystemWorkflowDefinition(
-          definition,
-          input,
-          'clip-continuity-project-1',
-        ),
+        service.queueSystemWorkflow(input, 'clip-continuity-project-1', {
+          failureWorkflow: {
+            canonicalId: 'clip.continuity.failure',
+            inputValues: { projectId: 'project-1' },
+          },
+        }),
       ).resolves.toBe('job-123');
       expect(mockQueue.add).toHaveBeenCalledWith(
         'system-run',
         {
           actionContext: { origin: ActionOrigin.UNKNOWN },
-          systemRun: { definition, input },
+          systemRun: {
+            failureWorkflow: {
+              canonicalId: 'clip.continuity.failure',
+              inputValues: { projectId: 'project-1' },
+            },
+            input,
+          },
           type: 'system-run',
         },
         expect.objectContaining({
@@ -184,72 +184,22 @@ describe('WorkflowExecutionQueueService', () => {
     });
 
     it('supports durable delayed child workflow dispatch', async () => {
-      const definition = {
-        canonicalId: 'campaign-reply-target',
-        definition: { edges: [], inputVariables: [], nodes: [] },
-        description: 'Reply to one target',
-        label: 'Campaign Reply Target',
-        resultNodeId: 'finalize',
-      };
       const input = {
-        actionType: definition.canonicalId,
-        canonicalId: definition.canonicalId,
+        actionType: 'campaign-reply-target',
+        canonicalId: 'campaign-reply-target',
         inputValues: { targetId: 'target-1' },
         organizationId: 'org-1',
         source: 'workflow.for-each',
       };
 
-      await service.queueSystemWorkflowDefinition(
-        definition,
-        input,
-        'campaign-target-1',
-        { delayMs: 30_000 },
-      );
+      await service.queueSystemWorkflow(input, 'campaign-target-1', {
+        delayMs: 30_000,
+      });
 
       expect(mockQueue.add).toHaveBeenCalledWith(
         'system-run',
         expect.anything(),
         expect.objectContaining({ delay: 30_000 }),
-      );
-    });
-
-    it('wraps a queued action in the canonical immutable action graph', async () => {
-      await service.queueSystemAction(
-        {
-          actionType: 'rss-source-poll',
-          canonicalId: 'rss-source-poll',
-          inputValues: { sourceId: 'source-1' },
-          organizationId: 'org-1',
-          source: 'rss_autopost_sweep',
-        },
-        'rss-source-poll-source-1-123',
-      );
-
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        'system-run',
-        expect.objectContaining({
-          systemRun: expect.objectContaining({
-            definition: expect.objectContaining({
-              canonicalId: 'rss-source-poll',
-              definition: expect.objectContaining({
-                nodes: [
-                  expect.objectContaining({
-                    data: expect.objectContaining({
-                      config: expect.objectContaining({
-                        actionId: 'rss-source-poll',
-                      }),
-                    }),
-                    type: 'genfeedAction',
-                  }),
-                ],
-              }),
-            }),
-            input: expect.objectContaining({
-              inputValues: { payload: { sourceId: 'source-1' } },
-            }),
-          }),
-        }),
-        expect.objectContaining({ jobId: 'rss-source-poll-source-1-123' }),
       );
     });
   });

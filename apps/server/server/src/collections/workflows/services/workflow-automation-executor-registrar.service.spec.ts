@@ -43,7 +43,6 @@ describe('WorkflowAutomationExecutorRegistrarService — winner promotion', () =
       undefined,
       undefined,
       undefined,
-      undefined,
       winnerPromotionWorkflowService as never,
     ).register(engine);
     return engine;
@@ -144,7 +143,6 @@ describe('WorkflowAutomationExecutorRegistrarService — paid creative research'
       undefined,
       undefined,
       undefined,
-      undefined,
       paidCreativeResearchWorkflowService as never,
     ).register(engine);
     return engine;
@@ -237,7 +235,6 @@ describe('WorkflowAutomationExecutorRegistrarService — outreach campaign dispa
     const engine = new WorkflowEngine();
     new WorkflowAutomationExecutorRegistrarService(
       helper,
-      undefined,
       undefined,
       undefined,
       undefined,

@@ -126,16 +126,13 @@ export class ContentOrchestrationService {
     this.validateSteps(config.steps);
     const definition = buildContentPipelineWorkflowDefinition(config);
     const { result } =
-      await this.systemWorkflowRunner.runWorkflowDefinition<PipelineResultV2>(
-        definition,
-        {
-          actionType: 'content-pipeline',
-          canonicalId: definition.canonicalId,
-          organizationId: config.organizationId,
-          source: 'content-pipeline',
-          userId: config.userId,
-        },
-      );
+      await this.systemWorkflowRunner.runWorkflow<PipelineResultV2>({
+        actionType: 'content-pipeline',
+        canonicalId: definition.canonicalId,
+        organizationId: config.organizationId,
+        source: 'content-pipeline',
+        userId: config.userId,
+      });
     return result;
   }
 

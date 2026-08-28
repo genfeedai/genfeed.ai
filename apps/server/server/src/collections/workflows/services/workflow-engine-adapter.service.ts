@@ -36,7 +36,6 @@ import { SocialAdapterFactory } from '@server/collections/workflows/services/ada
 import { YoutubeSocialAdapter } from '@server/collections/workflows/services/adapters/youtube-social.adapter';
 import { AgentAutopilotWorkflowService } from '@server/collections/workflows/services/agent-autopilot-workflow.service';
 import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
-import { CampaignOrchestrationWorkflowService } from '@server/collections/workflows/services/campaign-orchestration-workflow.service';
 import { ContentProductionWorkflowService } from '@server/collections/workflows/services/content-production-workflow.service';
 import { LivestreamBotWorkflowService } from '@server/collections/workflows/services/livestream-bot-workflow.service';
 import { OutreachCampaignDispatchWorkflowService } from '@server/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
@@ -121,8 +120,6 @@ export class WorkflowEngineAdapterService {
     private readonly adAutomationWorkflowService:
       | AdAutomationWorkflowService
       | undefined,
-    @Optional()
-    private readonly campaignOrchestrationWorkflowService?: CampaignOrchestrationWorkflowService,
     @Optional()
     private readonly agentAutopilotWorkflowService?: AgentAutopilotWorkflowService,
     @Inject(AnalyticsSyncWorkflowService)
@@ -228,7 +225,6 @@ export class WorkflowEngineAdapterService {
     const automationRegistrar = new WorkflowAutomationExecutorRegistrarService(
       helper,
       this.adAutomationWorkflowService,
-      this.campaignOrchestrationWorkflowService,
       this.agentAutopilotWorkflowService,
       this.analyticsSyncWorkflowService,
       this.contentProductionWorkflowService,
@@ -270,6 +266,10 @@ export class WorkflowEngineAdapterService {
     this.loggerService.debug(
       `${this.logContext} registered executor for ${nodeType}`,
     );
+  }
+
+  getRegisteredActionIds(): string[] {
+    return this.engine.getRegisteredActionIds();
   }
 
   convertToExecutableWorkflow(

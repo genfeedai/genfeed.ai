@@ -1,53 +1,19 @@
+import { AgentExecutionStatus, AgentRunStatus } from '@genfeedai/enums';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { TasksService } from '@server/collections/tasks/services/tasks.service';
-import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
-import type {
-  DecomposedSubtask,
-  TaskDecompositionResult,
-} from '@server/services/task-orchestration/interfaces/task-decomposition.interface';
-import { TaskDecompositionService } from '@server/services/task-orchestration/task-decomposition.service';
 import {
   WorkspaceTaskQualityAssessmentResult,
   WorkspaceTaskQualityService,
 } from '@server/services/task-orchestration/workspace-task-quality.service';
-import {
-  AgentExecutionStatus,
-  AgentExecutionTrigger,
-  AgentRunStatus,
-} from '@genfeedai/enums';
-import type { AgentRunJobData } from '@genfeedai/queue-contracts';
-import { LoggerService } from '@libs/logger/logger.service';
-import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
-
-export interface OrchestrateTaskParams {
-  /** Workspace task ID */
-  taskId: string;
-  /** Organization context (multi-tenancy) */
-  organizationId: string;
-  /** User who created the task */
-  userId: string;
-  /** The raw user request */
-  request: string;
-  /** Optional output type hint */
-  outputType?: string;
-  /** Target platforms */
-  platforms?: string[];
-  /** Brand ID (optional) */
-  brandId?: string;
-  /** Brand name for decomposition context */
-  brandName?: string;
-}
 
 @Injectable()
 export class TaskOrchestratorService {
   private readonly logContext = 'TaskOrchestratorService';
 
   constructor(
-    private readonly decompositionService: TaskDecompositionService,
     private readonly agentRunsService: AgentRunsService,
-    @Optional()
-    @Inject(forwardRef(() => AgentRunQueueService))
-    private readonly agentRunQueueService: AgentRunQueueService,
     private readonly tasksService: TasksService,
     private readonly workspaceTaskQualityService: WorkspaceTaskQualityService,
     private readonly logger: LoggerService,
@@ -73,107 +39,6 @@ export class TaskOrchestratorService {
       default:
         return AgentExecutionStatus.RUNNING;
     }
-  }
-
-  /**
-   * Main orchestration entry point.
-   * 1. Decompose the task via LLM
-   * 2. Create agent run records for each subtask
-   * 3. Enqueue runs to BullMQ
-   * 4. Update workspace task with linked run IDs and status
-   */
-  async orchestrate(params: OrchestrateTaskParams): Promise<void> {
-    const { taskId, organizationId, userId } = params;
-
-    if (!this.agentRunQueueService) {
-      this.logger.warn(
-        `${this.logContext}: AgentRunQueueService not available, skipping orchestration`,
-      );
-      return;
-    }
-
-    this.logger.log(`${this.logContext}: Orchestrating task ${taskId}`, {
-      organizationId,
-      taskId,
-    });
-
-    // 1. Decompose
-    const decomposition = await this.decompositionService.decompose(
-      {
-        brandName: params.brandName,
-        outputType: params.outputType,
-        platforms: params.platforms,
-        request: params.request,
-      },
-      organizationId,
-    );
-
-    this.logger.log(
-      `${this.logContext}: Decomposed into ${decomposition.subtasks.length} subtask(s)`,
-      { isSingleAgent: decomposition.isSingleAgent, taskId },
-    );
-
-    // 2. Mark task as in_progress with routing summary + decomposition
-    await this.tasksService.recordTaskEvent(
-      taskId,
-      organizationId,
-      userId,
-      {
-        payload: {
-          subtaskCount: decomposition.subtasks.length,
-          summary: decomposition.routingSummary,
-        },
-        type: 'task_started',
-      },
-      {
-        decomposition: {
-          isSingleAgent: decomposition.isSingleAgent,
-          subtasks: decomposition.subtasks.map((s) => ({
-            agentType: s.agentType,
-            brief: s.brief,
-            label: s.label,
-            order: s.order,
-          })),
-          summary: decomposition.routingSummary,
-        },
-        executionPathUsed: 'agent_orchestrator',
-        progress: {
-          activeRunCount: decomposition.subtasks.length,
-          message: 'Preparing agent runs for execution.',
-          percent: 5,
-          stage: 'orchestrating',
-        },
-        routingSummary: decomposition.routingSummary,
-        status: 'in_progress',
-      },
-    );
-
-    // 3. Create agent runs and enqueue
-    const runIds = await this.createAndEnqueueRuns(decomposition, params);
-
-    // 4. Link runs to workspace task
-    await this.tasksService.recordTaskEvent(
-      taskId,
-      organizationId,
-      userId,
-      {
-        payload: { runIds },
-        type: 'runs_linked',
-      },
-      {
-        linkedRunIds: runIds.map((id) => id),
-        progress: {
-          activeRunCount: runIds.length,
-          message: `Queued ${runIds.length} run${runIds.length === 1 ? '' : 's'} for execution.`,
-          percent: 10,
-          stage: 'queued',
-        },
-      },
-    );
-
-    this.logger.log(
-      `${this.logContext}: Task ${taskId} orchestrated with ${runIds.length} run(s)`,
-    );
   }
 
   /**
@@ -314,83 +179,6 @@ export class TaskOrchestratorService {
     this.logger.log(
       `${this.logContext}: Task ${task.id} rollup complete — ${hasFailures ? 'failed' : 'in_review'}`,
     );
-  }
-
-  private async createAndEnqueueRuns(
-    decomposition: TaskDecompositionResult,
-    params: OrchestrateTaskParams,
-  ): Promise<string[]> {
-    const runIds: string[] = [];
-
-    // Group by order for sequential execution
-    const orderGroups = new Map<number, DecomposedSubtask[]>();
-    for (const subtask of decomposition.subtasks) {
-      const group = orderGroups.get(subtask.order) ?? [];
-      group.push(subtask);
-      orderGroups.set(subtask.order, group);
-    }
-
-    for (const [, subtasks] of [...orderGroups.entries()].sort(
-      ([a], [b]) => a - b,
-    )) {
-      for (const subtask of subtasks) {
-        const runId = await this.createRunAndEnqueue(subtask, params);
-        runIds.push(runId);
-      }
-    }
-
-    return runIds;
-  }
-
-  private async createRunAndEnqueue(
-    subtask: DecomposedSubtask,
-    params: OrchestrateTaskParams,
-  ): Promise<string> {
-    // Create the agent run record
-    const run = await this.agentRunsService.create({
-      label: subtask.label,
-      metadata: {
-        workspaceTaskId: params.taskId,
-      },
-      objective: subtask.brief,
-      organizationId: params.organizationId,
-      trigger: AgentExecutionTrigger.EVENT,
-      userId: params.userId,
-    });
-
-    const runId = run.id.toString();
-
-    // Enqueue to BullMQ
-    const jobData: AgentRunJobData = {
-      agentType: subtask.agentType,
-      objective: subtask.brief,
-      organizationId: params.organizationId,
-      runId,
-      userId: params.userId,
-    };
-
-    await this.agentRunQueueService.queueRun(jobData);
-
-    await this.tasksService.recordTaskEvent(
-      params.taskId,
-      params.organizationId,
-      params.userId,
-      {
-        payload: {
-          agentType: subtask.agentType,
-          label: subtask.label,
-          runId,
-        },
-        type: 'run_queued',
-      },
-    );
-
-    this.logger.log(
-      `${this.logContext}: Created and enqueued run ${runId} (${subtask.agentType})`,
-      { agentType: subtask.agentType, label: subtask.label, runId },
-    );
-
-    return runId;
   }
 
   async handleRunStarted(runId: string, organizationId: string): Promise<void> {

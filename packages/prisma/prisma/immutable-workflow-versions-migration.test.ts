@@ -67,6 +67,13 @@ describe('immutable workflow version migration', () => {
     expect(migrationSource).toContain("'workflow.for-each'");
   });
 
+  it('converts legacy variable inputs to the canonical workflow input node', () => {
+    expect(migrationSource).toContain(
+      "node_type IN ('audioInput', 'imageInput', 'input-prompt', 'videoInput')",
+    );
+    expect(migrationSource).not.toContain("WHEN 'input-prompt' THEN 'prompt'");
+  });
+
   it('pins every existing execution to the migrated immutable version', () => {
     expect(migrationSource).toContain(
       'ALTER TABLE "workflow_executions" ADD COLUMN "workflowVersionId" TEXT',
@@ -96,6 +103,16 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
 
       const graphNodes = [
         { id: 'input_node', type: 'workflow-input' },
+        {
+          data: { config: { required: true, text: 'Write a fixture' } },
+          id: 'prompt_node',
+          type: 'input-prompt',
+        },
+        {
+          data: { config: { image: 'https://example.com/image.png' } },
+          id: 'image_input_node',
+          type: 'imageInput',
+        },
         {
           data: { config: { prompt: 'fixture prompt' } },
           id: 'video_node',
@@ -189,6 +206,30 @@ describePostgres('immutable workflow version migration on PostgreSQL', () => {
       expect(graphVersion?.graph.nodes).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ id: 'input_node', type: 'workflowInput' }),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              config: expect.objectContaining({
+                defaultValue: 'Write a fixture',
+                inputName: 'prompt_node',
+                inputType: 'text',
+                required: true,
+              }),
+            }),
+            id: 'prompt_node',
+            type: 'workflowInput',
+          }),
+          expect.objectContaining({
+            data: expect.objectContaining({
+              config: expect.objectContaining({
+                defaultValue: 'https://example.com/image.png',
+                inputName: 'image_input_node',
+                inputType: 'image',
+                required: false,
+              }),
+            }),
+            id: 'image_input_node',
+            type: 'workflowInput',
+          }),
           expect.objectContaining({
             data: expect.objectContaining({
               config: expect.objectContaining({ actionId: 'videoGen' }),

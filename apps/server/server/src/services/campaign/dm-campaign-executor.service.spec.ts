@@ -10,7 +10,7 @@ describe('DmCampaignExecutorService workflow boundary', () => {
   const runner = {
     registerAction: vi.fn(),
     registerWorkflow: vi.fn(),
-    runWorkflowDefinition: vi.fn(),
+    runWorkflow: vi.fn(),
   };
   const service = new DmCampaignExecutorService(
     { error: vi.fn(), log: vi.fn() } as never,
@@ -34,7 +34,7 @@ describe('DmCampaignExecutorService workflow boundary', () => {
   });
 
   it('durably dispatches pending targets through the batch workflow', async () => {
-    runner.runWorkflowDefinition.mockResolvedValueOnce({
+    runner.runWorkflow.mockResolvedValueOnce({
       result: { count: 2, results: [] },
     });
 
@@ -56,11 +56,9 @@ describe('DmCampaignExecutorService workflow boundary', () => {
       skipped: 0,
       successful: 0,
     });
-    expect(runner.runWorkflowDefinition).toHaveBeenCalledWith(
+    expect(runner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         canonicalId: 'campaign.dm.process-pending-targets',
-      }),
-      expect.objectContaining({
         inputValues: {
           request: {
             campaignId: 'campaign-1',

@@ -104,16 +104,22 @@ describe('Genfeed action registry', () => {
     expect(getActionDefinition('clip.continuity.persist-report')).toBeDefined();
   });
 
-  it('owns recurring product actions launched by system sweeps', () => {
+  it('owns atomic recurring-product actions launched by system sweeps', () => {
     expect(
       [
-        'engagement-rule-evaluation',
-        'review-gate-timeout',
-        'rss-source-poll',
-        'streak-maintenance',
-        'tiktok-status-reconciliation',
-        'youtube-comments-ingest',
-        'youtube-status-reconciliation',
+        'engagement.sweep.discover',
+        'engagement.sweep.evaluate',
+        'review-gate.timeout.discover',
+        'review-gate.timeout.resolve',
+        'rss.sweep.discover-sources',
+        'rss.source.fetch-items',
+        'streak.sweep.discover-organizations',
+        'streak.record.evaluate',
+        'tiktok.status.discover',
+        'tiktok.status.reconcile',
+        'youtube.comments.discover-credentials',
+        'youtube.status.discover-posts',
+        'youtube.status.reconcile',
       ].every((actionId) => getActionDefinition(actionId)),
     ).toBe(true);
   });
@@ -132,7 +138,8 @@ describe('Genfeed action registry', () => {
   it('owns the internal workflow artifact lifecycle actions', () => {
     for (const actionId of [
       'workflow.artifact.cleanup',
-      'workflow.artifact.cleanup-expired',
+      'workflow.artifact.cleanup-expired-scope',
+      'workflow.artifact.discover-expired',
       'workflow.artifact.promote',
       'workflow.artifact.register',
     ]) {
@@ -142,10 +149,16 @@ describe('Genfeed action registry', () => {
     }
   });
 
-  it('owns the generic workflow fan-out action', () => {
-    const definition = getActionDefinition('workflow.for-each');
-    expect(definition).toBeDefined();
-    expect(definition?.visibility).toBe('internal');
+  it('owns the generic and hidden-system tenant fan-out actions', () => {
+    for (const actionId of [
+      'workflow.for-each',
+      'workflow.for-each-tenant',
+      'workflow.run-child',
+    ]) {
+      const definition = getActionDefinition(actionId);
+      expect(definition).toBeDefined();
+      expect(definition?.visibility).toBe('internal');
+    }
   });
 
   it('hard-cuts YouTube transcription into atomic workflow actions', () => {

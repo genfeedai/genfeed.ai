@@ -1,10 +1,9 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
-import { AiInfluencerService } from '@server/services/ai-influencer/ai-influencer.service';
 import {
   GeneratePostDto,
   ListPostsQueryDto,
+  ScheduleDailyPostsDto,
 } from '@api/services/ai-influencer/dto/generate-post.dto';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -18,6 +17,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
+import { AiInfluencerService } from '@server/services/ai-influencer/ai-influencer.service';
+import { AiInfluencerWorkflowService } from '@server/services/ai-influencer/ai-influencer-workflow.service';
 
 @ApiTags('Admin / AI Influencer')
 @Controller('admin/ai-influencer')
@@ -25,6 +27,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 export class AiInfluencerController {
   constructor(
     private readonly aiInfluencerService: AiInfluencerService,
+    private readonly aiInfluencerWorkflow: AiInfluencerWorkflowService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -35,15 +38,14 @@ export class AiInfluencerController {
   })
   async generatePost(@Body() dto: GeneratePostDto) {
     try {
-      const result = await this.aiInfluencerService.generateDailyPost(
-        dto.personaSlug,
-        dto.platforms,
-        {
-          aspectRatio: dto.aspectRatio,
-          captionOverride: dto.caption,
-          promptOverride: dto.prompt,
-        },
-      );
+      const result = await this.aiInfluencerWorkflow.generatePost({
+        aspectRatio: dto.aspectRatio,
+        captionOverride: dto.caption,
+        organizationId: dto.organizationId,
+        personaSlug: dto.personaSlug,
+        platforms: dto.platforms,
+        promptOverride: dto.prompt,
+      });
 
       return {
         data: result,
@@ -63,14 +65,16 @@ export class AiInfluencerController {
   @ApiOperation({
     summary: 'Trigger daily schedule for all personas with autopilot enabled',
   })
-  async scheduleDailyPosts() {
+  async scheduleDailyPosts(@Body() dto: ScheduleDailyPostsDto) {
     try {
-      const results = await this.aiInfluencerService.scheduleDailyPosts();
+      const result = await this.aiInfluencerWorkflow.runDailyPosts(
+        dto.organizationId,
+      );
 
       return {
         data: {
-          results,
-          totalGenerated: results.length,
+          results: result.results,
+          totalGenerated: result.generated,
         },
         success: true,
       };

@@ -2,6 +2,11 @@ import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
+import {
+  buildWorkflowArtifactCleanupExecutionDefinition,
+  buildWorkflowArtifactCleanupSweepDefinition,
+  buildWorkflowArtifactExpiredScopeDefinition,
+} from '@server/collections/workflows/services/workflow-artifact-workflow-definition';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import {
   type SystemWorkflowActionRequest,
@@ -13,7 +18,8 @@ import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 export const WORKFLOW_ARTIFACT_ACTION_IDS = {
   CLEANUP: 'workflow.artifact.cleanup',
-  CLEANUP_EXPIRED: 'workflow.artifact.cleanup-expired',
+  CLEANUP_EXPIRED_SCOPE: 'workflow.artifact.cleanup-expired-scope',
+  DISCOVER_EXPIRED: 'workflow.artifact.discover-expired',
   PROMOTE: 'workflow.artifact.promote',
   REGISTER: 'workflow.artifact.register',
 } as const;
@@ -67,8 +73,27 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
       (request) => this.cleanupAction(request),
     );
     this.runner.registerAction(
-      WORKFLOW_ARTIFACT_ACTION_IDS.CLEANUP_EXPIRED,
-      () => this.cleanupExpiredAction(),
+      WORKFLOW_ARTIFACT_ACTION_IDS.DISCOVER_EXPIRED,
+      () => this.discoverExpiredAction(),
+    );
+    this.runner.registerAction(
+      WORKFLOW_ARTIFACT_ACTION_IDS.CLEANUP_EXPIRED_SCOPE,
+      ({ input }) => this.cleanupExpiredScope(input.request as CleanupScope),
+    );
+    this.runner.registerWorkflow(
+      buildWorkflowArtifactCleanupExecutionDefinition(
+        WORKFLOW_ARTIFACT_ACTION_IDS.CLEANUP,
+      ),
+    );
+    this.runner.registerWorkflow(
+      buildWorkflowArtifactExpiredScopeDefinition(
+        WORKFLOW_ARTIFACT_ACTION_IDS.CLEANUP_EXPIRED_SCOPE,
+      ),
+    );
+    this.runner.registerWorkflow(
+      buildWorkflowArtifactCleanupSweepDefinition(
+        WORKFLOW_ARTIFACT_ACTION_IDS.DISCOVER_EXPIRED,
+      ),
     );
   }
 
@@ -532,43 +557,21 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
     });
   }
 
-  private async cleanupExpiredAction(): Promise<{
-    deleted: number;
-    executions: number;
-    failed: number;
-    skipped: number;
-  }> {
+  private async discoverExpiredAction(): Promise<{ items: CleanupScope[] }> {
     const now = new Date();
     const scopes = await this.findExpiredExecutionScopes(now);
-    const totals = {
-      deleted: 0,
-      executions: scopes.length,
-      failed: 0,
-      skipped: 0,
-    };
-    for (const scope of scopes) {
-      try {
-        await this.applyTerminalRetention(scope);
-        const result = await this.cleanupExecution({
-          executionId: scope.executionId,
-          organizationId: scope.organizationId,
-          reason: 'ttl',
-          now,
-        });
-        totals.deleted += result.deleted;
-        totals.failed += result.failed;
-        totals.skipped += result.skipped;
-      } catch (error: unknown) {
-        totals.failed += 1;
-        this.logger.error('Expired workflow artifact scope cleanup failed', {
-          context: this.context,
-          error: this.errorMessage(error),
-          executionId: scope.executionId,
-          organizationId: scope.organizationId,
-        });
-      }
-    }
-    return totals;
+    return { items: scopes };
+  }
+
+  private async cleanupExpiredScope(scope: CleanupScope) {
+    const now = new Date();
+    await this.applyTerminalRetention(scope);
+    return this.cleanupExecution({
+      executionId: scope.executionId,
+      organizationId: scope.organizationId,
+      reason: 'ttl',
+      now,
+    });
   }
 
   private async queueCleanup(
@@ -576,10 +579,13 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
     reason: CleanupReason,
     jobIdentity: string,
   ): Promise<void> {
-    await this.workflowQueue.queueSystemAction(
+    const definition = buildWorkflowArtifactCleanupExecutionDefinition(
+      WORKFLOW_ARTIFACT_ACTION_IDS.CLEANUP,
+    );
+    await this.workflowQueue.queueSystemWorkflow(
       {
-        actionType: WORKFLOW_ARTIFACT_ACTION_IDS.CLEANUP,
-        canonicalId: WORKFLOW_ARTIFACT_ACTION_IDS.CLEANUP,
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
         inputValues: {
           reason,
           targetExecutionId: input.executionId,
@@ -595,6 +601,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
         userId: input.userId,
       },
       `${WORKFLOW_ARTIFACT_ACTION_IDS.CLEANUP}-${jobIdentity}`,
+      { attempts: 3, replaceTerminalJob: true },
     );
   }
 

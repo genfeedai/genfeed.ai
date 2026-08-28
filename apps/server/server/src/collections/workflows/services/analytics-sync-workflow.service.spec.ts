@@ -24,14 +24,15 @@ describe('AnalyticsSyncWorkflowService', () => {
     persistItem: vi.fn(),
     syncItemMemory: vi.fn(),
   };
-  const workflowQueue = { queueSystemWorkflowDefinition: vi.fn() };
+  const workflowQueue = { queueSystemWorkflow: vi.fn() };
+  const workflowRunner = { registerWorkflow: vi.fn() };
   let service: AnalyticsSyncWorkflowService;
 
   beforeEach(() => {
     vi.clearAllMocks();
     posts.findAll.mockResolvedValue({ docs: [] });
     collectionState.markPending.mockResolvedValue(undefined);
-    workflowQueue.queueSystemWorkflowDefinition.mockResolvedValue('job-1');
+    workflowQueue.queueSystemWorkflow.mockResolvedValue('job-1');
     service = new AnalyticsSyncWorkflowService(
       posts as never,
       collectionState as never,
@@ -41,6 +42,7 @@ describe('AnalyticsSyncWorkflowService', () => {
       youtube as never,
       analyticsSync as never,
       workflowQueue as never,
+      workflowRunner as never,
     );
   });
 
@@ -110,12 +112,28 @@ describe('AnalyticsSyncWorkflowService', () => {
     });
 
     expect(result).toEqual({ jobId: 'job-1', workflowId: 'analytics-sync' });
-    expect(workflowQueue.queueSystemWorkflowDefinition).toHaveBeenCalledWith(
-      expect.objectContaining({ canonicalId: 'analytics-sync' }),
+    expect(workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({ canonicalId: 'analytics-sync' }),
       expect.stringContaining('analytics-sync-org-1-all-'),
-      undefined,
       { attempts: 1, replaceTerminalJob: true },
+    );
+  });
+
+  it('registers every queued analytics workflow identity at bootstrap', () => {
+    service.onModuleInit();
+
+    expect(workflowRunner.registerWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({ canonicalId: 'analytics-sync' }),
+    );
+    expect(workflowRunner.registerWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalId: 'analytics.organization-refresh',
+      }),
+    );
+    expect(workflowRunner.registerWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalId: 'analytics.post-refresh.twitter',
+      }),
     );
   });
 

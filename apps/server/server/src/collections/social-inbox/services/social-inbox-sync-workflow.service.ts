@@ -26,6 +26,12 @@ export class SocialInboxSyncWorkflowService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
+    this.workflowRunner.registerWorkflow(
+      buildSocialInboxSyncWorkflowDefinition(
+        Platform.YOUTUBE,
+        SocialConversationType.COMMENT,
+      ),
+    );
     this.workflowRunner.registerAction(
       SOCIAL_INBOX_SYNC_ACTION_IDS.VALIDATE,
       (request) => this.validateAction(request),
@@ -83,8 +89,7 @@ export class SocialInboxSyncWorkflowService implements OnModuleInit {
       platform,
       conversationType,
     );
-    return this.workflowQueue.queueSystemWorkflowDefinition(
-      definition,
+    return this.workflowQueue.queueSystemWorkflow(
       {
         actionType: definition.canonicalId,
         canonicalId: definition.canonicalId,

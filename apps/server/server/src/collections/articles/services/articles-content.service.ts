@@ -10,43 +10,7 @@
  * This service encapsulates all AI-related content operations
  * to keep the main ArticlesService focused on CRUD operations.
  */
-import { TwitterThreadResponse } from '@server/collections/articles/dto/article-to-thread.dto';
-import {
-  ArticleGenerationType,
-  type EditArticleWithAIDto,
-  type GenerateArticlesDto,
-} from '@server/collections/articles/dto/generate-articles.dto';
-import { type ArticleDocument } from '@server/collections/articles/schemas/article.schema';
-import { ArticleContentPersistenceService } from '@server/collections/articles/services/article-content-persistence.service';
-import { ArticleReviewService } from '@server/collections/articles/services/article-review.service';
-import { ArticleTextGenerationService } from '@server/collections/articles/services/article-text-generation.service';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import type {
-  ArticleCreateFn,
-  ArticleCycleModelConfig,
-  ArticleGenerationDraft,
-  ArticleGenerationOrchestrationParams,
-  ArticleHarnessContext,
-  ArticleReviewRubric,
-  ParsedXArticleDrafts,
-  TextGenerationCharge,
-  XArticleContentMetadata,
-} from '@server/collections/articles/services/articles-content.types';
-import { buildTwitterThreadTweets } from '@server/collections/articles/utils/article-thread.util';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { AccountPublishingContextService } from '@server/collections/credentials/services/account-publishing-context.service';
-import { HarnessProfilesService } from '@server/collections/harness-profiles/services/harness-profiles.service';
-import type { PersonaDocument } from '@server/collections/personas/schemas/persona.schema';
-import { PersonasService } from '@server/collections/personas/services/personas.service';
-import { TemplatesService } from '@server/collections/templates/services/templates.service';
-import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
-import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
-import { TEXT_GENERATION_LIMITS } from '@server/constants/text-generation-limits.constant';
-import { ContentHarnessService } from '@server/services/harness/harness.service';
-import {
-  buildHarnessInput,
-  buildPromptBuilderBrandContext,
-} from '@server/services/harness/harness-brief.util';
+
 import {
   ArticleCategory,
   ArticleStatus,
@@ -64,10 +28,55 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { TwitterThreadResponse } from '@server/collections/articles/dto/article-to-thread.dto';
+import {
+  ArticleGenerationType,
+  type EditArticleWithAIDto,
+  type GenerateArticlesDto,
+} from '@server/collections/articles/dto/generate-articles.dto';
+import { type ArticleDocument } from '@server/collections/articles/schemas/article.schema';
+import { ArticleContentPersistenceService } from '@server/collections/articles/services/article-content-persistence.service';
+import { ArticleReviewService } from '@server/collections/articles/services/article-review.service';
+import { ArticleTextGenerationService } from '@server/collections/articles/services/article-text-generation.service';
+import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import type {
+  ArticleCreateFn,
+  ArticleCycleModelConfig,
+  ArticleExistingReviewContext,
+  ArticleGenerationContext,
+  ArticleGenerationDraft,
+  ArticleGenerationReviewState,
+  ArticleGenerationRevisionState,
+  ArticleGenerationWorkItem,
+  ArticleHarnessContext,
+  ArticleReviewRubric,
+  ParsedXArticleDrafts,
+  XArticleContentMetadata,
+} from '@server/collections/articles/services/articles-content.types';
+import { buildTwitterThreadTweets } from '@server/collections/articles/utils/article-thread.util';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { AccountPublishingContextService } from '@server/collections/credentials/services/account-publishing-context.service';
+import { HarnessProfilesService } from '@server/collections/harness-profiles/services/harness-profiles.service';
+import type { PersonaDocument } from '@server/collections/personas/schemas/persona.schema';
+import { PersonasService } from '@server/collections/personas/services/personas.service';
+import { TemplatesService } from '@server/collections/templates/services/templates.service';
+import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
+import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
+import { TEXT_GENERATION_LIMITS } from '@server/constants/text-generation-limits.constant';
+import { ContentHarnessService } from '@server/services/harness/harness.service';
+import {
+  buildHarnessInput,
+  buildPromptBuilderBrandContext,
+} from '@server/services/harness/harness-brief.util';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export type {
   ArticleCycleModelConfig,
+  ArticleExistingReviewContext,
+  ArticleGenerationContext,
+  ArticleGenerationReviewState,
+  ArticleGenerationRevisionState,
+  ArticleGenerationWorkItem,
   ArticleReviewRubric,
 } from '@server/collections/articles/services/articles-content.types';
 
@@ -155,167 +164,182 @@ export class ArticlesContentService {
     });
   }
 
-  /**
-   * Generate articles using OpenAI assistant - ASYNC pattern (like video generation)
-   * Creates article placeholders immediately with PROCESSING status, then updates via polling
-   */
-  async generateArticles(
+  async prepareGeneration(
     generateDto: GenerateArticlesDto,
     userId: string,
     organizationId: string,
     brandId: string,
     modelConfig: ArticleCycleModelConfig,
-    createArticleFn: ArticleCreateFn,
-    onBilling?: (charge: TextGenerationCharge) => void,
-  ): Promise<ArticleDocument[]> {
-    try {
-      this.logger.debug(`${this.constructorName} generateArticles`, {
-        generateDto,
-      });
-
-      const createdArticles = await this.runArticleGenerationOrchestration({
-        brandId,
-        category: generateDto.category || ArticleCategory.POST,
-        createArticleFn,
-        generateDto,
-        generationType: ArticleGenerationType.STANDARD,
-        harnessSourceLines: [
-          ...(generateDto.keywords?.map((keyword) => `keyword: ${keyword}`) ??
-            []),
-          ...(generateDto.tone ? [`tone: ${generateDto.tone}`] : []),
-        ],
-        maxCount: generateDto.count || 1,
-        modelConfig,
-        onBilling,
-        organizationId,
-        parseFailureLabel: 'Failed to parse article generation JSON',
-        startContext: {
-          count: generateDto.count || 1,
-          prompt: generateDto.prompt.substring(0, 50),
-        },
-        startMessage: 'Article generation started',
-        systemPromptTemplate: SystemPromptKey.ARTICLE,
-        templateKey: PromptTemplateKey.ARTICLE_GENERATE,
-        templateVariables: {
-          category: generateDto.category || '',
-          count: generateDto.count || 1,
-          keywords: generateDto.keywords?.join(', ') || '',
-          prompt: generateDto.prompt,
-        },
-        textPromptTemplate: PromptTemplateKey.TEXT_ARTICLE,
-        toDrafts: (response) =>
-          this.normalizeStandardGenerationDrafts(response),
-        userId,
-      });
-
-      this.logger.log(
-        `${this.constructorName} generation complete, created ${createdArticles.length} articles`,
-        { count: createdArticles.length },
-      );
-
-      return createdArticles;
-    } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} generateArticles failed`, {
-        error,
-        generateDto,
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Generate a long-form X Article using AI
-   * Creates a single structured article with sections, pull quotes, and metadata
-   */
-  async generateLongFormArticle(
-    generateDto: GenerateArticlesDto,
-    userId: string,
-    organizationId: string,
-    brandId: string,
-    modelConfig: ArticleCycleModelConfig,
-    createArticleFn: ArticleCreateFn,
-    onBilling?: (charge: TextGenerationCharge) => void,
-  ): Promise<ArticleDocument> {
-    try {
-      this.logger.debug(`${this.constructorName} generateLongFormArticle`, {
-        generateDto,
-      });
-
-      this.assertGenerationReady();
-
-      const accountPublishingContext =
-        await this.resolveArticleAccountPublishingContext({
+  ): Promise<ArticleGenerationContext> {
+    this.assertGenerationReady();
+    const generationType = generateDto.type || ArticleGenerationType.STANDARD;
+    const isXArticle = generationType === ArticleGenerationType.X_ARTICLE;
+    const accountPublishingContext = isXArticle
+      ? await this.resolveArticleAccountPublishingContext({
           brandId,
           credentialId: generateDto.credential,
           organizationId,
-          type: ArticleGenerationType.X_ARTICLE,
-        });
+          type: generationType,
+        })
+      : undefined;
+    const templateKey = isXArticle
+      ? PromptTemplateKey.X_ARTICLE_GENERATE
+      : PromptTemplateKey.ARTICLE_GENERATE;
+    const prompt = await this.renderGenerationPrompt(
+      templateKey,
+      isXArticle
+        ? {
+            keywords: generateDto.keywords?.join(', ') || '',
+            prompt: generateDto.prompt,
+            targetWordCount: generateDto.targetWordCount || 5000,
+            tone: generateDto.tone || 'authoritative',
+          }
+        : {
+            category: generateDto.category || '',
+            count: generateDto.count || 1,
+            keywords: generateDto.keywords?.join(', ') || '',
+            prompt: generateDto.prompt,
+          },
+      organizationId,
+    );
+    const harnessContext = await this.buildArticleHarnessContext({
+      brandId,
+      contentType: 'article',
+      objective: 'authority',
+      organizationId,
+      sourceLines: [
+        ...(accountPublishingContext?.promptHints ?? []),
+        ...(generateDto.keywords?.map((keyword) => `keyword: ${keyword}`) ??
+          []),
+        ...(generateDto.tone ? [`tone: ${generateDto.tone}`] : []),
+        ...(isXArticle
+          ? [`targetWordCount: ${generateDto.targetWordCount || 5000}`]
+          : []),
+      ],
+      topic: generateDto.prompt,
+    });
+    return {
+      brandId,
+      category: isXArticle
+        ? ArticleCategory.X_ARTICLE
+        : generateDto.category || ArticleCategory.POST,
+      generateDto,
+      generationType,
+      harnessContext,
+      maxCount: isXArticle ? 1 : generateDto.count || 1,
+      modelConfig,
+      organizationId,
+      parseFailureLabel: isXArticle
+        ? 'Failed to parse X Article generation JSON'
+        : 'Failed to parse article generation JSON',
+      prompt: this.appendAccountPublishingContextToPrompt(
+        prompt,
+        accountPublishingContext,
+      ),
+      systemPromptTemplate: isXArticle
+        ? SystemPromptKey.X_ARTICLE
+        : SystemPromptKey.ARTICLE,
+      textPromptTemplate: isXArticle
+        ? PromptTemplateKey.X_ARTICLE_GENERATE
+        : PromptTemplateKey.TEXT_ARTICLE,
+      userId,
+    };
+  }
 
-      let wordCount = 0;
-      const createdArticles = await this.runArticleGenerationOrchestration({
-        brandId,
-        category: ArticleCategory.X_ARTICLE,
+  async generateDrafts(context: ArticleGenerationContext): Promise<{
+    billedCredits: number;
+    context: ArticleGenerationContext;
+    items: ArticleGenerationWorkItem[];
+  }> {
+    let billedCredits = 0;
+    const responseText =
+      await this.articleTextGenerationService.runTextGenerationStep({
+        basePrompt: context.prompt,
+        buildPromptOptions: {
+          maxTokens: this.configService.get('MAX_TOKENS'),
+          modelCategory: ModelCategory.TEXT,
+          promptTemplate: context.textPromptTemplate,
+          systemPromptTemplate: context.systemPromptTemplate,
+          temperature: 0.8,
+        },
+        failureMessage: 'Failed to generate content from AI service',
+        harnessContext: context.harnessContext,
+        model: context.modelConfig.generationModel || DEFAULT_TEXT_MODEL,
+        onBilling: (charge) => {
+          billedCredits += charge.amount;
+        },
+        organizationId: context.organizationId,
+      });
+    const response = this.parseArticleGenerationJson(
+      responseText,
+      context.parseFailureLabel,
+    );
+    const drafts =
+      context.generationType === ArticleGenerationType.X_ARTICLE
+        ? this.parseXArticleDrafts(response).drafts
+        : this.normalizeStandardGenerationDrafts(response);
+    return {
+      billedCredits,
+      context,
+      items: drafts.slice(0, context.maxCount).map((draft) => ({
+        context,
+        draft,
+      })),
+    };
+  }
+
+  async reviewDraft(
+    item: ArticleGenerationWorkItem,
+  ): Promise<ArticleGenerationReviewState> {
+    const result = await this.articleReviewService.reviewDraft({
+      draft: item.draft,
+      harnessContext: item.context.harnessContext,
+      modelConfig: item.context.modelConfig,
+      organizationId: item.context.organizationId,
+      type: item.context.generationType,
+    });
+    return {
+      ...item,
+      billedCredits: result.charge.amount,
+      review: result.review,
+    };
+  }
+
+  async reviseDraft(
+    state: ArticleGenerationReviewState,
+  ): Promise<ArticleGenerationRevisionState> {
+    const result = await this.articleReviewService.reviseDraft({
+      draft: state.draft,
+      harnessContext: state.context.harnessContext,
+      modelConfig: state.context.modelConfig,
+      organizationId: state.context.organizationId,
+      prompt: state.context.generateDto.prompt,
+      review: state.review,
+      type: state.context.generationType,
+    });
+    return {
+      ...state,
+      billedCredits: state.billedCredits + result.charge.amount,
+      updated: result.updated,
+    };
+  }
+
+  async persistDraft(
+    state: ArticleGenerationRevisionState,
+    createArticleFn: ArticleCreateFn,
+  ): Promise<{ article: ArticleDocument; billedCredits: number }> {
+    const article =
+      await this.articleContentPersistenceService.persistGeneratedArticle({
+        brandId: state.context.brandId,
+        category: state.context.category,
         createArticleFn,
-        generateDto,
-        generationType: ArticleGenerationType.X_ARTICLE,
-        harnessSourceLines: [
-          ...(accountPublishingContext?.promptHints ?? []),
-          ...(generateDto.keywords?.map((keyword) => `keyword: ${keyword}`) ??
-            []),
-          ...(generateDto.tone ? [`tone: ${generateDto.tone}`] : []),
-          `targetWordCount: ${generateDto.targetWordCount || 5000}`,
-        ],
-        modelConfig,
-        onBilling,
-        organizationId,
-        parseFailureLabel: 'Failed to parse X Article generation JSON',
-        promptTransform: (prompt) =>
-          this.appendAccountPublishingContextToPrompt(
-            prompt,
-            accountPublishingContext,
-          ),
-        startContext: {
-          prompt: generateDto.prompt.substring(0, 50),
-          targetWordCount: generateDto.targetWordCount || 5000,
-        },
-        startMessage: 'X Article generation started',
-        systemPromptTemplate: SystemPromptKey.X_ARTICLE,
-        templateKey: PromptTemplateKey.X_ARTICLE_GENERATE,
-        templateVariables: {
-          keywords: generateDto.keywords?.join(', ') || '',
-          prompt: generateDto.prompt,
-          targetWordCount: generateDto.targetWordCount || 5000,
-          tone: generateDto.tone || 'authoritative',
-        },
-        textPromptTemplate: PromptTemplateKey.X_ARTICLE_GENERATE,
-        toDrafts: (response) => {
-          const parsed = this.parseXArticleDrafts(response);
-          wordCount = parsed.wordCount;
-          return parsed.drafts;
-        },
-        userId,
+        draft: state.updated,
+        organizationId: state.context.organizationId,
+        slug: state.draft.slug,
+        tagLabels: state.draft.tags,
+        userId: state.context.userId,
       });
-      const article = createdArticles[0];
-      if (!article) {
-        throw new Error('Unexpected response format from AI service');
-      }
-
-      this.logger.log(`${this.constructorName} X Article generation complete`, {
-        articleId: article.id,
-        wordCount,
-      });
-
-      return article;
-    } catch (error: unknown) {
-      this.logger.error(
-        `${this.constructorName} generateLongFormArticle failed`,
-        {
-          error,
-          generateDto,
-        },
-      );
-      throw error;
-    }
+    return { article, billedCredits: state.billedCredits };
   }
 
   private assertGenerationReady(): void {
@@ -416,91 +440,6 @@ export class ArticlesContentService {
       ],
       wordCount,
     };
-  }
-
-  /**
-   * Shared prompt, model, review, tag, and persistence orchestration for
-   * standard and X-article generation.
-   */
-  private async runArticleGenerationOrchestration(
-    params: ArticleGenerationOrchestrationParams,
-  ): Promise<ArticleDocument[]> {
-    this.assertGenerationReady();
-
-    const prompt = await this.renderGenerationPrompt(
-      params.templateKey,
-      params.templateVariables,
-      params.organizationId,
-    );
-
-    this.logger.log(params.startMessage, params.startContext);
-
-    const harnessContext = await this.buildArticleHarnessContext({
-      brandId: params.brandId,
-      contentType: 'article',
-      objective: 'authority',
-      organizationId: params.organizationId,
-      sourceLines: params.harnessSourceLines,
-      topic: params.generateDto.prompt,
-    });
-    const generationModel =
-      params.modelConfig.generationModel || DEFAULT_TEXT_MODEL;
-    const responseText =
-      await this.articleTextGenerationService.runTextGenerationStep({
-        basePrompt: params.promptTransform
-          ? params.promptTransform(prompt)
-          : prompt,
-        buildPromptOptions: {
-          maxTokens: this.configService.get('MAX_TOKENS'),
-          modelCategory: ModelCategory.TEXT,
-          promptTemplate: params.textPromptTemplate,
-          systemPromptTemplate: params.systemPromptTemplate,
-          temperature: 0.8,
-        },
-        failureMessage: 'Failed to generate content from AI service',
-        harnessContext,
-        model: generationModel,
-        onBilling: params.onBilling,
-        organizationId: params.organizationId,
-      });
-    const response = this.parseArticleGenerationJson(
-      responseText,
-      params.parseFailureLabel,
-    );
-    const drafts = params.toDrafts(response);
-    const selectedDrafts =
-      params.maxCount === undefined ? drafts : drafts.slice(0, params.maxCount);
-    const createdArticles: ArticleDocument[] = [];
-
-    for (const draft of selectedDrafts) {
-      const cycle = await this.articleReviewService.runReviewUpdateCycle({
-        draft: {
-          content: draft.content,
-          label: draft.label,
-          summary: draft.summary,
-        },
-        harnessContext,
-        modelConfig: params.modelConfig,
-        onBilling: params.onBilling,
-        organizationId: params.organizationId,
-        prompt: params.generateDto.prompt,
-        type: params.generationType,
-      });
-      const article =
-        await this.articleContentPersistenceService.persistGeneratedArticle({
-          brandId: params.brandId,
-          category: params.category,
-          createArticleFn: params.createArticleFn,
-          draft: cycle.updated,
-          organizationId: params.organizationId,
-          slug: draft.slug,
-          tagLabels: draft.tags,
-          userId: params.userId,
-        });
-      createdArticles.push(article);
-    }
-
-    return createdArticles;
   }
 
   /**
@@ -799,13 +738,12 @@ export class ArticlesContentService {
     };
   }
 
-  async reviewExistingArticle(
+  async prepareExistingReview(
     article: ArticleDocument,
     organizationId: string,
     modelConfig: ArticleCycleModelConfig,
     focus?: string,
-    onBilling?: (charge: TextGenerationCharge) => void,
-  ): Promise<ArticleReviewRubric> {
+  ): Promise<ArticleExistingReviewContext> {
     const harnessContext = await this.buildArticleHarnessContext({
       brandId: article.brandId ?? undefined,
       contentType: 'article',
@@ -815,14 +753,24 @@ export class ArticlesContentService {
       topic: this.getArticleLabel(article),
     });
 
-    return this.articleReviewService.reviewExistingArticle(
-      article,
-      organizationId,
-      modelConfig,
-      harnessContext,
-      focus,
-      onBilling,
+    return { article, focus, harnessContext, modelConfig, organizationId };
+  }
+
+  async reviewExistingPrepared(
+    context: ArticleExistingReviewContext,
+  ): Promise<{ billedCredits: number; review: ArticleReviewRubric }> {
+    let billedCredits = 0;
+    const review = await this.articleReviewService.reviewExistingArticle(
+      context.article,
+      context.organizationId,
+      context.modelConfig,
+      context.harnessContext,
+      context.focus,
+      (charge) => {
+        billedCredits += charge.amount;
+      },
     );
+    return { billedCredits, review };
   }
 
   private getArticleLabel(article: Pick<ArticleDocument, 'label'>): string {

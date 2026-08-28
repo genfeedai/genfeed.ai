@@ -187,9 +187,9 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     credentialId: string,
   ): Promise<ProcessingResult[]> {
     const definition = buildReplyBotOrganizationWorkflowDefinition();
-    const { result } = await this.systemWorkflowRunner.runWorkflowDefinition<
+    const { result } = await this.systemWorkflowRunner.runWorkflow<
       ProcessingResult[]
-    >(definition, {
+    >({
       actionType: definition.canonicalId,
       canonicalId: definition.canonicalId,
       inputValues: { request: { credentialId, organizationId } },
@@ -205,8 +205,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     credentialId: string,
   ): Promise<string> {
     const definition = buildReplyBotOrganizationWorkflowDefinition();
-    return this.workflowQueue.queueSystemWorkflowDefinition(
-      definition,
+    return this.workflowQueue.queueSystemWorkflow(
       {
         actionType: definition.canonicalId,
         canonicalId: definition.canonicalId,
@@ -226,19 +225,16 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
   ): Promise<ProcessingResult> {
     const definition = buildReplyBotWorkflowDefinition();
     const { result } =
-      await this.systemWorkflowRunner.runWorkflowDefinition<ProcessingResult>(
-        definition,
-        {
-          actionType: definition.canonicalId,
-          canonicalId: definition.canonicalId,
-          inputValues: {
-            request: { botConfigId, credentialId, organizationId },
-          },
-          organizationId,
-          source: 'ReplyBotOrchestratorService.processSingleBot',
-          trigger: WorkflowExecutionTrigger.SCHEDULED,
+      await this.systemWorkflowRunner.runWorkflow<ProcessingResult>({
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: {
+          request: { botConfigId, credentialId, organizationId },
         },
-      );
+        organizationId,
+        source: 'ReplyBotOrchestratorService.processSingleBot',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+      });
     return result;
   }
 
@@ -248,10 +244,10 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     testContent: { content: string; author: string },
   ): Promise<{ replyText: string; dmText?: string }> {
     const definition = buildReplyBotTestWorkflowDefinition();
-    const { result } = await this.systemWorkflowRunner.runWorkflowDefinition<{
+    const { result } = await this.systemWorkflowRunner.runWorkflow<{
       dmText?: string;
       replyText: string;
-    }>(definition, {
+    }>({
       actionType: definition.canonicalId,
       canonicalId: definition.canonicalId,
       inputValues: { request: { botConfigId, organizationId, testContent } },

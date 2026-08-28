@@ -85,7 +85,7 @@ function createContext(): {
     };
   };
   workflowQueue: {
-    queueSystemWorkflowDefinition: ReturnType<typeof vi.fn>;
+    queueSystemWorkflow: ReturnType<typeof vi.fn>;
   };
   recipients: StoreRecipient[];
   service: SocialReplyCampaignService;
@@ -273,7 +273,7 @@ function createContext(): {
   };
 
   const workflowQueue = {
-    queueSystemWorkflowDefinition: vi.fn().mockResolvedValue('job-1'),
+    queueSystemWorkflow: vi.fn().mockResolvedValue('job-1'),
   };
 
   return {
@@ -379,9 +379,7 @@ describe('SocialReplyCampaignService', () => {
       expect(started.status).toBe(SocialReplyCampaignStatus.RUNNING);
       expect(started.dispatchCursor).toBe(1);
       expect(started.startedAt).toBeInstanceOf(Date);
-      expect(
-        context.workflowQueue.queueSystemWorkflowDefinition,
-      ).toHaveBeenCalledWith(
+      expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           inputValues: {
@@ -408,9 +406,7 @@ describe('SocialReplyCampaignService', () => {
       await expect(
         context.service.transition(SCOPE, campaign.id, 'start'),
       ).rejects.toThrow('Campaign has no pending recipients to dispatch');
-      expect(
-        context.workflowQueue.queueSystemWorkflowDefinition,
-      ).not.toHaveBeenCalled();
+      expect(context.workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
     });
 
     it('refuses to start an already-running campaign', async () => {
@@ -436,9 +432,9 @@ describe('SocialReplyCampaignService', () => {
 
       expect(paused.status).toBe(SocialReplyCampaignStatus.PAUSED);
       expect(paused.nextRunAt).toBeNull();
-      expect(
-        context.workflowQueue.queueSystemWorkflowDefinition,
-      ).toHaveBeenCalledTimes(1);
+      expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledTimes(
+        1,
+      );
     });
 
     it('resumes from pause on a fresh cursor so the orphaned tick stays stale', async () => {
@@ -457,7 +453,7 @@ describe('SocialReplyCampaignService', () => {
       expect(resumed.dispatchCursor).toBe(2);
       expect(resumed.pausedAt).toBeNull();
       expect(
-        context.workflowQueue.queueSystemWorkflowDefinition,
+        context.workflowQueue.queueSystemWorkflow,
       ).toHaveBeenLastCalledWith(
         expect.anything(),
         expect.objectContaining({
@@ -532,9 +528,9 @@ describe('SocialReplyCampaignService', () => {
 
       expect(fulfilled).toHaveLength(1);
       expect(rejected).toHaveLength(1);
-      expect(
-        context.workflowQueue.queueSystemWorkflowDefinition,
-      ).toHaveBeenCalledTimes(1);
+      expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledTimes(
+        1,
+      );
       expect(context.campaigns[0]).toMatchObject({
         dispatchCursor: 1,
         status: SocialReplyCampaignStatus.RUNNING,

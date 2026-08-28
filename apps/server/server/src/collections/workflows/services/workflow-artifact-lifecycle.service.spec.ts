@@ -29,8 +29,8 @@ describe('WorkflowArtifactLifecycleService', () => {
   };
   const filesClient = { deleteStoredObject: vi.fn() };
   const logger = { error: vi.fn(), log: vi.fn() };
-  const runner = { registerAction: vi.fn() };
-  const workflowQueue = { queueSystemAction: vi.fn() };
+  const runner = { registerAction: vi.fn(), registerWorkflow: vi.fn() };
+  const workflowQueue = { queueSystemWorkflow: vi.fn() };
 
   let service: WorkflowArtifactLifecycleService;
 

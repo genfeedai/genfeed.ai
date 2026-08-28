@@ -1,3 +1,4 @@
+import { createGenfeedActionNode } from '@genfeedai/actions';
 import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
@@ -19,7 +20,10 @@ import { GenerateNewsletterDraftDto } from '@server/collections/newsletters/dto/
 import { GenerateNewsletterTopicsDto } from '@server/collections/newsletters/dto/generate-newsletter-topics.dto';
 import { UpdateNewsletterDto } from '@server/collections/newsletters/dto/update-newsletter.dto';
 import type { NewsletterDocument } from '@server/collections/newsletters/schemas/newsletter.schema';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import {
+  type SystemWorkflowGraphDefinition,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { TEXT_GENERATION_LIMITS } from '@server/constants/text-generation-limits.constant';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
@@ -39,8 +43,123 @@ type TopicProposal = {
   reason: string;
 };
 
+type NewsletterTopicContext = {
+  brand: Awaited<ReturnType<BrandsService['findOne']>>;
+  count: number;
+  ctx: TenantContext;
+  dto: GenerateNewsletterTopicsDto;
+  recent: NewsletterDocument[];
+};
+
+type NewsletterDraftContext = {
+  contextNewsletters: NewsletterDocument[];
+  ctx: TenantContext;
+  dto: GenerateNewsletterDraftDto;
+  prompt: string;
+};
+
+type NewsletterGeneratedDraft = NewsletterDraftContext & {
+  generatedContent: string;
+};
+
 export const NEWSLETTER_DRAFT_ACTION_ID = 'newsletter.generate-draft';
 export const NEWSLETTER_TOPICS_ACTION_ID = 'newsletter.generate-topics';
+const NEWSLETTER_LOAD_DRAFT_ACTION_ID = 'newsletter.load-draft-context';
+const NEWSLETTER_LOAD_TOPICS_ACTION_ID = 'newsletter.load-topic-context';
+const NEWSLETTER_PERSIST_DRAFT_ACTION_ID = 'newsletter.persist-draft';
+const NEWSLETTER_DRAFT_WORKFLOW_ID = 'newsletter.draft-generation';
+const NEWSLETTER_TOPICS_WORKFLOW_ID = 'newsletter.topic-generation';
+
+function newsletterTopicsWorkflow(): SystemWorkflowGraphDefinition {
+  return {
+    canonicalId: NEWSLETTER_TOPICS_WORKFLOW_ID,
+    definition: {
+      edges: [
+        {
+          id: 'load-generate',
+          source: 'load-context',
+          target: 'generate-topics',
+          targetHandle: 'state',
+        },
+      ],
+      inputVariables: [
+        { key: 'brandId', label: 'Brand', required: true, type: 'string' },
+        {
+          key: 'dto',
+          label: 'Newsletter request',
+          required: true,
+          type: 'json',
+        },
+      ],
+      nodes: [
+        createGenfeedActionNode({
+          actionId: NEWSLETTER_LOAD_TOPICS_ACTION_ID,
+          id: 'load-context',
+          inputVariableKeys: ['brandId', 'dto'],
+        }),
+        createGenfeedActionNode({
+          actionId: NEWSLETTER_TOPICS_ACTION_ID,
+          id: 'generate-topics',
+        }),
+      ],
+    },
+    description: 'Loads brand continuity and generates newsletter topics.',
+    label: 'Newsletter Topic Generation',
+    resultNodeId: 'generate-topics',
+    version: 1,
+  };
+}
+
+function newsletterDraftWorkflow(): SystemWorkflowGraphDefinition {
+  return {
+    canonicalId: NEWSLETTER_DRAFT_WORKFLOW_ID,
+    definition: {
+      edges: [
+        {
+          id: 'load-generate',
+          source: 'load-context',
+          target: 'generate-draft',
+          targetHandle: 'state',
+        },
+        {
+          id: 'generate-persist',
+          source: 'generate-draft',
+          target: 'persist-draft',
+          targetHandle: 'state',
+        },
+      ],
+      inputVariables: [
+        { key: 'brandId', label: 'Brand', required: true, type: 'string' },
+        {
+          key: 'dto',
+          label: 'Newsletter request',
+          required: true,
+          type: 'json',
+        },
+      ],
+      nodes: [
+        createGenfeedActionNode({
+          actionId: NEWSLETTER_LOAD_DRAFT_ACTION_ID,
+          id: 'load-context',
+          inputVariableKeys: ['brandId', 'dto'],
+        }),
+        createGenfeedActionNode({
+          actionId: NEWSLETTER_DRAFT_ACTION_ID,
+          id: 'generate-draft',
+        }),
+        createGenfeedActionNode({
+          actionId: NEWSLETTER_PERSIST_DRAFT_ACTION_ID,
+          id: 'persist-draft',
+        }),
+      ],
+    },
+    description:
+      'Loads context, generates markdown, and persists a newsletter draft.',
+    label: 'Newsletter Draft Generation',
+    resultNodeId: 'persist-draft',
+    version: 1,
+  };
+}
 
 @Injectable()
 export class NewslettersService
@@ -65,18 +184,33 @@ export class NewslettersService
 
   onModuleInit(): void {
     const runner = this.requireWorkflowRunner();
-    runner.registerAction(NEWSLETTER_TOPICS_ACTION_ID, ({ context, input }) =>
-      this.executeGenerateTopicProposalsAction(
-        this.readTopicsDto(input.dto),
-        this.readTenantContext(input, context),
-      ),
+    runner.registerAction(
+      NEWSLETTER_LOAD_TOPICS_ACTION_ID,
+      ({ context, input }) =>
+        this.loadTopicGenerationContext(
+          this.readTopicsDto(input.dto),
+          this.readTenantContext(input, context),
+        ),
     );
-    runner.registerAction(NEWSLETTER_DRAFT_ACTION_ID, ({ context, input }) =>
-      this.executeGenerateDraftAction(
-        this.readDraftDto(input.dto),
-        this.readTenantContext(input, context),
-      ),
+    runner.registerAction(NEWSLETTER_TOPICS_ACTION_ID, ({ input }) =>
+      this.generateTopicProposalsAction(input.state as NewsletterTopicContext),
     );
+    runner.registerAction(
+      NEWSLETTER_LOAD_DRAFT_ACTION_ID,
+      ({ context, input }) =>
+        this.loadDraftGenerationContext(
+          this.readDraftDto(input.dto),
+          this.readTenantContext(input, context),
+        ),
+    );
+    runner.registerAction(NEWSLETTER_DRAFT_ACTION_ID, ({ input }) =>
+      this.generateDraftAction(input.state as NewsletterDraftContext),
+    );
+    runner.registerAction(NEWSLETTER_PERSIST_DRAFT_ACTION_ID, ({ input }) =>
+      this.persistDraftAction(input.state as NewsletterGeneratedDraft),
+    );
+    runner.registerWorkflow(newsletterTopicsWorkflow());
+    runner.registerWorkflow(newsletterDraftWorkflow());
   }
 
   buildListQuery(
@@ -350,11 +484,11 @@ export class NewslettersService
     dto: GenerateNewsletterTopicsDto,
     ctx: TenantContext,
   ): Promise<TopicProposal[]> {
-    const { result } = await this.requireWorkflowRunner().runAction<
+    const { result } = await this.requireWorkflowRunner().runWorkflow<
       TopicProposal[]
     >({
       actionType: NEWSLETTER_TOPICS_ACTION_ID,
-      canonicalId: NEWSLETTER_TOPICS_ACTION_ID,
+      canonicalId: NEWSLETTER_TOPICS_WORKFLOW_ID,
       inputValues: { brandId: ctx.brandId, dto },
       metadata: { brandId: ctx.brandId, origin: 'api' },
       organizationId: ctx.organizationId,
@@ -365,15 +499,21 @@ export class NewslettersService
     return result;
   }
 
-  private async executeGenerateTopicProposalsAction(
+  private async loadTopicGenerationContext(
     dto: GenerateNewsletterTopicsDto,
     ctx: TenantContext,
-  ): Promise<TopicProposal[]> {
+  ): Promise<NewsletterTopicContext> {
     this.assertContext(ctx);
     const count = dto.count ?? 5;
     const brand = await this.getBrandContext(ctx);
     const recent = await this.getRecentPublishedNewsletters(ctx);
+    return { brand, count, ctx, dto, recent };
+  }
 
+  private async generateTopicProposalsAction(
+    state: NewsletterTopicContext,
+  ): Promise<TopicProposal[]> {
+    const { brand, count, dto, recent } = state;
     const prompt = [
       'Create newsletter topic proposals for a single brand.',
       'Return valid JSON only as an array.',
@@ -420,9 +560,9 @@ export class NewslettersService
     ctx: TenantContext,
   ): Promise<NewsletterDocument> {
     const { result } =
-      await this.requireWorkflowRunner().runAction<NewsletterDocument>({
+      await this.requireWorkflowRunner().runWorkflow<NewsletterDocument>({
         actionType: NEWSLETTER_DRAFT_ACTION_ID,
-        canonicalId: NEWSLETTER_DRAFT_ACTION_ID,
+        canonicalId: NEWSLETTER_DRAFT_WORKFLOW_ID,
         inputValues: { brandId: ctx.brandId, dto },
         metadata: { brandId: ctx.brandId, origin: 'api' },
         organizationId: ctx.organizationId,
@@ -433,10 +573,10 @@ export class NewslettersService
     return result;
   }
 
-  async executeGenerateDraftAction(
+  private async loadDraftGenerationContext(
     dto: GenerateNewsletterDraftDto,
     ctx: TenantContext,
-  ): Promise<NewsletterDocument> {
+  ): Promise<NewsletterDraftContext> {
     this.assertContext(ctx);
     const brand = await this.getBrandContext(ctx);
     const contextNewsletters = dto.contextNewsletterIds?.length
@@ -446,9 +586,15 @@ export class NewslettersService
         )
       : await this.getRecentPublishedNewsletters(ctx, 5);
 
-    const sourceRefs = dto.sourceRefs ?? [];
     const prompt = this.buildDraftPrompt(dto, brand, contextNewsletters);
+    return { contextNewsletters, ctx, dto, prompt };
+  }
 
+  private async generateDraftAction(
+    state: NewsletterDraftContext,
+  ): Promise<NewsletterGeneratedDraft> {
+    const { dto, prompt } = state;
+    const sourceRefs = dto.sourceRefs ?? [];
     let generatedContent = '';
     try {
       const completion = await this.openRouterService.chatCompletion({
@@ -475,6 +621,14 @@ export class NewslettersService
       );
     }
 
+    return { ...state, generatedContent };
+  }
+
+  private async persistDraftAction(
+    state: NewsletterGeneratedDraft,
+  ): Promise<NewsletterDocument> {
+    const { contextNewsletters, ctx, dto, generatedContent, prompt } = state;
+    const sourceRefs = dto.sourceRefs ?? [];
     const label = this.resolveDraftTitle(dto.topic, generatedContent);
     const summary = this.extractSummary(generatedContent);
     const payload: UpdateNewsletterDto = {
@@ -593,8 +747,7 @@ export class NewslettersService
     const docs = documents as unknown as NewsletterDocument[];
     return docs.sort(
       (left, right) =>
-        ids.findIndex((item) => item === left.id.toString()) -
-        ids.findIndex((item) => item === right.id.toString()),
+        ids.indexOf(left.id.toString()) - ids.indexOf(right.id.toString()),
     );
   }
 

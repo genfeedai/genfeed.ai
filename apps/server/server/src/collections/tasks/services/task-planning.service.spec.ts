@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
 import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
@@ -7,8 +8,7 @@ import type { TaskDocument } from '@server/collections/tasks/schemas/task.schema
 import { TaskPlanningService } from '@server/collections/tasks/services/task-planning.service';
 import { TasksService } from '@server/collections/tasks/services/tasks.service';
 import { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
-import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/workspace-task-queue.service';
-import { BadRequestException } from '@nestjs/common';
+import { WorkspaceTaskWorkflowQueueService } from '@server/services/task-orchestration/workspace-task-workflow-queue.service';
 
 describe('TaskPlanningService', () => {
   let service: TaskPlanningService;
@@ -181,7 +181,7 @@ describe('TaskPlanningService', () => {
     });
 
     it('enqueues every created child with the legacy workspace payload', async () => {
-      const workspaceTaskQueueService = { enqueue: vi.fn() };
+      const workspaceTaskWorkflowQueue = { enqueue: vi.fn() };
       tasksService.create.mockImplementation((dto) =>
         Promise.resolve({
           ...dto,
@@ -213,7 +213,7 @@ describe('TaskPlanningService', () => {
         taskCountersService as unknown as TaskCountersService,
         organizationsService as unknown as OrganizationsService,
         agentOrchestratorService as unknown as AgentOrchestratorService,
-        workspaceTaskQueueService as unknown as WorkspaceTaskQueueService,
+        workspaceTaskWorkflowQueue as unknown as WorkspaceTaskWorkflowQueueService,
       );
 
       const createdTasks = await service.createFollowUpTasks(
@@ -224,7 +224,7 @@ describe('TaskPlanningService', () => {
       expect(createdTasks).toHaveLength(1);
       const createdTask = createdTasks[0] as TaskDocument;
 
-      expect(workspaceTaskQueueService.enqueue).toHaveBeenCalledWith({
+      expect(workspaceTaskWorkflowQueue.enqueue).toHaveBeenCalledWith({
         brandId: 'brand-1',
         organizationId: 'org-1',
         outputType: 'image',

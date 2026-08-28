@@ -1,41 +1,40 @@
 import { describe, expect, it } from 'vitest';
-import { buildClipContinuityWorkflowDefinition } from './clip-continuity-workflow-definition';
+import {
+  buildClipContinuityFailureWorkflowDefinition,
+  buildClipContinuityQaWorkflowDefinition,
+  buildClipContinuityWorkflowDefinition,
+} from './clip-continuity-workflow-definition';
 
-function actionIds(clipCount: number): string[] {
-  return buildClipContinuityWorkflowDefinition(clipCount).definition.nodes.map(
-    (node) => String(node.data.config.actionId),
-  );
-}
+describe('clip continuity workflow definitions', () => {
+  it('uses one static fan-out graph for every clip count', () => {
+    const definition = buildClipContinuityWorkflowDefinition();
 
-describe('buildClipContinuityWorkflowDefinition', () => {
-  it('builds one video QA action node per completed clip', () => {
-    const definition = buildClipContinuityWorkflowDefinition(2);
-
-    expect(actionIds(2)).toEqual([
+    expect(definition.canonicalId).toBe('clip.continuity');
+    expect(
+      definition.definition.nodes.map((node) => node.data.config.actionId),
+    ).toEqual([
       'clip.continuity.begin',
-      'videoQa',
-      'videoQa',
+      'workflow.for-each',
       'clip.continuity.persist-report',
     ]);
-    expect(definition.canonicalId).toBe('clip-continuity:v1:2');
-    expect(definition.definition.edges).toHaveLength(4);
-    expect(definition.definition.nodes[1]?.data.inputVariableKeys).toContain(
-      'video0',
+    expect(definition.definition.nodes[1]?.data.config).toEqual(
+      expect.objectContaining({
+        childWorkflowId: 'clip.continuity.qa-one',
+        itemInputKey: 'video',
+        mode: 'await',
+      }),
     );
   });
 
-  it('still persists an observable skip when no clip needs assessment', () => {
-    const definition = buildClipContinuityWorkflowDefinition(0);
+  it('registers atomic QA and failure child graphs', () => {
+    const qa = buildClipContinuityQaWorkflowDefinition();
+    const failure = buildClipContinuityFailureWorkflowDefinition();
 
-    expect(actionIds(0)).toEqual([
-      'clip.continuity.begin',
-      'clip.continuity.persist-report',
-    ]);
-    expect(definition.definition.edges).toEqual([
-      expect.objectContaining({
-        source: 'begin-continuity',
-        target: 'persist-continuity-report',
-      }),
-    ]);
+    expect(qa.definition.nodes).toHaveLength(1);
+    expect(qa.definition.nodes[0]?.data.config.actionId).toBe('videoQa');
+    expect(failure.definition.nodes).toHaveLength(1);
+    expect(failure.definition.nodes[0]?.data.config.actionId).toBe(
+      'clip.continuity.fail',
+    );
   });
 });

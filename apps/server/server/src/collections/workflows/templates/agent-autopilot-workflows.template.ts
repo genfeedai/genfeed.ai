@@ -1,4 +1,7 @@
 import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
+import { buildAiInfluencerDailyPostsWorkflowDefinition } from '@server/services/ai-influencer/ai-influencer-workflow-definition';
+
+const AI_INFLUENCER_DAILY_POSTS_TEMPLATE_ID = 'ai-influencer-daily-posts';
 
 export type AgentAutopilotWorkflowTemplate = WorkflowTemplate & {
   schedule: string;
@@ -45,14 +48,18 @@ export const AGENT_AUTOPILOT_WORKFLOW_TEMPLATES = [
     nodeType: 'proactiveAgentStrategies',
     schedule: '*/1 * * * *',
   }),
-  actionTemplate({
-    description:
-      'Per-organization AI influencer autopilot scanner for enabled fleet personas.',
-    icon: 'sparkles',
-    id: 'ai-influencer-daily-posts',
-    name: 'AI Influencer Daily Posts',
-    nodeLabel: 'Generate Daily Influencer Posts',
-    nodeType: 'aiInfluencerDailyPosts',
-    schedule: '0 */6 * * *',
-  }),
+  (() => {
+    const workflow = buildAiInfluencerDailyPostsWorkflowDefinition();
+    return {
+      category: 'agents',
+      description: workflow.description,
+      edges: workflow.definition.edges,
+      icon: 'sparkles',
+      id: AI_INFLUENCER_DAILY_POSTS_TEMPLATE_ID,
+      inputVariables: workflow.definition.inputVariables,
+      name: workflow.label,
+      nodes: workflow.definition.nodes,
+      schedule: '0 */6 * * *',
+    };
+  })(),
 ] satisfies AgentAutopilotWorkflowTemplate[];

@@ -11,6 +11,7 @@ import type {
 import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-runner.service';
 
 export const CLIP_FACTORY_WORKFLOW_ID = 'clip.factory';
+export const CLIP_FACTORY_FAILURE_WORKFLOW_ID = 'clip.factory.failure';
 
 export const CLIP_FACTORY_ACTION_IDS = {
   FAIL: 'clip.factory.fail',
@@ -248,6 +249,35 @@ export function buildClipFactoryWorkflowDefinition(): SystemWorkflowGraphDefinit
       'Transcribes one clip source, detects highlights, gates the hook when required, and schedules one child workflow per remaining clip.',
     label: 'Clip Factory',
     resultNodeId: 'generate-remaining',
+    version: 1,
+  };
+}
+
+export function buildClipFactoryFailureWorkflowDefinition(): SystemWorkflowGraphDefinition {
+  return {
+    canonicalId: CLIP_FACTORY_FAILURE_WORKFLOW_ID,
+    definition: {
+      edges: [],
+      inputVariables: [
+        {
+          key: 'job',
+          label: 'Failed clip factory request',
+          required: true,
+          type: 'json',
+        },
+      ],
+      nodes: [
+        createGenfeedActionNode({
+          actionId: CLIP_FACTORY_ACTION_IDS.FAIL,
+          id: 'fail-factory',
+          inputVariableKeys: ['job'],
+          position: { x: 0, y: 0 },
+        }),
+      ],
+    },
+    description: 'Projects terminal failure for one clip factory run.',
+    label: 'Fail Clip Factory',
+    resultNodeId: 'fail-factory',
     version: 1,
   };
 }

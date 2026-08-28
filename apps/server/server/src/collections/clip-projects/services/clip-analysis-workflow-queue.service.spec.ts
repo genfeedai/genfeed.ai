@@ -3,7 +3,7 @@ import type { WorkflowExecutionQueueService } from '@server/collections/workflow
 import { ClipAnalysisWorkflowQueueService } from './clip-analysis-workflow-queue.service';
 
 describe('ClipAnalysisWorkflowQueueService', () => {
-  const workflowQueue = { queueSystemWorkflowDefinition: vi.fn() };
+  const workflowQueue = { queueSystemWorkflow: vi.fn() };
   const service = new ClipAnalysisWorkflowQueueService(
     workflowQueue as unknown as WorkflowExecutionQueueService,
   );
@@ -18,7 +18,7 @@ describe('ClipAnalysisWorkflowQueueService', () => {
   };
 
   beforeEach(() => {
-    workflowQueue.queueSystemWorkflowDefinition.mockResolvedValue(
+    workflowQueue.queueSystemWorkflow.mockResolvedValue(
       'clip-analysis-project-1',
     );
   });
@@ -28,8 +28,7 @@ describe('ClipAnalysisWorkflowQueueService', () => {
       'clip-analysis-project-1',
     );
 
-    expect(workflowQueue.queueSystemWorkflowDefinition).toHaveBeenCalledWith(
-      expect.objectContaining({ canonicalId: 'clip.analysis' }),
+    expect(workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         actionType: 'clip.analysis',
         inputValues: { job: request },
@@ -38,10 +37,13 @@ describe('ClipAnalysisWorkflowQueueService', () => {
       }),
       'clip-analysis-project-1',
       {
-        actionId: 'clip.analysis.fail',
-        inputValues: { job: request },
+        attempts: 2,
+        failureWorkflow: {
+          canonicalId: 'clip.analysis.failure',
+          inputValues: { job: request },
+        },
+        replaceTerminalJob: true,
       },
-      { attempts: 2, replaceTerminalJob: true },
     );
   });
 });

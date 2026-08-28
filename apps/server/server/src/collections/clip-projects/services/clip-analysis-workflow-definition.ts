@@ -2,6 +2,7 @@ import { createGenfeedActionNode } from '@genfeedai/actions';
 import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-runner.service';
 
 export const CLIP_ANALYSIS_WORKFLOW_ID = 'clip.analysis';
+export const CLIP_ANALYSIS_FAILURE_WORKFLOW_ID = 'clip.analysis.failure';
 
 export const CLIP_ANALYSIS_ACTION_IDS = {
   DETECT_HIGHLIGHTS: 'clip.analysis.detect-highlights',
@@ -83,6 +84,35 @@ export function buildClipAnalysisWorkflowDefinition(): SystemWorkflowGraphDefini
       'Prepares, transcribes, analyzes, enriches, and persists one clip source.',
     label: 'Clip Analysis',
     resultNodeId: 'persist-analysis',
+    version: 1,
+  };
+}
+
+export function buildClipAnalysisFailureWorkflowDefinition(): SystemWorkflowGraphDefinition {
+  return {
+    canonicalId: CLIP_ANALYSIS_FAILURE_WORKFLOW_ID,
+    definition: {
+      edges: [],
+      inputVariables: [
+        {
+          key: 'job',
+          label: 'Failed clip analysis request',
+          required: true,
+          type: 'json',
+        },
+      ],
+      nodes: [
+        createGenfeedActionNode({
+          actionId: CLIP_ANALYSIS_ACTION_IDS.FAIL,
+          id: 'fail-analysis',
+          inputVariableKeys: ['job'],
+          position: { x: 0, y: 0 },
+        }),
+      ],
+    },
+    description: 'Projects terminal failure for one clip analysis.',
+    label: 'Fail Clip Analysis',
+    resultNodeId: 'fail-analysis',
     version: 1,
   };
 }

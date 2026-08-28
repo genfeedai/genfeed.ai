@@ -24,6 +24,7 @@ function buildExecution(overrides: Record<string, unknown> = {}) {
     nodeResults: [],
     status: WorkflowExecutionStatus.RUNNING,
     workflowId: WORKFLOW_ID,
+    workflowVersionId: 'workflow-version-1',
     ...overrides,
   };
 }
@@ -44,6 +45,7 @@ describe('WorkflowReviewGateService — atomic gate claim', () => {
     };
   };
   let documentService: {
+    findPinnedWorkflow: ReturnType<typeof vi.fn>;
     getWorkflowLabel: ReturnType<typeof vi.fn>;
     normalizeWorkflowDocument: ReturnType<typeof vi.fn>;
   };
@@ -65,6 +67,10 @@ describe('WorkflowReviewGateService — atomic gate claim', () => {
       },
     };
     documentService = {
+      findPinnedWorkflow: vi.fn().mockResolvedValue({
+        id: WORKFLOW_ID,
+        label: 'Test Workflow',
+      }),
       getWorkflowLabel: vi.fn().mockReturnValue('Test Workflow'),
       normalizeWorkflowDocument: vi.fn().mockImplementation((doc) => doc),
     };

@@ -255,8 +255,7 @@ export class AdBulkUploadWorkflowService {
     userId?: string,
   ): Promise<{ jobId: string; workflowJobId: string }> {
     const definition = buildAdBulkUploadWorkflowDefinition();
-    const workflowJobId = await this.queue.queueSystemWorkflowDefinition(
-      definition,
+    const workflowJobId = await this.queue.queueSystemWorkflow(
       {
         actionType: definition.canonicalId,
         canonicalId: definition.canonicalId,

@@ -64,8 +64,7 @@ export class BatchGenerationWorkflowService implements OnModuleInit {
       request.actionContext ?? resolveNestedActionOrigin(ActionOrigin.AGENT),
     );
     return runWithActionOrigin(actionContext, () =>
-      this.queue.queueSystemWorkflowDefinition(
-        definition,
+      this.queue.queueSystemWorkflow(
         {
           actionType: definition.canonicalId,
           canonicalId: definition.canonicalId,

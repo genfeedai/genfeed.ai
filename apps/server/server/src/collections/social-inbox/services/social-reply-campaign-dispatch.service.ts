@@ -130,17 +130,14 @@ export class SocialReplyCampaignDispatchService implements OnModuleInit {
   ): Promise<SocialReplyCampaignDispatchResult> {
     const definition = buildSocialReplyCampaignWorkflowDefinition();
     const { result } =
-      await this.workflowRunner.runWorkflowDefinition<SocialReplyCampaignDispatchResult>(
-        definition,
-        {
-          actionType: definition.canonicalId,
-          canonicalId: definition.canonicalId,
-          inputValues: { request: data },
-          organizationId: data.organizationId,
-          source: 'SocialReplyCampaignDispatchService.dispatchTick',
-          trigger: WorkflowExecutionTrigger.SCHEDULED,
-        },
-      );
+      await this.workflowRunner.runWorkflow<SocialReplyCampaignDispatchResult>({
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request: data },
+        organizationId: data.organizationId,
+        source: 'SocialReplyCampaignDispatchService.dispatchTick',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+      });
     return result;
   }
 
@@ -773,8 +770,7 @@ export class SocialReplyCampaignDispatchService implements OnModuleInit {
       organizationId: campaign.organizationId,
     };
     const definition = buildSocialReplyCampaignWorkflowDefinition();
-    await this.workflowQueue.queueSystemWorkflowDefinition(
-      definition,
+    await this.workflowQueue.queueSystemWorkflow(
       {
         actionType: definition.canonicalId,
         canonicalId: definition.canonicalId,

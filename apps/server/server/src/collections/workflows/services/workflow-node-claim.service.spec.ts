@@ -1,5 +1,5 @@
-import { WorkflowNodeClaimService } from '@server/collections/workflows/services/workflow-node-claim.service';
 import { Prisma } from '@genfeedai/prisma';
+import { WorkflowNodeClaimService } from '@server/collections/workflows/services/workflow-node-claim.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowNodeClaimService (#2359)', () => {
@@ -133,7 +133,7 @@ describe('WorkflowNodeClaimService (#2359)', () => {
     });
   });
 
-  it('skips with failed and surfaces the stored error', async () => {
+  it('atomically reclaims a failed node for execution retry', async () => {
     const conflict = new Prisma.PrismaClientKnownRequestError('Unique', {
       clientVersion: 'test',
       code: 'P2002',
@@ -144,6 +144,49 @@ describe('WorkflowNodeClaimService (#2359)', () => {
       output: null,
       status: 'failed',
     });
+    workflowNodeClaim.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      service.tryClaim({
+        executionId: 'exec-1',
+        nodeId: 'publish',
+        organizationId: 'org-1',
+      }),
+    ).resolves.toEqual({ action: 'claimed' });
+
+    expect(workflowNodeClaim.updateMany).toHaveBeenCalledWith({
+      data: {
+        error: null,
+        output: Prisma.DbNull,
+        status: 'running',
+      },
+      where: {
+        executionId: 'exec-1',
+        nodeId: 'publish',
+        organizationId: 'org-1',
+        status: 'failed',
+      },
+    });
+  });
+
+  it('returns the winning worker state when a failed reclaim loses its race', async () => {
+    const conflict = new Prisma.PrismaClientKnownRequestError('Unique', {
+      clientVersion: 'test',
+      code: 'P2002',
+    });
+    workflowNodeClaim.create.mockRejectedValue(conflict);
+    workflowNodeClaim.findFirst
+      .mockResolvedValueOnce({
+        error: 'publish timed out',
+        output: null,
+        status: 'failed',
+      })
+      .mockResolvedValueOnce({
+        error: null,
+        output: null,
+        status: 'running',
+      });
+    workflowNodeClaim.updateMany.mockResolvedValue({ count: 0 });
 
     await expect(
       service.tryClaim({
@@ -153,9 +196,9 @@ describe('WorkflowNodeClaimService (#2359)', () => {
       }),
     ).resolves.toEqual({
       action: 'skip',
-      error: 'publish timed out',
+      error: undefined,
       output: undefined,
-      status: 'failed',
+      status: 'running',
     });
   });
 

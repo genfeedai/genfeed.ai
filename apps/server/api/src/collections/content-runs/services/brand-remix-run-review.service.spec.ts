@@ -1,3 +1,4 @@
+import { BRAND_REMIX_DOWNSTREAM_ACTION_IDS } from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
 import { BrandRemixRunReviewService } from '@api/collections/content-runs/services/brand-remix-run-review.service';
 import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/services/brand-remix-runs.factory';
 import { brandRemixRunConfigSchema } from '@api-types/contracts/brand-remix-run.contract';
@@ -7,6 +8,15 @@ import type { PrismaService } from '@server/shared/modules/prisma/prisma.service
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createdAt = new Date('2026-08-20T10:00:00.000Z');
+
+type CapturedWorkflowAction = (request: {
+  input: Record<string, unknown>;
+  provenance: {
+    executionId: string;
+    workflowId: string;
+    workflowLabel: string;
+  };
+}) => Promise<unknown> | unknown;
 
 describe('BrandRemixRunReviewService', () => {
   const contentRun = {
@@ -19,19 +29,22 @@ describe('BrandRemixRunReviewService', () => {
     post: { findMany: vi.fn() },
   } as unknown as PrismaService;
   const batchGenerationService = { createManualReviewBatch: vi.fn() };
-  const systemWorkflowRunner = { runAction: vi.fn() };
+  const actions = new Map<string, CapturedWorkflowAction>();
+  const systemWorkflowRunner = {
+    registerAction: vi.fn((id: string, action: CapturedWorkflowAction) =>
+      actions.set(id, action),
+    ),
+    registerWorkflow: vi.fn(),
+    runWorkflow: vi.fn(),
+  };
   let review: BrandRemixRunReviewService;
 
   beforeEach(() => {
     vi.resetAllMocks();
-    systemWorkflowRunner.runAction.mockImplementation(
-      async (_input, action) => {
-        const provenance = {
-          executionId: 'workflow-execution-1',
-          workflowId: 'workflow-1',
-          workflowLabel: 'Brand Remix Review Handoff',
-        };
-        return { provenance, result: await action(provenance) };
+    actions.clear();
+    systemWorkflowRunner.registerAction.mockImplementation(
+      (id: string, action: CapturedWorkflowAction) => {
+        actions.set(id, action);
       },
     );
     const graph = assembleBrandRemixRunsGraph({
@@ -71,6 +84,47 @@ describe('BrandRemixRunReviewService', () => {
       videoGenerationService: {} as never,
     });
     review = graph.review;
+    review.onModuleInit();
+    systemWorkflowRunner.runWorkflow.mockImplementation(async (request) => {
+      const provenance = {
+        executionId: 'workflow-execution-1',
+        workflowId: 'workflow-1',
+        workflowLabel: 'Brand Remix Review Handoff',
+      };
+      const execute = async (id: string, input: Record<string, unknown>) => {
+        const action = actions.get(id);
+        if (!action) throw new Error(`Missing action ${id}`);
+        return action({ input, provenance });
+      };
+      let state = (await execute(
+        BRAND_REMIX_DOWNSTREAM_ACTION_IDS.REVIEW_PREPARE,
+        { request: request.inputValues.request },
+      )) as { needsHandoff: boolean };
+      if (state.needsHandoff) {
+        state = (await execute(BRAND_REMIX_DOWNSTREAM_ACTION_IDS.REVIEW_CLAIM, {
+          state,
+        })) as typeof state;
+        state = (await execute(
+          BRAND_REMIX_DOWNSTREAM_ACTION_IDS.REVIEW_CREATE_HANDOFF,
+          { state },
+        )) as typeof state;
+        if ('recordTrendLineage' in state && state.recordTrendLineage) {
+          state = (await execute(
+            BRAND_REMIX_DOWNSTREAM_ACTION_IDS.REVIEW_RECORD_LINEAGE,
+            { state },
+          )) as typeof state;
+        }
+        state = (await execute(
+          BRAND_REMIX_DOWNSTREAM_ACTION_IDS.REVIEW_COMPLETE,
+          { state },
+        )) as typeof state;
+      }
+      const result = await execute(
+        BRAND_REMIX_DOWNSTREAM_ACTION_IDS.REVIEW_PROJECT,
+        { state },
+      );
+      return { provenance, result };
+    });
   });
 
   it('rejects a lost review compare-and-swap before creating side effects', async () => {

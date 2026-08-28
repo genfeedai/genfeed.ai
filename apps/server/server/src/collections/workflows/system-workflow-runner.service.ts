@@ -12,7 +12,11 @@ import {
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import type { ExecutionContext } from '@genfeedai/workflows/engine';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  type OnApplicationBootstrap,
+  type OnModuleInit,
+} from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
@@ -25,7 +29,6 @@ import {
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
 } from '@server/collections/workflows/system-workflow.contract';
 import {
-  createSystemActionWorkflowDefinition,
   type RunSystemWorkflowInput,
   type SystemWorkflowGraphDefinition,
 } from '@server/collections/workflows/system-workflow-definition';
@@ -35,31 +38,17 @@ import {
 } from '@server/collections/workflows/workflow-version-definition';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
-export const SYSTEM_WORKFLOW_ACTION_IDS = {
-  BRAND_REMIX_PAUSED_META_DRAFT: 'brand-remix-paused-meta-draft',
-  BRAND_REMIX_PAUSED_X_ADS_DRAFT: 'brand-remix-paused-x-ads-draft',
-  BRAND_REMIX_REVIEW_HANDOFF: 'brand-remix-review-handoff',
-  ENGAGEMENT_RULE_EVALUATION: 'engagement-rule-evaluation',
-  EVERGREEN_RELEASE_EXPANSION: 'evergreen-release-expansion',
-  REVIEW_GATE_TIMEOUT: 'review-gate-timeout',
-  RSS_SOURCE_POLL: 'rss-source-poll',
-  STREAK_MAINTENANCE: 'streak-maintenance',
-  TIKTOK_STATUS_RECONCILIATION: 'tiktok-status-reconciliation',
-  YOUTUBE_COMMENTS_INGEST: 'youtube-comments-ingest',
-  YOUTUBE_STATUS_RECONCILIATION: 'youtube-status-reconciliation',
-} as const;
-
 export const WORKFLOW_FOR_EACH_ACTION_ID = 'workflow.for-each';
+export const WORKFLOW_FOR_EACH_TENANT_ACTION_ID = 'workflow.for-each-tenant';
+export const WORKFLOW_RUN_CHILD_ACTION_ID = 'workflow.run-child';
 const MAX_FOR_EACH_CONCURRENCY = 10;
 const MAX_FOR_EACH_ITEMS = 500;
 const MAX_FOR_EACH_DELAY_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_NESTED_WORKFLOW_DEPTH = 8;
 
-export type SystemWorkflowActionId =
-  (typeof SYSTEM_WORKFLOW_ACTION_IDS)[keyof typeof SYSTEM_WORKFLOW_ACTION_IDS];
-
 export type SystemWorkflowProvenance = {
   executionId: string;
+  idempotencyKey?: string;
   nodeId?: string;
   workflowId: string;
   workflowLabel: string;
@@ -81,10 +70,11 @@ export type {
   SystemWorkflowGraphDefinition,
   SystemWorkflowGraphMetadata,
 } from '@server/collections/workflows/system-workflow-definition';
-export { createSystemActionWorkflowDefinition } from '@server/collections/workflows/system-workflow-definition';
 
 @Injectable()
-export class SystemWorkflowRunnerService implements OnModuleInit {
+export class SystemWorkflowRunnerService
+  implements OnApplicationBootstrap, OnModuleInit
+{
   private readonly actionDefinitions = new Map<
     string,
     GenfeedActionDefinition
@@ -105,6 +95,62 @@ export class SystemWorkflowRunnerService implements OnModuleInit {
     this.registerAction(WORKFLOW_FOR_EACH_ACTION_ID, (request) =>
       this.executeForEach(request),
     );
+    this.registerAction(WORKFLOW_FOR_EACH_TENANT_ACTION_ID, (request) =>
+      this.executeForEach(request, true),
+    );
+    this.registerAction(WORKFLOW_RUN_CHILD_ACTION_ID, (request) =>
+      this.executeChild(request),
+    );
+  }
+
+  onApplicationBootstrap(): void {
+    const registeredActionIds = new Set(
+      this.getEngineAdapter().getRegisteredActionIds(),
+    );
+    const missing = new Set<string>();
+    const missingChildren = new Set<string>();
+
+    for (const definition of this.workflowDefinitions.values()) {
+      for (const node of definition.definition.nodes ?? []) {
+        if (node.type !== 'genfeedAction') {
+          continue;
+        }
+        const actionId = this.optionalString(
+          this.readRecord(node.data?.config).actionId,
+        );
+        if (actionId && !registeredActionIds.has(actionId)) {
+          missing.add(`${definition.canonicalId}:${actionId}`);
+        }
+        if (
+          actionId === WORKFLOW_FOR_EACH_ACTION_ID ||
+          actionId === WORKFLOW_FOR_EACH_TENANT_ACTION_ID ||
+          actionId === WORKFLOW_RUN_CHILD_ACTION_ID
+        ) {
+          const childWorkflowId = this.optionalString(
+            this.readRecord(node.data?.config).childWorkflowId,
+          );
+          if (
+            childWorkflowId &&
+            !this.workflowDefinitions.has(childWorkflowId)
+          ) {
+            missingChildren.add(
+              `${definition.canonicalId}:${node.id}:${childWorkflowId}`,
+            );
+          }
+        }
+      }
+    }
+
+    if (missing.size > 0) {
+      throw new Error(
+        `System workflow action executors missing: ${[...missing].sort().join(', ')}`,
+      );
+    }
+    if (missingChildren.size > 0) {
+      throw new Error(
+        `System workflow child definitions missing: ${[...missingChildren].sort().join(', ')}`,
+      );
+    }
   }
 
   registerAction(
@@ -135,6 +181,7 @@ export class SystemWorkflowRunnerService implements OnModuleInit {
             input,
             provenance: {
               executionId: context.executionId ?? context.runId,
+              idempotencyKey: `workflow:${context.executionId ?? context.runId}:${node.id}`,
               nodeId: node.id,
               workflowId: context.workflowId,
               workflowLabel: definition.label,
@@ -155,19 +202,15 @@ export class SystemWorkflowRunnerService implements OnModuleInit {
         `Duplicate system workflow definition: ${definition.canonicalId}`,
       );
     }
+    const version = buildWorkflowVersionDefinition(definition.definition);
+    if (
+      !version.graph.nodes.some((node) => node.id === definition.resultNodeId)
+    ) {
+      throw new Error(
+        `System workflow ${definition.canonicalId} result node ${definition.resultNodeId} does not exist`,
+      );
+    }
     this.workflowDefinitions.set(definition.canonicalId, definition);
-  }
-
-  async runAction<T>(input: RunSystemWorkflowInput): Promise<{
-    provenance: SystemWorkflowProvenance;
-    result: T;
-  }> {
-    const definition = createSystemActionWorkflowDefinition(input.canonicalId);
-
-    return this.executeDefinition<T>(definition, {
-      ...input,
-      inputValues: { payload: input.inputValues ?? {} },
-    });
   }
 
   async runWorkflow<T>(input: RunSystemWorkflowInput): Promise<{
@@ -181,33 +224,14 @@ export class SystemWorkflowRunnerService implements OnModuleInit {
     return this.executeDefinition<T>(definition, input);
   }
 
-  async runWorkflowDefinition<T>(
-    definition: SystemWorkflowGraphDefinition,
-    input: RunSystemWorkflowInput,
-  ): Promise<{
-    provenance: SystemWorkflowProvenance;
-    result: T;
-  }> {
-    if (definition.canonicalId !== input.canonicalId) {
-      throw new Error(
-        `System workflow definition ${definition.canonicalId} cannot execute as ${input.canonicalId}`,
-      );
-    }
-    return this.executeDefinition<T>(definition, input);
-  }
-
-  async startWorkflowDefinition(
-    definition: SystemWorkflowGraphDefinition,
-    input: RunSystemWorkflowInput,
-  ): Promise<{
+  async startWorkflow(input: RunSystemWorkflowInput): Promise<{
     execution: WorkflowExecutionResult;
     provenance: SystemWorkflowProvenance;
     userId: string;
   }> {
-    if (definition.canonicalId !== input.canonicalId) {
-      throw new Error(
-        `System workflow definition ${definition.canonicalId} cannot execute as ${input.canonicalId}`,
-      );
+    const definition = this.workflowDefinitions.get(input.canonicalId);
+    if (!definition) {
+      throw new Error(`Unknown system workflow: ${input.canonicalId}`);
     }
     return this.startDefinition(definition, input);
   }
@@ -401,7 +425,10 @@ export class SystemWorkflowRunnerService implements OnModuleInit {
     return action;
   }
 
-  private async executeForEach(request: SystemWorkflowActionRequest): Promise<{
+  private async executeForEach(
+    request: SystemWorkflowActionRequest,
+    projectTenantContext = false,
+  ): Promise<{
     count: number;
     results: Array<
       | {
@@ -429,6 +456,11 @@ export class SystemWorkflowRunnerService implements OnModuleInit {
         `workflow.for-each accepts at most ${MAX_FOR_EACH_ITEMS} items`,
       );
     }
+    const childContexts = await this.resolveForEachChildContexts(
+      items,
+      request,
+      projectTenantContext,
+    );
     const baseInput = this.readRecord(request.input.baseInput);
     const mode = this.optionalString(request.input.mode) ?? 'await';
     if (mode !== 'await' && mode !== 'scheduled') {
@@ -487,6 +519,7 @@ export class SystemWorkflowRunnerService implements OnModuleInit {
         interItemDelayMs,
         itemInputKey,
         items,
+        childContexts,
         parentNodeId,
         request,
       });
@@ -508,6 +541,12 @@ export class SystemWorkflowRunnerService implements OnModuleInit {
           return;
         }
         try {
+          const childContext = childContexts[index];
+          if (!childContext) {
+            throw new Error(
+              `workflow.for-each could not resolve child context for item ${index}`,
+            );
+          }
           const child = await this.runWorkflow<unknown>({
             actionType: childWorkflowId,
             canonicalId: childWorkflowId,
@@ -521,11 +560,11 @@ export class SystemWorkflowRunnerService implements OnModuleInit {
               parentWorkflowId: request.provenance.workflowId,
               workflowForEachIndex: index,
             },
-            organizationId: request.context.organizationId,
+            organizationId: childContext.organizationId,
             runtimeContext: request.runtimeContext,
             source: `${WORKFLOW_FOR_EACH_ACTION_ID}:${request.provenance.executionId}:${parentNodeId}`,
             trigger: WorkflowExecutionTrigger.API,
-            userId: request.context.userId,
+            userId: childContext.userId,
           });
           results[index] = { index, ...child };
         } catch (error: unknown) {
@@ -546,9 +585,39 @@ export class SystemWorkflowRunnerService implements OnModuleInit {
     return { count: results.length, results };
   }
 
+  private async executeChild(
+    request: SystemWorkflowActionRequest,
+  ): Promise<unknown> {
+    const childWorkflowId = this.requiredString(
+      request.input.childWorkflowId,
+      'childWorkflowId',
+    );
+    const { childWorkflowId: _childWorkflowId, ...inputValues } = request.input;
+    const parentNodeId =
+      this.optionalString(request.provenance.nodeId) ?? 'workflow-run-child';
+
+    const child = await this.runWorkflow({
+      actionType: childWorkflowId,
+      canonicalId: childWorkflowId,
+      inputValues,
+      metadata: {
+        parentExecutionId: request.provenance.executionId,
+        parentNodeId,
+        parentWorkflowId: request.provenance.workflowId,
+      },
+      organizationId: request.context.organizationId,
+      runtimeContext: request.runtimeContext,
+      source: `${WORKFLOW_RUN_CHILD_ACTION_ID}:${request.provenance.executionId}:${parentNodeId}`,
+      trigger: WorkflowExecutionTrigger.API,
+      userId: request.context.userId,
+    });
+    return child.result;
+  }
+
   private async scheduleForEach(input: {
     baseInput: Record<string, unknown>;
     childWorkflowId: string;
+    childContexts: Array<{ organizationId: string; userId: string }>;
     initialDelayMs: number;
     interItemDelayMs: number;
     itemInputKey: string;
@@ -565,14 +634,19 @@ export class SystemWorkflowRunnerService implements OnModuleInit {
     }
     const jobs: Array<{ index: number; jobId: string }> = [];
     for (const [index, item] of input.items.entries()) {
+      const childContext = input.childContexts[index];
+      if (!childContext) {
+        throw new Error(
+          `workflow.for-each could not resolve child context for item ${index}`,
+        );
+      }
       const identity = createHash('sha256')
         .update(
           `${input.request.provenance.executionId}:${input.parentNodeId}:${input.childWorkflowId}:${index}`,
         )
         .digest('hex')
         .slice(0, 32);
-      const jobId = await this.getWorkflowQueue().queueSystemWorkflowDefinition(
-        definition,
+      const jobId = await this.getWorkflowQueue().queueSystemWorkflow(
         {
           actionType: input.childWorkflowId,
           canonicalId: input.childWorkflowId,
@@ -586,10 +660,10 @@ export class SystemWorkflowRunnerService implements OnModuleInit {
             parentWorkflowId: input.request.provenance.workflowId,
             workflowForEachIndex: index,
           },
-          organizationId: input.request.context.organizationId,
+          organizationId: childContext.organizationId,
           source: `${WORKFLOW_FOR_EACH_ACTION_ID}:${input.request.provenance.executionId}:${input.parentNodeId}`,
           trigger: WorkflowExecutionTrigger.SCHEDULED,
-          userId: input.request.context.userId,
+          userId: childContext.userId,
         },
         `${WORKFLOW_FOR_EACH_ACTION_ID}-${identity}`,
         {
@@ -600,6 +674,69 @@ export class SystemWorkflowRunnerService implements OnModuleInit {
       jobs.push({ index, jobId });
     }
     return { count: jobs.length, results: jobs };
+  }
+
+  private async resolveForEachChildContexts(
+    items: unknown[],
+    request: SystemWorkflowActionRequest,
+    projectTenantContext: boolean,
+  ): Promise<Array<{ organizationId: string; userId: string }>> {
+    if (!projectTenantContext) {
+      return items.map(() => ({
+        organizationId: request.context.organizationId,
+        userId: request.context.userId,
+      }));
+    }
+
+    await this.assertHiddenSystemWorkflowParent(request);
+    const organizationIds = items.map((item, index) => {
+      const organizationId = this.optionalString(
+        this.readRecord(item).organizationId,
+      );
+      if (!organizationId) {
+        throw new Error(
+          `${WORKFLOW_FOR_EACH_TENANT_ACTION_ID} item ${index} requires organizationId`,
+        );
+      }
+      return organizationId;
+    });
+    const organizations = await this.prisma.organization.findMany({
+      select: { id: true, userId: true },
+      where: { id: { in: [...new Set(organizationIds)] }, isDeleted: false },
+    });
+    const owners = new Map(
+      organizations.map((organization) => [
+        organization.id,
+        organization.userId,
+      ]),
+    );
+
+    return organizationIds.map((organizationId) => {
+      const userId = owners.get(organizationId);
+      if (!userId) {
+        throw new Error(
+          `${WORKFLOW_FOR_EACH_TENANT_ACTION_ID} organization ${organizationId} is unavailable`,
+        );
+      }
+      return { organizationId, userId };
+    });
+  }
+
+  private async assertHiddenSystemWorkflowParent(
+    request: SystemWorkflowActionRequest,
+  ): Promise<void> {
+    const workflow = await this.prisma.workflow.findFirst({
+      select: { metadata: true },
+      where: scopedWhere(request.context.organizationId, {
+        id: request.provenance.workflowId,
+      }),
+    });
+    const metadata = this.readRecord(workflow?.metadata);
+    if (metadata.sourceType !== 'hidden-system-workflow') {
+      throw new Error(
+        `${WORKFLOW_FOR_EACH_TENANT_ACTION_ID} requires a hidden system workflow parent`,
+      );
+    }
   }
 
   private async linkPostsToExecution(

@@ -12,8 +12,8 @@ describe('batch content workflow definitions', () => {
       (node) => node.id === 'generate-items',
     );
 
-    expect(fanOut?.data?.actionId).toBe('workflow.for-each');
-    expect(fanOut?.data?.config).toMatchObject({
+    expect(fanOut?.data.config.actionId).toBe('workflow.for-each');
+    expect(fanOut?.data.config.parameters).toMatchObject({
       childWorkflowId: BATCH_CONTENT_ITEM_WORKFLOW_ID,
       mode: 'await',
     });
@@ -24,7 +24,7 @@ describe('batch content workflow definitions', () => {
     const definition = buildBatchContentItemWorkflowDefinition();
 
     expect(definition.definition.nodes).toHaveLength(1);
-    expect(definition.definition.nodes[0]?.data?.actionId).toBe(
+    expect(definition.definition.nodes[0]?.data.config.actionId).toBe(
       BATCH_CONTENT_ACTION_IDS.GENERATE_ITEM,
     );
   });

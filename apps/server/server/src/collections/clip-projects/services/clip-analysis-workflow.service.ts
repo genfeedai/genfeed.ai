@@ -33,6 +33,7 @@ import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
 import type { IHighlight } from '@server/collections/clip-projects/schemas/clip-project.schema';
 import {
+  buildClipAnalysisFailureWorkflowDefinition,
   buildClipAnalysisWorkflowDefinition,
   CLIP_ANALYSIS_ACTION_IDS,
 } from '@server/collections/clip-projects/services/clip-analysis-workflow-definition';
@@ -154,6 +155,9 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
       (request) => this.failAnalysisAction(request),
     );
     this.workflowRunner.registerWorkflow(buildClipAnalysisWorkflowDefinition());
+    this.workflowRunner.registerWorkflow(
+      buildClipAnalysisFailureWorkflowDefinition(),
+    );
   }
 
   private async prepareSourceAction(

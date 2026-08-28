@@ -166,7 +166,7 @@ function createWorkflowHarness() {
       actions.set(actionId, executor);
     },
     registerWorkflow(): void {},
-    async startWorkflowDefinition(
+    async startWorkflow(
       definition: SystemWorkflowGraphDefinition,
       input: { inputValues?: Record<string, unknown> },
     ) {

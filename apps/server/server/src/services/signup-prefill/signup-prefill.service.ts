@@ -47,6 +47,18 @@ export interface SignupPrefillResult {
   hasHarnessProfile: boolean;
 }
 
+export interface SignupPrefillState {
+  brandDomain: string | null;
+  brandLabel: string;
+  brandVoice?: IBrandVoiceAnalysis;
+  config: BrandAgentConfig;
+  hasHarnessProfile?: boolean;
+  request: SignupPrefillWorkflowInput;
+  scrapedData?: IScrapedBrandData;
+  status: SignupPrefillStatus;
+  websiteUrl?: string;
+}
+
 /** Placeholder values written by `UserSetupService.getOrCreateBrand`. */
 const PLACEHOLDER_BRAND_LABELS = new Set(['Default Organization']);
 
@@ -83,169 +95,175 @@ export class SignupPrefillService {
     private readonly harnessProfilesService: HarnessProfilesService,
   ) {}
 
-  async prefillBrand(
-    data: SignupPrefillWorkflowInput,
-    onProgress?: (percent: number) => Promise<void>,
-  ): Promise<SignupPrefillResult> {
-    const { brandId, organizationId, userId } = data;
+  async preparePrefill(
+    request: SignupPrefillWorkflowInput,
+  ): Promise<SignupPrefillState> {
     const brand = await this.brandsService.findOne(
-      { id: brandId, organizationId: organizationId },
+      { id: request.brandId, organizationId: request.organizationId },
       'none',
     );
-
     if (!brand) {
-      this.loggerService.warn('Signup prefill skipped — brand not found', {
-        ...this.context,
-        brandId,
-        organizationId,
-      });
       return {
         brandDomain: null,
-        brandId,
-        hasBrandVoice: false,
-        hasHarnessProfile: false,
+        brandLabel: request.brandName ?? 'Your brand',
+        config: {},
+        request,
         status: 'skipped',
       };
     }
-
-    const existingConfig = this.brandDataMapper.readBrandAgentConfig(
-      brand.agentConfig,
-    );
-    const existingMarker = this.readMarker(existingConfig);
-
-    // The BullMQ job id already collapses duplicate enqueues; this guards the
-    // case where a job is retried after the writes have landed.
-    if (
-      existingMarker?.status === 'completed' ||
-      existingMarker?.status === 'skipped'
-    ) {
-      this.loggerService.log('Signup prefill already applied', {
-        ...this.context,
-        brandId,
-        status: existingMarker.status,
-      });
+    const config = this.brandDataMapper.readBrandAgentConfig(brand.agentConfig);
+    const marker = this.readMarker(config);
+    if (marker?.status === 'completed' || marker?.status === 'skipped') {
       return {
-        brandDomain: existingMarker.brandDomain ?? null,
-        brandId,
-        hasBrandVoice: Boolean(existingMarker.hasBrandVoice),
-        hasHarnessProfile: Boolean(existingMarker.hasHarnessProfile),
-        status: existingMarker.status,
+        brandDomain: marker.brandDomain ?? null,
+        brandLabel:
+          typeof brand.label === 'string' ? brand.label : 'Your brand',
+        config,
+        hasHarnessProfile: marker.hasHarnessProfile,
+        request,
+        status: marker.status,
       };
     }
-
     const resolved = resolveSignupBrandDomain({
-      email: data.email,
-      requestedDomain: data.brandDomain,
+      email: request.email,
+      requestedDomain: request.brandDomain,
     });
     const brandLabel = this.resolveBrandLabel(
-      data.brandName,
+      request.brandName,
       resolved.brandName,
       typeof brand.label === 'string' ? brand.label : null,
     );
-
-    await this.writeMarker(brandId, organizationId, existingConfig, {
+    await this.writeMarker(request.brandId, request.organizationId, config, {
       brandDomain: resolved.domain ?? undefined,
       startedAt: new Date().toISOString(),
       status: 'running',
     });
-    await onProgress?.(10);
-
-    let scrapedData: IScrapedBrandData | undefined;
-    let brandVoice: IBrandVoiceAnalysis | undefined;
-
-    if (resolved.websiteUrl) {
-      scrapedData = await this.scrapeBrandWebsite(
-        resolved.websiteUrl,
-        brandLabel,
-      );
-      await onProgress?.(35);
-
-      brandVoice = await this.analyzeBrandVoice(
-        scrapedData,
-        organizationId,
-        userId,
-      );
-      await onProgress?.(60);
-
-      await this.persistScrapedBrand({
-        brandId,
-        brandLabel,
-        brandVoice,
-        organizationId,
-        scrapedData,
-        userId,
-        websiteUrl: resolved.websiteUrl,
-      });
-    } else {
-      this.loggerService.log(
-        'Signup prefill has no corporate domain — seeding defaults only',
-        { ...this.context, brandId },
-      );
-    }
-
-    await onProgress?.(75);
-
-    // Re-read: `updateBrandGuidance` merged the AI voice into agentConfig, and
-    // the defaults must layer on top of that merge rather than the pre-scrape
-    // snapshot.
-    const mergedConfig = await this.readAgentConfig(
-      brandId,
-      organizationId,
-      existingConfig,
-    );
-    const prefilledConfig = buildPrefilledAgentConfig({
-      brandLabel,
-      existingConfig: mergedConfig,
-      scrapedData,
-      timezone: 'UTC',
-    });
-
-    await this.brandsService.updateAgentConfig(
-      brandId,
-      organizationId,
-      prefilledConfig,
-    );
-    await this.ensureBrandPromptFields(
-      brandId,
-      brandLabel,
-      prefilledConfig,
-      scrapedData,
-    );
-    await onProgress?.(85);
-
-    const hasHarnessProfile = await this.seedHarnessProfile({
-      agentConfig: prefilledConfig,
-      brandId,
-      brandLabel,
-      organizationId,
-      scrapedData,
-      userId,
-    });
-
-    await this.writeMarker(brandId, organizationId, prefilledConfig, {
-      brandDomain: resolved.domain ?? undefined,
-      completedAt: new Date().toISOString(),
-      hasBrandVoice: Boolean(brandVoice),
-      hasHarnessProfile,
-      hasScrapedWebsite: Boolean(scrapedData),
-      status: 'completed',
-    });
-    await onProgress?.(100);
-
-    this.loggerService.log('Signup prefill completed', {
-      ...this.context,
-      brandDomain: resolved.domain,
-      brandId,
-      hasBrandVoice: Boolean(brandVoice),
-      hasHarnessProfile,
-      organizationId,
-    });
-
     return {
       brandDomain: resolved.domain,
-      brandId,
-      hasBrandVoice: Boolean(brandVoice),
-      hasHarnessProfile,
+      brandLabel,
+      config,
+      request,
+      status: 'running',
+      websiteUrl: resolved.websiteUrl ?? undefined,
+    };
+  }
+
+  async scrapePrefill(state: SignupPrefillState): Promise<SignupPrefillState> {
+    if (state.status !== 'running' || !state.websiteUrl) return state;
+    return {
+      ...state,
+      scrapedData: await this.scrapeBrandWebsite(
+        state.websiteUrl,
+        state.brandLabel,
+      ),
+    };
+  }
+
+  async analyzePrefill(state: SignupPrefillState): Promise<SignupPrefillState> {
+    if (!state.scrapedData) return state;
+    return {
+      ...state,
+      brandVoice: await this.analyzeBrandVoice(
+        state.scrapedData,
+        state.request.organizationId,
+        state.request.userId,
+      ),
+    };
+  }
+
+  async applyPrefillDefaults(
+    state: SignupPrefillState,
+  ): Promise<SignupPrefillState> {
+    if (state.status !== 'running') return state;
+    if (state.scrapedData && state.websiteUrl) {
+      await this.persistScrapedBrand({
+        brandId: state.request.brandId,
+        brandLabel: state.brandLabel,
+        brandVoice: state.brandVoice,
+        organizationId: state.request.organizationId,
+        scrapedData: state.scrapedData,
+        userId: state.request.userId,
+        websiteUrl: state.websiteUrl,
+      });
+    }
+    const mergedConfig = await this.readAgentConfig(
+      state.request.brandId,
+      state.request.organizationId,
+      state.config,
+    );
+    const config = buildPrefilledAgentConfig({
+      brandLabel: state.brandLabel,
+      existingConfig: mergedConfig,
+      scrapedData: state.scrapedData,
+      timezone: 'UTC',
+    });
+    await this.brandsService.updateAgentConfig(
+      state.request.brandId,
+      state.request.organizationId,
+      config,
+    );
+    return { ...state, config };
+  }
+
+  async applyPrefillPrompt(
+    state: SignupPrefillState,
+  ): Promise<SignupPrefillState> {
+    if (state.status === 'running') {
+      await this.ensureBrandPromptFields(
+        state.request.brandId,
+        state.brandLabel,
+        state.config,
+        state.scrapedData,
+      );
+    }
+    return state;
+  }
+
+  async applyPrefillHarness(
+    state: SignupPrefillState,
+  ): Promise<SignupPrefillState> {
+    if (state.status !== 'running') return state;
+    const hasHarnessProfile = await this.seedHarnessProfile({
+      agentConfig: state.config,
+      brandId: state.request.brandId,
+      brandLabel: state.brandLabel,
+      organizationId: state.request.organizationId,
+      scrapedData: state.scrapedData,
+      userId: state.request.userId,
+    });
+    return { ...state, hasHarnessProfile };
+  }
+
+  async finalizePrefill(
+    state: SignupPrefillState,
+  ): Promise<SignupPrefillResult> {
+    if (state.status !== 'running') {
+      return {
+        brandDomain: state.brandDomain,
+        brandId: state.request.brandId,
+        hasBrandVoice: Boolean(state.brandVoice),
+        hasHarnessProfile: Boolean(state.hasHarnessProfile),
+        status: state.status,
+      };
+    }
+    await this.writeMarker(
+      state.request.brandId,
+      state.request.organizationId,
+      state.config,
+      {
+        brandDomain: state.brandDomain ?? undefined,
+        completedAt: new Date().toISOString(),
+        hasBrandVoice: Boolean(state.brandVoice),
+        hasHarnessProfile: Boolean(state.hasHarnessProfile),
+        hasScrapedWebsite: Boolean(state.scrapedData),
+        status: 'completed',
+      },
+    );
+    return {
+      brandDomain: state.brandDomain,
+      brandId: state.request.brandId,
+      hasBrandVoice: Boolean(state.brandVoice),
+      hasHarnessProfile: Boolean(state.hasHarnessProfile),
       status: 'completed',
     };
   }

@@ -12,6 +12,8 @@ import { ActivityEntity } from '@server/collections/activities/entities/activity
 import { ActivitiesService } from '@server/collections/activities/services/activities.service';
 import type { PostEntity } from '@server/collections/posts/entities/post.entity';
 import {
+  buildScheduledPostFailureWorkflowDefinition,
+  buildScheduledPostWorkflowDefinition,
   SCHEDULED_POST_ACTION_IDS,
   type ScheduledPostWorkflowInput,
 } from '@server/collections/posts/services/scheduled-post-workflow-definition';
@@ -54,6 +56,8 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
     this.runner.registerAction(SCHEDULED_POST_ACTION_IDS.FINALIZE, (request) =>
       this.finalize(request),
     );
+    this.runner.registerWorkflow(buildScheduledPostWorkflowDefinition());
+    this.runner.registerWorkflow(buildScheduledPostFailureWorkflowDefinition());
   }
 
   private async claim(

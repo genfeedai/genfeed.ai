@@ -168,25 +168,24 @@ export class ClipGenerationService implements OnModuleInit {
     }
     const request = this.toPersistedInput(input);
     const definition = buildClipGenerationWorkflowDefinition();
-    const { execution } =
-      await this.requireWorkflowRunner().startWorkflowDefinition(definition, {
-        actionType: CLIP_GENERATION_WORKFLOW_ID,
-        canonicalId: definition.canonicalId,
-        inputValues: { request, reviewContext },
-        metadata: {
-          clipHookReviewAttempt: reviewContext.attempt,
-          ...(reviewContext.feedback
-            ? { clipHookReviewFeedback: reviewContext.feedback }
-            : {}),
-          ...(reviewContext.lastAction
-            ? { clipHookReviewLastAction: reviewContext.lastAction }
-            : {}),
-          projectId: request.projectId,
-        },
-        organizationId: request.orgId,
-        source: CLIP_GENERATION_WORKFLOW_ID,
-        userId: request.userId,
-      });
+    const { execution } = await this.requireWorkflowRunner().startWorkflow({
+      actionType: CLIP_GENERATION_WORKFLOW_ID,
+      canonicalId: definition.canonicalId,
+      inputValues: { request, reviewContext },
+      metadata: {
+        clipHookReviewAttempt: reviewContext.attempt,
+        ...(reviewContext.feedback
+          ? { clipHookReviewFeedback: reviewContext.feedback }
+          : {}),
+        ...(reviewContext.lastAction
+          ? { clipHookReviewLastAction: reviewContext.lastAction }
+          : {}),
+        projectId: request.projectId,
+      },
+      organizationId: request.orgId,
+      source: CLIP_GENERATION_WORKFLOW_ID,
+      userId: request.userId,
+    });
 
     if (execution.status === WorkflowExecutionStatus.FAILED) {
       throw new Error(execution.error ?? 'Clip generation workflow failed');

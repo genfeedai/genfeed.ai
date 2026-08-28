@@ -10,10 +10,12 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import type { PostEntity } from '@server/collections/posts/entities/post.entity';
 import { PostsService } from '@server/collections/posts/services/posts.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowRunnerService,
-} from '@server/collections/workflows/system-workflow-runner.service';
+  buildEvergreenExpansionWorkflowDefinition,
+  EVERGREEN_EXPANSION_ACTION_ID,
+  EVERGREEN_EXPANSION_WORKFLOW_ID,
+} from '@workers/services/post-repeat-workflow-definition';
 import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-recurrence-materializer.service';
 
 type CronPostChild = {
@@ -37,7 +39,7 @@ export class PostRepeatSchedulerService implements OnModuleInit {
 
   onModuleInit(): void {
     this.systemWorkflowRunner.registerAction(
-      SYSTEM_WORKFLOW_ACTION_IDS.EVERGREEN_RELEASE_EXPANSION,
+      EVERGREEN_EXPANSION_ACTION_ID,
       async ({ input, provenance }) => {
         const groupId = String(input.groupId ?? '');
         const organizationId = String(input.organizationId ?? '');
@@ -52,6 +54,9 @@ export class PostRepeatSchedulerService implements OnModuleInit {
           workflowExecutionId: provenance.executionId,
         });
       },
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildEvergreenExpansionWorkflowDefinition(),
     );
   }
 
@@ -193,9 +198,9 @@ export class PostRepeatSchedulerService implements OnModuleInit {
       return;
     }
 
-    await this.systemWorkflowRunner.runAction({
-      actionType: 'expand-evergreen-release',
-      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.EVERGREEN_RELEASE_EXPANSION,
+    await this.systemWorkflowRunner.runWorkflow({
+      actionType: EVERGREEN_EXPANSION_WORKFLOW_ID,
+      canonicalId: EVERGREEN_EXPANSION_WORKFLOW_ID,
       inputValues: {
         groupId,
         organizationId,

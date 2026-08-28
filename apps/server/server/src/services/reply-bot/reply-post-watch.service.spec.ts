@@ -7,9 +7,9 @@ describe('ReplyPostWatchService workflow boundary', () => {
   const workflowRunner = {
     registerAction: vi.fn(),
     registerWorkflow: vi.fn(),
-    runWorkflowDefinition: vi.fn(),
+    runWorkflow: vi.fn(),
   };
-  const workflowQueue = { queueSystemWorkflowDefinition: vi.fn() };
+  const workflowQueue = { queueSystemWorkflow: vi.fn() };
   let service: ReplyPostWatchService;
 
   beforeEach(() => {
@@ -37,7 +37,7 @@ describe('ReplyPostWatchService workflow boundary', () => {
   });
 
   it('schedules the full post-watch series as workflow executions', async () => {
-    workflowQueue.queueSystemWorkflowDefinition.mockResolvedValue('job');
+    workflowQueue.queueSystemWorkflow.mockResolvedValue('job');
 
     await expect(
       service.schedulePostWatch({
@@ -48,10 +48,8 @@ describe('ReplyPostWatchService workflow boundary', () => {
       }),
     ).resolves.toEqual({ scheduled: 7 });
 
-    expect(workflowQueue.queueSystemWorkflowDefinition).toHaveBeenCalledTimes(
-      7,
-    );
-    expect(workflowQueue.queueSystemWorkflowDefinition).toHaveBeenNthCalledWith(
+    expect(workflowQueue.queueSystemWorkflow).toHaveBeenCalledTimes(7);
+    expect(workflowQueue.queueSystemWorkflow).toHaveBeenNthCalledWith(
       1,
       expect.anything(),
       expect.objectContaining({

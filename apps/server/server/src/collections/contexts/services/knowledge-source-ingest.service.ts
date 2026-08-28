@@ -4,7 +4,6 @@ import type {
   KnowledgeSourceIngestWorkflowInput,
 } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ContextsService } from '@server/collections/contexts/services/contexts.service';
 import {
@@ -43,156 +42,171 @@ export interface KnowledgeSourceBackfillScanResult {
   }>;
 }
 
+export interface KnowledgeSourceIngestState {
+  chunks?: string[];
+  contextBaseId: string;
+  currentData: unknown;
+  extracted?: { mimeType?: string; text: string };
+  organizationId: string;
+  source?: PersistedKnowledgeSource;
+  sources: PersistedKnowledgeSource[];
+  status: KnowledgeSourceIngestStatus | 'ready';
+}
+
 @Injectable()
 export class KnowledgeSourceIngestService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly contextsService: ContextsService,
-    private readonly logger: LoggerService,
   ) {}
 
-  async ingest(
-    job: KnowledgeSourceIngestWorkflowInput,
-  ): Promise<KnowledgeSourceIngestResult> {
+  async loadSource(
+    request: KnowledgeSourceIngestWorkflowInput,
+  ): Promise<KnowledgeSourceIngestState> {
     const contextBase = await this.prisma.contextBase.findFirst({
-      where: scopedWhere(job.organizationId, { id: job.contextBaseId }),
+      where: scopedWhere(request.organizationId, { id: request.contextBaseId }),
     });
-
     if (!contextBase) {
-      return { chunkCount: 0, sourceId: job.sourceId, status: 'skipped' };
-    }
-
-    const sources = parseKnowledgeSources(contextBase.data);
-    const source = findKnowledgeSource(sources, job.sourceId);
-    if (!source || source.isDeleted) {
-      return { chunkCount: 0, sourceId: job.sourceId, status: 'skipped' };
-    }
-
-    if (!isIngestibleKnowledgeSourceCategory(source.category)) {
-      await this.persistSource(
-        job.organizationId,
-        contextBase.id,
-        contextBase.data,
-        sources,
-        {
-          ...source,
-          error: `${source.category} sources are not ingested yet`,
-          status: KnowledgeBaseStatus.FAILED,
-        },
-      );
-      return { chunkCount: 0, sourceId: source.id, status: 'unsupported' };
-    }
-
-    if (!source.referenceUrl) {
-      await this.persistSource(
-        job.organizationId,
-        contextBase.id,
-        contextBase.data,
-        sources,
-        {
-          ...source,
-          error: 'Source is missing a reference URL',
-          status: KnowledgeBaseStatus.FAILED,
-        },
-      );
-      return { chunkCount: 0, sourceId: source.id, status: 'failed' };
-    }
-
-    await this.persistSource(
-      job.organizationId,
-      contextBase.id,
-      contextBase.data,
-      sources,
-      {
-        ...source,
-        error: undefined,
-        status: KnowledgeBaseStatus.PROCESSING,
-      },
-    );
-
-    try {
-      const extracted = await extractSourceText({
-        category: source.category,
-        referenceUrl: source.referenceUrl,
-      });
-      const chunks = chunkText(extracted.text);
-
-      await this.contextsService.removeEntriesBySource(
-        contextBase.id,
-        source.id,
-        job.organizationId,
-      );
-
-      for (const [chunkIndex, content] of chunks.entries()) {
-        await this.contextsService.addEntry(
-          contextBase.id,
-          {
-            content,
-            metadata: {
-              chunkIndex,
-              kind: KNOWLEDGE_SOURCE_CHUNK_KIND,
-              mimeType: extracted.mimeType,
-              referenceUrl: source.referenceUrl,
-              source: 'knowledge-source',
-              sourceCategory: source.category,
-              sourceId: source.id,
-              sourceLabel: source.label,
-            },
-          },
-          job.organizationId,
-        );
-      }
-
-      await this.persistSource(
-        job.organizationId,
-        contextBase.id,
-        contextBase.data,
-        sources,
-        {
-          ...source,
-          chunkCount: chunks.length,
-          error: undefined,
-          lastIngestedAt: new Date().toISOString(),
-          status: KnowledgeBaseStatus.COMPLETED,
-        },
-      );
-
-      this.logger.log('Ingested knowledge source', {
-        chunkCount: chunks.length,
-        contextBaseId: contextBase.id,
-        organizationId: job.organizationId,
-        sourceId: source.id,
-      });
-
       return {
-        chunkCount: chunks.length,
-        sourceId: source.id,
-        status: 'completed',
+        contextBaseId: request.contextBaseId,
+        currentData: {},
+        organizationId: request.organizationId,
+        sources: [],
+        status: 'skipped',
       };
-    } catch (error: unknown) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Knowledge source ingest failed';
-      await this.persistSource(
-        job.organizationId,
-        contextBase.id,
-        contextBase.data,
-        sources,
-        {
-          ...source,
-          error: message,
-          status: KnowledgeBaseStatus.FAILED,
-        },
-      );
-      this.logger.error('Failed to ingest knowledge source', {
-        contextBaseId: contextBase.id,
-        error,
-        organizationId: job.organizationId,
-        sourceId: source.id,
-      });
-      return { chunkCount: 0, sourceId: source.id, status: 'failed' };
     }
+    const sources = parseKnowledgeSources(contextBase.data);
+    const source = findKnowledgeSource(sources, request.sourceId);
+    if (!source || source.isDeleted) {
+      return {
+        contextBaseId: contextBase.id,
+        currentData: contextBase.data,
+        organizationId: request.organizationId,
+        sources,
+        status: 'skipped',
+      };
+    }
+    return {
+      contextBaseId: contextBase.id,
+      currentData: contextBase.data,
+      organizationId: request.organizationId,
+      source,
+      sources,
+      status: !isIngestibleKnowledgeSourceCategory(source.category)
+        ? 'unsupported'
+        : source.referenceUrl
+          ? 'ready'
+          : 'failed',
+    };
+  }
+
+  async markSource(
+    state: KnowledgeSourceIngestState,
+  ): Promise<KnowledgeSourceIngestState> {
+    if (!state.source || state.status === 'skipped') return state;
+    const next =
+      state.status === 'ready'
+        ? {
+            ...state.source,
+            error: undefined,
+            status: KnowledgeBaseStatus.PROCESSING,
+          }
+        : {
+            ...state.source,
+            error:
+              state.status === 'unsupported'
+                ? `${state.source.category} sources are not ingested yet`
+                : 'Source is missing a reference URL',
+            status: KnowledgeBaseStatus.FAILED,
+          };
+    await this.persistSource(
+      state.organizationId,
+      state.contextBaseId,
+      state.currentData,
+      state.sources,
+      next,
+    );
+    return { ...state, source: next };
+  }
+
+  async extractSource(
+    state: KnowledgeSourceIngestState,
+  ): Promise<KnowledgeSourceIngestState> {
+    if (state.status !== 'ready' || !state.source?.referenceUrl) return state;
+    const extracted = await extractSourceText({
+      category: state.source.category,
+      referenceUrl: state.source.referenceUrl,
+    });
+    return { ...state, extracted };
+  }
+
+  chunkSource(state: KnowledgeSourceIngestState): KnowledgeSourceIngestState {
+    if (!state.extracted) return state;
+    return { ...state, chunks: chunkText(state.extracted.text) };
+  }
+
+  async replaceChunks(
+    state: KnowledgeSourceIngestState,
+  ): Promise<KnowledgeSourceIngestState> {
+    if (!state.source || !state.extracted || !state.chunks) return state;
+    await this.contextsService.removeEntriesBySource(
+      state.contextBaseId,
+      state.source.id,
+      state.organizationId,
+    );
+    for (const [chunkIndex, content] of state.chunks.entries()) {
+      await this.contextsService.addEntry(
+        state.contextBaseId,
+        {
+          content,
+          metadata: {
+            chunkIndex,
+            kind: KNOWLEDGE_SOURCE_CHUNK_KIND,
+            mimeType: state.extracted.mimeType,
+            referenceUrl: state.source.referenceUrl,
+            source: 'knowledge-source',
+            sourceCategory: state.source.category,
+            sourceId: state.source.id,
+            sourceLabel: state.source.label,
+          },
+        },
+        state.organizationId,
+      );
+    }
+    return state;
+  }
+
+  async finalizeSource(
+    state: KnowledgeSourceIngestState | undefined,
+    error?: string,
+  ): Promise<KnowledgeSourceIngestResult> {
+    if (!state?.source) {
+      return { chunkCount: 0, sourceId: '', status: 'skipped' };
+    }
+    if (state.status !== 'ready') {
+      return { chunkCount: 0, sourceId: state.source.id, status: state.status };
+    }
+    const next = {
+      ...state.source,
+      chunkCount: error ? 0 : (state.chunks?.length ?? 0),
+      error,
+      ...(error ? {} : { lastIngestedAt: new Date().toISOString() }),
+      status: error
+        ? KnowledgeBaseStatus.FAILED
+        : KnowledgeBaseStatus.COMPLETED,
+    };
+    await this.persistSource(
+      state.organizationId,
+      state.contextBaseId,
+      state.currentData,
+      state.sources,
+      next,
+    );
+    return {
+      chunkCount: next.chunkCount,
+      sourceId: state.source.id,
+      status: error ? 'failed' : 'completed',
+    };
   }
 
   async scanForBackfill(

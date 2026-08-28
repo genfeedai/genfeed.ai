@@ -1,13 +1,10 @@
-import {
-  SCHEDULED_POST_ACTION_IDS,
-  SCHEDULED_POST_WORKFLOW_ID,
-} from '@server/collections/posts/services/scheduled-post-workflow-definition';
+import { SCHEDULED_POST_WORKFLOW_ID } from '@server/collections/posts/services/scheduled-post-workflow-definition';
 import { ScheduledPostWorkflowQueueService } from '@server/collections/posts/services/scheduled-post-workflow-queue.service';
 
 describe('ScheduledPostWorkflowQueueService', () => {
   it('queues the immutable graph with one attempt and terminal replacement', async () => {
     const workflowQueue = {
-      queueSystemWorkflowDefinition: vi.fn().mockResolvedValue('job-1'),
+      queueSystemWorkflow: vi.fn().mockResolvedValue('job-1'),
     };
     const service = new ScheduledPostWorkflowQueueService(
       workflowQueue as never,
@@ -24,8 +21,7 @@ describe('ScheduledPostWorkflowQueueService', () => {
 
     await service.enqueue(input);
 
-    expect(workflowQueue.queueSystemWorkflowDefinition).toHaveBeenCalledWith(
-      expect.objectContaining({ canonicalId: SCHEDULED_POST_WORKFLOW_ID }),
+    expect(workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         canonicalId: SCHEDULED_POST_WORKFLOW_ID,
         inputValues: { request: input },
@@ -33,10 +29,13 @@ describe('ScheduledPostWorkflowQueueService', () => {
       }),
       'scheduled-post-operation-1',
       {
-        actionId: SCHEDULED_POST_ACTION_IDS.FAIL,
-        inputValues: input,
+        attempts: 1,
+        failureWorkflow: {
+          canonicalId: 'scheduled-post.publish.failure',
+          inputValues: { request: input },
+        },
+        replaceTerminalJob: true,
       },
-      { attempts: 1, replaceTerminalJob: true },
     );
   });
 });

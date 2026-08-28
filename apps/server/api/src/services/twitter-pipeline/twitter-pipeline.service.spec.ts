@@ -4,7 +4,7 @@ import { TWITTER_PIPELINE_ACTION_IDS } from '@api/services/twitter-pipeline/twit
 describe('TwitterPipelineService workflow boundary', () => {
   const runner = {
     registerAction: vi.fn(),
-    runWorkflowDefinition: vi.fn(),
+    runWorkflow: vi.fn(),
   };
   const service = new TwitterPipelineService(
     { error: vi.fn(), log: vi.fn() } as never,
@@ -26,11 +26,11 @@ describe('TwitterPipelineService workflow boundary', () => {
   });
 
   it('routes search through the search workflow', async () => {
-    runner.runWorkflowDefinition.mockResolvedValueOnce({ result: [] });
+    runner.runWorkflow.mockResolvedValueOnce({ result: [] });
 
     await service.search('org-1', 'brand-1', 'AI', { maxResults: 25 });
 
-    expect(runner.runWorkflowDefinition).toHaveBeenCalledWith(
+    expect(runner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         canonicalId: 'twitter.pipeline.search',
       }),
@@ -48,7 +48,7 @@ describe('TwitterPipelineService workflow boundary', () => {
   });
 
   it('routes generation through the multi-node draft workflow', async () => {
-    runner.runWorkflowDefinition.mockResolvedValueOnce({ result: [] });
+    runner.runWorkflow.mockResolvedValueOnce({ result: [] });
 
     await service.draft('org-1', [], {
       description: 'Technical',
@@ -56,14 +56,16 @@ describe('TwitterPipelineService workflow boundary', () => {
       searchQuery: 'AI',
     });
 
-    expect(runner.runWorkflowDefinition).toHaveBeenCalledWith(
-      expect.objectContaining({ canonicalId: 'twitter.pipeline.draft' }),
-      expect.objectContaining({ organizationId: 'org-1' }),
+    expect(runner.runWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalId: 'twitter.pipeline.draft',
+        organizationId: 'org-1',
+      }),
     );
   });
 
   it('routes publishing through credential resolution and provider delivery', async () => {
-    runner.runWorkflowDefinition.mockResolvedValueOnce({
+    runner.runWorkflow.mockResolvedValueOnce({
       result: { success: true },
     });
 
@@ -73,9 +75,9 @@ describe('TwitterPipelineService workflow boundary', () => {
       type: 'original',
     });
 
-    expect(runner.runWorkflowDefinition).toHaveBeenCalledWith(
-      expect.objectContaining({ canonicalId: 'twitter.pipeline.publish' }),
+    expect(runner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
+        canonicalId: 'twitter.pipeline.publish',
         inputValues: {
           request: {
             brandId: 'brand-1',

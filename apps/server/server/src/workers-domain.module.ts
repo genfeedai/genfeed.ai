@@ -203,7 +203,6 @@ import { SkillExecutorService } from '@server/services/skill-executor/skill-exec
 import { TaskDecompositionService } from '@server/services/task-orchestration/task-decomposition.service';
 import { TaskOrchestratorService } from '@server/services/task-orchestration/task-orchestrator.service';
 import { WorkspaceTaskQualityService } from '@server/services/task-orchestration/workspace-task-quality.service';
-import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/workspace-task-queue.service';
 import { TaskQueueClientService } from '@server/services/task-queue-client/task-queue-client.service';
 import { GenerationEventWebhookService } from '@server/services/webhook-client/generation-event-webhook.service';
 import { PublishEventWebhookService } from '@server/services/webhook-client/publish-event-webhook.service';
@@ -412,7 +411,6 @@ const WORKER_DOMAIN_SERVICES = [
   WorkflowTemplateSeederService,
   WorkflowWebhookService,
   WorkspaceTaskQualityService,
-  WorkspaceTaskQueueService,
   XActivitySubscriptionService,
   XActivityWebhookService,
   YouTubePublisherService,

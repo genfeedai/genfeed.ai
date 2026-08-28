@@ -293,7 +293,7 @@ export const SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST: CronBoundaryEntry[] = [
     id: 'youtube-messages-sweep',
     methodName: 'syncYoutubeMessages',
     reason:
-      'System sweep discovery adapter; each connected credential queues a youtube-comments-ingest action workflow.',
+      'System sweep adapter; each connected credential fans out to the existing YouTube comment-sync workflow.',
   },
 ];
 

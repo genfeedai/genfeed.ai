@@ -12,12 +12,12 @@ describe('content optimization A/B test workflow definitions', () => {
       (node) => node.id === 'create-arms',
     );
 
-    expect(fanOut?.data?.actionId).toBe('workflow.for-each');
-    expect(fanOut?.data?.config).toMatchObject({
+    expect(fanOut?.data.config.actionId).toBe('workflow.for-each');
+    expect(fanOut?.data.config.parameters).toMatchObject({
       childWorkflowId: AB_TEST_WORKFLOW_IDS.EXECUTE_ARM,
       mode: 'await',
     });
-    expect(definition.definition.nodes[0]?.data?.actionId).toBe(
+    expect(definition.definition.nodes[0]?.data.config.actionId).toBe(
       AB_TEST_ACTION_IDS.PLAN_EXECUTION,
     );
   });
@@ -28,7 +28,7 @@ describe('content optimization A/B test workflow definitions', () => {
       (node) => node.id === 'persist-outcomes',
     );
 
-    expect(fanOut?.data?.config).toMatchObject({
+    expect(fanOut?.data.config.parameters).toMatchObject({
       childWorkflowId: AB_TEST_WORKFLOW_IDS.RESOLVE_OUTCOME,
       mode: 'await',
     });

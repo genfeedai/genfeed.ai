@@ -2,8 +2,13 @@ import { createGenfeedActionNode } from '@genfeedai/actions';
 import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-runner.service';
 
 export const KNOWLEDGE_SOURCE_ACTION_IDS = {
+  CHUNK: 'knowledge.source.chunk',
   DISCOVER_BACKFILL: 'knowledge.source.discover-backfill',
-  INGEST: 'knowledge.source.ingest',
+  EXTRACT: 'knowledge.source.extract',
+  FINALIZE: 'knowledge.source.finalize',
+  LOAD: 'knowledge.source.load',
+  MARK: 'knowledge.source.mark-processing',
+  REPLACE: 'knowledge.source.replace-chunks',
 } as const;
 
 export const KNOWLEDGE_SOURCE_WORKFLOW_IDS = {
@@ -15,7 +20,66 @@ export function buildKnowledgeSourceIngestWorkflowDefinition(): SystemWorkflowGr
   return {
     canonicalId: KNOWLEDGE_SOURCE_WORKFLOW_IDS.INGEST,
     definition: {
-      edges: [],
+      edges: [
+        {
+          id: 'load-mark',
+          source: 'load-source',
+          target: 'mark-source',
+          targetHandle: 'state',
+        },
+        {
+          id: 'mark-extract',
+          source: 'mark-source',
+          target: 'extract-source',
+          targetHandle: 'state',
+        },
+        {
+          id: 'extract-chunk',
+          source: 'extract-source',
+          target: 'chunk-source',
+          targetHandle: 'state',
+        },
+        {
+          id: 'chunk-replace',
+          source: 'chunk-source',
+          target: 'replace-chunks',
+          targetHandle: 'state',
+        },
+        {
+          id: 'replace-finalize',
+          source: 'replace-chunks',
+          target: 'finalize-source',
+          targetHandle: 'state',
+        },
+        {
+          id: 'mark-failure',
+          source: 'mark-source',
+          sourceHandle: 'failure',
+          target: 'finalize-source',
+          targetHandle: 'failure',
+        },
+        {
+          id: 'extract-failure',
+          source: 'extract-source',
+          sourceHandle: 'failure',
+          target: 'finalize-source',
+          targetHandle: 'failure',
+        },
+        {
+          id: 'chunk-failure',
+          source: 'chunk-source',
+          sourceHandle: 'failure',
+          target: 'finalize-source',
+          targetHandle: 'failure',
+        },
+        {
+          id: 'replace-failure',
+          source: 'replace-chunks',
+          sourceHandle: 'failure',
+          target: 'finalize-source',
+          targetHandle: 'failure',
+        },
+      ],
       inputVariables: [
         {
           key: 'request',
@@ -26,15 +90,35 @@ export function buildKnowledgeSourceIngestWorkflowDefinition(): SystemWorkflowGr
       ],
       nodes: [
         createGenfeedActionNode({
-          actionId: KNOWLEDGE_SOURCE_ACTION_IDS.INGEST,
-          id: 'ingest-source',
+          actionId: KNOWLEDGE_SOURCE_ACTION_IDS.LOAD,
+          id: 'load-source',
           inputVariableKeys: ['request'],
+        }),
+        createGenfeedActionNode({
+          actionId: KNOWLEDGE_SOURCE_ACTION_IDS.MARK,
+          id: 'mark-source',
+        }),
+        createGenfeedActionNode({
+          actionId: KNOWLEDGE_SOURCE_ACTION_IDS.EXTRACT,
+          id: 'extract-source',
+        }),
+        createGenfeedActionNode({
+          actionId: KNOWLEDGE_SOURCE_ACTION_IDS.CHUNK,
+          id: 'chunk-source',
+        }),
+        createGenfeedActionNode({
+          actionId: KNOWLEDGE_SOURCE_ACTION_IDS.REPLACE,
+          id: 'replace-chunks',
+        }),
+        createGenfeedActionNode({
+          actionId: KNOWLEDGE_SOURCE_ACTION_IDS.FINALIZE,
+          id: 'finalize-source',
         }),
       ],
     },
     description: 'Ingests one knowledge source into its context base.',
     label: 'Knowledge Source Ingest',
-    resultNodeId: 'ingest-source',
+    resultNodeId: 'finalize-source',
     version: 1,
   };
 }

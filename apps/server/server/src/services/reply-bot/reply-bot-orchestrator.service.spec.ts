@@ -21,10 +21,10 @@ describe('ReplyBotOrchestratorService workflow boundary', () => {
   const workflowRunner = {
     registerAction: vi.fn(),
     registerWorkflow: vi.fn(),
-    runWorkflowDefinition: vi.fn(),
+    runWorkflow: vi.fn(),
   };
   const workflowQueue = {
-    queueSystemWorkflowDefinition: vi.fn(),
+    queueSystemWorkflow: vi.fn(),
   };
   let service: ReplyBotOrchestratorService;
 
@@ -63,14 +63,13 @@ describe('ReplyBotOrchestratorService workflow boundary', () => {
   });
 
   it('passes only organization and credential identifiers into polling', async () => {
-    workflowRunner.runWorkflowDefinition.mockResolvedValueOnce({
+    workflowRunner.runWorkflow.mockResolvedValueOnce({
       result: [],
     });
 
     await service.processOrganizationBots('org-1', 'credential-1');
 
-    expect(workflowRunner.runWorkflowDefinition).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(workflowRunner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         inputValues: {
           request: {
@@ -83,14 +82,13 @@ describe('ReplyBotOrchestratorService workflow boundary', () => {
   });
 
   it('queues manual polling as the organization workflow', async () => {
-    workflowQueue.queueSystemWorkflowDefinition.mockResolvedValueOnce('job-1');
+    workflowQueue.queueSystemWorkflow.mockResolvedValueOnce('job-1');
 
     await expect(
       service.queueOrganizationBots('org-1', 'credential-1'),
     ).resolves.toBe('job-1');
 
-    expect(workflowQueue.queueSystemWorkflowDefinition).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         inputValues: {
           request: {
@@ -104,14 +102,13 @@ describe('ReplyBotOrchestratorService workflow boundary', () => {
   });
 
   it('routes a single bot through its child workflow', async () => {
-    workflowRunner.runWorkflowDefinition.mockResolvedValueOnce({
+    workflowRunner.runWorkflow.mockResolvedValueOnce({
       result: { botConfigId: 'bot-1' },
     });
 
     await service.processSingleBot('bot-1', 'org-1', 'credential-1');
 
-    expect(workflowRunner.runWorkflowDefinition).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(workflowRunner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         inputValues: {
           request: {
@@ -125,7 +122,7 @@ describe('ReplyBotOrchestratorService workflow boundary', () => {
   });
 
   it('routes dry-run generation through a workflow without a provider credential', async () => {
-    workflowRunner.runWorkflowDefinition.mockResolvedValueOnce({
+    workflowRunner.runWorkflow.mockResolvedValueOnce({
       result: { replyText: 'draft' },
     });
 
@@ -134,8 +131,7 @@ describe('ReplyBotOrchestratorService workflow boundary', () => {
       content: 'hello',
     });
 
-    expect(workflowRunner.runWorkflowDefinition).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(workflowRunner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         inputValues: {
           request: {

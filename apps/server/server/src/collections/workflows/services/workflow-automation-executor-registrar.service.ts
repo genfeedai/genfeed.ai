@@ -10,7 +10,6 @@ import {
 } from '@server/collections/workflows/services/ad-bulk-upload-workflow.service';
 import { AgentAutopilotWorkflowService } from '@server/collections/workflows/services/agent-autopilot-workflow.service';
 import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
-import { CampaignOrchestrationWorkflowService } from '@server/collections/workflows/services/campaign-orchestration-workflow.service';
 import { ContentProductionWorkflowService } from '@server/collections/workflows/services/content-production-workflow.service';
 import { LivestreamBotWorkflowService } from '@server/collections/workflows/services/livestream-bot-workflow.service';
 import { OutreachCampaignDispatchWorkflowService } from '@server/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
@@ -26,7 +25,6 @@ export class WorkflowAutomationExecutorRegistrarService {
   constructor(
     private readonly helper: WorkflowEngineExecutorHelperService,
     private readonly adAutomationWorkflowService?: AdAutomationWorkflowService,
-    private readonly campaignOrchestrationWorkflowService?: CampaignOrchestrationWorkflowService,
     private readonly agentAutopilotWorkflowService?: AgentAutopilotWorkflowService,
     private readonly analyticsSyncWorkflowService?: AnalyticsSyncWorkflowService,
     private readonly contentProductionWorkflowService?: ContentProductionWorkflowService,
@@ -42,7 +40,6 @@ export class WorkflowAutomationExecutorRegistrarService {
   register(engine: WorkflowEngine): void {
     this.registerAdAutomationExecutors(engine);
     this.registerAdBulkUploadExecutors(engine);
-    this.registerCampaignOrchestrationExecutors(engine);
     this.registerAgentAutopilotExecutors(engine);
     this.registerAnalyticsSyncExecutors(engine);
     this.registerContentProductionExecutors(engine);
@@ -168,33 +165,6 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
   }
 
-  private registerCampaignOrchestrationExecutors(engine: WorkflowEngine): void {
-    engine.registerExecutor(
-      'agentCampaignOrchestration',
-      (_node, _inputs, context) =>
-        this.campaignOrchestrationWorkflowService
-          ? this.campaignOrchestrationWorkflowService.runDueCampaignOrchestration(
-              context.organizationId,
-            )
-          : this.campaignOrchestrationUnavailable(
-              'agentCampaignOrchestration',
-              context,
-            ),
-    );
-    engine.registerExecutor(
-      'agentCampaignTriggerEvaluation',
-      (_node, _inputs, context) =>
-        this.campaignOrchestrationWorkflowService
-          ? this.campaignOrchestrationWorkflowService.runTriggerEvaluations(
-              context.organizationId,
-            )
-          : this.campaignOrchestrationUnavailable(
-              'agentCampaignTriggerEvaluation',
-              context,
-            ),
-    );
-  }
-
   private registerAgentAutopilotExecutors(engine: WorkflowEngine): void {
     engine.registerExecutor(
       'proactiveAgentStrategies',
@@ -205,16 +175,6 @@ export class WorkflowAutomationExecutorRegistrarService {
               workflowContext(context, _node),
             )
           : this.agentAutopilotUnavailable('proactiveAgentStrategies', context),
-    );
-    engine.registerExecutor(
-      'aiInfluencerDailyPosts',
-      (_node, _inputs, context) =>
-        this.agentAutopilotWorkflowService
-          ? this.agentAutopilotWorkflowService.runAiInfluencerDailyPosts(
-              context.organizationId,
-              workflowContext(context, _node),
-            )
-          : this.agentAutopilotUnavailable('aiInfluencerDailyPosts', context),
     );
   }
 
@@ -496,17 +456,6 @@ export class WorkflowAutomationExecutorRegistrarService {
     throw this.unavailableServiceError(
       action,
       'OutreachCampaignDispatchWorkflowService',
-      context,
-    );
-  }
-
-  private async campaignOrchestrationUnavailable(
-    action: string,
-    context: ExecutionContext,
-  ) {
-    throw this.unavailableServiceError(
-      action,
-      'CampaignOrchestrationWorkflowService',
       context,
     );
   }

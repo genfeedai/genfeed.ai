@@ -16,10 +16,6 @@ import {
 } from '@server/endpoints/analytics/analytics.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
-  type CampaignWinnerExtractionResult,
-  CampaignWinnerExtractionService,
-} from '@server/services/agent-campaign/campaign-winner-extraction.service';
-import {
   type ContentRotationSelection,
   ContentRotationService,
 } from '@server/services/agent-campaign/content-rotation.service';
@@ -45,13 +41,41 @@ interface AnalyticsOverview {
   viewsGrowth?: number;
 }
 
-interface OrchestrationDispatchPlan {
+export interface OrchestrationDispatchPlan {
   agentType: AgentType;
   objective: string;
   reason: string;
   runId: string;
   strategyId: string;
 }
+
+export type CampaignOrchestrationDispatchItem = {
+  campaign: AgentCampaignDocument;
+  creditBudget?: number;
+  objective: string;
+  organizationId: string;
+  reason: string;
+  rotationSelection?: ContentRotationSelection;
+  strategy: AgentStrategyDocument;
+  userId: string;
+};
+
+export type CampaignOrchestrationState = {
+  analyticsOverview: AnalyticsOverview;
+  campaign: AgentCampaignDocument;
+  completeCampaign?: boolean;
+  dispatchedRuns?: OrchestrationDispatchPlan[];
+  goalSummaries: string[];
+  items?: CampaignOrchestrationDispatchItem[];
+  memoryCaptured?: boolean;
+  nextOrchestratedAt?: string | null;
+  organizationId: string;
+  perStrategyBudget: number | null;
+  rotationSelection?: ContentRotationSelection;
+  selectedStrategies: AgentStrategyDocument[];
+  skippedReason?: string;
+  summary?: string;
+};
 
 export type TriggerDispatchType =
   | 'performance_dip'
@@ -68,6 +92,25 @@ export type TriggeredCampaignDispatchInput = {
   triggerMetadata: Record<string, string | number | boolean | null>;
   triggerSummary: string;
   triggerType: TriggerDispatchType;
+};
+
+export type TriggeredCampaignDispatchItem = {
+  campaign: AgentCampaignDocument;
+  creditBudget?: number;
+  input: TriggeredCampaignDispatchInput;
+  objective: string;
+  reason: string;
+  strategy: AgentStrategyDocument;
+  userId: string;
+};
+
+export type TriggeredCampaignDispatchState = {
+  campaign: AgentCampaignDocument;
+  input: TriggeredCampaignDispatchInput;
+  items: TriggeredCampaignDispatchItem[];
+  nextOrchestratedAt: string | null;
+  skippedReason?: string;
+  summary?: string;
 };
 
 export interface ContentEngineCycleResult {
@@ -91,7 +134,6 @@ export class ContentEngineService {
     private readonly contentRotationService: ContentRotationService,
     private readonly analyticsService: AnalyticsService,
     private readonly agentMemoryCaptureService: AgentMemoryCaptureService,
-    private readonly campaignWinnerExtractionService: CampaignWinnerExtractionService,
     private readonly logger: LoggerService,
     @Inject(forwardRef(() => AgentRuntimeService))
     private readonly agentRuntimeService: AgentRuntimeService,
@@ -136,10 +178,10 @@ export class ContentEngineService {
     return strategy.platforms ?? [];
   }
 
-  async runOrchestrationCycle(
+  async loadOrchestrationContext(
     campaignId: string,
     organizationId: string,
-  ): Promise<ContentEngineCycleResult> {
+  ): Promise<CampaignOrchestrationState> {
     const campaign = await this.agentCampaignsService.findOneById(
       campaignId,
       organizationId,
@@ -150,25 +192,34 @@ export class ContentEngineService {
     }
 
     if (campaign.status !== 'active') {
-      return await this.finalizeCycle(campaign, {
-        dispatchedRuns: [],
+      return {
+        analyticsOverview: {},
+        campaign,
+        goalSummaries: [],
         nextOrchestratedAt: null,
+        organizationId,
+        perStrategyBudget: null,
+        selectedStrategies: [],
         skippedReason: `Campaign is ${campaign.status}, skipping orchestration.`,
         summary: `Skipped orchestration because campaign status is ${campaign.status}.`,
-      });
+      };
     }
 
     if (campaign.orchestrationEnabled === false) {
-      return await this.finalizeCycle(campaign, {
-        dispatchedRuns: [],
+      return {
+        analyticsOverview: {},
+        campaign,
+        goalSummaries: [],
         nextOrchestratedAt: null,
+        organizationId,
+        perStrategyBudget: null,
+        selectedStrategies: [],
         skippedReason: 'Campaign orchestration is disabled.',
         summary:
           'Skipped orchestration because campaign orchestration is disabled.',
-      });
+      };
     }
 
-    const userId = this.requireCampaignUserId(campaign, campaignId);
     const strategies = await this.loadCampaignStrategies(
       campaign,
       organizationId,
@@ -178,14 +229,22 @@ export class ContentEngineService {
       .filter((strategy) => !isOrchestratorAgentType(strategy.agentType));
 
     if (dispatchableStrategies.length === 0) {
-      return await this.finalizeCycle(campaign, {
-        dispatchedRuns: [],
-        nextOrchestratedAt: this.computeNextRunAt(campaign, new Date()),
+      return {
+        analyticsOverview: {},
+        campaign,
+        goalSummaries: [],
+        nextOrchestratedAt: this.computeNextRunAt(
+          campaign,
+          new Date(),
+        ).toISOString(),
+        organizationId,
+        perStrategyBudget: null,
+        selectedStrategies: [],
         skippedReason:
           'No non-orchestrator campaign strategies are eligible to dispatch.',
         summary:
           'Skipped orchestration because the campaign has no eligible specialist strategies.',
-      });
+      };
     }
 
     const contentRotation = this.getCampaignContentRotation(campaign);
@@ -213,21 +272,20 @@ export class ContentEngineService {
     const remainingCampaignBudget = this.getRemainingCampaignBudget(campaign);
 
     if (remainingCampaignBudget !== null && remainingCampaignBudget <= 0) {
-      await this.agentCampaignsService.patch(campaignId, {
-        lastOrchestrationSummary:
-          'Campaign budget exhausted before orchestration dispatch.',
+      return {
+        analyticsOverview,
+        campaign,
+        completeCampaign: true,
+        goalSummaries,
         nextOrchestratedAt: null,
         organizationId,
-        status: 'completed',
-      });
-
-      return await this.finalizeCycle(campaign, {
-        dispatchedRuns: [],
-        nextOrchestratedAt: null,
+        perStrategyBudget: null,
+        rotationSelection: rotationResult.selection,
+        selectedStrategies: [],
         skippedReason: 'Campaign credit budget is exhausted.',
         summary:
           'Skipped orchestration and completed the campaign because the credit budget is exhausted.',
-      });
+      };
     }
 
     const perStrategyBudget =
@@ -238,97 +296,184 @@ export class ContentEngineService {
           )
         : null;
 
-    const dispatchedRuns: OrchestrationDispatchPlan[] = [];
+    return {
+      analyticsOverview,
+      campaign,
+      goalSummaries,
+      organizationId,
+      perStrategyBudget,
+      rotationSelection: rotationResult.selection,
+      selectedStrategies,
+    };
+  }
 
-    for (const strategy of selectedStrategies) {
+  planOrchestrationDispatches(
+    state: CampaignOrchestrationState,
+  ): CampaignOrchestrationState & {
+    items: CampaignOrchestrationDispatchItem[];
+  } {
+    if (state.skippedReason) {
+      return { ...state, items: [] };
+    }
+    const campaignId = String(state.campaign.id);
+    const userId = this.requireCampaignUserId(state.campaign, campaignId);
+    const items = state.selectedStrategies.map((strategy) => {
       const reason = this.buildDispatchReason(
         strategy,
-        analyticsOverview,
-        rotationResult.selection,
+        state.analyticsOverview,
+        state.rotationSelection,
       );
       const objective = this.buildDispatchObjective(
-        campaign,
+        state.campaign,
         strategy,
-        goalSummaries,
-        analyticsOverview,
-        rotationResult.selection,
+        state.goalSummaries,
+        state.analyticsOverview,
+        state.rotationSelection,
       );
       const creditBudget =
-        perStrategyBudget !== null
+        state.perStrategyBudget !== null
           ? Math.min(
-              strategy.dailyCreditBudget || perStrategyBudget,
-              perStrategyBudget,
+              strategy.dailyCreditBudget || state.perStrategyBudget,
+              state.perStrategyBudget,
             )
           : strategy.dailyCreditBudget || undefined;
-
-      const handle = await this.agentRuntimeService.startTurn({
-        agentType: this.requireAgentType(strategy.agentType),
-        autonomyMode: strategy.autonomyMode,
-        brandId: campaign.brandId ?? undefined,
-        campaignId,
+      return {
+        campaign: state.campaign,
         creditBudget,
-        label: `Campaign orchestrator: ${campaign.label} -> ${strategy.label}`,
-        metadata: {
-          campaignId,
-          ...this.buildRotationMetadata(rotationResult.selection),
-          dispatchedBy: 'campaign_orchestrator',
-          dispatchedStrategyId: String(strategy.id),
-          reason,
-        },
-        model: this.normalizeModel(strategy.model),
         objective,
-        organizationId,
-        strategyId: String(strategy.id),
-        threadTitle: `${campaign.label ?? 'Campaign'} · ${strategy.label ?? strategy.id}`,
-        trigger: AgentExecutionTrigger.CRON,
-        userId,
-      });
-
-      dispatchedRuns.push({
-        agentType: this.requireAgentType(strategy.agentType),
-        objective,
+        organizationId: state.organizationId,
         reason,
-        runId: handle.runId,
-        strategyId: String(strategy.id),
-      });
-    }
+        rotationSelection: state.rotationSelection,
+        strategy,
+        userId,
+      };
+    });
+    return { ...state, items };
+  }
 
-    const nextOrchestratedAt = this.computeNextRunAt(campaign, new Date());
-    const summary = this.buildCycleSummary(
-      campaign,
-      dispatchedRuns,
-      analyticsOverview,
-      goalSummaries,
-      rotationResult.selection,
-    );
-
-    await this.captureDecisionMemory(
-      campaign,
-      analyticsOverview,
-      dispatchedRuns,
-      goalSummaries,
-      summary,
-    );
-
-    for (const plan of dispatchedRuns) {
-      await this.agentRunsService.mergeMetadata(plan.runId, organizationId, {
+  async dispatchOrchestrationItem(
+    item: CampaignOrchestrationDispatchItem,
+  ): Promise<OrchestrationDispatchPlan> {
+    const campaignId = String(item.campaign.id);
+    const handle = await this.agentRuntimeService.startTurn({
+      agentType: this.requireAgentType(item.strategy.agentType),
+      autonomyMode: item.strategy.autonomyMode,
+      brandId: item.campaign.brandId ?? undefined,
+      campaignId,
+      creditBudget: item.creditBudget,
+      label: `Campaign orchestrator: ${item.campaign.label} -> ${item.strategy.label}`,
+      metadata: {
         campaignId,
-        ...this.buildRotationMetadata(rotationResult.selection),
-        orchestrationDispatchReason: plan.reason,
-        orchestrationSummary: summary,
-      });
-    }
+        ...this.buildRotationMetadata(item.rotationSelection),
+        dispatchedBy: 'campaign_orchestrator',
+        dispatchedStrategyId: String(item.strategy.id),
+        reason: item.reason,
+      },
+      model: this.normalizeModel(item.strategy.model),
+      objective: item.objective,
+      organizationId: item.organizationId,
+      strategyId: String(item.strategy.id),
+      threadTitle: `${item.campaign.label ?? 'Campaign'} · ${item.strategy.label ?? item.strategy.id}`,
+      trigger: AgentExecutionTrigger.CRON,
+      userId: item.userId,
+    });
+    return {
+      agentType: this.requireAgentType(item.strategy.agentType),
+      objective: item.objective,
+      reason: item.reason,
+      runId: handle.runId,
+      strategyId: String(item.strategy.id),
+    };
+  }
 
-    return await this.finalizeCycle(campaign, {
+  summarizeOrchestration(
+    state: CampaignOrchestrationState,
+    dispatchedRuns: OrchestrationDispatchPlan[],
+  ): CampaignOrchestrationState & {
+    annotationItems: Array<{
+      organizationId: string;
+      plan: OrchestrationDispatchPlan;
+      rotationSelection?: ContentRotationSelection;
+      summary: string;
+    }>;
+  } {
+    const summary =
+      state.summary ??
+      this.buildCycleSummary(
+        state.campaign,
+        dispatchedRuns,
+        state.analyticsOverview,
+        state.goalSummaries,
+        state.rotationSelection,
+      );
+    return {
+      ...state,
+      annotationItems: dispatchedRuns.map((plan) => ({
+        organizationId: state.organizationId,
+        plan,
+        rotationSelection: state.rotationSelection,
+        summary,
+      })),
       dispatchedRuns,
-      nextOrchestratedAt,
+      nextOrchestratedAt:
+        state.nextOrchestratedAt ??
+        this.computeNextRunAt(state.campaign, new Date()).toISOString(),
       summary,
+    };
+  }
+
+  async captureOrchestrationMemory(
+    state: CampaignOrchestrationState,
+  ): Promise<CampaignOrchestrationState> {
+    const dispatchedRuns = state.dispatchedRuns ?? [];
+    if (dispatchedRuns.length === 0) {
+      return { ...state, memoryCaptured: false };
+    }
+    await this.captureDecisionMemory(
+      state.campaign,
+      state.analyticsOverview,
+      dispatchedRuns,
+      state.goalSummaries,
+      state.summary ?? '',
+    );
+    return { ...state, memoryCaptured: true };
+  }
+
+  async annotateOrchestrationRun(item: {
+    organizationId: string;
+    plan: OrchestrationDispatchPlan;
+    rotationSelection?: ContentRotationSelection;
+    summary: string;
+  }): Promise<OrchestrationDispatchPlan> {
+    await this.agentRunsService.mergeMetadata(
+      item.plan.runId,
+      item.organizationId,
+      {
+        ...this.buildRotationMetadata(item.rotationSelection),
+        orchestrationDispatchReason: item.plan.reason,
+        orchestrationSummary: item.summary,
+      },
+    );
+    return item.plan;
+  }
+
+  async finalizeOrchestration(
+    state: CampaignOrchestrationState,
+  ): Promise<ContentEngineCycleResult> {
+    return this.finalizeCycle(state.campaign, {
+      dispatchedRuns: state.dispatchedRuns ?? [],
+      nextOrchestratedAt: state.nextOrchestratedAt
+        ? new Date(state.nextOrchestratedAt)
+        : null,
+      skippedReason: state.skippedReason,
+      status: state.completeCampaign ? 'completed' : undefined,
+      summary: state.summary ?? 'Campaign orchestration completed.',
     });
   }
 
-  async dispatchTriggeredRuns(
+  async planTriggeredDispatches(
     input: TriggeredCampaignDispatchInput,
-  ): Promise<ContentEngineCycleResult> {
+  ): Promise<TriggeredCampaignDispatchState> {
     const campaign = await this.agentCampaignsService.findOneById(
       input.campaignId,
       input.organizationId,
@@ -340,10 +485,12 @@ export class ContentEngineService {
 
     if (campaign.status !== 'active') {
       return {
-        campaignId: input.campaignId,
-        dispatchCount: 0,
-        dispatchedRuns: [],
-        nextOrchestratedAt: this.normalizeDate(campaign.nextOrchestratedAt),
+        campaign,
+        input,
+        items: [],
+        nextOrchestratedAt:
+          this.normalizeDate(campaign.nextOrchestratedAt)?.toISOString() ??
+          null,
         skippedReason: `Campaign is ${campaign.status}, skipping trigger dispatch.`,
         summary: `Skipped trigger dispatch because campaign status is ${campaign.status}.`,
       };
@@ -351,10 +498,12 @@ export class ContentEngineService {
 
     if (input.strategies.length === 0) {
       return {
-        campaignId: input.campaignId,
-        dispatchCount: 0,
-        dispatchedRuns: [],
-        nextOrchestratedAt: this.normalizeDate(campaign.nextOrchestratedAt),
+        campaign,
+        input,
+        items: [],
+        nextOrchestratedAt:
+          this.normalizeDate(campaign.nextOrchestratedAt)?.toISOString() ??
+          null,
         skippedReason: 'No strategies selected for trigger dispatch.',
         summary:
           'Skipped trigger dispatch because no strategies were selected.',
@@ -372,10 +521,12 @@ export class ContentEngineService {
 
     if (remainingCampaignBudget !== null && remainingCampaignBudget <= 0) {
       return {
-        campaignId: input.campaignId,
-        dispatchCount: 0,
-        dispatchedRuns: [],
-        nextOrchestratedAt: this.normalizeDate(campaign.nextOrchestratedAt),
+        campaign,
+        input,
+        items: [],
+        nextOrchestratedAt:
+          this.normalizeDate(campaign.nextOrchestratedAt)?.toISOString() ??
+          null,
         skippedReason: 'Campaign credit budget is exhausted.',
         summary:
           'Skipped trigger dispatch because the campaign budget is exhausted.',
@@ -390,9 +541,7 @@ export class ContentEngineService {
           )
         : null;
 
-    const dispatchedRuns: OrchestrationDispatchPlan[] = [];
-
-    for (const strategy of input.strategies) {
+    const items = input.strategies.map((strategy) => {
       const reason = `[${input.triggerType}] ${input.triggerSummary}`;
       const objective = this.buildTriggerDispatchObjective(
         campaign,
@@ -409,63 +558,92 @@ export class ContentEngineService {
             )
           : strategy.dailyCreditBudget || undefined;
 
-      const handle = await this.agentRuntimeService.startTurn({
-        agentType: this.requireAgentType(strategy.agentType),
-        autonomyMode: strategy.autonomyMode,
-        brandId: campaign.brandId ?? undefined,
-        campaignId: input.campaignId,
+      return {
+        campaign,
         creditBudget,
-        label: `Campaign trigger: ${campaign.label} -> ${strategy.label}`,
-        metadata: {
-          campaignId: input.campaignId,
-          dispatchedBy: 'campaign_trigger_evaluator',
-          dispatchedStrategyId: String(strategy.id),
-          triggerMetadata: input.triggerMetadata,
-          triggerType: input.triggerType,
-        },
-        model: this.normalizeModel(strategy.model),
-        objective,
-        organizationId,
-        strategyId: String(strategy.id),
-        threadTitle: `${campaign.label ?? 'Campaign'} · ${strategy.label ?? strategy.id}`,
-        trigger: AgentExecutionTrigger.CRON,
-        userId,
-      });
-
-      dispatchedRuns.push({
-        agentType: this.requireAgentType(strategy.agentType),
+        input,
         objective,
         reason,
-        runId: handle.runId,
-        strategyId: String(strategy.id),
-      });
-    }
-
-    for (const dispatch of dispatchedRuns) {
-      await this.agentRunsService.mergeMetadata(
-        dispatch.runId,
-        organizationId,
-        {
-          campaignId: input.campaignId,
-          orchestrationDispatchReason: dispatch.reason,
-          triggerMetadata: input.triggerMetadata,
-          triggerType: input.triggerType,
-        },
-      );
-    }
-
-    this.logger.log(`${this.logContext} dispatched trigger-driven runs`, {
-      campaignId: input.campaignId,
-      dispatchCount: dispatchedRuns.length,
-      triggerType: input.triggerType,
+        strategy,
+        userId,
+      };
     });
-
     return {
-      campaignId: input.campaignId,
+      campaign,
+      input,
+      items,
+      nextOrchestratedAt:
+        this.normalizeDate(campaign.nextOrchestratedAt)?.toISOString() ?? null,
+    };
+  }
+
+  async dispatchTriggeredItem(
+    item: TriggeredCampaignDispatchItem,
+  ): Promise<OrchestrationDispatchPlan> {
+    const handle = await this.agentRuntimeService.startTurn({
+      agentType: this.requireAgentType(item.strategy.agentType),
+      autonomyMode: item.strategy.autonomyMode,
+      brandId: item.campaign.brandId ?? undefined,
+      campaignId: item.input.campaignId,
+      creditBudget: item.creditBudget,
+      label: `Campaign trigger: ${item.campaign.label} -> ${item.strategy.label}`,
+      metadata: {
+        campaignId: item.input.campaignId,
+        dispatchedBy: 'campaign_trigger_evaluator',
+        dispatchedStrategyId: String(item.strategy.id),
+        triggerMetadata: item.input.triggerMetadata,
+        triggerType: item.input.triggerType,
+      },
+      model: this.normalizeModel(item.strategy.model),
+      objective: item.objective,
+      organizationId: item.input.organizationId,
+      strategyId: String(item.strategy.id),
+      threadTitle: `${item.campaign.label ?? 'Campaign'} · ${item.strategy.label ?? item.strategy.id}`,
+      trigger: AgentExecutionTrigger.CRON,
+      userId: item.userId,
+    });
+    return {
+      agentType: this.requireAgentType(item.strategy.agentType),
+      objective: item.objective,
+      reason: item.reason,
+      runId: handle.runId,
+      strategyId: String(item.strategy.id),
+    };
+  }
+
+  async annotateTriggeredRun(input: {
+    dispatch: OrchestrationDispatchPlan;
+    trigger: TriggeredCampaignDispatchInput;
+  }): Promise<OrchestrationDispatchPlan> {
+    await this.agentRunsService.mergeMetadata(
+      input.dispatch.runId,
+      input.trigger.organizationId,
+      {
+        campaignId: input.trigger.campaignId,
+        orchestrationDispatchReason: input.dispatch.reason,
+        triggerMetadata: input.trigger.triggerMetadata,
+        triggerType: input.trigger.triggerType,
+      },
+    );
+    return input.dispatch;
+  }
+
+  finalizeTriggeredDispatches(
+    state: TriggeredCampaignDispatchState,
+    dispatchedRuns: OrchestrationDispatchPlan[],
+  ): ContentEngineCycleResult {
+    const summary =
+      state.summary ??
+      `Dispatched ${dispatchedRuns.length} run(s) for ${state.input.triggerType}.`;
+    return {
+      campaignId: state.input.campaignId,
       dispatchCount: dispatchedRuns.length,
       dispatchedRuns,
-      nextOrchestratedAt: this.normalizeDate(campaign.nextOrchestratedAt),
-      summary: `Dispatched ${dispatchedRuns.length} run(s) for ${input.triggerType}.`,
+      nextOrchestratedAt: state.nextOrchestratedAt
+        ? new Date(state.nextOrchestratedAt)
+        : null,
+      skippedReason: state.skippedReason,
+      summary,
     };
   }
 
@@ -841,6 +1019,7 @@ export class ContentEngineService {
       dispatchedRuns: OrchestrationDispatchPlan[];
       nextOrchestratedAt: Date | null;
       skippedReason?: string;
+      status?: 'completed';
       summary: string;
     },
   ): Promise<ContentEngineCycleResult> {
@@ -855,6 +1034,7 @@ export class ContentEngineService {
         'organization',
         `Campaign ${campaign.id}`,
       ),
+      ...(input.status ? { status: input.status } : {}),
     });
 
     this.logger.log(`${this.logContext} finalized orchestration cycle`, {
@@ -872,15 +1052,5 @@ export class ContentEngineService {
       skippedReason: input.skippedReason,
       summary: input.summary,
     };
-  }
-
-  extractWinnerPatterns(
-    campaignId: string,
-    organizationId: string,
-  ): Promise<CampaignWinnerExtractionResult> {
-    return this.campaignWinnerExtractionService.extractWinnerPatterns(
-      campaignId,
-      organizationId,
-    );
   }
 }

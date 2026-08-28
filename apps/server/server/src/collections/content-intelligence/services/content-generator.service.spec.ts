@@ -1,15 +1,16 @@
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test } from '@nestjs/testing';
 import { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
 import { PatternStoreService } from '@server/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@server/collections/content-intelligence/services/playbook-builder.service';
 import { TopPerformerPromptContextService } from '@server/collections/content-intelligence/services/top-performer-prompt-context.service';
 import { PersonasService } from '@server/collections/personas/services/personas.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { AgentContextAssemblyService } from '@server/services/agent-context-assembly/agent-context-assembly.service';
 import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@server/services/agent-context-assembly/brand-context-budget.util';
 import { HarnessGenerationService } from '@server/services/harness/harness-generation.service';
 import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
 
 const ORG_ID = 'test-object-id';
@@ -60,6 +61,7 @@ describe('ContentGeneratorService', () => {
     warn: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
   };
+  let actionExecutors: Map<string, (request: never) => unknown>;
 
   beforeEach(async () => {
     contextAssemblyService = {
@@ -83,6 +85,77 @@ describe('ContentGeneratorService', () => {
       assembleContext: vi.fn().mockResolvedValue(undefined),
     };
     mockLogger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+    actionExecutors = new Map();
+    const workflowRunner = {
+      registerAction: vi.fn(
+        (actionId: string, executor: (request: never) => unknown) => {
+          actionExecutors.set(actionId, executor);
+        },
+      ),
+      registerWorkflow: vi.fn(),
+      runWorkflow: vi.fn(
+        async (request: {
+          canonicalId: string;
+          inputValues: { dto: unknown };
+          organizationId: string;
+          userId?: string;
+        }) => {
+          const context = {
+            organizationId: request.organizationId,
+            userId: request.userId ?? 'workflow-owner',
+          };
+          const invoke = (actionId: string, input: Record<string, unknown>) => {
+            const executor = actionExecutors.get(actionId);
+            if (!executor)
+              throw new Error(`Missing action executor: ${actionId}`);
+            return executor({ context, input } as never);
+          };
+          const loadedContext = await invoke(
+            'content-intelligence.load-context',
+            {
+              dto: request.inputValues.dto,
+            },
+          );
+          const patterns = await invoke('content-intelligence.load-patterns', {
+            dto: request.inputValues.dto,
+          });
+          const plan = (await invoke('content-intelligence.plan', {
+            context: loadedContext,
+            dto: request.inputValues.dto,
+            patterns,
+          })) as { hasPatterns: boolean; items: unknown[] };
+          if (!plan.hasPatterns) {
+            const freeformResults = await invoke(
+              'content-intelligence.generate-freeform',
+              { state: loadedContext },
+            );
+            return {
+              result: await invoke('content-intelligence.finalize', {
+                freeformResults,
+              }),
+            };
+          }
+          const generationAction =
+            request.canonicalId === 'linkedin-content.generation'
+              ? 'generate_linkedin_content'
+              : 'content-intelligence.generate';
+          const results = [];
+          for (const item of plan.items) {
+            const state = await invoke(generationAction, { item });
+            results.push({
+              result: await invoke('content-intelligence.track-pattern', {
+                state,
+              }),
+            });
+          }
+          return {
+            result: await invoke('content-intelligence.finalize', {
+              patternResults: { results },
+            }),
+          };
+        },
+      ),
+    };
 
     const module = await Test.createTestingModule({
       providers: [
@@ -95,6 +168,7 @@ describe('ContentGeneratorService', () => {
         { provide: OpenRouterService, useValue: openRouterService },
         { provide: PatternStoreService, useValue: patternStoreService },
         { provide: PlaybookBuilderService, useValue: playbookBuilderService },
+        { provide: SystemWorkflowRunnerService, useValue: workflowRunner },
         {
           provide: TopPerformerPromptContextService,
           useValue: topPerformerPromptContextService,
@@ -103,6 +177,7 @@ describe('ContentGeneratorService', () => {
     }).compile();
 
     service = module.get(ContentGeneratorService);
+    service.onModuleInit();
   });
 
   afterEach(() => {

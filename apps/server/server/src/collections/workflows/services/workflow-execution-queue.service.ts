@@ -19,11 +19,7 @@ import type {
   TriggerEvent,
 } from '@server/collections/workflows/services/workflow-executor.service';
 import { isProtectedSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
-import {
-  createSystemActionWorkflowDefinition,
-  type RunSystemWorkflowInput,
-  type SystemWorkflowGraphDefinition,
-} from '@server/collections/workflows/system-workflow-definition';
+import type { RunSystemWorkflowInput } from '@server/collections/workflows/system-workflow-definition';
 import { reserveIdempotentJob } from '@server/queues/idempotent-job';
 import { Queue } from 'bullmq';
 
@@ -45,7 +41,7 @@ export interface WorkflowExecutionJobData {
    */
   priorExecutionIds?: string[];
   systemRun?: {
-    definition: SystemWorkflowGraphDefinition;
+    failureWorkflow?: SystemWorkflowFailureReference;
     input: Omit<RunSystemWorkflowInput, 'runtimeContext'>;
     priorExecution?: {
       delayResumeData?: DelayResumeJobData;
@@ -53,8 +49,21 @@ export interface WorkflowExecutionJobData {
       status: WorkflowExecutionStatus;
       userId: string;
       workflowId: string;
+      workflowLabel: string;
     };
   };
+}
+
+export interface SystemWorkflowFailureReference {
+  canonicalId: string;
+  inputValues?: Record<string, unknown>;
+}
+
+export interface QueueSystemWorkflowOptions {
+  attempts?: number;
+  delayMs?: number;
+  failureWorkflow?: SystemWorkflowFailureReference;
+  replaceTerminalJob?: boolean;
 }
 
 export interface WorkflowSchedulerUpsertInput {
@@ -115,7 +124,7 @@ function requireQueueJobId(
  * 1. `trigger` — Execute workflows in response to a trigger event
  * 2. `delay-resume` — Resume a paused workflow after a delay
  * 3. `scheduled-fire` — Execute one persisted scheduled workflow
- * 4. `system-run` — Execute one code-owned immutable graph
+ * 4. `system-run` — Resolve and execute one registered code-owned graph
  */
 @Injectable()
 export class WorkflowExecutionQueueService {
@@ -159,15 +168,10 @@ export class WorkflowExecutionQueueService {
     return requireQueueJobId(job.id, 'queueing a workflow trigger');
   }
 
-  async queueSystemWorkflowDefinition(
-    definition: SystemWorkflowGraphDefinition,
+  async queueSystemWorkflow(
     input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
     jobId: string,
-    options: {
-      attempts?: number;
-      delayMs?: number;
-      replaceTerminalJob?: boolean;
-    } = {},
+    options: QueueSystemWorkflowOptions = {},
   ): Promise<string> {
     if (options.replaceTerminalJob) {
       const reservation = await reserveIdempotentJob(
@@ -176,7 +180,7 @@ export class WorkflowExecutionQueueService {
       );
       if (reservation.alreadyQueued) {
         this.logger.log(`${this.logContext} system workflow already queued`, {
-          canonicalId: definition.canonicalId,
+          canonicalId: input.canonicalId,
           jobId,
           organizationId: input.organizationId,
           state: reservation.state,
@@ -189,7 +193,9 @@ export class WorkflowExecutionQueueService {
       {
         actionContext: sanitizeActionOriginContext(getActionOriginContext()),
         systemRun: {
-          definition,
+          ...(options.failureWorkflow
+            ? { failureWorkflow: options.failureWorkflow }
+            : {}),
           input,
         },
         type: 'system-run',
@@ -205,27 +211,12 @@ export class WorkflowExecutionQueueService {
     );
 
     this.logger.log(`${this.logContext} queued system workflow`, {
-      canonicalId: definition.canonicalId,
+      canonicalId: input.canonicalId,
       jobId: job.id,
       organizationId: input.organizationId,
     });
 
     return requireQueueJobId(job.id, 'queueing a system workflow');
-  }
-
-  async queueSystemAction(
-    input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
-    jobId: string,
-  ): Promise<string> {
-    const definition = createSystemActionWorkflowDefinition(input.canonicalId);
-    return this.queueSystemWorkflowDefinition(
-      definition,
-      {
-        ...input,
-        inputValues: { payload: input.inputValues ?? {} },
-      },
-      jobId,
-    );
   }
 
   /**

@@ -453,7 +453,7 @@ function createContext(): TestContext {
       ) => actionExecutors.set(actionId, executor),
     ),
     registerWorkflow: vi.fn(),
-    runWorkflowDefinition: vi.fn(
+    runWorkflow: vi.fn(
       async (
         definition: {
           definition: {

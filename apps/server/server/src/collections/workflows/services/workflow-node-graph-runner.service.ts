@@ -26,11 +26,9 @@ import {
 
 export class WorkflowNodeGraphRunnerService {
   /**
-   * Process-local claim map for nodes that have already side-effected in
-   * this execution. Durable progress still lives in
-   * `workflow_executions.result.nodeResults`; this map blocks in-process
-   * re-entry and is re-hydrated from durable results at the start of a run
-   * so BullMQ retries of the *same* executionId cannot re-fire (#2359).
+   * Process-local claim map for nodes currently executing in this process.
+   * Claims are released when the graph pass settles; durable node claims and
+   * persisted node results own retry/resume idempotency across graph passes.
    */
   private readonly nodeClaims = new Map<
     string,
@@ -64,6 +62,34 @@ export class WorkflowNodeGraphRunnerService {
       startedAt: Date;
       workflowLabel: string;
     },
+  ): Promise<ExecutionRunResult> {
+    const ownedClaimKeys = new Set<string>();
+    try {
+      return await this.executeNodeGraphInternal(
+        workflow,
+        triggerEvent,
+        executionId,
+        options,
+        ownedClaimKeys,
+      );
+    } finally {
+      this.releaseOwnedClaims(ownedClaimKeys);
+    }
+  }
+
+  private async executeNodeGraphInternal(
+    workflow: ExecutableWorkflow,
+    triggerEvent: TriggerEvent,
+    executionId: string,
+    options: {
+      baselineEstimatedDurationMs?: number;
+      nodeOutputCache?: Record<string, unknown>;
+      respectLocks?: boolean;
+      selectedNodeIds?: string[];
+      startedAt: Date;
+      workflowLabel: string;
+    },
+    ownedClaimKeys: Set<string>,
   ): Promise<ExecutionRunResult> {
     let executionOrder = this.graphService.topologicalSort(
       workflow.nodes,
@@ -331,6 +357,7 @@ export class WorkflowNodeGraphRunnerService {
         executionStatus = 'failed';
         break;
       }
+      ownedClaimKeys.add(claim.key);
 
       await this.nodeProgressTracker.trackNodeStarted({
         completedNodes,
@@ -530,6 +557,12 @@ export class WorkflowNodeGraphRunnerService {
     };
   }
 
+  private releaseOwnedClaims(ownedClaimKeys: Set<string>): void {
+    for (const key of ownedClaimKeys) {
+      this.nodeClaims.delete(key);
+    }
+  }
+
   private prepopulateLockedNodes(
     workflow: ExecutableWorkflow,
     nodeCache: Map<string, unknown>,
@@ -646,12 +679,6 @@ export class WorkflowNodeGraphRunnerService {
             status: 'completed',
           });
         }
-        const claimKey = `${executionId}:${nodeId}`;
-        this.nodeClaims.set(claimKey, {
-          nodeId,
-          output,
-          status: 'completed',
-        });
       }
     } catch {
       // Hydration is best-effort — missing prior progress falls through to a

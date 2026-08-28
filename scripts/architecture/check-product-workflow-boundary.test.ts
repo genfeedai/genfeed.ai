@@ -45,6 +45,71 @@ describe('check-product-workflow-boundary', () => {
     );
   });
 
+  it('rejects dynamic single-action workflow wrappers repository-wide', () => {
+    writeFixture(
+      'apps/server/server/src/collections/articles/articles.service.ts',
+      `
+        export class ArticlesService {
+          async generate(): Promise<void> {
+            await this.workflowRunner.runAction({ canonicalId: 'article.generate' });
+          }
+        }
+      `,
+    );
+
+    const result = runCheckProductWorkflowBoundary({ exceptions: [] });
+
+    expect(result.violations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          detection: expect.objectContaining({
+            ruleId: 'dynamic-system-action-workflow',
+          }),
+          kind: 'undocumented-product-workflow-boundary',
+        }),
+      ]),
+    );
+  });
+
+  it('does not allow exceptions for dynamic single-action workflow wrappers', () => {
+    const file =
+      'apps/server/api/src/collections/content-runs/brand-remix.service.ts';
+    writeFixture(
+      file,
+      `
+        export class BrandRemixService {
+          async run(): Promise<void> {
+            await this.workflowQueue.queueSystemAction({}, 'job-1');
+          }
+        }
+      `,
+    );
+
+    const exceptions: ProductWorkflowBoundaryException[] = [
+      {
+        classification: 'workflow-adapter',
+        file,
+        id: 'brand-remix',
+        reason: 'A purported adapter cannot preserve a retired API.',
+        systemWorkflowIds: ['brand-remix.execute'],
+      },
+    ];
+
+    const result = runCheckProductWorkflowBoundary({ exceptions });
+
+    expect(result.violations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          detection: expect.objectContaining({
+            ruleId: 'dynamic-system-action-workflow',
+          }),
+          kind: 'undocumented-product-workflow-boundary',
+        }),
+      ]),
+    );
+    expect(result.documentedDetections).toHaveLength(0);
+  });
+
   it('allows documented workflow adapters with a replacement system workflow id', () => {
     writeFixture(
       'apps/server/api/src/services/reply-bot/orchestrator.service.ts',

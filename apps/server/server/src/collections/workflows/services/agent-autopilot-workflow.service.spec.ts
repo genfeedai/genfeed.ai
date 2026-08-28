@@ -1,5 +1,5 @@
-import { AgentAutopilotWorkflowService } from '@server/collections/workflows/services/agent-autopilot-workflow.service';
 import { AgentRunFrequency } from '@genfeedai/enums';
+import { AgentAutopilotWorkflowService } from '@server/collections/workflows/services/agent-autopilot-workflow.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentAutopilotWorkflowService', () => {
@@ -15,7 +15,6 @@ describe('AgentAutopilotWorkflowService', () => {
   const creditsUtilsService = { getOrganizationCreditsBalance: vi.fn() };
   const organizationSettingsService = { findOne: vi.fn() };
   const agentGoalsService = { getGoalSummary: vi.fn() };
-  const aiInfluencerService = { scheduleDailyPosts: vi.fn() };
   const cacheService = {
     acquireLock: vi.fn(),
     releaseLock: vi.fn(),
@@ -44,7 +43,6 @@ describe('AgentAutopilotWorkflowService', () => {
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(500);
     organizationSettingsService.findOne.mockResolvedValue(null);
     agentGoalsService.getGoalSummary.mockResolvedValue('Goal summary');
-    aiInfluencerService.scheduleDailyPosts.mockResolvedValue([]);
     prisma.agentStrategy.findFirst.mockResolvedValue({
       config: {
         dailyResetAt: '2026-06-25T00:00:00.000Z',
@@ -63,7 +61,6 @@ describe('AgentAutopilotWorkflowService', () => {
       creditsUtilsService as never,
       organizationSettingsService as never,
       agentGoalsService as never,
-      aiInfluencerService as never,
       cacheService as never,
       logger as never,
     );
@@ -222,31 +219,5 @@ describe('AgentAutopilotWorkflowService', () => {
       status: 'skipped',
     });
     expect(agentRunsService.create).not.toHaveBeenCalled();
-  });
-
-  it('runs AI influencer daily posts with organization scope', async () => {
-    aiInfluencerService.scheduleDailyPosts.mockResolvedValue([
-      { ingredientId: 'ingredient-1', personaSlug: 'luna' },
-      { ingredientId: 'ingredient-2', personaSlug: 'nova' },
-    ]);
-
-    const result = await service.runAiInfluencerDailyPosts('org-1');
-
-    expect(cacheService.acquireLock).toHaveBeenCalledWith(
-      'workflow-agent-autopilot:aiInfluencerDailyPosts:org-1',
-      1800,
-    );
-    expect(aiInfluencerService.scheduleDailyPosts).toHaveBeenCalledWith({
-      organizationId: 'org-1',
-    });
-    expect(result).toMatchObject({
-      action: 'aiInfluencerDailyPosts',
-      generated: 2,
-      organizationId: 'org-1',
-      status: 'completed',
-    });
-    expect(cacheService.releaseLock).toHaveBeenCalledWith(
-      'workflow-agent-autopilot:aiInfluencerDailyPosts:org-1',
-    );
   });
 });

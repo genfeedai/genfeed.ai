@@ -9,16 +9,12 @@
 import {
   AGENT_RUN_QUEUE,
   BATCH_WORKFLOW_QUEUE,
-  CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
-  ORCHESTRATOR_RUN_QUEUE,
-  TRIGGER_EVALUATION_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
-  WORKSPACE_TASK_QUEUE,
 } from '@genfeedai/queue-contracts';
 import { SERVER_TOKENS } from '@genfeedai/server';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -34,17 +30,11 @@ import { Module } from '@nestjs/common';
 import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
 import { QueueService } from '@server/queues/core/queue.service';
 import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
-import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/workspace-task-queue.service';
 import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
 
 @Module({
-  exports: [
-    AgentRunQueueService,
-    QueueService,
-    WorkspaceTaskQueueService,
-    HeygenPollQueueService,
-  ],
+  exports: [AgentRunQueueService, QueueService, HeygenPollQueueService],
   imports: [
     LoggerModule,
     BullModule.forRootAsync({
@@ -98,15 +88,6 @@ import { ConfigService } from '@workers/config/config.service';
       },
       {
         defaultJobOptions: {
-          attempts: 2,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: WORKSPACE_TASK_QUEUE,
-      },
-      {
-        defaultJobOptions: {
           attempts: 3,
           backoff: { delay: 2000, type: 'exponential' },
           removeOnComplete: 100,
@@ -122,33 +103,6 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: 200,
         },
         name: WEBHOOK_CLIENT_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: ORCHESTRATOR_RUN_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 10000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: TRIGGER_EVALUATION_QUEUE,
       },
       // Note: collections/workflows WorkflowExecutionProcessor also listens on
       // 'workflow-execution' — both processors share the same queue (registered above).
@@ -175,7 +129,6 @@ import { ConfigService } from '@workers/config/config.service';
   providers: [
     AgentRunQueueService,
     QueueService,
-    WorkspaceTaskQueueService,
     HeygenPollQueueService,
     // Schedule 24h reply post-watch series after successful X publish.
     {

@@ -18,7 +18,6 @@ import {
   type PostCreateInput,
   PostsService,
 } from '@server/collections/posts/services/posts.service';
-import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-definition';
 import type { SystemWorkflowActionRequest } from '@server/collections/workflows/system-workflow-runner.service';
 import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import {
@@ -32,9 +31,7 @@ import {
 import {
   AB_TEST_ACTION_IDS,
   AB_TEST_WORKFLOW_DEFINITIONS,
-  buildAbTestExecutionWorkflowDefinition,
-  buildAbTestResolutionWorkflowDefinition,
-  buildValidatedAbTestsWorkflowDefinition,
+  AB_TEST_WORKFLOW_IDS,
 } from '@server/services/content-optimization/ab-test-workflow-definition';
 
 type AbTestArm = PostCreateInput & {
@@ -98,7 +95,7 @@ export class AbTestSuggestionHarnessService implements OnModuleInit {
     params: ExecuteAbTestSuggestionParams,
   ): Promise<ExecuteAbTestSuggestionResult> {
     return this.runWorkflow<ExecuteAbTestSuggestionResult>(
-      buildAbTestExecutionWorkflowDefinition(),
+      AB_TEST_WORKFLOW_IDS.EXECUTE,
       params.organizationId,
       { params },
       params.userId,
@@ -110,7 +107,7 @@ export class AbTestSuggestionHarnessService implements OnModuleInit {
     brandId: string,
   ): Promise<AbTestOutcome[]> {
     return this.runWorkflow<AbTestOutcome[]>(
-      buildAbTestResolutionWorkflowDefinition(),
+      AB_TEST_WORKFLOW_IDS.RESOLVE,
       organizationId,
       { brandId, organizationId },
     );
@@ -121,29 +118,26 @@ export class AbTestSuggestionHarnessService implements OnModuleInit {
     brandId: string,
   ): Promise<AbTestOutcome[]> {
     return this.runWorkflow<AbTestOutcome[]>(
-      buildValidatedAbTestsWorkflowDefinition(),
+      AB_TEST_WORKFLOW_IDS.LOAD_VALIDATED,
       organizationId,
       { brandId, organizationId },
     );
   }
 
   private async runWorkflow<T>(
-    definition: SystemWorkflowGraphDefinition,
+    canonicalId: string,
     organizationId: string,
     request: Record<string, unknown>,
     userId?: string,
   ): Promise<T> {
-    const { result } = await this.workflowRunner.runWorkflowDefinition<T>(
-      definition,
-      {
-        actionType: definition.canonicalId,
-        canonicalId: definition.canonicalId,
-        inputValues: { request },
-        organizationId,
-        source: `AbTestSuggestionHarnessService.${definition.canonicalId}`,
-        userId,
-      },
-    );
+    const { result } = await this.workflowRunner.runWorkflow<T>({
+      actionType: canonicalId,
+      canonicalId,
+      inputValues: { request },
+      organizationId,
+      source: `AbTestSuggestionHarnessService.${canonicalId}`,
+      userId,
+    });
     return result;
   }
 

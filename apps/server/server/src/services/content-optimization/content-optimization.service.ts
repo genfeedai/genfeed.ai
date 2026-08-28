@@ -11,20 +11,14 @@ import {
   type WeeklySummary,
 } from '@server/collections/content-performance/services/performance-summary.service';
 import { TrendPreferencesService } from '@server/collections/trends/services/trend-preferences.service';
-import type { SystemWorkflowGraphDefinition } from '@server/collections/workflows/system-workflow-definition';
 import type { SystemWorkflowActionRequest } from '@server/collections/workflows/system-workflow-runner.service';
 import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { SecurityUtil } from '@server/helpers/utils/security/security.util';
 import type { AbTestOutcome } from '@server/services/content-optimization/ab-test-suggestion-harness.types';
 import {
-  buildApplySuggestionWorkflowDefinition,
-  buildContentAnalysisWorkflowDefinition,
-  buildContentRecommendationsWorkflowDefinition,
-  buildContentSuggestionsWorkflowDefinition,
-  buildPromptOptimizationWorkflowDefinition,
-  buildRequeueWinnerWorkflowDefinition,
   CONTENT_OPTIMIZATION_ACTION_IDS,
   CONTENT_OPTIMIZATION_WORKFLOW_DEFINITIONS,
+  CONTENT_OPTIMIZATION_WORKFLOW_IDS,
 } from '@server/services/content-optimization/content-optimization-workflow-definition';
 import { OpenAiLlmService } from '@server/services/integrations/openai-llm/services/openai-llm.service';
 
@@ -246,12 +240,14 @@ export class ContentOptimizationService implements OnModuleInit {
     brandId: string,
     options: AnalyzePerformanceOptions = {},
   ): Promise<PerformanceAnalysis> {
-    const definition = buildContentAnalysisWorkflowDefinition();
-    return this.runWorkflow<PerformanceAnalysis>(definition, {
-      brandId,
-      options,
-      organizationId,
-    });
+    return this.runWorkflow<PerformanceAnalysis>(
+      CONTENT_OPTIMIZATION_WORKFLOW_IDS.ANALYZE,
+      {
+        brandId,
+        options,
+        organizationId,
+      },
+    );
   }
 
   // ─── 2. Prompt Optimization ──────────────────────────────────────
@@ -261,12 +257,14 @@ export class ContentOptimizationService implements OnModuleInit {
     brandId: string,
     originalPrompt: string,
   ): Promise<PromptOptimizationResult> {
-    const definition = buildPromptOptimizationWorkflowDefinition();
-    return this.runWorkflow<PromptOptimizationResult>(definition, {
-      brandId,
-      organizationId,
-      originalPrompt,
-    });
+    return this.runWorkflow<PromptOptimizationResult>(
+      CONTENT_OPTIMIZATION_WORKFLOW_IDS.OPTIMIZE_PROMPT,
+      {
+        brandId,
+        organizationId,
+        originalPrompt,
+      },
+    );
   }
 
   // ─── 3. query Recommendations ─────────────────────────────────
@@ -275,22 +273,26 @@ export class ContentOptimizationService implements OnModuleInit {
     organizationId: string,
     brandId: string,
   ): Promise<OptimizationRecommendations> {
-    const definition = buildContentRecommendationsWorkflowDefinition();
-    return this.runWorkflow<OptimizationRecommendations>(definition, {
-      brandId,
-      organizationId,
-    });
+    return this.runWorkflow<OptimizationRecommendations>(
+      CONTENT_OPTIMIZATION_WORKFLOW_IDS.RECOMMEND,
+      {
+        brandId,
+        organizationId,
+      },
+    );
   }
 
   async generateSuggestions(
     organizationId: string,
     brandId: string,
   ): Promise<OptimizationSuggestion[]> {
-    const definition = buildContentSuggestionsWorkflowDefinition();
-    return this.runWorkflow<OptimizationSuggestion[]>(definition, {
-      brandId,
-      organizationId,
-    });
+    return this.runWorkflow<OptimizationSuggestion[]>(
+      CONTENT_OPTIMIZATION_WORKFLOW_IDS.SUGGEST,
+      {
+        brandId,
+        organizationId,
+      },
+    );
   }
 
   private async performGenerateSuggestions(
@@ -379,12 +381,14 @@ export class ContentOptimizationService implements OnModuleInit {
     brandId: string,
     suggestionId: string,
   ): Promise<AutoApplyResult> {
-    const definition = buildApplySuggestionWorkflowDefinition();
-    return this.runWorkflow<AutoApplyResult>(definition, {
-      brandId,
-      organizationId,
-      suggestionId,
-    });
+    return this.runWorkflow<AutoApplyResult>(
+      CONTENT_OPTIMIZATION_WORKFLOW_IDS.APPLY_SUGGESTION,
+      {
+        brandId,
+        organizationId,
+        suggestionId,
+      },
+    );
   }
 
   private async performApplySuggestion(
@@ -464,12 +468,14 @@ export class ContentOptimizationService implements OnModuleInit {
     brandId: string | undefined,
     winner: WinnerContentSignal,
   ): Promise<RequeueWinnerResult> {
-    const definition = buildRequeueWinnerWorkflowDefinition();
-    return this.runWorkflow<RequeueWinnerResult>(definition, {
-      brandId,
-      organizationId,
-      winner,
-    });
+    return this.runWorkflow<RequeueWinnerResult>(
+      CONTENT_OPTIMIZATION_WORKFLOW_IDS.REQUEUE_WINNER,
+      {
+        brandId,
+        organizationId,
+        winner,
+      },
+    );
   }
 
   private async performRequeueWinnerIntoTrends(
@@ -527,23 +533,20 @@ export class ContentOptimizationService implements OnModuleInit {
   }
 
   private async runWorkflow<T>(
-    definition: SystemWorkflowGraphDefinition,
+    canonicalId: string,
     request: Record<string, unknown>,
   ): Promise<T> {
     const organizationId = this.requiredString(
       request.organizationId,
       'organizationId',
     );
-    const { result } = await this.workflowRunner.runWorkflowDefinition<T>(
-      definition,
-      {
-        actionType: definition.canonicalId,
-        canonicalId: definition.canonicalId,
-        inputValues: { request },
-        organizationId,
-        source: `ContentOptimizationService.${definition.canonicalId}`,
-      },
-    );
+    const { result } = await this.workflowRunner.runWorkflow<T>({
+      actionType: canonicalId,
+      canonicalId,
+      inputValues: { request },
+      organizationId,
+      source: `ContentOptimizationService.${canonicalId}`,
+    });
     return result;
   }
 

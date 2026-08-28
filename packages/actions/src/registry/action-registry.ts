@@ -60,54 +60,14 @@ function toolAction(tool: CanonicalToolDefinition): GenfeedActionDefinition {
 }
 
 const WORKFLOW_ACTIONS = [
-  ['adOptimization', 'Optimize Ads', 'Runs one ad-optimization operation.'],
-  ['adSyncGoogle', 'Sync Google Ads', 'Synchronizes Google Ads data.'],
-  ['adSyncMeta', 'Sync Meta Ads', 'Synchronizes Meta Ads data.'],
-  ['adSyncTikTok', 'Sync TikTok Ads', 'Synchronizes TikTok Ads data.'],
-  [
-    'agentCampaignOrchestration',
-    'Orchestrate Agent Campaign',
-    'Runs one agent campaign orchestration operation.',
-  ],
-  [
-    'agentCampaignTriggerEvaluation',
-    'Evaluate Agent Campaign Trigger',
-    'Evaluates one agent campaign trigger.',
-  ],
   ['ai-enhance', 'Enhance Media', 'Enhances media quality with AI.'],
   ['ai-transcribe', 'Transcribe Media', 'Transcribes workflow audio or video.'],
   ['aiAvatarVideo', 'Generate Avatar Video', 'Generates one avatar video.'],
-  [
-    'aiInfluencerDailyPosts',
-    'Generate AI Influencer Posts',
-    'Generates one bounded AI influencer daily-post batch.',
-  ],
-  [
-    'analyticsFacebookSync',
-    'Sync Facebook Analytics',
-    'Synchronizes Facebook analytics.',
-  ],
   [
     'analyticsFeedback',
     'Read Analytics Feedback',
     'Reads performance analytics for workflow context.',
   ],
-  [
-    'analyticsGenericSync',
-    'Sync Generic Analytics',
-    'Synchronizes generic platform analytics.',
-  ],
-  [
-    'analyticsSocialSync',
-    'Sync Social Analytics',
-    'Synchronizes social analytics.',
-  ],
-  [
-    'analyticsThreadsSync',
-    'Sync Threads Analytics',
-    'Synchronizes Threads analytics.',
-  ],
-  ['analyticsTwitterSync', 'Sync X Analytics', 'Synchronizes X analytics.'],
   [
     'attachPostIngredient',
     'Attach Post Ingredient',
@@ -134,11 +94,6 @@ const WORKFLOW_ACTIONS = [
     'Runs one content-pipeline autopilot operation.',
   ],
   ['effect-captions', 'Add Captions', 'Burns captions into one video.'],
-  [
-    'engagement-rule-evaluation',
-    'Evaluate Engagement Rule',
-    'Evaluates and applies one tenant engagement rule.',
-  ],
   [
     'effect-ken-burns',
     'Apply Ken Burns Effect',
@@ -263,11 +218,6 @@ const WORKFLOW_ACTIONS = [
     'Ingest Restream Chat',
     'Ingests one Restream chat batch.',
   ],
-  [
-    'rss-source-poll',
-    'Poll RSS Source',
-    'Polls one tenant RSS source and applies its configured workflow behavior.',
-  ],
   ['sendDm', 'Send Direct Message', 'Sends one social direct message.'],
   ['sendEmail', 'Send Email', 'Sends one email.'],
   ['seoRewrite', 'Rewrite for SEO', 'Rewrites content using SEO guidance.'],
@@ -330,11 +280,6 @@ const WORKFLOW_ACTIONS = [
   ['videoQa', 'Validate Video Quality', 'Validates one generated video.'],
   ['videoStitch', 'Stitch Videos', 'Stitches workflow video segments.'],
   ['voiceChange', 'Change Voice', 'Changes the voice in one audio asset.'],
-  [
-    'youtubeAnalyticsSync',
-    'Sync YouTube Analytics',
-    'Synchronizes YouTube analytics.',
-  ],
 ] as const;
 
 const WORKFLOW_ACTION_CREDIT_POLICIES: Readonly<
@@ -381,8 +326,444 @@ const WORKFLOW_ACTION_DEFINITIONS = WORKFLOW_ACTIONS.map(
     }),
 );
 
+const SYSTEM_MAINTENANCE_ACTIONS = [
+  [
+    'engagement.sweep.discover',
+    'Discover Engagement Rules',
+    'Discovers bounded armed engagement rules for a sweep.',
+  ],
+  [
+    'engagement.sweep.evaluate',
+    'Evaluate Engagement Rule',
+    'Evaluates one scoped engagement rule and its eligibility.',
+  ],
+  [
+    'engagement.sweep.execute',
+    'Execute Engagement Rule',
+    'Executes one eligible engagement-rule operation.',
+  ],
+  [
+    'engagement.sweep.expire',
+    'Expire Engagement Rules',
+    'Expires engagement rules whose configured lifetime elapsed.',
+  ],
+  [
+    'engagement.sweep.finalize-failure',
+    'Finalize Failed Engagement Rule',
+    'Persists one failed engagement-rule execution.',
+  ],
+  [
+    'engagement.sweep.finalize-success',
+    'Finalize Successful Engagement Rule',
+    'Persists one successful engagement-rule execution.',
+  ],
+  [
+    'engagement.sweep.mark-ineligible',
+    'Mark Engagement Rule Ineligible',
+    'Persists one ineligible engagement-rule evaluation.',
+  ],
+  [
+    'engagement.sweep.publish',
+    'Publish Engagement Output',
+    'Publishes one prepared engagement-rule output.',
+  ],
+  [
+    'review-gate.timeout.discover',
+    'Discover Timed-out Review Gates',
+    'Discovers bounded workflow review gates whose timeout elapsed.',
+  ],
+  [
+    'review-gate.timeout.resolve',
+    'Resolve Timed-out Review Gate',
+    'Resolves one timed-out workflow review gate.',
+  ],
+  [
+    'rss.item.claim',
+    'Claim RSS Item',
+    'Claims one RSS item for idempotent processing.',
+  ],
+  [
+    'rss.item.create-release',
+    'Create RSS Release',
+    'Creates one release from a claimed RSS item.',
+  ],
+  [
+    'rss.item.finalize',
+    'Finalize RSS Item',
+    'Finalizes one RSS item processing result.',
+  ],
+  [
+    'rss.item.publish',
+    'Publish RSS Release',
+    'Publishes one prepared RSS release.',
+  ],
+  [
+    'rss.source.fetch-items',
+    'Fetch RSS Items',
+    'Fetches bounded items from one enabled RSS source.',
+  ],
+  [
+    'rss.source.finalize',
+    'Finalize RSS Source',
+    'Finalizes one RSS source processing result.',
+  ],
+  [
+    'rss.sweep.discover-sources',
+    'Discover RSS Sources',
+    'Discovers bounded enabled RSS sources for a sweep.',
+  ],
+  [
+    'streak.organization.discover-records',
+    'Discover Streak Records',
+    'Discovers bounded streak records for one organization.',
+  ],
+  [
+    'streak.record.apply-freeze',
+    'Apply Streak Freeze',
+    'Applies one eligible streak freeze transition.',
+  ],
+  [
+    'streak.record.break',
+    'Break Streak',
+    'Applies one expired streak transition.',
+  ],
+  [
+    'streak.record.evaluate',
+    'Evaluate Streak Record',
+    'Evaluates one streak record for reminders, freezes, or breaks.',
+  ],
+  [
+    'streak.record.notify-at-risk',
+    'Notify At-risk Streak',
+    'Sends one at-risk streak notification.',
+  ],
+  [
+    'streak.record.notify-broken',
+    'Notify Broken Streak',
+    'Sends one broken-streak notification.',
+  ],
+  [
+    'streak.record.notify-freeze',
+    'Notify Streak Freeze',
+    'Sends one streak-freeze notification.',
+  ],
+  [
+    'streak.sweep.discover-organizations',
+    'Discover Streak Organizations',
+    'Discovers organizations with streak records due for maintenance.',
+  ],
+  [
+    'tiktok.status.discover',
+    'Discover TikTok Status Work',
+    'Discovers pending TikTok publications requiring reconciliation.',
+  ],
+  [
+    'tiktok.status.reconcile',
+    'Reconcile TikTok Status',
+    'Reconciles one pending TikTok publication.',
+  ],
+  [
+    'trends.maintenance.evaluate-backfill',
+    'Evaluate Trend Backfill',
+    'Evaluates whether a trend dataset requires backfill.',
+  ],
+  [
+    'trends.maintenance.expire-hashtags',
+    'Expire Trend Hashtags',
+    'Expires stale trend hashtag records.',
+  ],
+  [
+    'trends.maintenance.expire-sounds',
+    'Expire Trend Sounds',
+    'Expires stale trend sound records.',
+  ],
+  [
+    'trends.maintenance.expire-trends',
+    'Expire Trends',
+    'Expires stale trend records.',
+  ],
+  [
+    'trends.maintenance.expire-videos',
+    'Expire Trend Videos',
+    'Expires stale trend video records.',
+  ],
+  [
+    'trends.maintenance.fetch-dataset',
+    'Fetch Trend Dataset',
+    'Fetches one configured trend dataset.',
+  ],
+  [
+    'trends.maintenance.fetch-global',
+    'Fetch Global Trends',
+    'Fetches current global trend signals.',
+  ],
+  [
+    'trends.maintenance.fetch-sounds',
+    'Fetch Trend Sounds',
+    'Fetches current trending sound signals.',
+  ],
+  [
+    'trends.maintenance.finalize-backfill',
+    'Finalize Trend Backfill',
+    'Finalizes one trend backfill evaluation.',
+  ],
+  [
+    'trends.maintenance.precompute-preview',
+    'Precompute Trend Preview',
+    'Precomputes the current public trend preview.',
+  ],
+  [
+    'workflow.artifact.cleanup-expired-scope',
+    'Clean Up Expired Artifact Scope',
+    'Deletes expired artifacts and payloads for one bounded execution scope.',
+  ],
+  [
+    'workflow.artifact.discover-expired',
+    'Discover Expired Workflow Artifacts',
+    'Discovers bounded workflow artifact scopes due for cleanup.',
+  ],
+  [
+    'youtube.comments.discover-credentials',
+    'Discover YouTube Comment Credentials',
+    'Discovers connected YouTube credentials requiring comment ingestion.',
+  ],
+  [
+    'youtube.status.discover-posts',
+    'Discover YouTube Status Work',
+    'Discovers pending YouTube posts requiring reconciliation.',
+  ],
+  [
+    'youtube.status.reconcile',
+    'Reconcile YouTube Status',
+    'Reconciles one pending YouTube post.',
+  ],
+] as const;
+
+const SYSTEM_MAINTENANCE_ACTION_DEFINITIONS = SYSTEM_MAINTENANCE_ACTIONS.map(
+  ([id, label, description]) => internalAction(id, label, description),
+);
+
+const BRAND_REMIX_ACTIONS = [
+  [
+    'brand-remix.meta.create-ad',
+    'Create Brand Remix Meta Ad',
+    'Creates one paused Meta ad from prepared remix creative.',
+  ],
+  [
+    'brand-remix.meta.ensure-ad-set',
+    'Ensure Brand Remix Meta Ad Set',
+    'Ensures the scoped paused Meta ad set exists.',
+  ],
+  [
+    'brand-remix.meta.ensure-campaign',
+    'Ensure Brand Remix Meta Campaign',
+    'Ensures the scoped paused Meta campaign exists.',
+  ],
+  [
+    'brand-remix.meta.find-ad',
+    'Find Brand Remix Meta Ad',
+    'Finds an existing Meta ad for an idempotent remix draft.',
+  ],
+  [
+    'brand-remix.meta.pause-ad',
+    'Pause Brand Remix Meta Ad',
+    'Confirms the created Meta ad remains paused.',
+  ],
+  [
+    'brand-remix.meta.pause-ad-set',
+    'Pause Brand Remix Meta Ad Set',
+    'Confirms the remix Meta ad set remains paused.',
+  ],
+  [
+    'brand-remix.meta.pause-campaign',
+    'Pause Brand Remix Meta Campaign',
+    'Confirms the remix Meta campaign remains paused.',
+  ],
+  [
+    'brand-remix.meta.persist-lineage',
+    'Persist Brand Remix Meta Lineage',
+    'Persists source lineage for one Meta remix draft.',
+  ],
+  [
+    'brand-remix.meta.persist-mapping',
+    'Persist Brand Remix Meta Mapping',
+    'Persists provider identifiers for one Meta remix draft.',
+  ],
+  [
+    'brand-remix.meta.prepare-creative',
+    'Prepare Brand Remix Meta Creative',
+    'Prepares one validated Meta remix creative.',
+  ],
+  [
+    'brand-remix.meta.resolve-account',
+    'Resolve Brand Remix Meta Account',
+    'Resolves the scoped Meta advertising account.',
+  ],
+  [
+    'brand-remix.meta.validate-source',
+    'Validate Brand Remix Meta Source',
+    'Validates the source content for a Meta remix draft.',
+  ],
+  [
+    'brand-remix.review.claim',
+    'Claim Brand Remix Review',
+    'Claims one remix result for idempotent review handoff.',
+  ],
+  [
+    'brand-remix.review.complete',
+    'Complete Brand Remix Review',
+    'Completes one claimed remix review handoff.',
+  ],
+  [
+    'brand-remix.review.create-handoff',
+    'Create Brand Remix Review Handoff',
+    'Creates canonical draft posts for one remix review handoff.',
+  ],
+  [
+    'brand-remix.review.prepare',
+    'Prepare Brand Remix Review',
+    'Loads and validates one remix review request.',
+  ],
+  [
+    'brand-remix.review.project',
+    'Project Brand Remix Review',
+    'Projects one review handoff into its response contract.',
+  ],
+  [
+    'brand-remix.review.record-lineage',
+    'Record Brand Remix Review Lineage',
+    'Records source trend lineage for one remix review batch.',
+  ],
+  [
+    'brand-remix.x.ensure-campaign',
+    'Ensure Brand Remix X Campaign',
+    'Ensures the scoped paused X Ads campaign exists.',
+  ],
+  [
+    'brand-remix.x.ensure-line-item',
+    'Ensure Brand Remix X Line Item',
+    'Ensures the scoped paused X Ads line item exists.',
+  ],
+  [
+    'brand-remix.x.ensure-promoted-tweet',
+    'Ensure Brand Remix Promoted Post',
+    'Ensures the scoped promoted X post exists.',
+  ],
+  [
+    'brand-remix.x.persist-lineage',
+    'Persist Brand Remix X Lineage',
+    'Persists source lineage for one X remix draft.',
+  ],
+  [
+    'brand-remix.x.persist-mapping',
+    'Persist Brand Remix X Mapping',
+    'Persists provider identifiers for one X remix draft.',
+  ],
+  [
+    'brand-remix.x.resolve-account',
+    'Resolve Brand Remix X Account',
+    'Resolves the scoped X advertising account.',
+  ],
+  [
+    'brand-remix.x.resolve-funding',
+    'Resolve Brand Remix X Funding',
+    'Resolves the scoped X Ads funding instrument.',
+  ],
+  [
+    'brand-remix.x.validate-source',
+    'Validate Brand Remix X Source',
+    'Validates the source content for an X remix draft.',
+  ],
+  [
+    'brand-remix.x.validate-tweet',
+    'Validate Brand Remix X Post',
+    'Validates the source X post for promotion.',
+  ],
+] as const;
+
+const BRAND_REMIX_ACTION_DEFINITIONS = BRAND_REMIX_ACTIONS.map(
+  ([id, label, description]) => internalAction(id, label, description),
+);
+
 const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
   ...WORKFLOW_ACTION_DEFINITIONS,
+  ...SYSTEM_MAINTENANCE_ACTION_DEFINITIONS,
+  ...BRAND_REMIX_ACTION_DEFINITIONS,
+  internalAction(
+    'ai-influencer.caption.generate',
+    'Generate AI Influencer Caption',
+    'Generates one caption for an AI influencer post.',
+  ),
+  internalAction(
+    'ai-influencer.daily.discover',
+    'Discover AI Influencer Daily Work',
+    'Discovers the bounded personas due for daily post generation.',
+  ),
+  internalAction(
+    'ai-influencer.daily.finalize',
+    'Finalize AI Influencer Daily Work',
+    'Finalizes one AI influencer daily-post workflow.',
+  ),
+  internalAction(
+    'ai-influencer.daily.mark-run',
+    'Mark AI Influencer Daily Run',
+    'Records one AI influencer daily-post run for idempotent scheduling.',
+  ),
+  internalAction(
+    'ai-influencer.daily.prepare',
+    'Prepare AI Influencer Daily Post',
+    'Prepares one discovered persona for daily post generation.',
+  ),
+  internalAction(
+    'ai-influencer.image.generate',
+    'Generate AI Influencer Image',
+    'Generates one image for an AI influencer post.',
+  ),
+  internalAction(
+    'ai-influencer.image.prepare',
+    'Prepare AI Influencer Image',
+    'Builds the image-generation input for one AI influencer post.',
+  ),
+  internalAction(
+    'ai-influencer.ingredient.create',
+    'Create AI Influencer Ingredient',
+    'Persists one generated AI influencer media ingredient.',
+  ),
+  internalAction(
+    'ai-influencer.persona.load',
+    'Load AI Influencer Persona',
+    'Loads one tenant-scoped AI influencer persona for generation.',
+  ),
+  internalAction(
+    'ai-influencer.platform.publish',
+    'Publish AI Influencer Platform Post',
+    'Publishes one prepared AI influencer post to one platform.',
+  ),
+  internalAction(
+    'ai-influencer.post.finalize',
+    'Finalize AI Influencer Post',
+    'Finalizes one generated AI influencer post and its workflow provenance.',
+  ),
+  internalAction(
+    'ai-influencer.publish.plan',
+    'Plan AI Influencer Publishing',
+    'Builds bounded platform publishing inputs for one AI influencer post.',
+  ),
+  internalAction(
+    'ai-influencer.video.generate',
+    'Generate AI Influencer Video',
+    'Generates one video for an AI influencer post.',
+  ),
+  internalAction(
+    'ai-influencer.video.plan',
+    'Plan AI Influencer Video',
+    'Builds the video-generation input for one AI influencer post.',
+  ),
+  internalAction(
+    'ai-influencer.voice.generate',
+    'Generate AI Influencer Voice',
+    'Generates one voice track for an AI influencer video.',
+  ),
   internalAction(
     'ads.credentials.discover',
     'Discover Ads Credentials',
@@ -575,19 +956,64 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     { authorization: 'user' },
   ),
   internalAction(
-    'brand-remix-paused-meta-draft',
-    'Brand Remix Paused Meta Draft',
-    'Creates reviewed, paused-only Meta ad drafts.',
+    'article.generation.finalize',
+    'Finalize Article Generation',
+    'Finalizes one article generation workflow and its selected drafts.',
+    { authorization: 'user' },
   ),
   internalAction(
-    'brand-remix-paused-x-ads-draft',
-    'Brand Remix Paused X Ads Draft',
-    'Creates reviewed, paused-only X Ads drafts.',
+    'article.generation.generate-drafts',
+    'Generate Article Drafts',
+    'Generates candidate article drafts from prepared tenant context.',
+    { authorization: 'user', credits: { mode: 'dynamic' } },
   ),
   internalAction(
-    'brand-remix-review-handoff',
-    'Brand Remix Review Handoff',
-    'Creates canonical draft posts and routes them to Review.',
+    'article.header-prompt.generate',
+    'Generate Article Header Prompt',
+    'Generates one header-image prompt from prepared article context.',
+    { authorization: 'user', credits: { mode: 'dynamic' } },
+  ),
+  internalAction(
+    'article.header-prompt.load',
+    'Load Article Header Prompt Context',
+    'Loads tenant-scoped article context for header-prompt generation.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'article.header-prompt.persist',
+    'Persist Article Header Prompt',
+    'Persists one generated header-image prompt on its tenant article.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'article.generation.invalidate-cache',
+    'Invalidate Article Cache',
+    'Invalidates cached article views after generation completes.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'article.generation.load-context',
+    'Load Article Generation Context',
+    'Loads tenant-scoped context for one article generation workflow.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'article.generation.review-draft',
+    'Review Article Draft',
+    'Reviews one generated article draft against the prepared rubric.',
+    { authorization: 'user', credits: { mode: 'dynamic' } },
+  ),
+  internalAction(
+    'article.generation.revise-draft',
+    'Revise Article Draft',
+    'Revises one article draft from its structured review feedback.',
+    { authorization: 'user', credits: { mode: 'dynamic' } },
+  ),
+  internalAction(
+    'article.review.load-context',
+    'Load Article Review Context',
+    'Loads the tenant-scoped article and rubric for one review workflow.',
+    { authorization: 'user' },
   ),
   internalAction(
     'campaign.reply.discover-targets',
@@ -886,8 +1312,44 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
   ),
   internalAction(
     'content-intelligence.generate',
-    'Generate Content Intelligence Variants',
-    'Generates platform-aware content variants from tenant context.',
+    'Generate Content Intelligence Item',
+    'Generates one platform-aware content item from prepared context.',
+    { authorization: 'user', credits: { mode: 'dynamic' } },
+  ),
+  internalAction(
+    'content-intelligence.generate-freeform',
+    'Generate Freeform Content Intelligence',
+    'Generates one freeform content result from prepared tenant context.',
+    { authorization: 'user', credits: { mode: 'dynamic' } },
+  ),
+  internalAction(
+    'content-intelligence.load-context',
+    'Load Content Intelligence Context',
+    'Loads the tenant-scoped context for one content generation workflow.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'content-intelligence.load-patterns',
+    'Load Content Intelligence Patterns',
+    'Loads relevant reusable content patterns for one generation workflow.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'content-intelligence.plan',
+    'Plan Content Intelligence Generation',
+    'Builds bounded platform generation items from prepared context.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'content-intelligence.track-pattern',
+    'Track Content Intelligence Pattern',
+    'Records anonymous pattern usage for one generated content item.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'content-intelligence.finalize',
+    'Finalize Content Intelligence Generation',
+    'Finalizes one content intelligence workflow and its generated outputs.',
     { authorization: 'user' },
   ),
   internalAction(
@@ -922,6 +1384,24 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Generate Newsletter Topics',
     'Generates tenant-scoped newsletter topic proposals.',
     { authorization: 'user', credits: { mode: 'dynamic' } },
+  ),
+  internalAction(
+    'newsletter.load-draft-context',
+    'Load Newsletter Draft Context',
+    'Loads the tenant-scoped context required to generate one newsletter draft.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'newsletter.load-topic-context',
+    'Load Newsletter Topic Context',
+    'Loads the tenant-scoped context required to generate newsletter topics.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'newsletter.persist-draft',
+    'Persist Newsletter Draft',
+    'Persists one generated newsletter draft with workflow provenance.',
+    { authorization: 'user' },
   ),
   internalAction(
     'reply-bot.organization.discover-bots',
@@ -1094,11 +1574,6 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Ingests tenant-scoped LinkedIn direct messages into the social inbox.',
   ),
   internalAction(
-    'review-gate-timeout',
-    'Review Gate Timeout Resolution',
-    'Resolves workflow review gates whose timeout elapsed.',
-  ),
-  internalAction(
     'scheduled-post.claim',
     'Claim Scheduled Post',
     'Claims the immutable approval and validates the scheduled post scope.',
@@ -1147,16 +1622,6 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'social.reply-campaign.finalize',
     'Finalize Social Reply Campaign Tick',
     'Finalizes one social reply campaign recipient and campaign state.',
-  ),
-  internalAction(
-    'streak-maintenance',
-    'Streak Maintenance',
-    'Processes daily streak reminders, freezes, and breaks.',
-  ),
-  internalAction(
-    'tiktok-status-reconciliation',
-    'TikTok Status Reconciliation',
-    'Reconciles pending TikTok publication status.',
   ),
   internalAction(
     'twitter.pipeline.search-recent',
@@ -1249,34 +1714,129 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     { authorization: 'public', visibility: 'public' },
   ),
   internalAction(
-    'youtube-status-reconciliation',
-    'YouTube Status Reconciliation',
-    'Reconciles YouTube video visibility.',
+    'email-digest.prepare',
+    'Prepare Email Digest',
+    'Loads and summarizes the scoped content for one email digest.',
   ),
   internalAction(
-    'youtube-comments-ingest',
-    'Ingest YouTube Comments',
-    'Ingests one connected YouTube account into the social inbox.',
+    'email-digest.discover-recipients',
+    'Discover Email Digest Recipients',
+    'Discovers the bounded recipients for one prepared email digest.',
   ),
   internalAction(
-    'email-digest.send',
-    'Send Email Digest',
-    'Builds and delivers one tenant-scoped email digest.',
+    'email-digest.render',
+    'Render Email Digest',
+    'Renders one prepared email digest for delivery.',
   ),
   internalAction(
-    'agent-campaign.memory.extract',
-    'Extract Agent Campaign Memory',
-    'Extracts durable winner memory for one tenant campaign.',
+    'email-digest.deliver-recipient',
+    'Deliver Email Digest Recipient',
+    'Delivers one rendered digest to one recipient.',
   ),
   internalAction(
-    'agent-campaign.orchestration.run',
-    'Run Agent Campaign Cycle',
-    'Executes one tenant campaign orchestration cycle.',
+    'email-digest.finalize',
+    'Finalize Email Digest',
+    'Finalizes one email digest after all recipient workflows settle.',
   ),
   internalAction(
-    'agent-campaign.triggers.evaluate',
-    'Evaluate Agent Campaign Triggers',
-    'Evaluates armed triggers for one tenant campaign.',
+    'agent-campaign.memory.load-winners',
+    'Load Agent Campaign Winners',
+    'Loads bounded winning campaign evidence for memory extraction.',
+  ),
+  internalAction(
+    'agent-campaign.memory.persist',
+    'Persist Agent Campaign Memory',
+    'Persists extracted campaign memory for one tenant campaign.',
+  ),
+  internalAction(
+    'agent-campaign.orchestration.discover-due',
+    'Discover Due Agent Campaigns',
+    'Discovers bounded campaign orchestrations due for execution.',
+  ),
+  internalAction(
+    'agent-campaign.orchestration.load-context',
+    'Load Agent Campaign Context',
+    'Loads tenant-scoped context for one campaign orchestration.',
+  ),
+  internalAction(
+    'agent-campaign.orchestration.plan',
+    'Plan Agent Campaign Runs',
+    'Builds bounded run dispatches for one campaign orchestration.',
+  ),
+  internalAction(
+    'agent-campaign.orchestration.dispatch-run',
+    'Dispatch Agent Campaign Run',
+    'Dispatches one planned campaign agent run.',
+  ),
+  internalAction(
+    'agent-campaign.orchestration.summarize',
+    'Summarize Agent Campaign Runs',
+    'Summarizes completed run outcomes for one campaign orchestration.',
+  ),
+  internalAction(
+    'agent-campaign.orchestration.capture-memory',
+    'Capture Agent Campaign Memory',
+    'Builds memory extraction inputs from one campaign orchestration.',
+  ),
+  internalAction(
+    'agent-campaign.orchestration.annotate-run',
+    'Annotate Agent Campaign Run',
+    'Annotates one campaign run with orchestration provenance.',
+  ),
+  internalAction(
+    'agent-campaign.orchestration.finalize',
+    'Finalize Agent Campaign Orchestration',
+    'Finalizes one campaign orchestration cycle.',
+  ),
+  internalAction(
+    'agent-campaign.triggers.discover-due',
+    'Discover Due Agent Campaign Triggers',
+    'Discovers bounded campaign triggers due for evaluation.',
+  ),
+  internalAction(
+    'agent-campaign.triggers.load-context',
+    'Load Agent Campaign Trigger Context',
+    'Loads tenant-scoped context for one campaign trigger evaluation.',
+  ),
+  internalAction(
+    'agent-campaign.triggers.plan-recommendations',
+    'Plan Agent Campaign Recommendations',
+    'Builds bounded recommendations from one trigger evaluation.',
+  ),
+  internalAction(
+    'agent-campaign.triggers.persist-recommendation',
+    'Persist Agent Campaign Recommendation',
+    'Persists one campaign trigger recommendation.',
+  ),
+  internalAction(
+    'agent-campaign.triggers.plan-groups',
+    'Plan Agent Campaign Trigger Groups',
+    'Builds bounded trigger dispatch groups.',
+  ),
+  internalAction(
+    'agent-campaign.triggers.plan-dispatches',
+    'Plan Agent Campaign Trigger Dispatches',
+    'Builds bounded run dispatches for one trigger group.',
+  ),
+  internalAction(
+    'agent-campaign.triggers.dispatch-run',
+    'Dispatch Agent Campaign Trigger Run',
+    'Dispatches one planned trigger agent run.',
+  ),
+  internalAction(
+    'agent-campaign.triggers.annotate-run',
+    'Annotate Agent Campaign Trigger Run',
+    'Annotates one trigger run with workflow provenance.',
+  ),
+  internalAction(
+    'agent-campaign.triggers.finalize-group',
+    'Finalize Agent Campaign Trigger Group',
+    'Finalizes one trigger dispatch group.',
+  ),
+  internalAction(
+    'agent-campaign.triggers.finalize',
+    'Finalize Agent Campaign Trigger Evaluation',
+    'Finalizes one campaign trigger evaluation.',
   ),
   internalAction(
     'batch.generation.mark-queued',
@@ -1294,9 +1854,19 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Finalizes credits and durable state for one batch generation run.',
   ),
   internalAction(
-    'insight.generate',
-    'Generate Insight',
-    'Generates and persists one tenant-scoped insight.',
+    'insight.load-generation-context',
+    'Load Insight Generation Context',
+    'Loads the tenant context required to generate insights.',
+  ),
+  internalAction(
+    'insight.generate-drafts',
+    'Generate Insight Drafts',
+    'Generates structured insight drafts from loaded tenant context.',
+  ),
+  internalAction(
+    'insight.persist-generated',
+    'Persist Generated Insights',
+    'Persists one bounded set of generated tenant insights.',
   ),
   internalAction(
     'knowledge.source.discover-backfill',
@@ -1304,19 +1874,119 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Discovers bounded knowledge sources that require ingestion.',
   ),
   internalAction(
-    'knowledge.source.ingest',
-    'Ingest Knowledge Source',
-    'Ingests one tenant-scoped knowledge source into its context base.',
+    'knowledge.source.load',
+    'Load Knowledge Source',
+    'Loads one tenant-scoped knowledge source for ingestion.',
   ),
   internalAction(
-    'lifecycle-email.send',
-    'Send Lifecycle Email',
-    'Builds and delivers one lifecycle email.',
+    'knowledge.source.mark-processing',
+    'Mark Knowledge Source Processing',
+    'Claims one knowledge source for ingestion.',
   ),
   internalAction(
-    'signup.prefill.execute',
-    'Execute Signup Prefill',
-    'Builds and persists one signup prefill from validated onboarding context.',
+    'knowledge.source.extract',
+    'Extract Knowledge Source',
+    'Extracts canonical text from one claimed knowledge source.',
+  ),
+  internalAction(
+    'knowledge.source.chunk',
+    'Chunk Knowledge Source',
+    'Creates bounded searchable chunks from extracted source text.',
+  ),
+  internalAction(
+    'knowledge.source.replace-chunks',
+    'Replace Knowledge Source Chunks',
+    'Atomically replaces stored chunks for one knowledge source.',
+  ),
+  internalAction(
+    'knowledge.source.finalize',
+    'Finalize Knowledge Source',
+    'Finalizes one knowledge-source ingestion workflow.',
+  ),
+  internalAction(
+    'lifecycle-email.load-delivery',
+    'Load Lifecycle Email Delivery',
+    'Loads one scheduled lifecycle-email delivery and its tenant context.',
+  ),
+  internalAction(
+    'lifecycle-email.check-eligibility',
+    'Check Lifecycle Email Eligibility',
+    'Evaluates whether one lifecycle-email delivery remains eligible.',
+  ),
+  internalAction(
+    'lifecycle-email.render',
+    'Render Lifecycle Email',
+    'Renders one eligible lifecycle email.',
+  ),
+  internalAction(
+    'lifecycle-email.deliver',
+    'Deliver Lifecycle Email',
+    'Delivers one rendered lifecycle email.',
+  ),
+  internalAction(
+    'lifecycle-email.finalize',
+    'Finalize Lifecycle Email',
+    'Finalizes one lifecycle-email delivery workflow.',
+  ),
+  internalAction(
+    'lifecycle-email.scheduling.plan',
+    'Plan Lifecycle Email Scheduling',
+    'Plans the bounded delivery transitions for one lifecycle event.',
+  ),
+  internalAction(
+    'lifecycle-email.scheduling.persist-delivery',
+    'Persist Lifecycle Email Delivery',
+    'Persists one planned lifecycle-email delivery idempotently.',
+  ),
+  internalAction(
+    'lifecycle-email.scheduling.enqueue-delivery',
+    'Enqueue Lifecycle Email Delivery',
+    'Enqueues one persisted lifecycle-email delivery workflow.',
+  ),
+  internalAction(
+    'lifecycle-email.scheduling.cancel-checkout',
+    'Cancel Lifecycle Checkout Emails',
+    'Cancels pending checkout lifecycle emails after conversion.',
+  ),
+  internalAction(
+    'lifecycle-email.scheduling.finalize',
+    'Finalize Lifecycle Email Scheduling',
+    'Finalizes one lifecycle-email scheduling workflow.',
+  ),
+  internalAction(
+    'signup.prefill.prepare',
+    'Prepare Signup Prefill',
+    'Loads and validates one signup-prefill request.',
+  ),
+  internalAction(
+    'signup.prefill.scrape',
+    'Scrape Signup Prefill Source',
+    'Scrapes bounded public context for one signup prefill.',
+  ),
+  internalAction(
+    'signup.prefill.analyze',
+    'Analyze Signup Prefill',
+    'Analyzes scraped signup context into structured defaults.',
+  ),
+  internalAction(
+    'signup.prefill.apply-defaults',
+    'Apply Signup Prefill Defaults',
+    'Applies deterministic defaults to one analyzed signup prefill.',
+  ),
+  internalAction(
+    'signup.prefill.apply-prompt',
+    'Apply Signup Prefill Prompt',
+    'Persists the generated onboarding prompt for one signup prefill.',
+  ),
+  internalAction(
+    'signup.prefill.seed-harness',
+    'Seed Signup Prefill Harness',
+    'Seeds the evaluation harness for one signup prefill.',
+  ),
+  internalAction(
+    'signup.prefill.finalize',
+    'Finalize Signup Prefill',
+    'Finalizes one successfully generated signup prefill.',
   ),
   internalAction(
     'signup.prefill.fail',
@@ -1324,19 +1994,99 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Projects one terminal signup-prefill workflow failure.',
   ),
   internalAction(
-    'telegram.distribution.deliver',
-    'Deliver Telegram Distribution',
-    'Delivers one tenant-scoped Telegram distribution request.',
+    'telegram.distribution.claim',
+    'Claim Telegram Distribution',
+    'Claims one Telegram distribution request for workflow execution.',
+  ),
+  internalAction(
+    'telegram.distribution.resolve-credential',
+    'Resolve Telegram Credential',
+    'Resolves the scoped credential for one Telegram distribution.',
+  ),
+  internalAction(
+    'telegram.distribution.send',
+    'Send Telegram Distribution',
+    'Sends one claimed Telegram distribution through its resolved credential.',
+  ),
+  internalAction(
+    'telegram.distribution.finalize',
+    'Finalize Telegram Distribution',
+    'Finalizes one Telegram distribution workflow.',
+  ),
+  internalAction(
+    'workspace.task.route',
+    'Route Workspace Task',
+    'Routes one workspace task to its explicit execution child workflow.',
+  ),
+  internalAction(
+    'workspace.task.finalize',
+    'Finalize Workspace Task',
+    'Finalizes one workspace task after its child workflow settles.',
+  ),
+  internalAction(
+    'workspace.task.agent.decompose',
+    'Decompose Workspace Agent Task',
+    'Decomposes one workspace task into bounded agent subtasks.',
+  ),
+  internalAction(
+    'workspace.task.agent.plan-runs',
+    'Plan Workspace Agent Runs',
+    'Plans one bounded set of child agent runs for a workspace task.',
+  ),
+  internalAction(
+    'workspace.task.agent.run.create',
+    'Create Workspace Agent Run',
+    'Creates one durable agent run for a workspace task.',
+  ),
+  internalAction(
+    'workspace.task.agent.run.enqueue',
+    'Enqueue Workspace Agent Run',
+    'Queues one created workspace agent run through the agent-run transport.',
+  ),
+  internalAction(
+    'workspace.task.agent.record-run',
+    'Record Workspace Agent Run',
+    'Records one child agent run on its workspace task.',
+  ),
+  internalAction(
+    'workspace.task.agent.link-runs',
+    'Link Workspace Agent Runs',
+    'Links settled child agent runs to one workspace task.',
+  ),
+  internalAction(
+    'workspace.task.facecam.prepare',
+    'Prepare Workspace Facecam Task',
+    'Builds one validated facecam request for a workspace task.',
+  ),
+  internalAction(
+    'workspace.task.facecam.record-start',
+    'Record Workspace Facecam Start',
+    'Records the start of one workspace facecam generation.',
+  ),
+  internalAction(
+    'workspace.task.facecam.generate',
+    'Generate Workspace Facecam',
+    'Dispatches one workspace facecam generation request.',
+  ),
+  internalAction(
+    'workspace.task.facecam.attach-output',
+    'Attach Workspace Facecam Output',
+    'Attaches one generated facecam output to its workspace task.',
+  ),
+  internalAction(
+    'workspace.task.facecam.record-dispatch',
+    'Record Workspace Facecam Dispatch',
+    'Records provider dispatch metadata for one workspace facecam task.',
+  ),
+  internalAction(
+    'workspace.task.facecam.schedule-poll',
+    'Schedule Workspace Facecam Poll',
+    'Schedules provider reconciliation for one dispatched workspace facecam task.',
   ),
   internalAction(
     'workflow.artifact.cleanup',
     'Clean Up Workflow Artifacts',
     'Deletes temporary storage objects owned by one workflow execution.',
-  ),
-  internalAction(
-    'workflow.artifact.cleanup-expired',
-    'Clean Up Expired Workflow Artifacts',
-    'Processes one bounded batch of expired workflow storage and execution payloads.',
   ),
   internalAction(
     'workflow.artifact.promote',
@@ -1354,6 +2104,16 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'workflow.for-each',
     'Run Workflow for Each Item',
     'Runs or durably schedules one registered child workflow for each item in a bounded collection.',
+  ),
+  internalAction(
+    'workflow.for-each-tenant',
+    'Run Workflow for Each Tenant',
+    'Runs a registered child workflow in each validated tenant context discovered by a hidden system workflow.',
+  ),
+  internalAction(
+    'workflow.run-child',
+    'Run Child Workflow',
+    'Runs one registered child workflow with mapped inputs in the current tenant context.',
   ),
   internalAction(
     'workflow.collect-output',

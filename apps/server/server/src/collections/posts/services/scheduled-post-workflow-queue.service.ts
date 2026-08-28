@@ -1,8 +1,7 @@
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 import {
-  buildScheduledPostWorkflowDefinition,
-  SCHEDULED_POST_ACTION_IDS,
+  SCHEDULED_POST_FAILURE_WORKFLOW_ID,
   SCHEDULED_POST_WORKFLOW_ID,
   type ScheduledPostWorkflowInput,
 } from '@server/collections/posts/services/scheduled-post-workflow-definition';
@@ -13,12 +12,10 @@ export class ScheduledPostWorkflowQueueService {
   constructor(private readonly workflowQueue: WorkflowExecutionQueueService) {}
 
   async enqueue(input: ScheduledPostWorkflowInput): Promise<string> {
-    const definition = buildScheduledPostWorkflowDefinition();
-    return this.workflowQueue.queueSystemWorkflowDefinition(
-      definition,
+    return this.workflowQueue.queueSystemWorkflow(
       {
         actionType: SCHEDULED_POST_WORKFLOW_ID,
-        canonicalId: definition.canonicalId,
+        canonicalId: SCHEDULED_POST_WORKFLOW_ID,
         inputValues: { request: input },
         organizationId: input.organizationId,
         postIds: [input.postId],
@@ -31,10 +28,13 @@ export class ScheduledPostWorkflowQueueService {
       },
       `scheduled-post-${input.operationId ?? input.postId}`,
       {
-        actionId: SCHEDULED_POST_ACTION_IDS.FAIL,
-        inputValues: input,
+        attempts: 1,
+        failureWorkflow: {
+          canonicalId: SCHEDULED_POST_FAILURE_WORKFLOW_ID,
+          inputValues: { request: input },
+        },
+        replaceTerminalJob: true,
       },
-      { attempts: 1, replaceTerminalJob: true },
     );
   }
 }

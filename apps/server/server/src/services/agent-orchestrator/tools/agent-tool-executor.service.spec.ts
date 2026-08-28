@@ -64,23 +64,31 @@ import { of } from 'rxjs';
 describe('AgentToolExecutorService', () => {
   const createWorkflowRunner = () => {
     const executors = new Map<string, SystemWorkflowActionExecutor>();
+    const workflows = new Set<string>();
     return {
       registerAction: vi.fn(
         (actionId: string, executor: SystemWorkflowActionExecutor) => {
           executors.set(actionId, executor);
         },
       ),
-      runAction: vi.fn(
+      registerWorkflow: vi.fn((definition: { canonicalId: string }) => {
+        workflows.add(definition.canonicalId);
+      }),
+      runWorkflow: vi.fn(
         async (request: {
+          actionType: string;
           canonicalId: string;
           inputValues?: Record<string, unknown>;
           organizationId: string;
           runtimeContext?: unknown;
           userId?: string;
         }) => {
-          const executor = executors.get(request.canonicalId);
+          if (!workflows.has(request.canonicalId)) {
+            throw new Error(`Missing test workflow ${request.canonicalId}`);
+          }
+          const executor = executors.get(request.actionType);
           if (!executor) {
-            throw new Error(`Missing test action ${request.canonicalId}`);
+            throw new Error(`Missing test action ${request.actionType}`);
           }
           const provenance = {
             executionId: 'execution-1',

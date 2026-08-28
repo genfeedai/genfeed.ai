@@ -1,13 +1,23 @@
+import { BRAND_REMIX_DOWNSTREAM_ACTION_IDS } from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
 import { PausedMetaCampaignDraftService } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { MetaGraphPaginationLimitError } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+type CapturedWorkflowAction = (request: {
+  input: Record<string, unknown>;
+  provenance: {
+    executionId: string;
+    workflowId: string;
+    workflowLabel: string;
+  };
+}) => Promise<unknown> | unknown;
+
 describe('PausedMetaCampaignDraftService', () => {
   const prisma = {
     credential: { findFirst: vi.fn() },
     ingredient: { findFirst: vi.fn() },
-    post: { findFirst: vi.fn() },
+    post: { findFirst: vi.fn(), updateMany: vi.fn() },
   };
   const metaAdsService = {
     createAd: vi.fn(),
@@ -25,7 +35,14 @@ describe('PausedMetaCampaignDraftService', () => {
     uploadAdImage: vi.fn(),
     uploadAdVideo: vi.fn(),
   };
-  const workflowProvenanceService = { runAction: vi.fn() };
+  const actions = new Map<string, CapturedWorkflowAction>();
+  const workflowRunner = {
+    registerAction: vi.fn((id: string, action: CapturedWorkflowAction) =>
+      actions.set(id, action),
+    ),
+    registerWorkflow: vi.fn(),
+    runWorkflow: vi.fn(),
+  };
   const adCreativeMappingsService = {
     create: vi.fn(),
     findByContentId: vi.fn(),
@@ -33,7 +50,7 @@ describe('PausedMetaCampaignDraftService', () => {
   const service = new PausedMetaCampaignDraftService(
     prisma as never,
     metaAdsService as never,
-    workflowProvenanceService as never,
+    workflowRunner as never,
     adCreativeMappingsService as never,
   );
   const input = {
@@ -91,6 +108,13 @@ describe('PausedMetaCampaignDraftService', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    actions.clear();
+    workflowRunner.registerAction.mockImplementation(
+      (id: string, action: CapturedWorkflowAction) => {
+        actions.set(id, action);
+      },
+    );
+    service.onModuleInit();
     prisma.credential.findFirst.mockResolvedValue({
       accessToken: 'legacy-plaintext-token',
       externalId: 'page-1',
@@ -123,22 +147,64 @@ describe('PausedMetaCampaignDraftService', () => {
       'https://meta.example/video-thumbnail.jpg',
     );
     metaAdsService.uploadAdVideo.mockResolvedValue({ videoId: 'video-1' });
-    workflowProvenanceService.runAction.mockImplementation(
-      async (_options, action) => ({
-        provenance: {
-          executionId: 'workflow-execution-1',
-          workflowId: 'workflow-1',
-          workflowLabel: 'Paused Meta Draft',
-        },
-        result: await action(),
-      }),
-    );
+    workflowRunner.runWorkflow.mockImplementation(async (request) => {
+      const provenance = {
+        executionId: 'workflow-execution-1',
+        workflowId: 'workflow-1',
+        workflowLabel: 'Paused Meta Draft',
+      };
+      const execute = async (
+        id: string,
+        stateInput: Record<string, unknown>,
+      ) => {
+        const action = actions.get(id);
+        if (!action) throw new Error(`Missing action ${id}`);
+        return action({ input: stateInput, provenance });
+      };
+      const ids = BRAND_REMIX_DOWNSTREAM_ACTION_IDS;
+      let state = (await execute(ids.META_VALIDATE_SOURCE, {
+        request: request.inputValues.request,
+      })) as { hasExistingAd?: boolean };
+      state = (await execute(ids.META_RESOLVE_ACCOUNT, {
+        state,
+      })) as typeof state;
+      state = (await execute(ids.META_ENSURE_CAMPAIGN, {
+        state,
+      })) as typeof state;
+      state = (await execute(ids.META_ENSURE_AD_SET, {
+        state,
+      })) as typeof state;
+      state = (await execute(ids.META_FIND_AD, { state })) as typeof state;
+      if (!state.hasExistingAd) {
+        state = (await execute(ids.META_PREPARE_CREATIVE, {
+          state,
+        })) as typeof state;
+        state = (await execute(ids.META_CREATE_AD, { state })) as typeof state;
+      }
+      state = (await execute(ids.META_PAUSE_CAMPAIGN, {
+        state,
+      })) as typeof state;
+      state = (await execute(ids.META_PAUSE_AD_SET, { state })) as typeof state;
+      state = (await execute(ids.META_PAUSE_AD, { state })) as typeof state;
+      state = (await execute(ids.META_PERSIST_MAPPING, {
+        state,
+      })) as typeof state;
+      const result = await execute(ids.META_PERSIST_LINEAGE, { state });
+      return { provenance, result };
+    });
     adCreativeMappingsService.findByContentId.mockResolvedValue([]);
+    prisma.post.updateMany.mockResolvedValue({ count: 1 });
   });
 
   it('creates all three objects with PAUSED-only inputs and complete lineage', async () => {
     const result = await service.prepare(input);
 
+    expect(workflowRunner.runWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({ canonicalId: 'brand-remix.meta.paused-draft' }),
+    );
+    expect(
+      JSON.stringify(workflowRunner.runWorkflow.mock.calls[0]?.[0].inputValues),
+    ).not.toContain('legacy-plaintext-token');
     expect(metaAdsService.createCampaign).toHaveBeenCalledWith(
       'legacy-plaintext-token',
       'act_123',

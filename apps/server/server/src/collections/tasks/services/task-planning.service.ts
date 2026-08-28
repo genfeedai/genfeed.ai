@@ -1,3 +1,11 @@
+import { serializeWorkspaceTaskDate } from '@genfeedai/serializers';
+import { scopedWhere } from '@genfeedai/server';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
 import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
@@ -8,15 +16,7 @@ import { type TaskDocument } from '@server/collections/tasks/schemas/task.schema
 import type { TasksService } from '@server/collections/tasks/services/tasks.service';
 import { TASKS_SERVICE } from '@server/collections/tasks/tasks.tokens';
 import { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
-import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/workspace-task-queue.service';
-import { serializeWorkspaceTaskDate } from '@genfeedai/serializers';
-import { scopedWhere } from '@genfeedai/server';
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  Optional,
-} from '@nestjs/common';
+import { WorkspaceTaskWorkflowQueueService } from '@server/services/task-orchestration/workspace-task-workflow-queue.service';
 
 const PLANNING_THREAD_SOURCE_PREFIX = 'workspace-planning:';
 const PLANNING_THREAD_TITLE_PREFIX = 'Plan next steps: ';
@@ -50,7 +50,7 @@ export class TaskPlanningService {
     private readonly organizationsService: OrganizationsService,
     private readonly agentOrchestratorService: AgentOrchestratorService,
     @Optional()
-    private readonly workspaceTaskQueueService?: WorkspaceTaskQueueService,
+    private readonly workspaceTaskWorkflowQueue?: WorkspaceTaskWorkflowQueueService,
   ) {}
 
   async openPlanningThread(
@@ -179,8 +179,8 @@ export class TaskPlanningService {
       }),
     );
 
-    const workspaceTaskQueueService = this.workspaceTaskQueueService;
-    if (workspaceTaskQueueService) {
+    const workspaceTaskWorkflowQueue = this.workspaceTaskWorkflowQueue;
+    if (workspaceTaskWorkflowQueue) {
       await Promise.all(
         tasks.map((createdTask) => {
           const taskExt = createdTask as TaskDocument & {
@@ -188,7 +188,7 @@ export class TaskPlanningService {
             platforms?: string[];
             request?: string;
           };
-          return workspaceTaskQueueService.enqueue({
+          return workspaceTaskWorkflowQueue.enqueue({
             brandId: createdTask.brandId ?? undefined,
             organizationId,
             outputType: taskExt.outputType,

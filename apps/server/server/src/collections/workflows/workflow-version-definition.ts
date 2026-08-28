@@ -4,7 +4,10 @@ import {
   getActionDefinition,
 } from '@genfeedai/actions';
 import { Prisma } from '@genfeedai/prisma';
-import { isEngineNativeNodeType } from '@genfeedai/workflows/engine';
+import {
+  isEngineNativeNodeType,
+  validateWorkflow,
+} from '@genfeedai/workflows/engine';
 import type {
   WorkflowDocument,
   WorkflowEdge,
@@ -54,6 +57,46 @@ function validateActionBackedNode(
   return node;
 }
 
+function assertValidWorkflowGraph(graph: WorkflowVersionGraph): void {
+  if (graph.nodes.length === 0) {
+    return;
+  }
+  const validation = validateWorkflow(
+    {
+      edges: graph.edges,
+      id: 'workflow-version-validation',
+      lockedNodeIds: graph.lockedNodeIds,
+      nodes: graph.nodes.map((node) => ({
+        config: readRecord(node.data?.config),
+        id: node.id,
+        inputs: [],
+        label:
+          typeof node.data?.label === 'string' ? node.data.label : node.type,
+        type: node.type,
+      })),
+      organizationId: 'workflow-version-validation',
+      userId: 'workflow-version-validation',
+    },
+    {
+      checkDisconnected: false,
+      maxNodes: 500,
+      validateConfigs: false,
+    },
+  );
+  const unknownLockedNodeIds = graph.lockedNodeIds.filter(
+    (nodeId) => !graph.nodes.some((node) => node.id === nodeId),
+  );
+  const messages = validation.errors.map((error) => error.message);
+  if (unknownLockedNodeIds.length > 0) {
+    messages.push(
+      `Locked node IDs do not exist: ${unknownLockedNodeIds.join(', ')}`,
+    );
+  }
+  if (messages.length > 0) {
+    throw new Error(`Invalid workflow graph: ${messages.join('; ')}`);
+  }
+}
+
 function stableStringify(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map((item) => stableStringify(item)).join(',')}]`;
@@ -80,6 +123,7 @@ export function buildWorkflowVersionDefinition(
     lockedNodeIds: input.lockedNodeIds ?? [],
     nodes: (input.nodes ?? []).map(validateActionBackedNode),
   };
+  assertValidWorkflowGraph(graph);
   const inputSchema = input.inputVariables ?? [];
   const contentHash = `sha256:v1:${createHash('sha256')
     .update(stableStringify({ graph, inputSchema }))

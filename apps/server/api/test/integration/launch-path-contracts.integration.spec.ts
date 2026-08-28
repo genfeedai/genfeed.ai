@@ -118,7 +118,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     });
 
     expect(service).toContain('buildContentPipelineWorkflowDefinition');
-    expect(service).toContain('runWorkflowDefinition<PipelineResultV2>');
+    expect(service).toContain('runWorkflow<PipelineResultV2>');
     expect(service).toContain("'content.pipeline.generate-image'");
     expect(service).toContain("'content.pipeline.publish'");
     expect(service).toContain("'content.pipeline.resolve-context'");
@@ -137,7 +137,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     const clipModule = readSourceOf('ClipProjectsModule', { root: API_SRC });
 
     expect(generation).toContain('buildClipGenerationWorkflowDefinition');
-    expect(generation).toContain('startWorkflowDefinition');
+    expect(generation).toContain('startWorkflow');
     expect(generation).toContain("'clip.generation.generate-one'");
     expect(generation).not.toContain('ClipOrchestratorService');
     expect(approval).toContain('submitReviewGateApproval');
@@ -156,7 +156,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
       root: API_SRC,
     });
 
-    expect(continuity).toContain('queueSystemWorkflowDefinition');
+    expect(continuity).toContain('queueSystemWorkflow');
     expect(continuity).toContain('CLIP_CONTINUITY_ACTION_IDS.PERSIST_REPORT');
     expect(continuity).not.toContain('@Interval');
     expect(continuity).not.toContain('ClipOrchestratorStateStore');
@@ -395,8 +395,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(ingest).toContain('scanForBackfill');
     expect(extract).toContain('safeFetch');
     expect(extract).toContain('UnsupportedKnowledgeSourceError');
-    expect(workflow).toContain('KNOWLEDGE_SOURCE_ACTION_IDS.INGEST');
-    expect(workflow).toContain('queueSystemWorkflowDefinition');
+    expect(workflow).toContain('KNOWLEDGE_SOURCE_ACTION_IDS.LOAD');
+    expect(workflow).toContain('KNOWLEDGE_SOURCE_ACTION_IDS.FINALIZE');
+    expect(workflow).toContain('queueSystemWorkflow');
   });
 
   it('registers platform-x harness pack from open-source ranking signals', () => {
@@ -481,9 +482,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(controller).toContain('handleCrc');
     expect(definitions).toContain("INBOUND: 'reply.inbound.process'");
     expect(definitions).toContain("POST_WATCH: 'reply.post-watch.process'");
-    expect(inbound).toContain('queueSystemWorkflowDefinition');
+    expect(inbound).toContain('queueSystemWorkflow');
     expect(postWatch).toContain('schedulePostWatch');
-    expect(postWatch).toContain('queueSystemWorkflowDefinition');
+    expect(postWatch).toContain('queueSystemWorkflow');
   });
 
   it('classifies reply intents and caps comment age at 48h', () => {

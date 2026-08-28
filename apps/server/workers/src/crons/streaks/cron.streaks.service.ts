@@ -1,17 +1,25 @@
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-import { StreaksService } from '@server/collections/streaks/services/streaks.service';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowRunnerService,
-} from '@server/collections/workflows/system-workflow-runner.service';
+  type StreakMaintenanceEvaluation,
+  type StreakMaintenanceRequest,
+  type StreakRecordMaintenanceRequest,
+  StreaksService,
+} from '@server/collections/streaks/services/streaks.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import {
+  buildStreakOrganizationWorkflowDefinition,
+  buildStreakRecordWorkflowDefinition,
+  buildStreakSweepWorkflowDefinition,
+  STREAK_MAINTENANCE_ACTION_IDS,
+} from '@workers/crons/streaks/streak-maintenance-workflow-definition';
+
+const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';
 
 @Injectable()
 export class CronStreaksService implements OnModuleInit {
   constructor(
-    private readonly logger: LoggerService,
     private readonly streaksService: StreaksService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
@@ -19,12 +27,79 @@ export class CronStreaksService implements OnModuleInit {
 
   onModuleInit(): void {
     this.systemWorkflowRunner.registerAction(
-      SYSTEM_WORKFLOW_ACTION_IDS.STREAK_MAINTENANCE,
+      STREAK_MAINTENANCE_ACTION_IDS.DISCOVER_ORGANIZATIONS,
+      async ({ input }) => {
+        const request = input.request as { referenceDate: string };
+        const organizationIds =
+          await this.streaksService.listStreakOrganizationIds();
+        return {
+          items: organizationIds.map(
+            (organizationId) =>
+              ({
+                organizationId,
+                referenceDate: request.referenceDate,
+              }) satisfies StreakMaintenanceRequest,
+          ),
+        };
+      },
+    );
+    this.systemWorkflowRunner.registerAction(
+      STREAK_MAINTENANCE_ACTION_IDS.DISCOVER_RECORDS,
       ({ input }) =>
-        this.streaksService.processStaleStreaks(
-          new Date(String(input.referenceDate ?? '')),
-          String(input.organizationId ?? ''),
+        this.streaksService.discoverMaintenanceRecords(
+          input.request as StreakMaintenanceRequest,
         ),
+    );
+    this.systemWorkflowRunner.registerAction(
+      STREAK_MAINTENANCE_ACTION_IDS.EVALUATE,
+      ({ input }) =>
+        this.streaksService.evaluateMaintenanceRecord(
+          input.request as StreakRecordMaintenanceRequest,
+        ),
+    );
+    this.systemWorkflowRunner.registerAction(
+      STREAK_MAINTENANCE_ACTION_IDS.APPLY_FREEZE,
+      ({ input }) =>
+        this.streaksService.applyMaintenanceFreeze(
+          this.unwrapBranch(input.evaluation),
+        ),
+    );
+    this.systemWorkflowRunner.registerAction(
+      STREAK_MAINTENANCE_ACTION_IDS.BREAK,
+      ({ input }) =>
+        this.streaksService.breakMaintenanceStreak(
+          this.unwrapBranch(input.evaluation),
+        ),
+    );
+    this.systemWorkflowRunner.registerAction(
+      STREAK_MAINTENANCE_ACTION_IDS.NOTIFY_AT_RISK,
+      ({ input }) =>
+        this.streaksService.notifyMaintenanceAtRisk(
+          this.unwrapBranch(input.evaluation),
+        ),
+    );
+    this.systemWorkflowRunner.registerAction(
+      STREAK_MAINTENANCE_ACTION_IDS.NOTIFY_FREEZE,
+      ({ input }) =>
+        this.streaksService.notifyMaintenanceFreeze(
+          input.evaluation as StreakMaintenanceEvaluation,
+        ),
+    );
+    this.systemWorkflowRunner.registerAction(
+      STREAK_MAINTENANCE_ACTION_IDS.NOTIFY_BROKEN,
+      ({ input }) =>
+        this.streaksService.notifyMaintenanceBroken(
+          input.evaluation as StreakMaintenanceEvaluation,
+        ),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildStreakSweepWorkflowDefinition(),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildStreakOrganizationWorkflowDefinition(),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildStreakRecordWorkflowDefinition(),
     );
   }
 
@@ -36,39 +111,28 @@ export class CronStreaksService implements OnModuleInit {
    */
   async processStreaks(): Promise<void> {
     const referenceDate = new Date();
-    const organizationIds =
-      await this.streaksService.listStreakOrganizationIds();
+    const definition = buildStreakSweepWorkflowDefinition();
+    await this.workflowQueue.queueSystemWorkflow(
+      {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: {
+          request: { referenceDate: referenceDate.toISOString() },
+        },
+        organizationId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
+        source: 'streak_maintenance_sweep',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
+      },
+      `streak-sweep-${referenceDate.toISOString().slice(0, 10)}`,
+      { attempts: 3, replaceTerminalJob: true },
+    );
+  }
 
-    let queued = 0;
-
-    for (const organizationId of organizationIds) {
-      try {
-        await this.workflowQueue.queueSystemAction(
-          {
-            actionType: SYSTEM_WORKFLOW_ACTION_IDS.STREAK_MAINTENANCE,
-            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.STREAK_MAINTENANCE,
-            inputValues: {
-              organizationId,
-              referenceDate: referenceDate.toISOString(),
-            },
-            organizationId,
-            source: 'streak_maintenance_sweep',
-            trigger: WorkflowExecutionTrigger.SCHEDULED,
-          },
-          `${SYSTEM_WORKFLOW_ACTION_IDS.STREAK_MAINTENANCE}-${organizationId}-${referenceDate.toISOString().slice(0, 10)}`,
-        );
-        queued += 1;
-      } catch (error: unknown) {
-        this.logger.error('Streak maintenance failed for organization', {
-          error: (error as Error)?.message,
-          organizationId,
-        });
-      }
+  private unwrapBranch(value: unknown): StreakMaintenanceEvaluation {
+    if (value && typeof value === 'object' && 'data' in value) {
+      return (value as { data: StreakMaintenanceEvaluation }).data;
     }
-
-    this.logger.log('CronStreaksService completed', {
-      organizations: organizationIds.length,
-      queued,
-    });
+    return value as StreakMaintenanceEvaluation;
   }
 }

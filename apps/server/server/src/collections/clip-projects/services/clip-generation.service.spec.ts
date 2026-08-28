@@ -51,7 +51,7 @@ function createHarness() {
       },
     ),
     registerWorkflow: vi.fn(),
-    startWorkflowDefinition: vi.fn(),
+    startWorkflow: vi.fn(),
   };
   const moduleRef = {
     get: vi.fn().mockReturnValue(runner),
@@ -155,12 +155,10 @@ describe('ClipGenerationService workflow boundary', () => {
       providerJobIds: ['job-1', 'job-2'],
       queuedClipCount: 2,
     };
-    runner.startWorkflowDefinition.mockResolvedValue(
-      completedExecution(result),
-    );
+    runner.startWorkflow.mockResolvedValue(completedExecution(result));
 
     await expect(service.generateClips(request)).resolves.toEqual(result);
-    expect(runner.startWorkflowDefinition).toHaveBeenCalledWith(
+    expect(runner.startWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         canonicalId: 'clip.generation',
         resultNodeId: 'generate-remaining',
@@ -181,7 +179,7 @@ describe('ClipGenerationService workflow boundary', () => {
       providerJobIds: ['hook-job'],
       queuedClipCount: 1,
     };
-    runner.startWorkflowDefinition.mockResolvedValue({
+    runner.startWorkflow.mockResolvedValue({
       ...completedExecution(hookResult),
       execution: {
         ...completedExecution(hookResult).execution,

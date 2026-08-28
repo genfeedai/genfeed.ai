@@ -7,8 +7,7 @@ import {
 } from '@genfeedai/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import {
-  buildClipFactoryWorkflowDefinition,
-  CLIP_FACTORY_ACTION_IDS,
+  CLIP_FACTORY_FAILURE_WORKFLOW_ID,
   CLIP_FACTORY_WORKFLOW_ID,
 } from '@server/collections/clip-projects/services/clip-factory-workflow-definition';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
@@ -19,12 +18,10 @@ export class ClipFactoryWorkflowQueueService {
 
   async enqueue(data: ClipFactoryWorkflowInput): Promise<string> {
     const job = this.validate(data);
-    const definition = buildClipFactoryWorkflowDefinition();
-    return this.workflowQueue.queueSystemWorkflowDefinition(
-      definition,
+    return this.workflowQueue.queueSystemWorkflow(
       {
         actionType: CLIP_FACTORY_WORKFLOW_ID,
-        canonicalId: definition.canonicalId,
+        canonicalId: CLIP_FACTORY_WORKFLOW_ID,
         inputValues: { job },
         metadata: { projectId: job.projectId },
         organizationId: job.orgId,
@@ -33,10 +30,13 @@ export class ClipFactoryWorkflowQueueService {
       },
       `clip-factory-${job.projectId}`,
       {
-        actionId: CLIP_FACTORY_ACTION_IDS.FAIL,
-        inputValues: { job },
+        attempts: 2,
+        failureWorkflow: {
+          canonicalId: CLIP_FACTORY_FAILURE_WORKFLOW_ID,
+          inputValues: { job },
+        },
+        replaceTerminalJob: true,
       },
-      { attempts: 2, replaceTerminalJob: true },
     );
   }
 

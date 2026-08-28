@@ -10,7 +10,7 @@ describe('CampaignExecutorService workflow boundary', () => {
   const runner = {
     registerAction: vi.fn(),
     registerWorkflow: vi.fn(),
-    runWorkflowDefinition: vi.fn(),
+    runWorkflow: vi.fn(),
   };
   const service = new CampaignExecutorService(
     { error: vi.fn(), log: vi.fn() } as never,
@@ -27,14 +27,14 @@ describe('CampaignExecutorService workflow boundary', () => {
   it('registers the target graph and every atomic action', () => {
     service.onModuleInit();
 
-    expect(runner.registerWorkflow).toHaveBeenCalledTimes(2);
+    expect(runner.registerWorkflow).toHaveBeenCalledTimes(3);
     expect(runner.registerAction).toHaveBeenCalledTimes(
       Object.keys(CAMPAIGN_REPLY_ACTION_IDS).length,
     );
   });
 
   it('durably dispatches pending targets through the batch workflow', async () => {
-    runner.runWorkflowDefinition.mockResolvedValueOnce({
+    runner.runWorkflow.mockResolvedValueOnce({
       result: { count: 3, results: [] },
     });
 
@@ -56,11 +56,9 @@ describe('CampaignExecutorService workflow boundary', () => {
       skipped: 0,
       successful: 0,
     });
-    expect(runner.runWorkflowDefinition).toHaveBeenCalledWith(
+    expect(runner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
         canonicalId: 'campaign.reply.process-pending-targets',
-      }),
-      expect.objectContaining({
         inputValues: {
           request: {
             campaignId: 'campaign-1',

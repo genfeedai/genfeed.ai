@@ -7,9 +7,9 @@ describe('ReplyInboundProcessorService workflow boundary', () => {
   const workflowRunner = {
     registerAction: vi.fn(),
     registerWorkflow: vi.fn(),
-    runWorkflowDefinition: vi.fn(),
+    runWorkflow: vi.fn(),
   };
-  const workflowQueue = { queueSystemWorkflowDefinition: vi.fn() };
+  const workflowQueue = { queueSystemWorkflow: vi.fn() };
   let service: ReplyInboundProcessorService;
 
   beforeEach(() => {
@@ -37,7 +37,7 @@ describe('ReplyInboundProcessorService workflow boundary', () => {
   });
 
   it('queues webhook intake as a deterministic system workflow', async () => {
-    workflowQueue.queueSystemWorkflowDefinition.mockResolvedValueOnce('job-1');
+    workflowQueue.queueSystemWorkflow.mockResolvedValueOnce('job-1');
     const input = {
       brandId: 'brand-1',
       commentAuthorUsername: 'viewer',
@@ -51,11 +51,9 @@ describe('ReplyInboundProcessorService workflow boundary', () => {
     };
 
     await expect(service.enqueue(input)).resolves.toEqual({ jobId: 'job-1' });
-    expect(workflowQueue.queueSystemWorkflowDefinition).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({ inputValues: { request: input } }),
       'reply-inbound-org-1-comment-1',
-      undefined,
       { replaceTerminalJob: true },
     );
   });

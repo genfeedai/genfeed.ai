@@ -59,7 +59,15 @@ function createMockSchedulerService() {
 
 function createMockSystemWorkflowRunner() {
   return {
-    startWorkflowDefinition: vi.fn().mockResolvedValue({
+    runWorkflow: vi.fn().mockResolvedValue({
+      provenance: {
+        executionId: 'exec-failure',
+        workflowId: 'wf-failure',
+        workflowLabel: 'Failure workflow',
+      },
+      result: { status: 'failed' },
+    }),
+    startWorkflow: vi.fn().mockResolvedValue({
       execution: {
         executionId: 'exec-system',
         nodeResults: [],
@@ -68,7 +76,11 @@ function createMockSystemWorkflowRunner() {
         totalCreditsUsed: 0,
         workflowId: 'wf-system',
       },
-      provenance: { executionId: 'exec-system', workflowId: 'wf-system' },
+      provenance: {
+        executionId: 'exec-system',
+        workflowId: 'wf-system',
+        workflowLabel: 'System workflow',
+      },
       userId: 'user-1',
     }),
   };
@@ -83,6 +95,7 @@ function createMockJob(
     data,
     id: 'job-1',
     name: data.type,
+    opts: { attempts: 1 },
     updateData: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
@@ -119,17 +132,10 @@ describe('WorkflowExecutionProcessor', () => {
   });
 
   describe('process - system workflow jobs', () => {
-    it('runs the queued graph through the system workflow runner', async () => {
-      const definition = {
-        canonicalId: 'clip-continuity:v1:1',
-        definition: { edges: [], inputVariables: [], nodes: [] },
-        description: 'Continuity',
-        label: 'Continuity',
-        resultNodeId: 'persist',
-      };
+    it('resolves the queued canonical identity through the system workflow runner', async () => {
       const input = {
         actionType: 'clip-continuity',
-        canonicalId: definition.canonicalId,
+        canonicalId: 'clip-continuity:v1:1',
         organizationId: 'org-1',
         source: 'clip-generation-completion',
       };
@@ -137,7 +143,7 @@ describe('WorkflowExecutionProcessor', () => {
       await expect(
         processor.process(
           createMockJob({
-            systemRun: { definition, input },
+            systemRun: { input },
             type: 'system-run',
           }) as never,
         ),
@@ -146,13 +152,13 @@ describe('WorkflowExecutionProcessor', () => {
         status: WorkflowExecutionStatus.COMPLETED,
         workflowId: 'wf-system',
       });
-      expect(
-        mockSystemWorkflowRunner.startWorkflowDefinition,
-      ).toHaveBeenCalledWith(definition, input);
+      expect(mockSystemWorkflowRunner.startWorkflow).toHaveBeenCalledWith(
+        input,
+      );
     });
 
     it('accepts a durable review-gate pause without projecting failure', async () => {
-      mockSystemWorkflowRunner.startWorkflowDefinition.mockResolvedValueOnce({
+      mockSystemWorkflowRunner.startWorkflow.mockResolvedValueOnce({
         execution: {
           executionId: 'exec-paused',
           nodeResults: [],
@@ -161,19 +167,16 @@ describe('WorkflowExecutionProcessor', () => {
           totalCreditsUsed: 0,
           workflowId: 'wf-system',
         },
-        provenance: { executionId: 'exec-paused', workflowId: 'wf-system' },
+        provenance: {
+          executionId: 'exec-paused',
+          workflowId: 'wf-system',
+          workflowLabel: 'Clip factory',
+        },
         userId: 'user-1',
       });
-      const definition = {
-        canonicalId: 'clip.factory',
-        definition: { edges: [], inputVariables: [], nodes: [] },
-        description: 'Clip factory',
-        label: 'Clip factory',
-        resultNodeId: 'dispatch-remaining',
-      };
       const input = {
-        actionType: definition.canonicalId,
-        canonicalId: definition.canonicalId,
+        actionType: 'clip.factory',
+        canonicalId: 'clip.factory',
         organizationId: 'org-1',
         source: 'clip-analysis-completion',
       };
@@ -182,7 +185,6 @@ describe('WorkflowExecutionProcessor', () => {
         processor.process(
           createMockJob({
             systemRun: {
-              definition,
               input,
             },
             type: 'system-run',
@@ -196,16 +198,9 @@ describe('WorkflowExecutionProcessor', () => {
     });
 
     it('does not create a second system execution when BullMQ retries', async () => {
-      const definition = {
-        canonicalId: 'campaign.reply.execute-target',
-        definition: { edges: [], inputVariables: [], nodes: [] },
-        description: 'Campaign reply',
-        label: 'Campaign reply',
-        resultNodeId: 'finalize',
-      };
       const input = {
-        actionType: definition.canonicalId,
-        canonicalId: definition.canonicalId,
+        actionType: 'campaign.reply.execute-target',
+        canonicalId: 'campaign.reply.execute-target',
         organizationId: 'org-1',
         source: 'workflow.for-each',
         userId: 'user-1',
@@ -216,13 +211,13 @@ describe('WorkflowExecutionProcessor', () => {
           createMockJob(
             {
               systemRun: {
-                definition,
                 input,
                 priorExecution: {
                   executionId: 'exec-prior',
                   status: WorkflowExecutionStatus.COMPLETED,
                   userId: 'user-1',
                   workflowId: 'wf-system',
+                  workflowLabel: 'Campaign reply',
                 },
               },
               type: 'system-run',
@@ -234,25 +229,16 @@ describe('WorkflowExecutionProcessor', () => {
         executionId: 'exec-prior',
         status: WorkflowExecutionStatus.COMPLETED,
       });
-      expect(
-        mockSystemWorkflowRunner.startWorkflowDefinition,
-      ).not.toHaveBeenCalled();
+      expect(mockSystemWorkflowRunner.startWorkflow).not.toHaveBeenCalled();
     });
 
-    it('leaves terminal failure handling inside the immutable graph', async () => {
-      mockSystemWorkflowRunner.startWorkflowDefinition.mockRejectedValueOnce(
-        new Error('QA failed'),
+    it('does not compensate a failed workflow before its terminal queue attempt', async () => {
+      mockSystemWorkflowRunner.startWorkflow.mockRejectedValueOnce(
+        new Error('Transient QA failure'),
       );
-      const definition = {
-        canonicalId: 'clip-continuity:v1:1',
-        definition: { edges: [], inputVariables: [], nodes: [] },
-        description: 'Continuity',
-        label: 'Continuity',
-        resultNodeId: 'persist',
-      };
       const input = {
         actionType: 'clip-continuity',
-        canonicalId: definition.canonicalId,
+        canonicalId: 'clip.continuity',
         organizationId: 'org-1',
         source: 'clip-generation-completion',
         userId: 'user-1',
@@ -260,15 +246,65 @@ describe('WorkflowExecutionProcessor', () => {
 
       await expect(
         processor.process(
-          createMockJob({
-            systemRun: {
-              definition,
-              input,
+          createMockJob(
+            {
+              systemRun: {
+                failureWorkflow: {
+                  canonicalId: 'clip.continuity.failure',
+                  inputValues: { projectId: 'project-1' },
+                },
+                input,
+              },
+              type: 'system-run',
             },
-            type: 'system-run',
-          }) as never,
+            { opts: { attempts: 2 } },
+          ) as never,
+        ),
+      ).rejects.toThrow('Transient QA failure');
+      expect(mockSystemWorkflowRunner.runWorkflow).not.toHaveBeenCalled();
+    });
+
+    it('runs registered failure compensation on the terminal queue attempt', async () => {
+      mockSystemWorkflowRunner.startWorkflow.mockRejectedValueOnce(
+        new Error('QA failed'),
+      );
+      const input = {
+        actionType: 'clip-continuity',
+        canonicalId: 'clip.continuity',
+        organizationId: 'org-1',
+        source: 'clip-generation-completion',
+        userId: 'user-1',
+      };
+
+      await expect(
+        processor.process(
+          createMockJob(
+            {
+              systemRun: {
+                failureWorkflow: {
+                  canonicalId: 'clip.continuity.failure',
+                  inputValues: { projectId: 'project-1' },
+                },
+                input,
+              },
+              type: 'system-run',
+            },
+            { attemptsMade: 1, opts: { attempts: 2 } },
+          ) as never,
         ),
       ).rejects.toThrow('QA failed');
+      expect(mockSystemWorkflowRunner.runWorkflow).toHaveBeenCalledWith({
+        actionType: 'clip.continuity.failure',
+        canonicalId: 'clip.continuity.failure',
+        inputValues: { projectId: 'project-1' },
+        metadata: {
+          failedCanonicalId: 'clip.continuity',
+          failedJobId: 'job-1',
+        },
+        organizationId: 'org-1',
+        source: 'workflow-failure:clip.continuity',
+        userId: 'user-1',
+      });
     });
   });
 

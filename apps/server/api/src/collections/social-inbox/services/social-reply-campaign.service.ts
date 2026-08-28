@@ -343,8 +343,7 @@ export class SocialReplyCampaignService {
       organizationId: campaign.organizationId,
     };
     const definition = buildSocialReplyCampaignWorkflowDefinition();
-    await this.workflowQueue.queueSystemWorkflowDefinition(
-      definition,
+    await this.workflowQueue.queueSystemWorkflow(
       {
         actionType: definition.canonicalId,
         canonicalId: definition.canonicalId,

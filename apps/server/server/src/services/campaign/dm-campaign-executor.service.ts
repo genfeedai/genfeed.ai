@@ -33,6 +33,7 @@ import {
   buildCampaignDmBatchWorkflowDefinition,
   buildCampaignDmWorkflowDefinition,
   CAMPAIGN_DM_ACTION_IDS,
+  CAMPAIGN_DM_BATCH_WORKFLOW_ID,
 } from '@server/services/campaign/campaign-dm-workflow-definition';
 import { resolveCampaignScope } from '@server/services/campaign/campaign-scope.util';
 import { isCampaignOutreachPairExecutable } from '@server/services/campaign/outreach-capability.util';
@@ -145,13 +146,12 @@ export class DmCampaignExecutorService implements OnModuleInit {
         });
         return { failed: 0, processed: 0, skipped: 0, successful: 0 };
       }
-      const definition = buildCampaignDmBatchWorkflowDefinition();
-      const { result } = await this.systemWorkflowRunner.runWorkflowDefinition<{
+      const { result } = await this.systemWorkflowRunner.runWorkflow<{
         count: number;
         results: Array<{ index: number; jobId: string }>;
-      }>(definition, {
-        actionType: definition.canonicalId,
-        canonicalId: definition.canonicalId,
+      }>({
+        actionType: CAMPAIGN_DM_BATCH_WORKFLOW_ID,
+        canonicalId: CAMPAIGN_DM_BATCH_WORKFLOW_ID,
         inputValues: {
           request: {
             campaignId,
