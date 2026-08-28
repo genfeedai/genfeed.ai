@@ -111,7 +111,12 @@ async function main() {
     // context, so one custom signal path closes both. Registering Nest's signal
     // hooks here as well runs every destroy hook twice and closes Redis clients
     // a second time during every hot reload.
+    let isShuttingDown = false;
     const shutdown = async (signal: string) => {
+      if (isShuttingDown) {
+        return;
+      }
+      isShuttingDown = true;
       logger.warn(`Received ${signal}, shutting down workers gracefully`);
 
       await new Promise<void>((resolve, reject) => {

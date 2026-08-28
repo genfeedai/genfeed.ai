@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import * as swc from '@swc/core';
+import * as dotenv from 'dotenv';
 import * as esbuild from 'esbuild';
 
 const WORKSPACE_ROOT = path.resolve(import.meta.dir, '../..');
@@ -208,6 +209,30 @@ function copyJsonAssets(app: NestFastDevApp, outDir: string): void {
   }
 }
 
+function buildRuntimeEnv(app: NestFastDevApp): NodeJS.ProcessEnv {
+  const runtimeEnv = { ...process.env };
+  const nodeEnv = process.env.NODE_ENV;
+  const envFiles =
+    nodeEnv === 'production' || nodeEnv === 'staging' || nodeEnv === 'test'
+      ? [
+          path.join(app.appDir, `.env.${nodeEnv}`),
+          path.join(WORKSPACE_ROOT, `.env.${nodeEnv}`),
+        ]
+      : [
+          path.join(app.appDir, '.env.local'),
+          path.join(app.appDir, '.env'),
+          path.join(WORKSPACE_ROOT, '.env.local'),
+          path.join(WORKSPACE_ROOT, '.env'),
+        ];
+
+  for (const envFile of envFiles) {
+    if (!fs.existsSync(envFile)) continue;
+    dotenv.config({ path: envFile, processEnv: runtimeEnv, quiet: true });
+  }
+
+  return runtimeEnv;
+}
+
 async function runApp(appName: string, once: boolean): Promise<void> {
   const app = APPS[appName];
   if (!app) {
@@ -287,7 +312,7 @@ async function runApp(appName: string, once: boolean): Promise<void> {
     child = spawn(nodeBin, [outfile], {
       cwd: WORKSPACE_ROOT,
       env: {
-        ...process.env,
+        ...buildRuntimeEnv(app),
         NODE_ENV: process.env.NODE_ENV || 'development',
         NODE_OPTIONS: nodeOptions,
         NODE_PATH: nodePath,
