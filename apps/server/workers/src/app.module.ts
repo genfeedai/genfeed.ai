@@ -1,3 +1,4 @@
+import { CacheModule } from '@api/services/cache/cache.module';
 import { SharedModule } from '@api/shared/shared.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { PrismaModule } from '@libs/prisma/prisma.module';
@@ -37,6 +38,7 @@ import { SystemSweepsModule } from '@workers/scheduling/system-sweeps.module';
       configModule: ConfigModule,
       configService: ConfigService,
     }),
+    CacheModule,
     SharedModule,
     EventEmitterModule.forRoot({
       delimiter: '.',

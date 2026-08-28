@@ -46,6 +46,7 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/services/batch-generation/batch-generation.module',
   '@api/services/byok-billing/byok-billing.module',
   '@api/services/byok/byok.module',
+  '@api/services/cache/cache.module',
   '@api/services/campaign/campaign.module',
   '@api/services/content-optimization/content-optimization.module',
   '@api/services/content-orchestration/content-orchestration.module',
