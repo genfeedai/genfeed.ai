@@ -1,18 +1,16 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   mockCreateCreditsCheckout,
   mockGetCreditUsage,
   mockListCreditTransactions,
   mockOpenExternalUrl,
-  mockPrintJson,
   mockRequireAuth,
 } = vi.hoisted(() => ({
   mockCreateCreditsCheckout: vi.fn(),
   mockGetCreditUsage: vi.fn(),
   mockListCreditTransactions: vi.fn(),
   mockOpenExternalUrl: vi.fn(),
-  mockPrintJson: vi.fn(),
   mockRequireAuth: vi.fn(),
 }));
 
@@ -29,13 +27,6 @@ vi.mock('@/api/credits', () => ({
 
 vi.mock('@/utils/browser', () => ({
   openExternalUrl: (url: string) => mockOpenExternalUrl(url),
-}));
-
-vi.mock('@/ui/theme', () => ({
-  formatHeader: (value: string) => value,
-  formatLabel: (label: string, value: string) => `${label}: ${value}`,
-  print: vi.fn(),
-  printJson: (value: unknown) => mockPrintJson(value),
 }));
 
 vi.mock('@/utils/errors', async (importOriginal) => {
@@ -59,8 +50,15 @@ vi.mock('ora', () => {
 });
 
 describe('credits command', () => {
+  let stdoutSpy: ReturnType<typeof vi.spyOn>;
+
+  function readJsonOutput(): unknown {
+    return JSON.parse(stdoutSpy.mock.calls.map((call) => String(call[0])).join(''));
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
+    stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
     mockRequireAuth.mockResolvedValue('gf_test_key');
     mockGetCreditUsage.mockResolvedValue({ currentBalance: 4_820 });
     mockCreateCreditsCheckout.mockResolvedValue({
@@ -70,13 +68,17 @@ describe('credits command', () => {
     mockOpenExternalUrl.mockResolvedValue(true);
   });
 
+  afterEach(() => {
+    stdoutSpy.mockRestore();
+  });
+
   it('prints canonical credit packs as JSON', async () => {
     const { createCreditsCommand } = await import('@/commands/credits');
     const creditsCommand = createCreditsCommand();
 
     await creditsCommand.parseAsync(['packs', '--json'], { from: 'user' });
 
-    expect(mockPrintJson).toHaveBeenCalledWith(
+    expect(readJsonOutput()).toEqual(
       expect.objectContaining({
         creditsPerUsd: 100,
         maximumCredits: 1_000_000,
@@ -96,7 +98,7 @@ describe('credits command', () => {
 
     expect(mockCreateCreditsCheckout).toHaveBeenCalledWith(5_000);
     expect(mockOpenExternalUrl).not.toHaveBeenCalled();
-    expect(mockPrintJson).toHaveBeenCalledWith({
+    expect(readJsonOutput()).toEqual({
       credits: 5_000,
       opened: false,
       url: 'https://checkout.stripe.test/cs_1',
@@ -112,6 +114,6 @@ describe('credits command', () => {
     });
 
     expect(mockListCreditTransactions).toHaveBeenCalledWith(25);
-    expect(mockPrintJson).toHaveBeenCalledWith([]);
+    expect(readJsonOutput()).toEqual([]);
   });
 });
