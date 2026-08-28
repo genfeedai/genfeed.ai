@@ -92,7 +92,7 @@ describe('utils/errors', () => {
       const error = new NoBrandError();
       expect(error.message).toBe('No brand selected');
       expect(error.name).toBe('NoBrandError');
-      expect(error.suggestion).toBe('Run `gf brands select` to choose a brand');
+      expect(error.suggestion).toBe('Run `gf brand use` to choose a brand');
     });
 
     it('is instance of GenfeedError', () => {

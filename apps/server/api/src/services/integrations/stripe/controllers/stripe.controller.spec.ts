@@ -33,6 +33,7 @@ import {
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -77,6 +78,7 @@ describe('StripeController', () => {
     requireRole: ReturnType<typeof vi.fn>;
     resolveForOrganization: ReturnType<typeof vi.fn>;
   };
+  let configService: { get: ReturnType<typeof vi.fn> };
 
   const mockRequest = {
     headers: { origin: 'https://app.genfeed.ai' },
@@ -184,6 +186,13 @@ describe('StripeController', () => {
       requireRole: vi.fn().mockResolvedValue('OWNER'),
       resolveForOrganization: vi.fn().mockResolvedValue({ id: 'ba_1' }),
     };
+    configService = {
+      get: vi.fn((key: string) => {
+        if (key === 'GENFEEDAI_APP_URL') return 'https://app.genfeed.ai';
+        if (key === 'STRIPE_PRICE_PAYG') return 'price_payg';
+        return undefined;
+      }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [StripeController],
@@ -198,6 +207,7 @@ describe('StripeController', () => {
         { provide: UsersService, useValue: usersService },
         { provide: OrganizationsService, useValue: organizationsService },
         { provide: LifecycleEmailService, useValue: lifecycleEmailService },
+        { provide: ConfigService, useValue: configService },
         {
           provide: OrganizationBillingAccountService,
           useValue: billingAccountService,
@@ -381,6 +391,56 @@ describe('StripeController', () => {
       await expect(
         controller.createCheckoutSession(mockUser, dto, mockRequest),
       ).rejects.toThrow(HttpException);
+    });
+  });
+
+  describe('createCreditsCheckoutSession', () => {
+    it('creates server-priced checkout for an API-key identity', async () => {
+      usersService.findOne.mockResolvedValue({
+        email: 'api-key-user@example.com',
+        id: userId,
+      });
+      const apiKeyUser = {
+        ...mockUser,
+        emailAddresses: [],
+        isApiKey: true,
+      } as unknown as User;
+
+      const result = await controller.createCreditsCheckoutSession(
+        apiKeyUser,
+        { credits: 5_000 },
+        mockRequestNoOrigin,
+      );
+
+      expect(result).toEqual({
+        id: 'cs_org_1',
+        url: 'https://checkout.stripe.com/session',
+      });
+      expect(stripeService.createPaymentSession).toHaveBeenCalledWith(
+        'cus_test123',
+        'price_payg',
+        'https://app.genfeed.ai',
+        5_000,
+        {
+          cancel: 'https://app.genfeed.ai/settings/credits',
+          success: 'https://app.genfeed.ai/settings/credits?credits=success',
+        },
+        { organizationId: orgId },
+      );
+    });
+
+    it('rejects checkout when managed credit billing is unavailable', async () => {
+      configService.get.mockReturnValue(undefined);
+
+      await expect(
+        controller.createCreditsCheckoutSession(
+          mockUser,
+          { credits: 5_000 },
+          mockRequestNoOrigin,
+        ),
+      ).rejects.toMatchObject({ status: HttpStatus.SERVICE_UNAVAILABLE });
+
+      expect(stripeService.createPaymentSession).not.toHaveBeenCalled();
     });
   });
 

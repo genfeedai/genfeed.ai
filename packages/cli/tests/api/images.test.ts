@@ -103,6 +103,50 @@ describe('api/images', () => {
       expect(result.width).toBe(1024);
       expect(result.height).toBe(768);
     });
+
+    it('forwards the complete public image-generation controls', async () => {
+      mockFetch.mockResolvedValue({
+        data: {
+          attributes: { model: 'auto', status: IngredientStatus.PROCESSING },
+          id: 'img-advanced',
+          type: 'image',
+        },
+      });
+
+      await createImage({
+        autoSelectModel: true,
+        blacklist: ['logo'],
+        brandId: 'brand-1',
+        brandingMode: 'brand',
+        camera: 'low-angle',
+        fidelityMode: 'strict',
+        format: 'portrait',
+        lens: '85mm',
+        lighting: 'studio',
+        mood: 'confident',
+        negativePrompt: 'blur',
+        outputs: 3,
+        prioritize: 'quality',
+        references: ['reference-1'],
+        scene: 'rooftop',
+        seed: 42,
+        style: 'editorial',
+        tags: ['tag-1'],
+        text: 'A product launch',
+      });
+
+      expect(mockFetch.mock.calls[0][1].body).toMatchObject({
+        autoSelectModel: true,
+        blacklist: ['logo'],
+        brandingMode: 'brand',
+        camera: 'low-angle',
+        fidelityMode: 'strict',
+        outputs: 3,
+        references: ['reference-1'],
+        seed: 42,
+        tags: ['tag-1'],
+      });
+    });
   });
 
   describe('getImage', () => {

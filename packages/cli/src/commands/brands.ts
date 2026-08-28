@@ -2,9 +2,10 @@ import { select } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { getBrand, listBrands } from '@/api/brands';
+import { type Brand, getBrand } from '@/api/brands';
 import { requireAuth } from '@/api/client';
-import { getActiveBrand, getAppUrl, getOrganizationId, setActiveBrand } from '@/config/store';
+import { getActiveBrand, getAppUrl, setActiveBrand } from '@/config/store';
+import { activateBrand, readBrands } from '@/operations/brands';
 import {
   formatHeader,
   formatLabel,
@@ -15,107 +16,132 @@ import {
 } from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
 
-export const brandsCommand = new Command('brands')
-  .description('Manage brands')
-  .option('--json', 'Output as JSON')
+interface BrandListResult {
+  activeBrandId?: string;
+  brands: Array<
+    Pick<Brand, 'description' | 'id' | 'label' | 'slug'> & {
+      active: boolean;
+    }
+  >;
+}
+
+async function loadBrandList(): Promise<BrandListResult> {
+  const [brands, activeBrandId] = await Promise.all([readBrands(), getActiveBrand()]);
+  return {
+    activeBrandId,
+    brands: brands.map((brand) => ({
+      active: brand.id === activeBrandId,
+      description: brand.description,
+      id: brand.id,
+      label: brand.label,
+      slug: brand.slug,
+    })),
+  };
+}
+
+function printBrandList(result: BrandListResult): void {
+  if (result.brands.length === 0) {
+    print(formatWarning('No brands found.'));
+    return;
+  }
+
+  print(formatHeader('Brands\n'));
+  for (const brand of result.brands) {
+    const marker = brand.active ? chalk.green('●') : chalk.dim('○');
+    const label = brand.active ? chalk.bold(brand.label) : brand.label;
+    const slug = brand.slug ? chalk.dim(` (${brand.slug})`) : '';
+    print(`  ${marker} ${label}${slug}`);
+    print(`    ${chalk.dim(brand.id)}`);
+    if (brand.description) {
+      print(`    ${chalk.dim(brand.description)}`);
+    }
+  }
+}
+
+async function runBrandList(json = false): Promise<void> {
+  await requireAuth();
+  const spinner = json ? undefined : ora('Fetching brands...').start();
+  const result = await loadBrandList();
+  spinner?.stop();
+
+  if (json) {
+    printJson(result);
+    return;
+  }
+
+  printBrandList(result);
+}
+
+export const brandsCommand = new Command('brand')
+  .alias('brands')
+  .description('Inspect and select the active brand')
+  .option('--json', 'Output the brand list as JSON')
   .action(async (options) => {
     try {
-      await requireAuth();
-
-      const orgId = await getOrganizationId();
-      if (!orgId) {
-        throw new GenfeedError(
-          'No organization found',
-          'Re-authenticate with `gf login` to link your organization'
-        );
-      }
-
-      const spinner = ora('Fetching brands...').start();
-      const brands = await listBrands(orgId);
-      spinner.stop();
-
-      const activeBrandId = await getActiveBrand();
-
-      if (options.json) {
-        printJson({
-          activeBrandId,
-          brands: brands.map((b) => ({
-            active: b.id === activeBrandId,
-            description: b.description,
-            id: b.id,
-            label: b.label,
-          })),
-        });
-        return;
-      }
-
-      if (brands.length === 0) {
-        print(formatWarning('No brands found.'));
-        print(chalk.dim(`Create one at ${await getAppUrl()}`));
-        return;
-      }
-
-      print(formatHeader('Your brands:\n'));
-
-      for (const brand of brands) {
-        const isActive = brand.id === activeBrandId;
-        const marker = isActive ? chalk.green('●') : chalk.dim('○');
-        const name = isActive ? chalk.bold(brand.label) : brand.label;
-        const activeLabel = isActive ? chalk.dim(' (active)') : '';
-
-        print(`  ${marker} ${name}${activeLabel}`);
-        if (brand.description) {
-          print(`    ${chalk.dim(brand.description)}`);
-        }
-      }
-
-      print();
-      print(chalk.dim('Run `gf brands select` to change the active brand'));
+      await runBrandList(Boolean(options.json));
     } catch (error) {
       handleError(error);
     }
   });
 
 brandsCommand
-  .command('select')
-  .description('Select the active brand')
-  .action(async () => {
+  .command('list')
+  .description('List brands in the active organization')
+  .option('--json', 'Output as JSON')
+  .action(async (options) => {
+    try {
+      await runBrandList(Boolean(options.json));
+    } catch (error) {
+      handleError(error);
+    }
+  });
+
+brandsCommand
+  .command('use')
+  .alias('select')
+  .description('Select the active brand by id, slug, or unique label')
+  .argument('[reference]', 'Brand id, slug, or unique label')
+  .option('--json', 'Output as JSON')
+  .action(async (reference: string | undefined, options) => {
     try {
       await requireAuth();
+      let selected: Brand;
 
-      const orgId = await getOrganizationId();
-      if (!orgId) {
-        throw new GenfeedError(
-          'No organization found',
-          'Re-authenticate with `gf login` to link your organization'
-        );
+      if (reference) {
+        selected = await activateBrand(reference);
+      } else {
+        if (!process.stdin.isTTY || !process.stdout.isTTY) {
+          throw new GenfeedError(
+            'Brand reference is required in non-interactive mode',
+            'Use `gf brand use <id-or-slug>`'
+          );
+        }
+
+        const brands = await readBrands();
+        if (brands.length === 0) {
+          throw new GenfeedError('No brands found', `Create a brand at ${await getAppUrl()}`);
+        }
+
+        const activeBrandId = await getActiveBrand();
+        const selectedId = await select({
+          choices: brands.map((brand) => ({
+            description: brand.description,
+            name: brand.id === activeBrandId ? `${brand.label} (current)` : brand.label,
+            value: brand.id,
+          })),
+          default: activeBrandId,
+          message: 'Select a brand:',
+        });
+        selected = brands.find((brand) => brand.id === selectedId)!;
+        await setActiveBrand(selected.id);
       }
 
-      const spinner = ora('Fetching brands...').start();
-      const brands = await listBrands(orgId);
-      spinner.stop();
-
-      if (brands.length === 0) {
-        throw new GenfeedError('No brands found', `Create a brand at ${await getAppUrl()}`);
+      if (options.json) {
+        printJson(selected);
+        return;
       }
 
-      const activeBrandId = await getActiveBrand();
-
-      const selected = await select({
-        choices: brands.map((brand) => ({
-          description: brand.description,
-          name: brand.id === activeBrandId ? `${brand.label} (current)` : brand.label,
-          value: brand.id,
-        })),
-        default: activeBrandId,
-        message: 'Select a brand:',
-      });
-
-      await setActiveBrand(selected);
-      const selectedBrand = brands.find((b) => b.id === selected);
-
-      print();
-      print(formatSuccess(`Active brand: ${chalk.bold(selectedBrand?.label)}`));
+      print(formatSuccess(`Active brand: ${chalk.bold(selected.label)}`));
     } catch (error) {
       handleError(error);
     }
@@ -128,7 +154,6 @@ brandsCommand
   .action(async (options) => {
     try {
       await requireAuth();
-
       const activeBrandId = await getActiveBrand();
 
       if (!activeBrandId) {
@@ -137,22 +162,13 @@ brandsCommand
           return;
         }
         print(formatWarning('No active brand selected'));
-        print(chalk.dim('Run `gf brands select` to choose a brand'));
+        print(chalk.dim('Run `gf brand use` to choose a brand'));
         return;
       }
 
-      const spinner = ora('Fetching brand...').start();
       const brand = await getBrand(activeBrandId);
-      spinner.stop();
-
       if (options.json) {
-        printJson({
-          activeBrand: {
-            description: brand.description,
-            id: brand.id,
-            name: brand.label,
-          },
-        });
+        printJson({ activeBrand: brand });
         return;
       }
 
@@ -173,25 +189,18 @@ brandsCommand
   .action(async (id, options) => {
     try {
       await requireAuth();
-
-      const spinner = ora('Fetching brand...').start();
       const brand = await getBrand(id);
-      spinner.stop();
 
       if (options.json) {
         printJson(brand);
         return;
       }
 
-      print(formatHeader('\nBrand Details:\n'));
+      print(formatHeader('Brand Details\n'));
       print(formatLabel('ID', brand.id));
       print(formatLabel('Label', brand.label));
-      if (brand.slug) {
-        print(formatLabel('Slug', brand.slug));
-      }
-      if (brand.description) {
-        print(formatLabel('Description', brand.description));
-      }
+      if (brand.slug) print(formatLabel('Slug', brand.slug));
+      if (brand.description) print(formatLabel('Description', brand.description));
       print(formatLabel('Created', brand.createdAt));
       print(formatLabel('Updated', brand.updatedAt));
     } catch (error) {

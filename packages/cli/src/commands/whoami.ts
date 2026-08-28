@@ -55,9 +55,9 @@ export const whoamiCommand = new Command('whoami')
       if (activeBrand) {
         print(formatLabel('Active Brand', activeBrand.label));
       } else if (activeBrandId) {
-        print(formatLabel('Active Brand', chalk.dim('(not found - run gf brands select)')));
+        print(formatLabel('Active Brand', chalk.dim('(not found - run gf brand use)')));
       } else {
-        print(formatLabel('Active Brand', chalk.dim('(none - run gf brands select)')));
+        print(formatLabel('Active Brand', chalk.dim('(none - run gf brand use)')));
       }
     } catch (error) {
       handleError(error);

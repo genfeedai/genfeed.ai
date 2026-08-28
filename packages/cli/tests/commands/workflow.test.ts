@@ -37,6 +37,20 @@ describe('workflow command', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockRequireAuth.mockResolvedValue('api-key');
+    mockGet.mockImplementation((path: string) => {
+      if (path.startsWith('/workflows?')) {
+        return Promise.resolve({
+          data: [
+            {
+              attributes: { key: 'weekly-content', label: 'Weekly Content' },
+              id: 'workflow-1',
+              type: 'workflow',
+            },
+          ],
+        });
+      }
+      return Promise.resolve({ data: [] });
+    });
     mockPost.mockResolvedValue({
       data: {
         attributes: {},

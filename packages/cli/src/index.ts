@@ -1,134 +1,56 @@
 #!/usr/bin/env node
-import chalk from 'chalk';
-import { Command } from 'commander';
-import { authCommand } from './commands/auth';
-import { batchCommand } from './commands/batch';
-import { brandsCommand } from './commands/brands';
-import { chatCommand } from './commands/chat';
-import { configCommand } from './commands/config';
-import { creditsCommand } from './commands/credits';
-import { generateCommand } from './commands/generate/index';
-import { insightsCommand } from './commands/insights';
-import { keysCommand } from './commands/keys';
-import { libraryCommand } from './commands/library';
-import { loginCommand } from './commands/login';
-import { logoutCommand } from './commands/logout';
-import { organizationsCommand } from './commands/organizations';
-import { performanceCommand } from './commands/performance';
-import { postsCommand } from './commands/posts';
-import { profileCommand } from './commands/profile';
-import { publishCommand } from './commands/publish';
-import { scheduleCommand } from './commands/schedule';
-import { statusCommand } from './commands/status';
-import { templateCommand } from './commands/template';
-import { threadsCommand } from './commands/threads';
-import { toolsCommand } from './commands/tools';
-import { whoamiCommand } from './commands/whoami';
-import { workflowCommand } from './commands/workflow';
-import { runAgentShell } from './shell/agent-shell';
-import { formatError, formatHeader, print } from './ui/theme';
+import { runLogin } from '@/commands/login';
+import { createProgram, resolveLaunchMode } from '@/program';
+import { runTerminalWorkspace } from '@/tui';
+import { formatError } from '@/ui/theme';
+import { setReplMode } from '@/utils/errors';
 
-const BANNER = chalk.hex('#7C3AED').bold(`
-     ██████  ███████
-    ██       ██
-    ██   ███ █████
-    ██    ██ ██
-     ██████  ██
-`);
-
-const program = new Command();
-
-program
-  .name('gf')
-  .description('Unified CLI for Genfeed.ai')
-  .version('0.6.0')
-  .addCommand(authCommand)
-  .addCommand(loginCommand)
-  .addCommand(logoutCommand)
-  .addCommand(whoamiCommand)
-  .addCommand(keysCommand)
-  .addCommand(organizationsCommand)
-  .addCommand(brandsCommand)
-  .addCommand(generateCommand)
-  .addCommand(statusCommand)
-  .addCommand(chatCommand)
-  .addCommand(threadsCommand)
-  .addCommand(workflowCommand)
-  .addCommand(publishCommand)
-  .addCommand(libraryCommand)
-  .addCommand(profileCommand)
-  .addCommand(batchCommand)
-  .addCommand(templateCommand)
-  .addCommand(creditsCommand)
-  .addCommand(insightsCommand)
-  .addCommand(scheduleCommand)
-  .addCommand(performanceCommand)
-  .addCommand(postsCommand)
-  .addCommand(configCommand)
-  .addCommand(toolsCommand);
-
+const program = createProgram();
 program.exitOverride();
 
-function printBanner(): void {
-  print(BANNER);
-  print(chalk.dim('  Unified CLI for Genfeed.ai'));
-  print();
-}
-
-function printHelp(): void {
-  print(formatHeader('User Commands:\n'));
-  print('  login          Authenticate with your Genfeed API key');
-  print('  auth          Authentication commands, including `gf auth login`');
-  print('  logout         Remove stored credentials');
-  print('  whoami         Show current user and organization');
-  print('  keys           Manage API keys for headless and MCP access');
-  print('  organizations  List organizations and switch the active one');
-  print('  brands         Manage brands');
-  print('  generate       Generate AI content (image, video, article)');
-  print('  status         Check the status of a generation job');
-  print('  chat           Start the interactive agent shell');
-  print('  threads        List, inspect, archive, and resume agent threads');
-  print('  workflow       Manage and execute workflows');
-  print('  publish        Publish content to social media');
-  print('  library        Browse content library');
-  print('  profile        Manage CLI profiles');
-  print('  batch          Batch content generation');
-  print('  template       Manage content templates');
-  print('  credits        View credit usage and billing');
-  print('  insights       AI-powered content insights');
-  print('  schedule       Content scheduling and calendar');
-  print('  performance    Content performance analytics');
-  print('  posts          Manage published and scheduled posts');
-  print('  config         Manage CLI configuration');
-  print('  tools          List canonical agent tools available in the CLI shell');
-
-  print();
-  print(chalk.dim('  Run `gf <command> --help` for command details'));
-  print(chalk.dim('  Run `gf` with no args for the interactive agent shell'));
-}
-
-async function startRepl(): Promise<void> {
-  printBanner();
-  printHelp();
-  print();
-  await runAgentShell();
-}
-
-if (process.argv.length <= 2) {
-  startRepl().catch((error) => {
-    console.error(formatError(`Fatal: ${error instanceof Error ? error.message : String(error)}`));
-    process.exit(1);
-  });
-} else {
-  program.parseAsync().catch((error) => {
-    if (error instanceof Error && 'code' in error) {
-      const code = (error as { code: string }).code;
-      if (code === 'commander.helpDisplayed' || code === 'commander.version') {
-        process.exit(0);
-      }
+async function startInteractiveWorkspace(): Promise<void> {
+  while (true) {
+    const action = await runTerminalWorkspace();
+    if (action === 'exit') return;
+    setReplMode(true);
+    try {
+      await runLogin({ intent: action });
+    } catch {
+      // runLogin already printed the normalized error; return to the workspace.
+    } finally {
+      setReplMode(false);
     }
-
-    console.error(formatError(error instanceof Error ? error.message : String(error)));
-    process.exit(1);
-  });
+  }
 }
+
+async function main(): Promise<void> {
+  const mode = resolveLaunchMode({
+    hasArguments: process.argv.length > 2,
+    stdinIsTTY: process.stdin.isTTY === true,
+    stdoutIsTTY: process.stdout.isTTY === true,
+  });
+
+  if (mode === 'help') {
+    program.outputHelp();
+    return;
+  }
+
+  if (mode === 'tui') {
+    await startInteractiveWorkspace();
+    return;
+  }
+
+  await program.parseAsync();
+}
+
+main().catch((error) => {
+  if (error instanceof Error && 'code' in error) {
+    const code = (error as { code: string }).code;
+    if (code === 'commander.helpDisplayed' || code === 'commander.version') {
+      process.exit(0);
+    }
+  }
+
+  console.error(formatError(error instanceof Error ? error.message : String(error)));
+  process.exit(1);
+});

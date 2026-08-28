@@ -7,6 +7,7 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { CreateCreditsCheckoutDto } from '@api/services/integrations/stripe/dto/create-credits-checkout.dto';
 import {
   BillingAccountResolutionError,
   OrganizationBillingAccountService,
@@ -19,6 +20,7 @@ import {
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/interfaces/billing';
 import { StripeUrlSerializer } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -56,6 +58,7 @@ export class StripeController {
     private readonly lifecycleEmailService: LifecycleEmailService,
     private readonly billingAccountService: OrganizationBillingAccountService,
     private readonly billingAccountsService: BillingAccountsService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -218,6 +221,57 @@ export class StripeController {
         success: false,
       });
     }
+  }
+
+  @Post('credits/checkout')
+  async createCreditsCheckoutSession(
+    @CurrentUser() user: User,
+    @Body() dto: CreateCreditsCheckoutDto,
+    @Req() request: Request,
+  ) {
+    const stripePriceId = this.configService.get('STRIPE_PRICE_PAYG');
+    const appUrl = this.configService.get('GENFEEDAI_APP_URL');
+
+    if (!stripePriceId || !appUrl) {
+      throw new ServiceUnavailableException(
+        'Credit checkout is not configured for this deployment.',
+      );
+    }
+
+    const dbUser = await this.usersService.findOne({ id: user.id });
+    if (!dbUser) {
+      return returnNotFound('User', user.id);
+    }
+
+    const email =
+      user.emailAddresses?.[0]?.emailAddress ?? dbUser.email ?? undefined;
+    if (!email) {
+      return returnBadRequest({
+        message: 'User email is required for checkout',
+        success: false,
+      });
+    }
+
+    const checkoutRequest = Object.create(request) as Request;
+    Object.defineProperty(checkoutRequest, 'headers', {
+      configurable: true,
+      enumerable: true,
+      value: { ...request.headers, origin: appUrl },
+    });
+
+    return await this.createCheckoutSession(
+      {
+        ...user,
+        emailAddresses: [{ emailAddress: email }],
+      },
+      {
+        cancelUrl: `${appUrl}/settings/credits`,
+        quantity: dto.credits,
+        stripePriceId,
+        successUrl: `${appUrl}/settings/credits?credits=success`,
+      },
+      checkoutRequest,
+    );
   }
 
   @Post('setup-intent')
