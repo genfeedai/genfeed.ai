@@ -349,7 +349,7 @@ describe('AgentChatInput', () => {
     );
 
     expect(screen.getByTestId('agent-chat-input-shell')).toHaveClass(
-      'rounded-2xl',
+      'rounded-[var(--radius-workspace-composer)]',
     );
     expect(
       screen.queryByText('Default Workspace · Default Brand'),
@@ -565,6 +565,7 @@ describe('AgentChatInput', () => {
             },
           ],
           brandId: 'brand-1',
+          generationMode: 'auto',
           planModeEnabled: false,
         },
       );
@@ -722,6 +723,7 @@ describe('AgentChatInput', () => {
         undefined,
         undefined,
         {
+          generationMode: 'auto',
           planModeEnabled: false,
         },
       );
@@ -829,6 +831,7 @@ describe('AgentChatInput', () => {
         undefined,
         undefined,
         {
+          generationMode: 'auto',
           planModeEnabled: false,
         },
       );

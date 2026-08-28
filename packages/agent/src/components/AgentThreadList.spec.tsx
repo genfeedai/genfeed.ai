@@ -492,7 +492,7 @@ describe('AgentThreadList', () => {
 
     const threadLink = screen.getByText('Linked thread').closest('a');
 
-    expect(threadLink).toHaveAttribute('href', '/acme/moonrise/agent/conv-1');
+    expect(threadLink).toHaveAttribute('href', '/agent/conv-1');
     // Row chrome is flex min-h-0 stretch (not a fixed min-h-14 pill).
     expect(threadLink?.parentElement).toHaveClass('min-h-0');
   });

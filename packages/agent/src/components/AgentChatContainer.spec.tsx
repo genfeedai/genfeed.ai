@@ -342,6 +342,7 @@ type StoreState = {
   setError: ReturnType<typeof vi.fn>;
   setLatestProposedPlan: ReturnType<typeof vi.fn>;
   setIsLoadingOlderMessages: ReturnType<typeof vi.fn>;
+  setUiActionStatus: ReturnType<typeof vi.fn>;
   stream: {
     activeToolCalls: [];
     pendingUiActions: Array<{
@@ -411,6 +412,7 @@ const storeState: StoreState = {
   setIsLoadingOlderMessages: vi.fn((loading: boolean) => {
     storeState.isLoadingOlderMessages = loading;
   }),
+  setUiActionStatus: vi.fn(),
   stream: {
     activeToolCalls: [],
     pendingUiActions: [],
@@ -484,8 +486,10 @@ function buildAssistantMessage(
 }
 
 vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
-  useAgentChatStore: (selector: (state: StoreState) => unknown) =>
-    selector(storeState),
+  useAgentChatStore: Object.assign(
+    (selector: (state: StoreState) => unknown) => selector(storeState),
+    { getState: () => storeState },
+  ),
 }));
 
 import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
@@ -519,6 +523,7 @@ describe('AgentChatContainer', () => {
     storeState.setError.mockReset();
     storeState.setLatestProposedPlan.mockReset();
     storeState.setIsLoadingOlderMessages.mockClear();
+    storeState.setUiActionStatus.mockReset();
     storeState.upsertThread.mockReset();
     storeState.updateThread.mockReset();
     storeState.activeThreadId = 'thread-1';
@@ -651,7 +656,7 @@ describe('AgentChatContainer', () => {
     );
   });
 
-  it('docks Generate Image on an image thread even when a later video card is pending', () => {
+  it('docks the latest prepared generation mode', () => {
     const apiService = createApiService();
 
     storeState.pendingInputRequest = null;
@@ -703,7 +708,7 @@ describe('AgentChatContainer', () => {
     render(<AgentChatContainer apiService={apiService as never} />);
 
     expect(screen.getByTestId('composer-generation-card').textContent).toBe(
-      'Generate Image',
+      'Generate Video',
     );
   });
 
@@ -1931,13 +1936,15 @@ describe('AgentChatContainer', () => {
         { brandId: null, expectedContextVersion: 1 },
       );
     });
-    expect(storeState.upsertThread).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandId: 'brand-created-1',
-        contextVersion: 2,
-        id: 'thread-1',
-      }),
-    );
+    await waitFor(() => {
+      expect(storeState.upsertThread).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: 'brand-created-1',
+          contextVersion: 2,
+          id: 'thread-1',
+        }),
+      );
+    });
   });
 
   it('renders the provided empty-state title and description', () => {
