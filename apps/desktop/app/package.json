@@ -53,12 +53,12 @@
     ]
   },
   "dependencies": {
-    "@electric-sql/pglite": "0.5.7",
+    "@electric-sql/pglite": "0.5.8",
     "node-pty": "1.1.0"
   },
   "description": "GenFeed \u2014 Electron native app for content creation",
   "devDependencies": {
-    "@biomejs/biome": "2.5.10",
+    "@biomejs/biome": "2.5.11",
     "@electron/notarize": "3.1.1",
     "@genfeedai/desktop-contracts": "workspace:*",
     "@genfeedai/desktop-core": "workspace:*",

@@ -1,7 +1,22 @@
+import type { RouterPriority } from '@genfeedai/enums';
+import { ActionOrigin } from '@genfeedai/enums';
+import type {
+  AgentToolResult,
+  ValidatedAgentScope,
+} from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/interfaces';
+import {
+  AgentScopeContextService,
+  resolveNestedActionOrigin,
+  runWithActionOrigin,
+} from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
 import {
   type ApiKeyPublishingContext,
   assertApiKeyAgentPublishingScope as assertScope,
 } from '@server/helpers/utils/auth/api-key-publishing-scope.util';
+import type { AgentGenerationMode } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentAdsResearchToolHandler } from '@server/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@server/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
 import { AgentBrandContentToolHandler } from '@server/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
@@ -28,20 +43,6 @@ import { AgentTrendsToolHandler } from '@server/services/agent-orchestrator/tool
 import { AgentWorkflowToolHandler } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkspaceToolHandler } from '@server/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@server/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
-import type { RouterPriority } from '@genfeedai/enums';
-import { ActionOrigin } from '@genfeedai/enums';
-import type {
-  AgentToolResult,
-  ValidatedAgentScope,
-} from '@genfeedai/interfaces';
-import { AgentToolName } from '@genfeedai/interfaces';
-import {
-  AgentScopeContextService,
-  resolveNestedActionOrigin,
-  runWithActionOrigin,
-} from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
 
 export interface ToolExecutionContext {
   apiKeyContext?: ApiKeyPublishingContext;
@@ -53,6 +54,7 @@ export interface ToolExecutionContext {
   authToken?: string;
   /** Router request vocabulary — map the persisted setting with `toRouterPriority`. */
   generationPriority?: RouterPriority;
+  generationMode?: AgentGenerationMode;
   qualityTier?: 'budget' | 'balanced' | 'high_quality';
   thinkingModel?: string;
   generationModelOverride?: string | null;

@@ -21,12 +21,16 @@ describe('AgentTurnAcceptanceService', () => {
   };
   const scopeService = {
     prepareForTurn: vi.fn(),
+    resolveCreatedThreadScope: vi.fn(),
   };
   const queueService = {
     queueRun: vi.fn(),
   };
   const credentialCryptoService = {
     encrypt: vi.fn(() => 'encrypted-token'),
+  };
+  const agentMessagesService = {
+    addMessage: vi.fn(),
   };
 
   let service: AgentTurnAcceptanceService;
@@ -39,6 +43,7 @@ describe('AgentTurnAcceptanceService', () => {
       scopeService as never,
       queueService as never,
       credentialCryptoService as never,
+      agentMessagesService as never,
     );
     scopeService.prepareForTurn.mockResolvedValue({
       initialBrandId: 'brand-1',
@@ -54,9 +59,23 @@ describe('AgentTurnAcceptanceService', () => {
         id: create.id,
       }),
     );
+    scopeService.resolveCreatedThreadScope.mockImplementation(
+      ({ brandId, organizationId, threadId, userId }) =>
+        Promise.resolve({
+          brandId,
+          contextVersion: 1,
+          isLegacyFallback: false,
+          isVersionExplicit: true,
+          organizationId,
+          source: 'thread_created',
+          threadId,
+          userId,
+        }),
+    );
     prisma.agentRun.upsert.mockImplementation(({ create }) =>
       Promise.resolve(create),
     );
+    agentMessagesService.addMessage.mockResolvedValue({});
     queueService.queueRun.mockResolvedValue('agent-run-job');
     prisma.agentRun.updateMany.mockResolvedValue({ count: 1 });
   });
@@ -120,6 +139,16 @@ describe('AgentTurnAcceptanceService', () => {
         }),
         runId: acknowledgement.runId,
         threadId: acknowledgement.threadId,
+      }),
+    );
+    expect(agentMessagesService.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        content: 'Generate an image of a lighthouse',
+        id: acknowledgement.runId,
+        organizationId: 'org-1',
+        room: acknowledgement.threadId,
+        userId: 'user-1',
       }),
     );
   });
@@ -203,6 +232,7 @@ describe('AgentTurnAcceptanceService', () => {
         organizationId: 'org-1',
       }),
     });
+    expect(agentMessagesService.addMessage).toHaveBeenCalledOnce();
   });
 
   it('restores an enqueue-failed run before an idempotent acknowledgement retry', async () => {

@@ -22,6 +22,8 @@ export type ConversationComposerActionName =
 
 export type ConversationComposerScope = 'brand' | 'organization';
 
+export type ConversationComposerGenerationMode = 'auto' | 'image' | 'video';
+
 export type ConversationComposerContextReferenceKind =
   ResearchFindingReferenceKind;
 
@@ -59,6 +61,7 @@ export interface ConversationComposerActionInvocation {
 export interface ConversationComposerSendOptions {
   artifactReferences?: AgentArtifactReference[];
   brandId?: string;
+  generationMode?: ConversationComposerGenerationMode;
   planModeEnabled?: boolean;
 }
 

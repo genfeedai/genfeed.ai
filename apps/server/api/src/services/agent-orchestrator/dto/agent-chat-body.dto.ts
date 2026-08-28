@@ -1,9 +1,9 @@
+import type { AgentArtifactReference } from '@genfeedai/interfaces';
+import { ApiProperty } from '@nestjs/swagger';
 import type {
   AgentChatAttachment,
   AgentPageContext,
 } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
-import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
@@ -89,6 +89,15 @@ export class AgentChatBodyDto {
     required: false,
   })
   expectedContextVersion?: number;
+
+  @IsIn(['auto', 'image', 'video'])
+  @IsOptional()
+  @ApiProperty({
+    description: 'Media routing override for this turn',
+    enum: ['auto', 'image', 'video'],
+    required: false,
+  })
+  generationMode?: 'auto' | 'image' | 'video';
 
   @IsBoolean()
   @IsOptional()

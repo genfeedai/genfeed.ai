@@ -170,7 +170,8 @@ export function AgentChatPromptBar({
           key={activeGenerationAction.id}
           action={activeGenerationAction}
           apiService={apiService}
-          className="mx-auto mt-0 w-[95%] rounded-t-xl rounded-b-none border-b-0 shadow-sm"
+          className="mt-0 w-full rounded-t-[var(--radius-workspace-composer)] rounded-b-none border-b-0 shadow-none"
+          defaultCollapsed
           onUiAction={onUiAction}
         />
       ) : null}
@@ -202,6 +203,7 @@ export function AgentChatPromptBar({
     >
       <AgentChatInput
         onSend={onSend}
+        isTopAttached={!isReadOnly && Boolean(activeGenerationAction)}
         hasQueuedFollowUps={followUps.length > 0}
         onPromoteQueuedFollowUp={onPromoteQueuedFollowUp}
         disabled={

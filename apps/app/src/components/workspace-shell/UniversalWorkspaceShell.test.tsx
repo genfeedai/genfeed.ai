@@ -821,6 +821,10 @@ describe('UniversalWorkspaceShell', () => {
     expect(screen.getByTestId('workspace-composer-dock')).not.toHaveClass(
       'bg-background',
     );
+    expect(screen.getByTestId('workspace-composer-dock')).toHaveClass(
+      'pb-6',
+      'md:pb-8',
+    );
     const dockFade = screen
       .getByTestId('workspace-composer-dock')
       .querySelector('[data-composer-dock-fade]');

@@ -7,6 +7,7 @@ import type { TableProps } from '@genfeedai/props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
+import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import type { ReactNode } from 'react';
 import { useCallback, useRef } from 'react';
@@ -65,6 +66,9 @@ export default function AppTable<T>({
   getItemId,
   onRowClick,
   hideHeader = false,
+  sortKey,
+  sortDirection = 'asc',
+  onSortChange,
 }: TableProps<T>) {
   // Ref for callback to prevent re-renders
   const onSelectionChangeRef = useRef(onSelectionChange);
@@ -156,6 +160,20 @@ export default function AppTable<T>({
     [],
   );
 
+  const handleSort = useCallback(
+    (key: string) => {
+      if (!onSortChange) {
+        return;
+      }
+
+      onSortChange(
+        key,
+        sortKey === key && sortDirection === 'asc' ? 'desc' : 'asc',
+      );
+    },
+    [onSortChange, sortDirection, sortKey],
+  );
+
   if (isLoading) {
     // Shared list loading contract: table skeleton in the same card chrome as
     // empty/list so height does not clip when the fetch settles.
@@ -175,7 +193,7 @@ export default function AppTable<T>({
     // Same single shell as the populated table — never a second nested CardEmpty.
     return (
       <div
-        className="relative min-h-[12rem] w-full overflow-hidden rounded-card bg-card shadow-border"
+        className="relative min-h-[12rem] w-full overflow-hidden rounded-card border border-border bg-card shadow-border"
         data-testid="table-empty"
       >
         <TableSectionHeader label={label} description={description} />
@@ -189,7 +207,7 @@ export default function AppTable<T>({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-card bg-card shadow-border">
+    <div className="relative overflow-hidden rounded-card border border-border bg-card shadow-border">
       <TableSectionHeader label={label} description={description} />
       <div className="overflow-x-auto">
         <table className="w-full caption-bottom border-collapse">
@@ -216,17 +234,56 @@ export default function AppTable<T>({
                   />
                 </th>
               )}
-              {columns.map((column) => (
-                <th
-                  key={String(column.key)}
-                  className={cn(
-                    'h-10 select-none px-4 text-left align-middle text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground',
-                    column.className,
-                  )}
-                >
-                  {column.header}
-                </th>
-              ))}
+              {columns.map((column) => {
+                const columnKey = String(column.key);
+                const isActiveSort = sortKey === columnKey;
+                const SortIcon = isActiveSort
+                  ? sortDirection === 'asc'
+                    ? ArrowUp
+                    : ArrowDown
+                  : ChevronsUpDown;
+
+                return (
+                  <th
+                    key={columnKey}
+                    aria-sort={
+                      column.sortable && isActiveSort
+                        ? sortDirection === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : undefined
+                    }
+                    className={cn(
+                      'h-10 select-none px-4 text-left align-middle text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground',
+                      column.className,
+                    )}
+                  >
+                    {column.sortable && onSortChange ? (
+                      <Button
+                        ariaLabel={`Sort by ${column.sortLabel ?? String(column.header)}`}
+                        className="group -ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-left text-2xs font-semibold uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground"
+                        onClick={() => handleSort(columnKey)}
+                        textTransform="none"
+                        variant={ButtonVariant.UNSTYLED}
+                        withWrapper={false}
+                      >
+                        {column.header}
+                        <SortIcon
+                          aria-hidden="true"
+                          className={cn(
+                            'size-3.5 transition-opacity',
+                            isActiveSort
+                              ? 'opacity-100'
+                              : 'opacity-40 group-hover:opacity-80',
+                          )}
+                        />
+                      </Button>
+                    ) : (
+                      column.header
+                    )}
+                  </th>
+                );
+              })}
 
               {actions.length > 0 && (
                 <th

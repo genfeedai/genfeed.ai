@@ -549,6 +549,7 @@ export interface AgentChatPayload {
   brandId?: string | null;
   clientRequestId?: string;
   expectedContextVersion?: number;
+  generationMode?: 'auto' | 'image' | 'video';
   content: string;
   model?: string;
   source?: 'agent' | 'proactive' | 'onboarding';

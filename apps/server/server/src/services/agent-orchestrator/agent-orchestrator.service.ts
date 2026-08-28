@@ -1,4 +1,27 @@
 import { randomUUID } from 'node:crypto';
+import {
+  AgentExecutionTrigger,
+  AgentMessageRole,
+  AgentThreadStatus,
+  AgentType,
+  toRouterPriority,
+} from '@genfeedai/enums';
+import {
+  toAgentScopeMetadata,
+  type ValidatedAgentScope,
+} from '@genfeedai/interfaces';
+import {
+  AgentScopeContextService,
+  type PreparedAgentScope,
+} from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BadRequestException,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+  Optional,
+} from '@nestjs/common';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
 import { CreateAgentRunDto } from '@server/collections/agent-runs/dto/create-agent-run.dto';
 import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
@@ -51,29 +74,6 @@ import {
 } from '@server/services/agent-threading/services/agent-runtime-session.service';
 import type { AgentThreadEngineService } from '@server/services/agent-threading/services/agent-thread-engine.service';
 import { SkillRuntimeService } from '@server/services/skill-runtime/skill-runtime.service';
-import {
-  AgentExecutionTrigger,
-  AgentMessageRole,
-  AgentThreadStatus,
-  AgentType,
-  toRouterPriority,
-} from '@genfeedai/enums';
-import {
-  toAgentScopeMetadata,
-  type ValidatedAgentScope,
-} from '@genfeedai/interfaces';
-import {
-  AgentScopeContextService,
-  type PreparedAgentScope,
-} from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  HttpException,
-  Injectable,
-  InternalServerErrorException,
-  Optional,
-} from '@nestjs/common';
 import { Effect } from 'effect';
 
 const ARCHIVED_THREAD_WRITE_ERROR =
@@ -220,6 +220,7 @@ export class AgentOrchestratorService {
       };
       context = {
         ...context,
+        generationMode: request.generationMode,
         resolvedSkills: resolved.resolvedSkills,
         scope,
       };
@@ -240,6 +241,9 @@ export class AgentOrchestratorService {
         content: request.content,
         metadata: {
           agentScope: toAgentScopeMetadata(scope),
+          ...(request.generationMode
+            ? { generationMode: request.generationMode }
+            : {}),
           ...(request.transferId
             ? {
                 agentTransfer: {
@@ -528,6 +532,7 @@ export class AgentOrchestratorService {
         startedRun?.startedAt?.toISOString?.() ?? new Date().toISOString();
       const streamContext: AgentChatContext = {
         ...context,
+        generationMode: request.generationMode,
         resolvedSkills: resolved.resolvedSkills,
         runId,
         scope,
@@ -563,6 +568,9 @@ export class AgentOrchestratorService {
         ...(context.executionMode === 'background' ? { id: runId } : {}),
         metadata: {
           agentScope: scopeMetadata,
+          ...(request.generationMode
+            ? { generationMode: request.generationMode }
+            : {}),
           ...(request.transferId
             ? {
                 agentTransfer: {

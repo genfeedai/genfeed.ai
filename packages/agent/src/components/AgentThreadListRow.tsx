@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Badge from '@ui/display/badge/Badge';
+import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -23,7 +24,6 @@ import {
   SquarePen,
   Undo2,
 } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactElement, RefObject } from 'react';
 import {
@@ -52,7 +52,8 @@ interface AgentThreadListRowProps {
   renameDraft: string;
   renameInputRef: RefObject<HTMLInputElement | null>;
   isArchivedView: boolean;
-  getThreadHref: (threadId: string) => string;
+  usesProgrammaticNavigation: boolean;
+  getThreadHref: (thread: AgentThread) => string;
   onContextMenu: (event: React.MouseEvent, threadId: string) => void;
   onSelect: (thread: AgentThread) => void;
   onMenuOpenChange: (threadId: string, open: boolean) => void;
@@ -105,6 +106,17 @@ function ThreadActivityIndicator({
     tone: statusMeta.tone,
   });
 
+  if (statusMeta.tone === 'failed') {
+    return (
+      <span
+        aria-label={statusMeta.label}
+        className="size-2 shrink-0 rounded-full bg-destructive"
+        role="status"
+        title={statusMeta.label}
+      />
+    );
+  }
+
   return (
     <Badge
       className="shrink-0 capitalize"
@@ -127,6 +139,7 @@ export function AgentThreadListRow({
   renameDraft,
   renameInputRef,
   isArchivedView,
+  usesProgrammaticNavigation,
   getThreadHref,
   onContextMenu,
   onSelect,
@@ -143,6 +156,8 @@ export function AgentThreadListRow({
   onPrefetch,
   onCancelPrefetch,
 }: AgentThreadListRowProps): ReactElement {
+  const threadHref = getThreadHref(conv);
+  const prefetchThreadRoute = useNavigationPrefetch(threadHref);
   const isActiveConversation = conv.id === activeThreadId;
   // Archived view lists only archived threads, so a stale/missing API status
   // must still render with archived chrome.
@@ -175,31 +190,9 @@ export function AgentThreadListRow({
   const shouldShowActions = renamingThreadId === conv.id || isMenuOpen;
   const preview = resolveThreadListPreview(conv);
   const threadTitle = conv.title || 'Untitled';
-  const generatedAssetUrl = conv.lastGeneratedAssetUrl?.trim() || null;
-
   const activityIndicator = statusMeta ? (
     <ThreadActivityIndicator statusMeta={statusMeta} />
   ) : null;
-
-  const thumbSlot = (
-    <span className="mt-0.5 size-8 shrink-0">
-      {generatedAssetUrl ? (
-        <Image
-          alt={`Latest generated output for ${threadTitle}`}
-          className="size-8 rounded-md object-cover"
-          height={32}
-          src={generatedAssetUrl}
-          unoptimized
-          width={32}
-        />
-      ) : (
-        <span
-          className="block size-8 rounded-md bg-foreground/[0.06]"
-          aria-hidden
-        />
-      )}
-    </span>
-  );
 
   return (
     <div
@@ -216,7 +209,6 @@ export function AgentThreadListRow({
     >
       {renamingThreadId === conv.id ? (
         <div className="flex min-h-10 flex-1 items-center gap-2 px-2.5 py-1.5">
-          {thumbSlot}
           <Input
             ref={renameInputRef}
             aria-label={`Rename ${conv.title || 'thread'}`}
@@ -246,18 +238,24 @@ export function AgentThreadListRow({
         </div>
       ) : (
         <Link
-          href={getThreadHref(conv.id)}
+          href={threadHref}
+          prefetch={false}
           className="flex min-w-0 flex-1 gap-2 rounded px-2.5 py-1.5 pr-8 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60"
-          onClick={() => {
+          onClick={(event) => {
+            if (usesProgrammaticNavigation) {
+              event.preventDefault();
+            }
             // Do not abort an in-flight prefetch for this row. The switch
             // adopts that flight so hover-then-click cannot stack a second
             // messages+snapshot set (#2790).
             onSelect(conv);
           }}
           onPointerEnter={() => {
+            prefetchThreadRoute();
             onPrefetch(conv.id);
           }}
           onFocus={() => {
+            prefetchThreadRoute();
             onPrefetch(conv.id);
           }}
           onPointerLeave={() => {
@@ -267,7 +265,6 @@ export function AgentThreadListRow({
             onCancelPrefetch(conv.id);
           }}
         >
-          {thumbSlot}
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
               {conv.isPinned ? (

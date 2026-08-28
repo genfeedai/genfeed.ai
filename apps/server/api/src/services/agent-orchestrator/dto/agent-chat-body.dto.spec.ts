@@ -1,6 +1,6 @@
-import { ValidationPipe } from '@server/helpers/pipes/validation.pipe';
 import { AgentChatBodyDto } from '@api/services/agent-orchestrator/dto/agent-chat-body.dto';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
+import { ValidationPipe } from '@server/helpers/pipes/validation.pipe';
 
 const metadata: ArgumentMetadata = {
   metatype: AgentChatBodyDto,
@@ -60,6 +60,7 @@ describe('AgentChatBodyDto', () => {
         brandId: 'brand-1',
         content: 'Draft me a post',
         expectedContextVersion: 3,
+        generationMode: 'video',
         model: 'claude-opus-4-8',
         pageContext: { route: '/library', url: 'https://app/library' },
         planModeEnabled: true,
@@ -85,6 +86,15 @@ describe('AgentChatBodyDto', () => {
 
       expect(result.brandId).toBeNull();
     });
+
+    it.each(['auto', 'image', 'video'])(
+      'accepts %s generation mode',
+      async (generationMode) => {
+        const value = { content: 'Generate something', generationMode };
+
+        await expect(pipe.transform(value, metadata)).resolves.toEqual(value);
+      },
+    );
   });
 
   describe('invalid bodies', () => {
@@ -132,6 +142,12 @@ describe('AgentChatBodyDto', () => {
     it('rejects a source outside the allowed enum', async () => {
       await expect(
         pipe.transform({ content: 'hi', source: 'nope' }, metadata),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects a generation mode outside the allowed enum', async () => {
+      await expect(
+        pipe.transform({ content: 'hi', generationMode: 'audio' }, metadata),
       ).rejects.toThrow(BadRequestException);
     });
 

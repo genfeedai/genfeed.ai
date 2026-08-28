@@ -160,7 +160,7 @@ export function SkeletonTable({ rows = 5, columns = 4 }: SkeletonTableProps) {
     <div
       aria-busy="true"
       aria-label="Loading table"
-      className="relative min-h-[12rem] w-full overflow-hidden rounded-card bg-card p-4 text-card-foreground shadow-border"
+      className="relative min-h-[12rem] w-full overflow-hidden rounded-card border border-border bg-card p-4 text-card-foreground shadow-border"
       data-testid="skeleton-table"
       role="status"
     >

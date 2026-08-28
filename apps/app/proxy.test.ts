@@ -30,7 +30,10 @@ function makeSignedInRequest(
   pathname: string,
   opts: {
     extraCookies?: Record<string, string>;
+    method?: string;
+    nextAction?: string;
     referer?: string;
+    rsc?: boolean;
     search?: string;
   } = {},
 ) {
@@ -59,9 +62,16 @@ function makeSignedInRequest(
         if (normalizedName === 'referer') {
           return opts.referer ?? null;
         }
+        if (normalizedName === 'rsc') {
+          return opts.rsc ? '1' : null;
+        }
+        if (normalizedName === 'next-action') {
+          return opts.nextAction ?? null;
+        }
         return null;
       }),
     },
+    method: opts.method ?? 'GET',
     nextUrl: {
       origin: 'http://localhost:3000',
       pathname,
@@ -1576,6 +1586,63 @@ describe('proxy', () => {
     expect(unscopedResponse.status).toBe(307);
     expect(unscopedResponse.headers.get('location')).toBe(
       'http://localhost:3000/demo/FUDNEWS/library/assets',
+    );
+  });
+
+  it('skips network auth bootstrap for a scoped RSC transition from the mounted app shell', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', {
+        referer: 'http://localhost:3000/acme/moonrise-studio/agent/thread-1',
+        rsc: true,
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps strict auth bootstrap for a scoped RSC request without a mounted scoped shell', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', {
+        rsc: true,
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
+      'http://localhost:3010/v1/auth/token',
+    );
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
+      'http://localhost:3010/v1/auth/bootstrap',
+    );
+  });
+
+  it('keeps strict auth bootstrap for server actions from a scoped page', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', {
+        method: 'POST',
+        nextAction: 'action-id',
+        referer: 'http://localhost:3000/acme/moonrise-studio/agent/thread-1',
+        rsc: true,
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
+      'http://localhost:3010/v1/auth/token',
+    );
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
+      'http://localhost:3010/v1/auth/bootstrap',
     );
   });
 

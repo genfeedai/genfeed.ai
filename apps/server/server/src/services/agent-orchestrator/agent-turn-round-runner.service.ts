@@ -1,3 +1,13 @@
+import { ActivitySource, type RouterPriority } from '@genfeedai/enums';
+import {
+  type AgentDashboardOperation,
+  AgentToolName,
+  type AgentToolResult,
+  type AgentUIBlock,
+  type AgentUiAction,
+} from '@genfeedai/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { AGENT_CREDIT_COSTS } from '@server/services/agent-orchestrator/constants/agent-credit-costs.constant';
@@ -26,16 +36,6 @@ import type {
   OpenRouterMessage,
   OpenRouterToolCallResponse,
 } from '@server/services/integrations/openrouter/dto/openrouter.dto';
-import { ActivitySource, type RouterPriority } from '@genfeedai/enums';
-import {
-  type AgentDashboardOperation,
-  AgentToolName,
-  type AgentToolResult,
-  type AgentUIBlock,
-  type AgentUiAction,
-} from '@genfeedai/interfaces';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 const RESULT_SUMMARY_MAX_LENGTH = 500;
 
@@ -516,6 +516,7 @@ export class AgentTurnRoundRunnerService {
           brandId: policy.brandId,
           creditGovernance: policy.creditGovernance,
           generationModelOverride: policy.generationModelOverride,
+          generationMode: context.generationMode,
           generationPriority,
           organizationId: context.organizationId,
           platform: policy.platform,

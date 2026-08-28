@@ -132,7 +132,7 @@ export function AgentConversationTurnNavigator({
   return (
     <nav
       aria-label="Conversation prompts"
-      className="pointer-events-none absolute inset-y-0 left-2 z-10 hidden lg:flex xl:left-[calc(50%-26rem)]"
+      className="pointer-events-none absolute inset-y-0 left-2 z-10 hidden lg:flex"
     >
       {/*
         Cluster markers tightly in the vertical center — never justify-between

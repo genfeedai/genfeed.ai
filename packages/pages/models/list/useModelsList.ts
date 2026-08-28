@@ -9,6 +9,7 @@ import type {
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { Model } from '@models/ai/model.model';
+import type { TableSortDirection } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { ModelsService } from '@services/ai/models.service';
 import { logger } from '@services/core/logger.service';
@@ -71,6 +72,8 @@ export function useModelsList({
 
   // Track which model is being toggled to prevent multiple simultaneous toggles
   const [togglingModelId, setTogglingModelId] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState('label');
+  const [sortDirection, setSortDirection] = useState<TableSortDirection>('asc');
 
   // Track if component is mounted to avoid calling callbacks during initial render
   const isMountedRef = useRef(false);
@@ -151,6 +154,8 @@ export function useModelsList({
     isAdminScope,
     adminOrg,
     adminBrand,
+    sortKey,
+    sortDirection,
   ] as const;
 
   const {
@@ -164,7 +169,7 @@ export function useModelsList({
       const query: Record<string, unknown> = {
         limit: ITEMS_PER_PAGE,
         page: currentPage,
-        sort: 'label: 1',
+        sort: `${sortKey}: ${sortDirection === 'asc' ? 1 : -1}`,
       };
 
       // Filter inactive models for non-admin scopes
@@ -566,6 +571,14 @@ export function useModelsList({
     openModal(ModalEnum.MODEL);
   }, []);
 
+  const handleSortChange = useCallback(
+    (key: string, direction: TableSortDirection) => {
+      setSortKey(key);
+      setSortDirection(direction);
+    },
+    [],
+  );
+
   const columns = useMemo(
     () =>
       buildModelsTableColumns({
@@ -597,6 +610,8 @@ export function useModelsList({
     isLoading,
     columns,
     filteredModels,
+    sortKey,
+    sortDirection,
     selectedModel,
     setSelectedModel,
     refresh,
@@ -605,6 +620,7 @@ export function useModelsList({
     handleApproveRegistryModel,
     handleRejectRegistryModel,
     handleMarkRegistryModelLegacy,
+    handleSortChange,
     openConfirm,
   };
 }

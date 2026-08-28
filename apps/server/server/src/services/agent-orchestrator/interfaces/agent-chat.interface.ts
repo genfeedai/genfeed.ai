@@ -1,4 +1,3 @@
-import type { ApiKeyPublishingContext } from '@server/helpers/utils/auth/api-key-publishing-scope.util';
 import type { AgentType, RouterPriority } from '@genfeedai/enums';
 import type {
   AgentArtifactReference,
@@ -9,6 +8,7 @@ import type {
   ValidatedAgentScope,
 } from '@genfeedai/interfaces';
 import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
+import type { ApiKeyPublishingContext } from '@server/helpers/utils/auth/api-key-publishing-scope.util';
 
 export interface AgentChatAttachment {
   ingredientId: string;
@@ -35,6 +35,8 @@ export interface AgentPageContext {
   url?: string;
 }
 
+export type AgentGenerationMode = 'auto' | 'image' | 'video';
+
 export interface AgentChatRequest {
   agentType?: AgentType;
   artifactReferences?: AgentArtifactReference[];
@@ -43,6 +45,7 @@ export interface AgentChatRequest {
   clientRequestId?: string;
   content: string;
   expectedContextVersion?: number;
+  generationMode?: AgentGenerationMode;
   pageContext?: AgentPageContext;
   planModeEnabled?: boolean;
   threadId?: string;
@@ -77,6 +80,8 @@ export interface AgentChatContext {
    * before it reaches this context or `body.prioritize`.
    */
   generationPriority?: RouterPriority;
+  /** Per-turn media routing selected by the operator. */
+  generationMode?: AgentGenerationMode;
   organizationId: string;
   /** Resolved runtime skills for tool set augmentation */
   resolvedSkills?: ResolvedRuntimeSkill[];

@@ -345,6 +345,10 @@ vi.mock('next/dynamic', () => ({
 
     if (source.includes('AgentThreadList')) {
       return function LazyAgentThreadListStub(props: {
+        resolveThreadHref?: (thread: {
+          brandId?: string | null;
+          id: string;
+        }) => string;
         searchAction?: ReactNode;
         showTitle?: boolean;
       }) {
@@ -695,6 +699,18 @@ describe('AppProtectedLayout', () => {
     expect(
       screen.queryByRole('button', { name: 'Search' }),
     ).not.toBeInTheDocument();
+
+    const resolveThreadHref = agentThreadListSpy.mock.calls.at(-1)?.[0]
+      ?.resolveThreadHref as
+      | ((thread: { brandId?: string | null; id: string }) => string)
+      | undefined;
+    expect(resolveThreadHref).toEqual(expect.any(Function));
+    expect(resolveThreadHref?.({ brandId: 'brand-123', id: 'thread-1' })).toBe(
+      '/org-123/brand-123/agent/thread-1',
+    );
+    expect(resolveThreadHref?.({ brandId: null, id: 'thread-2' })).toBe(
+      '/org-123/~/agent/thread-2',
+    );
   });
 
   it('keeps the global new-task shortcut available in the agent-first shell', () => {

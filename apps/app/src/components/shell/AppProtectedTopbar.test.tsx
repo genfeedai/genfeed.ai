@@ -690,6 +690,6 @@ describe('AppProtectedTopbar', () => {
       ?.onBrandChange as ((id: string) => void) | undefined;
     onBrandChange?.('brand');
 
-    expect(mockPush).toHaveBeenCalledWith('/acme/brand/agent');
+    expect(mockPush).toHaveBeenCalledWith('/acme/brand/agent/new');
   });
 });

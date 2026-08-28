@@ -183,6 +183,8 @@ describe('agent-chat.store messages and plans', () => {
     store.addMessage(makeMessage('m-1'));
     store.setActiveRun('run-1', { startedAt: '2026-03-26T10:00:00.000Z' });
     store.setDraftPlanModeEnabled(true);
+    store.setError('Previous conversation failed');
+    store.setIsGenerating(true);
     store.setThreadUiBusy('thread-1', true);
     store.setIsLoadingOlderMessages(true);
 
@@ -194,6 +196,8 @@ describe('agent-chat.store messages and plans', () => {
     expect(state.activeRunStatus).toBe('idle');
     expect(state.runStartedAt).toBeNull();
     expect(state.draftPlanModeEnabled).toBe(false);
+    expect(state.error).toBeNull();
+    expect(state.isGenerating).toBe(false);
     expect(state.threadUiBusyById).toEqual({});
     expect(state.hasMoreMessages).toBe(false);
     expect(state.messagesCursor).toBeNull();
@@ -209,6 +213,8 @@ describe('agent-chat.store messages and plans', () => {
       nextCursor: 'cursor-1',
     });
     store.setIsLoadingOlderMessages(true);
+    store.setError('Previous conversation failed');
+    store.setIsGenerating(true);
 
     useAgentChatStore.getState().resetActiveConversationState();
 
@@ -219,6 +225,8 @@ describe('agent-chat.store messages and plans', () => {
     expect(state.hasMoreMessages).toBe(false);
     expect(state.messagesCursor).toBeNull();
     expect(state.isLoadingOlderMessages).toBe(false);
+    expect(state.error).toBeNull();
+    expect(state.isGenerating).toBe(false);
   });
 });
 
@@ -741,6 +749,8 @@ describe('agent-chat.store conversation cache', () => {
     useAgentChatStore.getState().cacheConversation('thread-1');
     useAgentChatStore.getState().resetActiveConversationState();
     expect(useAgentChatStore.getState().messages).toHaveLength(0);
+    useAgentChatStore.getState().setError('Another conversation failed');
+    useAgentChatStore.getState().setIsGenerating(true);
 
     expect(
       useAgentChatStore.getState().restoreCachedConversation('thread-1'),
@@ -753,6 +763,8 @@ describe('agent-chat.store conversation cache', () => {
     expect(state.pendingInputRequest?.inputRequestId).toBe('req-1');
     expect(state.hasMoreMessages).toBe(true);
     expect(state.messagesCursor).toBe('cursor-2');
+    expect(state.error).toBeNull();
+    expect(state.isGenerating).toBe(false);
   });
 
   it('restoreCachedConversation reports a miss without touching state', () => {

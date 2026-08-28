@@ -7,7 +7,11 @@ export interface TableColumn<T> {
   render?: (item: T) => ReactNode;
   className?: string;
   actions?: TableAction<T>[];
+  sortable?: boolean;
+  sortLabel?: string;
 }
+
+export type TableSortDirection = 'asc' | 'desc';
 
 export interface TableProps<T> {
   items: T[];
@@ -37,6 +41,11 @@ export interface TableProps<T> {
 
   // Visually hide column headers (sr-only for accessibility)
   hideHeader?: boolean;
+
+  // Controlled sorting support
+  sortKey?: string;
+  sortDirection?: TableSortDirection;
+  onSortChange?: (key: string, direction: TableSortDirection) => void;
 }
 
 export interface TableAction<T> {

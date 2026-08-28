@@ -87,13 +87,49 @@ describe('Table', () => {
     );
 
     const table = container.querySelector('table');
+    const card = table?.closest('div.relative');
     const head = container.querySelector('thead');
     const body = container.querySelector('tbody');
 
     expect(table).toHaveClass('border-collapse');
+    expect(card).toHaveClass('border', 'border-border', 'rounded-card');
     expect(head).toHaveClass('border-b', 'border-border');
     expect(body).toHaveClass('divide-y', 'divide-border');
     expect(container.querySelector('thead tr')).not.toHaveClass('border-b');
+  });
+
+  it('exposes controlled sortable column headers', () => {
+    const onSortChange = vi.fn();
+    const { rerender } = render(
+      <Table
+        items={[{ id: 'item-1', name: 'First item' }]}
+        columns={[{ header: 'Name', key: 'name', sortable: true }]}
+        getRowKey={(item) => item.id}
+        onSortChange={onSortChange}
+        sortDirection="asc"
+        sortKey="name"
+      />,
+    );
+
+    const header = screen.getByRole('columnheader', { name: /name/i });
+    expect(header).toHaveAttribute('aria-sort', 'ascending');
+    fireEvent.click(screen.getByRole('button', { name: 'Sort by Name' }));
+    expect(onSortChange).toHaveBeenCalledWith('name', 'desc');
+
+    rerender(
+      <Table
+        items={[{ id: 'item-1', name: 'First item' }]}
+        columns={[{ header: 'Name', key: 'name', sortable: true }]}
+        getRowKey={(item) => item.id}
+        onSortChange={onSortChange}
+        sortDirection="desc"
+        sortKey="name"
+      />,
+    );
+    expect(screen.getByRole('columnheader', { name: /name/i })).toHaveAttribute(
+      'aria-sort',
+      'descending',
+    );
   });
 
   it('does not fire onRowClick when keyboard targets a nested button', () => {

@@ -1152,7 +1152,7 @@ function UniversalWorkspaceShellContent({
                 // is not hard-clipped by the absolute bottom dock while the
                 // canvas section itself stays overflow-hidden for the page.
                 <div
-                  className="group/composer-dock pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center overflow-visible px-3 pb-3 sm:px-4 md:pb-5"
+                  className="group/composer-dock pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center overflow-visible px-3 pb-6 sm:px-4 md:pb-8"
                   data-testid="workspace-composer-dock"
                 >
                   <div

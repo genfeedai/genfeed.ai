@@ -1,5 +1,8 @@
 import { CONVERSATION_COMPOSER_ACTIONS } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
-import type { ConversationComposerActionName } from '@genfeedai/agent/models/conversation-composer.model';
+import type {
+  ConversationComposerActionName,
+  ConversationComposerGenerationMode,
+} from '@genfeedai/agent/models/conversation-composer.model';
 import { useOptionalUser } from '@genfeedai/contexts/user/user-context/user-context';
 import {
   ButtonSize,
@@ -25,7 +28,7 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
-import { ArrowUp, Square, Zap } from 'lucide-react';
+import { ArrowUp, ImageIcon, Sparkles, Square, Video, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { memo, type ReactElement } from 'react';
 
@@ -39,10 +42,12 @@ export interface AgentChatInputToolbarProps {
   isModelsLoading?: boolean;
   isTranscribing: boolean;
   isUploading: boolean;
+  generationMode: ConversationComposerGenerationMode;
   /** Registry-backed chat catalogue (shared ModelSelectorPopover). */
   models: readonly IModel[];
   onAddFiles?: (files: File[]) => void;
   onInsertReference: () => void;
+  onGenerationModeChange: (mode: ConversationComposerGenerationMode) => void;
   onModelChange?: (model: string) => void;
   /** Session Auto routing priority (maps from settings.generationPriority). */
   onPrioritizeChange?: (priority: RouterPriority) => void;
@@ -69,10 +74,12 @@ function AgentChatInputToolbarInner({
   isModelsLoading = false,
   isTranscribing,
   isUploading,
+  generationMode,
   models,
   creditsAvailable = null,
   onAddFiles,
   onInsertReference,
+  onGenerationModeChange,
   onModelChange,
   onPrioritizeChange,
   onSelectAction,
@@ -101,6 +108,30 @@ function AgentChatInputToolbarInner({
     hasSelectableModels &&
     (!selectedModel || selectedModel === AUTO_MODEL_OPTION_VALUE);
   const autoLabel = prioritize ? getAutoModelLabel(prioritize) : 'Auto';
+  const generationModeOptions = [
+    {
+      description: 'Choose image or video from the prompt',
+      icon: Sparkles,
+      label: 'Auto',
+      value: 'auto',
+    },
+    {
+      description: 'Prepare an image generation for this turn',
+      icon: ImageIcon,
+      label: 'Image',
+      value: 'image',
+    },
+    {
+      description: 'Prepare a video generation for this turn',
+      icon: Video,
+      label: 'Video',
+      value: 'video',
+    },
+  ] as const;
+  const activeGenerationMode =
+    generationModeOptions.find((option) => option.value === generationMode) ??
+    generationModeOptions[0];
+  const ActiveGenerationModeIcon = activeGenerationMode.icon;
   // One shared picker for agent chat + studio/generation (selectionMode=single).
   // autoLabel opts single mode into Auto + priority cards (user settings:
   // empty defaultAgentModel + generationPriority).
@@ -116,7 +147,7 @@ function AgentChatInputToolbarInner({
         size={ButtonSize.SM}
         textTransform="none"
         title={translate('noModelsEnabledTitle')}
-        variant={ButtonVariant.SECONDARY}
+        variant={ButtonVariant.GHOST}
         withWrapper={false}
       >
         <span className="truncate text-xs">{translate('noModelsEnabled')}</span>
@@ -264,6 +295,56 @@ function AgentChatInputToolbarInner({
     >
       {/* Leading: model first, then tools tight to the chip (no inflated gap). */}
       <div className="flex min-w-0 shrink items-center gap-0.5">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              ariaLabel={`Generation mode: ${activeGenerationMode.label}`}
+              className={cn(
+                'shrink-0 justify-start text-muted-foreground hover:text-foreground',
+                isCompact ? 'h-8 px-1.5' : 'h-9 px-2',
+              )}
+              icon={<ActiveGenerationModeIcon className="size-3.5" />}
+              isDisabled={disabled || showStop}
+              label={activeGenerationMode.label}
+              size={ButtonSize.SM}
+              textTransform="none"
+              tooltip={`${activeGenerationMode.label} mode — ${activeGenerationMode.description}`}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            className="w-64"
+            side="top"
+            sideOffset={8}
+          >
+            <DropdownMenuLabel>Generation mode</DropdownMenuLabel>
+            {generationModeOptions.map((option) => {
+              const ModeIcon = option.icon;
+              return (
+                <DropdownMenuItem
+                  key={option.value}
+                  onSelect={() => {
+                    onGenerationModeChange(option.value);
+                  }}
+                >
+                  <ModeIcon className="size-4 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-primary">
+                      {option.label}
+                    </p>
+                    <p className="text-2xs text-muted">{option.description}</p>
+                  </div>
+                  {generationMode === option.value ? (
+                    <DropdownMenuShortcut>Selected</DropdownMenuShortcut>
+                  ) : null}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         {modelSelector}
 
         <PromptBarReferenceControls

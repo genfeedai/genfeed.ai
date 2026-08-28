@@ -21,6 +21,7 @@ import { useGenerationActionCard } from './useGenerationActionCard';
 interface GenerationActionCardProps {
   action: AgentUiAction;
   apiService: AgentApiService;
+  defaultCollapsed?: boolean;
   qualityScore?: number;
   qualityFeedback?: string[];
   onRegenerate?: () => void;
@@ -48,6 +49,7 @@ function statusLabelFor(
 export function GenerationActionCard({
   action,
   apiService,
+  defaultCollapsed = false,
   qualityScore,
   qualityFeedback,
   onRegenerate,
@@ -118,16 +120,16 @@ export function GenerationActionCard({
     onUiAction,
   });
 
-  // The card sits on the composer. Keep the generate form open so the dock
-  // is not a header sliver. A new error or idle state expands once so the
-  // operator sees it; they can still collapse the card by hand after that.
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // Docked generation starts as a compact inferred-mode strip; settings open
+  // on demand. Errors and pilot review expand automatically because they need
+  // a decision, while ordinary idle cards can still default open elsewhere.
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [videoReferenceMode, setVideoReferenceMode] = useState<
     'startFrame' | 'endFrame' | 'videoReference'
   >('startFrame');
 
   useEffect(() => {
-    if (status === 'error' || status === 'idle' || status === 'pilot_review') {
+    if (status === 'error' || status === 'pilot_review') {
       setIsCollapsed(false);
     }
   }, [status]);
@@ -178,7 +180,7 @@ export function GenerationActionCard({
   return (
     <div
       className={cn(
-        'group/card relative mt-2 overflow-hidden border border-border bg-background',
+        'group/card relative mt-2 overflow-hidden border border-border bg-background/70 backdrop-blur-xl backdrop-saturate-150',
         className,
       )}
     >

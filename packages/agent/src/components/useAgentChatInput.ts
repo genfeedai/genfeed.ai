@@ -25,6 +25,7 @@ import { useTeamMentions } from '@genfeedai/agent/hooks/use-team-mentions';
 import type {
   ConversationComposerActionName,
   ConversationComposerArtifactReference,
+  ConversationComposerGenerationMode,
   ConversationComposerSendOptions,
   PersistedConversationComposerContentReference,
 } from '@genfeedai/agent/models/conversation-composer.model';
@@ -157,6 +158,7 @@ export {
 };
 
 interface UseAgentChatInputParams {
+  generationMode?: ConversationComposerGenerationMode;
   onSend: (
     content: string,
     mentions?: ExtractedMention[],
@@ -181,6 +183,7 @@ interface UseAgentChatInputParams {
 }
 
 export function useAgentChatInput({
+  generationMode = 'auto',
   onSend,
   onPromoteQueuedFollowUp,
   hasQueuedFollowUps = false,
@@ -659,6 +662,7 @@ export function useAgentChatInput({
             }
           : {}),
         ...(composerShell?.brandId ? { brandId: composerShell.brandId } : {}),
+        generationMode,
         planModeEnabled: false,
       },
     );
@@ -685,6 +689,7 @@ export function useAgentChatInput({
     onSend,
     hasCompletedAttachments,
     getCompletedAttachments,
+    generationMode,
     clearAllAttachments,
     surfaceArtifactReferences,
     translate,

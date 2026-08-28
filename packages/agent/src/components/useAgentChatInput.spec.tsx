@@ -189,6 +189,38 @@ describe('useAgentChatInput voice exclusivity', () => {
   });
 });
 
+describe('useAgentChatInput generation mode', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  it('sends the selected generation mode with the turn', async () => {
+    const onSend = vi.fn();
+    const { result } = renderHook(
+      () => useAgentChatInput({ generationMode: 'video', onSend }),
+      { wrapper: Wrapper },
+    );
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+    act(() => {
+      result.current.editor?.commands.setContent('Create a launch reel');
+    });
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    expect(onSend).toHaveBeenCalledWith(
+      'Create a launch reel',
+      undefined,
+      undefined,
+      expect.objectContaining({ generationMode: 'video' }),
+    );
+  });
+});
+
 describe('useAgentChatInput references', () => {
   beforeEach(() => {
     vi.clearAllMocks();
