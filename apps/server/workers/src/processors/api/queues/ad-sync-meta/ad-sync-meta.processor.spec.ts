@@ -6,19 +6,17 @@ import { AdPerformanceService } from '@server/collections/ad-performance/service
 import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 import { AdSyncMetaProcessor } from '@workers/processors/api/queues/ad-sync-meta/ad-sync-meta.processor';
 import { Job } from 'bullmq';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mocked, vi } from 'vitest';
 
 const brandId = testId('brand');
 const credentialId = testId('credential');
 const organizationId = testId('org');
 
 describe('AdSyncMetaProcessor', () => {
-  let adPerformanceService: vi.Mocked<
-    Pick<AdPerformanceService, 'upsertBatch'>
-  >;
+  let adPerformanceService: Mocked<Pick<AdPerformanceService, 'upsertBatch'>>;
   let processor: AdSyncMetaProcessor;
-  let logger: vi.Mocked<Pick<LoggerService, 'error' | 'log' | 'warn'>>;
-  let metaAdsService: vi.Mocked<
+  let logger: Mocked<Pick<LoggerService, 'error' | 'log' | 'warn'>>;
+  let metaAdsService: Mocked<
     Pick<MetaAdsService, 'getCampaignInsights' | 'listCampaigns'>
   >;
 
