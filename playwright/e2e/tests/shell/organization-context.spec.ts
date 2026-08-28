@@ -52,8 +52,8 @@ async function mockOrganizationContext(
     }
 
     if (
-      request.method() === 'POST' &&
-      url.pathname.endsWith(`/switch/${ALPHA_ORGANIZATION_ID}`)
+      request.method() === 'PATCH' &&
+      url.pathname.endsWith(`/organizations/${ALPHA_ORGANIZATION_ID}/activate`)
     ) {
       switchCount += 1;
       if (options.failSwitch) {
