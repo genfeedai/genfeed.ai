@@ -4,8 +4,13 @@ import { globSync } from 'glob';
 
 const DEFAULT_INCLUDE_GLOBS = [
   'apps/server/api/src/**/*.ts',
+  'apps/server/files/src/**/*.ts',
+  'apps/server/mcp/src/**/*.ts',
   'apps/server/server/src/**/*.ts',
   'apps/server/workers/src/**/*.ts',
+  'apps/website/**/*.{ts,tsx}',
+  'packages/actions/src/**/*.ts',
+  'packages/services/**/*.ts',
 ];
 
 const DEFAULT_IGNORE_GLOBS = [
@@ -89,6 +94,17 @@ type ProductWorkflowBoundaryRule = {
 
 export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryException[] =
   [
+    {
+      classification: 'workflow-adapter',
+      file: 'apps/server/server/src/collections/workflows/services/youtube-long-form-workflow.service.ts',
+      id: 'youtube-long-form-actions',
+      reason:
+        'The service registers the atomic YouTube source, transcription, transformation, persistence, and Library-promotion executors used by the hidden graphs.',
+      systemWorkflowIds: [
+        'youtube-to-long-form-text',
+        'youtube-source-to-library',
+      ],
+    },
     {
       classification: 'workflow-adapter',
       file: 'apps/server/workers/src/crons/posts/cron.posts.service.ts',
@@ -209,6 +225,57 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
       /\bcreateSystemActionWorkflowDefinition\s*\(/.test(source),
     message:
       'Dynamic single-action workflow wrappers are retired. Register and execute an explicit immutable workflow graph.',
+  },
+  {
+    exceptionAllowed: false,
+    id: 'serialized-system-workflow-definition',
+    matches: (_file, source) =>
+      /\.\s*(?:queueSystemWorkflowDefinition|runWorkflowDefinition|startWorkflowDefinition)\s*\(/.test(
+        source,
+      ),
+    message:
+      'Runtime and queued callers may reference only a registered canonical workflow ID; serialized graph execution is retired.',
+  },
+  {
+    exceptionAllowed: false,
+    id: 'persisted-hidden-system-workflow-clone',
+    matches: (_file, source) =>
+      /sourceType\s*:\s*['"]hidden-system-workflow['"]/.test(source) ||
+      /\bensureSystemWorkflow\s*\(/.test(source),
+    message:
+      'Hidden system graphs are code-owned and must not create per-organization Workflow clones.',
+  },
+  {
+    exceptionAllowed: false,
+    id: 'empty-internal-action-contract',
+    matches: (file, source) =>
+      file.startsWith('packages/actions/src/') &&
+      /inputSchema\s*:\s*\{\s*type\s*:\s*['"]object['"]\s*,\s*properties\s*:\s*\{\s*\}\s*\}/s.test(
+        source,
+      ) &&
+      /outputSchema\s*:\s*\{\s*\}/s.test(source),
+    message:
+      'Registered product actions require concrete JSON-schema input and output contracts; empty internal-action placeholders are retired.',
+  },
+  {
+    exceptionAllowed: false,
+    id: 'mcp-direct-workflow-execution-adapter',
+    matches: (file, source) =>
+      file === 'apps/server/mcp/src/services/client/workflow.client.ts' &&
+      /\bexecuteWorkflow\s*\(/.test(source),
+    message:
+      'MCP must invoke workflows through the curated Agent workflow executor; a second direct workflow-execution client is not allowed.',
+  },
+  {
+    id: 'youtube-long-form-direct-orchestration',
+    matches: (file, source) =>
+      (file.includes('youtube-long-form') ||
+        source.includes('YOUTUBE_LONG_FORM_WORKFLOW_ID')) &&
+      /\b(?:FileQueueService|OpenRouterService|WhisperService|ArticlesService|NewslettersService)\b/.test(
+        source,
+      ),
+    message:
+      'YouTube long-form provider and persistence calls must stay inside the documented action adapter invoked by the registered hidden workflow.',
   },
   {
     id: 'direct-publish-call',

@@ -110,6 +110,126 @@ describe('check-product-workflow-boundary', () => {
     expect(result.documentedDetections).toHaveLength(0);
   });
 
+  it('rejects serialized system workflow graphs from MCP and Website surfaces', () => {
+    writeFixture(
+      'apps/server/mcp/src/services/youtube-long-form.service.ts',
+      `
+        export async function run(queue): Promise<void> {
+          await queue.queueSystemWorkflowDefinition({ nodes: [], edges: [] });
+        }
+      `,
+    );
+    writeFixture(
+      'apps/website/app/tools/youtube-long-form/action.ts',
+      `
+        export async function run(runner): Promise<void> {
+          await runner.runWorkflowDefinition({ nodes: [], edges: [] });
+        }
+      `,
+    );
+
+    const result = runCheckProductWorkflowBoundary({ exceptions: [] });
+
+    expect(result.detections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          file: 'apps/server/mcp/src/services/youtube-long-form.service.ts',
+          ruleId: 'serialized-system-workflow-definition',
+        }),
+        expect.objectContaining({
+          file: 'apps/website/app/tools/youtube-long-form/action.ts',
+          ruleId: 'serialized-system-workflow-definition',
+        }),
+      ]),
+    );
+    expect(result.violations).toHaveLength(2);
+  });
+
+  it('rejects persisted hidden workflow clones and empty action contracts', () => {
+    writeFixture(
+      'apps/server/server/src/collections/workflows/system-runner.ts',
+      `
+        const metadata = { sourceType: 'hidden-system-workflow' };
+      `,
+    );
+    writeFixture(
+      'packages/actions/src/registry/internal.ts',
+      `
+        const action = {
+          inputSchema: { type: 'object', properties: {} },
+          outputSchema: {},
+        };
+      `,
+    );
+
+    const result = runCheckProductWorkflowBoundary({ exceptions: [] });
+
+    expect(result.detections.map((detection) => detection.ruleId)).toEqual(
+      expect.arrayContaining([
+        'persisted-hidden-system-workflow-clone',
+        'empty-internal-action-contract',
+      ]),
+    );
+    expect(result.violations).toHaveLength(2);
+  });
+
+  it('rejects the dormant MCP direct workflow execution client', () => {
+    writeFixture(
+      'apps/server/mcp/src/services/client/workflow.client.ts',
+      `
+        export class WorkflowClient {
+          executeWorkflow(): Promise<void> {
+            return Promise.resolve();
+          }
+        }
+      `,
+    );
+
+    const result = runCheckProductWorkflowBoundary({ exceptions: [] });
+
+    expect(result.detections).toEqual([
+      expect.objectContaining({
+        ruleId: 'mcp-direct-workflow-execution-adapter',
+      }),
+    ]);
+    expect(result.violations).toHaveLength(1);
+  });
+
+  it('allows the documented YouTube long-form action adapter only', () => {
+    const file =
+      'apps/server/server/src/collections/workflows/services/youtube-long-form-workflow.service.ts';
+    writeFixture(
+      file,
+      `
+        import { FileQueueService } from './file-queue';
+        const YOUTUBE_LONG_FORM_WORKFLOW_ID = 'youtube-to-long-form-text';
+      `,
+    );
+    const exceptions: ProductWorkflowBoundaryException[] = [
+      {
+        classification: 'workflow-adapter',
+        file,
+        id: 'youtube-long-form-actions',
+        reason: 'Fixture action adapter.',
+        systemWorkflowIds: [
+          'youtube-to-long-form-text',
+          'youtube-source-to-library',
+        ],
+      },
+    ];
+
+    const result = runCheckProductWorkflowBoundary({ exceptions });
+
+    expect(result.violations).toHaveLength(0);
+    expect(result.documentedDetections).toEqual([
+      expect.objectContaining({
+        detection: expect.objectContaining({
+          ruleId: 'youtube-long-form-direct-orchestration',
+        }),
+      }),
+    ]);
+  });
+
   it('allows documented workflow adapters with a replacement system workflow id', () => {
     writeFixture(
       'apps/server/api/src/services/reply-bot/orchestrator.service.ts',
