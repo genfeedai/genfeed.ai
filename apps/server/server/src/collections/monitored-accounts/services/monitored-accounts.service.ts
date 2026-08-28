@@ -1,3 +1,7 @@
+import type { PopulateOption } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateMonitoredAccountDto } from '@server/collections/monitored-accounts/dto/create-monitored-account.dto';
 import { UpdateMonitoredAccountDto } from '@server/collections/monitored-accounts/dto/update-monitored-account.dto';
 import type { MonitoredAccountDocument } from '@server/collections/monitored-accounts/schemas/monitored-account.schema';
@@ -5,10 +9,6 @@ import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BaseService } from '@server/shared/services/base/base.service';
 import { pickDefinedFields } from '@server/shared/utils/object/pick-defined-fields.util';
-import type { PopulateOption } from '@genfeedai/interfaces';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
 
 const MONITORED_ACCOUNT_CREATE_SCALAR_FIELDS = [
   'botConfigId',
@@ -230,15 +230,13 @@ export class MonitoredAccountsService extends BaseService<
     externalId: string,
     organizationId: string,
   ): Promise<MonitoredAccountDocument | null> {
-    const accounts = await this.prisma.monitoredAccount.findMany({
-      where: scopedWhere(organizationId, {}),
+    const account = await this.prisma.monitoredAccount.findFirst({
+      where: scopedWhere(organizationId, {
+        config: { equals: externalId, path: ['externalId'] },
+      }),
     });
 
-    const match = accounts.find(
-      (account) => (account.config as AccountConfig)?.externalId === externalId,
-    );
-
-    return (match ?? null) as unknown as MonitoredAccountDocument | null;
+    return (account ?? null) as unknown as MonitoredAccountDocument | null;
   }
 
   /**

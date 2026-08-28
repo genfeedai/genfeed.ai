@@ -265,25 +265,50 @@ describe('AdBulkUploadJobsService', () => {
 
       expect(findMany).toHaveBeenCalledWith({
         orderBy: { createdAt: 'desc' },
+        skip: 0,
+        take: 50,
         where: { isDeleted: false, organizationId: 'org-1' },
       });
     });
 
-    it('filters by status in memory', async () => {
+    it('filters by status before pagination', async () => {
+      findMany.mockResolvedValue([
+        makeRow({ status: 'pending' }, { id: 'job-1' }),
+        makeRow({ status: 'pending' }, { id: 'job-3' }),
+      ]);
       const jobs = await service.findByOrganization('org-1', {
         status: 'pending',
       });
 
       expect(jobs.map((job) => job.id)).toEqual(['job-1', 'job-3']);
+      expect(findMany).toHaveBeenCalledWith({
+        orderBy: { createdAt: 'desc' },
+        skip: 0,
+        take: 50,
+        where: {
+          data: { equals: 'pending', path: ['status'] },
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
     });
 
-    it('applies offset and limit after filtering', async () => {
+    it('applies offset and limit in the persistence query', async () => {
+      findMany.mockResolvedValue([
+        makeRow({ status: 'completed' }, { id: 'job-2' }),
+      ]);
       const jobs = await service.findByOrganization('org-1', {
         limit: 1,
         offset: 1,
       });
 
       expect(jobs.map((job) => job.id)).toEqual(['job-2']);
+      expect(findMany).toHaveBeenCalledWith({
+        orderBy: { createdAt: 'desc' },
+        skip: 1,
+        take: 1,
+        where: { isDeleted: false, organizationId: 'org-1' },
+      });
     });
   });
 

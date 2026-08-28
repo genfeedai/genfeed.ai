@@ -1,14 +1,14 @@
 import { CreatePresetDto } from '@api/collections/presets/dto/create-preset.dto';
 import { UpdatePresetDto } from '@api/collections/presets/dto/update-preset.dto';
 import { type PresetDocument } from '@api/collections/presets/schemas/preset.schema';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BaseService } from '@server/shared/services/base/base.service';
-import { pickDefinedFields } from '@server/shared/utils/object/pick-defined-fields.util';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { BaseService } from '@server/shared/services/base/base.service';
+import { pickDefinedFields } from '@server/shared/utils/object/pick-defined-fields.util';
 
 const PRESET_CREATE_SCALAR_FIELDS = [
   'brandId',
@@ -44,15 +44,6 @@ export class PresetsService extends BaseService<
   CreatePresetDto,
   UpdatePresetDto
 > {
-  private readPresetKey(document: unknown): string | undefined {
-    const normalized = this.normalizeDocument(document) as Record<
-      string,
-      unknown
-    >;
-    const key = normalized.key;
-    return typeof key === 'string' ? key : undefined;
-  }
-
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
@@ -68,11 +59,12 @@ export class PresetsService extends BaseService<
     populate: PopulateOption[] = [],
   ): Promise<PresetDocument> {
     // Check for existing key
-    const existing = (
-      await this.prisma.preset.findMany({
-        where: { isDeleted: false },
-      })
-    ).find((preset) => this.readPresetKey(preset) === createDto.key);
+    const existing = await this.prisma.preset.findFirst({
+      where: {
+        config: { equals: createDto.key, path: ['key'] },
+        isDeleted: false,
+      },
+    });
 
     if (existing) {
       throw new ConflictException(
@@ -93,11 +85,12 @@ export class PresetsService extends BaseService<
    * Find preset by key - specific to presets
    */
   async findByKey(key: string): Promise<PresetDocument> {
-    const preset = (
-      await this.prisma.preset.findMany({
-        where: { isDeleted: false },
-      })
-    ).find((item) => this.readPresetKey(item) === key);
+    const preset = await this.prisma.preset.findFirst({
+      where: {
+        config: { equals: key, path: ['key'] },
+        isDeleted: false,
+      },
+    });
 
     if (!preset) {
       throw new NotFoundException('Preset', key);
@@ -117,30 +110,35 @@ export class PresetsService extends BaseService<
   ): Promise<PresetDocument | null> {
     // 1. Most specific: brand-specific preset
     if (organizationId && brandId) {
-      const preset = (
-        await this.prisma.preset.findMany({
-          where: scopedWhere(organizationId, { brandId }),
-        })
-      ).find((item) => this.readPresetKey(item) === key);
+      const preset = await this.prisma.preset.findFirst({
+        where: scopedWhere(organizationId, {
+          brandId,
+          config: { equals: key, path: ['key'] },
+        }),
+      });
       if (preset) return preset as unknown as PresetDocument;
     }
 
     // 2. Organization-wide preset (no brand specified)
     if (organizationId) {
-      const preset = (
-        await this.prisma.preset.findMany({
-          where: scopedWhere(organizationId, { brandId: null }),
-        })
-      ).find((item) => this.readPresetKey(item) === key);
+      const preset = await this.prisma.preset.findFirst({
+        where: scopedWhere(organizationId, {
+          brandId: null,
+          config: { equals: key, path: ['key'] },
+        }),
+      });
       if (preset) return preset as unknown as PresetDocument;
     }
 
     // 3. App-wide preset (no org or brand)
-    const preset = (
-      await this.prisma.preset.findMany({
-        where: { brandId: null, isDeleted: false, organizationId: null },
-      })
-    ).find((item) => this.readPresetKey(item) === key);
+    const preset = await this.prisma.preset.findFirst({
+      where: {
+        brandId: null,
+        config: { equals: key, path: ['key'] },
+        isDeleted: false,
+        organizationId: null,
+      },
+    });
     return (preset as unknown as PresetDocument) ?? null;
   }
 
@@ -154,11 +152,13 @@ export class PresetsService extends BaseService<
   ): Promise<PresetDocument> {
     // If updating key, check for duplicates
     if (updateDto.key) {
-      const existing = (
-        await this.prisma.preset.findMany({
-          where: { id: { not: id }, isDeleted: false },
-        })
-      ).find((preset) => this.readPresetKey(preset) === updateDto.key);
+      const existing = await this.prisma.preset.findFirst({
+        where: {
+          config: { equals: updateDto.key, path: ['key'] },
+          id: { not: id },
+          isDeleted: false,
+        },
+      });
 
       if (existing) {
         throw new ConflictException(

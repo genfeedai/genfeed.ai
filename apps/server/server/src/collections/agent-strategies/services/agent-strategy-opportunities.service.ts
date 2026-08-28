@@ -1,3 +1,7 @@
+import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import type { AgentStrategyDocument } from '@server/collections/agent-strategies/schemas/agent-strategy.schema';
 import type { AgentStrategyOpportunityDocument } from '@server/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
 import type {
@@ -5,10 +9,6 @@ import type {
   AgentStrategyOpportunityStatus,
 } from '@server/collections/agent-strategies/schemas/agent-strategy-policy.schema';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 type CreateOpportunityInput = {
   strategyId: string;
@@ -85,11 +85,15 @@ export class AgentStrategyOpportunitiesService {
       statuses?: AgentStrategyOpportunityStatus[];
     } = {},
   ): Promise<AgentStrategyOpportunityDocument[]> {
+    const statusFilters = options.statuses?.map((status) => ({
+      data: { equals: status, path: ['status'] },
+    }));
     const records = await this.prisma.agentStrategyOpportunity.findMany({
       where: {
         organizationId,
         strategyId,
         ...(options.includeDeleted ? {} : { isDeleted: false }),
+        ...(statusFilters?.length ? { OR: statusFilters } : {}),
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -97,13 +101,6 @@ export class AgentStrategyOpportunitiesService {
     return records
       .map((record) =>
         this.normalizeOpportunity(record as unknown as Record<string, unknown>),
-      )
-      .filter(
-        (record) =>
-          !options.statuses?.length ||
-          options.statuses.includes(
-            record.status as AgentStrategyOpportunityStatus,
-          ),
       )
       .sort((left, right) => {
         const priorityDelta =
@@ -126,23 +123,22 @@ export class AgentStrategyOpportunitiesService {
   async createIfMissing(
     input: CreateOpportunityInput,
   ): Promise<AgentStrategyOpportunityDocument> {
-    const records = await this.prisma.agentStrategyOpportunity.findMany({
+    const existing = await this.prisma.agentStrategyOpportunity.findFirst({
       where: scopedWhere(input.organizationId, {
+        AND: [
+          { data: { equals: input.sourceType, path: ['sourceType'] } },
+          { data: { equals: input.topic, path: ['topic'] } },
+          ...(input.sourceRef
+            ? [{ data: { equals: input.sourceRef, path: ['sourceRef'] } }]
+            : []),
+        ],
         strategyId: input.strategyId,
       }),
     });
-    const existing = records
-      .map((record) =>
-        this.normalizeOpportunity(record as unknown as Record<string, unknown>),
-      )
-      .find(
-        (record) =>
-          record.sourceType === input.sourceType &&
-          record.topic === input.topic &&
-          (!input.sourceRef || record.sourceRef === input.sourceRef),
-      );
     if (existing) {
-      return existing;
+      return this.normalizeOpportunity(
+        existing as unknown as Record<string, unknown>,
+      );
     }
 
     const { brandId, organizationId, strategyId, ...data } = input;

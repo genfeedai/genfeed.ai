@@ -1,3 +1,13 @@
+import { LLM_DEFAULTS } from '@genfeedai/constants';
+import { Timeframe } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BadRequestException,
+  Injectable,
+  Optional,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { GetForecastDto } from '@server/collections/insights/dto/forecast.dto';
 import { PredictViralDto } from '@server/collections/insights/dto/predict-viral.dto';
 import type { ForecastDocument } from '@server/collections/insights/schemas/forecast.schema';
@@ -11,16 +21,6 @@ import { calculateEstimatedTextCredits } from '@server/helpers/utils/text-pricin
 import { InsightGenerationQueueService } from '@server/queues/insight-generation/insight-generation-queue.service';
 import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { Timeframe } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  Optional,
-  ServiceUnavailableException,
-} from '@nestjs/common';
 
 type Forecast = ForecastDocument;
 type Insight = InsightDocument;
@@ -220,12 +220,19 @@ export class InsightsService {
 
     const forecasts: Forecast[] = [];
 
-    // `dto.metrics` is user-controlled, so reading inside the loop was an O(N)
-    // sequence of org-wide scans. Read once and index the still-valid rows by
-    // metric; the period filter is loop-invariant.
     const now = new Date();
     const allForecasts = await this.prisma.forecast.findMany({
-      where: scopedWhere(organizationId, {}),
+      where: scopedWhere(organizationId, {
+        AND: [
+          {
+            OR: dto.metrics.map((metric) => ({
+              data: { equals: metric, path: ['metric'] },
+            })),
+          },
+          { data: { equals: dto.period, path: ['period'] } },
+          { data: { gt: now.toISOString(), path: ['validUntil'] } },
+        ],
+      }),
     });
 
     const validForecastsByMetric = new Map<
@@ -235,12 +242,7 @@ export class InsightsService {
     for (const candidate of allForecasts) {
       const data = candidate.data as ForecastData;
 
-      if (
-        typeof data?.metric !== 'string' ||
-        data.period !== dto.period ||
-        !data.validUntil ||
-        new Date(data.validUntil) <= now
-      ) {
+      if (typeof data?.metric !== 'string') {
         continue;
       }
 

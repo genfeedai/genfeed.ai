@@ -5,12 +5,13 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import type { LoggerService } from '@libs/logger/logger.service';
 import { MonitoredAccountsService } from '@server/collections/monitored-accounts/services/monitored-accounts.service';
 import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import type { LoggerService } from '@libs/logger/logger.service';
 
 type MockDelegate = {
   create: ReturnType<typeof vi.fn>;
+  findFirst: ReturnType<typeof vi.fn>;
   findUnique: ReturnType<typeof vi.fn>;
   findMany: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
@@ -31,6 +32,7 @@ describe('MonitoredAccountsService active filters', () => {
           updatedAt: new Date(),
         }),
       ),
+      findFirst: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn(),
       update: vi.fn().mockImplementation(({ data }) =>
@@ -74,6 +76,21 @@ describe('MonitoredAccountsService active filters', () => {
       where: {
         botConfigId: 'bot-1',
         isActive: true,
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+  });
+
+  it('queries external account ids inside the tenant scope', async () => {
+    delegate.findFirst.mockResolvedValue({ id: 'account-1' });
+
+    await expect(
+      service.findByExternalId('platform-user-1', 'org-1'),
+    ).resolves.toEqual({ id: 'account-1' });
+    expect(delegate.findFirst).toHaveBeenCalledWith({
+      where: {
+        config: { equals: 'platform-user-1', path: ['externalId'] },
         isDeleted: false,
         organizationId: 'org-1',
       },
