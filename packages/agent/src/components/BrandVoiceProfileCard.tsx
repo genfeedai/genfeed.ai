@@ -27,7 +27,11 @@ export function BrandVoiceProfileCard({
 }: BrandVoiceProfileCardProps): ReactElement {
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const hasSaved = isSaved || action.status === 'completed';
+  const persistedStatus = useAgentChatStore(
+    (state) => state.uiActionStatusById[action.id],
+  );
+  const hasSaved =
+    isSaved || persistedStatus === 'completed' || action.status === 'completed';
   const profile = useMemo(() => {
     const data = action.data ?? {};
     const rawProfile =
