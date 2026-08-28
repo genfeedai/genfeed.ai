@@ -15,7 +15,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["//#env:check", "^build"],
-      "env": ["E2E_COVERAGE", "NEXT_PUBLIC_*"],
+      "env": ["API_URL", "E2E_COVERAGE", "NEXT_PUBLIC_*"],
       "inputs": [
         "$TURBO_DEFAULT$",
         ".env.example",
