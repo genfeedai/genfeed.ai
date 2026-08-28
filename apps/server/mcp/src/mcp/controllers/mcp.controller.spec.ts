@@ -1,4 +1,4 @@
-import type { McpToolOutput } from '@genfeedai/tools';
+import type { McpToolOutput } from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpController } from '@mcp/mcp/controllers/mcp.controller';
 import { MCP_RESOURCES, McpResourceUri } from '@mcp/mcp/resource-catalog';
@@ -26,7 +26,7 @@ const rawToolSourceMocks = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock('@genfeedai/tools', () => ({
+vi.mock('@genfeedai/actions', () => ({
   getToolByName: rawToolSourceMocks.getToolByName,
   getToolsForSurface: rawToolSourceMocks.getToolsForSurface,
   toMcpTools: rawToolSourceMocks.toMcpTools,

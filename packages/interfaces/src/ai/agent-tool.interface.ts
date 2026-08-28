@@ -1,6 +1,6 @@
 import type { AgentUiAction } from './agent-ui-action.interface';
 
-/** @deprecated Prefer canonical tool metadata from @genfeedai/tools. */
+/** @deprecated Prefer canonical tool metadata from @genfeedai/actions. */
 export enum AgentToolName {
   GENERATE_IMAGE = 'generate_image',
   REFRAME_IMAGE = 'reframe_image',
@@ -118,7 +118,7 @@ export enum AgentToolName {
   TRANSFER_AGENT_CONVERSATION = 'transfer_agent_conversation',
 }
 
-/** @deprecated Prefer canonical tool metadata from @genfeedai/tools. */
+/** @deprecated Prefer canonical tool metadata from @genfeedai/actions. */
 export interface AgentToolDefinition {
   name: AgentToolName;
   description: string;

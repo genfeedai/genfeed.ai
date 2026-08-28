@@ -1,14 +1,14 @@
+import {
+  createPublishExecutor,
+  PromptConstructorExecutor,
+  WorkflowEngine,
+} from '@genfeedai/workflows/engine';
 import { getNodeDefinition } from '@server/collections/workflows/registry/node-registry-adapter';
 import { WorkflowEngineConverterService } from '@server/collections/workflows/services/workflow-engine-converter.service';
 import {
   CONTENT_LOOP_PROMPT_TEMPLATE,
   CONTENT_LOOP_TEMPLATE,
 } from '@server/collections/workflows/templates/content-loop.template';
-import {
-  createPublishExecutor,
-  PromptConstructorExecutor,
-  WorkflowEngine,
-} from '@genfeedai/workflows/engine';
 import { describe, expect, it, vi } from 'vitest';
 
 const ANALYTICS_OUTPUT = {

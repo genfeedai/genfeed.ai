@@ -1,5 +1,4 @@
 import type { NodeDefinition } from '@server/collections/workflows/registry/node-registry';
-import { WorkflowStepCategory } from '@genfeedai/enums';
 
 export const IO_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
   // ===========================================================================
@@ -331,7 +330,6 @@ export const IO_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       schedule: { label: 'Schedule', required: false, type: 'any' },
     },
     label: 'Publish to Social',
-    maps: WorkflowStepCategory.PUBLISH,
     outputs: {},
   },
 
@@ -383,7 +381,6 @@ export const IO_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       data: { label: 'Data', type: 'any' },
     },
     label: 'Webhook',
-    maps: WorkflowStepCategory.WEBHOOK,
     outputs: {},
   },
 
@@ -516,7 +513,6 @@ export const IO_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       media: { label: 'Media', type: 'any' },
     },
     label: 'Resize',
-    maps: WorkflowStepCategory.RESIZE,
     outputs: {
       media: { label: 'Resized Media', type: 'any' },
     },
@@ -562,7 +558,6 @@ export const IO_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       media: { label: 'Media', type: 'any' },
     },
     label: 'Transform',
-    maps: WorkflowStepCategory.TRANSFORM,
     outputs: {
       media: { label: 'Transformed Media', type: 'any' },
     },
@@ -589,7 +584,6 @@ export const IO_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       video: { label: 'Video', type: 'video' },
     },
     label: 'Trim Video',
-    maps: WorkflowStepCategory.CLIP,
     outputs: {
       video: { label: 'Trimmed Video', type: 'video' },
     },

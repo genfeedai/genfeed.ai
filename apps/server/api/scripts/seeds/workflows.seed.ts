@@ -28,6 +28,7 @@ import {
 } from '@libs/prisma/prisma-pg-config';
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { createVersionedWorkflow } from '@server/collections/workflows/workflow-version-definition';
 
 const logger = new Logger('WorkflowsSeed');
 const SUPPORTED_CLUSTERS = ['local', 'staging', 'production'] as const;
@@ -367,56 +368,60 @@ async function ensureDefaultBundle(params: {
           })
         : null;
 
-    await params.prisma.workflow.create({
-      data: {
-        brandId: params.brand.id,
-        description: buildWorkflowDescription(
-          contentType,
-          DEFAULT_RECURRING_SCHEDULE,
-          timezone,
-        ),
-        edges: [],
-        executionCount: 0,
-        inputVariables: [],
-        isDeleted: false,
-        isScheduleEnabled: true,
-        label: buildWorkflowLabel(params.brand.label, contentType),
-        metadata: {
-          createdFrom: 'system',
-          defaultRecurringContent: {
+    await params.prisma.$transaction(async (transaction) => {
+      await createVersionedWorkflow(
+        transaction,
+        {
+          brandId: params.brand.id,
+          description: buildWorkflowDescription(
             contentType,
-            managedBy: 'system',
-            origin: 'system',
-            version: 1,
-          },
-          taskType: 'default-recurring-content',
-        },
-        nodes: [
-          {
-            data: {
-              config: buildNodeConfig({
-                brandId: params.brand.id,
-                brandLabel: params.brand.label,
-                contentType,
-                credentialId: credential?.id,
-                timezone,
-              }),
-              label: buildNodeLabel(contentType),
+            DEFAULT_RECURRING_SCHEDULE,
+            timezone,
+          ),
+          executionCount: 0,
+          isDeleted: false,
+          isScheduleEnabled: true,
+          label: buildWorkflowLabel(params.brand.label, contentType),
+          metadata: {
+            createdFrom: 'system',
+            defaultRecurringContent: {
+              contentType,
+              managedBy: 'system',
+              origin: 'system',
+              version: 1,
             },
-            id: `generate-${contentType}`,
-            position: { x: 120, y: 120 },
-            type: buildNodeType(contentType),
+            taskType: 'default-recurring-content',
           },
-        ],
-        organizationId: params.brand.organizationId,
-        progress: 0,
-        schedule: DEFAULT_RECURRING_SCHEDULE,
-        status: 'active',
-        steps: [],
-        timezone,
-        trigger: WorkflowTrigger.SCHEDULED,
-        userId: params.userId,
-      },
+          organizationId: params.brand.organizationId,
+          progress: 0,
+          schedule: DEFAULT_RECURRING_SCHEDULE,
+          status: 'active',
+          timezone,
+          trigger: WorkflowTrigger.SCHEDULED,
+          userId: params.userId,
+        },
+        {
+          edges: [],
+          inputVariables: [],
+          nodes: [
+            {
+              data: {
+                config: buildNodeConfig({
+                  brandId: params.brand.id,
+                  brandLabel: params.brand.label,
+                  contentType,
+                  credentialId: credential?.id,
+                  timezone,
+                }),
+                label: buildNodeLabel(contentType),
+              },
+              id: `generate-${contentType}`,
+              position: { x: 120, y: 120 },
+              type: buildNodeType(contentType),
+            },
+          ],
+        },
+      );
     });
   }
 

@@ -15,9 +15,9 @@ const repoRoot = path.resolve(here, '../../../../..');
 const source = {
   cliApi: read('packages/cli/src/api/schedules.ts'),
   cliCommand: read('packages/cli/src/commands/schedule.ts'),
-  mcpCatalog: read('packages/tools/src/registry/curated-action-catalog.ts'),
+  mcpCatalog: read('packages/actions/src/registry/curated-action-catalog.ts'),
   mcpDefinitions: read(
-    'packages/tools/src/registry/source/mcp-only/scheduler.tools.ts',
+    'packages/actions/src/registry/source/mcp-only/scheduler.tools.ts',
   ),
   restController: read(
     'apps/server/api/src/collections/post-groups/controllers/post-groups.controller.ts',

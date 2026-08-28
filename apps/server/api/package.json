@@ -18,7 +18,7 @@
     "@genfeedai/queue-contracts": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
     "@genfeedai/server": "workspace:*",
-    "@genfeedai/tools": "workspace:*",
+    "@genfeedai/actions": "workspace:*",
     "@genfeedai/types": "workspace:*",
     "@genfeedai/utils": "workspace:*",
     "@genfeedai/workflows": "workspace:*",

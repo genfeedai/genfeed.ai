@@ -388,7 +388,7 @@
         "@genfeedai/queue-contracts": "workspace:*",
         "@genfeedai/serializers": "workspace:*",
         "@genfeedai/server": "workspace:*",
-        "@genfeedai/tools": "workspace:*",
+        "@genfeedai/actions": "workspace:*",
         "@genfeedai/types": "workspace:*",
         "@genfeedai/utils": "workspace:*",
         "@genfeedai/workflows": "workspace:*",
@@ -487,7 +487,7 @@
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
-        "@genfeedai/tools": "workspace:*",
+        "@genfeedai/actions": "workspace:*",
         "@genfeedai/ui": "workspace:*",
         "@posthog/mcp": "0.11.7",
         "posthog-node": "5.51.2",
@@ -526,7 +526,7 @@
         "@genfeedai/prisma": "workspace:*",
         "@genfeedai/queue-contracts": "workspace:*",
         "@genfeedai/serializers": "workspace:*",
-        "@genfeedai/tools": "workspace:*",
+        "@genfeedai/actions": "workspace:*",
         "@genfeedai/types": "workspace:*",
         "@genfeedai/utils": "workspace:*",
         "@genfeedai/workflows": "workspace:*",
@@ -615,7 +615,7 @@
         "@genfeedai/prisma": "workspace:*",
         "@genfeedai/queue-contracts": "workspace:*",
         "@genfeedai/server": "workspace:*",
-        "@genfeedai/tools": "workspace:*",
+        "@genfeedai/actions": "workspace:*",
         "@genfeedai/workflows": "workspace:*",
         "@nestjs/axios": "4.0.1",
         "@nestjs/bullmq": "11.0.5",
@@ -780,7 +780,7 @@
         "@genfeedai/errors": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/serializers": "workspace:*",
-        "@genfeedai/tools": "workspace:*",
+        "@genfeedai/actions": "workspace:*",
         "@types/bun": "1.4.0",
         "@types/node": "22.20.1",
         "@typescript/native": "npm:typescript@7.0.2",
@@ -1173,8 +1173,8 @@
         "@tailwindcss/typography": "0.5.20",
       },
     },
-    "packages/tools": {
-      "name": "@genfeedai/tools",
+    "packages/actions": {
+      "name": "@genfeedai/actions",
       "version": "0.1.4",
       "devDependencies": {
         "@typescript/native": "npm:typescript@7.0.2",
@@ -2045,7 +2045,7 @@
 
     "@genfeedai/telegram": ["@genfeedai/telegram@workspace:apps/server/telegram"],
 
-    "@genfeedai/tools": ["@genfeedai/tools@workspace:packages/tools"],
+    "@genfeedai/actions": ["@genfeedai/actions@workspace:packages/actions"],
 
     "@genfeedai/tsconfig": ["@genfeedai/tsconfig@workspace:packages/tsconfig"],
 

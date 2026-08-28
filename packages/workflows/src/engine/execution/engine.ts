@@ -1,3 +1,4 @@
+import { GENFEED_ACTION_NODE_TYPE } from '@genfeedai/actions';
 import { v4 as uuidv4 } from 'uuid';
 import {
   createVideoGenerationLineage,
@@ -36,6 +37,7 @@ export type NodeExecutor = (
 
 export interface ExecutionContext {
   workflowId: string;
+  workflowVersionId: string;
   runId: string;
   organizationId: string;
   userId: string;
@@ -50,7 +52,6 @@ export interface EngineConfig {
   maxConcurrency: number;
   retryConfig: RetryConfig;
   creditCosts: CreditCostConfig;
-  defaultExecutor?: NodeExecutor;
   videoGenerationGate?: VideoGenerationGateConfig;
 }
 
@@ -61,8 +62,34 @@ const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   videoGenerationGate: DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
 };
 
+const ENGINE_NATIVE_NODE_TYPES = new Set([
+  'condition',
+  'control-branch',
+  'control-delay',
+  'control-loop',
+  'delay',
+  'input-image',
+  'input-video',
+  'reviewGate',
+]);
+
+function isEngineNativeNodeType(nodeType: string): boolean {
+  return (
+    ENGINE_NATIVE_NODE_TYPES.has(nodeType) ||
+    nodeType.startsWith('trigger-') ||
+    nodeType.endsWith('Trigger')
+  );
+}
+
+function readRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
 export class WorkflowEngine {
-  private executors = new Map<string, NodeExecutor>();
+  private readonly actionExecutors = new Map<string, NodeExecutor>();
+  private readonly nativeExecutors = new Map<string, NodeExecutor>();
   private config: EngineConfig;
   private readonly videoGenerationGate = new VideoGenerationGateService();
 
@@ -78,11 +105,26 @@ export class WorkflowEngine {
   }
 
   registerExecutor(nodeType: string, executor: NodeExecutor): void {
-    this.executors.set(nodeType, executor);
+    const registry = isEngineNativeNodeType(nodeType)
+      ? this.nativeExecutors
+      : this.actionExecutors;
+    if (registry.has(nodeType)) {
+      throw new Error(`Duplicate workflow node executor: ${nodeType}`);
+    }
+    registry.set(nodeType, executor);
   }
 
   getExecutor(nodeType: string): NodeExecutor | undefined {
-    return this.executors.get(nodeType) ?? this.config.defaultExecutor;
+    if (nodeType === GENFEED_ACTION_NODE_TYPE) {
+      return (node, inputs, context) => {
+        const resolved = this.resolveActionExecutor(node);
+        return resolved.executor(resolved.node, inputs, context);
+      };
+    }
+    if (!isEngineNativeNodeType(nodeType)) {
+      return undefined;
+    }
+    return this.nativeExecutors.get(nodeType);
   }
 
   /**
@@ -91,7 +133,16 @@ export class WorkflowEngine {
    * canonical node type has a real executor registered.
    */
   getRegisteredNodeTypes(): string[] {
-    return Array.from(this.executors.keys());
+    return [
+      ...this.nativeExecutors.keys(),
+      ...(this.actionExecutors.size > 0 ? [GENFEED_ACTION_NODE_TYPE] : []),
+    ];
+  }
+
+  getRegisteredActionIds(): string[] {
+    return [...this.actionExecutors.keys()].sort((left, right) =>
+      left.localeCompare(right),
+    );
   }
 
   async execute(
@@ -121,6 +172,7 @@ export class WorkflowEngine {
       videoGenerationLineage: options.videoGenerationLineage,
       videoPilotAcceptance: options.videoPilotAcceptance,
       workflowId: workflow.id,
+      workflowVersionId: workflow.versionId,
     };
 
     let nodesToExecute: string[];
@@ -474,19 +526,38 @@ export class WorkflowEngine {
     let retryCount = 0;
     const maxRetries = options.maxRetries ?? this.config.retryConfig.maxRetries;
 
-    const executor = this.getExecutor(node.type);
-    if (!executor) {
+    let resolved: ReturnType<WorkflowEngine['resolveNodeExecutor']>;
+    try {
+      resolved = this.resolveNodeExecutor(node);
+    } catch (error) {
       return {
         completedAt: new Date(),
         creditsUsed: 0,
-        error: `No executor registered for node type: ${node.type}`,
+        error: error instanceof Error ? error.message : String(error),
         nodeId: node.id,
         retryCount: 0,
         startedAt,
         status: 'failed',
       };
     }
+    if (!resolved) {
+      return {
+        completedAt: new Date(),
+        creditsUsed: 0,
+        error:
+          node.type === GENFEED_ACTION_NODE_TYPE
+            ? `No executor registered for Genfeed action: ${String(node.config.actionId)}`
+            : `No executor registered for node type: ${node.type}`,
+        nodeId: node.id,
+        retryCount: 0,
+        startedAt,
+        status: 'failed',
+      };
+    }
+    const executor = resolved.executor;
 
+    const executionNode = resolved.node;
+    const executionType = executionNode.type;
     const runWithTransportRetry = (
       gatedNode: ExecutableNode,
       gatedInputs: Map<string, unknown>,
@@ -499,11 +570,11 @@ export class WorkflowEngine {
         },
       );
 
-    if (isVideoGenerationNodeType(node.type)) {
+    if (isVideoGenerationNodeType(executionType)) {
       const gateConfig =
         this.config.videoGenerationGate ?? DEFAULT_VIDEO_GENERATION_GATE_CONFIG;
       const gated = await this.videoGenerationGate.execute({
-        baseCreditCost: this.config.creditCosts[node.type] ?? 0,
+        baseCreditCost: this.config.creditCosts[executionType] ?? 0,
         evaluateVideoPilot: context.evaluateVideoPilot,
         executor: runWithTransportRetry,
         gateConfig,
@@ -515,7 +586,7 @@ export class WorkflowEngine {
             nodeId: node.id,
             workflowId: context.workflowId,
           }),
-        node,
+        node: executionNode,
         nodeId: node.id,
         startedAt,
         videoPilotAcceptance: context.videoPilotAcceptance,
@@ -531,9 +602,9 @@ export class WorkflowEngine {
     }
 
     try {
-      const output = await runWithTransportRetry(node, inputs);
+      const output = await runWithTransportRetry(executionNode, inputs);
 
-      const creditsUsed = this.config.creditCosts[node.type] ?? 0;
+      const creditsUsed = this.config.creditCosts[executionType] ?? 0;
 
       return {
         completedAt: new Date(),
@@ -637,8 +708,51 @@ export class WorkflowEngine {
 
   estimateCredits(nodes: ExecutableNode[]): number {
     return nodes.reduce((total, node) => {
-      return total + (this.config.creditCosts[node.type] ?? 0);
+      const executionType =
+        node.type === GENFEED_ACTION_NODE_TYPE &&
+        typeof node.config.actionId === 'string'
+          ? node.config.actionId
+          : node.type;
+      return total + (this.config.creditCosts[executionType] ?? 0);
     }, 0);
+  }
+
+  private resolveNodeExecutor(
+    node: ExecutableNode,
+  ): { executor: NodeExecutor; node: ExecutableNode } | null {
+    if (node.type === GENFEED_ACTION_NODE_TYPE) {
+      return this.resolveActionExecutor(node);
+    }
+    if (!isEngineNativeNodeType(node.type)) {
+      return null;
+    }
+
+    const executor = this.nativeExecutors.get(node.type);
+    return executor ? { executor, node } : null;
+  }
+
+  private resolveActionExecutor(node: ExecutableNode): {
+    executor: NodeExecutor;
+    node: ExecutableNode;
+  } {
+    const actionId = node.config.actionId;
+    if (typeof actionId !== 'string' || actionId.length === 0) {
+      throw new Error('A Genfeed action node requires a non-empty actionId');
+    }
+
+    const executor = this.actionExecutors.get(actionId);
+    if (!executor) {
+      throw new Error(`No executor registered for Genfeed action: ${actionId}`);
+    }
+
+    return {
+      executor,
+      node: {
+        ...node,
+        config: readRecord(node.config.parameters),
+        type: actionId,
+      },
+    };
   }
 
   private emitProgress(

@@ -1,19 +1,18 @@
+import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import type {
   WorkflowDocument,
-  WorkflowEdge,
-  WorkflowInputVariable,
-  WorkflowStep,
   WorkflowVisualNode,
 } from '@server/collections/workflows/schemas/workflow.schema';
 import {
   EVENT_TYPE_TO_NODE_TYPE,
+  EXECUTABLE_WORKFLOW_IDENTITY_SELECT,
   EXECUTABLE_WORKFLOW_SELECT,
   VISUAL_TRIGGER_NODE_TYPE_TO_EXECUTOR,
 } from '@server/collections/workflows/services/workflow-executor.constants';
 import type { TriggerEvent } from '@server/collections/workflows/services/workflow-executor.types';
+import { hydrateWorkflowDefinition } from '@server/collections/workflows/workflow-version-definition';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
 
 export class WorkflowExecutorDocumentService {
   constructor(private readonly prisma: PrismaService) {}
@@ -44,20 +43,42 @@ export class WorkflowExecutorDocumentService {
     });
   }
 
+  async findPinnedWorkflow(
+    workflowId: string,
+    workflowVersionId: string,
+    organizationId: string,
+  ): Promise<WorkflowDocument | null> {
+    const version = await this.prisma.workflowVersion.findFirst({
+      select: {
+        graph: true,
+        id: true,
+        inputSchema: true,
+        version: true,
+        workflow: { select: EXECUTABLE_WORKFLOW_IDENTITY_SELECT },
+      },
+      where: {
+        id: workflowVersionId,
+        organizationId,
+        workflowId,
+      },
+    });
+    if (!version) {
+      return null;
+    }
+
+    return this.normalizeWorkflowDocument({
+      ...version.workflow,
+      currentVersion: version,
+    });
+  }
+
   normalizeWorkflowDocument(workflow: unknown): WorkflowDocument {
     const workflowRecord = workflow as Record<string, unknown>;
-
-    return {
-      ...(workflowRecord as unknown as WorkflowDocument),
+    return hydrateWorkflowDefinition({
+      ...workflowRecord,
       config: this.readObjectRecord(workflowRecord.config) ?? undefined,
-      edges: this.readArray<WorkflowEdge>(workflowRecord.edges),
-      inputVariables: this.readArray<WorkflowInputVariable>(
-        workflowRecord.inputVariables,
-      ),
       metadata: this.readObjectRecord(workflowRecord.metadata) ?? undefined,
-      nodes: this.readArray<WorkflowVisualNode>(workflowRecord.nodes),
-      steps: this.readArray<WorkflowStep>(workflowRecord.steps),
-    };
+    });
   }
 
   getWorkflowLabel(workflow: Pick<WorkflowDocument, 'label'>): string {
@@ -202,10 +223,6 @@ export class WorkflowExecutorDocumentService {
 
   private optionalString(value: unknown): string | undefined {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
-  }
-
-  private readArray<T>(value: unknown): T[] {
-    return Array.isArray(value) ? (value as T[]) : [];
   }
 
   private readObjectRecord(value: unknown): Record<string, unknown> | null {

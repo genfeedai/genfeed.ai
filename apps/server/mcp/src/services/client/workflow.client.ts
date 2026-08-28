@@ -52,7 +52,6 @@ function mapWorkflowResource(
 
   return {
     createdAt: asString(attrs.createdAt) ?? new Date().toISOString(),
-    currentStepIndex: asNumber(attrs.currentStepIndex),
     description: asString(attrs.description),
     edgeCount: edges.length,
     id: resourceId(resource),
@@ -71,9 +70,10 @@ function mapWorkflowResource(
     nodeCount: nodes.length,
     schedule: asString(attrs.schedule),
     status: status as WorkflowResponse['status'],
-    steps: asArray(attrs.steps) as WorkflowResponse['steps'],
     timezone: asString(attrs.timezone),
     updatedAt: asString(attrs.updatedAt),
+    version: asNumber(attrs.version),
+    versionId: asString(attrs.versionId),
   };
 }
 
@@ -135,9 +135,11 @@ export class WorkflowClient {
           data: {
             attributes: {
               description: params.description,
+              edges: params.edges,
+              inputVariables: params.inputVariables,
               name: params.name,
+              nodes: params.nodes,
               schedule: params.schedule,
-              steps: params.steps,
               templateId: params.templateId,
             },
             type: 'workflows',
@@ -153,9 +155,13 @@ export class WorkflowClient {
           lastRunAt: workflow?.attributes?.lastRunAt,
           name: workflow?.attributes?.name || params.name,
           nextRunAt: workflow?.attributes?.nextRunAt,
+          nodeCount: Array.isArray(workflow?.attributes?.nodes)
+            ? workflow.attributes.nodes.length
+            : 0,
           status: workflow?.attributes?.status || CONTENT_STATUS.DRAFT,
-          steps: workflow?.attributes?.steps || params.steps || [],
           updatedAt: workflow?.attributes?.updatedAt,
+          version: workflow?.attributes?.version,
+          versionId: workflow?.attributes?.versionId,
         };
       },
       this.base.failWithDetail('Failed to create workflow'),
@@ -428,7 +434,9 @@ export class WorkflowClient {
             estimatedDuration: template.attributes?.estimatedDuration,
             id: template.id,
             name: template.attributes?.name,
-            steps: template.attributes?.steps || [],
+            nodeCount: Array.isArray(template.attributes?.nodes)
+              ? template.attributes.nodes.length
+              : 0,
           })) || []
         );
       },

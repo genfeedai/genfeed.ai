@@ -11,6 +11,7 @@
     "outDir": "dist",
     "paths": {
       "@/*": ["./src/*"],
+      "@genfeedai/actions": ["../tools/src/index.ts"],
       "@genfeedai/constants": ["../constants/src/index.ts"],
       "@genfeedai/constants/*": ["../constants/src/*"],
       "@genfeedai/enums": ["../enums/src/index.ts"],
@@ -19,8 +20,7 @@
       "@genfeedai/helpers": ["../helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../helpers/src/*"],
       "@genfeedai/interfaces/*": ["../interfaces/src/*"],
-      "@genfeedai/serializers": ["../helpers/src/deserializer/index.ts"],
-      "@genfeedai/tools": ["../tools/src/index.ts"]
+      "@genfeedai/serializers": ["../helpers/src/deserializer/index.ts"]
     },
     "resolveJsonModule": true,
     "rootDir": "..",

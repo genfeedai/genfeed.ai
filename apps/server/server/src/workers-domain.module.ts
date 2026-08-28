@@ -98,7 +98,6 @@ import { WorkflowFormatConverterService } from '@server/collections/workflows/se
 import { WorkflowGenerationService } from '@server/collections/workflows/services/workflow-generation.service';
 import { WorkflowRunControlService } from '@server/collections/workflows/services/workflow-run-control.service';
 import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
-import { WorkflowStepRunnerService } from '@server/collections/workflows/services/workflow-step-runner.service';
 import { WorkflowTemplateSeederService } from '@server/collections/workflows/services/workflow-template-seeder.service';
 import { WorkflowWebhookService } from '@server/collections/workflows/services/workflow-webhook.service';
 import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
@@ -428,7 +427,6 @@ const WORKER_DOMAIN_SERVICES = [
   WorkflowNotificationQueueService,
   WorkflowRunControlService,
   WorkflowSchedulerService,
-  WorkflowStepRunnerService,
   WorkflowTemplateSeederService,
   WorkflowWebhookService,
   WorkspaceTaskQualityService,

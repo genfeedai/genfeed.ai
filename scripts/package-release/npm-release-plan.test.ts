@@ -25,16 +25,16 @@ describe('npm release plan', () => {
 
   it('requires every publishable package to be enrolled or excluded explicitly', () => {
     writePackage('enums', publicManifest('@genfeedai/enums', '2.3.3'));
-    writePackage('tools', publicManifest('@genfeedai/tools', '0.1.4'));
+    writePackage('tools', publicManifest('@genfeedai/actions', '0.1.4'));
     writeEnrollment({ enrolled: ['packages/enums'], excluded: {} });
 
     expect(validate().violations).toEqual([
-      'scripts/npm-release-enrollment.json: packages/tools is publishable but is neither enrolled nor excluded; decide explicitly',
+      'scripts/npm-release-enrollment.json: packages/actions is publishable but is neither enrolled nor excluded; decide explicitly',
     ]);
 
     writeEnrollment({
       enrolled: ['packages/enums'],
-      excluded: { 'packages/tools': 'Not ready for the public registry.' },
+      excluded: { 'packages/actions': 'Not ready for the public registry.' },
     });
     expect(validate().violations).toEqual([]);
   });

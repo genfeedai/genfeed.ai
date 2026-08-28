@@ -1,12 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { AgentToolName } from '@genfeedai/interfaces';
 import {
   CURATED_ACTION_CATALOG,
   getToolsForSurface,
   isActionOnSurface,
-} from '@genfeedai/tools';
+} from '@genfeedai/actions';
+import { AgentToolName } from '@genfeedai/interfaces';
 import * as ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 

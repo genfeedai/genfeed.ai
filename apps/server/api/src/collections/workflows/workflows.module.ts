@@ -29,29 +29,6 @@ import { WorkflowCrudController } from '@api/collections/workflows/controllers/w
 import { WorkflowExecutionController } from '@api/collections/workflows/controllers/workflow-execution.controller';
 import { WorkflowMarketplaceController } from '@api/collections/workflows/controllers/workflow-marketplace.controller';
 import { WorkflowWebhookManagementController } from '@api/collections/workflows/controllers/workflow-webhook-management.controller';
-import { InstagramSocialAdapter } from '@server/collections/workflows/services/adapters/instagram-social.adapter';
-import { SocialAdapterFactory } from '@server/collections/workflows/services/adapters/social-adapter.factory';
-import { TwitterSocialAdapter } from '@server/collections/workflows/services/adapters/twitter-social.adapter';
-import { YoutubeSocialAdapter } from '@server/collections/workflows/services/adapters/youtube-social.adapter';
-import { BatchWorkflowService } from '@server/collections/workflows/services/batch-workflow.service';
-import { BatchWorkflowQueueService } from '@server/collections/workflows/services/batch-workflow-queue.service';
-import { LivestreamBotWorkflowService } from '@server/collections/workflows/services/livestream-bot-workflow.service';
-import { OutreachCampaignDispatchWorkflowService } from '@server/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
-import { PaidCreativeResearchWorkflowService } from '@server/collections/workflows/services/paid-creative-research-workflow.service';
-import { ReplyPollingWorkflowService } from '@server/collections/workflows/services/reply-polling-workflow.service';
-import { ReviewGateNotificationService } from '@server/collections/workflows/services/review-gate-notification.service';
-import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
-import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
-import { WorkflowExecutionAuthorizationService } from '@server/collections/workflows/services/workflow-execution-authorization.service';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
-import { WorkflowFormatConverterService } from '@server/collections/workflows/services/workflow-format-converter.service';
-import { WorkflowGenerationService } from '@server/collections/workflows/services/workflow-generation.service';
-import { WorkflowRunControlService } from '@server/collections/workflows/services/workflow-run-control.service';
-import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
-import { WorkflowStepRunnerService } from '@server/collections/workflows/services/workflow-step-runner.service';
-import { WorkflowTemplateSeederService } from '@server/collections/workflows/services/workflow-template-seeder.service';
-import { WorkflowWebhookService } from '@server/collections/workflows/services/workflow-webhook.service';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
@@ -74,6 +51,28 @@ import {
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
+import { InstagramSocialAdapter } from '@server/collections/workflows/services/adapters/instagram-social.adapter';
+import { SocialAdapterFactory } from '@server/collections/workflows/services/adapters/social-adapter.factory';
+import { TwitterSocialAdapter } from '@server/collections/workflows/services/adapters/twitter-social.adapter';
+import { YoutubeSocialAdapter } from '@server/collections/workflows/services/adapters/youtube-social.adapter';
+import { BatchWorkflowService } from '@server/collections/workflows/services/batch-workflow.service';
+import { BatchWorkflowQueueService } from '@server/collections/workflows/services/batch-workflow-queue.service';
+import { LivestreamBotWorkflowService } from '@server/collections/workflows/services/livestream-bot-workflow.service';
+import { OutreachCampaignDispatchWorkflowService } from '@server/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
+import { PaidCreativeResearchWorkflowService } from '@server/collections/workflows/services/paid-creative-research-workflow.service';
+import { ReplyPollingWorkflowService } from '@server/collections/workflows/services/reply-polling-workflow.service';
+import { ReviewGateNotificationService } from '@server/collections/workflows/services/review-gate-notification.service';
+import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
+import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
+import { WorkflowExecutionAuthorizationService } from '@server/collections/workflows/services/workflow-execution-authorization.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
+import { WorkflowFormatConverterService } from '@server/collections/workflows/services/workflow-format-converter.service';
+import { WorkflowGenerationService } from '@server/collections/workflows/services/workflow-generation.service';
+import { WorkflowRunControlService } from '@server/collections/workflows/services/workflow-run-control.service';
+import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
+import { WorkflowTemplateSeederService } from '@server/collections/workflows/services/workflow-template-seeder.service';
+import { WorkflowWebhookService } from '@server/collections/workflows/services/workflow-webhook.service';
 
 @Module({
   // Order matters: controllers that own literal first-segment routes
@@ -92,7 +91,6 @@ import { Module } from '@nestjs/common';
   exports: [
     BatchWorkflowQueueService,
     BatchWorkflowService,
-    WorkflowStepRunnerService,
     SystemWorkflowCatalogService,
     WorkflowsCoreModule,
     WorkflowRunControlService,
@@ -169,7 +167,6 @@ import { Module } from '@nestjs/common';
     SocialAdapterFactory,
     BatchWorkflowQueueService,
     BatchWorkflowService,
-    WorkflowStepRunnerService,
     WorkflowEngineAdapterService,
     WorkflowExecutionAuthorizationService,
     WorkflowExecutorService,

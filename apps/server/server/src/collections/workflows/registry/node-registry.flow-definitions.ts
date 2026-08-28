@@ -1,5 +1,4 @@
 import type { NodeDefinition } from '@server/collections/workflows/registry/node-registry';
-import { WorkflowStepCategory } from '@genfeedai/enums';
 
 export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
   'control-branch': {
@@ -180,7 +179,6 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       trigger: { label: 'Trigger', type: 'any' },
     },
     label: 'Delay',
-    maps: WorkflowStepCategory.DELAY,
     outputs: {
       trigger: { label: 'Continue', type: 'any' },
     },
@@ -234,7 +232,6 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       video: { label: 'Video', type: 'video' },
     },
     label: 'Add Captions',
-    maps: WorkflowStepCategory.CAPTION,
     outputs: {
       video: { label: 'Captioned Video', type: 'video' },
     },
@@ -326,7 +323,6 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
     },
     isPremium: false,
     label: 'Color Grade',
-    maps: WorkflowStepCategory.COLOR_GRADE,
     outputs: {
       image: { label: 'Graded Image', type: 'image' },
     },

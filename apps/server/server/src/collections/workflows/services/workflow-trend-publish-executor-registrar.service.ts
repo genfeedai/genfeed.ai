@@ -1,15 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { PostAccountFanoutService } from '@server/collections/posts/services/post-account-fanout.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { TrendsService } from '@server/collections/trends/services/trends.service';
-import { SocialAdapterFactory } from '@server/collections/workflows/services/adapters/social-adapter.factory';
-import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import type { TriggerEvent } from '@server/collections/workflows/services/workflow-executor.types';
-import { CacheService } from '@server/services/cache/cache.service';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
 import {
   ActivitySource,
@@ -38,6 +27,17 @@ import {
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { PostAccountFanoutService } from '@server/collections/posts/services/post-account-fanout.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { TrendsService } from '@server/collections/trends/services/trends.service';
+import { SocialAdapterFactory } from '@server/collections/workflows/services/adapters/social-adapter.factory';
+import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import type { TriggerEvent } from '@server/collections/workflows/services/workflow-executor.types';
+import { CacheService } from '@server/services/cache/cache.service';
+import { NotificationsService } from '@server/services/notifications/notifications.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 export class WorkflowTrendPublishExecutorRegistrarService {
   private readonly logContext = 'WorkflowEngineAdapterService';
@@ -502,11 +502,18 @@ export class WorkflowTrendPublishExecutorRegistrarService {
     if (this.prismaService && params.workflowId) {
       try {
         const workflowDoc = await this.prismaService.workflow.findFirst({
-          select: { nodes: true },
+          select: {
+            currentVersion: { select: { graph: true } },
+          },
           where: { id: params.workflowId, isDeleted: false },
         });
-        const nodes = Array.isArray(workflowDoc?.nodes)
-          ? (workflowDoc.nodes as Array<{ type?: string }>)
+        const graph = workflowDoc?.currentVersion?.graph;
+        const graphNodes =
+          graph !== null && typeof graph === 'object' && !Array.isArray(graph)
+            ? (graph as { nodes?: unknown }).nodes
+            : undefined;
+        const nodes = Array.isArray(graphNodes)
+          ? (graphNodes as Array<{ type?: string }>)
           : [];
         isPostPublishWorkflow = nodes.some(
           (node) => node.type === 'postPublishTrigger',

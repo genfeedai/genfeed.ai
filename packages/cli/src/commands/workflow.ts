@@ -16,17 +16,12 @@ interface Workflow {
   label?: string;
   description?: string;
   key?: string;
+  nodes?: Array<{ id: string; type: string; data?: { label?: string } }>;
   status?: string;
-  steps?: WorkflowStep[];
+  version?: number;
+  versionId?: string;
   createdAt?: string;
   updatedAt?: string;
-}
-
-interface WorkflowStep {
-  id: string;
-  label?: string;
-  type?: string;
-  order?: number;
 }
 
 interface WorkflowExecution {
@@ -185,12 +180,11 @@ export const workflowCommand = new Command('workflow')
               print(formatLabel('Status', workflow.status));
             }
 
-            if (workflow.steps?.length) {
+            if (workflow.nodes?.length) {
               print();
-              print(formatHeader('Steps:\n'));
-              for (const step of workflow.steps) {
-                const type = step.type ? chalk.blue(`[${step.type}]`) : '';
-                print(`  ${chalk.dim(`${step.order ?? '-'}.`)} ${step.label ?? step.id} ${type}`);
+              print(formatHeader('Nodes:\n'));
+              for (const node of workflow.nodes) {
+                print(`  ${node.data?.label ?? node.id} ${chalk.blue(`[${node.type}]`)}`);
               }
             }
           } catch (error) {

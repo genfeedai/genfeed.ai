@@ -34,19 +34,27 @@ export const VISUAL_TRIGGER_NODE_TYPE_TO_EXECUTOR: Record<string, string> = {
   'trigger-new-repost': 'newRepostTrigger',
 };
 
-export const EXECUTABLE_WORKFLOW_SELECT = {
+export const EXECUTABLE_WORKFLOW_IDENTITY_SELECT = {
   brandId: true,
   config: true,
   description: true,
-  edges: true,
   id: true,
-  inputVariables: true,
   label: true,
   metadata: true,
-  nodes: true,
   organizationId: true,
-  steps: true,
   userId: true,
+} satisfies Prisma.WorkflowSelect;
+
+export const EXECUTABLE_WORKFLOW_SELECT = {
+  ...EXECUTABLE_WORKFLOW_IDENTITY_SELECT,
+  currentVersion: {
+    select: {
+      graph: true,
+      id: true,
+      inputSchema: true,
+      version: true,
+    },
+  },
 } satisfies Prisma.WorkflowSelect;
 
 export type ExecutableWorkflowRow = Prisma.WorkflowGetPayload<{

@@ -34,7 +34,6 @@ function actionTemplate(params: {
       },
     ],
     schedule: params.schedule,
-    steps: [],
   };
 }
 

@@ -1,5 +1,5 @@
-import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 import { LLM_DEFAULTS } from '@genfeedai/constants';
+import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 
 export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
   category: 'content',
@@ -269,7 +269,6 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
     },
   ],
   schedule: '0 9 * * 1',
-  steps: [],
   timezone: 'UTC',
   version: 1,
 };

@@ -26,7 +26,6 @@ export const LIVESTREAM_BOT_WORKFLOW_TEMPLATES = [
       },
     ],
     schedule: '*/1 * * * *',
-    steps: [],
   },
   {
     category: 'automation',
@@ -66,6 +65,5 @@ export const LIVESTREAM_BOT_WORKFLOW_TEMPLATES = [
       },
     ],
     schedule: '*/2 * * * *',
-    steps: [],
   },
 ] satisfies LivestreamBotWorkflowTemplate[];

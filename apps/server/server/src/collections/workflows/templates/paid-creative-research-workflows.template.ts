@@ -33,6 +33,5 @@ export const PAID_CREATIVE_RESEARCH_WORKFLOW_TEMPLATES = [
       },
     ],
     schedule: '0 6 * * *',
-    steps: [],
   },
 ] satisfies PaidCreativeResearchWorkflowTemplate[];

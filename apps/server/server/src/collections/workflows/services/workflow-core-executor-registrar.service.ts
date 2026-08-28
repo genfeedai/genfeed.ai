@@ -1,10 +1,3 @@
-import type { Brand } from '@server/collections/brands/schemas/brand.schema';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { resolveEffectiveBrandAgentConfig } from '@server/collections/brands/utils/brand-agent-config-resolution.util';
-import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
-import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
-import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
-import { SeoScorerService } from '@server/services/seo/seo-scorer.service';
 import { LLM_DEFAULTS } from '@genfeedai/constants';
 import type { IBrandAgentVoice } from '@genfeedai/interfaces';
 import type { AnalyticsFeedbackOutput } from '@genfeedai/workflows/engine';
@@ -22,37 +15,13 @@ import {
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
-
-const FALLBACK_EXECUTOR_TYPES = [
-  'ai-avatar-video',
-  'ai-enhance',
-  'ai-generate-video',
-  'ai-transcribe',
-  'control-loop',
-  'effect-ken-burns',
-  'effect-portrait-blur',
-  'effect-split-screen',
-  'effect-text-overlay',
-  'effect-watermark',
-  'input-prompt',
-  'input-template',
-  'workflowInput',
-  'workflowOutput',
-  'workflow-input',
-  'workflow-output',
-  'output-export',
-  'output-notify',
-  'output-save',
-  'output-webhook',
-  'process-compress',
-  'process-extract-audio',
-  'process-merge-videos',
-  'process-mirror',
-  'process-resize',
-  'process-reverse',
-  'process-transform',
-  'process-trim',
-] as const;
+import type { Brand } from '@server/collections/brands/schemas/brand.schema';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { resolveEffectiveBrandAgentConfig } from '@server/collections/brands/utils/brand-agent-config-resolution.util';
+import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
+import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
+import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
+import { SeoScorerService } from '@server/services/seo/seo-scorer.service';
 
 type WorkflowBrandContext = {
   brandId: string;
@@ -112,11 +81,9 @@ function toWorkflowBrandContext(brand: Brand): WorkflowBrandContext {
 }
 
 export class WorkflowCoreExecutorRegistrarService {
-  private readonly logContext = 'WorkflowEngineAdapterService';
-
   constructor(
     private readonly helper: WorkflowEngineExecutorHelperService,
-    private readonly loggerService: LoggerService,
+    _loggerService: LoggerService,
     private readonly brandsService?: BrandsService,
     private readonly performanceSummaryService?: PerformanceSummaryService,
     private readonly openRouterService?: OpenRouterService,
@@ -124,7 +91,6 @@ export class WorkflowCoreExecutorRegistrarService {
   ) {}
 
   register(engine: WorkflowEngine): void {
-    this.registerFallbackExecutors(engine);
     this.registerReviewGateExecutor(engine);
     this.registerBrandExecutor(engine);
     this.registerBrandAssetExecutor(engine);
@@ -157,34 +123,6 @@ export class WorkflowCoreExecutorRegistrarService {
       executor.nodeType,
       this.helper.wrapEngineExecutor(executor),
     );
-  }
-
-  private registerFallbackExecutors(engine: WorkflowEngine): void {
-    for (const nodeType of FALLBACK_EXECUTOR_TYPES) {
-      engine.registerExecutor(nodeType, async (node, inputs, context) => {
-        this.loggerService.warn(
-          `${this.logContext} fallback executor invoked`,
-          {
-            nodeId: node.id,
-            nodeType,
-            workflowId:
-              typeof context.workflowId === 'string' ? context.workflowId : '',
-          },
-        );
-
-        const inputValues = Array.from(inputs.values());
-        if (inputValues.length > 0) {
-          return inputValues[inputValues.length - 1];
-        }
-
-        return {
-          nodeId: node.id,
-          nodeType,
-          reason: 'fallback_executor_no_upstream_input',
-          status: 'skipped',
-        };
-      });
-    }
   }
 
   private registerReviewGateExecutor(engine: WorkflowEngine): void {

@@ -1,8 +1,10 @@
-# @genfeedai/tools
+# @genfeedai/actions
 
-Canonical Genfeed tool registry shared across Cloud, CLI, and MCP adapters.
+Canonical Genfeed action registry shared by workflows, Cloud, CLI, and MCP
+adapters.
 
-Agent and MCP expose curated product actions, not one tool per REST endpoint.
+Workflows execute product actions; Agent and MCP expose curated adapters over
+those actions, not one tool per REST endpoint.
 `src/registry/curated-action-catalog.ts` is the reviewed source of truth for
 whether each action appears on Agent, MCP, or both. Definition shards provide
 schemas and metadata but do not control surface exposure.
@@ -10,13 +12,13 @@ schemas and metadata but do not control surface exposure.
 ## Install
 
 ```bash
-npm i @genfeedai/tools
+npm i @genfeedai/actions
 ```
 
 ## Usage
 
 ```ts
-import { getToolsForSurface, toMcpTools, toAgentTools } from '@genfeedai/tools';
+import { getToolsForSurface, toMcpTools, toAgentTools } from '@genfeedai/actions';
 
 const mcp = toMcpTools(getToolsForSurface('mcp'));
 const agent = toAgentTools(getToolsForSurface('agent'));

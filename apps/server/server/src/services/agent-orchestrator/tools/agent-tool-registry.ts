@@ -1,7 +1,7 @@
-import { CLOUD_AGENT_TOOL_EXTENSIONS } from '@server/services/agent-orchestrator/tools/agent-tool-registry.extensions';
+import { getToolsForSurface, toAgentTools } from '@genfeedai/actions';
 import type { AgentToolDefinition } from '@genfeedai/interfaces';
 import { AgentToolName } from '@genfeedai/interfaces';
-import { getToolsForSurface, toAgentTools } from '@genfeedai/tools';
+import { CLOUD_AGENT_TOOL_EXTENSIONS } from '@server/services/agent-orchestrator/tools/agent-tool-registry.extensions';
 
 const BASE_AGENT_TOOLS: AgentToolDefinition[] = toAgentTools(
   getToolsForSurface('agent'),

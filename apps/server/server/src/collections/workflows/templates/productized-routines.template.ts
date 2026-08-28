@@ -1,9 +1,8 @@
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import type {
   ProductizedRoutineMetadata,
   WorkflowTemplate,
 } from '@server/collections/workflows/templates/workflow-templates';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { WorkflowStepCategory } from '@genfeedai/enums';
 
 export type ProductizedRoutineWorkflowTemplate = WorkflowTemplate & {
   isScheduleEnabled: true;
@@ -231,25 +230,7 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
       version: 1,
     },
     schedule: '0 8 * * *',
-    steps: [
-      {
-        category: WorkflowStepCategory.PERFORMANCE_TRACK,
-        config: {
-          minViralScore: 70,
-          platforms: ['tiktok', 'instagram', 'youtube', 'twitter'],
-          topN: 5,
-        },
-        id: 'assemble-trend-brief',
-        name: 'Assemble Trend Brief',
-      },
-      {
-        category: WorkflowStepCategory.WEBHOOK,
-        config: DAILY_REVIEW_DEFAULTS,
-        dependsOn: ['assemble-trend-brief'],
-        id: 'review-trend-brief',
-        name: 'Review Trend Brief',
-      },
-    ],
+
     timezone: 'UTC',
   },
   {
@@ -455,24 +436,7 @@ export const PRODUCTIZED_DAILY_ROUTINE_TEMPLATES = [
       version: 1,
     },
     schedule: '0 9 * * *',
-    steps: [
-      {
-        category: WorkflowStepCategory.GENERATE_ARTICLE,
-        config: {
-          model: LLM_DEFAULTS.fastText,
-          temperature: 0.7,
-        },
-        id: 'draft-release-assets',
-        name: 'Draft Release Assets',
-      },
-      {
-        category: WorkflowStepCategory.WEBHOOK,
-        config: DAILY_REVIEW_DEFAULTS,
-        dependsOn: ['draft-release-assets'],
-        id: 'review-release-assets',
-        name: 'Review Release Assets',
-      },
-    ],
+
     timezone: 'UTC',
   },
 ] satisfies ProductizedRoutineWorkflowTemplate[];

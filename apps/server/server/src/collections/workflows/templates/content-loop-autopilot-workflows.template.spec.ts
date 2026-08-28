@@ -10,7 +10,6 @@ describe('CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES', () => {
       category: 'analytics',
       id: 'content-loop-autopilot',
       schedule: '0 8 * * *',
-      steps: [],
     });
 
     const nodeTypes = (template?.nodes ?? []).map((node) => node.type);

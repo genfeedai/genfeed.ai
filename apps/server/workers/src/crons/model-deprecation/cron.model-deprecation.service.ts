@@ -1,4 +1,3 @@
-import { ModelsService } from '@server/collections/models/services/models.service';
 import { WorkflowStatus } from '@genfeedai/enums';
 import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -6,6 +5,7 @@ import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { ModelsService } from '@server/collections/models/services/models.service';
 
 /** Threshold in days before a succeeded model can be auto-deprecated */
 const SUCCESSOR_MATURITY_DAYS = 30;
@@ -266,7 +266,7 @@ export class CronModelDeprecationService {
       const activeStatuses = [WorkflowStatus.ACTIVE, WorkflowStatus.RUNNING];
 
       const workflows = await this.prisma.workflow.findMany({
-        select: { nodes: true },
+        select: { currentVersion: { select: { graph: true } } },
         where: {
           isDeleted: false,
           status: { in: activeStatuses },
@@ -274,8 +274,14 @@ export class CronModelDeprecationService {
       });
 
       return workflows.some((wf) => {
-        const steps = (wf.nodes as WorkflowNodes) ?? [];
-        return steps.some((step) => step.config?.model === modelKey);
+        const graph = wf.currentVersion?.graph;
+        const nodes =
+          graph !== null && typeof graph === 'object' && !Array.isArray(graph)
+            ? (graph as { nodes?: unknown }).nodes
+            : [];
+        return (Array.isArray(nodes) ? (nodes as WorkflowNodes) : []).some(
+          (node) => node.config?.model === modelKey,
+        );
       });
     } catch (error: unknown) {
       this.logger.error(

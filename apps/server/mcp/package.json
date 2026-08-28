@@ -4,7 +4,7 @@
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
-    "@genfeedai/tools": "workspace:*",
+    "@genfeedai/actions": "workspace:*",
     "@genfeedai/ui": "workspace:*",
     "@posthog/mcp": "0.11.7",
     "posthog-node": "5.51.2",

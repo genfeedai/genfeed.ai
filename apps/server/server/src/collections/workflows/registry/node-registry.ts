@@ -1,13 +1,12 @@
 import { FLOW_NODE_DEFINITIONS } from '@server/collections/workflows/registry/node-registry.flow-definitions';
 import { GENERATION_NODE_DEFINITIONS } from '@server/collections/workflows/registry/node-registry.generation-definitions';
 import { IO_NODE_DEFINITIONS } from '@server/collections/workflows/registry/node-registry.io-definitions';
-import { WorkflowStepCategory } from '@genfeedai/enums';
 
 /**
  * Node Registry - Function Library for Visual Workflow Builder
  *
  * Defines all available node types that users can drag onto the workflow canvas.
- * Each node maps to an existing WorkflowStepCategory or a new processing function.
+ * Each product node resolves to a registered Genfeed action at persistence time.
  */
 
 // =============================================================================
@@ -49,7 +48,6 @@ export interface NodeDefinition {
   inputs: Record<string, NodePort>;
   outputs: Record<string, NodePort>;
   configSchema: Record<string, NodeConfigField>;
-  maps?: WorkflowStepCategory; // Maps to existing step category
   isPremium?: boolean;
   isEnabled?: boolean;
   type?: string;

@@ -1,4 +1,24 @@
 import {
+  ActionOrigin,
+  WorkflowExecutionStatus,
+  WorkflowExecutionTrigger,
+  WorkflowStatus,
+} from '@genfeedai/enums';
+import type { ValidatedAgentScope } from '@genfeedai/interfaces';
+import { toAgentScopeMetadata } from '@genfeedai/interfaces';
+import {
+  AgentScopeContextService,
+  resolveNestedActionOrigin,
+  runWithActionOrigin,
+  scopedWhere,
+} from '@genfeedai/server';
+import {
+  applyWorkflowEtaProgress,
+  precomputeWorkflowEtaPlan,
+} from '@helpers/generation-eta.helper';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
+import {
   type PendingReviewGateExecution,
   WorkflowExecutionsService,
 } from '@server/collections/workflow-executions/services/workflow-executions.service';
@@ -27,26 +47,6 @@ import { WorkflowReviewGateService } from '@server/collections/workflows/service
 import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
-import {
-  ActionOrigin,
-  WorkflowExecutionStatus,
-  WorkflowExecutionTrigger,
-  WorkflowStatus,
-} from '@genfeedai/enums';
-import type { ValidatedAgentScope } from '@genfeedai/interfaces';
-import { toAgentScopeMetadata } from '@genfeedai/interfaces';
-import {
-  AgentScopeContextService,
-  resolveNestedActionOrigin,
-  runWithActionOrigin,
-  scopedWhere,
-} from '@genfeedai/server';
-import {
-  applyWorkflowEtaProgress,
-  precomputeWorkflowEtaPlan,
-} from '@helpers/generation-eta.helper';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
 
 export {
   EXECUTABLE_WORKFLOW_SELECT,
@@ -262,18 +262,19 @@ export class WorkflowExecutorService {
       };
     }
 
-    const workflowDoc = await findOrThrow(
-      this.prisma.workflow,
-      {
-        select: EXECUTABLE_WORKFLOW_SELECT,
-        where: scopedWhere(event.organizationId, { id: workflowId }),
-      },
-      'Workflow',
+    const normalizedWorkflow = await this.documentService.findPinnedWorkflow(
       workflowId,
+      execution.workflowVersionId,
+      event.organizationId,
     );
+    if (!normalizedWorkflow) {
+      throw new Error(
+        `Workflow version ${execution.workflowVersionId} not found for execution ${executionId}`,
+      );
+    }
 
     return this.executeWorkflowDocumentWithActionOrigin(
-      this.documentService.normalizeWorkflowDocument(workflowDoc),
+      normalizedWorkflow,
       event,
       WorkflowExecutionTrigger.EVENT,
       { continuedFromExecutionId: executionId },
@@ -332,7 +333,7 @@ export class WorkflowExecutorService {
     }
 
     return this.executeManualWorkflowDocument(
-      workflowDoc,
+      this.documentService.normalizeWorkflowDocument(workflowDoc),
       userId,
       organizationId,
       inputValues,
@@ -432,10 +433,17 @@ export class WorkflowExecutorService {
       workflowId,
     });
 
-    const workflowDoc = await this.prisma.workflow.findFirst({
-      select: EXECUTABLE_WORKFLOW_SELECT,
-      where: scopedWhere(jobData.organizationId, { id: workflowId }),
+    const delayedExecution = await this.executionsService.findOne({
+      id: executionId,
+      organizationId: jobData.organizationId,
     });
+    const workflowDoc = delayedExecution
+      ? await this.documentService.findPinnedWorkflow(
+          workflowId,
+          delayedExecution.workflowVersionId,
+          jobData.organizationId,
+        )
+      : null;
 
     if (!workflowDoc) {
       const errorMessage = `Workflow ${workflowId} not found for delay resume`;
@@ -468,8 +476,7 @@ export class WorkflowExecutorService {
       };
     }
 
-    const normalizedWorkflowDoc =
-      this.documentService.normalizeWorkflowDocument(workflowDoc);
+    const normalizedWorkflowDoc = workflowDoc;
     const workflowLabel = this.documentService.getWorkflowLabel(
       normalizedWorkflowDoc,
     );
@@ -501,7 +508,7 @@ export class WorkflowExecutorService {
       );
       this.agentScopeContextService.assertResourceBrand(
         resumedAgentScope,
-        workflowDoc.brandId,
+        normalizedWorkflowDoc.brandId,
         'workflow',
       );
     }
@@ -675,6 +682,7 @@ export class WorkflowExecutorService {
           totalNodes: executableWorkflow.nodes.length,
           trigger,
           workflowId,
+          workflowVersionId: workflowDoc.versionId,
         },
       );
       executionId = execution.id;

@@ -1,3 +1,16 @@
+import {
+  Platform,
+  ReplyBotPlatform,
+  WorkflowLifecycle,
+  WorkflowStatus,
+} from '@genfeedai/enums';
+import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+import { toPrismaJson, type Workflow } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+import { Injectable } from '@nestjs/common';
 import type { CredentialDocument } from '@server/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import type { ReplyBotConfigDocument } from '@server/collections/reply-bot-configs/schemas/reply-bot-config.schema';
@@ -13,19 +26,6 @@ import {
   ReplyBotOrchestratorService,
 } from '@server/services/reply-bot/reply-bot-orchestrator.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import {
-  Platform,
-  ReplyBotPlatform,
-  WorkflowLifecycle,
-  WorkflowStatus,
-} from '@genfeedai/enums';
-import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
-import { toPrismaJson, type Workflow } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { Injectable } from '@nestjs/common';
 
 const SOCIAL_TRIGGER_TYPES = [
   'mentionTrigger',
@@ -45,6 +45,7 @@ type WorkflowNode = {
   id: string;
   type: string;
 };
+type WorkflowWithNodes = Workflow & { nodes: WorkflowNode[] };
 
 type WorkflowConfig = {
   metadata?: {
@@ -281,8 +282,9 @@ export class ReplyPollingWorkflowService {
 
   private async findWorkflowsWithSocialTriggers(
     organizationId: string,
-  ): Promise<Workflow[]> {
+  ): Promise<WorkflowWithNodes[]> {
     const workflows = await this.prisma.workflow.findMany({
+      include: { currentVersion: { select: { graph: true } } },
       take: 200,
       where: scopedWhere(organizationId, {
         lifecycle: WorkflowLifecycle.PUBLISHED,
@@ -290,20 +292,32 @@ export class ReplyPollingWorkflowService {
       }),
     });
 
-    return workflows.filter((workflow) => {
-      const nodes = (workflow.nodes as WorkflowNode[]) ?? [];
-      return nodes.some((node) =>
-        SOCIAL_TRIGGER_TYPES.includes(node.type as SocialTriggerType),
-      );
-    });
+    return workflows
+      .map((workflow): WorkflowWithNodes => {
+        const graph = workflow.currentVersion?.graph;
+        const nodes =
+          graph !== null && typeof graph === 'object' && !Array.isArray(graph)
+            ? (graph as { nodes?: unknown }).nodes
+            : [];
+        return {
+          ...workflow,
+          nodes: Array.isArray(nodes) ? (nodes as WorkflowNode[]) : [],
+        };
+      })
+      .filter((workflow) => {
+        const nodes = workflow.nodes;
+        return nodes.some((node) =>
+          SOCIAL_TRIGGER_TYPES.includes(node.type as SocialTriggerType),
+        );
+      });
   }
 
-  private async pollWorkflow(workflow: Workflow): Promise<boolean> {
+  private async pollWorkflow(workflow: WorkflowWithNodes): Promise<boolean> {
     const wfConfig = (workflow.config as WorkflowConfig) ?? {};
     const pollState: PollState = wfConfig.metadata?.pollState ?? {};
     let triggered = false;
 
-    const nodes = (workflow.nodes as WorkflowNode[]) ?? [];
+    const nodes = workflow.nodes;
     const triggerNodes = nodes.filter((node) =>
       SOCIAL_TRIGGER_TYPES.includes(node.type as SocialTriggerType),
     );

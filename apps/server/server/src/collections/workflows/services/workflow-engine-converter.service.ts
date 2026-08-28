@@ -1,3 +1,8 @@
+import type {
+  ExecutableEdge,
+  ExecutableNode,
+  ExecutableWorkflow,
+} from '@genfeedai/workflows/engine';
 import {
   isWorkflowInputNodeType,
   normalizeWorkflowNodeTypeToCanonical,
@@ -5,18 +10,13 @@ import {
 import type {
   WorkflowEdge,
   WorkflowInputVariable,
-  WorkflowStep,
   WorkflowVisualNode,
 } from '@server/collections/workflows/schemas/workflow.schema';
-import type {
-  ExecutableEdge,
-  ExecutableNode,
-  ExecutableWorkflow,
-} from '@genfeedai/workflows/engine';
 
 export interface WorkflowDocumentShape {
   brandId?: string | null;
   id?: string;
+  versionId?: string;
   nodes?: WorkflowVisualNode[];
   edges?: WorkflowEdge[];
   lockedNodeIds?: string[];
@@ -149,6 +149,7 @@ export class WorkflowEngineConverterService {
       nodes,
       organizationId: workflowDoc.organizationId ?? '',
       userId: workflowDoc.userId ?? '',
+      versionId: workflowDoc.versionId ?? '',
     };
   }
 
@@ -251,43 +252,6 @@ export class WorkflowEngineConverterService {
         nodeIds.has(nodeId),
       ),
       nodes,
-    };
-  }
-
-  convertStepsToExecutableWorkflow(
-    workflowId: string,
-    steps: WorkflowStep[],
-    userId: string,
-    organizationId: string,
-  ): ExecutableWorkflow {
-    const nodes: ExecutableNode[] = steps.map((step) => ({
-      config: step.config || {},
-      id: step.id,
-      inputs: [],
-      label: step.label,
-      type: (step as unknown as { type?: string }).type || '',
-    }));
-
-    const edges: ExecutableEdge[] = [];
-    for (const step of steps) {
-      if (step.dependsOn && step.dependsOn.length > 0) {
-        for (const depId of step.dependsOn) {
-          edges.push({
-            id: `${depId}-${step.id}`,
-            source: depId,
-            target: step.id,
-          });
-        }
-      }
-    }
-
-    return {
-      edges,
-      id: workflowId,
-      lockedNodeIds: [],
-      nodes,
-      organizationId,
-      userId,
     };
   }
 

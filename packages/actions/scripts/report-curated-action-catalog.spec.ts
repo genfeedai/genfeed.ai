@@ -94,7 +94,7 @@ describe('curated action catalog change reporter', () => {
     }
 
     expect(formatWarningAnnotation(change)).toContain(
-      '::warning file=packages/tools/src/registry/curated-action-catalog.ts',
+      '::warning file=packages/actions/src/registry/curated-action-catalog.ts',
     );
     expect(formatStepSummary([change])).toContain(
       '| action-added | `new_action` | mcp |',
@@ -246,7 +246,7 @@ describe('curated action catalog change reporter CLI', () => {
 
     const logged = logSpy.mock.calls.map((call) => call.join(' ')).join('\n');
     expect(logged).toContain(
-      '::warning file=packages/tools/src/registry/curated-action-catalog.ts',
+      '::warning file=packages/actions/src/registry/curated-action-catalog.ts',
     );
     expect(logged).toContain('Curated action added: added_action (mcp)');
     expect(readFileSync(summaryPath, 'utf8')).toContain(

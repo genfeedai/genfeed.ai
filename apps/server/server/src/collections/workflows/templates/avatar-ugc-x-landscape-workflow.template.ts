@@ -211,5 +211,4 @@ export const AVATAR_UGC_X_LANDSCAPE_WORKFLOW_TEMPLATE = {
       type: 'workflowOutput',
     },
   ],
-  steps: [],
 } as const;

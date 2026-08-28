@@ -1,5 +1,5 @@
-import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
+import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 
 /**
  * Daily Trends Digest — a predetermined, per-org workflow.
@@ -87,6 +87,5 @@ export const DAILY_TRENDS_DIGEST_TEMPLATE: WorkflowTemplate = {
       targetHandle: 'reason',
     },
   ],
-  steps: [],
   version: 1,
 };

@@ -11,8 +11,8 @@
     "moduleResolution": "NodeNext",
     "outDir": "./dist",
     "paths": {
-      "@genfeedai/tools": ["./src/index.ts"],
-      "@genfeedai/tools/*": ["./src/*"]
+      "@genfeedai/actions": ["./src/index.ts"],
+      "@genfeedai/actions/*": ["./src/*"]
     },
     "rootDir": "./src",
     "skipLibCheck": true,

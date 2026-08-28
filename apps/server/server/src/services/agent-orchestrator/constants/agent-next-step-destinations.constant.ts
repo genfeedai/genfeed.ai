@@ -14,7 +14,7 @@ export interface AgentNextStepDestination {
  * exists — model-authored hrefs are the reason `normalizeAppHref` exists.
  *
  * Keys are the enum in the `suggest_next_steps` tool schema
- * (`packages/tools/src/registry/source/agent-only/other.tools.ts`); the pairing
+ * (`packages/actions/src/registry/source/agent-only/other.tools.ts`); the pairing
  * is asserted in `agent-next-step-destinations.constant.spec.ts`.
  */
 export const AGENT_NEXT_STEP_DESTINATIONS = {

@@ -1,10 +1,9 @@
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { CONTENT_LOOP_TEMPLATE } from '@server/collections/workflows/templates/content-loop.template';
 import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@server/collections/workflows/templates/daily-trends-digest.template';
 import { GENERATION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/generation-templates';
 import { PRODUCTIZED_DAILY_ROUTINE_TEMPLATES } from '@server/collections/workflows/templates/productized-routines.template';
 import { WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE } from '@server/collections/workflows/templates/weekly-brand-content-workflow.template';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { WorkflowStepCategory } from '@genfeedai/enums';
 
 export type RoutineReviewDefaults = {
   autoApproveIfNoResponse: boolean;
@@ -88,13 +87,6 @@ export interface WorkflowTemplate {
     sourceHandle?: string;
     targetHandle?: string;
   }>;
-  steps: Array<{
-    id: string;
-    name: string;
-    category: WorkflowStepCategory;
-    config: Record<string, unknown>;
-    dependsOn?: string[];
-  }>;
   timezone?: string;
   version?: number;
 }
@@ -156,7 +148,6 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         type: 'reviewGate',
       },
     ],
-    steps: [],
   },
   'launch-kit': {
     category: 'launch',
@@ -328,27 +319,6 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         targetHandle: 'value',
       },
     ],
-    steps: [
-      {
-        category: WorkflowStepCategory.GENERATE_ARTICLE,
-        config: {
-          model: LLM_DEFAULTS.fastText,
-          temperature: 0.8,
-        },
-        id: 'draft-launch-assets',
-        name: 'Draft Launch Assets',
-      },
-      {
-        category: WorkflowStepCategory.WEBHOOK,
-        config: {
-          autoApproveIfNoResponse: false,
-          requireApproval: true,
-        },
-        dependsOn: ['draft-launch-assets'],
-        id: 'review-launch-assets',
-        name: 'Review Launch Assets',
-      },
-    ],
   },
   'ad-remix-review': {
     category: 'ads',
@@ -477,7 +447,6 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         type: 'workflowOutput',
       },
     ],
-    steps: [],
   },
   'content-clips': {
     category: 'editing',
@@ -485,37 +454,65 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
     icon: 'cut',
     id: 'content-clips',
     name: 'Create Content Clips',
-    steps: [
+    nodes: [
       {
-        category: WorkflowStepCategory.CLIP,
-        config: {
-          addTransitions: true,
-          autoDetectHighlights: true,
-          count: 5,
-          duration: 30,
-        },
         id: 'create-clips',
-        name: 'Generate Clips',
+        type: 'genfeedAction',
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Generate Clips',
+          config: {
+            actionId: 'generate_clips',
+            parameters: {
+              addTransitions: true,
+              autoDetectHighlights: true,
+              count: 5,
+              duration: 30,
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.CAPTION,
-        config: {
-          autoSync: true,
-          style: 'dynamic',
-        },
-        dependsOn: ['create-clips'],
         id: 'add-clip-captions',
-        name: 'Add Captions to Clips',
+        type: 'genfeedAction',
+        position: { x: 280, y: 0 },
+        data: {
+          label: 'Add Captions to Clips',
+          config: {
+            actionId: 'effect-captions',
+            parameters: {
+              autoSync: true,
+              style: 'dynamic',
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.RESIZE,
-        config: {
-          aspectRatio: '9:16',
-          maintainQuality: true,
-        },
-        dependsOn: ['add-clip-captions'],
         id: 'resize-clips',
-        name: 'Resize for Social',
+        type: 'genfeedAction',
+        position: { x: 560, y: 0 },
+        data: {
+          label: 'Resize for Social',
+          config: {
+            actionId: 'process-resize',
+            parameters: {
+              aspectRatio: '9:16',
+              maintainQuality: true,
+            },
+          },
+        },
+      },
+    ],
+    edges: [
+      {
+        id: 'create-clips' + '-' + 'add-clip-captions',
+        source: 'create-clips',
+        target: 'add-clip-captions',
+      },
+      {
+        id: 'add-clip-captions' + '-' + 'resize-clips',
+        source: 'add-clip-captions',
+        target: 'resize-clips',
       },
     ],
   },
@@ -525,52 +522,77 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
     icon: 'resize',
     id: 'multi-platform-resize',
     name: 'Multi-Platform Resize',
-    steps: [
+    nodes: [
       {
-        category: WorkflowStepCategory.RESIZE,
-        config: {
-          aspectRatio: '1:1',
-          height: 1080,
-          platform: 'instagram',
-          width: 1080,
-        },
         id: 'resize-square',
-        name: 'Square for Instagram',
+        type: 'genfeedAction',
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Square for Instagram',
+          config: {
+            actionId: 'process-resize',
+            parameters: {
+              aspectRatio: '1:1',
+              height: 1080,
+              platform: 'instagram',
+              width: 1080,
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.RESIZE,
-        config: {
-          aspectRatio: '9:16',
-          height: 1920,
-          platform: 'tiktok',
-          width: 1080,
-        },
         id: 'resize-portrait',
-        name: 'Portrait for TikTok',
+        type: 'genfeedAction',
+        position: { x: 280, y: 0 },
+        data: {
+          label: 'Portrait for TikTok',
+          config: {
+            actionId: 'process-resize',
+            parameters: {
+              aspectRatio: '9:16',
+              height: 1920,
+              platform: 'tiktok',
+              width: 1080,
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.RESIZE,
-        config: {
-          aspectRatio: '16:9',
-          height: 1080,
-          platform: 'youtube',
-          width: 1920,
-        },
         id: 'resize-landscape',
-        name: 'Landscape for YouTube',
+        type: 'genfeedAction',
+        position: { x: 560, y: 0 },
+        data: {
+          label: 'Landscape for YouTube',
+          config: {
+            actionId: 'process-resize',
+            parameters: {
+              aspectRatio: '16:9',
+              height: 1080,
+              platform: 'youtube',
+              width: 1920,
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.RESIZE,
-        config: {
-          aspectRatio: '16:9',
-          height: 720,
-          platform: 'twitter',
-          width: 1280,
-        },
         id: 'resize-twitter',
-        name: 'Twitter Format',
+        type: 'genfeedAction',
+        position: { x: 840, y: 0 },
+        data: {
+          label: 'Twitter Format',
+          config: {
+            actionId: 'process-resize',
+            parameters: {
+              aspectRatio: '16:9',
+              height: 720,
+              platform: 'twitter',
+              width: 1280,
+            },
+          },
+        },
       },
     ],
+    edges: [],
   },
   'social-media-publish': {
     category: 'social',
@@ -578,51 +600,89 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
     icon: 'share',
     id: 'social-media-publish',
     name: 'Publish to Social Media',
-    steps: [
+    nodes: [
       {
-        category: WorkflowStepCategory.TRANSFORM,
-        config: {
-          aspectRatio: '9:16',
-          maintainQuality: true,
-          orientation: 'portrait',
-        },
         id: 'transform-portrait',
-        name: 'Transform to Portrait',
+        type: 'genfeedAction',
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Transform to Portrait',
+          config: {
+            actionId: 'process-transform',
+            parameters: {
+              aspectRatio: '9:16',
+              maintainQuality: true,
+              orientation: 'portrait',
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.UPSCALE,
-        config: {
-          fps: 30,
-          quality: 'high',
-          resolution: '1080p',
-        },
-        dependsOn: ['transform-portrait'],
         id: 'upscale-1080',
-        name: 'Upscale to 1080p',
+        type: 'genfeedAction',
+        position: { x: 280, y: 0 },
+        data: {
+          label: 'Upscale to 1080p',
+          config: {
+            actionId: 'upscale',
+            parameters: {
+              fps: 30,
+              quality: 'high',
+              resolution: '1080p',
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.CAPTION,
-        config: {
-          backgroundColor: 'rgba(0,0,0,0.7)',
-          fontColor: '#FFFFFF',
-          fontSize: 'medium',
-          position: 'bottom',
-          style: 'minimal',
-        },
-        dependsOn: ['upscale-1080'],
         id: 'add-captions',
-        name: 'Add Captions',
+        type: 'genfeedAction',
+        position: { x: 560, y: 0 },
+        data: {
+          label: 'Add Captions',
+          config: {
+            actionId: 'effect-captions',
+            parameters: {
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              fontColor: '#FFFFFF',
+              fontSize: 'medium',
+              position: 'bottom',
+              style: 'minimal',
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.PUBLISH,
-        config: {
-          addWatermark: false,
-          platforms: ['tiktok', 'instagram'],
-          schedule: 'immediate',
-        },
-        dependsOn: ['add-captions'],
         id: 'publish-social',
-        name: 'Publish to Platforms',
+        type: 'genfeedAction',
+        position: { x: 840, y: 0 },
+        data: {
+          label: 'Publish to Platforms',
+          config: {
+            actionId: 'publish',
+            parameters: {
+              addWatermark: false,
+              platforms: ['tiktok', 'instagram'],
+              schedule: 'immediate',
+            },
+          },
+        },
+      },
+    ],
+    edges: [
+      {
+        id: 'transform-portrait' + '-' + 'upscale-1080',
+        source: 'transform-portrait',
+        target: 'upscale-1080',
+      },
+      {
+        id: 'upscale-1080' + '-' + 'add-captions',
+        source: 'upscale-1080',
+        target: 'add-captions',
+      },
+      {
+        id: 'add-captions' + '-' + 'publish-social',
+        source: 'add-captions',
+        target: 'publish-social',
       },
     ],
   },
@@ -632,31 +692,49 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
     icon: 'webhook',
     id: 'webhook-notification',
     name: 'Process and Notify',
-    steps: [
+    nodes: [
       {
-        category: WorkflowStepCategory.UPSCALE,
-        config: {
-          quality: 'high',
-          resolution: '1080p',
-        },
         id: 'process-video',
-        name: 'Process Video',
+        type: 'genfeedAction',
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Process Video',
+          config: {
+            actionId: 'upscale',
+            parameters: {
+              quality: 'high',
+              resolution: '1080p',
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.WEBHOOK,
-        config: {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          includeAssetUrl: true,
-          includeMetadata: true,
-          method: 'POST',
-          // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-          url: '${GENFEEDAI_WEBHOOKS_URL}',
-        },
-        dependsOn: ['process-video'],
         id: 'notify-webhook',
-        name: 'Send Webhook',
+        type: 'genfeedAction',
+        position: { x: 280, y: 0 },
+        data: {
+          label: 'Send Webhook',
+          config: {
+            actionId: 'output-webhook',
+            parameters: {
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              includeAssetUrl: true,
+              includeMetadata: true,
+              method: 'POST',
+              // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
+              url: '${GENFEEDAI_WEBHOOKS_URL}',
+            },
+          },
+        },
+      },
+    ],
+    edges: [
+      {
+        id: 'process-video' + '-' + 'notify-webhook',
+        source: 'process-video',
+        target: 'notify-webhook',
       },
     ],
   },
@@ -666,52 +744,90 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
     icon: 'youtube',
     id: 'youtube-optimization',
     name: 'YouTube Optimization',
-    steps: [
+    nodes: [
       {
-        category: WorkflowStepCategory.TRANSFORM,
-        config: {
-          aspectRatio: '16:9',
-          maintainQuality: true,
-          orientation: 'landscape',
-        },
         id: 'transform-landscape',
-        name: 'Transform to Landscape',
+        type: 'genfeedAction',
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Transform to Landscape',
+          config: {
+            actionId: 'process-transform',
+            parameters: {
+              aspectRatio: '16:9',
+              maintainQuality: true,
+              orientation: 'landscape',
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.UPSCALE,
-        config: {
-          bitrate: 'high',
-          fps: 60,
-          quality: 'maximum',
-          resolution: '4k',
-        },
-        dependsOn: ['transform-landscape'],
         id: 'upscale-4k',
-        name: 'Upscale to 4K',
+        type: 'genfeedAction',
+        position: { x: 280, y: 0 },
+        data: {
+          label: 'Upscale to 4K',
+          config: {
+            actionId: 'upscale',
+            parameters: {
+              bitrate: 'high',
+              fps: 60,
+              quality: 'maximum',
+              resolution: '4k',
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.CAPTION,
-        config: {
-          generateChapters: true,
-          generateTranscript: true,
-          languages: ['en', 'es', 'fr'],
-          style: 'youtube',
-        },
-        dependsOn: ['upscale-4k'],
         id: 'add-youtube-captions',
-        name: 'Add YouTube Captions',
+        type: 'genfeedAction',
+        position: { x: 560, y: 0 },
+        data: {
+          label: 'Add YouTube Captions',
+          config: {
+            actionId: 'effect-captions',
+            parameters: {
+              generateChapters: true,
+              generateTranscript: true,
+              languages: ['en', 'es', 'fr'],
+              style: 'youtube',
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.PUBLISH,
-        config: {
-          category: 'entertainment',
-          monetization: true,
-          platforms: ['youtube'],
-          visibility: 'public',
-        },
-        dependsOn: ['add-youtube-captions'],
         id: 'publish-youtube',
-        name: 'Publish to YouTube',
+        type: 'genfeedAction',
+        position: { x: 840, y: 0 },
+        data: {
+          label: 'Publish to YouTube',
+          config: {
+            actionId: 'publish',
+            parameters: {
+              category: 'entertainment',
+              monetization: true,
+              platforms: ['youtube'],
+              visibility: 'public',
+            },
+          },
+        },
+      },
+    ],
+    edges: [
+      {
+        id: 'transform-landscape' + '-' + 'upscale-4k',
+        source: 'transform-landscape',
+        target: 'upscale-4k',
+      },
+      {
+        id: 'upscale-4k' + '-' + 'add-youtube-captions',
+        source: 'upscale-4k',
+        target: 'add-youtube-captions',
+      },
+      {
+        id: 'add-youtube-captions' + '-' + 'publish-youtube',
+        source: 'add-youtube-captions',
+        target: 'publish-youtube',
       },
     ],
   },

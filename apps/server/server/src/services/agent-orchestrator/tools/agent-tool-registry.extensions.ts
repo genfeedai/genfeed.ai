@@ -1,6 +1,6 @@
-import { ADS_AGENT_TOOL_EXTENSIONS } from '@server/services/agent-orchestrator/tools/agent-tool-registry.ads-extensions';
 import type { AgentToolDefinition } from '@genfeedai/interfaces';
 import { AgentToolName } from '@genfeedai/interfaces';
+import { ADS_AGENT_TOOL_EXTENSIONS } from '@server/services/agent-orchestrator/tools/agent-tool-registry.ads-extensions';
 
 /**
  * Ordered cloud-only schema and prompt overrides for reviewed catalog actions.
@@ -386,11 +386,6 @@ export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
           description:
             'Optional source asset ID to attach to a recurring workflow brief.',
           type: 'string',
-        },
-        steps: {
-          description: 'Optional legacy step definitions',
-          items: { type: 'object' },
-          type: 'array',
         },
         styleNotes: {
           description:

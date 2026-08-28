@@ -1,12 +1,3 @@
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { type WorkflowExecutionDocument } from '@server/collections/workflow-executions/schemas/workflow-execution.schema';
-import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
-import { type WorkflowVisualNode } from '@server/collections/workflows/schemas/workflow.schema';
-import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
-import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
@@ -22,6 +13,15 @@ import {
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { type WorkflowExecutionDocument } from '@server/collections/workflow-executions/schemas/workflow-execution.schema';
+import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
+import { type WorkflowVisualNode } from '@server/collections/workflows/schemas/workflow.schema';
+import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
+import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 
 /**
  * Run-control surface for node-based workflow executions: partial (subset of
@@ -100,6 +100,7 @@ export class WorkflowRunControlService {
         },
         trigger: WorkflowExecutionTrigger.MANUAL,
         workflowId,
+        workflowVersionId: workflow.versionId,
       },
     );
     const startedExecution =

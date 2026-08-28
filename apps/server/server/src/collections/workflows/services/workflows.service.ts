@@ -3,10 +3,11 @@ import {
   WorkflowExecutionTrigger,
   WorkflowLifecycle,
   WorkflowStatus,
-  WorkflowStepCategory,
-  WorkflowStepStatus,
 } from '@genfeedai/enums';
+import type { PopulateOption } from '@genfeedai/interfaces';
+import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
+import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -24,13 +25,19 @@ import {
   type WorkflowSchedulerSyncRow,
 } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
-import { WorkflowStepRunnerService } from '@server/collections/workflows/services/workflow-step-runner.service';
 import {
   buildSystemWorkflowDuplicateMetadata,
   isProtectedSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
 } from '@server/collections/workflows/system-workflow.contract';
 import { WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/workflow-templates';
+import {
+  buildWorkflowVersionDefinition,
+  createVersionedWorkflow,
+  hydrateWorkflowDefinition,
+  splitWorkflowDefinition,
+  WORKFLOW_DEFINITION_FIELDS,
+} from '@server/collections/workflows/workflow-version-definition';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 import { MarketplaceApiClient } from '@server/marketplace-integration/marketplace-api-client';
@@ -38,6 +45,7 @@ import { EntityFactory } from '@server/shared/factories/entity/entity.factory';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BaseService } from '@server/shared/services/base/base.service';
 import { pickDefinedFields } from '@server/shared/utils/object/pick-defined-fields.util';
+import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 
 const WORKFLOW_CONFIG_FIELDS = [
   'comfyuiTemplate',
@@ -70,7 +78,6 @@ type WorkflowCreateExtras = CreateWorkflowDto &
  *
  * Sibling concerns split out in #754:
  * - `WorkflowTemplateSeederService` — operator-only catalog backfill helpers
- * - `WorkflowStepRunnerService` — step-based execution engine
  * - `WorkflowRunControlService` — partial runs, resume, credits, execution logs
  * - `WorkflowWebhookService` — inbound webhook credentials + trigger path
  */
@@ -89,18 +96,10 @@ export class WorkflowsService extends BaseService<
   }
 
   /**
-   * Fat WorkflowsModule owns step-runner / executor / catalog / marketplace.
+   * Fat WorkflowsModule owns executor / catalog / marketplace.
    * Look them up at call time so WorkflowsCore can construct this service
    * without importing those siblings.
    */
-  private get workflowStepRunner(): WorkflowStepRunnerService | undefined {
-    try {
-      return this.moduleRef.get(WorkflowStepRunnerService, { strict: false });
-    } catch {
-      return undefined;
-    }
-  }
-
   private get workflowExecutorService(): WorkflowExecutorService | undefined {
     try {
       return this.moduleRef.get(WorkflowExecutorService, { strict: false });
@@ -160,7 +159,68 @@ export class WorkflowsService extends BaseService<
         ? (record.config as Record<string, unknown>)
         : {};
 
-    return { ...config, ...record } as WorkflowDocument;
+    const flattened = { ...config, ...record };
+    return 'currentVersion' in flattened
+      ? hydrateWorkflowDefinition(flattened)
+      : (flattened as WorkflowDocument);
+  }
+
+  override async findOne(
+    params: Record<string, unknown>,
+    populate: PopulateOption[] = [],
+  ): Promise<WorkflowDocument | null> {
+    return super.findOne(params, [...populate, { path: 'currentVersion' }]);
+  }
+
+  override async find(
+    params: Record<string, unknown>,
+    populate: PopulateOption[] = [],
+  ): Promise<WorkflowDocument[]> {
+    return super.find(params, [...populate, { path: 'currentVersion' }]);
+  }
+
+  override async findAll(
+    input: unknown,
+    options: AggregationOptions,
+    enableCache: boolean = true,
+  ): Promise<AggregatePaginateResult<WorkflowDocument>> {
+    const query =
+      input !== null && typeof input === 'object' && !Array.isArray(input)
+        ? (input as Record<string, unknown>)
+        : {};
+    if ('select' in query) {
+      return super.findAll(input, options, enableCache);
+    }
+
+    const include =
+      query.include !== null &&
+      typeof query.include === 'object' &&
+      !Array.isArray(query.include)
+        ? (query.include as Record<string, unknown>)
+        : {};
+    return super.findAll(
+      { ...query, include: { ...include, currentVersion: true } },
+      options,
+      enableCache,
+    );
+  }
+
+  override async create(
+    createDto: CreateWorkflowDto,
+  ): Promise<WorkflowDocument> {
+    const { definition, workflow } = splitWorkflowDefinition(
+      createDto as unknown as Record<string, unknown>,
+    );
+    delete workflow.currentVersionId;
+    const created = await this.prisma.$transaction((transaction) =>
+      createVersionedWorkflow(
+        transaction,
+        workflow as Prisma.WorkflowUncheckedCreateInput,
+        definition,
+      ),
+    );
+
+    return this.normalizeDocument(created);
   }
 
   override async patch(
@@ -183,15 +243,61 @@ export class WorkflowsService extends BaseService<
       config = { ...(existing.config ?? {}), ...configPatch };
     }
 
-    const scalarPatch = { ...workflowPatch };
+    const { definition, workflow: scalarPatch } = splitWorkflowDefinition({
+      ...workflowPatch,
+      ...(config ? { config } : {}),
+    });
     for (const field of WORKFLOW_CONFIG_FIELDS) {
       delete scalarPatch[field];
     }
+    delete scalarPatch.currentVersionId;
 
-    return super.patch(id, {
-      ...scalarPatch,
-      ...(config ? { config } : {}),
+    const hasDefinitionPatch = WORKFLOW_DEFINITION_FIELDS.some(
+      (field) => field in workflowPatch,
+    );
+    if (!hasDefinitionPatch) {
+      return super.patch(id, scalarPatch, [{ path: 'currentVersion' }]);
+    }
+
+    const existing = await this.findOne({ id });
+    if (!existing) {
+      throw new NotFoundException('Workflow');
+    }
+    const nextDefinition = buildWorkflowVersionDefinition({
+      edges: definition.edges ?? existing.edges,
+      inputVariables: definition.inputVariables ?? existing.inputVariables,
+      lockedNodeIds: definition.lockedNodeIds ?? existing.lockedNodeIds,
+      nodes: definition.nodes ?? existing.nodes,
     });
+
+    const updated = await this.prisma.$transaction(async (transaction) => {
+      const version = await transaction.workflowVersion.create({
+        data: {
+          contentHash: nextDefinition.contentHash,
+          graph: nextDefinition.graph as unknown as Prisma.InputJsonValue,
+          inputSchema:
+            nextDefinition.inputSchema as unknown as Prisma.InputJsonValue,
+          organizationId: existing.organizationId,
+          userId: existing.userId,
+          version: existing.version + 1,
+          workflowId: existing.id,
+        },
+      });
+      const changed = await transaction.workflow.updateMany({
+        data: { ...scalarPatch, currentVersionId: version.id },
+        where: { currentVersionId: existing.versionId, id },
+      });
+      if (changed.count !== 1) {
+        throw new Error(`Workflow ${id} was edited concurrently`);
+      }
+
+      return transaction.workflow.findUniqueOrThrow({
+        include: { currentVersion: true },
+        where: { id },
+      });
+    });
+
+    return this.normalizeDocument(updated);
   }
 
   private resolveWorkflowBrandId(
@@ -223,22 +329,6 @@ export class WorkflowsService extends BaseService<
     }
   }
 
-  private normalizeWorkflowStepsForCreate(
-    steps: WorkflowDocument['steps'],
-  ): CreateWorkflowDto['steps'] {
-    return (steps ?? []).map((step) => {
-      const category =
-        typeof step.category === 'string' &&
-        Object.values(WorkflowStepCategory).includes(
-          step.category as WorkflowStepCategory,
-        )
-          ? (step.category as WorkflowStepCategory)
-          : WorkflowStepCategory.TRANSFORM;
-
-      return { ...step, category };
-    });
-  }
-
   private omitUndefinedPayload(
     payload: Record<string, unknown>,
   ): Record<string, unknown> {
@@ -251,11 +341,10 @@ export class WorkflowsService extends BaseService<
     brandId?: string;
     defaultLabel: string;
     organizationId: string;
-    steps: CreateWorkflowDto['steps'];
     userId: string;
     workflowData: WorkflowCreateExtras;
   }): Record<string, unknown> {
-    const { brandId, defaultLabel, organizationId, steps, userId } = input;
+    const { brandId, defaultLabel, organizationId, userId } = input;
     const workflowData = input.workflowData;
     const config = {
       ...(workflowData.config ?? {}),
@@ -283,7 +372,6 @@ export class WorkflowsService extends BaseService<
       schedule: workflowData.schedule,
       startedAt: workflowData.startedAt,
       status: workflowData.status ?? WorkflowStatus.ACTIVE,
-      steps: steps ?? [],
       thumbnail: workflowData.thumbnail,
       thumbnailNodeId: workflowData.thumbnailNodeId,
       timezone: workflowData.timezone,
@@ -424,9 +512,7 @@ export class WorkflowsService extends BaseService<
           sourceType: 'seeded-template',
         }
       : undefined;
-    const { steps, workflowData: mergedWorkflowData } =
-      this.applyTemplateDefaults(workflowData, templateMetadata);
-    workflowData = mergedWorkflowData;
+    workflowData = this.applyTemplateDefaults(workflowData, templateMetadata);
 
     const metadata =
       workflowData.metadata || templateMetadata
@@ -446,7 +532,6 @@ export class WorkflowsService extends BaseService<
         brandId,
         defaultLabel: `Workflow: ${workflowData.templateId || 'Custom'}`,
         organizationId,
-        steps,
         userId,
         workflowData: {
           ...(workflowData as WorkflowCreateExtras),
@@ -492,19 +577,18 @@ export class WorkflowsService extends BaseService<
   }
 
   /**
-   * When creating from a known template, fills edges/inputVariables/nodes/
-   * schedule/timezone the caller left empty from the template and seeds the
-   * template's steps as pending. Non-template creates pass through unchanged.
+   * When creating from a known template, fills graph/input-schema/schedule
+   * fields the caller left empty. Non-template creates pass through unchanged.
    */
   private applyTemplateDefaults(
     workflowData: CreateWorkflowDto,
     templateMetadata: Record<string, unknown> | undefined,
-  ): { steps: CreateWorkflowDto['steps']; workflowData: CreateWorkflowDto } {
+  ): CreateWorkflowDto {
     if (
       !workflowData.templateId ||
       !WORKFLOW_TEMPLATES[workflowData.templateId]
     ) {
-      return { steps: workflowData.steps || [], workflowData };
+      return workflowData;
     }
 
     const template = WORKFLOW_TEMPLATES[workflowData.templateId];
@@ -519,35 +603,26 @@ export class WorkflowsService extends BaseService<
       !workflowData.nodes || workflowData.nodes.length === 0;
 
     return {
-      steps: template.steps.map((step) => ({
-        ...step,
-        label: step.name,
-        status: WorkflowStepStatus.PENDING,
-      })),
-      workflowData: {
-        ...workflowData,
-        edges: shouldUseTemplateEdges ? template.edges : workflowData.edges,
-        inputVariables: shouldUseTemplateInputVariables
-          ? template.inputVariables
-          : workflowData.inputVariables,
-        isScheduleEnabled:
-          workflowData.isScheduleEnabled ?? template.isScheduleEnabled,
-        metadata: {
-          ...templateMetadata,
-          ...routineMetadata,
-          ...(workflowData.metadata ?? {}),
-        },
-        nodes: shouldUseTemplateNodes ? template.nodes : workflowData.nodes,
-        schedule: workflowData.schedule ?? template.schedule,
-        timezone: workflowData.timezone ?? template.timezone,
+      ...workflowData,
+      edges: shouldUseTemplateEdges ? template.edges : workflowData.edges,
+      inputVariables: shouldUseTemplateInputVariables
+        ? template.inputVariables
+        : workflowData.inputVariables,
+      isScheduleEnabled:
+        workflowData.isScheduleEnabled ?? template.isScheduleEnabled,
+      metadata: {
+        ...templateMetadata,
+        ...routineMetadata,
+        ...(workflowData.metadata ?? {}),
       },
+      nodes: shouldUseTemplateNodes ? template.nodes : workflowData.nodes,
+      schedule: workflowData.schedule ?? template.schedule,
+      timezone: workflowData.timezone ?? template.timezone,
     };
   }
 
   /**
-   * Dispatches a manual execution to the right engine: node-based workflows
-   * run through `WorkflowExecutorService`, step-based workflows through the
-   * `WorkflowStepRunnerService`.
+   * Dispatches a manual execution through the workflow graph engine.
    */
   @HandleErrors('execute workflow', 'workflows')
   async executeWorkflow(
@@ -557,7 +632,7 @@ export class WorkflowsService extends BaseService<
     inputValues: Record<string, unknown> = {},
     metadata?: Record<string, unknown>,
     trigger: WorkflowExecutionTrigger = WorkflowExecutionTrigger.MANUAL,
-  ): Promise<{ executionId?: string; mode: 'node' | 'step' }> {
+  ): Promise<{ executionId?: string; mode: 'node' }> {
     const workflowDoc = await this.findOne({
       id: workflowId,
       organizationId: organizationId,
@@ -566,17 +641,6 @@ export class WorkflowsService extends BaseService<
 
     if (!workflowDoc) {
       throw new NotFoundException('Workflow');
-    }
-
-    if (!this.shouldUseNodeExecutor(workflowDoc)) {
-      if (!this.workflowStepRunner) {
-        throw new Error(
-          'Workflow step runner is not available - cannot execute step workflow',
-        );
-      }
-
-      await this.workflowStepRunner.executeWorkflow(workflowId);
-      return { mode: 'step' };
     }
 
     if (!this.workflowExecutorService) {
@@ -598,16 +662,6 @@ export class WorkflowsService extends BaseService<
       executionId: result.executionId,
       mode: 'node',
     };
-  }
-
-  private shouldUseNodeExecutor(
-    workflow:
-      | Pick<WorkflowDocument, 'nodes'>
-      | Pick<WorkflowEntity, 'nodes'>
-      | null
-      | undefined,
-  ): boolean {
-    return Array.isArray(workflow?.nodes) && workflow.nodes.length > 0;
   }
 
   async getWorkflowTemplates() {
@@ -639,7 +693,6 @@ export class WorkflowsService extends BaseService<
         brandId,
         defaultLabel: `${sourceLabel} (Copy)`,
         organizationId,
-        steps: this.normalizeWorkflowStepsForCreate(workflowDoc.steps),
         userId,
         workflowData: {
           config: workflowDoc.config,

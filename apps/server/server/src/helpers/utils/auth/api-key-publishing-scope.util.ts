@@ -1,11 +1,11 @@
-import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
-import { ApiKeyScope, TargetExecutionState } from '@genfeedai/enums';
-import { AgentToolName } from '@genfeedai/interfaces';
 import {
   CURATED_ACTION_CATALOG,
   isPublishingApprovalRequired,
-} from '@genfeedai/tools';
+} from '@genfeedai/actions';
+import { ApiKeyScope, TargetExecutionState } from '@genfeedai/enums';
+import { AgentToolName } from '@genfeedai/interfaces';
 import { ForbiddenException } from '@nestjs/common';
+import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 
 export type PublishingCapability = 'approve' | 'draft' | 'publish' | 'schedule';
 

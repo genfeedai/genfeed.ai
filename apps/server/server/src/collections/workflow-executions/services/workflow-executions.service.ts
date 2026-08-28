@@ -1,21 +1,4 @@
 import {
-  CreateWorkflowExecutionDto,
-  UpdateWorkflowExecutionDto,
-} from '@server/collections/workflow-executions/dto/create-workflow-execution.dto';
-import type {
-  WorkflowExecutionDocument,
-  WorkflowNodeResult,
-} from '@server/collections/workflow-executions/schemas/workflow-execution.schema';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
-import { WorkflowNotificationOutboxService } from '@server/services/notifications/workflow-notifications/workflow-notification-outbox.service';
-import { WorkflowEventWebhookService } from '@server/services/webhook-client/workflow-event-webhook.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import {
-  BaseService,
-  type PrismaFindAllInput,
-} from '@server/shared/services/base/base.service';
-import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
-import {
   type ActionOriginContext,
   WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
 } from '@genfeedai/enums';
@@ -32,6 +15,23 @@ import {
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import {
+  CreateWorkflowExecutionDto,
+  UpdateWorkflowExecutionDto,
+} from '@server/collections/workflow-executions/dto/create-workflow-execution.dto';
+import type {
+  WorkflowExecutionDocument,
+  WorkflowNodeResult,
+} from '@server/collections/workflow-executions/schemas/workflow-execution.schema';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
+import { WorkflowNotificationOutboxService } from '@server/services/notifications/workflow-notifications/workflow-notification-outbox.service';
+import { WorkflowEventWebhookService } from '@server/services/webhook-client/workflow-event-webhook.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import {
+  BaseService,
+  type PrismaFindAllInput,
+} from '@server/shared/services/base/base.service';
+import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 
 function readRecord(raw: unknown): Record<string, unknown> {
   return raw !== null && typeof raw === 'object' && !Array.isArray(raw)
@@ -432,6 +432,7 @@ export class WorkflowExecutionsService extends BaseService<
       trigger: dto.trigger ?? null,
       userId,
       workflowId: dto.workflowId,
+      workflowVersionId: dto.workflowVersionId,
     } satisfies Prisma.WorkflowExecutionUncheckedCreateInput;
 
     const result = await this.prisma.workflowExecution.create({

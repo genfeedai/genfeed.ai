@@ -1,3 +1,11 @@
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import type {
+  ExecutableEdge,
+  ExecutableNode,
+  ExecutableWorkflow,
+  ExecutionRunResult,
+  NodeExecutionResult,
+} from '@genfeedai/workflows/engine';
 import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionGraphService } from '@server/collections/workflows/services/workflow-execution-graph.service';
@@ -14,14 +22,6 @@ import {
   claimNodeOnce,
   completeNodeClaim,
 } from '@server/collections/workflows/utils/workflow-node-idempotency.util';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
-import type {
-  ExecutableEdge,
-  ExecutableNode,
-  ExecutableWorkflow,
-  ExecutionRunResult,
-  NodeExecutionResult,
-} from '@genfeedai/workflows/engine';
 
 export class WorkflowNodeGraphRunnerService {
   /**
@@ -621,6 +621,7 @@ export class WorkflowNodeGraphRunnerService {
       nodes: [{ ...node, cachedOutput: undefined, isLocked: false }],
       organizationId: workflow.organizationId,
       userId: workflow.userId,
+      versionId: workflow.versionId,
     };
 
     const virtualEdges: ExecutableEdge[] = [];

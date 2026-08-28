@@ -1,6 +1,7 @@
 // @ts-nocheck
-import { GENERATION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/generation-templates';
+
 import { MusicSourceType } from '@genfeedai/enums';
+import { GENERATION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/generation-templates';
 import { describe, expect, it } from 'vitest';
 
 describe('GenerationTemplates', () => {

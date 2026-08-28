@@ -1,11 +1,11 @@
+import { getToolByName, getToolsForSurface } from '@genfeedai/actions';
+import { AgentToolName } from '@genfeedai/interfaces';
 import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@server/collections/brands/constants/brand-profile.constant';
 import { AGENT_CREDIT_COSTS } from '@server/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import {
   getToolDefinitionByName,
   getToolDefinitions,
 } from '@server/services/agent-orchestrator/tools/agent-tool-registry';
-import { AgentToolName } from '@genfeedai/interfaces';
-import { getToolByName, getToolsForSurface } from '@genfeedai/tools';
 
 describe('agent-tool-registry', () => {
   it('should include onboarding tool definitions', () => {

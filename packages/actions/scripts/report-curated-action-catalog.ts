@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
-const CATALOG_PATH = 'packages/tools/src/registry/curated-action-catalog.ts';
+const CATALOG_PATH = 'packages/actions/src/registry/curated-action-catalog.ts';
 const ENTRY_PATTERN =
   /^\s*\{ name: '([a-z][a-z0-9_]*)', (?:isPublishingApprovalRequired: true, )?surfaces: \[((?:'(?:agent|mcp)'(?:, )?)*)\] \},\s*$/u;
 const PUBLISHING_APPROVAL_ENTRY_PATTERN =

@@ -1,17 +1,3 @@
-import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
-import type { WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
-import { isSweepDrivenSystemWorkflow } from '@server/collections/workflows/system-workflow-provenance.service';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import {
-  EXECUTABLE_WORKFLOW_SELECT,
-  WorkflowExecutorService,
-} from '@server/collections/workflows/services/workflow-executor.service';
-import { WorkflowStepRunnerService } from '@server/collections/workflows/services/workflow-step-runner.service';
-import {
-  computeNextRunAtOrThrow,
-  isSchedulableTimezone,
-} from '@server/collections/workflows/utils/cron-schedule.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
@@ -22,9 +8,22 @@ import {
   Injectable,
   type OnModuleInit,
 } from '@nestjs/common';
+import type { WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import {
+  EXECUTABLE_WORKFLOW_SELECT,
+  WorkflowExecutorService,
+} from '@server/collections/workflows/services/workflow-executor.service';
+import { isSweepDrivenSystemWorkflow } from '@server/collections/workflows/system-workflow-provenance.service';
+import {
+  computeNextRunAtOrThrow,
+  isSchedulableTimezone,
+} from '@server/collections/workflows/utils/cron-schedule.util';
+import { hydrateWorkflowDefinition } from '@server/collections/workflows/workflow-version-definition';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 function toWorkflowDocument(workflow: unknown): WorkflowDocument {
-  return workflow as WorkflowDocument;
+  return hydrateWorkflowDefinition(workflow as Record<string, unknown>);
 }
 
 /**
@@ -45,8 +44,6 @@ export class WorkflowSchedulerService implements OnModuleInit {
     @Inject(LoggerService)
     private readonly logger: LoggerService,
     private readonly configService: ConfigService,
-    private readonly workflowStepRunner: WorkflowStepRunnerService,
-    private readonly workflowExecutionsService: WorkflowExecutionsService,
     private readonly workflowExecutorService: WorkflowExecutorService,
     private readonly workflowExecutionQueueService: WorkflowExecutionQueueService,
   ) {}
@@ -245,19 +242,6 @@ export class WorkflowSchedulerService implements OnModuleInit {
         return;
       }
 
-      const nodes = workflowDocument.nodes as unknown[] | undefined;
-      const usesNodeExecutor = Boolean(nodes?.length);
-
-      // Legacy step-based workflows still need an explicit execution record here.
-      // Node-based workflows create their own execution record via WorkflowExecutorService.
-      if (!usesNodeExecutor) {
-        await this.workflowExecutionsService.createExecution(wUserId, wOrgId, {
-          inputValues: defaultInputValues,
-          trigger: WorkflowExecutionTrigger.SCHEDULED,
-          workflowId,
-        });
-      }
-
       // Update workflow last executed timestamp
       await this.prisma.workflow.update({
         data: {
@@ -267,19 +251,15 @@ export class WorkflowSchedulerService implements OnModuleInit {
         where: scopedWhere(wOrgId, { id: workflowId }),
       });
 
-      // Start execution (fire and forget).
-      // Node-based workflows run through the newer workflow engine executor;
-      // legacy step-based workflows keep the existing execution path.
-      const executePromise = usesNodeExecutor
-        ? this.workflowExecutorService.executeManualWorkflowDocument(
-            workflowDocument,
-            wUserId,
-            wOrgId,
-            defaultInputValues,
-            { triggeredBy: 'schedule' },
-            WorkflowExecutionTrigger.SCHEDULED,
-          )
-        : this.workflowStepRunner.executeWorkflow(workflowId);
+      const executePromise =
+        this.workflowExecutorService.executeManualWorkflowDocument(
+          workflowDocument,
+          wUserId,
+          wOrgId,
+          defaultInputValues,
+          { triggeredBy: 'schedule' },
+          WorkflowExecutionTrigger.SCHEDULED,
+        );
 
       executePromise.catch((error) => {
         this.logger.error(

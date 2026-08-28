@@ -46,6 +46,5 @@ export const CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES = [
       },
     ],
     schedule: '0 8 * * *',
-    steps: [],
   },
 ] satisfies ContentLoopAutopilotWorkflowTemplate[];

@@ -26,6 +26,5 @@ export const OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES = [
       },
     ],
     schedule: '*/1 * * * *',
-    steps: [],
   },
 ] satisfies OutreachCampaignDispatchWorkflowTemplate[];

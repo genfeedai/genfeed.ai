@@ -1,17 +1,17 @@
+import { WorkflowStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
 import type { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
 import {
   computeNextRunAtOrThrow,
   isSchedulableTimezone,
 } from '@server/collections/workflows/utils/cron-schedule.util';
+import { createVersionedWorkflow } from '@server/collections/workflows/workflow-version-definition';
 import type { PrismaTransactionClient } from '@server/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { WorkflowStatus } from '@genfeedai/enums';
-import { toPrismaJson } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 
 // Prisma error codes used for race-condition handling.
 // P2034 — serialization failure (SQLSTATE 40001): the Serializable transaction
@@ -464,8 +464,9 @@ export class DefaultRecurringContentService {
       scheduleConfig.cronExpression,
       scheduleConfig.timezone,
     );
-    const workflow = await params.tx.workflow.create({
-      data: {
+    const workflow = await createVersionedWorkflow(
+      params.tx,
+      {
         brandId,
         // Denormalized brand identity used by the partial unique index
         // `workflows_default_recurring_brand_org_type_uidx`. Setting this
@@ -474,9 +475,7 @@ export class DefaultRecurringContentService {
         // legitimate "concurrent winner" signal.
         defaultRecurringBrandId: brandId,
         description: workflowDescription,
-        edges: toPrismaJson([]),
         executionCount: 0,
-        inputVariables: toPrismaJson([]),
         isDeleted: false,
         isScheduleEnabled: scheduleConfig.isEnabled,
         label: workflowLabel,
@@ -490,7 +489,17 @@ export class DefaultRecurringContentService {
           },
           taskType: 'default-recurring-content',
         },
-        nodes: toPrismaJson([
+        organizationId: params.organizationId,
+        progress: 0,
+        schedule: scheduleConfig.cronExpression,
+        status: WorkflowStatus.ACTIVE,
+        timezone: scheduleConfig.timezone,
+        userId: params.userId,
+      },
+      {
+        edges: [],
+        inputVariables: [],
+        nodes: [
           {
             data: {
               config: this.buildNodeConfig({
@@ -506,21 +515,11 @@ export class DefaultRecurringContentService {
             position: { x: 120, y: 120 },
             type: this.buildNodeType(params.contentType),
           },
-        ]),
-        organizationId: params.organizationId,
-        progress: 0,
-        schedule: scheduleConfig.cronExpression,
-        status: WorkflowStatus.ACTIVE,
-        steps: toPrismaJson([]),
-        timezone: scheduleConfig.timezone,
-        userId: params.userId,
+        ],
       },
-    });
-
-    const workflowId = String(
-      (workflow as Record<string, unknown>).id ??
-        (workflow as Record<string, unknown>).id,
     );
+
+    const workflowId = String((workflow as Record<string, unknown>).id);
 
     this.logger.log(`${this.logContext} created default recurring workflow`, {
       brandId,

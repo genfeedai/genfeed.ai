@@ -600,6 +600,7 @@ model User {
   socialMessages           SocialMessage[]
   agentWorkflows           AgentWorkflow[]
   workflows                Workflow[]
+  workflowVersions         WorkflowVersion[]
   workflowExecutions       WorkflowExecution[]
   bots                     Bot[]
   livestreamBotSessions    LivestreamBotSession[]
@@ -724,6 +725,7 @@ model Organization {
   agentStrategyOpportunities    AgentStrategyOpportunity[]
   agentStrategyReports          AgentStrategyReport[]
   workflows                     Workflow[]
+  workflowVersions              WorkflowVersion[]
   workflowExecutions            WorkflowExecution[]
   notificationEvents            NotificationEvent[]
   notificationDeliveries        NotificationDelivery[]
@@ -4012,14 +4014,11 @@ model Workflow {
   brand             Brand?       @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   label             String?
   description       String?
-  steps             Json         @default("[]")
-  nodes             Json         @default("[]")
-  edges             Json         @default("[]")
-  inputVariables    Json         @default("[]")
+  currentVersionId  String?          @unique
+  currentVersion    WorkflowVersion? @relation("workflow_current_version", fields: [currentVersionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   config            Json         @default("{}")
   metadata          Json?
   recurrence        Json?
-  lockedNodeIds     Json?
   // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
   status            String       @default("draft")
   lifecycle         String?
@@ -4048,6 +4047,7 @@ model Workflow {
   defaultRecurringBrandId String?
 
   tags       Tag[]               @relation("workflow_tags")
+  versions   WorkflowVersion[]   @relation("workflow_versions")
   executions WorkflowExecution[]
   batchJobs  BatchWorkflowJob[]
 
@@ -4062,10 +4062,36 @@ model Workflow {
   @@map("workflows")
 }
 
+/// Immutable executable workflow definition. A version is append-only: edits
+/// create a new row and atomically move Workflow.currentVersionId.
+model WorkflowVersion {
+  id             String       @id @default(cuid())
+  workflowId     String
+  workflow       Workflow     @relation("workflow_versions", fields: [workflowId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  version        Int
+  graph          Json
+  inputSchema    Json         @default("[]")
+  contentHash    String
+  createdAt      DateTime     @default(now())
+
+  currentFor Workflow?           @relation("workflow_current_version")
+  executions WorkflowExecution[]
+
+  @@unique([workflowId, version])
+  @@index([organizationId, workflowId, version(sort: Desc)])
+  @@map("workflow_versions")
+}
+
 model WorkflowExecution {
   id             String                  @id @default(cuid())
   workflowId     String
   workflow       Workflow                @relation(fields: [workflowId], references: [id])
+  workflowVersionId String
+  workflowVersion   WorkflowVersion      @relation(fields: [workflowVersionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   userId         String
   user           User                    @relation(fields: [userId], references: [id])
   organizationId String
@@ -4097,6 +4123,7 @@ model WorkflowExecution {
   trigger String?
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, workflowVersionId, createdAt(sort: Desc)])
   @@map("workflow_executions")
 }
 

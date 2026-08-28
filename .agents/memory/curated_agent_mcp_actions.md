@@ -14,7 +14,7 @@ mistook transport coverage for user capability. Agent already exposed 78
 curated actions; the reviewed hand-authored union is the correct baseline.
 
 **How to apply:** Treat
-`packages/tools/src/registry/curated-action-catalog.ts` as the single source of
+`packages/actions/src/registry/curated-action-catalog.ts` as the single source of
 truth for Agent/MCP surface intent. Keep schemas and metadata in the definition
 shards, and require focused Agent/MCP executor coverage for every surfaced
 action. Catalog additions, removals, and surface transitions must be intentional
@@ -29,7 +29,7 @@ generate tools or parity gates.
 
 **Enforcement (three layers, all in CI or at boot):**
 
-- `packages/tools/src/registry/tool-registry.ts` throws at module load when a
+- `packages/actions/src/registry/tool-registry.ts` throws at module load when a
   catalog entry has no definition, a definition has no catalog entry, or either
   side has duplicates.
 - MCP: `ToolRegistryService.validateDispatchCoverage` (OnModuleInit) crashes

@@ -73,6 +73,7 @@ export interface ExecutableEdge {
 
 export interface ExecutableWorkflow {
   id: string;
+  versionId: string;
   organizationId: string;
   userId: string;
   nodes: ExecutableNode[];

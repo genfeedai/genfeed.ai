@@ -21,7 +21,6 @@ import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 import { CronStreaksModule } from '@workers/crons/streaks/cron.streaks.module';
 import { CronTiktokModule } from '@workers/crons/tiktok/cron.tiktok.module';
 import { CronTrendsModule } from '@workers/crons/trends/cron.trends.module';
-import { CronWorkflowsModule } from '@workers/crons/workflows/cron.workflows.module';
 import { CronYoutubeModule } from '@workers/crons/youtube/cron.youtube.module';
 import { QueueMetricsModule } from '@workers/monitoring/queue-metrics.module';
 import { ProcessorsModule } from '@workers/processors/processors.module';
@@ -63,7 +62,6 @@ import { SystemSweepsModule } from '@workers/scheduling/system-sweeps.module';
     CronStreaksModule,
     CronTiktokModule,
     CronTrendsModule,
-    CronWorkflowsModule,
     CronYoutubeModule,
   ],
   providers: [CronSchedulerControlService],

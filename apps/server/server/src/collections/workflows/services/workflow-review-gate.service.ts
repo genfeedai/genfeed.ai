@@ -1,10 +1,16 @@
+import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/enums';
+import type {
+  ExecutableWorkflow,
+  ExecutionRunResult,
+  NodeExecutionResult,
+} from '@genfeedai/workflows/engine';
+import { BadRequestException } from '@nestjs/common';
 import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
 import type { ReviewGateNotificationService } from '@server/collections/workflows/services/review-gate-notification.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionFinalizerService } from '@server/collections/workflows/services/workflow-execution-finalizer.service';
 import { WorkflowExecutionGraphService } from '@server/collections/workflows/services/workflow-execution-graph.service';
 import { WorkflowExecutionProgressService } from '@server/collections/workflows/services/workflow-execution-progress.service';
-import { EXECUTABLE_WORKFLOW_SELECT } from '@server/collections/workflows/services/workflow-executor.constants';
 import {
   PendingReviewGateState,
   ReviewGateApprovalResult,
@@ -13,15 +19,6 @@ import {
 import { WorkflowExecutorDocumentService } from '@server/collections/workflows/services/workflow-executor-document.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
-import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
-import type {
-  ExecutableWorkflow,
-  ExecutionRunResult,
-  NodeExecutionResult,
-} from '@genfeedai/workflows/engine';
-import { BadRequestException } from '@nestjs/common';
 
 /** Actor recorded on automatic (timeout sweep) approvals/rejections. */
 const REVIEW_GATE_SYSTEM_ACTOR = 'system';
@@ -64,18 +61,16 @@ export class WorkflowReviewGateService {
       throw new NotFoundException(`Execution ${executionId} not found`);
     }
 
-    const workflowDoc = await findOrThrow(
-      this.prisma.workflow,
-      {
-        select: EXECUTABLE_WORKFLOW_SELECT,
-        where: scopedWhere(organizationId, { id: workflowId }),
-      },
-      'Workflow',
+    const normalizedWorkflowDoc = await this.documentService.findPinnedWorkflow(
       workflowId,
+      execution.workflowVersionId,
+      organizationId,
     );
-
-    const normalizedWorkflowDoc =
-      this.documentService.normalizeWorkflowDocument(workflowDoc);
+    if (!normalizedWorkflowDoc) {
+      throw new NotFoundException(
+        `Workflow version ${execution.workflowVersionId} not found`,
+      );
+    }
     const workflowLabel = this.documentService.getWorkflowLabel(
       normalizedWorkflowDoc,
     );

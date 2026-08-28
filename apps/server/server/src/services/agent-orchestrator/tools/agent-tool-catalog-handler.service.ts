@@ -1,15 +1,15 @@
 import {
-  readOptionalNumber,
-  readOptionalString,
-} from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import type { AgentToolResult } from '@genfeedai/interfaces';
-import {
   type CanonicalToolDefinition,
   getToolsForRole,
   type ToolCategory,
   type ToolRequiredRole,
-} from '@genfeedai/tools';
+} from '@genfeedai/actions';
+import type { AgentToolResult } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
+import {
+  readOptionalNumber,
+  readOptionalString,
+} from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 
 type ToolCatalogSurface = 'agent' | 'mcp' | 'cli' | 'all';
 

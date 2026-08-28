@@ -11,7 +11,7 @@
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/queue-contracts": "workspace:*",
     "@genfeedai/server": "workspace:*",
-    "@genfeedai/tools": "workspace:*",
+    "@genfeedai/actions": "workspace:*",
     "@genfeedai/workflows": "workspace:*",
     "@nestjs/axios": "4.0.1",
     "@nestjs/bullmq": "11.0.5",

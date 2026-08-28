@@ -14,10 +14,10 @@
   ],
   "license": "MIT",
   "main": "./dist/index.js",
-  "name": "@genfeedai/tools",
+  "name": "@genfeedai/actions",
   "private": true,
   "repository": {
-    "directory": "packages/tools",
+    "directory": "packages/actions",
     "type": "git",
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },

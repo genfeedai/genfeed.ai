@@ -4,6 +4,7 @@ export * from './brand-asset';
 export * from './brand-context';
 export * from './comment-trigger';
 export * from './engagement-trigger';
+export * from './genfeed-action';
 // TikTok slideshow automation nodes
 export * from './hook-generator';
 export * from './keyword-trigger';

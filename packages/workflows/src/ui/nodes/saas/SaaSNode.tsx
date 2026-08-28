@@ -6,6 +6,15 @@ import { memo } from 'react';
 import { BaseNode } from '../BaseNode';
 
 export const workflowSaaSNodeDefinitions = {
+  genfeedAction: {
+    category: 'automation',
+    icon: 'Workflow',
+    inputs: [
+      { id: 'input', label: 'Action Input', optional: true, type: 'any' },
+    ],
+    label: 'Genfeed Action',
+    outputs: [{ id: 'output', label: 'Action Output', type: 'any' }],
+  },
   talkingHeadScript: {
     category: 'ai',
     icon: 'FileText',

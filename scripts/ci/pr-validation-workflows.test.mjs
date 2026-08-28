@@ -389,8 +389,8 @@ test('reports curated action catalog changes on catalog pull requests', () => {
 
   assert.match(workflow, /^ {2}pull_request:\n/m);
   for (const pathFilter of [
-    'packages/tools/src/registry/curated-action-catalog.ts',
-    'packages/tools/scripts/report-curated-action-catalog.ts',
+    'packages/actions/src/registry/curated-action-catalog.ts',
+    'packages/actions/scripts/report-curated-action-catalog.ts',
   ]) {
     assert.ok(
       workflow.includes(`      - "${pathFilter}"\n`),

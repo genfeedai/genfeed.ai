@@ -224,6 +224,14 @@ export const CURATED_ACTION_CATALOG = [
 
 export type CuratedActionName = (typeof CURATED_ACTION_CATALOG)[number]['name'];
 
+const CURATED_ACTION_NAMES = new Set<string>(
+  CURATED_ACTION_CATALOG.map((entry) => entry.name),
+);
+
+export function isCuratedActionName(value: string): value is CuratedActionName {
+  return CURATED_ACTION_NAMES.has(value);
+}
+
 export function isActionOnSurface(
   entry: CuratedActionCatalogEntry,
   surface: CuratedActionSurface,

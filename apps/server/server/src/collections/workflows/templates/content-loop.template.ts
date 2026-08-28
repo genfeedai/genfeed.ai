@@ -1,6 +1,5 @@
-import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { WorkflowStepCategory } from '@genfeedai/enums';
+import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 
 export const CONTENT_LOOP_PROMPT_TEMPLATE =
   'Write a {{tone}} social caption about {{topic}}.\n\nBrand voice:\n{{brandVoice}}\n\nKeep it under {{maxLength}} characters.';
@@ -186,61 +185,6 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       id: 'publish',
       position: { x: 1600, y: 100 },
       type: 'output-publish',
-    },
-  ],
-  steps: [
-    {
-      category: WorkflowStepCategory.PERFORMANCE_TRACK,
-      config: { topN: 5, worstN: 3 },
-      id: 'step-analytics-feedback',
-      name: 'Read Analytics',
-    },
-    {
-      category: WorkflowStepCategory.WEBHOOK,
-      config: {
-        checkFrequency: '6hr',
-        minViralScore: 70,
-        trendType: 'hashtag',
-      },
-      dependsOn: ['step-analytics-feedback'],
-      id: 'step-trend-trigger',
-      name: 'Find Matching Trend',
-    },
-    {
-      category: WorkflowStepCategory.GENERATE_HOOK,
-      config: {
-        includeHashtags: true,
-        template: CONTENT_LOOP_PROMPT_TEMPLATE,
-        tone: 'brand-voice',
-      },
-      dependsOn: ['step-analytics-feedback', 'step-trend-trigger'],
-      id: 'step-prompt',
-      name: 'Build Prompt',
-    },
-    {
-      category: WorkflowStepCategory.GENERATE_ARTICLE,
-      config: { model: LLM_DEFAULTS.fastText, temperature: 0.8 },
-      dependsOn: ['step-prompt'],
-      id: 'step-generate',
-      name: 'Generate Content',
-    },
-    {
-      category: WorkflowStepCategory.PUBLISH,
-      config: {
-        platforms: {
-          facebook: false,
-          instagram: false,
-          linkedin: false,
-          threads: false,
-          tiktok: true,
-          twitter: false,
-          youtube: false,
-        },
-        schedule: { type: 'immediate' },
-      },
-      dependsOn: ['step-analytics-feedback', 'step-generate'],
-      id: 'step-publish',
-      name: 'Publish',
     },
   ],
 };

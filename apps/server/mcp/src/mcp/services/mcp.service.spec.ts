@@ -1,4 +1,4 @@
-import { getToolsForRole, getToolsForSurface } from '@genfeedai/tools';
+import { getToolsForRole, getToolsForSurface } from '@genfeedai/actions';
 import * as appMetadata from '@mcp/config/app-metadata.json';
 import { MCP_RESOURCES } from '@mcp/mcp/resource-catalog';
 import { MCPService } from '@mcp/mcp/services/mcp.service';

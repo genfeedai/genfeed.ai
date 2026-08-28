@@ -1,7 +1,12 @@
+import { APP_ROUTES } from '@genfeedai/constants';
+import { WorkflowTrigger } from '@genfeedai/enums';
+import type { AgentToolResult } from '@genfeedai/interfaces';
+import { AgentToolName } from '@genfeedai/interfaces';
+import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import type {
   WorkflowEdgeDto,
   WorkflowInputVariableDto,
-  WorkflowStepDto,
   WorkflowVisualNodeDto,
 } from '@server/collections/workflows/dto/create-workflow.dto';
 import { WorkflowGenerationService } from '@server/collections/workflows/services/workflow-generation.service';
@@ -16,12 +21,6 @@ import type {
   RecurringScaffoldParams,
   RecurringTaskContentType,
 } from '@server/services/agent-orchestrator/tools/agent-workflow-tool.types';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { WorkflowTrigger } from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
-import { AgentToolName } from '@genfeedai/interfaces';
-import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
-import { Inject, Injectable, Optional } from '@nestjs/common';
 
 const MISSING_BRAND_ERROR =
   'No valid brand is available. Select a brand or refresh your brand context before creating a workflow.';
@@ -48,9 +47,7 @@ export class AgentWorkflowToolCreateService {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const hasGraphPayload =
-      Array.isArray(params.nodes) ||
-      Array.isArray(params.edges) ||
-      Array.isArray(params.steps);
+      Array.isArray(params.nodes) || Array.isArray(params.edges);
     const hasRecurringScaffold =
       typeof params.prompt === 'string' && params.prompt.trim().length > 0;
     const hasNaturalLanguageGenerationRequest =
@@ -233,7 +230,6 @@ export class AgentWorkflowToolCreateService {
         metadata: normalizedMetadata,
         nodes: asWorkflowDtoArray<WorkflowVisualNodeDto>(input.nodes),
         schedule: input.schedule,
-        steps: asWorkflowDtoArray<WorkflowStepDto>(params.steps),
         templateId:
           typeof params.templateId === 'string' ? params.templateId : undefined,
         timezone: input.timezone,

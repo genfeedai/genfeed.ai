@@ -5,6 +5,7 @@ import {
   DEFAULT_BRAND_DATA,
   DEFAULT_COMMENT_TRIGGER_DATA,
   DEFAULT_ENGAGEMENT_TRIGGER_DATA,
+  DEFAULT_GENFEED_ACTION_DATA,
   DEFAULT_HOOK_GENERATOR_DATA,
   DEFAULT_KEYWORD_TRIGGER_DATA,
   DEFAULT_MUSIC_SOURCE_DATA,
@@ -38,6 +39,7 @@ export type SaaSNodeType =
   | 'analyticsFeedback'
   | 'commentTrigger'
   | 'engagementTrigger'
+  | 'genfeedAction'
   | 'keywordTrigger'
   | 'musicSource'
   | 'trendTrigger'
@@ -174,6 +176,17 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
       { id: 'platform', label: 'Platform', type: 'text' },
     ],
     type: 'engagementTrigger',
+  },
+  genfeedAction: {
+    category: 'automation',
+    defaultData: DEFAULT_GENFEED_ACTION_DATA as Record<string, unknown>,
+    description:
+      'Execute one registered Genfeed action inside the workflow engine',
+    icon: 'Workflow',
+    inputs: [{ id: 'input', label: 'Action Input', type: 'any' }],
+    label: 'Genfeed Action',
+    outputs: [{ id: 'output', label: 'Action Output', type: 'any' }],
+    type: 'genfeedAction',
   },
   keywordTrigger: {
     category: 'automation',

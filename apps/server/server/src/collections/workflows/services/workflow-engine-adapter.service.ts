@@ -28,7 +28,6 @@ import { AvatarVideoGenerationService } from '@server/collections/videos/service
 import { VideoMusicOrchestrationService } from '@server/collections/videos/services/video-music-orchestration.service';
 import type {
   WorkflowInputVariable,
-  WorkflowStep,
   WorkflowVisualNode,
 } from '@server/collections/workflows/schemas/workflow.schema';
 import { AdAutomationWorkflowService } from '@server/collections/workflows/services/ad-automation-workflow.service';
@@ -277,20 +276,6 @@ export class WorkflowEngineAdapterService {
       workflowDoc,
       executableWorkflow,
       inputValues,
-    );
-  }
-
-  convertStepsToExecutableWorkflow(
-    workflowId: string,
-    steps: WorkflowStep[],
-    userId: string,
-    organizationId: string,
-  ): ExecutableWorkflow {
-    return this.converter.convertStepsToExecutableWorkflow(
-      workflowId,
-      steps,
-      userId,
-      organizationId,
     );
   }
 
