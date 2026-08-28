@@ -252,6 +252,80 @@ describe('OpenRouterService', () => {
       expect(httpService.post).toHaveBeenCalledTimes(1);
     });
 
+    it('retries the synthetic free route when ZDR filtering leaves no endpoint', async () => {
+      const unavailableRouteError = Object.assign(
+        new Error('Request failed with status code 404'),
+        {
+          response: {
+            data: {
+              error: {
+                code: 404,
+                message:
+                  'No endpoints found matching your data policy (Zero data retention). Configure: https://openrouter.ai/settings/privacy',
+              },
+            },
+            status: 404,
+            statusText: 'Not Found',
+          },
+        },
+      );
+      httpService.post
+        .mockReturnValueOnce(throwError(() => unavailableRouteError))
+        .mockReturnValueOnce(of(makeAxiosResponse(mockResponse)));
+
+      const result = await service.chatCompletion({
+        ...defaultParams,
+        model: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+      });
+
+      expect(result).toEqual(mockResponse);
+      expect(httpService.post).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not retry an arbitrary 404 from the synthetic free route', async () => {
+      const notFoundError = Object.assign(new Error('Resource not found'), {
+        response: {
+          data: { error: { code: 404, message: 'Resource not found' } },
+          status: 404,
+          statusText: 'Not Found',
+        },
+      });
+      httpService.post.mockReturnValue(throwError(() => notFoundError));
+
+      await expect(
+        service.chatCompletion({
+          ...defaultParams,
+          model: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+        }),
+      ).rejects.toMatchObject({ response: { status: 404 } });
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not retry a route-unavailable 404 for an explicit model', async () => {
+      const unavailableRouteError = Object.assign(
+        new Error('Request failed with status code 404'),
+        {
+          response: {
+            data: {
+              error: {
+                code: 404,
+                message:
+                  'No endpoints found matching your data policy (Zero data retention).',
+              },
+            },
+            status: 404,
+            statusText: 'Not Found',
+          },
+        },
+      );
+      httpService.post.mockReturnValue(throwError(() => unavailableRouteError));
+
+      await expect(service.chatCompletion(defaultParams)).rejects.toMatchObject(
+        { response: { status: 404 } },
+      );
+      expect(httpService.post).toHaveBeenCalledTimes(1);
+    });
+
     it('preserves the nested upstream status after free-route retry exhaustion', async () => {
       const exhaustedError = Object.assign(
         new Error('Request failed with 404'),

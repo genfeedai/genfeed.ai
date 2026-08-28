@@ -16,6 +16,12 @@ import { firstValueFrom } from 'rxjs';
 const RETRYABLE_OPENROUTER_STATUSES = new Set([
   408, 429, 502, 503, 504, 524, 529,
 ]);
+const FREE_ROUTE_UNAVAILABLE_MESSAGE_PATTERNS = [
+  'no endpoints found matching your data policy',
+  'no endpoints found that support',
+  'no allowed providers are available for the selected model',
+  'no compatible endpoints available',
+] as const;
 
 interface OpenRouterErrorDetails {
   message: string;
@@ -152,11 +158,25 @@ export class OpenRouterService {
     params: OpenRouterChatCompletionParams,
     error: unknown,
   ): boolean {
-    const status = this.getSafeErrorDetails(error).status;
-    return (
-      params.model === AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE &&
-      status !== undefined &&
-      RETRYABLE_OPENROUTER_STATUSES.has(status)
+    if (params.model !== AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE) {
+      return false;
+    }
+
+    const details = this.getSafeErrorDetails(error);
+    if (
+      details.status !== undefined &&
+      RETRYABLE_OPENROUTER_STATUSES.has(details.status)
+    ) {
+      return true;
+    }
+
+    if (details.status !== 404) {
+      return false;
+    }
+
+    const message = details.message.toLowerCase();
+    return FREE_ROUTE_UNAVAILABLE_MESSAGE_PATTERNS.some((pattern) =>
+      message.includes(pattern),
     );
   }
 
