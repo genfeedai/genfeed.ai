@@ -1,17 +1,11 @@
 import { createHash } from 'node:crypto';
-import { CredentialCryptoService } from '@server/collections/credentials/services/credential-crypto.service';
-import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
-import type {
-  AgentChatContext,
-  AgentChatRequest,
-  AgentTurnAcknowledgement,
-} from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   AgentExecutionTrigger,
+  AgentMessageRole,
   AgentRunStatus,
   AgentThreadStatus,
 } from '@genfeedai/enums';
+import { toAgentScopeMetadata } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import type { AgentRunJobData } from '@genfeedai/queue-contracts';
 import { AgentScopeContextService } from '@genfeedai/server';
@@ -21,6 +15,15 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
+import { CredentialCryptoService } from '@server/collections/credentials/services/credential-crypto.service';
+import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
+import type {
+  AgentChatContext,
+  AgentChatRequest,
+  AgentTurnAcknowledgement,
+} from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const ARCHIVED_THREAD_WRITE_ERROR =
   'This thread is archived. Unarchive it before sending messages or running actions.';
@@ -75,6 +78,7 @@ export class AgentTurnAcceptanceService {
     private readonly scopeService: AgentScopeContextService,
     private readonly queueService: AgentRunQueueService,
     private readonly credentialCryptoService: CredentialCryptoService,
+    private readonly agentMessagesService: AgentMessagesService,
   ) {}
 
   async accept(
@@ -202,6 +206,16 @@ export class AgentTurnAcceptanceService {
         });
 
     const contextVersion = Number(thread.contextVersion ?? 1);
+    const scope =
+      existingScope ??
+      (await measure('resolve_created_scope', () =>
+        this.scopeService.resolveCreatedThreadScope({
+          brandId: thread.brandId ?? undefined,
+          organizationId: context.organizationId,
+          threadId,
+          userId: context.userId,
+        }),
+      ));
     const contextId = `${threadId}:v${contextVersion}`;
     const queuedAt = new Date().toISOString();
     const requestHash = requestDigest(request, threadId);
@@ -291,6 +305,41 @@ export class AgentTurnAcceptanceService {
         'clientRequestId was already used for another turn.',
       );
     }
+
+    // Acceptance owns the durable user turn. Persisting it inside the worker
+    // left titled, zero-message threads whenever provider resolution failed
+    // before the generation loop reached its own idempotent message upsert.
+    // The worker uses the same stable run id, so queue redelivery remains a
+    // no-op while the transcript is immediately complete after acknowledgement.
+    await measure('persist_user_message', () =>
+      this.agentMessagesService.addMessage({
+        artifactReferences: request.artifactReferences,
+        brandId: scope.brandId,
+        content: request.content,
+        id: runId,
+        metadata: {
+          agentScope: toAgentScopeMetadata(scope),
+          ...(request.generationMode
+            ? { generationMode: request.generationMode }
+            : {}),
+          ...(request.transferId
+            ? {
+                agentTransfer: {
+                  direction: 'inbound',
+                  transferId: request.transferId,
+                },
+              }
+            : {}),
+          ...(request.attachments?.length
+            ? { attachments: request.attachments }
+            : {}),
+        },
+        organizationId: context.organizationId,
+        role: AgentMessageRole.USER,
+        room: threadId,
+        userId: context.userId,
+      }),
+    );
 
     const persistedStatus = String(persistedRun.status);
     const isRecoverableEnqueueFailure =
