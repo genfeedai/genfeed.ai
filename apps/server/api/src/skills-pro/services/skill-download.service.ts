@@ -1,11 +1,11 @@
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 type SkillReceiptData = {
   receiptId?: string;
@@ -38,14 +38,7 @@ export class SkillDownloadService {
       receiptId,
     });
 
-    const receipts = await this.prisma.skillReceipt.findMany({
-      where: { isDeleted: false },
-    });
-
-    const receipt = receipts.find((r) => {
-      const data = r.data as SkillReceiptData;
-      return data?.receiptId === receiptId && data?.status === 'completed';
-    });
+    const receipt = await this.findCompletedReceipt(receiptId);
 
     if (!receipt) {
       return { email: '', productType: '', skills: [], valid: false };
@@ -78,14 +71,7 @@ export class SkillDownloadService {
       skillSlug,
     });
 
-    const receipts = await this.prisma.skillReceipt.findMany({
-      where: { isDeleted: false },
-    });
-
-    const receipt = receipts.find((r) => {
-      const data = r.data as SkillReceiptData;
-      return data?.receiptId === receiptId && data?.status === 'completed';
-    });
+    const receipt = await this.findCompletedReceipt(receiptId);
 
     if (!receipt) {
       throw new NotFoundException({
@@ -145,5 +131,17 @@ export class SkillDownloadService {
         version: skillEntry.version,
       },
     };
+  }
+
+  private findCompletedReceipt(receiptId: string) {
+    return this.prisma.skillReceipt.findFirst({
+      where: {
+        AND: [
+          { data: { equals: receiptId, path: ['receiptId'] } },
+          { data: { equals: 'completed', path: ['status'] } },
+        ],
+        isDeleted: false,
+      },
+    });
   }
 }
