@@ -189,8 +189,11 @@ export function AgentChatPromptBar({
       ) : null}
       {statusStack}
       {hasFollowUpChips ? (
-        // Chips carry their own solid fill + shadow — no full-width black strip.
-        <div className="relative z-10">{promptBarSuggestions}</div>
+        // The row owns no surface or shadow. Each action button owns its own
+        // elevation, and the padding keeps it visually separate from composer.
+        <div className="relative z-10 bg-transparent pb-3 shadow-none">
+          {promptBarSuggestions}
+        </div>
       ) : null}
     </>
   );
@@ -202,7 +205,7 @@ export function AgentChatPromptBar({
       layoutMode={isPortaled ? 'inflow' : layoutMode}
       // Portal already owns max-w-4xl + matching px; fill it without re-padding.
       maxWidth={isPortaled ? 'full' : '4xl'}
-      showTopFade
+      showTopFade={!hasFollowUpChips}
       topContent={topContent}
       zIndex={40}
       containerRef={onOverlayElement}
