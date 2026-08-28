@@ -1,3 +1,7 @@
+import { PostVisibility, TargetExecutionState } from '@genfeedai/enums';
+import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
+import { AgentScopeContextService } from '@genfeedai/server';
+import { Injectable, Optional } from '@nestjs/common';
 import { ArticleAnalyticsService } from '@server/collections/articles/services/article-analytics.service';
 import { ArticlesService } from '@server/collections/articles/services/articles.service';
 import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
@@ -7,10 +11,6 @@ import { AnalyticsService } from '@server/endpoints/analytics/analytics.service'
 import { AgentPublishToolHandler } from '@server/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import { PostVisibility, TargetExecutionState } from '@genfeedai/enums';
-import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
-import { AgentScopeContextService } from '@genfeedai/server';
-import { Injectable, Optional } from '@nestjs/common';
 
 /**
  * Analytics tools extracted from AgentToolExecutorService per #519.
@@ -195,7 +195,10 @@ export class AgentAnalyticsToolHandler {
     );
 
     const articleSummary = this.articleAnalyticsService
-      ? await this.articleAnalyticsService.getArticleAnalyticsSummary(contentId)
+      ? await this.articleAnalyticsService.getArticleAnalyticsSummary(
+          contentId,
+          ctx.organizationId,
+        )
       : null;
 
     const publishedPost = await this.resolveLatestPublishedPostForArticle(

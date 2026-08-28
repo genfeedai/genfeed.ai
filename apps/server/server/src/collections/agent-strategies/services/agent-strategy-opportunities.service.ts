@@ -88,6 +88,7 @@ export class AgentStrategyOpportunitiesService {
     const statusFilters = options.statuses?.map((status) => ({
       data: { equals: status, path: ['status'] },
     }));
+    // tenant-scope-ignore: organizationId is pinned below; isDeleted is omitted only when the caller explicitly requests tombstones
     const records = await this.prisma.agentStrategyOpportunity.findMany({
       where: {
         organizationId,
