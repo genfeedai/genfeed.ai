@@ -20,10 +20,15 @@ import type {
   RetryConfig,
 } from '../types';
 import { DEFAULT_RETRY_CONFIG } from '../types';
+import { buildActionExecutionInput } from '../utils/action-input';
 import {
   getExecutableNodeOperationId,
   isEngineNativeNodeType,
 } from '../utils/action-node';
+import {
+  type ActionContractJsonSchema,
+  compileActionContract,
+} from '../validation/action-contract';
 import {
   DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
   type EngineExecutionOptions,
@@ -93,16 +98,42 @@ export class WorkflowEngine {
   }
 
   registerExecutor(nodeType: string, executor: NodeExecutor): void {
-    if (!isEngineNativeNodeType(nodeType) && !getActionDefinition(nodeType)) {
+    const isNative = isEngineNativeNodeType(nodeType);
+    const action = isNative ? undefined : getActionDefinition(nodeType);
+    if (!isNative && !action) {
       throw new Error(`Cannot register unknown Genfeed action: ${nodeType}`);
     }
-    const registry = isEngineNativeNodeType(nodeType)
-      ? this.nativeExecutors
-      : this.actionExecutors;
+    const registry = isNative ? this.nativeExecutors : this.actionExecutors;
     if (registry.has(nodeType)) {
       throw new Error(`Duplicate workflow node executor: ${nodeType}`);
     }
-    registry.set(nodeType, executor);
+    if (isNative) {
+      registry.set(nodeType, executor);
+      return;
+    }
+
+    if (!action) {
+      throw new Error(`Cannot register unknown Genfeed action: ${nodeType}`);
+    }
+    const contract = compileActionContract(nodeType, {
+      inputSchema: action.inputSchema as ActionContractJsonSchema,
+      outputSchema: action.outputSchema as ActionContractJsonSchema,
+    });
+    registry.set(nodeType, async (node, inputs, context) => {
+      const provenance = {
+        nodeId: node.id,
+        runId: context.runId,
+        workflowId: context.workflowId,
+        workflowVersionId: context.workflowVersionId,
+      };
+      contract.validateInput(
+        buildActionExecutionInput(node.config, inputs),
+        provenance,
+      );
+      const output = await executor(node, inputs, context);
+      contract.validateOutput(output, provenance);
+      return output;
+    });
   }
 
   getExecutor(nodeType: string): NodeExecutor | undefined {
