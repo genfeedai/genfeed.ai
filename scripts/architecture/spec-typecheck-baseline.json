@@ -1881,14 +1881,6 @@
       "workspace": "api"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/pinterest/controllers/pinterest.controller.spec.ts",
-      "fingerprint": "9ff40007d2f6c9322084",
-      "message": "Conversion of type '{ log: Mock<Procedure>; }' to type 'LoggerService' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ log: Mock<Procedure>; }' is missing the following properties from type 'LoggerService': constructorName, winston, warn, debug, and 29 more.",
-      "workspace": "api"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "apps/server/api/src/services/integrations/replicate/replicate.coverage.spec.ts",
@@ -3641,14 +3633,6 @@
       "workspace": "server"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/server/src/services/content-optimization/content-optimization.service.spec.ts",
-      "fingerprint": "c5e73c43dc638ed8379d",
-      "message": "Argument of type '{ debug: Mock<Procedure | Constructable>; error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; warn: Mock<...>; }' is not assignable to parameter of type 'LoggerService'.   Type '{ debug: Mock<Procedure | Constructable>; error: Mock<Procedure | Constructable>; log: Mock<Procedure | Constructable>; warn: Mock<...>; }' is missing the following properties from type 'LoggerService': constructorName, winston, normalizeContext, serializeError, and 26 more.",
-      "workspace": "server"
-    },
-    {
       "code": 2741,
       "count": 1,
       "file": "apps/server/server/src/services/content-optimization/content-optimization.service.spec.ts",
@@ -4406,14 +4390,6 @@
       "file": "apps/server/workers/src/crons/workflows/cron.workflows.service.spec.ts",
       "fingerprint": "c457c29ce5aa7d36e1fb",
       "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/workers/src/processors/api/queues/ad-sync-meta/ad-sync-meta.processor.spec.ts",
-      "fingerprint": "4ba93b1c0def76c62a14",
-      "message": "Conversion of type '{ error: Mock<Procedure>; log: Mock<Procedure>; warn: Mock<Procedure>; }' to type 'LoggerService' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ error: Mock<Procedure>; log: Mock<Procedure>; warn: Mock<Procedure>; }' is missing the following properties from type 'LoggerService': constructorName, winston, debug, normalizeContext, and 27 more.",
       "workspace": "workers"
     },
     {
