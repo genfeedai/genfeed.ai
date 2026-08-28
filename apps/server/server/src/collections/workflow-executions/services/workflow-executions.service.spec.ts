@@ -24,7 +24,11 @@ describe('WorkflowExecutionsService', () => {
         startedAt: new Date('2026-06-29T00:00:00.000Z'),
         trigger: 'manual',
         userId: 'actor-user-1',
-        workflow: { label: 'Daily Posts', userId: 'owner-user-1' },
+        workflow: {
+          label: 'Daily Posts',
+          metadata: null,
+          userId: 'owner-user-1',
+        },
         workflowId: 'workflow-1',
       }),
       findMany: vi.fn().mockResolvedValue([]),
@@ -91,6 +95,10 @@ describe('WorkflowExecutionsService', () => {
       1,
       expect.objectContaining({
         data: expect.objectContaining({
+          completedAt: null,
+          durationMs: null,
+          error: null,
+          failedNodeId: null,
           status: PrismaWorkflowExecutionStatus.RUNNING,
         }),
       }),
@@ -280,7 +288,11 @@ describe('WorkflowExecutionsService', () => {
       startedAt: new Date('2026-06-29T00:00:00.000Z'),
       trigger: 'manual',
       userId: 'actor-user-1',
-      workflow: { label: 'Daily Posts', userId: 'owner-user-1' },
+      workflow: {
+        label: 'Daily Posts',
+        metadata: null,
+        userId: 'owner-user-1',
+      },
       workflowId: 'workflow-1',
     });
 
@@ -369,7 +381,11 @@ describe('WorkflowExecutionsService', () => {
       startedAt: new Date('2026-06-29T00:00:00.000Z'),
       trigger: 'scheduled',
       userId: 'actor-user-1',
-      workflow: { label: 'Daily Posts', userId: 'owner-user-1' },
+      workflow: {
+        label: 'Daily Posts',
+        metadata: null,
+        userId: 'owner-user-1',
+      },
       workflowId: 'workflow-1',
     });
     await service.completeExecution('execution-1');
@@ -578,6 +594,45 @@ describe('WorkflowExecutionsService', () => {
     expect(prisma.workflowExecution.findUnique).not.toHaveBeenCalled();
   });
 
+  it('leases review-gate resolution and can complete or release that claim', async () => {
+    const { prisma, service } = makeService();
+    prisma.$executeRaw.mockResolvedValue(1);
+
+    await expect(
+      service.claimPendingReviewGate(
+        'execution-1',
+        'review-node',
+        'claim-token',
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      service.completePendingReviewGateClaim(
+        'execution-1',
+        'review-node',
+        'claim-token',
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      service.releasePendingReviewGateClaim(
+        'execution-1',
+        'review-node',
+        'claim-token',
+      ),
+    ).resolves.toBe(true);
+
+    const statements = prisma.$executeRaw.mock.calls.map((call) =>
+      (call[0] as readonly string[]).join('?').replace(/\s+/g, ' ').trim(),
+    );
+    expect(statements[0]).toContain(
+      "'{metadata,pendingApproval,resolutionClaim}'",
+    );
+    expect(statements[0]).toContain("'expiresAtMs'");
+    expect(statements[1]).toContain(
+      "'{metadata,pendingApproval}', 'null'::jsonb",
+    );
+    expect(statements[2]).toContain("- 'resolutionClaim'");
+  });
+
   it('writes ETA snapshots onto scalar columns without returning result JSON', async () => {
     const { prisma, service } = makeService();
     prisma.workflowExecution.update.mockResolvedValue({
@@ -631,7 +686,11 @@ describe('WorkflowExecutionsService', () => {
         startedAt: new Date('2026-06-29T00:00:00.000Z'),
         trigger: 'manual',
         userId: 'actor-user-1',
-        workflow: { label: 'Daily Posts', userId: 'owner-user-1' },
+        workflow: {
+          label: 'Daily Posts',
+          metadata: null,
+          userId: 'owner-user-1',
+        },
         workflowId: 'workflow-1',
       })
       .mockResolvedValueOnce({
@@ -691,5 +750,49 @@ describe('WorkflowExecutionsService', () => {
     expect(
       workflowNotificationOutboxService.enqueueAfterCommit,
     ).toHaveBeenCalledWith('delivery-1');
+  });
+
+  it('targets the tenant actor for a hidden system workflow outcome', async () => {
+    const { prisma, service, workflowNotificationOutboxService } =
+      makeService();
+    prisma.workflowExecution.findUnique.mockResolvedValueOnce({
+      organizationId: 'org-1',
+      result: {},
+      startedAt: new Date('2026-06-29T00:00:00.000Z'),
+      trigger: 'manual',
+      userId: 'actor-user-1',
+      workflow: {
+        label: 'Hidden Workflow',
+        metadata: {
+          sourceType: 'hidden-system-workflow',
+          systemWorkflow: {
+            canonicalId: 'hidden-workflow',
+            changeSummary: 'Initial system workflow template version.',
+            credentialPolicy: 'tenant-connected-account',
+            duplicable: false,
+            immutable: true,
+            kind: 'system-workflow',
+            owner: 'genfeed',
+            productizationIssue: 1011,
+            version: 1,
+            visibility: 'internal',
+          },
+        },
+        userId: 'genfeed-public-tools',
+      },
+      workflowId: 'workflow-1',
+    });
+
+    await service.completeExecution('execution-1');
+
+    expect(
+      workflowNotificationOutboxService.recordWorkflowOutcome,
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        actorUserId: 'actor-user-1',
+        workflowOwnerUserId: 'actor-user-1',
+      }),
+    );
   });
 });

@@ -39,6 +39,8 @@ function pinnedVersion(input: {
   const version = currentVersion(input);
   return {
     ...version,
+    organizationId: 'org-1',
+    userId: 'user-1',
     workflow: {
       brandId: input.brandId,
       config: {},
@@ -805,7 +807,6 @@ describe('WorkflowExecutorService', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             id: WORKFLOW_VERSION_ID,
-            organizationId: 'org-1',
             workflowId: 'workflow-1',
           }),
         }),

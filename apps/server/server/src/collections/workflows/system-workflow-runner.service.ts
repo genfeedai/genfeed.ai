@@ -364,8 +364,18 @@ export class SystemWorkflowRunnerService
               `System workflow ${definition.canonicalId} has no immutable version pin`,
             );
           }
+          const mirrorMetadata = this.buildHiddenMirrorMetadata(definition);
           if (currentVersion.contentHash === nextDefinition.contentHash) {
-            return existing;
+            return transaction.workflow.update({
+              data: {
+                description: definition.description,
+                label: definition.label,
+                metadata: mirrorMetadata as Prisma.InputJsonValue,
+                schedule: definition.schedule,
+              },
+              include: { currentVersion: true },
+              where: { id: existing.id },
+            });
           }
 
           const nextVersion = await transaction.workflowVersion.create({
@@ -385,6 +395,7 @@ export class SystemWorkflowRunnerService
               currentVersionId: nextVersion.id,
               description: definition.description,
               label: definition.label,
+              metadata: mirrorMetadata as Prisma.InputJsonValue,
               schedule: definition.schedule,
             },
             where: {
@@ -411,22 +422,7 @@ export class SystemWorkflowRunnerService
             isDeleted: false,
             isScheduleEnabled: false,
             label: definition.label,
-            metadata: {
-              sourceTemplateChangeSummary:
-                definition.changeSummary ??
-                SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
-              sourceTemplateId: definition.canonicalId,
-              sourceTemplateVersion:
-                definition.version ?? SYSTEM_WORKFLOW_TEMPLATE_VERSION,
-              sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
-              [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata(
-                {
-                  canonicalId: definition.canonicalId,
-                  changeSummary: definition.changeSummary,
-                  version: definition.version,
-                },
-              ),
-            },
+            metadata: this.buildHiddenMirrorMetadata(definition),
             organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
             progress: 0,
             schedule: definition.schedule,
@@ -439,6 +435,24 @@ export class SystemWorkflowRunnerService
       },
       { isolationLevel: 'Serializable' },
     );
+  }
+
+  private buildHiddenMirrorMetadata(
+    definition: SystemWorkflowGraphDefinition,
+  ): Record<string, unknown> {
+    return {
+      sourceTemplateChangeSummary:
+        definition.changeSummary ?? SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
+      sourceTemplateId: definition.canonicalId,
+      sourceTemplateVersion:
+        definition.version ?? SYSTEM_WORKFLOW_TEMPLATE_VERSION,
+      sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+      [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata({
+        canonicalId: definition.canonicalId,
+        changeSummary: definition.changeSummary,
+        version: definition.version,
+      }),
+    };
   }
 
   private resolveDefinition(actionId: string): GenfeedActionDefinition {

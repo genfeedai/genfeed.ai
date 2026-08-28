@@ -180,6 +180,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
       $executeRaw: vi.fn().mockResolvedValue(1),
       workflow: {
         findFirst: vi.fn().mockResolvedValue(mirror),
+        update: vi.fn().mockResolvedValue(mirror),
       },
     };
     const prisma = {
@@ -224,6 +225,19 @@ describe('SystemWorkflowRunnerService definitions', () => {
         userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
       },
     });
+    expect(transaction.workflow.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          description: definition.description,
+          label: definition.label,
+          metadata: expect.objectContaining({
+            sourceTemplateId: definition.canonicalId,
+            sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+          }),
+        }),
+        where: { id: 'global-workflow' },
+      }),
+    );
     expect(executeManualWorkflowDocument).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'global-workflow',

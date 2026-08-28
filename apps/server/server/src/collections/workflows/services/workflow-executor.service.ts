@@ -111,7 +111,6 @@ export class WorkflowExecutorService {
       this.artifactLifecycleService,
     );
     this.reviewGateService = new WorkflowReviewGateService(
-      this.prisma,
       this.engineAdapter,
       this.executionsService,
       this.documentService,

@@ -23,6 +23,7 @@ import type {
   WorkflowExecutionDocument,
   WorkflowNodeResult,
 } from '@server/collections/workflow-executions/schemas/workflow-execution.schema';
+import { isHiddenSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
 import { parseWorkflowExecutionRetention } from '@server/collections/workflows/workflow-execution-retention.contract';
 import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 import { WorkflowNotificationOutboxService } from '@server/services/notifications/workflow-notifications/workflow-notification-outbox.service';
@@ -84,6 +85,7 @@ type WorkflowExecutionCompletionRow = {
   userId: string;
   workflow: {
     label: string | null;
+    metadata: unknown;
     userId: string;
   };
 };
@@ -113,6 +115,8 @@ type WorkflowExecutionProgressUpdate = {
   };
   progress?: number;
 };
+
+const REVIEW_GATE_RESOLUTION_LEASE_MS = 5 * 60 * 1000;
 
 type WorkflowExecutionScalarRow = {
   creditsUsed?: number | null;
@@ -455,6 +459,10 @@ export class WorkflowExecutionsService extends BaseService<
     // tenant-scope-ignore: the internal workflow runner starts an execution by its opaque globally unique id and has no request-level tenant boundary
     const result = await this.prisma.workflowExecution.update({
       data: {
+        completedAt: null,
+        durationMs: null,
+        error: null,
+        failedNodeId: null,
         startedAt: new Date(),
         status: PrismaWorkflowExecutionStatus.RUNNING,
       },
@@ -480,7 +488,7 @@ export class WorkflowExecutionsService extends BaseService<
         trigger: true,
         userId: true,
         workflowId: true,
-        workflow: { select: { label: true, userId: true } },
+        workflow: { select: { label: true, metadata: true, userId: true } },
       },
       where: { id: executionId },
     })) as WorkflowExecutionCompletionRow | null;
@@ -568,7 +576,11 @@ export class WorkflowExecutionsService extends BaseService<
               trigger: execution.trigger,
               workflowId: execution.workflowId,
               workflowLabel: execution.workflow.label ?? 'Untitled workflow',
-              workflowOwnerUserId: execution.workflow.userId,
+              workflowOwnerUserId: isHiddenSystemWorkflowMetadata(
+                execution.workflow.metadata,
+              )
+                ? execution.userId
+                : execution.workflow.userId,
             },
           );
 
@@ -815,23 +827,73 @@ export class WorkflowExecutionsService extends BaseService<
   /**
    * Atomically claim the pending review gate for `nodeId`. Both the human
    * approval endpoint and the timeout sweep resolve gates through this claim:
-   * the jsonb predicate stops matching once `pendingApproval` is cleared, so
-   * exactly one caller wins and the loser sees `false`.
+   * the unexpired lease stops matching after one caller wins. Failed resolvers
+   * release the lease, and an abandoned lease becomes retryable after expiry.
    */
   @HandleErrors('claim pending review gate', 'workflow-executions')
   async claimPendingReviewGate(
     executionId: string,
     nodeId: string,
+    claimToken: string,
   ): Promise<boolean> {
+    const nowMs = Date.now();
+    const expiresAtMs = nowMs + REVIEW_GATE_RESOLUTION_LEASE_MS;
+    const resolutionClaim = JSON.stringify({ claimToken, expiresAtMs });
     const claimed = await this.prisma.$executeRaw`
       UPDATE workflow_executions
-      SET result = jsonb_set(result, '{metadata,pendingApproval}', 'null'::jsonb)
+      SET result = jsonb_set(
+        result,
+        '{metadata,pendingApproval,resolutionClaim}',
+        ${resolutionClaim}::jsonb,
+        true
+      )
       WHERE id = ${executionId}
         AND status = 'RUNNING'::"WorkflowExecutionStatus"
         AND "completedAt" IS NULL
         AND result -> 'metadata' -> 'pendingApproval' ->> 'nodeId' = ${nodeId}
+        AND COALESCE(
+          (result -> 'metadata' -> 'pendingApproval' -> 'resolutionClaim' ->> 'expiresAtMs')::bigint,
+          0
+        ) <= ${nowMs}
     `;
     return claimed === 1;
+  }
+
+  @HandleErrors('complete pending review gate claim', 'workflow-executions')
+  async completePendingReviewGateClaim(
+    executionId: string,
+    nodeId: string,
+    claimToken: string,
+  ): Promise<boolean> {
+    const completed = await this.prisma.$executeRaw`
+      UPDATE workflow_executions
+      SET result = jsonb_set(result, '{metadata,pendingApproval}', 'null'::jsonb)
+      WHERE id = ${executionId}
+        AND result -> 'metadata' -> 'pendingApproval' ->> 'nodeId' = ${nodeId}
+        AND result -> 'metadata' -> 'pendingApproval' -> 'resolutionClaim' ->> 'claimToken' = ${claimToken}
+    `;
+    return completed === 1;
+  }
+
+  @HandleErrors('release pending review gate claim', 'workflow-executions')
+  async releasePendingReviewGateClaim(
+    executionId: string,
+    nodeId: string,
+    claimToken: string,
+  ): Promise<boolean> {
+    const released = await this.prisma.$executeRaw`
+      UPDATE workflow_executions
+      SET result = jsonb_set(
+        result,
+        '{metadata,pendingApproval}',
+        (result -> 'metadata' -> 'pendingApproval') - 'resolutionClaim',
+        true
+      )
+      WHERE id = ${executionId}
+        AND result -> 'metadata' -> 'pendingApproval' ->> 'nodeId' = ${nodeId}
+        AND result -> 'metadata' -> 'pendingApproval' -> 'resolutionClaim' ->> 'claimToken' = ${claimToken}
+    `;
+    return released === 1;
   }
 
   @HandleErrors('update execution metadata', 'workflow-executions')

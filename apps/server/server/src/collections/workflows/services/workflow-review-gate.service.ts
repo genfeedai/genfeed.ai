@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/enums';
 import type {
   ExecutableWorkflow,
@@ -18,7 +19,6 @@ import {
 } from '@server/collections/workflows/services/workflow-executor.types';
 import { WorkflowExecutorDocumentService } from '@server/collections/workflows/services/workflow-executor-document.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 /** Actor recorded on automatic (timeout sweep) approvals/rejections. */
 const REVIEW_GATE_SYSTEM_ACTOR = 'system';
@@ -43,7 +43,6 @@ type ContinueWorkflowGraph = (input: {
 
 export class WorkflowReviewGateService {
   constructor(
-    private readonly prisma: PrismaService,
     private readonly engineAdapter: WorkflowEngineAdapterService,
     private readonly executionsService: WorkflowExecutionsService,
     private readonly documentService: WorkflowExecutorDocumentService,
@@ -111,12 +110,14 @@ export class WorkflowReviewGateService {
       );
     }
 
-    // Atomically claim the gate so a human approval and the timeout sweep can
-    // never both resolve it — the claim clears pendingApproval in a single
-    // guarded statement; the loser of the race sees false.
+    // Atomically lease the gate so a human approval and the timeout sweep can
+    // never resolve it together. Failed resolvers release the lease; an
+    // abandoned lease expires so a later retry can finish the same gate.
+    const claimToken = randomUUID();
     const claimed = await this.executionsService.claimPendingReviewGate(
       executionId,
       nodeId,
+      claimToken,
     );
     if (!claimed) {
       throw new BadRequestException(
@@ -127,32 +128,45 @@ export class WorkflowReviewGateService {
     const approvedAt = new Date();
     const approvedAtIso = approvedAt.toISOString();
 
-    if (!approved) {
-      return this.rejectReviewGate({
-        approvedAt,
-        approvedAtIso,
+    try {
+      const result = !approved
+        ? await this.rejectReviewGate({
+            approvedAt,
+            approvedAtIso,
+            execution,
+            executionId,
+            keepsWorkflowActive: execution.metadata?.isSystemAction === true,
+            nodeId,
+            pendingApproval,
+            rejectionReason,
+            userId,
+            workflowId,
+            workflowLabel,
+          })
+        : await this.approveReviewGate({
+            approvedAt,
+            approvedAtIso,
+            execution,
+            executionId,
+            nodeId,
+            normalizedWorkflowDoc,
+            pendingApproval,
+            userId,
+            workflowId,
+            workflowLabel,
+          });
+      await this.executionsService.completePendingReviewGateClaim(
         executionId,
-        keepsWorkflowActive: execution.metadata?.isSystemAction === true,
         nodeId,
-        pendingApproval,
-        rejectionReason,
-        userId,
-        workflowId,
-      });
+        claimToken,
+      );
+      return result;
+    } catch (error: unknown) {
+      await this.executionsService
+        .releasePendingReviewGateClaim(executionId, nodeId, claimToken)
+        .catch(() => false);
+      throw error;
     }
-
-    return this.approveReviewGate({
-      approvedAt,
-      approvedAtIso,
-      execution,
-      executionId,
-      nodeId,
-      pendingApproval,
-      userId,
-      workflowId,
-      workflowLabel,
-      normalizedWorkflowDoc,
-    });
   }
 
   /**
@@ -333,7 +347,7 @@ export class WorkflowReviewGateService {
         progress: trackedExecution?.progress ?? 0,
         skippedNodeIds: input.skippedNodes,
         startedAt: input.startedAt,
-        userId: input.execution.userId,
+        userId: input.userId,
         workflowId: input.workflow.id,
         workflowLabel: input.options.workflowLabel,
       },
@@ -361,6 +375,10 @@ export class WorkflowReviewGateService {
     pendingApproval: PendingReviewGateState;
     rejectionReason?: string;
     keepsWorkflowActive: boolean;
+    workflowLabel: string;
+    execution: NonNullable<
+      Awaited<ReturnType<WorkflowExecutionsService['findOne']>>
+    >;
   }): Promise<ReviewGateApprovalResult> {
     const rejectionMessage = input.rejectionReason || 'Rejected by reviewer';
 
@@ -379,10 +397,6 @@ export class WorkflowReviewGateService {
       ),
       status: WorkflowExecutionStatus.FAILED,
     });
-    await this.executionsService.setFailedNodeId(
-      input.executionId,
-      input.nodeId,
-    );
     await this.executionsService.updateExecutionMetadata(input.executionId, {
       lastApproval: {
         approved: false,
@@ -391,25 +405,36 @@ export class WorkflowReviewGateService {
         nodeId: input.nodeId,
         rejectionReason: rejectionMessage,
       },
-      pendingApproval: null,
     });
     await this.notifier?.resolvePendingTask(
       input.pendingApproval.taskId,
       'rejected',
     );
-    await this.executionsService.completeExecution(
+    const result = this.buildReviewGateRunResult(
+      input.execution,
       input.executionId,
+      input.nodeId,
+      'failed',
       rejectionMessage,
     );
-    if (!input.keepsWorkflowActive) {
-      await this.prisma.workflow.update({
-        data: {
-          completedAt: input.approvedAt,
-          status: WorkflowStatus.FAILED,
-        },
-        where: { id: input.workflowId },
-      });
-    }
+    const completedExecution = await this.finalizer.finalizeExecution({
+      completedAt: input.approvedAt,
+      executionId: input.executionId,
+      finalStatus: WorkflowExecutionStatus.FAILED,
+      result,
+      workflowId: input.workflowId,
+      workflowStatus: input.keepsWorkflowActive
+        ? WorkflowStatus.ACTIVE
+        : WorkflowStatus.FAILED,
+    });
+    await this.publishTerminalReviewOutcome({
+      completedExecution,
+      execution: input.execution,
+      finalStatus: WorkflowExecutionStatus.FAILED,
+      result,
+      workflowId: input.workflowId,
+      workflowLabel: input.workflowLabel,
+    });
 
     return {
       approvedAt: input.approvedAtIso,
@@ -463,7 +488,6 @@ export class WorkflowReviewGateService {
         approvedBy: input.userId,
         nodeId: input.nodeId,
       },
-      pendingApproval: null,
     });
     await this.notifier?.resolvePendingTask(
       input.pendingApproval.taskId,
@@ -513,16 +537,30 @@ export class WorkflowReviewGateService {
       );
 
     if (remainingNodeIds.length === 0) {
-      await this.executionsService.completeExecution(input.executionId);
-      if (!keepsWorkflowActive) {
-        await this.prisma.workflow.update({
-          data: {
-            completedAt: input.approvedAt,
-            status: WorkflowStatus.COMPLETED,
-          },
-          where: { id: input.workflowId },
-        });
-      }
+      const result = this.buildReviewGateRunResult(
+        input.execution,
+        input.executionId,
+        input.nodeId,
+        'completed',
+      );
+      const completedExecution = await this.finalizer.finalizeExecution({
+        completedAt: input.approvedAt,
+        executionId: input.executionId,
+        finalStatus: WorkflowExecutionStatus.COMPLETED,
+        result,
+        workflowId: input.workflowId,
+        workflowStatus: keepsWorkflowActive
+          ? WorkflowStatus.ACTIVE
+          : WorkflowStatus.COMPLETED,
+      });
+      await this.publishTerminalReviewOutcome({
+        completedExecution,
+        execution: input.execution,
+        finalStatus: WorkflowExecutionStatus.COMPLETED,
+        result,
+        workflowId: input.workflowId,
+        workflowLabel: input.workflowLabel,
+      });
 
       return {
         approvedAt: input.approvedAtIso,
@@ -556,7 +594,7 @@ export class WorkflowReviewGateService {
         organizationId: executableWorkflow.organizationId,
         platform: 'workflow',
         type: 'reviewGateApproval',
-        userId: input.userId,
+        userId: input.execution.userId,
       },
       workflow: executableWorkflow,
       workflowLabel: input.workflowLabel,
@@ -564,7 +602,7 @@ export class WorkflowReviewGateService {
 
     const finalStatus = this.finalizer.mapRunResultToExecutionStatus(result);
     if (finalStatus !== WorkflowExecutionStatus.RUNNING) {
-      await this.finalizer.finalizeExecution({
+      const completedExecution = await this.finalizer.finalizeExecution({
         completedAt:
           finalStatus === WorkflowExecutionStatus.COMPLETED
             ? new Date()
@@ -579,6 +617,14 @@ export class WorkflowReviewGateService {
             ? WorkflowStatus.COMPLETED
             : WorkflowStatus.FAILED,
       });
+      await this.publishTerminalReviewOutcome({
+        completedExecution,
+        execution: input.execution,
+        finalStatus,
+        result,
+        workflowId: input.workflowId,
+        workflowLabel: input.workflowLabel,
+      });
     }
 
     return {
@@ -588,6 +634,83 @@ export class WorkflowReviewGateService {
       nodeId: input.nodeId,
       status: 'approved',
     };
+  }
+
+  private buildReviewGateRunResult(
+    execution: NonNullable<
+      Awaited<ReturnType<WorkflowExecutionsService['findOne']>>
+    >,
+    executionId: string,
+    nodeId: string,
+    status: 'completed' | 'failed',
+    error?: string,
+  ): ExecutionRunResult {
+    const completedAt = new Date();
+    return {
+      completedAt,
+      ...(error ? { error } : {}),
+      nodeResults: new Map([
+        [
+          nodeId,
+          {
+            completedAt,
+            creditsUsed: 0,
+            ...(error ? { error } : {}),
+            nodeId,
+            retryCount: 0,
+            startedAt: completedAt,
+            status,
+          },
+        ],
+      ]),
+      runId: executionId,
+      startedAt: execution.startedAt ?? completedAt,
+      status,
+      totalCreditsUsed:
+        typeof execution.creditsUsed === 'number' ? execution.creditsUsed : 0,
+      workflowId: String(execution.workflowId),
+    };
+  }
+
+  private async publishTerminalReviewOutcome(input: {
+    completedExecution: Awaited<
+      ReturnType<WorkflowExecutionFinalizerService['finalizeExecution']>
+    >;
+    execution: NonNullable<
+      Awaited<ReturnType<WorkflowExecutionsService['findOne']>>
+    >;
+    finalStatus: WorkflowExecutionStatus;
+    result: ExecutionRunResult;
+    workflowId: string;
+    workflowLabel: string;
+  }): Promise<void> {
+    const status =
+      input.finalStatus === WorkflowExecutionStatus.COMPLETED
+        ? 'completed'
+        : 'failed';
+    this.progressService.clearEtaPlan(input.execution.id);
+    await this.progressService.publishWorkflowStatus(
+      input.workflowId,
+      status,
+      input.execution.userId,
+      {
+        error: input.result.error,
+        workflowLabel: input.workflowLabel,
+      },
+    );
+    await this.progressService.publishWorkflowTaskUpdate({
+      error: input.result.error,
+      eta: this.progressService.extractEtaFromMetadata(
+        input.completedExecution?.metadata,
+      ),
+      executionId: input.execution.id,
+      progress: 100,
+      resultId: input.execution.id,
+      status,
+      userId: input.execution.userId,
+      workflowId: input.workflowId,
+      workflowLabel: input.workflowLabel,
+    });
   }
 
   private getPendingReviewGateState(
