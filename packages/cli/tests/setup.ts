@@ -8,6 +8,7 @@ vi.mock('chalk', () => ({
     cyan: (s: string) => s,
     dim: (s: string) => s,
     green: (s: string) => s,
+    hex: () => (s: string) => s,
     red: (s: string) => s,
     yellow: (s: string) => s,
   },

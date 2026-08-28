@@ -71,7 +71,8 @@ describe('credits command', () => {
   });
 
   it('prints canonical credit packs as JSON', async () => {
-    const { creditsCommand } = await import('../../src/commands/credits');
+    const { createCreditsCommand } = await import('../../src/commands/credits');
+    const creditsCommand = createCreditsCommand();
 
     await creditsCommand.parseAsync(['packs', '--json'], { from: 'user' });
 
@@ -86,7 +87,8 @@ describe('credits command', () => {
   });
 
   it('creates hosted Checkout without opening a browser when requested', async () => {
-    const { creditsCommand } = await import('../../src/commands/credits');
+    const { createCreditsCommand } = await import('../../src/commands/credits');
+    const creditsCommand = createCreditsCommand();
 
     await creditsCommand.parseAsync(['buy', '5000', '--no-open', '--json'], {
       from: 'user',
@@ -102,7 +104,8 @@ describe('credits command', () => {
   });
 
   it('returns bounded credit history', async () => {
-    const { creditsCommand } = await import('../../src/commands/credits');
+    const { createCreditsCommand } = await import('../../src/commands/credits');
+    const creditsCommand = createCreditsCommand();
 
     await creditsCommand.parseAsync(['history', '--limit', '25', '--json'], {
       from: 'user',

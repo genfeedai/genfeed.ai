@@ -101,6 +101,12 @@ describe('workflow command', () => {
     expect(mockPrintJson).toHaveBeenCalledWith([]);
   });
 
+  it('parses workflow limits as decimal values', async () => {
+    await workflowCommand.parseAsync(['list', '--limit', '25', '--json'], { from: 'user' });
+
+    expect(mockGet).toHaveBeenCalledWith('/workflows?limit=25');
+  });
+
   it('posts object inputs for workflow execution', async () => {
     await workflowCommand.parseAsync(
       ['run', 'workflow-1', '--inputs', '{"topic":"launch"}', '--json'],

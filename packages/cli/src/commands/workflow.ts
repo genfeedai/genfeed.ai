@@ -67,7 +67,7 @@ export const workflowCommand = new Command('workflow')
     new Command('list')
       .description('List available workflows')
       .option('--status <status>', 'Filter by status')
-      .option('-l, --limit <n>', 'Max items', Number.parseInt, 20)
+      .option('-l, --limit <n>', 'Max items', (value) => Number.parseInt(value, 10), 20)
       .option('--json', 'Output as JSON')
       .action((options: ListOptions) =>
         withCommandError(async () => {
@@ -120,7 +120,7 @@ export const workflowCommand = new Command('workflow')
       .description('List workflow runs')
       .option('--workflow <id>', 'Filter by workflow ID')
       .option('--status <status>', 'Filter by run status')
-      .option('-l, --limit <n>', 'Max items', Number.parseInt, 20)
+      .option('-l, --limit <n>', 'Max items', (value) => Number.parseInt(value, 10), 20)
       .option('--json', 'Output as JSON')
       .action((options: ListOptions & { workflow?: string }) =>
         withCommandError(async () => {
