@@ -1,6 +1,6 @@
 'use client';
 
-import { RouterPriority } from '@genfeedai/enums';
+import { ButtonVariant, RouterPriority } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   ModelSelectorFilter,
@@ -34,6 +34,7 @@ import {
   transformModelsToOptions,
 } from '@ui/dropdowns/model-selector/model-selector.utils';
 import { useModelRecents } from '@ui/dropdowns/model-selector/useModelRecents';
+import { Button } from '@ui/primitives/button';
 import {
   Command,
   CommandEmpty,
@@ -78,6 +79,10 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   autoSourceGroups,
   isDisabled = false,
   creditsAvailable = null,
+  contextLabel,
+  contextOptions = [],
+  contextValue,
+  onContextChange,
 }: ModelSelectorPopoverProps) {
   const isSingleSelect = selectionMode === 'single';
   const [isOpen, setIsOpen] = useState(false);
@@ -388,6 +393,9 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
       ),
     [models, values],
   );
+  const activeContext = contextOptions.find(
+    (option) => option.value === contextValue,
+  );
 
   // Always surface the real catalog when models exist — Auto mode used to hide
   // it (`!isAutoSelected`), which left a tall empty popover of priority-only
@@ -496,6 +504,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
           shouldFlash={shouldFlash}
           className={className}
           autoLabel={autoLabel}
+          context={activeContext}
           disabled={isDisabled}
           aria-disabled={isDisabled || undefined}
         />
@@ -535,9 +544,61 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
             during arrow-key navigation. */}
         <TooltipProvider delayDuration={400} disableHoverableContent>
           <div className="flex max-h-[inherit] min-h-0 w-full flex-col bg-secondary">
+            {contextLabel && contextOptions.length > 0 ? (
+              <div
+                aria-label={contextLabel}
+                className="grid shrink-0 grid-cols-3 gap-1 border-b border-border bg-secondary p-1.5"
+                role="group"
+              >
+                {contextOptions.map((option) => {
+                  const ContextIcon = option.icon;
+                  const isActive = option.value === contextValue;
+
+                  return (
+                    <Button
+                      aria-pressed={isActive}
+                      ariaLabel={option.label}
+                      className={cn(
+                        'flex h-auto min-w-0 items-start justify-start gap-2 rounded-md px-2 py-2 text-left',
+                        isActive
+                          ? 'bg-accent text-accent-foreground'
+                          : 'text-foreground hover:bg-accent/60',
+                      )}
+                      key={option.value}
+                      onClick={() => {
+                        onContextChange?.(option.value);
+                        setActiveCategoryId(MODEL_FILTER_ALL);
+                        setActiveCapabilityFilterId(null);
+                        setSearchTerm('');
+                      }}
+                      textTransform="none"
+                      variant={ButtonVariant.UNSTYLED}
+                      withWrapper={false}
+                    >
+                      {ContextIcon ? (
+                        <ContextIcon
+                          aria-hidden
+                          className="mt-0.5 size-4 shrink-0"
+                        />
+                      ) : null}
+                      <span className="min-w-0">
+                        <span className="block truncate text-xs font-medium text-foreground">
+                          {option.label}
+                        </span>
+                        {option.description ? (
+                          <span className="mt-0.5 block line-clamp-2 text-2xs leading-4 text-muted-foreground">
+                            {option.description}
+                          </span>
+                        ) : null}
+                      </span>
+                    </Button>
+                  );
+                })}
+              </div>
+            ) : null}
             {/* No flex-1 on Command — that forced the panel to the max-h shell. */}
             <Command
-              className="flex min-h-0 flex-col bg-secondary text-primary"
+              className="flex min-h-0 flex-col bg-secondary text-foreground"
               shouldFilter={false}
             >
               {shouldShowManualCatalog && (
@@ -548,9 +609,9 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                   className={cn(
                     // Ship CommandInput defaults to muted-on-muted and reads as
                     // empty grey chrome on dark agent surfaces — force tokens.
-                    'h-8 border-0 border-b border-border bg-secondary px-2 text-primary',
+                    'h-8 border-0 border-b border-border bg-secondary px-2 text-foreground',
                     'placeholder:text-muted-foreground',
-                    '[&_input]:h-8 [&_input]:px-1.5 [&_input]:!text-primary',
+                    '[&_input]:h-8 [&_input]:px-1.5 [&_input]:!text-foreground',
                     '[&_input]:placeholder:!text-muted-foreground',
                   )}
                 />

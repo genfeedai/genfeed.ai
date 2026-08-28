@@ -1,3 +1,7 @@
+import {
+  redactSensitiveString,
+  redactSensitiveValue,
+} from '@genfeedai/helpers';
 import { ConsoleLogger, Inject, Injectable } from '@nestjs/common';
 import type { Logger as winstonLogger } from 'winston';
 
@@ -23,17 +27,19 @@ export class LoggerService extends ConsoleLogger {
 
   public log(message: string, context?: unknown): void {
     const contextObj = this.normalizeContext(context);
-    this.winston.info(message, contextObj);
+    this.winston.info(redactSensitiveString(message), contextObj);
   }
 
   public warn(message: string, context?: unknown): void {
     const contextObj = this.normalizeContext(context);
-    this.winston.warn(message, contextObj);
+    this.winston.warn(redactSensitiveString(message), contextObj);
   }
 
   public debug(message: string, context?: unknown): void {
     const contextObj = this.normalizeContext(context);
-    const formattedMessage = this.formatMessage(message, contextObj);
+    const formattedMessage = redactSensitiveString(
+      this.formatMessage(message, contextObj),
+    );
     this.winston.debug(formattedMessage, contextObj);
   }
 
@@ -41,10 +47,10 @@ export class LoggerService extends ConsoleLogger {
     context?: unknown,
   ): Record<string, unknown> | undefined {
     if (typeof context === 'string') {
-      return { service: context };
+      return { service: redactSensitiveString(context) };
     }
     if (typeof context === 'object' && context !== null) {
-      return context as Record<string, unknown>;
+      return redactSensitiveValue(context) as Record<string, unknown>;
     }
     return undefined;
   }
@@ -55,9 +61,11 @@ export class LoggerService extends ConsoleLogger {
     context?: unknown,
   ): void {
     const contextObj = this.normalizeContext(context);
-    const formattedMessage = this.formatMessage(message, contextObj);
+    const formattedMessage = redactSensitiveString(
+      this.formatMessage(message, contextObj),
+    );
 
-    const errorData = this.serializeError(trace);
+    const errorData = redactSensitiveValue(this.serializeError(trace));
     const errorContext = {
       ...contextObj,
       ...(errorData !== undefined && { error: errorData }),

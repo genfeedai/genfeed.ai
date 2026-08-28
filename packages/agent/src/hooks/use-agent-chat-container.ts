@@ -429,6 +429,7 @@ export function useAgentChatContainer({
           attachments: item.attachments,
           ...(item.options?.brandId ? { brandId: item.options.brandId } : {}),
           generationMode: item.options?.generationMode,
+          generationSettings: item.options?.generationSettings,
           planModeEnabled: item.options?.planModeEnabled ?? false,
         });
         return true;
@@ -498,6 +499,7 @@ export function useAgentChatContainer({
             artifactReferences: options?.artifactReferences,
             ...(options?.brandId ? { brandId: options.brandId } : {}),
             generationMode: options?.generationMode,
+            generationSettings: options?.generationSettings,
             planModeEnabled: options?.planModeEnabled ?? false,
           },
         });
@@ -512,6 +514,7 @@ export function useAgentChatContainer({
         attachments,
         ...(options?.brandId ? { brandId: options.brandId } : {}),
         generationMode: options?.generationMode,
+        generationSettings: options?.generationSettings,
         planModeEnabled: options?.planModeEnabled ?? false,
       });
       return true;

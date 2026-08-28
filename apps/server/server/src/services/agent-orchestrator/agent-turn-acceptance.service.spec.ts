@@ -328,4 +328,40 @@ describe('AgentTurnAcceptanceService', () => {
     );
     expect(prisma.agentThread.upsert).not.toHaveBeenCalled();
   });
+
+  it('pins the server-authorized context version into the durable worker request', async () => {
+    scopeService.prepareForTurn.mockResolvedValue({
+      existingScope: {
+        brandId: 'brand-2',
+        contextVersion: 7,
+        isLegacyFallback: false,
+        isVersionExplicit: false,
+        organizationId: 'org-1',
+        source: 'explicit',
+        threadId: 'thread-existing',
+        userId: 'user-1',
+      },
+      initialScopeFields: {},
+    });
+
+    await service.accept(
+      {
+        clientRequestId: '018f6f76-b821-7a51-82af-93d0ecac2104',
+        content: 'Prepare an image from this conversation',
+        generationMode: 'image',
+        threadId: 'thread-existing',
+      },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+
+    expect(queueService.queueRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({
+          expectedContextVersion: 7,
+          generationMode: 'image',
+          threadId: 'thread-existing',
+        }),
+      }),
+    );
+  });
 });

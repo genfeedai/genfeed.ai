@@ -198,7 +198,16 @@ describe('useAgentChatInput generation mode', () => {
   it('sends the selected generation mode with the turn', async () => {
     const onSend = vi.fn();
     const { result } = renderHook(
-      () => useAgentChatInput({ generationMode: 'video', onSend }),
+      () =>
+        useAgentChatInput({
+          generationMode: 'video',
+          generationSettings: {
+            aspectRatio: '9:16',
+            duration: 5,
+            model: 'replicate/video-model',
+          },
+          onSend,
+        }),
       { wrapper: Wrapper },
     );
 
@@ -216,7 +225,71 @@ describe('useAgentChatInput generation mode', () => {
       'Create a launch reel',
       undefined,
       undefined,
-      expect.objectContaining({ generationMode: 'video' }),
+      expect.objectContaining({
+        generationMode: 'video',
+        generationSettings: {
+          aspectRatio: '9:16',
+          duration: 5,
+          model: 'replicate/video-model',
+        },
+      }),
+    );
+  });
+
+  it('removes restored brand tags while preserving route brand scope', async () => {
+    writeConversationComposerDocument(
+      draftScopeKey,
+      {
+        content: [
+          {
+            content: [
+              {
+                attrs: { id: 'brand-1', label: 'Acme' },
+                type: 'brandMention',
+              },
+            ],
+            type: 'paragraph',
+          },
+        ],
+        type: 'doc',
+      },
+      '#undefined',
+    );
+    const onSend = vi.fn();
+    const BrandScopedWrapper = ({ children }: { children: ReactNode }) => (
+      <ConversationComposerShellProvider
+        brandId="brand-1"
+        contextLabel="Acme"
+        draftScopeKey={draftScopeKey}
+        portalTarget={null}
+        shellState="canvas"
+      >
+        {children}
+      </ConversationComposerShellProvider>
+    );
+
+    const { result } = renderHook(() => useAgentChatInput({ onSend }), {
+      wrapper: BrandScopedWrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+      expect(result.current.editor?.getText()).toBe('');
+    });
+    expect(result.current.references).toEqual([]);
+
+    act(() => {
+      result.current.editor?.commands.setContent('Create a launch image');
+    });
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    expect(onSend).toHaveBeenCalledWith(
+      'Create a launch image',
+      undefined,
+      undefined,
+      expect.objectContaining({ brandId: 'brand-1' }),
     );
   });
 });

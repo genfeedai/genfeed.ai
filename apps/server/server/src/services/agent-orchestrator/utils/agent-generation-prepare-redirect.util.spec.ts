@@ -27,24 +27,35 @@ describe('normalizeRequestedAgentToolName', () => {
 });
 
 describe('getGenerationPreparationRedirect', () => {
-  it('remaps image, video, and identity generate tools to prepare_generation', () => {
+  it('remaps prepare_generation to the concrete composer-selected tool', () => {
     const allowed = new Set([AgentToolName.PREPARE_GENERATION]);
 
     expect(
-      getGenerationPreparationRedirect(AgentToolName.GENERATE_IMAGE, allowed),
-    ).toBe(AgentToolName.PREPARE_GENERATION);
-    expect(
-      getGenerationPreparationRedirect(AgentToolName.GENERATE_VIDEO, allowed),
-    ).toBe(AgentToolName.PREPARE_GENERATION);
+      getGenerationPreparationRedirect(
+        AgentToolName.PREPARE_GENERATION,
+        allowed,
+        { generationMode: 'image' },
+      ),
+    ).toBe(AgentToolName.GENERATE_IMAGE);
     expect(
       getGenerationPreparationRedirect(
-        AgentToolName.GENERATE_AS_IDENTITY,
+        AgentToolName.PREPARE_GENERATION,
         allowed,
+        { requestedGenerationType: 'video' },
       ),
-    ).toBe(AgentToolName.PREPARE_GENERATION);
+    ).toBe(AgentToolName.GENERATE_VIDEO);
   });
 
-  it('strips default_api prefixes before remapping image, video, and voice', () => {
+  it('admits a concrete visual tool when only prepare_generation was exposed', () => {
+    expect(
+      getGenerationPreparationRedirect(
+        AgentToolName.GENERATE_IMAGE,
+        new Set([AgentToolName.PREPARE_GENERATION]),
+      ),
+    ).toBe(AgentToolName.GENERATE_IMAGE);
+  });
+
+  it('strips default_api prefixes before recovering voice', () => {
     const visualAllowed = new Set([AgentToolName.PREPARE_GENERATION]);
     const voiceAllowed = new Set([AgentToolName.PREPARE_VOICE_CLONE]);
 
@@ -53,13 +64,13 @@ describe('getGenerationPreparationRedirect', () => {
         'default_api.generate_image',
         visualAllowed,
       ),
-    ).toBe(AgentToolName.PREPARE_GENERATION);
+    ).toBe(AgentToolName.GENERATE_IMAGE);
     expect(
       getGenerationPreparationRedirect(
         'default_api.generate_video',
         visualAllowed,
       ),
-    ).toBe(AgentToolName.PREPARE_GENERATION);
+    ).toBe(AgentToolName.GENERATE_VIDEO);
     expect(
       getGenerationPreparationRedirect(
         'default_api.generate_voice',
@@ -68,19 +79,19 @@ describe('getGenerationPreparationRedirect', () => {
     ).toBe(AgentToolName.PREPARE_VOICE_CLONE);
   });
 
-  it('recovers unknown generate-like names onto the matching prepare card', () => {
+  it('recovers unknown generate-like names onto concrete generation tools', () => {
     expect(
       getGenerationPreparationRedirect(
         'default_api.image_generation',
         new Set([AgentToolName.PREPARE_GENERATION]),
       ),
-    ).toBe(AgentToolName.PREPARE_GENERATION);
+    ).toBe(AgentToolName.GENERATE_IMAGE);
     expect(
       getGenerationPreparationRedirect(
         'txt2video',
         new Set([AgentToolName.PREPARE_GENERATION]),
       ),
-    ).toBe(AgentToolName.PREPARE_GENERATION);
+    ).toBe(AgentToolName.GENERATE_VIDEO);
     expect(
       getGenerationPreparationRedirect(
         'default_api.tts_voiceover',
@@ -97,6 +108,15 @@ describe('getGenerationPreparationRedirect', () => {
           AgentToolName.PREPARE_GENERATION,
           AgentToolName.PREPARE_VOICE_CLONE,
         ]),
+      ),
+    ).toBeNull();
+  });
+
+  it('does not admit media generation into a run without a visual tool surface', () => {
+    expect(
+      getGenerationPreparationRedirect(
+        AgentToolName.GENERATE_IMAGE,
+        new Set([AgentToolName.GET_DASHBOARD_LAYOUT]),
       ),
     ).toBeNull();
   });
@@ -124,15 +144,6 @@ describe('getGenerationPreparationRedirect', () => {
       getGenerationPreparationRedirect(
         AgentToolName.GENERATE_VOICE,
         new Set([AgentToolName.PREPARE_GENERATION]),
-      ),
-    ).toBeNull();
-  });
-
-  it('does not remap when the matching prepare tool is unavailable', () => {
-    expect(
-      getGenerationPreparationRedirect(
-        AgentToolName.GENERATE_IMAGE,
-        new Set([AgentToolName.PREPARE_VOICE_CLONE]),
       ),
     ).toBeNull();
   });

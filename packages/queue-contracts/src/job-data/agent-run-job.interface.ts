@@ -9,6 +9,7 @@ export interface AgentChatTurnJobRequest {
   clientRequestId: string;
   content: string;
   expectedContextVersion?: number;
+  generationMode?: 'auto' | 'image' | 'video';
   model?: string;
   pageContext?: unknown;
   planModeEnabled?: boolean;

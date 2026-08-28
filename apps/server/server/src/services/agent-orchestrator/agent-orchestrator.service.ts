@@ -52,6 +52,7 @@ import type {
   ThreadResolutionResult,
 } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { ResolvedAgentExecutionPolicy } from '@server/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import { extractAgentGenerationSettings } from '@server/services/agent-orchestrator/utils/agent-generation-composer-settings.util';
 import { applyPinnedDefaultAgentModel } from '@server/services/agent-orchestrator/utils/agent-pinned-default-model.util';
 import { buildAgentRoutingMetadata } from '@server/services/agent-orchestrator/utils/agent-routing-policy.util';
 import {
@@ -221,6 +222,9 @@ export class AgentOrchestratorService {
       context = {
         ...context,
         generationMode: request.generationMode,
+        generationSettings: extractAgentGenerationSettings(
+          request.pageContext?.draftInstructions,
+        ),
         resolvedSkills: resolved.resolvedSkills,
         scope,
       };
@@ -533,6 +537,9 @@ export class AgentOrchestratorService {
       const streamContext: AgentChatContext = {
         ...context,
         generationMode: request.generationMode,
+        generationSettings: extractAgentGenerationSettings(
+          request.pageContext?.draftInstructions,
+        ),
         resolvedSkills: resolved.resolvedSkills,
         runId,
         scope,

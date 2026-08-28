@@ -36,7 +36,7 @@ const HOW_STEPS: HowStep[] = [
 
 export default function HomeHow(): React.ReactElement {
   return (
-    <section id="how" className="gen-section-spacing-lg border-b border-edge/5">
+    <section id="how" className="gen-section-spacing border-b border-edge/5">
       <div className="container mx-auto px-6">
         <div className="flex flex-col mb-10 max-w-3xl gap-4">
           <Text className={EYEBROW_CLASS}>Brief to published</Text>

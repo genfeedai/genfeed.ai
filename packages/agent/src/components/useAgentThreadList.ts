@@ -55,6 +55,10 @@ export function useAgentThreadList({
   const clearConversationCache = useAgentChatStore(
     (s) => s.clearConversationCache,
   );
+  const cacheConversation = useAgentChatStore((s) => s.cacheConversation);
+  const restoreCachedConversation = useAgentChatStore(
+    (s) => s.restoreCachedConversation,
+  );
   const isStreaming = useAgentChatStore((s) => s.stream.isStreaming);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -352,6 +356,18 @@ export function useAgentThreadList({
       }
 
       if (onNavigate) {
+        // The persistent Agent shell renders from the shared store, while
+        // `router.push` cannot update its route prop until the RSC response
+        // commits. Paint a prefetched/cached target immediately so a warm
+        // thread switch is not held hostage by that network round trip.
+        const currentActiveThreadId =
+          useAgentChatStore.getState().activeThreadId;
+        if (currentActiveThreadId) {
+          cacheConversation(currentActiveThreadId);
+        }
+        if (restoreCachedConversation(thread.id)) {
+          setActiveThread(thread.id);
+        }
         onNavigate(getThreadHref(thread));
         return;
       }
@@ -402,6 +418,7 @@ export function useAgentThreadList({
     [
       activeThreadId,
       apiService,
+      cacheConversation,
       clearThreadAttention,
       getThreadHref,
       onNavigate,
@@ -412,6 +429,7 @@ export function useAgentThreadList({
       setMessages,
       setWorkEvents,
       resetStreamState,
+      restoreCachedConversation,
     ],
   );
 

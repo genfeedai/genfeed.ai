@@ -7,81 +7,44 @@ const WEBSITE_SECTIONS: FooterSection[] = [
       { href: '/studio', label: 'Studio' },
       { href: '/library', label: 'Library' },
       { href: '/publisher', label: 'Publisher' },
-      { href: '/calendar', label: 'Calendar' },
       { href: '/workflows', label: 'Workflows' },
-      { href: '/research', label: 'Research' },
+      { href: '/analytics', label: 'Analytics' },
+      { href: '/agents', label: 'Agents' },
     ],
     title: 'Product',
   },
   {
     links: [
-      { href: '/analytics', label: 'Analytics' },
-      { href: '/agents', label: 'Agents' },
-      { href: '/integrations', label: 'Integrations' },
-      { href: '/features', label: 'Features' },
-      { href: '/mobile', label: 'Mobile App' },
-      { href: '/download', label: 'Desktop App' },
-      { href: '/brand-os', label: 'Brand OS' },
-    ],
-    title: 'Platform',
-  },
-  {
-    links: [
-      { href: '/use-cases', label: 'All Use Cases' },
       { href: '/use-cases/creators', label: 'For Creators' },
       { href: '/use-cases/agencies', label: 'For Agencies' },
-      { href: '/use-cases/ai-influencers', label: 'AI Influencers' },
       { href: '/use-cases/ecommerce', label: 'For E-Commerce' },
-      { href: '/use-cases/marketers', label: 'For Marketers' },
       { href: '/use-cases/founders', label: 'For Founders' },
-      { href: '/cloud', label: 'Teams' },
-      { href: '/services', label: 'Services' },
       { href: '/pricing', label: 'Pricing' },
+      { href: '/services', label: 'Services' },
     ],
     title: 'Solutions',
   },
   {
     links: [
-      { href: '/mcp', label: 'MCP Server' },
-      { href: '/cursor', label: 'Cursor Extension' },
-      { href: '/extension', label: 'Chrome Extension' },
-      { href: '/chatgpt', label: 'ChatGPT' },
+      { href: '/integrations', label: 'Integrations' },
       { href: '/skills', label: 'Skills' },
-      { href: '/docs', label: 'Docs' },
-      { href: '/self-hosted', label: 'Self-host' },
-    ],
-    title: 'Developers',
-  },
-  {
-    links: [
-      { href: '/vs/canva', label: 'vs Canva' },
-      { href: '/vs/runway', label: 'vs Runway' },
-      { href: '/vs/buffer', label: 'vs Buffer' },
-      { href: '/vs/jasper', label: 'vs Jasper' },
-      { href: '/vs', label: 'All Comparisons' },
-    ],
-    title: 'Compare',
-  },
-  {
-    links: [
-      { href: '/tools', label: 'Free Tools' },
-      { href: '/articles', label: 'Blog' },
-      { href: '/posts', label: 'Posts' },
-      { href: '/faq', label: 'FAQ' },
       {
         external: true,
         href: 'https://docs.genfeed.ai',
-        label: 'Documentation',
+        label: 'Docs',
       },
-      { href: '/demo', label: 'Demo' },
+      { href: '/self-hosted', label: 'Self-host' },
+      { href: '/download', label: 'Desktop app' },
+      { href: '/developers', label: 'Developers' },
     ],
-    title: 'Resources',
+    title: 'Build',
   },
   {
     links: [
       { href: '/about', label: 'About' },
+      { href: '/articles', label: 'Articles' },
       { href: '/contact', label: 'Contact' },
-      { href: '/gen', label: '$GEN Token' },
+      { href: '/faq', label: 'FAQ' },
       { href: '/privacy', label: 'Privacy' },
       { href: '/terms', label: 'Terms' },
     ],
@@ -91,14 +54,11 @@ const WEBSITE_SECTIONS: FooterSection[] = [
 
 export default function HomeFooter(): React.ReactElement {
   return (
-    <footer className="border-t gen-border">
-      <SiteFooter
-        sections={WEBSITE_SECTIONS}
-        variant="default"
-        showNewsletter
-        showBookCall
-        brandTagline="The AI content studio. Generate, review, schedule, and publish every piece of content from one workspace."
-      />
-    </footer>
+    <SiteFooter
+      sections={WEBSITE_SECTIONS}
+      variant="default"
+      showNewsletter
+      brandTagline="The AI content studio. Generate, review, schedule, and publish every piece of content from one workspace."
+    />
   );
 }

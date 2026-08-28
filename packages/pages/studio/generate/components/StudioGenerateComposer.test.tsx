@@ -15,8 +15,39 @@ vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
   }),
 }));
 
+const modelSelectorMocks = vi.hoisted(() => ({
+  props: {} as {
+    autoLabel?: string;
+    contextLabel?: string;
+  },
+}));
+
 vi.mock('@ui/dropdowns/model-selector/ModelSelectorPopover', () => ({
-  default: () => <button type="button">Auto</button>,
+  default: (props: {
+    autoLabel?: string;
+    contextLabel?: string;
+    contextOptions?: readonly { label: string; value: string }[];
+    contextValue?: string;
+    onContextChange?: (value: string) => void;
+  }) => {
+    modelSelectorMocks.props = props;
+
+    return (
+      <div>
+        <button type="button">Generation settings</button>
+        {props.contextOptions?.map((option) => (
+          <button
+            aria-pressed={option.value === props.contextValue}
+            key={option.value}
+            onClick={() => props.onContextChange?.(option.value)}
+            type="button"
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    );
+  },
 }));
 
 const promptEditorProps: { extraExtensions?: unknown } = {};
@@ -94,9 +125,10 @@ describe('StudioGenerateComposer', () => {
     expect(promptEditorProps.extraExtensions).toBe(extraExtensions);
   });
 
-  it('keeps Studio selectors grouped and adds Agent reference controls', () => {
+  it('combines asset type and model routing and adds Agent reference controls', () => {
     const onAddFiles = vi.fn();
     const onOpenLibrary = vi.fn();
+    const onTypeChange = vi.fn();
 
     render(
       <StudioGenerateComposer
@@ -116,7 +148,7 @@ describe('StudioGenerateComposer', () => {
         onStartListening={vi.fn()}
         onStopListening={vi.fn()}
         onSubmit={vi.fn()}
-        onTypeChange={vi.fn()}
+        onTypeChange={onTypeChange}
         prompt="A product photo"
         settings={settings}
         shouldShowVoiceInput={false}
@@ -124,8 +156,21 @@ describe('StudioGenerateComposer', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Image' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Auto' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Generation settings' }),
+    ).toBeInTheDocument();
+    expect(modelSelectorMocks.props).toEqual(
+      expect.objectContaining({
+        autoLabel: 'Balanced',
+        contextLabel: 'Output type',
+      }),
+    );
+    expect(screen.getByRole('button', { name: 'Image' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Video' }));
+    expect(onTypeChange).toHaveBeenCalledWith('video');
     expect(
       screen.getByRole('button', { name: 'Settings' }),
     ).toBeInTheDocument();

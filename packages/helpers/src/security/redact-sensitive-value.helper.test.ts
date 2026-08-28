@@ -10,17 +10,23 @@ describe('redactSensitiveValue', () => {
     expect(
       redactSensitiveValue({
         apiKey: 'sk-private',
+        codeVerifier: 'oauth-verifier',
         nested: {
           authorization: 'Bearer sk-private',
           callback:
             'https://example.com/callback?access_token=secret-value&safe=1',
+          oauthTokenSecret: 'oauth-secret',
+          webhookSecretEncrypted: 'encrypted-webhook-secret',
         },
       }),
     ).toEqual({
       apiKey: REDACTED_VALUE,
+      codeVerifier: REDACTED_VALUE,
       nested: {
         authorization: REDACTED_VALUE,
         callback: `https://example.com/callback?access_token=${REDACTED_VALUE}&safe=1`,
+        oauthTokenSecret: REDACTED_VALUE,
+        webhookSecretEncrypted: REDACTED_VALUE,
       },
     });
   });

@@ -14,6 +14,20 @@ export interface SocketIdentityClaims {
   userId?: string;
 }
 
+export function readSocketTokenExpiryMs(token?: string): number | undefined {
+  if (!token) {
+    return undefined;
+  }
+
+  const payloadSegment = token.split('.')[1];
+  if (!payloadSegment) {
+    return undefined;
+  }
+
+  const payload = decodeJwtPayloadSegment(payloadSegment);
+  return typeof payload?.exp === 'number' ? payload.exp * 1000 : undefined;
+}
+
 /**
  * Read `sub` / `organizationId` from a JWT payload without verifying it.
  *
@@ -129,6 +143,13 @@ export function classifySocketDisconnect(
   // Deliberate client teardown (logout, clearInstance, route remount disconnect).
   if (reason === 'io client disconnect') {
     return { expected: true, recovery: 'none' };
+  }
+
+  // The server deliberately rejected this namespace (most commonly invalid
+  // or expired auth). Reconnecting with the same handshake can never recover;
+  // token rotation will explicitly reconnect once fresh credentials exist.
+  if (reason === 'io server disconnect') {
+    return { expected: false, recovery: 'none' };
   }
 
   // Transient transport loss: Socket.IO usually reconnects. Log as info while

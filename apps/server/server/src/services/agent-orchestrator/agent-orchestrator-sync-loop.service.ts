@@ -1,3 +1,6 @@
+import { AgentMessageRole, type RouterPriority } from '@genfeedai/enums';
+import { AgentToolName } from '@genfeedai/interfaces';
+import { Injectable, Optional } from '@nestjs/common';
 import { AgentCampaignsService } from '@server/collections/agent-campaigns/services/agent-campaigns.service';
 import { type AgentMemoryDocument } from '@server/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
@@ -48,10 +51,8 @@ import {
 } from '@server/services/agent-orchestrator/utils/agent-turn-credit.util';
 import { sanitizeAgentOutputText } from '@server/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
+import type { OpenRouterChatCompletionResponse } from '@server/services/integrations/openrouter/dto/openrouter.dto';
 import { SkillRuntimeService } from '@server/services/skill-runtime/skill-runtime.service';
-import { AgentMessageRole, type RouterPriority } from '@genfeedai/enums';
-import { AgentToolName } from '@genfeedai/interfaces';
-import { Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
 export class AgentOrchestratorSyncLoopService {
@@ -189,11 +190,17 @@ export class AgentOrchestratorSyncLoopService {
       );
       const messages = [...history];
       let round = 0;
+      let terminalContent: string | undefined;
+      let latestProviderUsage = {
+        completion_tokens: 0,
+        prompt_tokens: 0,
+        total_tokens: 0,
+      };
       // Credits accrue per completed round, not per turn: a turn that burns
       // five tool rounds costs five rounds of inference and has to bill like it.
 
-      while (round < AGENT_MAX_TOOL_ROUNDS) {
-        if (round > 0) {
+      while (round < AGENT_MAX_TOOL_ROUNDS || terminalContent) {
+        if (round > 0 && !terminalContent) {
           const requiredCredits = resolveAgentNextRoundCreditRequirement({
             nextRoundCredits: turnCost,
             roundCredits,
@@ -215,43 +222,61 @@ export class AgentOrchestratorSyncLoopService {
         }
         round++;
 
-        const response = await this.llmDispatcher.chatCompletion(
-          buildAgentChatCompletionParams({
-            defaultModelKey:
-              await this.agentChatModelRegistry.getDefaultModelKey(),
-            messages,
-            model,
-            prompt: request.content,
-            seedTitle,
-            source: request.source,
-            tools,
-          }),
-          context.organizationId,
-          {
-            brandId: context.scope?.brandId,
-            runId: context.runId,
-            threadId,
-            userId: context.userId,
-          },
-        );
-        const actualModel = await this.turnRoundRunner.recordAgentResponseModel(
-          {
-            actualModels: Array.from(actualModels),
-            context,
-            requestedModel: model,
-            responseModel: response.model,
-            runId: context.runId,
-            source: request.source,
-            threadId,
-          },
-        );
-        actualModels.add(actualModel);
-        roundCredits += resolveAgentRoundCreditCost({
-          actualModel,
-          roundCreditsForModel:
-            await this.agentChatModelRegistry.getRoundCredits(actualModel),
-          turnCost,
-        });
+        const isTerminalCompletion = Boolean(terminalContent);
+        const response: OpenRouterChatCompletionResponse = terminalContent
+          ? {
+              choices: [
+                {
+                  finish_reason: 'stop',
+                  message: {
+                    content: terminalContent,
+                    role: 'assistant',
+                  },
+                },
+              ],
+              id: `terminal-tool-${context.runId ?? threadId}`,
+              usage: latestProviderUsage,
+            }
+          : await this.llmDispatcher.chatCompletion(
+              buildAgentChatCompletionParams({
+                defaultModelKey:
+                  await this.agentChatModelRegistry.getDefaultModelKey(),
+                messages,
+                model,
+                prompt: request.content,
+                seedTitle,
+                source: request.source,
+                tools,
+              }),
+              context.organizationId,
+              {
+                brandId: context.scope?.brandId,
+                runId: context.runId,
+                threadId,
+                userId: context.userId,
+              },
+            );
+        terminalContent = undefined;
+        if (!isTerminalCompletion) {
+          latestProviderUsage = response.usage;
+          const actualModel =
+            await this.turnRoundRunner.recordAgentResponseModel({
+              actualModels: Array.from(actualModels),
+              context,
+              requestedModel: model,
+              responseModel: response.model,
+              runId: context.runId,
+              source: request.source,
+              threadId,
+            });
+          actualModels.add(actualModel);
+          roundCredits += resolveAgentRoundCreditCost({
+            actualModel,
+            roundCreditsForModel:
+              await this.agentChatModelRegistry.getRoundCredits(actualModel),
+            turnCost,
+          });
+        }
 
         const choice = response.choices[0];
         if (!choice) {
@@ -391,7 +416,7 @@ export class AgentOrchestratorSyncLoopService {
           };
         }
 
-        await this.turnRoundRunner.executeToolRound({
+        const toolRoundResult = await this.turnRoundRunner.executeToolRound({
           allowedToolNames,
           assistantContent: assistantMessage.content,
           attachmentUrls: request.attachments?.map((a) => a.url),
@@ -449,6 +474,7 @@ export class AgentOrchestratorSyncLoopService {
           threadId,
           toolCalls,
         });
+        terminalContent = toolRoundResult.terminalContent;
       }
 
       // Overflowing the round budget still consumed every one of those rounds

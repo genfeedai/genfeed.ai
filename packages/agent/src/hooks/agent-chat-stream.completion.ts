@@ -8,6 +8,7 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { extractLastGeneratedAssetFromMetadata } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
 import { serializeAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
+import { AgentExecutionStatus } from '@genfeedai/enums';
 
 export type ResolveStreamFromMessagesDeps = {
   apiService: AgentApiService;
@@ -58,6 +59,7 @@ export async function resolveStreamFromMessages(
 ): Promise<void> {
   const hasExceededGracePeriod =
     Date.now() - pending.initiatedAt >= STREAM_COMPLETION_GRACE_PERIOD_MS;
+  let shouldKeepWaiting = false;
 
   try {
     const messages = await runAgentApiEffect(
@@ -77,7 +79,28 @@ export async function resolveStreamFromMessages(
         return;
       }
 
-      throw new Error('Agent run did not finish before the recovery timeout.');
+      const persistedRun = pending.runId
+        ? await runAgentApiEffect(deps.apiService.getRunEffect(pending.runId))
+        : null;
+      if (
+        persistedRun?.status === AgentExecutionStatus.PENDING ||
+        persistedRun?.status === AgentExecutionStatus.RUNNING
+      ) {
+        shouldKeepWaiting = true;
+        deps.updateThreadSummary(pending.threadId, {
+          runStatus:
+            persistedRun.status === AgentExecutionStatus.PENDING
+              ? 'queued'
+              : 'running',
+        });
+        deps.scheduleCompletionWatchdog();
+        return;
+      }
+
+      throw new Error(
+        persistedRun?.error ||
+          'Agent run did not finish before the recovery timeout.',
+      );
     }
 
     deps.resetStreamState();
@@ -133,7 +156,8 @@ export async function resolveStreamFromMessages(
   } finally {
     if (
       deps.isCurrentPendingThread(pending.threadId) &&
-      hasExceededGracePeriod
+      hasExceededGracePeriod &&
+      !shouldKeepWaiting
     ) {
       deps.clearPendingCompletion(pending.threadId);
       deps.clearCompletionWatchdog();
