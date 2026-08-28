@@ -2328,7 +2328,7 @@ describe('AgentOrchestratorService', () => {
     );
   });
 
-  it('rejects a queue-owned provider failure so BullMQ can retry it', async () => {
+  it('leaves queue-owned provider failures non-terminal for BullMQ retry', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
@@ -2348,13 +2348,14 @@ describe('AgentOrchestratorService', () => {
         {
           executionMode: 'background',
           organizationId: ORG_ID,
+          runId: RUN_ID,
           userId: USER_ID,
         },
       ),
     ).rejects.toThrow('Request failed with status code 429');
 
-    expect(agentRunsService.fail).toHaveBeenCalledOnce();
-    expect(streamPublisher.publishError).toHaveBeenCalledOnce();
+    expect(agentRunsService.fail).not.toHaveBeenCalled();
+    expect(streamPublisher.publishError).not.toHaveBeenCalled();
   });
 
   it('streams real LLM deltas via agent:token when AGENT_TOKEN_STREAMING_ENABLED is on', async () => {

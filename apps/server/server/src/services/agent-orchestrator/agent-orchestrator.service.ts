@@ -733,6 +733,13 @@ export class AgentOrchestratorService {
         threadId,
       };
     } catch (error: unknown) {
+      // Accepted background turns are retried by BullMQ. Publishing or
+      // persisting failure here would expose a non-final attempt as terminal
+      // and leave failed events behind even when a later attempt succeeds.
+      if (context.executionMode === 'background') {
+        throw error;
+      }
+
       const persistedError = classifyAgentRunFailure(error);
 
       try {

@@ -383,6 +383,9 @@ export class AgentRunProcessor extends WorkerHost {
       data.runId,
       data.organizationId,
     );
+    const configuredAttempts = Number(job.opts.attempts) || 1;
+    const isDurableRetry =
+      job.attemptsMade > 0 && job.attemptsMade < configuredAttempts;
     if (
       persistedRun &&
       [AgentRunStatus.COMPLETED, AgentRunStatus.CANCELLED].includes(
@@ -398,7 +401,8 @@ export class AgentRunProcessor extends WorkerHost {
     }
     if (
       persistedRun &&
-      String(persistedRun.status) === AgentRunStatus.RUNNING
+      String(persistedRun.status) === AgentRunStatus.RUNNING &&
+      !isDurableRetry
     ) {
       const persistedError =
         'Agent generation stopped before it could complete safely.';
@@ -437,9 +441,9 @@ export class AgentRunProcessor extends WorkerHost {
         userId: data.userId,
       });
     } catch (error: unknown) {
-      const attempts = Number(job.opts.attempts) || 1;
+      const attempts = configuredAttempts;
       const attempt = job.attemptsMade + 1;
-      const isLastAttempt = job.attemptsMade + 1 >= attempts;
+      const isLastAttempt = attempt >= attempts;
       const errorRecord = readObjectRecord(error);
       this.logger.error(`${this.logContext} accepted chat turn failed`, {
         attempt,
@@ -464,6 +468,14 @@ export class AgentRunProcessor extends WorkerHost {
           error: 'Agent generation could not be completed. Please retry.',
           runId: data.runId,
           threadId: data.threadId,
+          userId: data.userId,
+        });
+        this.agentStreamPublisherService.publishRunComplete({
+          error: persistedError,
+          organizationId: data.organizationId,
+          runId: data.runId,
+          status: 'failed',
+          timestamp: new Date().toISOString(),
           userId: data.userId,
         });
       }

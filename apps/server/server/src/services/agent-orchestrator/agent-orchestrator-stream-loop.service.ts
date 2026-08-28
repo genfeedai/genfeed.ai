@@ -748,11 +748,9 @@ export class AgentOrchestratorStreamLoopService {
         },
       );
 
-      // Queue-owned streams must reject so BullMQ retains responsibility for
-      // durable retries. chatStream's outer boundary publishes the failure
-      // once before the rejection reaches the processor. Legacy in-process
-      // streams still own their terminal event here because their caller has
-      // already received the immediate acknowledgement.
+      // A queue-owned attempt is not terminal until BullMQ exhausts its retry
+      // budget. Propagate the provider/tool failure without recording a
+      // run.failed event; the processor owns the one durable terminal outcome.
       if (context.executionMode === 'background') {
         throw error;
       }

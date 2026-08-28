@@ -236,6 +236,44 @@ describe('AgentRunProcessor', () => {
       threadId: 'thread-1',
       userId: 'user-1',
     });
+    expect(agentStreamPublisherService.publishRunComplete).toHaveBeenCalledWith(
+      expect.objectContaining({ runId: 'run-1', status: 'failed' }),
+    );
+  });
+
+  it('keeps a retryable accepted turn non-terminal before its final attempt', async () => {
+    agentRunsService.getById.mockResolvedValue({ status: 'RUNNING' });
+    agentOrchestratorService.chatStream.mockRejectedValue(
+      new Error('Request failed with status code 429'),
+    );
+    const job = {
+      attemptsMade: 1,
+      data: {
+        clientRequestId: 'request-1',
+        kind: 'agent-chat-turn',
+        organizationId: 'org-1',
+        request: {
+          clientRequestId: 'request-1',
+          content: 'Reply with hello',
+          threadId: 'thread-1',
+        },
+        runId: 'run-1',
+        threadId: 'thread-1',
+        userId: 'user-1',
+      },
+      opts: { attempts: 3 },
+    } as Job<AgentRunJobData>;
+
+    await expect(processor.process(job)).rejects.toThrow(
+      'Request failed with status code 429',
+    );
+
+    expect(agentOrchestratorService.chatStream).toHaveBeenCalledOnce();
+    expect(agentRunsService.fail).not.toHaveBeenCalled();
+    expect(agentStreamPublisherService.publishError).not.toHaveBeenCalled();
+    expect(
+      agentStreamPublisherService.publishRunComplete,
+    ).not.toHaveBeenCalled();
   });
 
   it('redelivers queued voice rendering through the durable worker', async () => {
