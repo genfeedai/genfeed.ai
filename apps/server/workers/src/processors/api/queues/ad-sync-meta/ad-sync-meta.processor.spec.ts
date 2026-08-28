@@ -1,6 +1,7 @@
 import type { MetaAdSyncJobData } from '@genfeedai/queue-contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
 import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 import { AdSyncMetaProcessor } from '@workers/processors/api/queues/ad-sync-meta/ad-sync-meta.processor';
@@ -12,17 +13,16 @@ const credentialId = testId('credential');
 const organizationId = testId('org');
 
 describe('AdSyncMetaProcessor', () => {
-  let adPerformanceService: {
-    upsertBatch: ReturnType<typeof vi.fn>;
-  };
+  let adPerformanceService: vi.Mocked<
+    Pick<AdPerformanceService, 'upsertBatch'>
+  >;
   let processor: AdSyncMetaProcessor;
-  let logger: LoggerService;
-  let metaAdsService: {
-    getCampaignInsights: ReturnType<typeof vi.fn>;
-    listCampaigns: ReturnType<typeof vi.fn>;
-  };
+  let logger: vi.Mocked<Pick<LoggerService, 'error' | 'log' | 'warn'>>;
+  let metaAdsService: vi.Mocked<
+    Pick<MetaAdsService, 'getCampaignInsights' | 'listCampaigns'>
+  >;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     adPerformanceService = {
       upsertBatch: vi.fn().mockResolvedValue(1),
     };
@@ -30,7 +30,7 @@ describe('AdSyncMetaProcessor', () => {
       error: vi.fn(),
       log: vi.fn(),
       warn: vi.fn(),
-    } as unknown as LoggerService;
+    };
     metaAdsService = {
       getCampaignInsights: vi.fn().mockResolvedValue([
         {
@@ -53,11 +53,16 @@ describe('AdSyncMetaProcessor', () => {
       ]),
     };
 
-    processor = new AdSyncMetaProcessor(
-      adPerformanceService as unknown as AdPerformanceService,
-      logger,
-      metaAdsService as unknown as MetaAdsService,
-    );
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AdSyncMetaProcessor,
+        { provide: AdPerformanceService, useValue: adPerformanceService },
+        { provide: LoggerService, useValue: logger },
+        { provide: MetaAdsService, useValue: metaAdsService },
+      ],
+    }).compile();
+
+    processor = module.get(AdSyncMetaProcessor);
     vi.spyOn(
       processor as unknown as { delay: () => Promise<void> },
       'delay',
