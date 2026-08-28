@@ -1,3 +1,10 @@
+import { AgentExecutionStatus } from '@genfeedai/enums';
+import {
+  type AgentDashboardOperation,
+  type AgentUIBlocksEvent,
+  type AgentUiAction,
+} from '@genfeedai/interfaces';
+import { Injectable, Optional } from '@nestjs/common';
 import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { fromPromiseEffect } from '@server/helpers/utils/effect/effect.util';
 import { AgentStreamPublisherService } from '@server/services/agent-orchestrator/agent-stream-publisher.service';
@@ -5,12 +12,6 @@ import type {
   AgentChatContext,
   ToolCallSummary,
 } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
-import {
-  type AgentDashboardOperation,
-  type AgentUIBlocksEvent,
-  type AgentUiAction,
-} from '@genfeedai/interfaces';
-import { Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
 
 @Injectable()
@@ -385,37 +386,50 @@ export class AgentStreamEffectsService {
     threadId: string;
   }): Effect.Effect<void, unknown> {
     const runId = params.context.runId;
-    const failRunEffect =
-      params.failRun && runId && this.agentRunsService
-        ? fromPromiseEffect(() =>
-            this.agentRunsService?.fail(
+    const agentRunsService = this.agentRunsService;
+    const terminalStatusEffect =
+      params.failRun && runId && agentRunsService
+        ? fromPromiseEffect(async () => {
+            const run = await agentRunsService.fail(
               runId,
               params.context.organizationId,
               params.persistedError ?? params.error,
-            ),
-          ).pipe(Effect.asVoid)
-        : Effect.void;
+            );
+            return run?.status;
+          })
+        : Effect.succeed(undefined);
 
-    return failRunEffect.pipe(
-      Effect.zipRight(
-        this.publishStreamErrorEffect({
+    return terminalStatusEffect.pipe(
+      Effect.flatMap((status) => {
+        if (status === AgentExecutionStatus.CANCELLED) {
+          return this.publishStreamCancelledEffect(
+            params.context,
+            params.threadId,
+          );
+        }
+        if (status && status !== AgentExecutionStatus.FAILED) {
+          return Effect.void;
+        }
+
+        return this.publishStreamErrorEffect({
           error: params.error,
           runId: params.context.runId,
           threadId: params.threadId,
           userId: params.context.userId,
-        }),
-      ),
-      Effect.zipRight(
-        this.publishStreamWorkEventEffect({
-          detail: params.error,
-          event: 'failed',
-          label: 'Agent failed',
-          runId: params.context.runId,
-          status: 'failed',
-          threadId: params.threadId,
-          userId: params.context.userId,
-        }),
-      ),
+        }).pipe(
+          Effect.zipRight(
+            this.publishStreamWorkEventEffect({
+              detail: params.error,
+              event: 'failed',
+              label: 'Agent failed',
+              runId: params.context.runId,
+              status: 'failed',
+              threadId: params.threadId,
+              userId: params.context.userId,
+            }),
+          ),
+        );
+      }),
       Effect.catchAll(() => Effect.void),
     );
   }

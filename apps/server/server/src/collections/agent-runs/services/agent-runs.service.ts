@@ -587,7 +587,10 @@ export class AgentRunsService extends BaseService<
     if (run.status === AgentExecutionStatus.CANCELLED) {
       return run;
     }
-    if (!ACTIVE_AGENT_RUN_STATUSES.includes(run.status)) {
+    if (
+      run.status !== AgentExecutionStatus.PENDING &&
+      run.status !== AgentExecutionStatus.RUNNING
+    ) {
       throw new ConflictException(
         `Agent run cannot be cancelled after reaching ${run.status.toLowerCase()}`,
       );

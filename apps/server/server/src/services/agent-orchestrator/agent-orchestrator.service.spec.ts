@@ -2293,7 +2293,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
     llmDispatcher.streamChatCompletionAggregated.mockRejectedValueOnce(
@@ -2336,7 +2336,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
     llmDispatcher.streamChatCompletionAggregated.mockRejectedValueOnce(
@@ -2366,7 +2366,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
 
@@ -2389,7 +2389,7 @@ describe('AgentOrchestratorService', () => {
 
     // Real provider deltas are published as agent:token events, in order.
     const streamedTokens = streamPublisher.publishToken.mock.calls.map(
-      (call) => (call[0] as { token: string }).token,
+      (call: unknown[]) => (call[0] as { token: string }).token,
     );
     expect(streamedTokens).toEqual(['Hello ', 'streamed']);
 
@@ -2402,7 +2402,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
 
@@ -2449,7 +2449,8 @@ describe('AgentOrchestratorService', () => {
     for (let i = 0; i < 20; i++) {
       if (
         streamPublisher.publishWorkEvent.mock.calls.some(
-          (call) => (call[0] as { event?: string }).event === 'cancelled',
+          (call: unknown[]) =>
+            (call[0] as { event?: string }).event === 'cancelled',
         )
       ) {
         break;
@@ -2492,7 +2493,8 @@ describe('AgentOrchestratorService', () => {
     for (let i = 0; i < 20; i++) {
       if (
         streamPublisher.publishWorkEvent.mock.calls.some(
-          (call) => (call[0] as { event?: string }).event === 'cancelled',
+          (call: unknown[]) =>
+            (call[0] as { event?: string }).event === 'cancelled',
         )
       ) {
         break;
@@ -2531,7 +2533,8 @@ describe('AgentOrchestratorService', () => {
     for (let i = 0; i < 20; i++) {
       if (
         streamPublisher.publishWorkEvent.mock.calls.some(
-          (call) => (call[0] as { event?: string }).event === 'cancelled',
+          (call: unknown[]) =>
+            (call[0] as { event?: string }).event === 'cancelled',
         )
       ) {
         break;
@@ -2549,7 +2552,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
     // Simulate a Redis publish outage for the duration of the stream.
