@@ -28,8 +28,9 @@ function toDispatchedStatus(
   result: ClipGenerationJobResult,
 ): 'completed' | 'failed' | 'generating' {
   if (
-    !result.awaitingHookApproval &&
-    result.completedClipCount === result.queuedClipCount
+    result.queuedClipCount > 0 &&
+    result.completedClipCount === result.queuedClipCount &&
+    !result.awaitingHookApproval
   ) {
     return 'completed';
   }
@@ -91,19 +92,24 @@ export class ClipGenerationDispatchService {
       );
     }
 
-    await this.clipProjectsService.patch(projectId, {
-      highlights: persistedHighlights,
-      progress: 0,
-      settings: {
-        ...project.settings,
-        avatarId: identity?.avatarId,
-        avatarProvider: dto.avatarProvider ?? 'heygen',
-        flow: 'review',
-        mode,
-        voiceId: identity?.voiceId,
+    await this.clipProjectsService.patch(
+      projectId,
+      {
+        highlights: persistedHighlights,
+        progress: 0,
+        settings: {
+          ...project.settings,
+          avatarId: identity?.avatarId,
+          avatarProvider: dto.avatarProvider ?? 'heygen',
+          flow: 'review',
+          mode,
+          voiceId: identity?.voiceId,
+        },
+        status: 'generating',
       },
-      status: 'generating',
-    });
+      [],
+      organizationId,
+    );
 
     const result = await this.clipGenerationService.generateClips({
       avatarId: identity?.avatarId,
@@ -131,11 +137,16 @@ export class ClipGenerationDispatchService {
     });
 
     if (result.queuedClipCount === 0) {
-      await this.clipProjectsService.patch(projectId, {
-        error: 'Clip generation failed before any generation job was queued.',
-        progress: 100,
-        status: 'failed',
-      });
+      await this.clipProjectsService.patch(
+        projectId,
+        {
+          error: 'Clip generation failed before any generation job was queued.',
+          progress: 100,
+          status: 'failed',
+        },
+        [],
+        organizationId,
+      );
     }
 
     return serializeClipGenerationResult({

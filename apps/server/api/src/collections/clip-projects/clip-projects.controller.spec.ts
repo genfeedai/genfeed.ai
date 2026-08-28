@@ -559,6 +559,8 @@ describe('ClipProjectsController', () => {
         settings: expect.objectContaining({ mode: 'avatar' }),
         status: 'generating',
       }),
+      [],
+      organizationId,
     );
     expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -773,6 +775,8 @@ describe('ClipProjectsController', () => {
         progress: 100,
         status: 'failed',
       }),
+      [],
+      organizationId,
     );
     expect(result.status).toBe('failed');
   });
