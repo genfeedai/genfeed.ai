@@ -48,11 +48,11 @@ export interface ListWorkflowExecutionsOptions {
   workflowId?: string;
 }
 
-export interface CreateWorkflowExecutionInput {
+export type CreateWorkflowExecutionInput = {
   inputValues?: Record<string, unknown>;
   trigger?: string;
   workflowId: string;
-}
+};
 
 function boundedLimit(limit = 20): number {
   return Math.min(Math.max(Math.trunc(limit), 1), 200);
