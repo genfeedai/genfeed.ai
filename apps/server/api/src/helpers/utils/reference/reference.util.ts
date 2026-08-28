@@ -1,8 +1,8 @@
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { AssetCategory, IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 
 /**
  * Builds a public reference image URL for a given reference id.
@@ -105,19 +105,26 @@ export async function buildReferenceImageUrls(params: {
     return [];
   }
 
-  const results: string[] = [];
-  for (const id of referenceIds) {
-    const url = await buildReferenceImageUrl({
-      assetsService,
-      configService,
-      ingredientsService,
-      loggerService,
-      organizationId,
-      referenceId: id,
-    });
-    if (url) {
-      results.push(url);
-    }
-  }
-  return results;
+  const lookups = new Map<string, Promise<string | null>>();
+  const results = await Promise.all(
+    referenceIds.map((referenceId) => {
+      const existing = lookups.get(referenceId);
+      if (existing) {
+        return existing;
+      }
+
+      const lookup = buildReferenceImageUrl({
+        assetsService,
+        configService,
+        ingredientsService,
+        loggerService,
+        organizationId,
+        referenceId,
+      });
+      lookups.set(referenceId, lookup);
+      return lookup;
+    }),
+  );
+
+  return results.filter((url): url is string => url !== null);
 }
