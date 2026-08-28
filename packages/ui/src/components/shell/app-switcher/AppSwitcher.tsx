@@ -558,9 +558,9 @@ export function AppSwitcher({
     : 0;
   const previewRowTopClass = [
     'top-[3.375rem]',
-    'top-[8.125rem]',
-    'top-[12.875rem]',
-    'top-[17.625rem]',
+    'top-[8.25rem]',
+    'top-[13.125rem]',
+    'top-[18rem]',
   ][previewRowIndex];
   const PreviewIcon = previewApp
     ? (APP_SWITCHER_ICON_OVERRIDES[previewApp.itemKey] ?? previewApp.icon)
