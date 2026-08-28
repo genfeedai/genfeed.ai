@@ -96,6 +96,7 @@ import { CreditsUtilsService } from '@server/collections/credits/services/credit
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import { AccessBootstrapCacheService } from '@server/common/services/access-bootstrap-cache.service';
 import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
+import { TransactionUtil } from '@server/helpers/utils/transaction/transaction.util';
 import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
@@ -368,7 +369,9 @@ describe('Credit decrement is real and idempotent (#334 real-backend E2E)', () =
       providers: [
         CreditsUtilsService,
         CreditBalanceService,
+        CreditReservationService,
         CreditTransactionsService,
+        TransactionUtil,
         {
           provide: OrganizationSettingsService,
           useValue: { findOne: vi.fn().mockResolvedValue(null) },
@@ -523,7 +526,9 @@ describe('Credit decrement is real and idempotent (#334 real-backend E2E)', () =
       }),
     ]);
 
-    expect(attempts.filter((attempt) => attempt.status === 'fulfilled')).toHaveLength(1);
+    expect(
+      attempts.filter((attempt) => attempt.status === 'fulfilled'),
+    ).toHaveLength(1);
     const wallet = await creditsUtilsService.getWalletSnapshot(organizationId);
     expect(wallet.settled).toBe(STARTING_BALANCE);
     expect(wallet.held).toBe(3000);
@@ -556,7 +561,9 @@ describe('Credit decrement is real and idempotent (#334 real-backend E2E)', () =
       }),
     ]);
 
-    expect(settlements.every((settlement) => settlement.status === 'fulfilled')).toBe(true);
+    expect(
+      settlements.every((settlement) => settlement.status === 'fulfilled'),
+    ).toBe(true);
     const wallet = await creditsUtilsService.getWalletSnapshot(organizationId);
     expect(wallet.settled).toBe(STARTING_BALANCE - 750);
     expect(wallet.held).toBe(0);
@@ -585,7 +592,9 @@ describe('Credit decrement is real and idempotent (#334 real-backend E2E)', () =
       organizationId,
     });
 
-    await expect(creditReservationService.expireDue()).resolves.toBeGreaterThanOrEqual(1);
+    await expect(
+      creditReservationService.expireDue(),
+    ).resolves.toBeGreaterThanOrEqual(1);
 
     const wallet = await creditsUtilsService.getWalletSnapshot(organizationId);
     expect(wallet.settled).toBe(STARTING_BALANCE);
