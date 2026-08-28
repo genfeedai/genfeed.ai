@@ -346,7 +346,7 @@
     "test": "find ./src -name '*.test.ts' ! -name '*.e2e.test.ts' -print0 | xargs -0 -r bun test --timeout 15000",
     "test:cov": "find ./src -name '*.test.ts' ! -name '*.e2e.test.ts' -print0 | xargs -0 -r bun test --coverage --timeout 15000",
     "test:e2e": "find ./src -name '*.e2e.test.ts' -print0 | xargs -0 -r -n1 bun test --timeout 15000",
-    "type-check": "tsc --noEmit",
+    "type-check": "bun run ../../../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit",
     "vscode:prepublish": "bun run build",
     "watch": "bun run watch:extension",
     "watch:extension": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=esm --platform=node --watch"

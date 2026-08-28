@@ -1,8 +1,4 @@
-import { DashboardLayoutsService } from '@server/collections/dashboard-layouts/services/dashboard-layouts.service';
-import { runEffectPromise } from '@server/helpers/utils/effect/effect.util';
-import { AgentStreamPublisherService } from '@server/services/agent-orchestrator/agent-stream-publisher.service';
-import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { sanitizeLayoutForPersistence } from '@genfeedai/agent/dashboard';
+import { sanitizeLayoutForPersistence } from '@genfeedai/agent/server';
 import type {
   AgentDashboardOperation,
   AgentToolResult,
@@ -13,6 +9,10 @@ import type {
   TopPostsBlock,
 } from '@genfeedai/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
+import { DashboardLayoutsService } from '@server/collections/dashboard-layouts/services/dashboard-layouts.service';
+import { runEffectPromise } from '@server/helpers/utils/effect/effect.util';
+import { AgentStreamPublisherService } from '@server/services/agent-orchestrator/agent-stream-publisher.service';
+import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { Effect } from 'effect';
 
 const DEFAULT_PAGE_KEY = 'workspace-overview';

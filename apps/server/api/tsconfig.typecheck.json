@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "types": ["node", "vitest/globals", "multer"]
+    "types": ["node", "multer"]
   },
   "exclude": [
     "node_modules",

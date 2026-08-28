@@ -36,7 +36,7 @@
     "prepack": "npm run build",
     "test": "vitest run --config vitest.config.ts",
     "test:cov": "vitest run --config vitest.config.ts --coverage",
-    "type-check": "tsc --noEmit"
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit"
   },
   "sideEffects": false,
   "type": "module",

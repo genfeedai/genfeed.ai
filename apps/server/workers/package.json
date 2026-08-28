@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@genfeedai/libs": "workspace:*",
     "@aws-sdk/client-cloudwatch": "3.1120.0",
     "@aws-sdk/client-ec2": "3.1120.0",
     "@genfeedai/config": "workspace:*",
@@ -57,7 +58,7 @@
     "test:cron:watch": "vitest --config vitest.cron.config.ts",
     "test:e2e": "echo 'No e2e tests yet'",
     "test:watch": "vitest --config vitest.config.ts",
-    "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
+    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit -p tsconfig.typecheck.json"
   },
   "version": "1.0.0",
   "type": "module"
