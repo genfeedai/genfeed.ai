@@ -200,6 +200,7 @@
     "acorn": "8.18.0",
     "clsx": "2.1.1",
     "esbuild": "0.28.2",
+    "fork-ts-checker-webpack-plugin": "9.1.0",
     "glob": "13.0.6",
     "lint-staged": "17.4.1",
     "monocart-reporter": "2.12.6",
