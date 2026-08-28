@@ -1104,6 +1104,23 @@ function isServiceWorkerRoute(pathname: string): boolean {
   return pathname === '/~offline' || pathname.startsWith('/serwist/');
 }
 
+/**
+ * Client App Router transitions already originate inside an authenticated,
+ * scoped shell. Let Next serve their RSC payload without blocking on the
+ * token -> bootstrap network waterfall. Full entries, bare-route
+ * canonicalization, and mutations keep the strict validation path below.
+ * Page data and actions remain authorized at their server/API boundaries.
+ */
+function isScopedAppRouterTransition(req: NextRequest): boolean {
+  return (
+    req.method === 'GET' &&
+    req.headers.get('rsc') === '1' &&
+    req.headers.get('next-action') === null &&
+    slugsFromPathname(req.nextUrl.pathname) !== null &&
+    resolveRefererWorkspaceSlugs(req) !== null
+  );
+}
+
 interface BetterAuthRoutingOptions {
   isDesktopSurface?: boolean;
   preferredBearerToken?: string | null;
@@ -1188,6 +1205,10 @@ async function routeBetterAuthRequest(
 
   if (!hasSession) {
     return redirectToLoginPreservingDestination(req);
+  }
+
+  if (isScopedAppRouterTransition(req)) {
+    return continueWithCurrentWorkspace(req, sessionCookie);
   }
 
   const token =
