@@ -1,6 +1,6 @@
 import { BrandVoiceProfileCard } from '@genfeedai/agent/components/BrandVoiceProfileCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('BrandVoiceProfileCard', () => {
@@ -77,5 +77,41 @@ describe('BrandVoiceProfileCard', () => {
         voiceProfile: { tone: 'confident' },
       },
     );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Brand voice saved to this brand.'),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('keeps the approval available when the action is rejected', async () => {
+    const onUiAction = vi.fn().mockResolvedValue(false);
+    const action: AgentUiAction = {
+      ctas: [
+        {
+          action: 'confirm_save_brand_voice_profile',
+          label: 'Approve and save',
+        },
+      ],
+      data: { voiceProfile: { tone: 'confident' } },
+      id: 'brand-voice-rejected',
+      title: 'Brand Voice Draft',
+      type: 'brand_voice_profile_card',
+    };
+
+    render(<BrandVoiceProfileCard action={action} onUiAction={onUiAction} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Approve and save' }));
+
+    await waitFor(() => {
+      expect(onUiAction).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      screen.queryByText('Brand voice saved to this brand.'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Approve and save' }),
+    ).toBeEnabled();
   });
 });

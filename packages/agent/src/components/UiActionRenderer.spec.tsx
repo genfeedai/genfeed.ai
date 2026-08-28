@@ -504,6 +504,28 @@ describe('UiActionRenderer', () => {
     ).toBeUndefined();
   });
 
+  it('preserves a card instance while its action is busy', () => {
+    const action = {
+      id: 'brand-voice-busy-state',
+      type: 'brand_voice_profile_card',
+    } as AgentUiAction;
+
+    const { rerender } = render(
+      <UiActionRenderer action={action} {...rendererHandlers} />,
+    );
+    const liveCard = screen.getByTestId('brand-voice-profile-card');
+
+    rerender(
+      <UiActionRenderer action={action} isDisabled {...rendererHandlers} />,
+    );
+
+    expect(screen.getByTestId('brand-voice-profile-card')).toBe(liveCard);
+
+    rerender(<UiActionRenderer action={action} {...rendererHandlers} />);
+
+    expect(screen.getByTestId('brand-voice-profile-card')).toBe(liveCard);
+  });
+
   it('keeps busy api-backed cards visible inside the inert shell', () => {
     const apiService = { marker: 'workflow-trigger' };
     const action = {

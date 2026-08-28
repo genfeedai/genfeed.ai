@@ -64,8 +64,10 @@ export function BrandVoiceProfileCard({
     setIsSaving(true);
 
     try {
-      await onUiAction(approveCta.action, approveCta.payload);
-      setIsSaved(true);
+      const outcome = await onUiAction(approveCta.action, approveCta.payload);
+      if (outcome !== false) {
+        setIsSaved(true);
+      }
     } finally {
       setIsSaving(false);
     }
