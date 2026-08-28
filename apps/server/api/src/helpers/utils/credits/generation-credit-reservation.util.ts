@@ -4,7 +4,6 @@ import { CreditReservationStatus } from '@genfeedai/enums';
 import type { CreditsConfig } from '@genfeedai/interfaces';
 import type { AuthenticatedUser } from '@server/auth/interfaces/authenticated-user.interface';
 import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import type { Request } from 'express';
 
 // Media settlement retries for seven days. Keep the hold alive for one extra
 // day so the expiry sweep cannot race the final worker retry.
@@ -17,7 +16,8 @@ export type ReservationCreditsConfig = CreditsConfig & {
   reservationId?: string;
 };
 
-export type GenerationCreditReservationRequest = Request & {
+export type GenerationCreditReservationRequest = {
+  body?: unknown;
   creditsConfig?: ReservationCreditsConfig;
   user?: AuthenticatedUser;
 };
