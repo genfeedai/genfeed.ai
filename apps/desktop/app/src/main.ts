@@ -65,6 +65,7 @@ import {
   activateDesktopLocalMode,
   createLocalRuntimeCleanupBarrier,
   createUnwoundLocalRuntimeState,
+  restoreDesktopRuntimeMode,
   selectDesktopDataService,
   switchDesktopToCloud,
   type UnwoundLocalRuntimeState,
@@ -899,9 +900,7 @@ const createWindow = async (): Promise<void> => {
 
   try {
     await mainWindow.loadURL(buildDesktopLoadingScreenUrl());
-    const prefersLocalWorkspace =
-      desktopStore.getValueSync(OFFLINE_MODE_KEY) === 'local';
-    const initialUrl = prefersLocalWorkspace
+    const initialUrl = isOfflineMode
       ? new URL('/desktop/local', appShellService.appOrigin).toString()
       : appShellService.buildInitialUrl(sessionService.getSession());
     await loadCanonicalApp(mainWindow, initialUrl);
@@ -1915,11 +1914,11 @@ void app
     cloudService = new DesktopCloudService(environment, () =>
       sessionService.getSession(),
     );
-    isOfflineMode = desktopStore.getValueSync(OFFLINE_MODE_KEY) === 'local';
-    if (isOfflineMode) {
-      try {
-        await initializeLocalRuntime();
-      } catch (error) {
+    isOfflineMode = await restoreDesktopRuntimeMode({
+      initializeLocalRuntime,
+      isLocalModeRequested:
+        desktopStore.getValueSync(OFFLINE_MODE_KEY) === 'local',
+      onLocalRuntimeError: (error) => {
         process.stderr.write(
           `[desktop] local runtime could not start: ${error instanceof Error ? error.stack || error.message : String(error)}\n`,
         );
@@ -1928,8 +1927,11 @@ void app
         );
         telemetryService.captureException(error, { surface: 'local-runtime' });
         applyUnwoundLocalRuntime();
-      }
-    }
+      },
+      persistCloudMode: () => {
+        desktopStore.setValueSync(OFFLINE_MODE_KEY, 'cloud');
+      },
+    });
     telemetryService.setUser(sessionService.getSession());
     registerProtocolHandling();
     configureSessionPermissions();
