@@ -71,7 +71,7 @@ function DropdownMenuSubContent({
           onPointerDownOutside?.(event);
         }}
         className={cn(
-          'app-region-no-drag z-[10001] min-w-[160px] overflow-hidden rounded-md border border-border py-1',
+          'app-region-no-drag z-[10001] min-w-[160px] overflow-hidden rounded-md py-1',
           overlayMenuSurfaceClassName,
           className,
         )}
@@ -105,7 +105,7 @@ function DropdownMenuContent({
           onPointerDownOutside?.(event);
         }}
         className={cn(
-          'app-region-no-drag z-[10001] min-w-[160px] overflow-hidden rounded-md border border-border py-1',
+          'app-region-no-drag z-[10001] min-w-[160px] overflow-hidden rounded-md py-1',
           overlayMenuSurfaceClassName,
           className,
         )}

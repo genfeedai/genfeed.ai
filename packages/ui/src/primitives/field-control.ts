@@ -13,7 +13,11 @@ export const fieldControlInputClassName =
 export const fieldControlTriggerClassName =
   'items-center justify-between gap-2 whitespace-nowrap [&>span]:line-clamp-1';
 
-/** Floating menus sit on `bg-secondary` — darker than elevated/tertiary. */
+/**
+ * Floating menus sit on `bg-secondary` — darker than elevated/tertiary.
+ * `shadow-dropdown` owns the single inset hairline; consumers must not add a
+ * CSS border on top of it.
+ */
 export const overlayMenuSurfaceClassName =
   'bg-secondary text-foreground shadow-dropdown';
 

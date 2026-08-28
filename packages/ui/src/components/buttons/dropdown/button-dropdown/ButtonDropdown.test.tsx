@@ -44,6 +44,22 @@ describe('ButtonDropdown', () => {
     expect(screen.getByText('Option B')).toBeInTheDocument();
   });
 
+  it('does not stack the default button border shadow under trigger borders', () => {
+    render(
+      <ButtonDropdown
+        className="border border-border"
+        name="test"
+        value="b"
+        options={mockOptions}
+        onChange={vi.fn()}
+      />,
+    );
+
+    const trigger = screen.getByRole('button');
+    expect(trigger).toHaveClass('border', 'border-border');
+    expect(trigger).not.toHaveClass('shadow-border');
+  });
+
   it('renders icon-only trigger without text when enabled', () => {
     render(
       <ButtonDropdown
