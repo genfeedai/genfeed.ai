@@ -1,7 +1,7 @@
+import { Injectable } from '@nestjs/common';
 import { TrendEntity } from '@server/collections/trends/entities/trend.entity';
 import type { TrendDocument } from '@server/collections/trends/schemas/trend.schema';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { Injectable } from '@nestjs/common';
 
 /**
  * Owns trend read queries against Prisma.
@@ -81,24 +81,24 @@ export class TrendQueryService {
    */
   async countActiveGlobalTrends(): Promise<number> {
     const now = new Date();
-    // The isCurrent/expiresAt predicates live inside the `data` JSON blob, so
-    // the filter stays in JS — but only the blob is fetched, not full rows.
-    const allGlobalTrends = await this.prisma.trend.findMany({
+    const activeGlobalTrends = await this.prisma.trend.findMany({
       select: { data: true },
-      where: { isDeleted: false, organizationId: null },
+      where: {
+        AND: [
+          { data: { equals: true, path: ['isCurrent'] } },
+          { data: { gt: now.toISOString(), path: ['expiresAt'] } },
+        ],
+        isDeleted: false,
+        organizationId: null,
+      },
     });
 
-    return allGlobalTrends.filter((doc) => {
-      const d = doc.data as unknown as Record<string, unknown>;
-      if (this.isSyntheticTrendData(d)) {
-        return false;
-      }
-      return (
-        d.isCurrent === true &&
-        d.expiresAt != null &&
-        new Date(d.expiresAt as string) > now
-      );
-    }).length;
+    return activeGlobalTrends.filter(
+      (doc) =>
+        !this.isSyntheticTrendData(
+          doc.data as unknown as Record<string, unknown>,
+        ),
+    ).length;
   }
 
   /**
