@@ -1,10 +1,7 @@
-import { MODEL_KEYS } from '@genfeedai/constants';
 import {
-  ActivitySource,
   BotCommandType,
+  CredentialPlatform,
   IngredientCategory,
-  IngredientStatus,
-  MetadataExtension,
 } from '@genfeedai/enums';
 import type {
   IBotCallbackContext,
@@ -12,50 +9,44 @@ import type {
 } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { RedisService } from '@libs/redis/redis.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
+import {
+  Inject,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { resolveGenerationDefaultModel } from '@server/helpers/utils/generation-defaults/generation-defaults.util';
-import { SharedService } from '@server/shared/services/shared/shared.service';
+import {
+  BOT_MEDIA_GENERATION_DISPATCHER,
+  type BotMediaGenerationDispatcher,
+} from '@server/services/bot-gateway/services/bot-media-generation-dispatcher.interface';
+import type { Request } from 'express';
 
 interface GenerationResult {
   ingredientId: string;
   message: string;
 }
 
-interface SyntheticUser {
-  brandId: string;
-  id: string;
-  organizationId: string;
-  userId: string;
-}
+const CALLBACK_CONTEXT_TTL_SECONDS = 24 * 60 * 60;
+const CALLBACK_CONTEXT_KEY_PREFIX = 'bot-generation:callback';
+const BOT_PLATFORMS = new Set<string>([
+  CredentialPlatform.DISCORD,
+  CredentialPlatform.SLACK,
+  CredentialPlatform.TELEGRAM,
+]);
 
 @Injectable()
 export class BotGenerationService {
   private readonly constructorName: string = String(this.constructor.name);
 
-  /**
-   * In-memory store for bot callback contexts
-   * Key: ingredientId, Value: callback context for sending response
-   *
-   * NOTE: For production, this should be moved to Redis for multi-instance support
-   */
-  private readonly callbackContexts = new Map<string, IBotCallbackContext>();
-
   constructor(
     private readonly configService: ConfigService,
-    private readonly brandsService: BrandsService,
     private readonly creditsUtilsService: CreditsUtilsService,
-    private readonly organizationSettingsService: OrganizationSettingsService,
-    readonly _ingredientsService: IngredientsService,
-    readonly _metadataService: MetadataService,
-    private readonly sharedService: SharedService,
     private readonly loggerService: LoggerService,
+    private readonly redisService: RedisService,
+    @Inject(BOT_MEDIA_GENERATION_DISPATCHER)
+    private readonly mediaGenerationDispatcher: BotMediaGenerationDispatcher,
   ) {}
 
   /**
@@ -89,28 +80,12 @@ export class BotGenerationService {
     }
   }
 
-  /**
-   * Get credit cost for generation type
-   */
-  getCreditCost(command: BotCommandType): number {
-    switch (command) {
-      case BotCommandType.PROMPT_IMAGE:
-        return 5; // Standard image generation cost
-      case BotCommandType.PROMPT_VIDEO:
-        return 20; // Video generation is more expensive
-      default:
-        return 0;
-    }
-  }
-
-  /**
-   * Trigger content generation from bot command
-   */
   async triggerGeneration(
     resolvedUser: IBotResolvedUser,
     command: BotCommandType,
     prompt: string,
     callbackContext: IBotCallbackContext,
+    request: Request,
   ): Promise<GenerationResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -121,118 +96,41 @@ export class BotGenerationService {
       promptPreview: prompt.substring(0, 100),
     });
 
-    try {
-      // Get brand for default model
-      const brand = await this.brandsService.findOne({
-        id: resolvedUser.brandId,
-      });
+    const isImage = command === BotCommandType.PROMPT_IMAGE;
+    const result = await this.mediaGenerationDispatcher.generate({
+      command,
+      onPlaceholderCreated: async (ingredientId) => {
+        await this.storeCallbackContext(ingredientId, callbackContext);
+      },
+      prompt,
+      request,
+      user: resolvedUser,
+    });
 
-      if (!brand) {
-        throw new Error('Brand not found');
-      }
+    this.loggerService.log(`${url} generation dispatched`, {
+      ingredientId: result.ingredientId,
+    });
 
-      // Determine category and model based on command
-      const isImage = command === BotCommandType.PROMPT_IMAGE;
-      const category = isImage
-        ? IngredientCategory.IMAGE
-        : IngredientCategory.VIDEO;
-      const organizationSettings =
-        await this.organizationSettingsService.findOne({
-          organizationId: resolvedUser.organizationId,
-        });
-      const defaultModel = isImage
-        ? resolveGenerationDefaultModel<string>({
-            brandDefault: brand.defaultImageModel as string | undefined,
-            organizationDefault: organizationSettings?.defaultImageModel as
-              | string
-              | undefined,
-            systemDefault: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5,
-          })
-        : resolveGenerationDefaultModel<string>({
-            brandDefault: brand.defaultVideoModel as string | undefined,
-            organizationDefault: organizationSettings?.defaultVideoModel as
-              | string
-              | undefined,
-            systemDefault: 'replicate_kling_video',
-          });
+    return {
+      ingredientId: result.ingredientId,
+      message: `Generating your ${isImage ? 'image' : 'video'}...`,
+    };
+  }
 
-      // Create synthetic user object for SharedService
-      const syntheticUser: SyntheticUser = {
-        brandId: resolvedUser.brandId,
-        id: resolvedUser.userId,
-        organizationId: resolvedUser.organizationId,
-        userId: resolvedUser.userId,
-      };
-
-      // Create ingredient with PROCESSING status
-      const { ingredientData, metadataData } =
-        await this.sharedService.createMediaDocuments(
-          syntheticUser as unknown as User,
-          {
-            brandId: resolvedUser.brandId,
-            category,
-            extension: isImage ? MetadataExtension.JPEG : MetadataExtension.MP4,
-            model: defaultModel,
-            organizationId: resolvedUser.organizationId,
-            generationPrompt: prompt,
-            status: IngredientStatus.PROCESSING,
-            userId: resolvedUser.userId,
-          },
-        );
-
-      // Store callback context for when generation completes
-      const contextWithIngredient: IBotCallbackContext = {
-        ...callbackContext,
-        ingredientId: ingredientData.id.toString(),
-      };
-      this.callbackContexts.set(
-        ingredientData.id.toString(),
-        contextWithIngredient,
-      );
-
-      // Deduct credits
-      const creditCost = this.getCreditCost(command);
-      if (creditCost > 0) {
-        await this.creditsUtilsService.deductCreditsFromOrganization(
-          resolvedUser.organizationId,
-          resolvedUser.userId,
-          creditCost,
-          `Bot ${isImage ? 'image' : 'video'} generation`,
-          ActivitySource.BOT_GENERATION,
-        );
-      }
-
-      this.loggerService.log(`${url} ingredient created`, {
-        ingredientId: ingredientData.id.toString(),
-        metadataId: metadataData.id.toString(),
-      });
-
-      // NOTE: The actual AI generation call would go here
-      // For now, we've created the placeholder - the existing webhook infrastructure
-      // (like Replicate webhooks) will update the ingredient when generation completes
-
-      return {
-        ingredientId: ingredientData.id.toString(),
-        message: `Generating your ${isImage ? 'image' : 'video'}...`,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} generation failed`, error);
-      throw error;
+  async getCallbackContext(
+    ingredientId: string,
+  ): Promise<IBotCallbackContext | undefined> {
+    const stored = await this.redisClient().get(this.callbackKey(ingredientId));
+    if (!stored) {
+      return undefined;
     }
+
+    const parsed: unknown = JSON.parse(stored);
+    return this.isCallbackContext(parsed) ? parsed : undefined;
   }
 
-  /**
-   * Get callback context for an ingredient (called when generation completes)
-   */
-  getCallbackContext(ingredientId: string): IBotCallbackContext | undefined {
-    return this.callbackContexts.get(ingredientId);
-  }
-
-  /**
-   * Remove callback context after response is sent
-   */
-  removeCallbackContext(ingredientId: string): void {
-    this.callbackContexts.delete(ingredientId);
+  async removeCallbackContext(ingredientId: string): Promise<void> {
+    await this.redisClient().unlink(this.callbackKey(ingredientId));
   }
 
   /**
@@ -241,5 +139,45 @@ export class BotGenerationService {
   getIngredientUrl(ingredientId: string, category: IngredientCategory): string {
     const type = category === IngredientCategory.IMAGE ? 'images' : 'videos';
     return `${this.configService.ingredientsEndpoint}/${type}/${ingredientId}`;
+  }
+
+  private callbackKey(ingredientId: string): string {
+    return `${CALLBACK_CONTEXT_KEY_PREFIX}:${ingredientId}`;
+  }
+
+  private isCallbackContext(value: unknown): value is IBotCallbackContext {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+
+    const context = value as Record<string, unknown>;
+    return (
+      typeof context.applicationId === 'string' &&
+      typeof context.chatId === 'string' &&
+      typeof context.interactionToken === 'string' &&
+      typeof context.platform === 'string' &&
+      BOT_PLATFORMS.has(context.platform)
+    );
+  }
+
+  private redisClient() {
+    const client = this.redisService.getPublisher();
+    if (!client) {
+      throw new ServiceUnavailableException(
+        'Bot generation callbacks require Redis to be configured',
+      );
+    }
+    return client;
+  }
+
+  private async storeCallbackContext(
+    ingredientId: string,
+    callbackContext: IBotCallbackContext,
+  ): Promise<void> {
+    await this.redisClient().setex(
+      this.callbackKey(ingredientId),
+      CALLBACK_CONTEXT_TTL_SECONDS,
+      JSON.stringify({ ...callbackContext, ingredientId }),
+    );
   }
 }

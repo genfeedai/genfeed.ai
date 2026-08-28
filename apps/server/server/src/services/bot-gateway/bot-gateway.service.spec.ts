@@ -1,9 +1,3 @@
-import { DiscordBotAdapter } from '@server/services/bot-gateway/adapters/discord-bot.adapter';
-import { SlackBotAdapter } from '@server/services/bot-gateway/adapters/slack-bot.adapter';
-import { TelegramBotAdapter } from '@server/services/bot-gateway/adapters/telegram-bot.adapter';
-import { BotGatewayService } from '@server/services/bot-gateway/bot-gateway.service';
-import { BotGenerationService } from '@server/services/bot-gateway/services/bot-generation.service';
-import { BotUserResolverService } from '@server/services/bot-gateway/services/bot-user-resolver.service';
 import {
   BotCommandType,
   BotResponseType,
@@ -19,6 +13,13 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { DiscordBotAdapter } from '@server/services/bot-gateway/adapters/discord-bot.adapter';
+import { SlackBotAdapter } from '@server/services/bot-gateway/adapters/slack-bot.adapter';
+import { TelegramBotAdapter } from '@server/services/bot-gateway/adapters/telegram-bot.adapter';
+import { BotGatewayService } from '@server/services/bot-gateway/bot-gateway.service';
+import { BotGenerationService } from '@server/services/bot-gateway/services/bot-generation.service';
+import { BotUserResolverService } from '@server/services/bot-gateway/services/bot-user-resolver.service';
+import type { Request } from 'express';
 
 type MockAdapter = {
   [K in keyof IBotPlatformAdapter]: ReturnType<typeof vi.fn>;
@@ -43,10 +44,11 @@ interface MockUserResolver {
 interface MockGenerationService {
   checkCredits: ReturnType<typeof vi.fn>;
   getCallbackContext: ReturnType<typeof vi.fn>;
-  getCreditCost: ReturnType<typeof vi.fn>;
   removeCallbackContext: ReturnType<typeof vi.fn>;
   triggerGeneration: ReturnType<typeof vi.fn>;
 }
+
+const request = {} as Request;
 
 describe('BotGatewayService', () => {
   let service: BotGatewayService;
@@ -68,9 +70,8 @@ describe('BotGatewayService', () => {
 
     const mockGeneration: MockGenerationService = {
       checkCredits: vi.fn(),
-      getCallbackContext: vi.fn(),
-      getCreditCost: vi.fn().mockReturnValue(10),
-      removeCallbackContext: vi.fn(),
+      getCallbackContext: vi.fn().mockResolvedValue(undefined),
+      removeCallbackContext: vi.fn().mockResolvedValue(undefined),
       triggerGeneration: vi.fn(),
     };
 
@@ -160,6 +161,7 @@ describe('BotGatewayService', () => {
         service.handleInteraction(
           'whatsapp' as unknown as CredentialPlatform,
           {},
+          request,
         ),
       ).rejects.toThrow(HttpException);
     });
@@ -170,6 +172,7 @@ describe('BotGatewayService', () => {
       const result = await service.handleInteraction(
         CredentialPlatform.DISCORD,
         {},
+        request,
       );
 
       expect(result.type).toBe('error');
@@ -188,6 +191,7 @@ describe('BotGatewayService', () => {
       const result = await service.handleInteraction(
         CredentialPlatform.DISCORD,
         {},
+        request,
       );
 
       expect(result.type).toBe('error');
@@ -207,6 +211,7 @@ describe('BotGatewayService', () => {
       const result = await service.handleInteraction(
         CredentialPlatform.DISCORD,
         {},
+        request,
       );
 
       expect(result.type).toBe('text');
@@ -227,6 +232,7 @@ describe('BotGatewayService', () => {
       const result = await service.handleInteraction(
         CredentialPlatform.DISCORD,
         {},
+        request,
       );
 
       expect(result.type).toBe('text');
@@ -249,15 +255,20 @@ describe('BotGatewayService', () => {
       };
       discordAdapter.parseMessage.mockResolvedValue(msg);
       userResolverService.resolveUserWithBrand.mockResolvedValue(resolvedUser);
-      generationService.getCreditCost.mockReturnValue(10);
-      generationService.checkCredits.mockResolvedValue({
-        balance: 5,
-        hasCredits: false,
-      });
+      generationService.triggerGeneration.mockRejectedValue(
+        new HttpException(
+          {
+            detail: 'Insufficient credits: 10 required, 5 available',
+            title: 'Insufficient credits',
+          },
+          402,
+        ),
+      );
 
       const result = await service.handleInteraction(
         CredentialPlatform.DISCORD,
         {},
+        request,
       );
 
       expect(result.type).toBe('text');
@@ -283,11 +294,6 @@ describe('BotGatewayService', () => {
       };
       discordAdapter.parseMessage.mockResolvedValue(msg);
       userResolverService.resolveUserWithBrand.mockResolvedValue(resolvedUser);
-      generationService.getCreditCost.mockReturnValue(10);
-      generationService.checkCredits.mockResolvedValue({
-        balance: 100,
-        hasCredits: true,
-      });
       generationService.triggerGeneration.mockResolvedValue({
         ingredientId: 'ing-1',
         message: 'Generating your image...',
@@ -296,6 +302,7 @@ describe('BotGatewayService', () => {
       const result = await service.handleInteraction(
         CredentialPlatform.DISCORD,
         {},
+        request,
       );
 
       expect(result.type).toBe('deferred');
@@ -309,6 +316,7 @@ describe('BotGatewayService', () => {
           interactionToken: 'tok-1',
           platform: CredentialPlatform.DISCORD,
         }),
+        request,
       );
     });
 
@@ -328,11 +336,6 @@ describe('BotGatewayService', () => {
       };
       discordAdapter.parseMessage.mockResolvedValue(msg);
       userResolverService.resolveUserWithBrand.mockResolvedValue(resolvedUser);
-      generationService.getCreditCost.mockReturnValue(20);
-      generationService.checkCredits.mockResolvedValue({
-        balance: 100,
-        hasCredits: true,
-      });
       generationService.triggerGeneration.mockRejectedValue(
         new Error('GPU unavailable'),
       );
@@ -340,6 +343,7 @@ describe('BotGatewayService', () => {
       const result = await service.handleInteraction(
         CredentialPlatform.DISCORD,
         {},
+        request,
       );
 
       expect(result.type).toBe('error');
@@ -351,7 +355,7 @@ describe('BotGatewayService', () => {
 
   describe('sendCompletionResponse', () => {
     it('does nothing when no callback context exists', async () => {
-      generationService.getCallbackContext.mockReturnValue(undefined);
+      generationService.getCallbackContext.mockResolvedValue(undefined);
 
       await service.sendCompletionResponse(
         'ing-missing',
@@ -369,7 +373,7 @@ describe('BotGatewayService', () => {
         interactionToken: 'tok-1',
         platform: CredentialPlatform.DISCORD,
       };
-      generationService.getCallbackContext.mockReturnValue(ctx);
+      generationService.getCallbackContext.mockResolvedValue(ctx);
 
       await service.sendCompletionResponse(
         'ing-1',
@@ -400,7 +404,7 @@ describe('BotGatewayService', () => {
         interactionToken: 'tok-1',
         platform: CredentialPlatform.TELEGRAM,
       };
-      generationService.getCallbackContext.mockReturnValue(ctx);
+      generationService.getCallbackContext.mockResolvedValue(ctx);
 
       await service.sendErrorResponse('ing-1', 'Out of memory');
 

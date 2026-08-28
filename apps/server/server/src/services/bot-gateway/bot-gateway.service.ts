@@ -1,8 +1,3 @@
-import { DiscordBotAdapter } from '@server/services/bot-gateway/adapters/discord-bot.adapter';
-import { SlackBotAdapter } from '@server/services/bot-gateway/adapters/slack-bot.adapter';
-import { TelegramBotAdapter } from '@server/services/bot-gateway/adapters/telegram-bot.adapter';
-import { BotGenerationService } from '@server/services/bot-gateway/services/bot-generation.service';
-import { BotUserResolverService } from '@server/services/bot-gateway/services/bot-user-resolver.service';
 import {
   BotCommandType,
   BotResponseType,
@@ -18,6 +13,12 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { DiscordBotAdapter } from '@server/services/bot-gateway/adapters/discord-bot.adapter';
+import { SlackBotAdapter } from '@server/services/bot-gateway/adapters/slack-bot.adapter';
+import { TelegramBotAdapter } from '@server/services/bot-gateway/adapters/telegram-bot.adapter';
+import { BotGenerationService } from '@server/services/bot-gateway/services/bot-generation.service';
+import { BotUserResolverService } from '@server/services/bot-gateway/services/bot-user-resolver.service';
+import type { Request } from 'express';
 
 @Injectable()
 export class BotGatewayService {
@@ -27,12 +28,6 @@ export class BotGatewayService {
 
   private readonly adapters: Map<CredentialPlatform, IBotPlatformAdapter>;
 
-  /**
-   * Expose generation service for callback context checks
-   * Used by WebhooksService to check if generation was bot-triggered
-   */
-  public readonly generationService: BotGenerationService;
-
   constructor(
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
@@ -40,10 +35,9 @@ export class BotGatewayService {
     private readonly slackAdapter: SlackBotAdapter,
     private readonly telegramAdapter: TelegramBotAdapter,
     private readonly userResolverService: BotUserResolverService,
-    generationService: BotGenerationService,
+    private readonly generationService: BotGenerationService,
   ) {
     this.settingsUrl = `${this.configService.get('APP_URL')}/settings/api-keys#telegram-integration`;
-    this.generationService = generationService;
     // Register adapters
     this.adapters = new Map();
     this.adapters.set(CredentialPlatform.DISCORD, this.discordAdapter);
@@ -81,6 +75,7 @@ export class BotGatewayService {
   async handleInteraction(
     platform: CredentialPlatform,
     body: unknown,
+    request: Request,
   ): Promise<IBotResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -112,7 +107,7 @@ export class BotGatewayService {
     switch (message.command) {
       case BotCommandType.PROMPT_IMAGE:
       case BotCommandType.PROMPT_VIDEO:
-        return this.handleGenerationCommand(message);
+        return this.handleGenerationCommand(message, request);
 
       case BotCommandType.SET_BRAND:
         return this.handleSetBrandCommand(message);
@@ -133,6 +128,7 @@ export class BotGatewayService {
    */
   private async handleGenerationCommand(
     message: IBotMessage,
+    request: Request,
   ): Promise<IBotResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -161,21 +157,6 @@ export class BotGatewayService {
       };
     }
 
-    // Check credits
-    const creditCost = this.generationService.getCreditCost(message.command);
-    const { hasCredits, balance } = await this.generationService.checkCredits(
-      resolvedUser.organizationId,
-      creditCost,
-    );
-
-    if (!hasCredits) {
-      return {
-        message: `Insufficient credits. You have ${balance} credits, but ${creditCost} are required.\nAdd more credits at: ${this.settingsUrl}/billing`,
-        type: 'text',
-      };
-    }
-
-    // Create callback context
     const callbackContext: IBotCallbackContext = {
       applicationId: message.applicationId || '',
       chatId: message.chatId,
@@ -190,6 +171,7 @@ export class BotGatewayService {
         message.command,
         message.prompt,
         callbackContext,
+        request,
       );
 
       this.loggerService.log(`${url} generation triggered`, {
@@ -202,6 +184,10 @@ export class BotGatewayService {
       };
     } catch (error: unknown) {
       this.loggerService.error(`${url} generation failed`, error);
+      const creditMessage = this.insufficientCreditsMessage(error);
+      if (creditMessage) {
+        return { message: creditMessage, type: 'text' };
+      }
       return {
         message: 'Failed to start generation. Please try again later.',
         type: 'error',
@@ -319,11 +305,9 @@ export class BotGatewayService {
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const context = this.generationService.getCallbackContext(ingredientId);
+    const context =
+      await this.generationService.getCallbackContext(ingredientId);
     if (!context) {
-      this.loggerService.warn(`${url} no callback context for ingredient`, {
-        ingredientId,
-      });
       return;
     }
 
@@ -350,7 +334,7 @@ export class BotGatewayService {
       });
 
       // Clean up context
-      this.generationService.removeCallbackContext(ingredientId);
+      await this.generationService.removeCallbackContext(ingredientId);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed to send completion`, error);
     }
@@ -365,11 +349,9 @@ export class BotGatewayService {
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const context = this.generationService.getCallbackContext(ingredientId);
+    const context =
+      await this.generationService.getCallbackContext(ingredientId);
     if (!context) {
-      this.loggerService.warn(`${url} no callback context for ingredient`, {
-        ingredientId,
-      });
       return;
     }
 
@@ -393,7 +375,7 @@ export class BotGatewayService {
       });
 
       // Clean up context
-      this.generationService.removeCallbackContext(ingredientId);
+      await this.generationService.removeCallbackContext(ingredientId);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed to send error response`, error);
     }
@@ -410,5 +392,24 @@ export class BotGatewayService {
       default:
         return 'platform';
     }
+  }
+
+  private insufficientCreditsMessage(error: unknown): string | undefined {
+    if (!(error instanceof HttpException)) {
+      return undefined;
+    }
+
+    const response = error.getResponse();
+    if (!response || typeof response !== 'object') {
+      return undefined;
+    }
+
+    const { detail, title } = response as {
+      detail?: unknown;
+      title?: unknown;
+    };
+    return title === 'Insufficient credits' && typeof detail === 'string'
+      ? detail
+      : undefined;
   }
 }

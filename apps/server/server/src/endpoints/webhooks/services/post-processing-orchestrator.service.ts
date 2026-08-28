@@ -1,12 +1,12 @@
-import { EvaluationsService } from '@server/collections/evaluations/services/evaluations.service';
-import { type IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { BotGatewayService } from '@server/services/bot-gateway/bot-gateway.service';
 import { EvaluationType, IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, Optional } from '@nestjs/common';
+import { EvaluationsService } from '@server/collections/evaluations/services/evaluations.service';
+import { type IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { BotGatewayService } from '@server/services/bot-gateway/bot-gateway.service';
 
 @Injectable()
 export class PostProcessingOrchestratorService {
@@ -30,15 +30,6 @@ export class PostProcessingOrchestratorService {
   ): void {
     (async () => {
       try {
-        const context =
-          this.botGatewayService.generationService?.getCallbackContext(
-            ingredientId,
-          );
-
-        if (!context) {
-          return;
-        }
-
         const mediaType =
           category === IngredientCategory.IMAGE ? 'image' : 'video';
         const resultUrl = `${this.configService.ingredientsEndpoint}/${mediaType}s/${ingredientId}`;
@@ -48,11 +39,6 @@ export class PostProcessingOrchestratorService {
           resultUrl,
           mediaType,
         );
-
-        this.loggerService.log(`${this.logContext} bot notification sent`, {
-          ingredientId,
-          mediaType,
-        });
       } catch (error: unknown) {
         this.loggerService.error(
           `${this.logContext} notifyBotGatewayIfNeeded failed`,
@@ -60,6 +46,22 @@ export class PostProcessingOrchestratorService {
         );
       }
     })();
+  }
+
+  notifyBotGatewayFailureIfNeeded(
+    ingredientId: string,
+    errorMessage: string,
+  ): void {
+    setImmediate(() => {
+      this.botGatewayService
+        .sendErrorResponse(ingredientId, errorMessage)
+        .catch((error: unknown) => {
+          this.loggerService.error(
+            `${this.logContext} bot failure notification failed`,
+            error,
+          );
+        });
+    });
   }
 
   /**

@@ -1,11 +1,11 @@
+import { EvaluationType, IngredientCategory } from '@genfeedai/enums';
+import type { ConfigService } from '@libs/config/config.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import type { EvaluationsService } from '@server/collections/evaluations/services/evaluations.service';
 import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
 import type { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import { PostProcessingOrchestratorService } from '@server/endpoints/webhooks/services/post-processing-orchestrator.service';
 import type { BotGatewayService } from '@server/services/bot-gateway/bot-gateway.service';
-import { EvaluationType, IngredientCategory } from '@genfeedai/enums';
-import type { ConfigService } from '@libs/config/config.service';
-import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /** Drain the `setImmediate` the trigger schedules, plus its awaited chain. */
@@ -17,8 +17,8 @@ async function flushBackgroundWork(): Promise<void> {
 describe('PostProcessingOrchestratorService', () => {
   let service: PostProcessingOrchestratorService;
   let botGatewayService: {
-    generationService: { getCallbackContext: ReturnType<typeof vi.fn> };
     sendCompletionResponse: ReturnType<typeof vi.fn>;
+    sendErrorResponse: ReturnType<typeof vi.fn>;
   };
   let configService: { ingredientsEndpoint: string };
   let organizationSettingsService: { findOne: ReturnType<typeof vi.fn> };
@@ -32,10 +32,8 @@ describe('PostProcessingOrchestratorService', () => {
 
   beforeEach(() => {
     botGatewayService = {
-      generationService: {
-        getCallbackContext: vi.fn(),
-      },
-      sendCompletionResponse: vi.fn(),
+      sendCompletionResponse: vi.fn().mockResolvedValue(undefined),
+      sendErrorResponse: vi.fn().mockResolvedValue(undefined),
     };
     configService = {
       ingredientsEndpoint: 'https://cdn.example.com',
@@ -63,14 +61,25 @@ describe('PostProcessingOrchestratorService', () => {
   });
 
   describe('notifyBotGatewayIfNeeded', () => {
-    it('should not crash when no callback context', () => {
-      botGatewayService.generationService.getCallbackContext.mockReturnValue(
-        null,
-      );
+    it('delegates completion lookup and delivery to the bot gateway', async () => {
+      service.notifyBotGatewayIfNeeded('ing-1', IngredientCategory.VIDEO);
+      await flushBackgroundWork();
 
-      expect(() =>
-        service.notifyBotGatewayIfNeeded('ing-1', IngredientCategory.VIDEO),
-      ).not.toThrow();
+      expect(botGatewayService.sendCompletionResponse).toHaveBeenCalledWith(
+        'ing-1',
+        'https://cdn.example.com/videos/ing-1',
+        'video',
+      );
+    });
+
+    it('forwards failed generation details to the bot gateway', async () => {
+      service.notifyBotGatewayFailureIfNeeded('ing-1', 'Provider timed out');
+      await flushBackgroundWork();
+
+      expect(botGatewayService.sendErrorResponse).toHaveBeenCalledWith(
+        'ing-1',
+        'Provider timed out',
+      );
     });
   });
 
