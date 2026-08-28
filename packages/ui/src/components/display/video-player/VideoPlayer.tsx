@@ -187,7 +187,6 @@ export default function VideoPlayer({
         onLoadedData={handleLoadedData}
         onCanPlay={handleCanPlay}
         onError={handleError}
-        // crossOrigin="anonymous"
         className={`size-full object-contain object-center ${
           isLoaded && !hasError ? 'opacity-100' : 'opacity-0'
         }`}

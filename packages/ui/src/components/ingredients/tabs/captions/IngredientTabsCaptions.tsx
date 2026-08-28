@@ -42,7 +42,6 @@ const formatOptions: IFieldOption[] = [{ label: 'SRT (SubRip)', value: 'srt' }];
 
 export default function IngredientTabsCaptions({
   ingredient,
-  // onReload,
 }: IngredientTabsCaptionsProps) {
   const { isSignedIn } = useAuthIdentity();
   const { push } = useRouter();

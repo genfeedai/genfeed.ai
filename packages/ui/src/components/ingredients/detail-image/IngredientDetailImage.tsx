@@ -66,11 +66,7 @@ const IMAGE_DETAIL_TABS: TabItem[] = [
 
 export default function IngredientDetailImage({
   image,
-  // childIngredients,
-  // onVoteIngredient,
-  // onEditImage,
   onUpscaleImage,
-  // onPublishImage,
   onCloneImage,
   onConvertToVideo,
   onUseAsVideoReference,
