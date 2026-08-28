@@ -20,7 +20,6 @@ import TagsList from './TagsList';
 
 export default function TagsManager({
   ingredient,
-  // ingredientCategory,
   onTagsChange,
   isReadOnly = false,
 }: TagsManagerComponentProps) {

@@ -14,9 +14,6 @@ const { mockAddRecentModel } = vi.hoisted(() => ({
 }));
 
 // The component calls useSettingsStore with individual selectors:
-// useSettingsStore((s) => s.recentModels)
-// useSettingsStore((s) => s.addRecentModel)
-// useSettingsStore((s) => s.providers.replicate.apiKey) etc.
 vi.mock('@genfeedai/workflows/ui/stores', () => {
   const state = {
     addRecentModel: mockAddRecentModel,

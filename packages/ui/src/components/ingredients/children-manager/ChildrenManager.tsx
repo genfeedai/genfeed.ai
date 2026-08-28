@@ -58,7 +58,6 @@ export default function ChildrenManager({
       const service = await getIngredientsService();
       const ingredients = await service.findAll({
         type: parentIngredientCategory,
-        // parent: 'null', // I want to see all ingredients, parents and children. at least for now.
       });
 
       // Filter out current ingredient and already selected children

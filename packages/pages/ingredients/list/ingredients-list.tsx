@@ -316,7 +316,6 @@ export default function IngredientsList({
               onScopeChange={handleScopeChange}
               onCopyPrompt={handleCopyPrompt}
               onReprompt={handleReprompt}
-              // onConvertToVideo={handleConvertToVideo} // used in the ingredients list page. not set up right now.
             />
           </div>
         </div>

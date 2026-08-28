@@ -86,17 +86,13 @@ export default function IngredientDetailBody({
             onDownloadVideo={
               handlers.handleDownload as IngredientDetailVideoProps['onDownloadVideo']
             }
-            // onUpscaleVideo={handlers.handleUpscale}
-            // onCloneVideo={handlers.handleClone}
             onReverseVideo={handlers.handleReverse}
             onMirrorVideo={handlers.handleMirror}
-            // onPortraitVideo={handlers.handlePortrait}
             onConvertToGif={handlers.handleConvertToGif}
             onGenerateCaptions={handlers.handleGenerateCaptions}
             onAddTextOverlay={handlers.handleAddTextOverlay}
             onCopyPrompt={handlers.handleCopyPrompt}
             onReprompt={handlers.handleReprompt}
-            // onSeeDetails={handlers.handleSeeDetails}
             onUpdateSharing={onUpdateSharing}
             onUpdateMetadata={onUpdateMetadata}
             isPublishing={loadingStates.isPublishing}
@@ -124,13 +120,10 @@ export default function IngredientDetailBody({
             onDownloadImage={
               handlers.handleDownload as IngredientDetailImageProps['onDownloadImage']
             }
-            // onUpscaleImage={handlers.handleUpscale}
-            // onCloneImage={handlers.handleClone}
             onConvertToVideo={handlers.handleConvertToVideo}
             onUseAsVideoReference={handlers.handleUseAsVideoReference}
             onCopyPrompt={handlers.handleCopyPrompt}
             onReprompt={handlers.handleReprompt}
-            // onSeeDetails={handlers.handleSeeDetails}
             onUpdateSharing={onUpdateSharing}
             onUpdateMetadata={onUpdateMetadata}
             isPublishing={loadingStates.isPublishing}

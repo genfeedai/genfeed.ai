@@ -87,21 +87,10 @@ export default function IngredientOverlayMediaContent({
             videoRef={videoRef}
             credentials={credentials}
             childIngredients={childIngredients}
-            // Actions (Handlers)
             onReload={onReload}
-            // onSeeDetails={handlers.handleSeeDetails}
             onShareVideo={onShareVideo}
-            // onGenerateCaptions={handlers.handleGenerateCaptions}
             onPublishVideo={onPublishVideo}
             onDownloadVideo={onDownloadVideo}
-            // onUpscaleVideo={handlers.handleUpscale}
-            // onCloneVideo={handlers.handleClone}
-            // onVoteIngredient={handlers.handleVote}
-            // onReverseVideo={handlers.handleReverse}
-            // onMirrorVideo={handlers.handleMirror}
-            // onPortraitVideo={handlers.handlePortrait}
-            // onConvertToGif={handlers.handleConvertToGif}
-            // onAddTextOverlay={() => setShowTextOverlayPanel(true)}
             onUpdateMetadata={onUpdateMetadata}
             onUpdateSharing={onUpdateSharing}
             isPublishing={isPublishing}
@@ -128,18 +117,13 @@ export default function IngredientOverlayMediaContent({
             isUpdating={isUpdating}
             isUpscaling={isUpscaling}
             isVoting={isVoting}
-            // onCloneImage={handlers.handleClone}
-            // onConvertToVideo={handlers.handleConvertToVideo}
             onCreateVariation={onCreateVariation}
             onDownloadImage={onDownloadImage}
             onPublishImage={onPublishImage}
-            // onSeeDetails={handlers.handleSeeDetails}
             onShareImage={onShareImage}
             onUpdateMetadata={onUpdateMetadata}
             onUpdateSharing={onUpdateSharing}
             onScopeChange={onScopeChange}
-            // onUpscaleImage={handlers.handleUpscale}
-            // onVoteIngredient={handlers.handleVote}
             onUsePrompt={onUsePrompt}
           />
         ) : (

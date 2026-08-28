@@ -230,7 +230,6 @@ export default function VideoDetailFirstColumn({
         onShare={onShareVideo}
         onTrim={onTrimVideo}
         onUpscale={onUpscaleVideo}
-        // onVote={onVoteIngredient} // not needed right now
         selectedIngredient={currentVideo}
       />
     </div>
