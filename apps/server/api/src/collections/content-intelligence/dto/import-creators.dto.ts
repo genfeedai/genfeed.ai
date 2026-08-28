@@ -1,7 +1,16 @@
 import { AddCreatorDto } from '@api/collections/content-intelligence/dto/add-creator.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsEnum, IsOptional, ValidateNested } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsEnum,
+  IsOptional,
+  ValidateNested,
+} from 'class-validator';
+
+export const MAX_CREATOR_IMPORT_ITEMS = 50;
 
 export enum ImportFormat {
   JSON = 'json',
@@ -10,10 +19,14 @@ export enum ImportFormat {
 
 export class ImportCreatorsDto {
   @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(MAX_CREATOR_IMPORT_ITEMS)
   @ValidateNested({ each: true })
   @Type(() => AddCreatorDto)
   @ApiProperty({
     description: 'Array of creators to import',
+    maxItems: MAX_CREATOR_IMPORT_ITEMS,
+    minItems: 1,
     type: [AddCreatorDto],
   })
   creators!: AddCreatorDto[];
