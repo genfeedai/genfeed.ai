@@ -5,6 +5,7 @@ import {
   WorkflowExecutionTrigger,
   WorkflowStatus,
 } from '@genfeedai/enums';
+import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import type { ExecutionContext } from '@genfeedai/workflows/engine';
 import { Injectable } from '@nestjs/common';
@@ -17,7 +18,11 @@ import {
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
 } from '@server/collections/workflows/system-workflow.contract';
-import { createVersionedWorkflow } from '@server/collections/workflows/workflow-version-definition';
+import type { WorkflowDefinitionInput } from '@server/collections/workflows/workflow-version-definition';
+import {
+  buildWorkflowVersionDefinition,
+  createVersionedWorkflow,
+} from '@server/collections/workflows/workflow-version-definition';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 export const SYSTEM_WORKFLOW_ACTION_IDS = {
@@ -47,6 +52,11 @@ export type SystemWorkflowActionDefinition = {
   label: string;
   schedule?: string;
   version?: number;
+};
+
+export type SystemWorkflowGraphDefinition = SystemWorkflowActionDefinition & {
+  definition: WorkflowDefinitionInput;
+  resultNodeId: string;
 };
 
 export const SYSTEM_WORKFLOW_ACTION_DEFINITIONS: readonly SystemWorkflowActionDefinition[] =
@@ -191,6 +201,10 @@ export type RunSystemWorkflowInput = {
 @Injectable()
 export class SystemWorkflowRunnerService {
   private readonly runtimeContext = new AsyncLocalStorage<unknown>();
+  private readonly workflowDefinitions = new Map<
+    string,
+    SystemWorkflowGraphDefinition
+  >();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -200,12 +214,24 @@ export class SystemWorkflowRunnerService {
   registerAction(
     actionId: string,
     executor: SystemWorkflowActionExecutor,
+    definitionOverride?: Omit<SystemWorkflowActionDefinition, 'canonicalId'>,
   ): void {
-    const definition = this.resolveDefinition(actionId);
+    const definition = definitionOverride
+      ? { ...definitionOverride, canonicalId: actionId }
+      : this.resolveDefinition(actionId);
     this.getEngineAdapter().registerExecutor(
       actionId,
-      async (node, _inputs, context) => {
-        const input = this.readRecord(node.config.payload);
+      async (node, inputs, context) => {
+        const {
+          inputVariableKeys: _inputVariableKeys,
+          payload,
+          ...config
+        } = node.config;
+        const input = {
+          ...this.readRecord(payload),
+          ...config,
+          ...Object.fromEntries(inputs),
+        };
         return executor({
           context,
           input,
@@ -220,12 +246,75 @@ export class SystemWorkflowRunnerService {
     );
   }
 
+  registerWorkflow(definition: SystemWorkflowGraphDefinition): void {
+    if (this.workflowDefinitions.has(definition.canonicalId)) {
+      throw new Error(
+        `Duplicate system workflow definition: ${definition.canonicalId}`,
+      );
+    }
+    this.workflowDefinitions.set(definition.canonicalId, definition);
+  }
+
   async runAction<T>(input: RunSystemWorkflowInput): Promise<{
     provenance: SystemWorkflowProvenance;
     result: T;
   }> {
-    const definition = this.resolveDefinition(input.canonicalId);
+    const actionDefinition = this.resolveDefinition(input.canonicalId);
+    const definition: SystemWorkflowGraphDefinition = {
+      ...actionDefinition,
+      definition: {
+        edges: [],
+        inputVariables: [
+          {
+            key: 'payload',
+            label: 'Action input',
+            required: true,
+            type: 'json',
+          },
+        ],
+        nodes: [
+          {
+            data: {
+              config: {
+                actionId: actionDefinition.canonicalId,
+                parameters: {},
+              },
+              inputVariableKeys: ['payload'],
+              label: actionDefinition.label,
+            },
+            id: 'system-action',
+            position: { x: 0, y: 120 },
+            type: 'genfeedAction',
+          },
+        ],
+      },
+      resultNodeId: 'system-action',
+    };
 
+    return this.executeDefinition<T>(definition, {
+      ...input,
+      inputValues: { payload: input.inputValues ?? {} },
+    });
+  }
+
+  async runWorkflow<T>(input: RunSystemWorkflowInput): Promise<{
+    provenance: SystemWorkflowProvenance;
+    result: T;
+  }> {
+    const definition = this.workflowDefinitions.get(input.canonicalId);
+    if (!definition) {
+      throw new Error(`Unknown system workflow: ${input.canonicalId}`);
+    }
+    return this.executeDefinition<T>(definition, input);
+  }
+
+  private async executeDefinition<T>(
+    definition: SystemWorkflowGraphDefinition,
+    input: RunSystemWorkflowInput,
+  ): Promise<{
+    provenance: SystemWorkflowProvenance;
+    result: T;
+  }> {
     const userId = await this.resolveUserId(input.organizationId, input.userId);
     const workflow = await this.ensureSystemWorkflow(
       definition,
@@ -237,7 +326,7 @@ export class SystemWorkflowRunnerService {
         workflow.id,
         userId,
         input.organizationId,
-        { payload: input.inputValues ?? {} },
+        input.inputValues ?? {},
         {
           ...(input.metadata ?? {}),
           actionType: input.actionType,
@@ -269,7 +358,7 @@ export class SystemWorkflowRunnerService {
     }
 
     const actionResult = execution.nodeResults.find(
-      (nodeResult) => nodeResult.nodeId === 'system-action',
+      (nodeResult) => nodeResult.nodeId === definition.resultNodeId,
     );
     if (!actionResult) {
       throw new Error(
@@ -280,7 +369,7 @@ export class SystemWorkflowRunnerService {
   }
 
   private async ensureSystemWorkflow(
-    definition: SystemWorkflowActionDefinition,
+    definition: SystemWorkflowGraphDefinition,
     organizationId: string,
     userId: string,
   ): Promise<{ id: string; label: string | null }> {
@@ -290,22 +379,52 @@ export class SystemWorkflowRunnerService {
         path: [SYSTEM_WORKFLOW_METADATA_KEY, 'canonicalId'],
       },
     });
-    const existing = await this.prisma.workflow.findFirst({
-      select: { id: true, label: true },
-      where,
-    });
-    if (existing) {
-      return existing;
-    }
-
     return this.prisma.$transaction(
       async (transaction) => {
-        const recheck = await transaction.workflow.findFirst({
-          select: { id: true, label: true },
+        const existing = await transaction.workflow.findFirst({
+          include: { currentVersion: true },
           where,
         });
-        if (recheck) {
-          return recheck;
+        if (existing) {
+          const nextDefinition = buildWorkflowVersionDefinition(
+            definition.definition,
+          );
+          if (
+            existing.currentVersion?.contentHash === nextDefinition.contentHash
+          ) {
+            return existing;
+          }
+
+          const nextVersion = await transaction.workflowVersion.create({
+            data: {
+              contentHash: nextDefinition.contentHash,
+              graph: nextDefinition.graph as unknown as Prisma.InputJsonValue,
+              inputSchema:
+                nextDefinition.inputSchema as unknown as Prisma.InputJsonValue,
+              organizationId,
+              userId,
+              version: (existing.currentVersion?.version ?? 0) + 1,
+              workflowId: existing.id,
+            },
+          });
+          const advanced = await transaction.workflow.updateMany({
+            data: {
+              currentVersionId: nextVersion.id,
+              description: definition.description,
+              label: definition.label,
+              schedule: definition.schedule,
+            },
+            where: {
+              currentVersionId: existing.currentVersionId,
+              id: existing.id,
+            },
+          });
+          if (advanced.count !== 1) {
+            throw new Error(
+              `System workflow ${definition.canonicalId} changed concurrently`,
+            );
+          }
+          return { id: existing.id, label: definition.label };
         }
 
         return createVersionedWorkflow(
@@ -337,32 +456,7 @@ export class SystemWorkflowRunnerService {
             timezone: 'UTC',
             userId,
           },
-          {
-            edges: [],
-            inputVariables: [
-              {
-                key: 'payload',
-                label: 'Action input',
-                required: true,
-                type: 'json',
-              },
-            ],
-            nodes: [
-              {
-                data: {
-                  config: {
-                    actionId: definition.canonicalId,
-                    parameters: {},
-                  },
-                  inputVariableKeys: ['payload'],
-                  label: definition.label,
-                },
-                id: 'system-action',
-                position: { x: 0, y: 120 },
-                type: 'genfeedAction',
-              },
-            ],
-          },
+          definition.definition,
         );
       },
       { isolationLevel: 'Serializable' },

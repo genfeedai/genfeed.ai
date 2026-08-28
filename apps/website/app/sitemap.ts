@@ -182,6 +182,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       changeFrequency: 'weekly',
       lastModified: new Date(),
+      priority: 0.9,
+      url: 'https://genfeed.ai/tools/youtube-long-form',
+    },
+    {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
       priority: 0.8,
       url: 'https://genfeed.ai/integrations',
     },

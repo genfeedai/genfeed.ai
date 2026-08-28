@@ -60,7 +60,6 @@ import {
 } from '@serializers/server/content/post.serializer';
 import { PresignedUploadSerializer } from '@serializers/server/content/presigned-upload.serializer';
 import { TemplateSerializer } from '@serializers/server/content/template.serializer';
-import { TranscriptSerializer } from '@serializers/server/content/transcript.serializer';
 import { ElementBlacklistSerializer } from '@serializers/server/elements/blacklist.serializer';
 import { ElementCameraSerializer } from '@serializers/server/elements/camera.serializer';
 import { CameraMovementSerializer } from '@serializers/server/elements/camera-movement.serializer';
@@ -822,16 +821,6 @@ describe('Server Serializers', () => {
 
     it('should have a serialize method', () => {
       expect(typeof ArticleSerializer.serialize).toBe('function');
-    });
-  });
-
-  describe('TranscriptSerializer', () => {
-    it('should be a function (serializer)', () => {
-      expect(typeof TranscriptSerializer).toBe('object');
-    });
-
-    it('should have a serialize method', () => {
-      expect(typeof TranscriptSerializer.serialize).toBe('function');
     });
   });
 

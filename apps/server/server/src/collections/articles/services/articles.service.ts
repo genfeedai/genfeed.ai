@@ -1,3 +1,9 @@
+import { ArticleScope, PromptTemplateKey } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 import { ViralityAnalysisResponse } from '@server/collections/articles/dto/analyze-virality.dto';
 import { TwitterThreadResponse } from '@server/collections/articles/dto/article-to-thread.dto';
 import { ArticlesQueryDto } from '@server/collections/articles/dto/articles-query.dto';
@@ -14,7 +20,6 @@ import {
 } from '@server/collections/articles/schemas/article.schema';
 import { ArticleInsightsService } from '@server/collections/articles/services/article-insights.service';
 import { ArticleRemixService } from '@server/collections/articles/services/article-remix.service';
-import { ArticleTranscriptService } from '@server/collections/articles/services/article-transcript.service';
 import { ArticleVersionService } from '@server/collections/articles/services/article-version.service';
 import type {
   ArticleCycleModelConfig,
@@ -35,8 +40,8 @@ import {
 import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
 import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 import { ArticleFilterUtil } from '@server/helpers/utils/article-filter/article-filter.util';
 import { resolveGenerationDefaultModel } from '@server/helpers/utils/generation-defaults/generation-defaults.util';
 import { CacheService } from '@server/services/cache/cache.service';
@@ -49,12 +54,6 @@ import {
   invalidateCollectionQueryCache,
   paginatedQueryCacheTag,
 } from '@server/shared/utils/query-cache/query-cache.util';
-import { ArticleScope, PromptTemplateKey } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 
 @Injectable()
 export class ArticlesService extends BaseService<
@@ -70,7 +69,6 @@ export class ArticlesService extends BaseService<
     public readonly logger: LoggerService,
     private readonly configService: ConfigService,
     private readonly articleVersionService: ArticleVersionService,
-    private readonly articleTranscriptService: ArticleTranscriptService,
     private readonly articleInsightsService: ArticleInsightsService,
     private readonly articleRemixService: ArticleRemixService,
     @Optional()
@@ -157,26 +155,6 @@ export class ArticlesService extends BaseService<
     this.logger.debug(
       `${this.constructorName} invalidated ${invalidated} cache keys after ${context}`,
       { tags: tagsToInvalidate },
-    );
-  }
-
-  /**
-   * Generate article from YouTube transcript
-   */
-  @HandleErrors('generate article from transcript', 'articles')
-  generateFromTranscript(
-    transcriptId: string,
-    userId: string,
-    organizationId: string,
-    brandId: string,
-  ): Promise<ArticleDocument> {
-    return this.articleTranscriptService.generateFromTranscript(
-      transcriptId,
-      userId,
-      organizationId,
-      brandId,
-      (dto, ownerUserId, ownerOrganizationId, ownerBrandId) =>
-        this.createArticle(dto, ownerUserId, ownerOrganizationId, ownerBrandId),
     );
   }
 

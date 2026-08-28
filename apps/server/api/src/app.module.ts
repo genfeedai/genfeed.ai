@@ -110,7 +110,6 @@ import { TasksModule } from '@api/collections/tasks/tasks.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { TrackedLinksModule } from '@api/collections/tracked-links/tracked-links.module';
 import { TrainingsModule } from '@api/collections/trainings/trainings.module';
-import { TranscriptsModule } from '@api/collections/transcripts/transcripts.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { UserSubscriptionsModule } from '@api/collections/user-subscriptions/user-subscriptions.module';
 import { UsersModule } from '@api/collections/users/users.module';
@@ -378,7 +377,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     TagsModule,
     TemplatesModule,
     TrainingsModule,
-    TranscriptsModule,
     TrackedLinksModule,
     TrendsModule,
     UsersModule,

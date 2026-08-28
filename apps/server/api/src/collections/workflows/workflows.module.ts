@@ -31,6 +31,7 @@ import { WorkflowMarketplaceController } from '@api/collections/workflows/contro
 import { WorkflowWebhookManagementController } from '@api/collections/workflows/controllers/workflow-webhook-management.controller';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
+import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
@@ -73,6 +74,7 @@ import { WorkflowRunControlService } from '@server/collections/workflows/service
 import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowTemplateSeederService } from '@server/collections/workflows/services/workflow-template-seeder.service';
 import { WorkflowWebhookService } from '@server/collections/workflows/services/workflow-webhook.service';
+import { YoutubeLongFormWorkflowService } from '@server/collections/workflows/services/youtube-long-form-workflow.service';
 import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 
 @Module({
@@ -105,6 +107,7 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     WorkflowExecutionQueueService,
     WorkflowFormatConverterService,
     WorkflowGenerationService,
+    YoutubeLongFormWorkflowService,
   ],
   imports: [
     WorkflowsCoreModule,
@@ -115,6 +118,7 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     CredentialsCoreModule,
     CreditsModule,
     ElevenLabsModule,
+    FileQueueModule,
     HeyGenModule,
     IngredientsModule,
     InstagramModule,
@@ -175,6 +179,7 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     WorkflowExecutionQueueService,
     WorkflowFormatConverterService,
     WorkflowGenerationService,
+    YoutubeLongFormWorkflowService,
     ReplyPollingWorkflowService,
     LivestreamBotWorkflowService,
     OutreachCampaignDispatchWorkflowService,

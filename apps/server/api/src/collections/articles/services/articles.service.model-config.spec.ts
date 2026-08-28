@@ -11,9 +11,11 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { ArticleInsightsService } from '@server/collections/articles/services/article-insights.service';
 import { ArticleRemixService } from '@server/collections/articles/services/article-remix.service';
-import { ArticleTranscriptService } from '@server/collections/articles/services/article-transcript.service';
 import { ArticleVersionService } from '@server/collections/articles/services/article-version.service';
 import { ArticlesService } from '@server/collections/articles/services/articles.service';
 import type { ArticlesContentService } from '@server/collections/articles/services/articles-content.service';
@@ -21,9 +23,6 @@ import type { OrganizationSettingsService } from '@server/collections/organizati
 import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
 import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
 
 /**
  * `GenerateArticlesDto.model` carries the agent's
@@ -78,7 +77,6 @@ describe('ArticlesService article cycle model config', () => {
       logger,
       configService,
       new ArticleVersionService(logger),
-      new ArticleTranscriptService(configService, logger),
       new ArticleInsightsService(logger, configService),
       new ArticleRemixService(logger),
       undefined, // notificationsService

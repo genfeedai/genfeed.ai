@@ -20,7 +20,6 @@ import {
   ANALYTICS_THREADS_QUEUE,
   ANALYTICS_TWITTER_QUEUE,
   ANALYTICS_YOUTUBE_QUEUE,
-  ARTICLE_GENERATION_QUEUE,
   BATCH_CONTENT_QUEUE,
   BATCH_GENERATION_QUEUE,
   BATCH_WORKFLOW_QUEUE,
@@ -393,15 +392,6 @@ import { PatternExtractionQueueService } from '@workers/queues/pattern-extractio
           removeOnFail: 200,
         },
         name: WEBHOOK_CLIENT_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 2,
-          backoff: { delay: 30000, type: 'exponential' },
-          removeOnComplete: 50,
-          removeOnFail: 25,
-        },
-        name: ARTICLE_GENERATION_QUEUE,
       },
       {
         defaultJobOptions: {

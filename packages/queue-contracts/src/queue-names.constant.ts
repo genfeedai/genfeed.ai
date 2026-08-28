@@ -34,7 +34,6 @@ export const BATCH_CONTENT_QUEUE = 'batch-content';
 export const BATCH_GENERATION_QUEUE = 'batch-generation';
 export const CONTENT_OPTIMIZATION_QUEUE = 'content-optimization';
 export const CONTENT_PIPELINE_QUEUE = 'content-pipeline';
-export const ARTICLE_GENERATION_QUEUE = 'article-generation';
 export const PATTERN_EXTRACTION_QUEUE = 'pattern-extraction';
 export const POST_PUBLISH_QUEUE = 'post-publish';
 
@@ -90,7 +89,6 @@ export const ALL_QUEUE_NAMES = [
   BATCH_GENERATION_QUEUE,
   CONTENT_OPTIMIZATION_QUEUE,
   CONTENT_PIPELINE_QUEUE,
-  ARTICLE_GENERATION_QUEUE,
   PATTERN_EXTRACTION_QUEUE,
   POST_PUBLISH_QUEUE,
   CLIP_ANALYZE_QUEUE,

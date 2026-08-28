@@ -24,6 +24,7 @@ export * from './posting-cadence.interface';
 export * from './prompt.interface';
 export * from './prompts-content.interface';
 export * from './public-youtube-clip-tool.interface';
+export * from './public-youtube-long-form-tool.interface';
 export * from './publication-card.interface';
 export * from './seo-scorecard.interface';
 export * from './studio-edit-detail.interface';

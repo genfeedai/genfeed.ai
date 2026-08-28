@@ -585,7 +585,6 @@ model User {
   newsletters              Newsletter[]              @relation("newsletter_user")
   newsletterApprovals      Newsletter[]              @relation("newsletter_approved_by")
   newsletterPublishes      Newsletter[]              @relation("newsletter_published_by")
-  transcripts              Transcript[]
   trainings                Training[]
   personas                 Persona[]
   agentRuns                AgentRun[]
@@ -704,7 +703,6 @@ model Organization {
   articles                      Article[]
   articleAnalytics              ArticleAnalytics[]
   newsletters                   Newsletter[]
-  transcripts                   Transcript[]
   trainings                     Training[]
   models                        Model[]
   personas                      Persona[]
@@ -3065,7 +3063,6 @@ model Article {
   prompts          Prompt[]
   postEntities     Post[]             @relation("post_entity_article")
   articleAnalytics ArticleAnalytics[]
-  transcripts      Transcript[]
   newsletters      Newsletter[]       @relation("newsletter_articles")
 
   category String?
@@ -3146,24 +3143,6 @@ model Newsletter {
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([approvedVersionPinId], map: "newsletters_approvedVersionPinId_idx")
   @@map("newsletters")
-}
-
-model Transcript {
-  id             String       @id @default(cuid())
-  userId         String
-  user           User         @relation(fields: [userId], references: [id])
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  articleId      String?
-  article        Article?     @relation(fields: [articleId], references: [id])
-  content        String?
-  language       String?
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
-  @@map("transcripts")
 }
 
 // ═══════════════════════════════════════════════════════════════

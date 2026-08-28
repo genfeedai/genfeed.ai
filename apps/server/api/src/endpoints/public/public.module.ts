@@ -8,6 +8,7 @@ import { MusicsModule } from '@api/collections/musics/musics.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { PublicArticlesController } from '@api/endpoints/public/controllers/articles/public.articles.controller';
 import { PublicBrandOsController } from '@api/endpoints/public/controllers/brand-os/public.brand-os.controller';
 import { PublicBrandsController } from '@api/endpoints/public/controllers/brands/public.brands.controller';
@@ -20,6 +21,7 @@ import { PublicPostsController } from '@api/endpoints/public/controllers/posts/p
 import { PublicRSSController } from '@api/endpoints/public/controllers/rss/rss.controller';
 import { PublicVideosController } from '@api/endpoints/public/controllers/videos/public.videos.controller';
 import { PublicYoutubeClipsController } from '@api/endpoints/public/controllers/youtube-clips/public-youtube-clips.controller';
+import { PublicYoutubeLongFormController } from '@api/endpoints/public/controllers/youtube-long-form/public-youtube-long-form.controller';
 import { NewsletterImportFeedService } from '@api/endpoints/public/services/newsletter-import-feed.service';
 import { PublicMediaService } from '@api/endpoints/public/services/public-media.service';
 import { PublicYoutubeClipsService } from '@api/endpoints/public/services/public-youtube-clips.service';
@@ -45,6 +47,7 @@ import { Module } from '@nestjs/common';
     PublicRSSController,
     PublicVideosController,
     PublicYoutubeClipsController,
+    PublicYoutubeLongFormController,
   ],
   exports: [],
   imports: [
@@ -63,6 +66,7 @@ import { Module } from '@nestjs/common';
     PostsModule,
     PublicClipToolStoreModule,
     VideosModule,
+    WorkflowsModule,
   ],
   providers: [
     NewsletterImportFeedService,

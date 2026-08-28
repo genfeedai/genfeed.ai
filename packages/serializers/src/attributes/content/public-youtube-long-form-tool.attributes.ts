@@ -1,0 +1,12 @@
+import { createEntityAttributes } from '@genfeedai/helpers';
+
+export const publicYoutubeLongFormToolAttributes = createEntityAttributes([
+  'content',
+  'contentId',
+  'executionId',
+  'outputType',
+  'summary',
+  'title',
+  'videoId',
+  'youtubeUrl',
+]);

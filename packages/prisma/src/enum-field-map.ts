@@ -850,7 +850,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'postEntities',
       'prompts',
       'tags',
-      'transcripts',
     ],
     enumFields: {
       status: { enumType: 'ArticleStatus', isRequired: true },
@@ -3641,7 +3640,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'threadContextStates',
       'trackedLinks',
       'trainings',
-      'transcripts',
       'trendPreferences',
       'trendRemixLineages',
       'trends',
@@ -5355,29 +5353,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       user: 'userId',
     },
   },
-  Transcript: {
-    allFields: [
-      'article',
-      'articleId',
-      'content',
-      'createdAt',
-      'id',
-      'isDeleted',
-      'language',
-      'organization',
-      'organizationId',
-      'updatedAt',
-      'user',
-      'userId',
-    ],
-    listFields: [],
-    enumFields: {},
-    relationIdFields: {
-      article: 'articleId',
-      organization: 'organizationId',
-      user: 'userId',
-    },
-  },
   Trend: {
     allFields: [
       'brand',
@@ -5632,7 +5607,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'subscriptions',
       'tasks',
       'trainings',
-      'transcripts',
       'votes',
       'warmupAccountsCustomer',
       'warmupAccountsOperated',

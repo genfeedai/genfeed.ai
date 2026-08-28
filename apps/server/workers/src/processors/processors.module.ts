@@ -70,7 +70,6 @@ import { TwitterService } from '@server/services/integrations/twitter/services/t
 import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 // --- collections/ processors ---
-import { ArticleGenerationProcessor } from '@workers/processors/api/collections/articles/processors/article-generation.processor';
 import { BatchWorkflowProcessor } from '@workers/processors/api/collections/workflows/services/batch-workflow.processor';
 import { WorkflowExecutionProcessor as CollectionsWorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
 // --- queues/ processors ---
@@ -276,7 +275,6 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     WorkspaceTaskProcessor,
 
     // --- collections/ processors (3) ---
-    ArticleGenerationProcessor,
     BatchWorkflowProcessor,
     CollectionsWorkflowExecutionProcessor,
   ],
