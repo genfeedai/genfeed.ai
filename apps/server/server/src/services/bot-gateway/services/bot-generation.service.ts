@@ -1,11 +1,3 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { resolveGenerationDefaultModel } from '@server/helpers/utils/generation-defaults/generation-defaults.util';
-import { SharedService } from '@server/shared/services/shared/shared.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
@@ -22,6 +14,14 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { resolveGenerationDefaultModel } from '@server/helpers/utils/generation-defaults/generation-defaults.util';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 
 interface GenerationResult {
   ingredientId: string;
@@ -153,7 +153,7 @@ export class BotGenerationService {
             organizationDefault: organizationSettings?.defaultVideoModel as
               | string
               | undefined,
-            systemDefault: 'replicate_kling_video' as unknown as string,
+            systemDefault: 'replicate_kling_video',
           });
 
       // Create synthetic user object for SharedService
