@@ -185,7 +185,7 @@ export class SocketManager {
         this.socketService.socket.active,
       );
 
-      if (disposition.expected) {
+      if (disposition.expected || disposition.recovery === 'none') {
         this.setConnectionState('offline');
         return;
       }

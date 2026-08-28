@@ -243,7 +243,7 @@ describe('SocketManager', () => {
       );
     });
 
-    it('backs off before reconnecting a server-disconnected namespace', () => {
+    it('waits for fresh auth after a server-rejected namespace', () => {
       vi.useFakeTimers();
       const manager = SocketManager.getInstance({ autoConnect: false });
       const states: string[] = [];
@@ -252,14 +252,11 @@ describe('SocketManager', () => {
       socketState.active = false;
       getSocketHandler('disconnect')?.('io server disconnect');
 
-      expect(states.at(-1)).toBe('reconnecting');
+      expect(states.at(-1)).toBe('offline');
       expect(mockSocketConnect).not.toHaveBeenCalled();
 
-      vi.advanceTimersByTime(999);
+      vi.advanceTimersByTime(30_000);
       expect(mockSocketConnect).not.toHaveBeenCalled();
-
-      vi.advanceTimersByTime(1);
-      expect(mockSocketConnect).toHaveBeenCalledOnce();
       vi.useRealTimers();
     });
 

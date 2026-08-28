@@ -145,6 +145,13 @@ export function classifySocketDisconnect(
     return { expected: true, recovery: 'none' };
   }
 
+  // The server deliberately rejected this namespace (most commonly invalid
+  // or expired auth). Reconnecting with the same handshake can never recover;
+  // token rotation will explicitly reconnect once fresh credentials exist.
+  if (reason === 'io server disconnect') {
+    return { expected: false, recovery: 'none' };
+  }
+
   // Transient transport loss: Socket.IO usually reconnects. Log as info while
   // active so Sentry is not flooded (APP-GENFEED-AI-8 / #2188). When the
   // manager is no longer active, surface as manual recovery for real outages.
