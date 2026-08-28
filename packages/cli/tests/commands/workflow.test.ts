@@ -107,6 +107,14 @@ describe('workflow command', () => {
     expect(mockGet).toHaveBeenCalledWith('/workflows?limit=25');
   });
 
+  it('normalizes workflow run statuses to the API enum spelling', async () => {
+    await workflowCommand.parseAsync(['runs', '--status', 'completed', '--json'], {
+      from: 'user',
+    });
+
+    expect(mockGet).toHaveBeenCalledWith('/workflow-executions?limit=20&status=COMPLETED');
+  });
+
   it('posts object inputs for workflow execution', async () => {
     await workflowCommand.parseAsync(
       ['run', 'workflow-1', '--inputs', '{"topic":"launch"}', '--json'],

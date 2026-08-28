@@ -342,7 +342,7 @@ gf threads archive <threadId>
 Run workflows:
 
 ```bash
-gf workflow list --status active
+gf workflow list --limit 20
 gf workflow show <id>
 gf workflow run <id-or-key-or-label> --inputs '{"topic":"launch recap"}'
 gf workflow runs --status completed

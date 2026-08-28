@@ -22,10 +22,10 @@ export interface ListAssetsOptions {
 }
 
 export async function listAssets(options: ListAssetsOptions = {}): Promise<Asset[]> {
-  const limit = Math.min(Math.max(Math.trunc(options.limit ?? 20), 1), 200);
+  const limit = Math.min(Math.max(Math.trunc(options.limit ?? 20), 1), 100);
   const query = new URLSearchParams({ limit: String(limit) });
   if (options.brandId) query.set('brandId', options.brandId);
-  if (options.category) query.set('category', options.category);
+  if (options.category) query.set('categories', options.category);
   const response = await get<JsonApiCollectionResponse>(`/ingredients?${query.toString()}`);
   return flattenCollection<Asset>(response);
 }

@@ -1,3 +1,4 @@
+import type { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { get, post } from './client';
 import {
   flattenCollection,
@@ -39,12 +40,11 @@ export interface WorkflowExecution {
 
 export interface ListWorkflowsOptions {
   limit?: number;
-  status?: string;
 }
 
 export interface ListWorkflowExecutionsOptions {
   limit?: number;
-  status?: string;
+  status?: WorkflowExecutionStatus;
   workflowId?: string;
 }
 
@@ -55,14 +55,11 @@ export type CreateWorkflowExecutionInput = {
 };
 
 function boundedLimit(limit = 20): number {
-  return Math.min(Math.max(Math.trunc(limit), 1), 200);
+  return Math.min(Math.max(Math.trunc(limit), 1), 100);
 }
 
 export async function listWorkflows(options: ListWorkflowsOptions = {}): Promise<Workflow[]> {
   const query = new URLSearchParams({ limit: String(boundedLimit(options.limit)) });
-  if (options.status) {
-    query.set('status', options.status);
-  }
   const response = await get<JsonApiCollectionResponse>(`/workflows?${query.toString()}`);
   return flattenCollection<Workflow>(response);
 }

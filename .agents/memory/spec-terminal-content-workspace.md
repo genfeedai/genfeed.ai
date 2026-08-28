@@ -70,7 +70,7 @@ gf gen article <prompt>
 
 gf asset list
 gf asset show <id>
-gf asset download <id> [path]
+gf asset download <id> --output <path>
 gf job status <id>
 ```
 

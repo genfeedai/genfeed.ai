@@ -26,7 +26,7 @@ describe('api/assets', () => {
     });
     const assets = await listAssets({ brandId: 'brand-1', category: 'image', limit: 500 });
     expect(mockFetch).toHaveBeenCalledWith(
-      '/ingredients?limit=200&brandId=brand-1&category=image',
+      '/ingredients?limit=100&brandId=brand-1&categories=image',
       { method: 'GET' }
     );
     expect(assets[0].id).toBe('asset-1');

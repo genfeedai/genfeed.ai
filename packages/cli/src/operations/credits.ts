@@ -1,5 +1,6 @@
 import {
   PAYG_CREDIT_PACKS,
+  PAYG_CREDITS_PER_USD,
   PAYG_MAX_PURCHASE_USD,
   PAYG_MIN_PURCHASE_USD,
 } from '@genfeedai/pricing';
@@ -11,8 +12,6 @@ import {
   listCreditTransactions,
 } from '@/api/credits';
 import { GenfeedError } from '@/utils/errors';
-
-export const CREDITS_PER_USD = 100;
 
 export interface CreditBalanceResult {
   balance: number;
@@ -42,13 +41,13 @@ export async function readCreditBalance(): Promise<CreditBalanceResult> {
 
 export function readCreditPacks(): CreditPacksResult {
   return {
-    creditsPerUsd: CREDITS_PER_USD,
-    maximumCredits: PAYG_MAX_PURCHASE_USD * CREDITS_PER_USD,
-    minimumCredits: PAYG_MIN_PURCHASE_USD * CREDITS_PER_USD,
+    creditsPerUsd: PAYG_CREDITS_PER_USD,
+    maximumCredits: PAYG_MAX_PURCHASE_USD * PAYG_CREDITS_PER_USD,
+    minimumCredits: PAYG_MIN_PURCHASE_USD * PAYG_CREDITS_PER_USD,
     packs: PAYG_CREDIT_PACKS.map((pack) => ({
       credits: pack.credits,
       label: pack.label,
-      usd: pack.credits / CREDITS_PER_USD,
+      usd: pack.credits / PAYG_CREDITS_PER_USD,
     })),
   };
 }

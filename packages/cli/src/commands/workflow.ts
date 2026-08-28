@@ -1,3 +1,4 @@
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
@@ -17,7 +18,22 @@ import { GenfeedError, handleError } from '@/utils/errors';
 interface ListOptions {
   json?: boolean;
   limit: number;
-  status?: string;
+}
+
+interface RunListOptions extends ListOptions {
+  status?: WorkflowExecutionStatus;
+  workflow?: string;
+}
+
+function parseExecutionStatus(value: string): WorkflowExecutionStatus {
+  const normalized = value.trim().toUpperCase();
+  if (!Object.values(WorkflowExecutionStatus).includes(normalized as WorkflowExecutionStatus)) {
+    throw new GenfeedError(
+      `Unknown workflow run status "${value}"`,
+      `Use one of: ${Object.values(WorkflowExecutionStatus).join(', ')}`
+    );
+  }
+  return normalized as WorkflowExecutionStatus;
 }
 
 function parseInputsOption(value: string): Record<string, unknown> {
@@ -66,7 +82,6 @@ export const workflowCommand = new Command('workflow')
   .addCommand(
     new Command('list')
       .description('List available workflows')
-      .option('--status <status>', 'Filter by status')
       .option('-l, --limit <n>', 'Max items', (value) => Number.parseInt(value, 10), 20)
       .option('--json', 'Output as JSON')
       .action((options: ListOptions) =>
@@ -119,10 +134,10 @@ export const workflowCommand = new Command('workflow')
     new Command('runs')
       .description('List workflow runs')
       .option('--workflow <id>', 'Filter by workflow ID')
-      .option('--status <status>', 'Filter by run status')
+      .option('--status <status>', 'Filter by run status', parseExecutionStatus)
       .option('-l, --limit <n>', 'Max items', (value) => Number.parseInt(value, 10), 20)
       .option('--json', 'Output as JSON')
-      .action((options: ListOptions & { workflow?: string }) =>
+      .action((options: RunListOptions) =>
         withCommandError(async () => {
           const runs = await listWorkflowExecutions({
             limit: options.limit,

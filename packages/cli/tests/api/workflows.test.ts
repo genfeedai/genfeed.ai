@@ -1,3 +1,4 @@
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createWorkflowExecution,
@@ -29,8 +30,8 @@ describe('api/workflows', () => {
 
   it('lists filtered workflows with a bounded limit', async () => {
     mockFetch.mockResolvedValue(collection('workflow-1', { label: 'Weekly Content' }));
-    const result = await listWorkflows({ limit: 500, status: 'active' });
-    expect(mockFetch).toHaveBeenCalledWith('/workflows?limit=200&status=active', { method: 'GET' });
+    const result = await listWorkflows({ limit: 500 });
+    expect(mockFetch).toHaveBeenCalledWith('/workflows?limit=100', { method: 'GET' });
     expect(result[0].id).toBe('workflow-1');
   });
 
@@ -49,12 +50,12 @@ describe('api/workflows', () => {
   it('lists filtered workflow executions', async () => {
     mockFetch.mockResolvedValue(collection('execution-1', { status: 'completed' }));
     const result = await listWorkflowExecutions({
-      limit: 0,
-      status: 'completed',
+      limit: 500,
+      status: WorkflowExecutionStatus.COMPLETED,
       workflowId: 'workflow-1',
     });
     expect(mockFetch).toHaveBeenCalledWith(
-      '/workflow-executions?limit=1&status=completed&workflowId=workflow-1',
+      '/workflow-executions?limit=100&status=COMPLETED&workflowId=workflow-1',
       { method: 'GET' }
     );
     expect(result[0].id).toBe('execution-1');

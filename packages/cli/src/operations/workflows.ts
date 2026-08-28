@@ -1,17 +1,26 @@
 import {
   createWorkflowExecution,
+  getWorkflow,
   listWorkflows,
   type Workflow,
   type WorkflowExecution,
 } from '@/api/workflows';
-import { GenfeedError } from '@/utils/errors';
+import { ApiError, GenfeedError } from '@/utils/errors';
 
 function normalized(value: string | undefined): string {
   return value?.trim().toLocaleLowerCase() ?? '';
 }
 
 export async function resolveWorkflow(reference: string): Promise<Workflow> {
-  const workflows = await listWorkflows({ limit: 200 });
+  try {
+    return await getWorkflow(reference);
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.statusCode !== 404) {
+      throw error;
+    }
+  }
+
+  const workflows = await listWorkflows({ limit: 100 });
   const target = normalized(reference);
   const matches = workflows.filter(
     (workflow) =>

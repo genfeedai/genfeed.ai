@@ -27,7 +27,8 @@ import {
 import { runWorkflow } from '@/operations/workflows';
 import { answerPendingInput, runAgentTurn } from '@/shell/agent-run';
 import { openExternalUrl } from '@/utils/browser';
-import { parseSlashCommand } from './slash-command';
+import type { ParsedSlashCommand } from './slash-command';
+import { dispatchWorkspaceInput, selectHistoryEntry } from './workspace-dispatch';
 
 export type WorkspaceExitAction = 'exit' | 'login' | 'signup';
 
@@ -161,8 +162,7 @@ export function TerminalWorkspace({ onDone }: WorkspaceProps) {
     append('system', `Created ${result.length} article${result.length === 1 ? '' : 's'}.`);
   }
 
-  async function handleSlashCommand(value: string): Promise<void> {
-    const { args, name } = parseSlashCommand(value);
+  async function handleSlashCommand({ args, name }: ParsedSlashCommand): Promise<void> {
     switch (name) {
       case 'exit':
       case 'quit':
@@ -355,10 +355,11 @@ export function TerminalWorkspace({ onDone }: WorkspaceProps) {
     append('user', trimmed);
     setBusy(true);
     try {
-      if (trimmed.startsWith('/')) await handleSlashCommand(trimmed);
-      else await sendMessage(trimmed);
-    } catch (error) {
-      append('error', stringifyError(error));
+      await dispatchWorkspaceInput(trimmed, {
+        appendError: (message) => append('error', message),
+        runMessage: sendMessage,
+        runOperation: handleSlashCommand,
+      });
     } finally {
       setBusy(false);
     }
@@ -370,15 +371,15 @@ export function TerminalWorkspace({ onDone }: WorkspaceProps) {
     if (key.return) return void submit(input);
     if (key.backspace || key.delete) return setInput((value) => value.slice(0, -1));
     if (key.upArrow && history.length > 0) {
-      const index = Math.min(historyIndex + 1, history.length - 1);
-      setHistoryIndex(index);
-      setInput(history[history.length - 1 - index] ?? '');
+      const selection = selectHistoryEntry(history, historyIndex, 'up');
+      setHistoryIndex(selection.index);
+      setInput(selection.value);
       return;
     }
     if (key.downArrow) {
-      const index = historyIndex - 1;
-      setHistoryIndex(index);
-      setInput(index < 0 ? '' : (history[history.length - 1 - index] ?? ''));
+      const selection = selectHistoryEntry(history, historyIndex, 'down');
+      setHistoryIndex(selection.index);
+      setInput(selection.value);
       return;
     }
     if (character && !key.ctrl && !key.meta) setInput((value) => value + character);

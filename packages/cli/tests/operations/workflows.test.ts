@@ -1,23 +1,37 @@
+import { ApiError } from '@genfeedai/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockCreateWorkflowExecution, mockListWorkflows } = vi.hoisted(() => ({
+const { mockCreateWorkflowExecution, mockGetWorkflow, mockListWorkflows } = vi.hoisted(() => ({
   mockCreateWorkflowExecution: vi.fn(),
+  mockGetWorkflow: vi.fn(),
   mockListWorkflows: vi.fn(),
 }));
 
 vi.mock('../../src/api/workflows', () => ({
   createWorkflowExecution: (...args: unknown[]) => mockCreateWorkflowExecution(...args),
+  getWorkflow: (...args: unknown[]) => mockGetWorkflow(...args),
   listWorkflows: (...args: unknown[]) => mockListWorkflows(...args),
 }));
 
 describe('workflow operations', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetWorkflow.mockRejectedValue(new ApiError('Not found', 404));
     mockListWorkflows.mockResolvedValue([
       { id: 'workflow-1', key: 'weekly-content', label: 'Weekly Content' },
       { id: 'workflow-2', key: 'launch', label: 'Launch' },
     ]);
     mockCreateWorkflowExecution.mockResolvedValue({ id: 'execution-1' });
+  });
+
+  it('resolves an entity ID without loading the workflow collection', async () => {
+    const workflow = { id: 'cm12345678901234567890123', label: 'Direct' };
+    mockGetWorkflow.mockResolvedValue(workflow);
+    const { resolveWorkflow } = await import('../../src/operations/workflows');
+
+    await expect(resolveWorkflow(workflow.id)).resolves.toEqual(workflow);
+    expect(mockGetWorkflow).toHaveBeenCalledWith(workflow.id);
+    expect(mockListWorkflows).not.toHaveBeenCalled();
   });
 
   it.each(['workflow-1', 'weekly-content', 'WEEKLY CONTENT'])(
