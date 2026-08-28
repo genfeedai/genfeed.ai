@@ -415,10 +415,8 @@ function AppSwitcherGridItem({
             : undefined
         }
         onClick={() => onNavigateStart(navigationAnnouncement)}
-        onBlur={() => onPreviewChange(null)}
         onFocus={() => onPreviewChange(app)}
         onMouseEnter={() => onPreviewChange(app)}
-        onMouseLeave={() => onPreviewChange(null)}
         className={cn(
           'group grid min-h-[4.5rem] min-w-0 grid-rows-[2.25rem_1.125rem] place-items-center gap-1 rounded-lg px-1 py-1.5 text-center outline-none',
           'border-transparent !bg-transparent !shadow-none !ring-0 !ring-offset-0',
@@ -556,12 +554,8 @@ export function AppSwitcher({
         apps.findIndex((app) => app.itemKey === previewApp.itemKey) / 3,
       )
     : 0;
-  const previewRowTopClass = [
-    'top-[3.375rem]',
-    'top-[8.25rem]',
-    'top-[13.125rem]',
-    'top-[18rem]',
-  ][previewRowIndex];
+  // 44px header + 10px grid padding, then 72px rows separated by 4px.
+  const previewRowTop = 54 + previewRowIndex * 76;
   const PreviewIcon = previewApp
     ? (APP_SWITCHER_ICON_OVERRIDES[previewApp.itemKey] ?? previewApp.icon)
     : null;
@@ -616,7 +610,7 @@ export function AppSwitcher({
         sideOffset={8}
         collisionPadding={16}
         className={cn(
-          'w-[calc(100vw-2rem)] overflow-hidden p-0 sm:w-[19rem]',
+          'w-[calc(100vw-2rem)] overflow-visible bg-transparent p-0 shadow-none sm:w-[19rem]',
           previewApp && 'sm:w-[35rem]',
         )}
         onCloseAutoFocus={(event) => {
@@ -630,21 +624,19 @@ export function AppSwitcher({
       >
         <div
           className={cn(
-            'grid max-h-[min(80vh,30rem)]',
+            'relative grid max-h-[min(80vh,30rem)]',
             previewApp && 'sm:grid-cols-[16rem_19rem]',
           )}
         >
           {previewApp ? (
-            <div className="relative hidden min-h-0 bg-popover sm:block">
+            <div className="relative hidden min-h-0 sm:block">
               {PreviewIcon ? (
                 <div
                   aria-label={`${previewApp.label}: ${previewApp.description}`}
                   aria-live="polite"
-                  className={cn(
-                    'absolute inset-x-0 flex h-[4.5rem] items-center gap-2.5 px-3 font-normal',
-                    previewRowTopClass,
-                  )}
+                  className="pointer-events-none absolute left-0 -right-px z-20 flex h-[4.5rem] items-center gap-2.5 rounded-l-md bg-secondary px-3 font-normal shadow-dropdown after:absolute after:inset-y-px after:-right-px after:w-1 after:bg-secondary"
                   role="status"
+                  style={{ top: previewRowTop }}
                 >
                   <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-background-secondary text-foreground">
                     <PreviewIcon
@@ -664,7 +656,7 @@ export function AppSwitcher({
               ) : null}
             </div>
           ) : null}
-          <div className="min-h-0 overflow-y-auto">
+          <div className="relative z-10 min-h-0 overflow-y-auto rounded-md bg-secondary shadow-dropdown">
             <div className="flex min-h-11 items-center justify-between gap-3 border-b border-border px-3 py-2">
               <div className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/52">
                 Apps
@@ -678,6 +670,12 @@ export function AppSwitcher({
               className="grid grid-cols-3 gap-1 px-2.5 py-2.5"
               role="group"
               aria-label="Apps"
+              onBlurCapture={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  setPreviewAppKey(null);
+                }
+              }}
+              onMouseLeave={() => setPreviewAppKey(null)}
             >
               {apps.map((app) => {
                 const navigation = resolveAppNavigation(app);

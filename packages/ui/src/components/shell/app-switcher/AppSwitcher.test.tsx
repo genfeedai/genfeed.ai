@@ -71,8 +71,16 @@ vi.mock('../../../primitives/button', () => ({
 
 vi.mock('../../../primitives/dropdown-menu', () => ({
   DropdownMenu: ({ children }: { children: ReactNode }) => <>{children}</>,
-  DropdownMenuContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
+  DropdownMenuContent: ({
+    children,
+    className,
+  }: {
+    children: ReactNode;
+    className?: string;
+  }) => (
+    <div className={className} data-testid="app-switcher-content">
+      {children}
+    </div>
   ),
   DropdownMenuGroup: ({
     children,
@@ -269,20 +277,29 @@ describe('AppSwitcher', () => {
     render(<AppSwitcher orgSlug="acme" />);
 
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-switcher-content')).toHaveClass(
+      'sm:w-[19rem]',
+      'bg-transparent',
+      'shadow-none',
+    );
     fireEvent.mouseEnter(screen.getByRole('link', { name: 'Agent' }));
 
     const tooltip = screen.getByRole('status', {
       name: 'Agent: Ask and execute.',
     });
 
-    expect(tooltip).toHaveClass('inset-x-0', 'top-[3.375rem]');
+    expect(tooltip).toHaveStyle({ top: '54px' });
+    expect(tooltip).toHaveClass('-right-px', 'bg-secondary', 'shadow-dropdown');
     expect(tooltip.className).not.toContain('right-[calc(100%-1px)]');
-    expect(tooltip.className).not.toContain('border');
+    expect(tooltip.className).not.toContain('border-r');
     expect(tooltip.querySelector('svg')).toBeInTheDocument();
     expect(tooltip).toHaveTextContent('Agent');
     expect(tooltip).toHaveTextContent('Ask and execute.');
+    expect(screen.getByTestId('app-switcher-content')).toHaveClass(
+      'sm:w-[35rem]',
+    );
 
-    fireEvent.mouseLeave(screen.getByRole('link', { name: 'Agent' }));
+    fireEvent.mouseLeave(screen.getByRole('group', { name: 'Apps' }));
     expect(
       screen.queryByRole('status', { name: 'Agent: Ask and execute.' }),
     ).not.toBeInTheDocument();
@@ -295,7 +312,24 @@ describe('AppSwitcher', () => {
 
     expect(
       screen.getByRole('status', { name: 'Discover: Find winners.' }),
-    ).toHaveClass('top-[13.125rem]');
+    ).toHaveStyle({ top: '206px' });
+  });
+
+  it('keeps the preview stable while moving between app tiles', () => {
+    render(<AppSwitcher orgSlug="acme" />);
+
+    fireEvent.mouseEnter(screen.getByRole('link', { name: 'Agent' }));
+    fireEvent.mouseLeave(screen.getByRole('link', { name: 'Agent' }));
+    fireEvent.mouseEnter(screen.getByRole('link', { name: 'Messages' }));
+
+    expect(
+      screen.queryByRole('status', { name: 'Agent: Ask and execute.' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('status', {
+        name: 'Messages: Reply to audience.',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('hides Studio when its app-switcher discovery flag is disabled', () => {
