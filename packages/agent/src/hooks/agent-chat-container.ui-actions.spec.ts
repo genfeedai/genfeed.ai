@@ -206,6 +206,20 @@ describe('handleAgentUiAction', () => {
     expect(deps.setLatestProposedPlan).toHaveBeenCalledWith(null);
   });
 
+  it('marks the source UI action completed after a successful response', async () => {
+    const deps = makeDeps();
+
+    await handleAgentUiAction(
+      'confirm_save_brand_voice_profile',
+      { sourceActionId: 'brand-voice-card-1' },
+      deps,
+    );
+
+    expect(
+      useAgentChatStore.getState().uiActionStatusById['brand-voice-card-1'],
+    ).toBe('completed');
+  });
+
   it('does not dispatch a delayed thread-list refresh after a UI action', async () => {
     const refreshListener = vi.fn();
     window.addEventListener('agent:threads:refresh', refreshListener);
@@ -264,10 +278,17 @@ describe('handleAgentUiAction', () => {
       } as unknown as AgentApiService,
     });
 
-    await handleAgentUiAction('start_interview', undefined, deps);
+    await handleAgentUiAction(
+      'start_interview',
+      { sourceActionId: 'failed-source-action' },
+      deps,
+    );
 
     expect(deps.setError).toHaveBeenCalledWith('context conflict');
     expect(deps.setActiveUiAction).toHaveBeenLastCalledWith(null);
     expect(deps.addMessage).not.toHaveBeenCalled();
+    expect(
+      useAgentChatStore.getState().uiActionStatusById['failed-source-action'],
+    ).toBeUndefined();
   });
 });
