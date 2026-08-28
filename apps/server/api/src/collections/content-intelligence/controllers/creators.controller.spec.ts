@@ -29,17 +29,17 @@ vi.mock('@server/helpers/utils/error-response/error-response.util', () => {
   };
 });
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { CreatorsController } from '@api/collections/content-intelligence/controllers/creators.controller';
 import type { AddCreatorDto } from '@api/collections/content-intelligence/dto/add-creator.dto';
 import type { ImportCreatorsDto } from '@api/collections/content-intelligence/dto/import-creators.dto';
 import type { CreatorsQueryDto } from '@api/collections/content-intelligence/dto/patterns-query.dto';
 import { ContentIntelligenceService } from '@api/collections/content-intelligence/services/content-intelligence.service';
 import { PatternAnalyzerService } from '@api/collections/content-intelligence/services/pattern-analyzer.service';
-import { PatternStoreService } from '@server/collections/content-intelligence/services/pattern-store.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { PatternStoreService } from '@server/collections/content-intelligence/services/pattern-store.service';
 import type { Request } from 'express';
 
 describe('CreatorsController', () => {
@@ -244,6 +244,37 @@ describe('CreatorsController', () => {
 
       expect(mockContentIntelligenceService.addCreator).toHaveBeenCalledTimes(
         1,
+      );
+    });
+
+    it('resolves distinct creators concurrently and reuses duplicate results', async () => {
+      const pendingLookups: Array<() => void> = [];
+      mockContentIntelligenceService.findByHandle.mockImplementation(
+        () =>
+          new Promise<null>((resolve) => {
+            pendingLookups.push(() => resolve(null));
+          }),
+      );
+      mockContentIntelligenceService.addCreator.mockResolvedValue(mockCreator);
+
+      const resultPromise = controller.importCreators(mockRequest, mockUser, {
+        creators: [
+          { handle: '@creator1', platform: 'twitter' },
+          { handle: '@creator2', platform: 'instagram' },
+          { handle: '@creator1', platform: 'twitter' },
+        ],
+      } as unknown as ImportCreatorsDto);
+
+      expect(mockContentIntelligenceService.findByHandle).toHaveBeenCalledTimes(
+        2,
+      );
+      for (const resolveLookup of pendingLookups) {
+        resolveLookup();
+      }
+      await resultPromise;
+
+      expect(mockContentIntelligenceService.addCreator).toHaveBeenCalledTimes(
+        2,
       );
     });
   });
