@@ -38,7 +38,6 @@ import {
   NOTIFICATION_DELIVERY_QUEUE,
   ORCHESTRATOR_RUN_QUEUE,
   PATTERN_EXTRACTION_QUEUE,
-  POST_PUBLISH_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
   REPLY_INBOUND_QUEUE,
   REPLY_POST_WATCH_QUEUE,
@@ -51,7 +50,7 @@ import {
   WORKFLOW_EXECUTION_QUEUE,
   WORKSPACE_TASK_QUEUE,
 } from '@genfeedai/queue-contracts';
-import { PostPublishQueueService, SERVER_TOKENS } from '@genfeedai/server';
+import { SERVER_TOKENS } from '@genfeedai/server';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -82,7 +81,6 @@ import { PatternExtractionQueueService } from '@workers/queues/pattern-extractio
     SocialReplyCampaignQueueService,
     WorkspaceTaskQueueService,
     HeygenPollQueueService,
-    PostPublishQueueService,
     BatchGenerationQueueService,
     ReplyInboundQueueService,
     PatternExtractionQueueService,
@@ -264,15 +262,6 @@ import { PatternExtractionQueueService } from '@workers/queues/pattern-extractio
         },
         name: PATTERN_EXTRACTION_QUEUE,
       },
-      {
-        defaultJobOptions: {
-          attempts: 1,
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: POST_PUBLISH_QUEUE,
-      },
-
       // ---------- Newly registered queues (moved from API) ----------
       {
         defaultJobOptions: {
@@ -493,7 +482,6 @@ import { PatternExtractionQueueService } from '@workers/queues/pattern-extractio
     SocialReplyCampaignQueueService,
     WorkspaceTaskQueueService,
     HeygenPollQueueService,
-    PostPublishQueueService,
     // Producer for the reconciliation sweep: the sweep re-queues stranded
     // batches from inside the workers process, so it needs the API's producer
     // here rather than reaching into the API's QueuesModule (which would

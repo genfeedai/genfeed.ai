@@ -1,7 +1,7 @@
 import {
   DEFAULT_QUEUE,
   PATTERN_EXTRACTION_QUEUE,
-  POST_PUBLISH_QUEUE,
+  WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/queue-contracts';
 import {
   drainDefaultQueue,
@@ -60,9 +60,9 @@ describe('default queue drain', () => {
 
   it('reroutes each misrouted job to the queue its name identifies', async () => {
     const patternJob = job(PATTERN_EXTRACTION_QUEUE, { brandId: 'brand-1' });
-    const publishJob = job(POST_PUBLISH_QUEUE, { postId: 'post-1' });
+    const workflowJob = job(WORKFLOW_EXECUTION_QUEUE, { postId: 'post-1' });
     const defaultQueue = {
-      getWaiting: vi.fn().mockResolvedValue([patternJob, publishJob]),
+      getWaiting: vi.fn().mockResolvedValue([patternJob, workflowJob]),
     };
     const writers = new Map<string, { add: ReturnType<typeof vi.fn> }>();
     const createQueueWriter = vi.fn((queueName: string) => {
@@ -80,12 +80,12 @@ describe('default queue drain', () => {
       PATTERN_EXTRACTION_QUEUE,
       { brandId: 'brand-1' },
     );
-    expect(writers.get(POST_PUBLISH_QUEUE)?.add).toHaveBeenCalledWith(
-      POST_PUBLISH_QUEUE,
+    expect(writers.get(WORKFLOW_EXECUTION_QUEUE)?.add).toHaveBeenCalledWith(
+      WORKFLOW_EXECUTION_QUEUE,
       { postId: 'post-1' },
     );
     expect(patternJob.remove).toHaveBeenCalled();
-    expect(publishJob.remove).toHaveBeenCalled();
+    expect(workflowJob.remove).toHaveBeenCalled();
     expect(report.rerouted).toBe(2);
     expect(report.unroutable).toBe(0);
   });

@@ -17,13 +17,15 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
+import { ScheduledPostWorkflowQueueService } from '@server/collections/posts/services/scheduled-post-workflow-queue.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-recurrence-materializer.service';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
+import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
-import { ScheduledPostQueueService } from '@workers/services/scheduled-post-queue.service';
+import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 @Module({
@@ -45,8 +47,10 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
     CronPostsService,
     PostRepeatSchedulerService,
     ScheduledPostDeliveryService,
+    ScheduledPostDiscoveryService,
     ScheduledPostExecutionGuardService,
-    ScheduledPostQueueService,
+    ScheduledPostWorkflowQueueService,
+    ScheduledPostWorkflowService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
     {

@@ -161,12 +161,12 @@ describe('QueueMetricsService', () => {
     const now = Date.parse('2026-08-12T00:00:00.000Z');
     vi.spyOn(Date, 'now').mockReturnValue(now);
     mockGetJobCounts.mockImplementation(async (name: string) =>
-      name === 'post-publish'
+      name === 'workflow-execution'
         ? { active: 7, delayed: 6, failed: 5, waiting: 4 }
         : { active: 0, delayed: 0, failed: 0, waiting: 0 },
     );
     mockGetJobs.mockImplementation(async (name: string) =>
-      name === 'post-publish'
+      name === 'workflow-execution'
         ? [{ data: { secret: 'must-not-leak' }, timestamp: now - 90_000 }]
         : [],
     );
@@ -175,7 +175,7 @@ describe('QueueMetricsService', () => {
 
     const snapshotCall = mockRedisPublisher.set.mock.calls.find(
       ([key]) =>
-        key === 'genfeed:monitoring:queue-health:snapshot:post-publish',
+        key === 'genfeed:monitoring:queue-health:snapshot:workflow-execution',
     );
     expect(snapshotCall).toBeDefined();
     const persisted = JSON.parse(String(snapshotCall?.[1]));
@@ -185,7 +185,7 @@ describe('QueueMetricsService', () => {
       delayed: 6,
       failed: 5,
       oldestWaitingAgeSeconds: 90,
-      queueName: 'post-publish',
+      queueName: 'workflow-execution',
       stalledEvents: 1,
       stalledJobIds: ['job-stalled-1'],
       waiting: 4,
@@ -197,12 +197,12 @@ describe('QueueMetricsService', () => {
     const now = Date.parse('2026-08-12T00:00:00.000Z');
     vi.spyOn(Date, 'now').mockReturnValue(now);
     mockGetJobCounts.mockImplementation(async (name: string) =>
-      name === 'post-publish'
+      name === 'workflow-execution'
         ? { active: 1, delayed: 2, failed: 26, waiting: 101 }
         : { active: 0, delayed: 0, failed: 0, waiting: 0 },
     );
     mockGetJobs.mockImplementation(async (name: string) =>
-      name === 'post-publish' ? [{ timestamp: now - 901_000 }] : [],
+      name === 'workflow-execution' ? [{ timestamp: now - 901_000 }] : [],
     );
 
     await service.publishQueueMetrics();
@@ -220,7 +220,7 @@ describe('QueueMetricsService', () => {
           { actual: 26, kind: 'failed', threshold: 25 },
         ]),
         kind: 'breach',
-        snapshot: expect.objectContaining({ queueName: 'post-publish' }),
+        snapshot: expect.objectContaining({ queueName: 'workflow-execution' }),
       }),
     );
   });
@@ -231,10 +231,10 @@ describe('QueueMetricsService', () => {
       active: 0,
       delayed: 0,
       failed: 0,
-      waiting: name === 'post-publish' ? 101 : 0,
+      waiting: name === 'workflow-execution' ? 101 : 0,
     }));
     mockRedisPublisher.hgetall.mockImplementation(async (key: string) =>
-      key.endsWith(':post-publish')
+      key.endsWith(':workflow-execution')
         ? {
             alerted: '1',
             breachStartedAt: String(now - 10_000),
@@ -254,7 +254,7 @@ describe('QueueMetricsService', () => {
       active: 0,
       delayed: 0,
       failed: 0,
-      waiting: name === 'post-publish' ? 101 : 0,
+      waiting: name === 'workflow-execution' ? 101 : 0,
     }));
     mockRedisPublisher.set.mockImplementation(async (key: string) =>
       key.includes(':alert:breach:') ? null : 'OK',
@@ -275,7 +275,7 @@ describe('QueueMetricsService', () => {
     });
     mockGetJobs.mockResolvedValue([]);
     mockRedisPublisher.hgetall.mockImplementation(async (key: string) =>
-      key.endsWith(':post-publish')
+      key.endsWith(':workflow-execution')
         ? {
             alerted: '1',
             breachStartedAt: String(incidentStartedAt),
@@ -293,7 +293,7 @@ describe('QueueMetricsService', () => {
         breaches: [],
         incidentStartedAt: new Date(incidentStartedAt).toISOString(),
         kind: 'recovery',
-        snapshot: expect.objectContaining({ queueName: 'post-publish' }),
+        snapshot: expect.objectContaining({ queueName: 'workflow-execution' }),
       }),
     );
   });
@@ -304,10 +304,10 @@ describe('QueueMetricsService', () => {
       delayed: 0,
       failed: 0,
       waiting:
-        name === 'post-publish' || name === 'analytics-twitter' ? 101 : 0,
+        name === 'workflow-execution' || name === 'analytics-twitter' ? 101 : 0,
     }));
     mockAlertNotifier.notify.mockImplementation(async (notification) => {
-      if (notification.snapshot.queueName === 'post-publish') {
+      if (notification.snapshot.queueName === 'workflow-execution') {
         throw new Error('transport unavailable');
       }
     });
@@ -317,7 +317,7 @@ describe('QueueMetricsService', () => {
     expect(mockAlertNotifier.notify).toHaveBeenCalledTimes(2);
     expect(mockCloudWatchSend).toHaveBeenCalledTimes(1);
     expect(mockLogger.error).toHaveBeenCalledWith(
-      expect.stringContaining('post-publish'),
+      expect.stringContaining('workflow-execution'),
       expect.any(Error),
       expect.any(Object),
     );
@@ -325,7 +325,7 @@ describe('QueueMetricsService', () => {
 
   it('publishes successful snapshots when one queue collection fails', async () => {
     mockGetJobCounts.mockImplementation(async (name: string) => {
-      if (name === 'post-publish') {
+      if (name === 'workflow-execution') {
         throw new Error('queue unavailable');
       }
       return { active: 0, delayed: 0, failed: 0, waiting: 0 };
@@ -423,7 +423,7 @@ describe('QueueMetricsService', () => {
 
   it('logs and publishes per-queue stall telemetry without job payloads', async () => {
     mockGetJobs.mockImplementation(async (name: string) =>
-      name === 'post-publish'
+      name === 'workflow-execution'
         ? [{ data: { secret: 'must-not-leak' }, timestamp: Date.now() }]
         : [],
     );
@@ -460,7 +460,7 @@ describe('QueueMetricsService', () => {
       'BullMQ job stalled',
       expect.objectContaining({
         jobId: 'job-stalled-1',
-        queueName: 'post-publish',
+        queueName: 'workflow-execution',
       }),
     );
     const stallContexts = mockLogger.warn.mock.calls

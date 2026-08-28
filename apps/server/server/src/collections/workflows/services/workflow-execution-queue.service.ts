@@ -22,6 +22,7 @@ import type {
   SystemWorkflowGraphDefinition,
 } from '@server/collections/workflows/system-workflow-runner.service';
 import { createSystemActionWorkflowDefinition } from '@server/collections/workflows/system-workflow-runner.service';
+import { reserveIdempotentJob } from '@server/queues/idempotent-job';
 import { Queue } from 'bullmq';
 
 // =============================================================================
@@ -161,7 +162,26 @@ export class WorkflowExecutionQueueService {
       actionId: string;
       inputValues: Record<string, unknown>;
     },
+    options: {
+      attempts?: number;
+      replaceTerminalJob?: boolean;
+    } = {},
   ): Promise<string> {
+    if (options.replaceTerminalJob) {
+      const reservation = await reserveIdempotentJob(
+        this.executionQueue,
+        jobId,
+      );
+      if (reservation.alreadyQueued) {
+        this.logger.log(`${this.logContext} system workflow already queued`, {
+          canonicalId: definition.canonicalId,
+          jobId,
+          organizationId: input.organizationId,
+          state: reservation.state,
+        });
+        return jobId;
+      }
+    }
     const job = await this.executionQueue.add(
       'system-run',
       {
@@ -174,7 +194,7 @@ export class WorkflowExecutionQueueService {
         type: 'system-run',
       },
       {
-        attempts: 3,
+        attempts: options.attempts ?? 3,
         backoff: { delay: 5000, type: 'exponential' },
         jobId,
         removeOnComplete: 200,

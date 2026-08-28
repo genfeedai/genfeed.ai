@@ -17,7 +17,6 @@ import {
   KNOWLEDGE_SOURCE_INGEST_QUEUE,
   LIFECYCLE_EMAIL_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
-  POST_PUBLISH_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
   REPLY_INBOUND_QUEUE,
   REPLY_POST_WATCH_QUEUE,
@@ -41,7 +40,6 @@ describe('queue-names.constant', () => {
     expect(HEYGEN_POLL_QUEUE).toBe('heygen-poll');
     expect(LIFECYCLE_EMAIL_QUEUE).toBe('lifecycle-email');
     expect(NOTIFICATION_DELIVERY_QUEUE).toBe('notification-delivery');
-    expect(POST_PUBLISH_QUEUE).toBe('post-publish');
     expect(CREDIT_DEDUCTION_QUEUE).toBe('credit-deduction');
     expect(CLIP_ANALYZE_QUEUE).toBe('clip-analyze');
     expect(CLIP_FACTORY_QUEUE).toBe('clip-factory');
@@ -51,7 +49,7 @@ describe('queue-names.constant', () => {
   });
 
   it('lists every queue exactly once', () => {
-    expect(ALL_QUEUE_NAMES.length).toBeGreaterThanOrEqual(33);
+    expect(ALL_QUEUE_NAMES.length).toBeGreaterThanOrEqual(32);
     expect(new Set(ALL_QUEUE_NAMES).size).toBe(ALL_QUEUE_NAMES.length);
   });
 

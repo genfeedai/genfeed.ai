@@ -143,7 +143,6 @@ export {
   type IdempotentJobReservation,
   reserveIdempotentJob,
 } from './queues/idempotent-job';
-export { PostPublishQueueService } from './queues/post-publish/post-publish-queue.service';
 export {
   type IPublisher,
   type MediaInfo,

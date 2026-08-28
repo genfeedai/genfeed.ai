@@ -98,7 +98,6 @@ import { LifecycleEmailProcessor } from '@workers/processors/api/queues/lifecycl
 import { NotificationDeliveryProcessor } from '@workers/processors/api/queues/notification-delivery/notification-delivery.processor';
 import { NotificationDeliveryRecoveryService } from '@workers/processors/api/queues/notification-delivery/notification-delivery-recovery.service';
 import { PatternExtractionProcessor } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction.processor';
-import { PostPublishProcessor } from '@workers/processors/api/queues/post-publish/post-publish.processor';
 import { ReplyBotPollingProcessor } from '@workers/processors/api/queues/reply-bot/reply-bot-polling.processor';
 import { ReplyInboundProcessor } from '@workers/processors/api/queues/reply-bot/reply-inbound.processor';
 import { ReplyPostWatchProcessor } from '@workers/processors/api/queues/reply-bot/reply-post-watch.processor';
@@ -253,7 +252,6 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     NotificationDeliveryProcessor,
     NotificationDeliveryRecoveryService,
     PatternExtractionProcessor,
-    PostPublishProcessor,
     ReplyBotPollingProcessor,
     ReplyInboundProcessor,
     ReplyPostWatchProcessor,

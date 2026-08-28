@@ -574,9 +574,24 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Resolves workflow review gates whose timeout elapsed.',
   ),
   internalAction(
-    'scheduled-post-publishing',
-    'Scheduled Post Publishing',
-    'Publishes due posts through the connected brand account.',
+    'scheduled-post.claim',
+    'Claim Scheduled Post',
+    'Claims the immutable approval and validates the scheduled post scope.',
+  ),
+  internalAction(
+    'scheduled-post.deliver',
+    'Deliver Scheduled Post',
+    'Publishes one claimed post through its connected brand account.',
+  ),
+  internalAction(
+    'scheduled-post.fail',
+    'Fail Scheduled Post',
+    'Projects a terminal pre-delivery workflow failure onto one post.',
+  ),
+  internalAction(
+    'scheduled-post.finalize',
+    'Finalize Scheduled Post',
+    'Finalizes approval, activity, and recurrence state after delivery.',
   ),
   internalAction(
     'social-reply-campaign',

@@ -180,7 +180,7 @@ describe('WorkflowExecutionProcessor', () => {
       expect(mockSystemWorkflowRunner.runAction).toHaveBeenCalledWith({
         actionType: 'clip.continuity.fail',
         canonicalId: 'clip.continuity.fail',
-        inputValues: { projectId: 'project-1' },
+        inputValues: { projectId: 'project-1', workflowError: 'QA failed' },
         organizationId: 'org-1',
         source: 'system-workflow-failure',
         userId: 'user-1',

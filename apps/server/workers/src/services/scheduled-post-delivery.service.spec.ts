@@ -5,7 +5,14 @@ import {
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IPublishingProviderReadiness } from '@genfeedai/interfaces';
-import { WORKFLOW_APPROVED_SCHEDULE_SETTING } from '@genfeedai/server';
+import {
+  type PublishResult,
+  WORKFLOW_APPROVED_SCHEDULE_SETTING,
+} from '@genfeedai/server';
+import {
+  SCHEDULED_POST_ACTION_IDS,
+  type ScheduledPostWorkflowSource,
+} from '@server/collections/posts/services/scheduled-post-workflow-definition';
 import { BeehiivProviderError } from '@server/services/integrations/beehiiv/errors/beehiiv-provider.error';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
 
@@ -46,7 +53,17 @@ const BLOCKED_READINESS: IPublishingProviderReadiness & {
 
 type DeliveryMocks = ReturnType<typeof createDeliveryMocks>;
 
+type RegisteredAction = (request: {
+  input: Record<string, unknown>;
+  provenance: {
+    executionId: string;
+    workflowId: string;
+    workflowLabel: string;
+  };
+}) => Promise<unknown>;
+
 function createDeliveryMocks() {
+  const registeredActions = new Map<string, RegisteredAction>();
   return {
     activitiesService: { create: vi.fn().mockResolvedValue(undefined) },
     credentialsService: { findOne: vi.fn() },
@@ -55,7 +72,10 @@ function createDeliveryMocks() {
       findOne: vi.fn().mockResolvedValue({ id: 'org-1' }),
     },
     postsService: { patch: vi.fn().mockResolvedValue(undefined) },
-    prisma: { credential: { findMany: vi.fn() } },
+    prisma: {
+      credential: { findMany: vi.fn() },
+      post: { findFirst: vi.fn() },
+    },
     publisherFactory: { getPublisher: vi.fn() },
     publishEventWebhookService: {
       emitLegacyPostFailed: vi.fn().mockResolvedValue(undefined),
@@ -89,30 +109,17 @@ function createDeliveryMocks() {
     schedulerPublishStateService: {
       transitionPost: vi.fn().mockResolvedValue(true),
     },
+    registeredActions,
     systemWorkflowRunner: {
-      runAction: vi.fn(
-        async (
-          _input: unknown,
-          action: (provenance: {
-            executionId: string;
-            workflowId: string;
-            workflowLabel: string;
-          }) => Promise<unknown>,
-        ) => {
-          const provenance = {
-            executionId: 'execution-1',
-            workflowId: 'workflow-1',
-            workflowLabel: 'Scheduled Post Publishing',
-          };
-          return { provenance, result: await action(provenance) };
-        },
-      ),
+      registerAction: vi.fn((actionId: string, action: RegisteredAction) => {
+        registeredActions.set(actionId, action);
+      }),
     },
   };
 }
 
 function createDeliveryService(mocks: DeliveryMocks) {
-  return new ScheduledPostDeliveryService(
+  const service = new ScheduledPostDeliveryService(
     mocks.logger as never,
     mocks.activitiesService as never,
     mocks.credentialsService as never,
@@ -127,6 +134,35 @@ function createDeliveryService(mocks: DeliveryMocks) {
     mocks.publishingReadinessService as never,
     mocks.prisma as never,
   );
+  service.onModuleInit();
+  return service;
+}
+
+async function executeDelivery(
+  mocks: DeliveryMocks,
+  post: Record<string, unknown>,
+  source: ScheduledPostWorkflowSource,
+): Promise<PublishResult> {
+  mocks.prisma.post.findFirst.mockResolvedValueOnce(post);
+  const action = mocks.registeredActions.get(SCHEDULED_POST_ACTION_IDS.DELIVER);
+  if (!action) {
+    throw new Error('Scheduled post delivery action was not registered');
+  }
+  return action({
+    input: {
+      claim: { isAlreadyPublished: false },
+      request: {
+        organizationId: String(post.organizationId),
+        postId: String(post.id),
+        source,
+      },
+    },
+    provenance: {
+      executionId: 'execution-1',
+      workflowId: 'workflow-1',
+      workflowLabel: 'Scheduled Post Publishing',
+    },
+  }) as Promise<PublishResult>;
 }
 
 function createScheduledPost(
@@ -189,7 +225,7 @@ describe('ScheduledPostDeliveryService', () => {
     mockSuccessfulPublisher(mocks);
     const post = createScheduledPost();
 
-    await service.publishSinglePost(post as never, 'scheduled_sweep');
+    await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(
       mocks.schedulerPublishStateService.transitionPost,
@@ -226,10 +262,7 @@ describe('ScheduledPostDeliveryService', () => {
       platform: CredentialPlatform.BEEHIIV,
     });
 
-    const result = await service.publishSinglePost(
-      post as never,
-      'scheduled_sweep',
-    );
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -264,7 +297,7 @@ describe('ScheduledPostDeliveryService', () => {
     });
     const post = createScheduledPost();
 
-    await service.publishSinglePost(post as never, 'scheduled_sweep');
+    await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(
       mocks.publishEventWebhookService.emitLegacyPostPublished,
@@ -287,7 +320,7 @@ describe('ScheduledPostDeliveryService', () => {
     });
     const post = createScheduledPost();
 
-    await service.publishSinglePost(post as never, 'scheduled_sweep');
+    await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(mocks.publisherFactory.getPublisher).toHaveBeenCalledWith(
       CredentialPlatform.TWITTER,
@@ -313,7 +346,7 @@ describe('ScheduledPostDeliveryService', () => {
       targetSettings: { providerStatus: 'draft' },
     });
 
-    await service.publishSinglePost(post as never, 'publish_now');
+    await executeDelivery(mocks, post, 'publish_now');
 
     expect(publish).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -344,7 +377,7 @@ describe('ScheduledPostDeliveryService', () => {
     });
     const post = createScheduledPost({ groupId: 'group-1' });
 
-    await service.publishSinglePost(post as never, 'scheduled_sweep');
+    await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(
       mocks.schedulerPublishStateService.transitionPost,
@@ -382,10 +415,7 @@ describe('ScheduledPostDeliveryService', () => {
     });
     const post = createScheduledPost({ groupId: 'group-1', retryCount: 0 });
 
-    const result = await service.publishSinglePost(
-      post as never,
-      'scheduled_sweep',
-    );
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -435,10 +465,7 @@ describe('ScheduledPostDeliveryService', () => {
     });
     const post = createScheduledPost({ groupId: 'group-1', retryCount: 0 });
 
-    const result = await service.publishSinglePost(
-      post as never,
-      'scheduled_sweep',
-    );
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -490,7 +517,7 @@ describe('ScheduledPostDeliveryService', () => {
       retryCount: 0,
     });
 
-    await service.publishSinglePost(post as never, 'scheduled_sweep');
+    await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(
       mocks.schedulerPublishStateService.transitionPost,
@@ -523,7 +550,7 @@ describe('ScheduledPostDeliveryService', () => {
     });
     const post = createScheduledPost({ retryCount: 3 });
 
-    await service.publishSinglePost(post as never, 'scheduled_sweep');
+    await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(
       mocks.publishEventWebhookService.emitLegacyPostFailed,
@@ -542,10 +569,7 @@ describe('ScheduledPostDeliveryService', () => {
     );
     const post = createScheduledPost({ retryCount: 0 });
 
-    const result = await service.publishSinglePost(
-      post as never,
-      'scheduled_sweep',
-    );
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(mocks.publisherFactory.getPublisher).not.toHaveBeenCalled();
     expect(mocks.quotaService.checkQuota).not.toHaveBeenCalled();
@@ -588,10 +612,7 @@ describe('ScheduledPostDeliveryService', () => {
     mockSuccessfulPublisher(mocks);
     const post = createScheduledPost();
 
-    const result = await service.publishSinglePost(
-      post as never,
-      'scheduled_sweep',
-    );
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(
       mocks.publishingReadinessService.resolveForCredentials,
@@ -605,10 +626,7 @@ describe('ScheduledPostDeliveryService', () => {
     );
     const post = createScheduledPost({ retryCount: 0 });
 
-    const result = await service.publishSinglePost(
-      post as never,
-      'scheduled_sweep',
-    );
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(mocks.publisherFactory.getPublisher).not.toHaveBeenCalled();
     expect(result).toEqual(
@@ -646,10 +664,7 @@ describe('ScheduledPostDeliveryService', () => {
       userId: 'user-scalar-1',
     });
 
-    const result = await service.publishSinglePost(
-      post as never,
-      'scheduled_sweep',
-    );
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(mocks.credentialsService.findOne).toHaveBeenCalledWith({
       id: 'cred-scalar-1',
@@ -671,10 +686,7 @@ describe('ScheduledPostDeliveryService', () => {
     mocks.credentialsService.findOne.mockResolvedValue(null);
     const post = createScheduledPost();
 
-    const result = await service.publishSinglePost(
-      post as never,
-      'scheduled_sweep',
-    );
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -701,10 +713,7 @@ describe('ScheduledPostDeliveryService', () => {
     });
     const post = createScheduledPost();
 
-    const result = await service.publishSinglePost(
-      post as never,
-      'scheduled_sweep',
-    );
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(mocks.publisherFactory.getPublisher).not.toHaveBeenCalled();
     expect(result).toEqual(
@@ -747,7 +756,7 @@ describe('ScheduledPostDeliveryService', () => {
     const children = [{ id: 'child-1' }, { id: 'child-2' }];
     const post = createScheduledPost({ children });
 
-    await service.publishSinglePost(post as never, 'scheduled_sweep');
+    await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(publishThreadChildren).toHaveBeenCalledWith(
       expect.objectContaining({ postId: 'post-1' }),
@@ -775,10 +784,7 @@ describe('ScheduledPostDeliveryService', () => {
       children: [{ id: 'child-1' }],
     });
 
-    const result = await service.publishSinglePost(
-      post as never,
-      'scheduled_sweep',
-    );
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(result).toEqual(expect.objectContaining({ success: true }));
     expect(mocks.postsService.patch).toHaveBeenCalledWith('child-1', {});
@@ -798,10 +804,7 @@ describe('ScheduledPostDeliveryService', () => {
     });
     const post = createScheduledPost();
 
-    const result = await service.publishSinglePost(
-      post as never,
-      'scheduled_sweep',
-    );
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
 
     expect(
       mocks.schedulerPublishStateService.transitionPost,

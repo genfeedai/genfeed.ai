@@ -41,7 +41,6 @@ export const SYSTEM_WORKFLOW_ACTION_IDS = {
   REPLY_DM_AUTOMATION: 'reply-dm-automation',
   REVIEW_GATE_TIMEOUT: 'review-gate-timeout',
   RSS_SOURCE_POLL: 'rss-source-poll',
-  SCHEDULED_POST_PUBLISHING: 'scheduled-post-publishing',
   SOCIAL_INBOX_POST_REPLY: 'social-inbox-post-reply',
   SOCIAL_INBOX_SEND_DM: 'social-inbox-send-dm',
   SOCIAL_REPLY_CAMPAIGN: 'social-reply-campaign',

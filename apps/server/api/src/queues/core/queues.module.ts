@@ -8,16 +8,8 @@
  */
 
 import { OutreachCampaignsCoreModule } from '@api/collections/outreach-campaigns/outreach-campaigns-core.module';
-import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
-import { BatchGenerationQueueService } from '@server/queues/batch-generation/batch-generation-queue.service';
-import { CampaignQueueService } from '@server/queues/campaign/campaign-queue.service';
-import { QueueService } from '@server/queues/core/queue.service';
 import { QueueDiagnosticsController } from '@api/queues/core/queue-diagnostics.controller';
-import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
-import { ReplyInboundQueueService } from '@server/queues/reply-bot/reply-inbound-queue.service';
-import { SocialReplyCampaignQueueService } from '@server/queues/social-reply-campaign/social-reply-campaign-queue.service';
-import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/workspace-task-queue.service';
 import {
   AD_BULK_UPLOAD_QUEUE,
   AD_OPTIMIZATION_QUEUE,
@@ -39,7 +31,6 @@ import {
   INSIGHT_GENERATION_QUEUE,
   LIFECYCLE_EMAIL_QUEUE,
   PATTERN_EXTRACTION_QUEUE,
-  POST_PUBLISH_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
   REPLY_INBOUND_QUEUE,
   REPLY_POST_WATCH_QUEUE,
@@ -47,9 +38,10 @@ import {
   SOCIAL_INBOX_SYNC_QUEUE,
   SOCIAL_REPLY_CAMPAIGN_QUEUE,
   TELEGRAM_DISTRIBUTE_QUEUE,
+  WORKFLOW_EXECUTION_QUEUE,
   WORKSPACE_TASK_QUEUE,
 } from '@genfeedai/queue-contracts';
-import { PostPublishQueueService, SERVER_TOKENS } from '@genfeedai/server';
+import { SERVER_TOKENS } from '@genfeedai/server';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -60,19 +52,30 @@ import {
 } from '@libs/redis/redis-connection.utils';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
+import { ScheduledPostWorkflowQueueService } from '@server/collections/posts/services/scheduled-post-workflow-queue.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
+import { BatchGenerationQueueService } from '@server/queues/batch-generation/batch-generation-queue.service';
+import { CampaignQueueService } from '@server/queues/campaign/campaign-queue.service';
+import { QueueService } from '@server/queues/core/queue.service';
+import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
+import { ReplyInboundQueueService } from '@server/queues/reply-bot/reply-inbound-queue.service';
+import { SocialReplyCampaignQueueService } from '@server/queues/social-reply-campaign/social-reply-campaign-queue.service';
+import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/workspace-task-queue.service';
 
 @Module({
   exports: [
     AgentRunQueueService,
     BatchGenerationQueueService,
     HeygenPollQueueService,
-    PostPublishQueueService,
+    ScheduledPostWorkflowQueueService,
     QueueService,
     ReplyBotQueueService,
     ReplyInboundQueueService,
     CampaignQueueService,
     SocialReplyCampaignQueueService,
     WorkspaceTaskQueueService,
+    WorkflowExecutionQueueService,
   ],
   imports: [
     OutreachCampaignsCoreModule,
@@ -293,7 +296,7 @@ import { Module } from '@nestjs/common';
           removeOnComplete: 100,
           removeOnFail: 50,
         },
-        name: POST_PUBLISH_QUEUE,
+        name: WORKFLOW_EXECUTION_QUEUE,
       },
       {
         defaultJobOptions: {
@@ -362,7 +365,8 @@ import { Module } from '@nestjs/common';
     SocialReplyCampaignQueueService,
     WorkspaceTaskQueueService,
     HeygenPollQueueService,
-    PostPublishQueueService,
+    ScheduledPostWorkflowQueueService,
+    WorkflowExecutionQueueService,
     {
       provide: SERVER_TOKENS.logger,
       useExisting: LoggerService,

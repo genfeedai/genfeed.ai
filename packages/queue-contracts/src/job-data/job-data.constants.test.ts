@@ -19,7 +19,6 @@ import {
   KNOWLEDGE_SOURCE_BACKFILL_JOB_NAME,
   KNOWLEDGE_SOURCE_INGEST_JOB_NAME,
 } from './knowledge-source-ingest-job.interface';
-import { POST_PUBLISH_JOB_NAME } from './post-publish-job.interface';
 
 describe('job-data constants', () => {
   it('preserves the clip-analyze contract values', () => {
@@ -36,10 +35,6 @@ describe('job-data constants', () => {
   it('preserves the heygen-poll cadence contract', () => {
     expect(HEYGEN_POLL_DELAY_MS).toBe(15_000);
     expect(HEYGEN_POLL_MAX_ATTEMPTS).toBe(40);
-  });
-
-  it('preserves the post-publish job name', () => {
-    expect(POST_PUBLISH_JOB_NAME).toBe('publish-post');
   });
 
   it('preserves the insight-generation job name', () => {

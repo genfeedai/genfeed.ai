@@ -116,7 +116,11 @@ export class WorkflowExecutionProcessor extends WorkerHost {
         await this.systemWorkflowRunner.runAction({
           actionType: failureAction.actionId,
           canonicalId: failureAction.actionId,
-          inputValues: failureAction.inputValues,
+          inputValues: {
+            ...failureAction.inputValues,
+            workflowError:
+              error instanceof Error ? error.message : 'System workflow failed',
+          },
           organizationId: systemRun.input.organizationId,
           source: 'system-workflow-failure',
           userId: systemRun.input.userId,

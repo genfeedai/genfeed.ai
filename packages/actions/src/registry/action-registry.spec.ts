@@ -120,6 +120,17 @@ describe('Genfeed action registry', () => {
     ).toBe(true);
   });
 
+  it('owns every scheduled-post workflow step', () => {
+    expect(
+      [
+        'scheduled-post.claim',
+        'scheduled-post.deliver',
+        'scheduled-post.fail',
+        'scheduled-post.finalize',
+      ].every((actionId) => getActionDefinition(actionId)),
+    ).toBe(true);
+  });
+
   it('owns workflow credit policy instead of delegating it to the engine', () => {
     expect(getActionDefinition('imageGen')?.credits).toEqual({
       amount: 5,
