@@ -11,7 +11,7 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   DropdownDirection,
   ModelCategory,
-  type RouterPriority,
+  RouterPriority,
 } from '@genfeedai/enums';
 import { resolveGenerationModelControls } from '@helpers/generation-controls.helper';
 import {
@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useEffect, useMemo, useState } from 'react';
 
 type AgentGenerationComposerControlsProps = {
@@ -60,6 +61,7 @@ export function AgentGenerationComposerControls({
     settings: organizationSettings,
     settingsLoading,
   } = useBrand();
+  const translate = useTranslations('agent.generationActionCard');
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
   const [models, setModels] = useState<GenerationModel[]>([]);
   const [isLoading, setIsLoading] = useState(Boolean(apiService));
@@ -136,7 +138,7 @@ export function AgentGenerationComposerControls({
       role="group"
     >
       <ModelSelectorPopover
-        autoLabel={getAutoModelLabel(prioritize)}
+        autoLabel={getAutoModelLabel(prioritize ?? RouterPriority.BALANCED)}
         className="max-w-44 border-0 bg-transparent shadow-none hover:bg-hover"
         favoriteModelKeys={favoriteModelKeys}
         isDisabled={
@@ -227,7 +229,7 @@ export function AgentGenerationComposerControls({
           <SelectContent side="top">
             {controls.durationOptions.map((seconds) => (
               <SelectItem key={seconds} value={String(seconds)}>
-                {seconds}s
+                {translate('durationSeconds', { seconds })}
               </SelectItem>
             ))}
           </SelectContent>

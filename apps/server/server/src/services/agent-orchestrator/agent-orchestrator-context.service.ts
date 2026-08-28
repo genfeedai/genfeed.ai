@@ -64,10 +64,10 @@ function buildGenerationModePrompt(
   mode: AgentChatRequest['generationMode'],
 ): string {
   if (mode === 'image') {
-    return 'The operator explicitly selected Image mode for this turn. Generate the image directly in this turn using the available visual-generation tool. Do not ask for another confirmation and do not choose video.';
+    return 'The operator explicitly selected Image mode for this turn (generationType=image). Generate the image directly in this turn using the available visual-generation tool. Do not ask for another confirmation. Do not choose video.';
   }
   if (mode === 'video') {
-    return 'The operator explicitly selected Video mode for this turn. Generate the video directly in this turn using the available visual-generation tool. Do not ask for another confirmation and do not choose image.';
+    return 'The operator explicitly selected Video mode for this turn (generationType=video). Generate the video directly in this turn using the available visual-generation tool. Do not ask for another confirmation. Do not choose image.';
   }
   return '';
 }

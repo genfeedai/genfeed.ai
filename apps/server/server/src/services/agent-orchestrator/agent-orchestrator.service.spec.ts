@@ -4,6 +4,7 @@ import {
 } from '@genfeedai/constants';
 import {
   AgentAutonomyMode,
+  AgentMessageRole,
   AgentType,
   ApiKeyScope,
   GenerationPriority,
@@ -1658,7 +1659,6 @@ describe('AgentOrchestratorService', () => {
     expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
       'generate_image',
       expect.objectContaining({
-        generationType: 'image',
         prompt: 'a cat',
       }),
       expect.objectContaining({
@@ -1722,7 +1722,6 @@ describe('AgentOrchestratorService', () => {
     expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
       'generate_image',
       expect.objectContaining({
-        generationType: 'image',
         prompt: 'a dog',
       }),
       expect.objectContaining({
@@ -2289,7 +2288,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
     llmDispatcher.streamChatCompletionAggregated.mockRejectedValueOnce(
@@ -2332,7 +2331,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
     llmDispatcher.streamChatCompletionAggregated.mockRejectedValueOnce(
@@ -2361,7 +2360,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
 
@@ -2397,7 +2396,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
 
@@ -2514,7 +2513,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
-    configService.get.mockImplementation((key) =>
+    configService.get.mockImplementation((key: string) =>
       key === 'AGENT_TOKEN_STREAMING_ENABLED' ? 'true' : '',
     );
     // Simulate a Redis publish outage for the duration of the stream.
@@ -2654,7 +2653,15 @@ describe('AgentOrchestratorService', () => {
             tool_calls: [
               {
                 function: {
-                  arguments: '{"ingredientId":"ingredient-1"}',
+                  arguments: JSON.stringify({
+                    alternatives: [
+                      {
+                        label: 'Editorial angle',
+                        prompt: 'A cinematic editorial product composition',
+                      },
+                    ],
+                    generationType: 'image',
+                  }),
                   name: 'suggest_ingredient_alternatives',
                 },
                 id: 'call-ingredient-alternatives',
@@ -2676,7 +2683,7 @@ describe('AgentOrchestratorService', () => {
         {
           id: 'ingredient-alternatives-1',
           title: 'Ingredient alternatives',
-          type: 'ingredient_picker_card',
+          type: 'ingredient_alternatives_card',
         },
       ],
       success: true,
@@ -2684,7 +2691,7 @@ describe('AgentOrchestratorService', () => {
 
     await service.chatStream(
       {
-        agentType: AgentType.X_CONTENT,
+        agentType: AgentType.IMAGE_CREATOR,
         content: 'Suggest alternatives for this ingredient',
       },
       { organizationId: ORG_ID, userId: USER_ID },
@@ -3493,7 +3500,7 @@ describe('AgentOrchestratorService', () => {
     expect(llmDispatcher.chatCompletion).not.toHaveBeenCalled();
   });
 
-  it('adds a completion summary card for thread UI action content outputs with inline previews', async () => {
+  it('keeps the content preview as the only thread UI action result surface', async () => {
     toolExecutorService.executeTool.mockResolvedValue({
       creditsUsed: 0,
       nextActions: [
@@ -3524,29 +3531,15 @@ describe('AgentOrchestratorService', () => {
       { organizationId: ORG_ID, userId: USER_ID },
     );
 
-    expect(response.message.metadata?.uiActions).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          outputVariants: expect.arrayContaining([
-            expect.objectContaining({
-              kind: 'image',
-              url: 'https://cdn.example.com/generated-1.png',
-            }),
-            expect.objectContaining({
-              kind: 'text',
-              textContent: 'Hook one',
-            }),
-          ]),
-          // `/publish/drafts` is a dead path the card builder normalizes.
-          primaryCta: expect.objectContaining({
-            href: '/publish/review',
-            label: 'Review Draft',
-          }),
-          summaryText: 'Generated content for this request.',
-          type: 'completion_summary_card',
-        }),
-      ]),
-    );
+    expect(response.message.metadata?.uiActions).toEqual([
+      expect.objectContaining({
+        ctas: [{ href: '/publish/drafts', label: 'View all drafts' }],
+        id: 'content-preview-1',
+        images: ['https://cdn.example.com/generated-1.png'],
+        tweets: ['Hook one', 'Hook two'],
+        type: 'content_preview_card',
+      }),
+    ]);
   });
 
   it('adds a generic completion summary card for successful tool-only thread UI action results', async () => {
