@@ -1,13 +1,13 @@
+import { toPrismaJson } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { AgentStrategyReportType } from '@server/collections/agent-strategies/schemas/agent-strategy-policy.schema';
 import type {
   AgentStrategyReport,
   AgentStrategyReportDocument,
 } from '@server/collections/agent-strategies/schemas/agent-strategy-report.schema';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { toPrismaJson } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 type CreateReportInput = Omit<
   AgentStrategyReport,
@@ -100,6 +100,9 @@ export class AgentStrategyReportsService {
   ): Promise<AgentStrategyReportDocument[]> {
     const records = await this.prisma.agentStrategyReport.findMany({
       where: scopedWhere(organizationId, {
+        ...(reportType
+          ? { data: { equals: reportType, path: ['reportType'] } }
+          : {}),
         strategyId,
       }),
       orderBy: { createdAt: 'desc' },
@@ -109,7 +112,6 @@ export class AgentStrategyReportsService {
       .map((record) =>
         this.normalizeReport(record as unknown as Record<string, unknown>),
       )
-      .filter((record) => !reportType || record.reportType === reportType)
       .sort(
         (left, right) =>
           this.getPeriodEndTimestamp(right) - this.getPeriodEndTimestamp(left),
