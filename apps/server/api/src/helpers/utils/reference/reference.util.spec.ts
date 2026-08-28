@@ -268,15 +268,22 @@ describe('buildReferenceImageUrls', () => {
     const { ingredientsService, assetsService, configService, loggerService } =
       createMocks();
 
-    (ingredientsService.findOne as vi.Mock)
-      .mockResolvedValueOnce({ id: id1 })
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(null)
-      .mockRejectedValueOnce(new Error('Invalid ObjectId'));
+    (ingredientsService.findOne as vi.Mock).mockImplementation(
+      (query: ReferenceLookupQuery) => {
+        if (query.id === invalidId) {
+          return Promise.reject(new Error('Invalid ObjectId'));
+        }
+        if (query.id === id1 && query.category === IngredientCategory.IMAGE) {
+          return Promise.resolve({ id: id1 });
+        }
+        return Promise.resolve(null);
+      },
+    );
 
-    (assetsService.findOne as vi.Mock).mockResolvedValueOnce({
-      id: id2,
-    });
+    (assetsService.findOne as vi.Mock).mockImplementation(
+      (query: ReferenceLookupQuery) =>
+        Promise.resolve(query.id === id2 ? { id: id2 } : null),
+    );
 
     const result = await buildReferenceImageUrls(
       withOrganization(
