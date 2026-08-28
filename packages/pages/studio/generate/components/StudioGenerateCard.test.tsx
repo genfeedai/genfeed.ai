@@ -71,13 +71,14 @@ const generatedJob = {
 };
 
 describe('StudioGenerateCard', () => {
-  it('keeps asset details in the media hover overlay', () => {
+  it('keeps the asset unobscured and opens the full prompt inspector explicitly', () => {
+    const onSelect = vi.fn();
     const { container } = render(
       <StudioGenerateCard
         assetActions={buildAssetActions()}
         job={generatedJob}
         onReprompt={vi.fn()}
-        onSelect={vi.fn()}
+        onSelect={onSelect}
         view={ViewType.GRID}
       />,
     );
@@ -86,11 +87,17 @@ describe('StudioGenerateCard', () => {
     expect(screen.getByText(generatedJob.modelKey)).toBeInTheDocument();
     expect(
       screen.getByText(generatedJob.prompt).closest('[data-asset-details]'),
-    ).toHaveClass('absolute', 'bg-black/85');
-    expect(
-      screen.getByText(generatedJob.prompt).closest('[data-asset-caption]'),
-    ).toBeInTheDocument();
+    ).not.toHaveClass('absolute');
+    expect(container.querySelector('[data-asset-caption]')).toBeNull();
     expect(container.querySelector('[data-asset-footer]')).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: `Inspect Image generation: ${generatedJob.prompt}`,
+      }),
+    );
+
+    expect(onSelect).toHaveBeenCalledWith(generatedJob);
   });
 
   it('replaces a broken image with the shared preview fallback', () => {
@@ -190,7 +197,7 @@ describe('StudioGenerateCard', () => {
     expect(screen.getByText(generatedJob.prompt)).toBeInTheDocument();
     expect(
       screen.getByText(generatedJob.prompt).closest('[data-asset-details]'),
-    ).toHaveClass('absolute', 'bottom-14', 'bg-black/85');
+    ).not.toHaveClass('absolute');
 
     const imageProps = masonryMocks.image.mock.calls.at(-1)?.[0] as {
       onCopyPrompt: StudioGenerateAssetActions['onCopyPrompt'];
@@ -274,6 +281,9 @@ describe('StudioGenerateCard', () => {
 
     expect(screen.getByText(generatedJob.prompt)).toHaveClass(
       'text-foreground',
+    );
+    expect(screen.getByText(generatedJob.prompt)).not.toHaveClass(
+      'line-clamp-3',
     );
     expect(screen.getByTestId('studio-asset-job-1')).toHaveClass('grid');
     expect(

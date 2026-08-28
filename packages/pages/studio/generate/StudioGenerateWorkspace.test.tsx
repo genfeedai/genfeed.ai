@@ -598,6 +598,10 @@ describe('StudioGenerateWorkspace', () => {
   it('defaults to the masonry grid and toggles the results into a list', () => {
     render(<StudioGenerateWorkspace />);
 
+    expect(screen.getByTestId('studio-results').parentElement).toHaveClass(
+      'w-full',
+      'max-w-7xl',
+    );
     expect(mocks.results.mock.calls.at(-1)?.[0]).toEqual(
       expect.objectContaining({ view: 'grid' }),
     );

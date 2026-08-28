@@ -3,6 +3,7 @@
 import { ViewType } from '@genfeedai/enums';
 import type { StudioGenerateResultsProps } from '@genfeedai/props/studio/studio-generate.props';
 import StudioGenerateCard from '@pages/studio/generate/components/StudioGenerateCard';
+import type { StudioGenerateJob } from '@pages/studio/generate/types';
 import { groupStudioGenerateJobsByRun } from '@pages/studio/generate/utils/studio-generate-recipe';
 import Masonry from '@ui/display/masonry/Masonry';
 import { Loader2 } from 'lucide-react';
@@ -27,7 +28,7 @@ function ResultsSheet({
   return (
     <Masonry
       className="w-full"
-      columns={{ default: 2, lg: 4, md: 3, sm: 2, xl: 4 }}
+      columns={{ default: 1, lg: 3, md: 3, sm: 2, xl: 4 }}
       gap={12}
     >
       {children}
@@ -53,6 +54,20 @@ export default function StudioGenerateResults({
   const translate = useTranslations('pages.studioGenerate');
   const runs = groupStudioGenerateJobsByRun(jobs);
 
+  function renderCard(job: StudioGenerateJob): ReactElement {
+    return (
+      <StudioGenerateCard
+        assetActions={assetActions}
+        isSelected={selectedJobId === job.id}
+        job={job}
+        key={job.id}
+        onReprompt={onReprompt}
+        onSelect={onSelect}
+        view={view}
+      />
+    );
+  }
+
   return (
     <div
       className="flex flex-col gap-3"
@@ -74,6 +89,22 @@ export default function StudioGenerateResults({
             </>
           )}
         </div>
+      ) : view === ViewType.GRID ? (
+        <>
+          {runs
+            .filter((run) => run.jobs.length > 1)
+            .map((run) => (
+              <span
+                className="sr-only"
+                data-run-count={run.jobs.length}
+                data-testid={`studio-run-${run.id}`}
+                key={run.id}
+              >
+                {translate('runOutputs', { count: run.jobs.length })}
+              </span>
+            ))}
+          <ResultsSheet view={view}>{jobs.map(renderCard)}</ResultsSheet>
+        </>
       ) : (
         <div className="flex flex-col gap-6">
           {runs.map((run) => (
@@ -89,17 +120,7 @@ export default function StudioGenerateResults({
                 </h2>
               ) : null}
               <ResultsSheet view={view}>
-                {run.jobs.map((job) => (
-                  <StudioGenerateCard
-                    assetActions={assetActions}
-                    isSelected={selectedJobId === job.id}
-                    job={job}
-                    key={job.id}
-                    onReprompt={onReprompt}
-                    onSelect={onSelect}
-                    view={view}
-                  />
-                ))}
+                {run.jobs.map(renderCard)}
               </ResultsSheet>
             </section>
           ))}

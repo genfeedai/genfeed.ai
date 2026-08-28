@@ -122,6 +122,40 @@ describe('StudioGenerateResults', () => {
     expect(screen.getByText('d')).toBeInTheDocument();
   });
 
+  it('keeps separate generation runs in one continuous visual grid', () => {
+    render(
+      <StudioGenerateResults
+        assetActions={assetActions}
+        isLoading={false}
+        jobs={[
+          {
+            createdAt: 2,
+            id: 'asset-1',
+            prompt: 'First prompt',
+            runId: 'run-1',
+            status: IngredientStatus.GENERATED,
+            type: 'image',
+          },
+          {
+            createdAt: 1,
+            id: 'asset-2',
+            prompt: 'Second prompt',
+            runId: 'run-2',
+            status: IngredientStatus.GENERATED,
+            type: 'image',
+          },
+        ]}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+
+    expect(screen.getAllByTestId('studio-masonry')).toHaveLength(1);
+    expect(screen.getByTestId('studio-masonry')).toHaveTextContent('asset-1');
+    expect(screen.getByTestId('studio-masonry')).toHaveTextContent('asset-2');
+  });
+
   it('offers a readable list of the results sheet', () => {
     render(
       <StudioGenerateResults

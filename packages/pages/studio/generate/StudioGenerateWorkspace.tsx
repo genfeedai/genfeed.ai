@@ -792,7 +792,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="flex-1 overflow-auto px-6 py-6">
-          <div className="mx-auto flex max-w-5xl flex-col gap-4">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
             {remixRun ? (
               <StudioRemixRunPanel
                 error={remixError}

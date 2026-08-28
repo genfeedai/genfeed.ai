@@ -178,6 +178,7 @@
     "emptyTitle": "Nothing here yet",
     "estimatedCredits": "~{credits} credits",
     "generationFailed": "Generation failed",
+    "inspectPrompt": "View prompt",
     "inspector": {
       "autoModel": "Auto",
       "childAssets": "Derived assets",
@@ -205,6 +206,7 @@
     },
     "movedToTrash": "Moved to Trash",
     "previewUnavailable": "Preview unavailable",
+    "previewUnavailableDescription": "The asset is saved, but this preview could not be loaded.",
     "remove": "Remove",
     "removeDialogTitle": "Remove Generation",
     "removeFailed": "Failed to remove generation",

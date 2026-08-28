@@ -22,7 +22,10 @@ import {
   resolveStudioGenerateType,
 } from '@pages/studio/generate/utils/studio-generate-types';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
-import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
+import {
+  AUTO_MODEL_OPTION_VALUE,
+  AUTO_PRIORITY_LABELS,
+} from '@ui/dropdowns/model-selector/model-selector.constants';
 import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorites';
 import { Button } from '@ui/primitives/button';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
@@ -211,11 +214,11 @@ export default function StudioGenerateComposer({
               capabilities.hasModelSelection
                 ? isLoadingModels
                   ? translate('loadingModels')
-                  : 'Auto'
+                  : AUTO_PRIORITY_LABELS[settings.prioritize]
                 : undefined
             }
             className="max-w-[16rem] min-w-0"
-            contextLabel="Generation type"
+            contextLabel="Output type"
             contextOptions={STUDIO_GENERATION_CONTEXT_OPTIONS}
             contextValue={type}
             favoriteModelKeys={favoriteModelKeys}
