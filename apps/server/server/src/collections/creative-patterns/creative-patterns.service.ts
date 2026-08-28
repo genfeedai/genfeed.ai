@@ -1,12 +1,12 @@
+import type { PatternType } from '@genfeedai/interfaces';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { Injectable } from '@nestjs/common';
 import type {
   CreativePattern,
   CreativePatternDocument,
 } from '@server/collections/creative-patterns/schemas/creative-pattern.schema';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import type { PatternType } from '@genfeedai/interfaces';
-import { toPrismaJson } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class CreativePatternsService {
@@ -79,9 +79,24 @@ export class CreativePatternsService {
     data: Record<string, unknown>,
   ): Promise<CreativePatternDocument> {
     const payload = this.toPersistencePayload(data);
+    const identityFilters: Prisma.CreativePatternWhereInput[] = [];
+    for (const key of [
+      'industry',
+      'patternType',
+      'platform',
+      'scope',
+    ] as const) {
+      const value = this.readString(data[key]);
+      if (value) {
+        identityFilters.push({ data: { equals: value, path: [key] } });
+      }
+    }
     const existing = (
       await this.prisma.creativePattern.findMany({
-        where: scopedWhere(payload.organizationId, {}),
+        where: scopedWhere(payload.organizationId, {
+          ...(identityFilters.length > 0 ? { AND: identityFilters } : {}),
+          brandId: payload.brandId,
+        }),
       })
     )
       .map((record) => this.normalizeRecord(record))
@@ -121,32 +136,38 @@ export class CreativePatternsService {
 
   async findTopForBrand(
     orgId: string,
-    _brandId: string,
+    brandId: string,
     options?: { limit?: number; patternTypes?: PatternType[] },
   ): Promise<CreativePatternDocument[]> {
     const limit = options?.limit ?? 10;
     const now = new Date();
+    const dataFilters: Prisma.CreativePatternWhereInput[] = [
+      {
+        OR: [
+          { data: { equals: 'public', path: ['scope'] } },
+          { data: { equals: 'private', path: ['scope'] } },
+        ],
+      },
+    ];
+    if (options?.patternTypes?.length) {
+      dataFilters.push({
+        OR: options.patternTypes.map((patternType) => ({
+          data: { equals: patternType, path: ['patternType'] },
+        })),
+      });
+    }
     const patterns = await this.prisma.creativePattern.findMany({
-      where: scopedWhere(orgId, {}),
+      where: scopedWhere(orgId, {
+        AND: dataFilters,
+        brandId,
+      }),
     });
 
     return patterns
       .map((record) => this.normalizeRecord(record))
       .filter((record) => {
-        if (
-          options?.patternTypes?.length &&
-          !options.patternTypes.includes(record.patternType as PatternType)
-        ) {
-          return false;
-        }
-
         const validUntil = this.readDate(record.validUntil);
-        if (validUntil && validUntil < now) {
-          return false;
-        }
-
-        const scope = this.readString(record.scope);
-        return scope === 'public' || scope === 'private';
+        return !validUntil || validUntil >= now;
       })
       .sort((a, b) => {
         const aScore = this.readNumber(a.avgPerformanceScore) ?? 0;
@@ -166,8 +187,34 @@ export class CreativePatternsService {
     top?: boolean;
   }): Promise<CreativePatternDocument[]> {
     const now = new Date();
+    const dataFilters: Prisma.CreativePatternWhereInput[] = [];
+    if (filters.platform) {
+      dataFilters.push({
+        data: { equals: filters.platform, path: ['platform'] },
+      });
+    }
+    if (filters.patternType) {
+      dataFilters.push({
+        data: { equals: filters.patternType, path: ['patternType'] },
+      });
+    }
+    if (filters.scope) {
+      dataFilters.push({
+        data: { equals: filters.scope, path: ['scope'] },
+      });
+    } else if (filters.top) {
+      dataFilters.push({
+        OR: [
+          { data: { equals: 'public', path: ['scope'] } },
+          { data: { equals: 'private', path: ['scope'] } },
+        ],
+      });
+    }
     const patterns = await this.prisma.creativePattern.findMany({
-      where: scopedWhere(filters.organizationId, {}),
+      where: scopedWhere(filters.organizationId, {
+        ...(dataFilters.length > 0 ? { AND: dataFilters } : {}),
+        ...(filters.brandId ? { brandId: filters.brandId } : {}),
+      }),
     });
 
     const filtered = patterns
@@ -176,38 +223,6 @@ export class CreativePatternsService {
         const validUntil = this.readDate(record.validUntil);
         if (validUntil && validUntil < now) {
           return false;
-        }
-
-        if (
-          filters.brandId &&
-          (this.readString(record.brandId) ?? null) !== filters.brandId
-        ) {
-          return false;
-        }
-
-        if (
-          filters.platform &&
-          this.readString(record.platform) !== filters.platform
-        ) {
-          return false;
-        }
-
-        if (
-          filters.patternType &&
-          this.readString(record.patternType) !== filters.patternType
-        ) {
-          return false;
-        }
-
-        if (filters.scope && this.readString(record.scope) !== filters.scope) {
-          return false;
-        }
-
-        if (filters.top) {
-          const scope = this.readString(record.scope);
-          if (scope !== 'public' && scope !== 'private') {
-            return false;
-          }
         }
 
         return true;
