@@ -1,11 +1,24 @@
 import { TrackedLinksService } from '@api/collections/tracked-links/services/tracked-links.service';
+import { BadRequestException } from '@nestjs/common';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BadRequestException } from '@nestjs/common';
 
 describe('TrackedLinksService', () => {
   const makeService = () => {
+    const transaction = {
+      $queryRaw: vi.fn(),
+      linkClick: {
+        create: vi.fn(),
+        findFirst: vi.fn(),
+      },
+      trackedLink: {
+        findFirst: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn(),
+      },
+    };
     const prisma = {
+      $queryRaw: vi.fn(),
       brand: {
         findFirst: vi.fn(),
       },
@@ -15,27 +28,108 @@ describe('TrackedLinksService', () => {
       trackedLink: {
         create: vi.fn(),
         findFirst: vi.fn(),
+        findMany: vi.fn(),
         update: vi.fn(),
         updateMany: vi.fn(),
       },
-      // Interactive-transaction stub: executes the callback with a tx object
-      // that shares the same mock handles as the top-level prisma mock so
-      // tests can assert on updateMany/findFirst calls without change.
-      $transaction: vi.fn().mockImplementation((fn: (tx: unknown) => unknown) =>
-        fn({
-          trackedLink: {
-            findFirst: vi.fn(),
-            updateMany: vi.fn(),
-          },
-        }),
-      ),
+      $transaction: vi
+        .fn()
+        .mockImplementation((fn: (tx: unknown) => unknown) => fn(transaction)),
     };
 
     return {
       prisma,
       service: new TrackedLinksService(prisma as unknown as PrismaService),
+      transaction,
     };
   };
+
+  it('aggregates click stats in the database without loading click rows', async () => {
+    const { prisma, service, transaction } = makeService();
+    prisma.trackedLink.findFirst.mockResolvedValue({
+      id: 'link-1',
+      organizationId: 'org-1',
+    });
+    transaction.linkClick.findFirst.mockResolvedValue(null);
+    transaction.linkClick.create.mockResolvedValue({ id: 'click-1' });
+    transaction.$queryRaw.mockResolvedValue([
+      { totalClicks: 12n, uniqueClicks: 7n },
+    ]);
+
+    await service.trackClick({ linkId: 'link-1', sessionId: 'session-1' });
+
+    expect(transaction.$queryRaw).toHaveBeenCalledOnce();
+    expect(transaction.trackedLink.update).toHaveBeenCalledWith({
+      data: {
+        stats: expect.objectContaining({
+          totalClicks: 12,
+          uniqueClicks: 7,
+        }),
+      },
+      where: expect.objectContaining({ id: 'link-1' }),
+    });
+  });
+
+  it('returns database-aggregated performance breakdowns', async () => {
+    const { prisma, service } = makeService();
+    prisma.trackedLink.findFirst.mockResolvedValue({
+      createdAt: new Date('2026-08-01T00:00:00.000Z'),
+      id: 'link-1',
+      organizationId: 'org-1',
+      originalUrl: 'https://example.com',
+      shortUrl: 'https://gf.test/abc123',
+      stats: { totalClicks: 12, uniqueClicks: 7 },
+    });
+    prisma.$queryRaw.mockResolvedValue([
+      { bucket: '2026-08-28', count: 12n, dimension: 'date' },
+      { bucket: 'US', count: 8n, dimension: 'country' },
+      { bucket: 'mobile', count: 9n, dimension: 'device' },
+      { bucket: 'example.com', count: 5n, dimension: 'referrer' },
+    ]);
+
+    const result = await service.getLinkPerformance('link-1', 'org-1');
+
+    expect(prisma.$queryRaw).toHaveBeenCalledOnce();
+    expect(result).toEqual(
+      expect.objectContaining({
+        clicksByCountry: { US: 8 },
+        clicksByDate: { '2026-08-28': 12 },
+        clicksByDevice: { mobile: 9 },
+        clicksByReferrer: { 'example.com': 5 },
+      }),
+    );
+  });
+
+  it('aggregates content click trends without loading click rows', async () => {
+    const { prisma, service } = makeService();
+    prisma.trackedLink.findMany.mockResolvedValue([
+      {
+        contentType: 'video',
+        id: 'link-1',
+        shortUrl: 'https://gf.test/one',
+        stats: { totalClicks: 8, uniqueClicks: 6 },
+      },
+      {
+        contentType: 'video',
+        id: 'link-2',
+        shortUrl: 'https://gf.test/two',
+        stats: { totalClicks: 4, uniqueClicks: 3 },
+      },
+    ]);
+    prisma.$queryRaw.mockResolvedValue([
+      { bucket: '2026-08-21', count: 4n, dimension: 'date' },
+      { bucket: '2026-08-28', count: 8n, dimension: 'date' },
+    ]);
+
+    const result = await service.getContentCTAStats('content-1', 'org-1');
+
+    expect(prisma.$queryRaw).toHaveBeenCalledOnce();
+    expect(result.clicksByDate).toEqual({
+      '2026-08-21': 4,
+      '2026-08-28': 8,
+    });
+    expect(result.totalClicks).toBe(12);
+  });
 
   it('rejects unsafe redirect URL schemes when creating tracked links', async () => {
     const { prisma, service } = makeService();

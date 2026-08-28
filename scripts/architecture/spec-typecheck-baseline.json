@@ -1034,14 +1034,6 @@
     },
     {
       "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/collections/tracked-links/controllers/tracked-links.controller.spec.ts",
-      "fingerprint": "9805d19565f76c2219a6",
-      "message": "Argument of type 'Response<any, Record<string, any>>' is not assignable to parameter of type 'Response'.   Type 'Response<any, Record<string, any>>' is missing the following properties from type 'Response': headers, ok, redirected, statusText, and 9 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
       "count": 7,
       "file": "apps/server/api/src/collections/trainings/controllers/operations/trainings-operations.controller.spec.ts",
       "fingerprint": "64dcacc699d5d33a1882",
