@@ -17,7 +17,7 @@ import {
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Article } from '@models/content/article.model';
-import type { TableColumn } from '@props/ui/display/table.props';
+import type { TableColumn, TableRowLink } from '@props/ui/display/table.props';
 import { ArticlesService } from '@services/content/articles.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -28,7 +28,7 @@ import { LazyModalArticle } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
 import { Newspaper, Plus } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 interface ArticlesListProps {
@@ -42,7 +42,6 @@ function openCreateArticleModal(): void {
 export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
   const notificationsService = NotificationsService.getInstance();
   const { brandId, organizationId } = useCollectionScope();
-  const router = useRouter();
   const { href } = useOrgUrl();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -126,13 +125,14 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
   }, [findAllArticles]);
 
   /** Refinement belongs to the artifact — open the article's own editor page. */
-  function handleRowClick(article: Article): void {
-    router.push(
-      withArtifactEditorReturn(
+  function getRowLink(article: Article): TableRowLink {
+    return {
+      href: withArtifactEditorReturn(
         href(createArtifactEditorRoute('article', article.id)),
         searchParamsString ? `${pathname}?${searchParamsString}` : pathname,
       ),
-    );
+      label: `Open ${article.label}`,
+    };
   }
 
   function handleArticleCreated(): void {
@@ -159,7 +159,7 @@ export default function ArticlesList({ status = 'draft' }: ArticlesListProps) {
         actions={[]}
         isLoading={isLoading}
         getRowKey={(item) => item.id}
-        onRowClick={handleRowClick}
+        getRowLink={getRowLink}
         emptyLabel="No articles found"
         emptyState={
           <CardEmpty

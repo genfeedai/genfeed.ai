@@ -2,6 +2,7 @@
 
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { TrendItem } from '@props/trends/trends-page.props';
+import type { TableRowLink } from '@props/ui/display/table.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
@@ -10,12 +11,12 @@ import { Globe } from 'lucide-react';
 
 type TrendDetailRelatedTableProps = {
   relatedTrends: TrendItem[];
-  onRowClick: (item: TrendItem) => void;
+  getRowLink: (item: TrendItem) => TableRowLink;
 };
 
 export default function TrendDetailRelatedTable({
   relatedTrends,
-  onRowClick,
+  getRowLink,
 }: TrendDetailRelatedTableProps) {
   if (relatedTrends.length === 0) {
     return null;
@@ -30,7 +31,7 @@ export default function TrendDetailRelatedTable({
         <Table
           items={relatedTrends}
           getRowKey={(item) => item.id}
-          onRowClick={onRowClick}
+          getRowLink={getRowLink}
           columns={[
             {
               header: 'Platform',

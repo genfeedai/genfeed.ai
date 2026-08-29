@@ -8,7 +8,6 @@ import {
 } from '@ui/analytics/trends';
 import Card from '@ui/card/Card';
 import { Flame, Hash, Music } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
 import CrossPlatformLeaderboardSection from './CrossPlatformLeaderboardSection';
 import PlaybookSection from './PlaybookSection';
@@ -17,7 +16,6 @@ import TrendsPageHeader from './TrendsPageHeader';
 import { useAnalyticsTrends } from './useAnalyticsTrends';
 
 export default function AnalyticsTrends() {
-  const { push } = useRouter();
   const {
     PLATFORM_CONFIG_LOOKUP,
     TRENDS_PLATFORMS,
@@ -68,7 +66,10 @@ export default function AnalyticsTrends() {
             isLoadingTrends={isLoadingTrends}
             trendingTopics={trendingTopics}
             platformConfigLookup={PLATFORM_CONFIG_LOOKUP}
-            onRowClick={(item) => push(`/analytics/trends/detail/${item.id}`)}
+            getRowLink={(item) => ({
+              href: `/analytics/trends/detail/${item.id}`,
+              label: `Open ${item.topic}`,
+            })}
           />
         </Card>
       </section>

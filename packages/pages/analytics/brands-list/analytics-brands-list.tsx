@@ -157,7 +157,10 @@ export default function AnalyticsBrandsList({
               searchTerm ? 'No brands match your search' : 'No brands found'
             }
             getRowKey={(brand) => brand.id}
-            onRowClick={(brand) => router.push(buildDetailHref(brand.id))}
+            getRowLink={(brand) => ({
+              href: buildDetailHref(brand.id),
+              label: `Open ${brand.name} analytics`,
+            })}
             columns={[
               {
                 header: 'Brand',

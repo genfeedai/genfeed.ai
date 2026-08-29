@@ -116,7 +116,7 @@ describe('PostsGrid', () => {
     );
   });
 
-  it('opens post details on card click', () => {
+  it('links each card to the post detail route', () => {
     render(
       <PostsGrid
         posts={[basePost]}
@@ -125,14 +125,12 @@ describe('PostsGrid', () => {
       />,
     );
 
-    fireEvent.click(
-      screen.getByRole('button', { name: /a draft post preview/i }),
-    );
-
+    // A real anchor, not a click handler: the router prefetches the detail
+    // route before the click and cmd-click opens it in a new tab.
     // `useOrgUrl` scopes the href to the active org/brand route params.
-    expect(pushMock).toHaveBeenCalledWith(
-      '/genfeed-ai/paperclip/publish/posts/post-1',
-    );
+    expect(
+      screen.getByRole('link', { name: /a draft post preview/i }),
+    ).toHaveAttribute('href', '/genfeed-ai/paperclip/publish/posts/post-1');
   });
 
   it('uses the contextual open callback when provided', () => {
@@ -150,7 +148,10 @@ describe('PostsGrid', () => {
     );
 
     expect(openPostDetailMock).toHaveBeenCalledWith(basePost);
-    expect(pushMock).not.toHaveBeenCalled();
+    // The callback opens a modal in place, so the heading stays a button.
+    expect(
+      screen.queryByRole('link', { name: /a draft post preview/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('keeps delete inside the overflow menu', () => {

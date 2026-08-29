@@ -2,6 +2,7 @@
 
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { TrendItem } from '@props/trends/trends-page.props';
+import type { TableRowLink } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import { Flame } from 'lucide-react';
@@ -19,7 +20,7 @@ type Props = {
   isLoadingTrends: boolean;
   trendingTopics: TrendItem[];
   platformConfigLookup: Record<string, PlatformConfigEntry>;
-  onRowClick: (item: TrendItem) => void;
+  getRowLink: (item: TrendItem) => TableRowLink;
 };
 
 function getGrowthRateClass(rate: number): string {
@@ -46,7 +47,7 @@ export default function TrendingTopicsSection({
   isLoadingTrends,
   trendingTopics,
   platformConfigLookup,
-  onRowClick,
+  getRowLink,
 }: Props) {
   return (
     <>
@@ -77,7 +78,7 @@ export default function TrendingTopicsSection({
         <Table<TrendItem>
           items={trendingTopics.slice(0, 20)}
           getRowKey={(item) => item.id}
-          onRowClick={onRowClick}
+          getRowLink={getRowLink}
           columns={[
             {
               className: 'min-w-32',
