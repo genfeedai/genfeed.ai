@@ -1,279 +1,267 @@
-import { TrendsService } from '@server/collections/trends/services/trends.service';
-import { CacheService } from '@server/services/cache/cache.service';
+import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  type OnApplicationBootstrap,
+  type OnModuleInit,
+} from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { TrendsService } from '@server/collections/trends/services/trends.service';
+import {
+  buildTrendDatasetTaskWorkflowDefinition,
+  buildTrendsBackfillWorkflowDefinition,
+  buildTrendsRefreshWorkflowDefinition,
+  TRENDS_MAINTENANCE_ACTION_IDS,
+  type TrendDatasetTask,
+  type TrendsMaintenanceRequest,
+} from '@server/collections/trends/services/trends-maintenance-workflow-definition';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import {
+  type SystemWorkflowGraphDefinition,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
+import { CacheService } from '@server/services/cache/cache.service';
 import { ConfigService } from '@workers/config/config.service';
 
+const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';
+const MIN_ACTIVE_TRENDS = 50;
+const MIN_REFERENCE_RECORDS = 100;
+const COOLDOWN_KEY = 'cron:trends:backfill:cooldown';
+const ATTEMPTS_KEY = 'cron:trends:backfill:attempts';
+const BASE_COOLDOWN_SECONDS = 60 * 60;
+const MAX_COOLDOWN_SECONDS = 12 * 60 * 60;
+const ATTEMPTS_TTL_SECONDS = 24 * 60 * 60;
+
 @Injectable()
-export class CronTrendsService {
-  private readonly constructorName: string = String(this.constructor.name);
-  private readonly REFRESH_LOCK_KEY = 'cron:trends:refresh';
-  private readonly BACKFILL_LOCK_KEY = 'cron:trends:backfill';
-  private readonly LOCK_TTL_SECONDS = 900; // 15 minute lock
-  private readonly BACKFILL_MIN_ACTIVE_TRENDS = 50;
-  private readonly BACKFILL_MIN_REFERENCE_RECORDS = 100;
-  private readonly BACKFILL_COOLDOWN_KEY = 'cron:trends:backfill:cooldown';
-  private readonly BACKFILL_ATTEMPTS_KEY = 'cron:trends:backfill:attempts';
-  private readonly BACKFILL_BASE_COOLDOWN_SECONDS = 60 * 60; // 1 hour
-  private readonly BACKFILL_MAX_COOLDOWN_SECONDS = 12 * 60 * 60; // 12 hours
-  private readonly BACKFILL_ATTEMPTS_TTL_SECONDS = 24 * 60 * 60;
+export class CronTrendsService implements OnApplicationBootstrap, OnModuleInit {
+  private readonly context = 'CronTrendsService';
 
   constructor(
     private readonly trendsService: TrendsService,
     private readonly cacheService: CacheService,
     private readonly loggerService: LoggerService,
     private readonly configService: ConfigService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
   ) {}
 
-  /**
-   * Refresh global trends daily at 6 AM UTC
-   * Uses distributed locking to prevent multiple instances from running simultaneously
-   * Historical trends are preserved for AI analysis
-   * Fallback chain: Grok-4 → Apify → empty (works without APIFY_API_TOKEN)
-   */
-  @Cron(CronExpression.EVERY_DAY_AT_6AM)
-  async refreshGlobalTrends() {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    if (!this.configService.isDevSchedulersEnabled) {
-      this.loggerService.log(
-        `${url} skipped - local schedulers disabled (set GF_DEV_ENABLE_SCHEDULERS=true to enable)`,
-      );
-      return;
-    }
-
-    // Use distributed lock to prevent multiple instances from running
-    const result = await this.cacheService.withLock(
-      this.REFRESH_LOCK_KEY,
-      async () => {
-        this.loggerService.log(`${url} started`);
-
-        try {
-          const trendsResults = await this.refreshGlobalTrendDatasets({
-            logPrefix: url,
-            markExpiredAsHistorical: true,
-          });
-
-          this.loggerService.log(`${url} completed`, {
-            trendsResults,
-          });
-
-          return { success: true, trendsResults };
-        } catch (error: unknown) {
-          this.loggerService.error(`${url} failed`, error);
-          return { error, success: false };
-        }
-      },
-      this.LOCK_TTL_SECONDS,
+  onModuleInit(): void {
+    this.registerActions();
+    this.workflowRunner.registerWorkflow(
+      buildTrendDatasetTaskWorkflowDefinition(),
     );
+    this.workflowRunner.registerWorkflow(
+      buildTrendsRefreshWorkflowDefinition(),
+    );
+    this.workflowRunner.registerWorkflow(
+      buildTrendsBackfillWorkflowDefinition(),
+    );
+  }
 
-    if (result === null) {
-      this.loggerService.log(
-        `${url} skipped - lock already held by another instance`,
-      );
+  onApplicationBootstrap(): void {
+    if (this.configService.isDevSchedulersEnabled) {
+      void this.backfillGlobalTrendCorpus();
     }
+  }
+
+  @Cron('0 15 0,12 * * *', { timeZone: 'UTC' })
+  async warmGlobalTrendDatasets(now = new Date()): Promise<void> {
+    if (!this.configService.isDevSchedulersEnabled) return;
+    await this.enqueue(
+      buildTrendsRefreshWorkflowDefinition(),
+      'scheduled-trends-warmup',
+      `trends-warmup-${Math.floor(now.getTime() / (12 * 60 * 60 * 1000))}`,
+      now,
+    );
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_6AM)
+  async refreshGlobalTrends(now = new Date()): Promise<void> {
+    if (!this.configService.isDevSchedulersEnabled) return;
+    await this.enqueue(
+      buildTrendsRefreshWorkflowDefinition(),
+      'scheduled-trends-refresh',
+      `trends-refresh-${now.toISOString().slice(0, 10)}`,
+      now,
+    );
   }
 
   @Cron(CronExpression.EVERY_30_MINUTES)
-  async backfillGlobalTrendCorpus() {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    if (!this.configService.isDevSchedulersEnabled) {
-      this.loggerService.log(
-        `${url} skipped - local schedulers disabled (set GF_DEV_ENABLE_SCHEDULERS=true to enable)`,
-      );
-      return;
-    }
-
-    const result = await this.cacheService.withLock(
-      this.BACKFILL_LOCK_KEY,
-      async () => {
-        const stats = await this.trendsService.getGlobalCorpusStats();
-
-        this.loggerService.log(`${url} evaluated corpus state`, stats);
-
-        if (
-          stats.activeTrends >= this.BACKFILL_MIN_ACTIVE_TRENDS &&
-          stats.referenceRecords >= this.BACKFILL_MIN_REFERENCE_RECORDS
-        ) {
-          await this.clearBackfillBackoff();
-          this.loggerService.log(
-            `${url} skipped - corpus thresholds already satisfied`,
-            stats,
-          );
-          return {
-            skipped: true,
-            stats,
-          };
-        }
-
-        const attempts = await this.getBackfillAttempts();
-        const cooldownSeconds = this.resolveBackfillCooldownSeconds(attempts);
-        const claim = await this.cacheService.claimOnce(
-          this.BACKFILL_COOLDOWN_KEY,
-          cooldownSeconds,
-        );
-
-        // Each backfill costs a full round of billed Apify actor runs. When the
-        // corpus stays short — a failing account, a rate limit, a genuinely thin
-        // platform — re-running every 30 minutes just burns credit, so the
-        // window widens until something actually lands.
-        if (claim === 'duplicate') {
-          this.loggerService.log(
-            `${url} skipped - backing off after unproductive backfills`,
-            { attempts, cooldownSeconds, stats },
-          );
-          return {
-            skipped: true,
-            stats,
-          };
-        }
-
-        this.loggerService.log(`${url} started`);
-
-        try {
-          const trendsResults = await this.refreshGlobalTrendDatasets({
-            logPrefix: url,
-            markExpiredAsHistorical: stats.activeTrends > 0,
-          });
-          const updatedStats = await this.trendsService.getGlobalCorpusStats();
-          const isProductive =
-            updatedStats.activeTrends > stats.activeTrends ||
-            updatedStats.referenceRecords > stats.referenceRecords;
-
-          if (isProductive) {
-            await this.clearBackfillBackoff();
-          } else {
-            await this.recordUnproductiveBackfill(attempts);
-            this.loggerService.warn(
-              `${url} produced no new corpus records - widening the back-off window`,
-              { attempts: attempts + 1, stats: updatedStats },
-            );
-          }
-
-          this.loggerService.log(`${url} completed`, {
-            stats: updatedStats,
-            trendsResults,
-          });
-
-          return {
-            skipped: false,
-            stats: updatedStats,
-            trendsResults,
-          };
-        } catch (error: unknown) {
-          await this.recordUnproductiveBackfill(attempts);
-          this.loggerService.error(`${url} failed`, error);
-          return { error, success: false };
-        }
-      },
-      this.LOCK_TTL_SECONDS,
+  async backfillGlobalTrendCorpus(now = new Date()): Promise<void> {
+    if (!this.configService.isDevSchedulersEnabled) return;
+    await this.enqueue(
+      buildTrendsBackfillWorkflowDefinition(),
+      'scheduled-trends-backfill',
+      `trends-backfill-${Math.floor(now.getTime() / (30 * 60 * 1000))}`,
+      now,
     );
-
-    if (result === null) {
-      this.loggerService.log(
-        `${url} skipped - lock already held by another instance`,
-      );
-    }
   }
 
-  private async getBackfillAttempts(): Promise<number> {
-    const stored = await this.cacheService.get<number>(
-      this.BACKFILL_ATTEMPTS_KEY,
+  private registerActions(): void {
+    this.workflowRunner.registerAction(
+      TRENDS_MAINTENANCE_ACTION_IDS.EXPIRE_TRENDS,
+      () =>
+        this.countResult(this.trendsService.markExpiredTrendsAsHistorical()),
     );
+    this.workflowRunner.registerAction(
+      TRENDS_MAINTENANCE_ACTION_IDS.EXPIRE_VIDEOS,
+      () =>
+        this.countResult(this.trendsService.markExpiredVideosAsHistorical()),
+    );
+    this.workflowRunner.registerAction(
+      TRENDS_MAINTENANCE_ACTION_IDS.EXPIRE_HASHTAGS,
+      () =>
+        this.countResult(this.trendsService.markExpiredHashtagsAsHistorical()),
+    );
+    this.workflowRunner.registerAction(
+      TRENDS_MAINTENANCE_ACTION_IDS.EXPIRE_SOUNDS,
+      () =>
+        this.countResult(this.trendsService.markExpiredSoundsAsHistorical()),
+    );
+    this.workflowRunner.registerAction(
+      TRENDS_MAINTENANCE_ACTION_IDS.FETCH_GLOBAL,
+      async () => ({
+        count: (await this.trendsService.fetchAndCacheTrends()).length,
+      }),
+    );
+    this.workflowRunner.registerAction(
+      TRENDS_MAINTENANCE_ACTION_IDS.FETCH_DATASET,
+      ({ input }) => this.fetchDataset(input.task as TrendDatasetTask),
+    );
+    this.workflowRunner.registerAction(
+      TRENDS_MAINTENANCE_ACTION_IDS.FETCH_SOUNDS,
+      () => this.countResult(this.trendsService.fetchAndCacheSounds()),
+    );
+    this.workflowRunner.registerAction(
+      TRENDS_MAINTENANCE_ACTION_IDS.PRECOMPUTE_PREVIEW,
+      () => this.trendsService.precomputeGlobalTrendSourcePreview(),
+    );
+    this.workflowRunner.registerAction(
+      TRENDS_MAINTENANCE_ACTION_IDS.EVALUATE_BACKFILL,
+      () => this.evaluateBackfill(),
+    );
+    this.workflowRunner.registerAction(
+      TRENDS_MAINTENANCE_ACTION_IDS.FINALIZE_BACKFILL,
+      ({ input }) => this.finalizeBackfill(Boolean(input.refresh)),
+    );
+  }
 
+  private async countResult(
+    result: Promise<number>,
+  ): Promise<{ count: number }> {
+    return { count: await result };
+  }
+
+  private async fetchDataset(task: TrendDatasetTask): Promise<{
+    count: number;
+    dataset: TrendDatasetTask['dataset'];
+    platform: string;
+  }> {
+    if (!task || !['hashtags', 'videos'].includes(task.dataset)) {
+      throw new Error('Trend dataset task is invalid');
+    }
+    const count =
+      task.dataset === 'videos'
+        ? await this.trendsService.fetchAndCacheViralVideos(task.platform)
+        : await this.trendsService.fetchAndCacheHashtags(task.platform);
+    return {
+      count,
+      dataset: task.dataset,
+      platform: task.platform,
+    };
+  }
+
+  private async evaluateBackfill(): Promise<{
+    attempts: number;
+    shouldBackfill: boolean;
+    stats: Awaited<ReturnType<TrendsService['getGlobalCorpusStats']>>;
+  }> {
+    const stats = await this.trendsService.getGlobalCorpusStats();
+    if (this.thresholdsSatisfied(stats)) {
+      await this.clearBackoff();
+      return { attempts: 0, shouldBackfill: false, stats };
+    }
+    const attempts = await this.getAttempts();
+    const claim = await this.cacheService.claimOnce(
+      COOLDOWN_KEY,
+      this.cooldownSeconds(attempts),
+    );
+    return { attempts, shouldBackfill: claim !== 'duplicate', stats };
+  }
+
+  private async finalizeBackfill(wasRefreshed: boolean): Promise<{
+    refreshed: boolean;
+    stats: Awaited<ReturnType<TrendsService['getGlobalCorpusStats']>>;
+  }> {
+    const stats = await this.trendsService.getGlobalCorpusStats();
+    if (wasRefreshed) {
+      if (this.thresholdsSatisfied(stats)) await this.clearBackoff();
+      else await this.recordUnproductive(await this.getAttempts());
+    }
+    return { refreshed: wasRefreshed, stats };
+  }
+
+  private thresholdsSatisfied(stats: {
+    activeTrends: number;
+    referenceRecords: number;
+  }): boolean {
+    return (
+      stats.activeTrends >= MIN_ACTIVE_TRENDS &&
+      stats.referenceRecords >= MIN_REFERENCE_RECORDS
+    );
+  }
+
+  private async getAttempts(): Promise<number> {
+    const stored = await this.cacheService.get<number>(ATTEMPTS_KEY);
     return typeof stored === 'number' && stored > 0 ? stored : 0;
   }
 
-  /**
-   * Doubles the wait after each unproductive backfill, capped so the corpus is
-   * still retried at least twice a day.
-   */
-  private resolveBackfillCooldownSeconds(attempts: number): number {
+  private cooldownSeconds(attempts: number): number {
     return Math.min(
-      this.BACKFILL_BASE_COOLDOWN_SECONDS * 2 ** attempts,
-      this.BACKFILL_MAX_COOLDOWN_SECONDS,
+      BASE_COOLDOWN_SECONDS * 2 ** attempts,
+      MAX_COOLDOWN_SECONDS,
     );
   }
 
-  private async recordUnproductiveBackfill(attempts: number): Promise<void> {
-    await this.cacheService.set(this.BACKFILL_ATTEMPTS_KEY, attempts + 1, {
-      ttl: this.BACKFILL_ATTEMPTS_TTL_SECONDS,
+  private async recordUnproductive(attempts: number): Promise<void> {
+    await this.cacheService.set(ATTEMPTS_KEY, attempts + 1, {
+      ttl: ATTEMPTS_TTL_SECONDS,
     });
   }
 
-  private async clearBackfillBackoff(): Promise<void> {
-    await this.cacheService.del(this.BACKFILL_ATTEMPTS_KEY);
-    await this.cacheService.del(this.BACKFILL_COOLDOWN_KEY);
+  private async clearBackoff(): Promise<void> {
+    await this.cacheService.del(ATTEMPTS_KEY);
+    await this.cacheService.del(COOLDOWN_KEY);
   }
 
-  private async refreshGlobalTrendDatasets(options: {
-    logPrefix: string;
-    markExpiredAsHistorical: boolean;
-  }): Promise<Record<string, number>> {
-    if (options.markExpiredAsHistorical) {
-      const [expiredTrends, expiredVideos, expiredHashtags, expiredSounds] =
-        await Promise.all([
-          this.trendsService.markExpiredTrendsAsHistorical(),
-          this.trendsService.markExpiredVideosAsHistorical(),
-          this.trendsService.markExpiredHashtagsAsHistorical(),
-          this.trendsService.markExpiredSoundsAsHistorical(),
-        ]);
-
-      this.loggerService.log(
-        `${options.logPrefix} marked expired items as historical`,
-        {
-          expiredHashtags,
-          expiredSounds,
-          expiredTrends,
-          expiredVideos,
-        },
-      );
-    }
-
-    const globalTrends = await this.trendsService.fetchAndCacheTrends();
-    const platforms = [
-      'tiktok',
-      'instagram',
-      'twitter',
-      'youtube',
-      'reddit',
-      'pinterest',
-    ];
-    const trendsResults: Record<string, number> = {
-      global: globalTrends.length,
+  private async enqueue(
+    definition: SystemWorkflowGraphDefinition,
+    source: string,
+    jobId: string,
+    now: Date,
+  ): Promise<string> {
+    const request: TrendsMaintenanceRequest = {
+      requestedAt: now.toISOString(),
+      source,
     };
-
-    for (const platform of platforms) {
-      try {
-        if (['tiktok', 'instagram', 'youtube', 'reddit'].includes(platform)) {
-          await this.trendsService.fetchAndCacheViralVideos(platform);
-        }
-
-        if (['tiktok', 'instagram', 'twitter'].includes(platform)) {
-          await this.trendsService.fetchAndCacheHashtags(platform);
-        }
-
-        trendsResults[platform] = 1;
-      } catch (error: unknown) {
-        this.loggerService.error(
-          `${options.logPrefix} failed for platform ${platform}`,
-          error,
-        );
-      }
-    }
-
-    try {
-      await this.trendsService.fetchAndCacheSounds();
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${options.logPrefix} failed to fetch sounds`,
-        error,
-      );
-    }
-
-    return trendsResults;
+    const queued = await this.workflowQueue.queueSystemWorkflow(
+      {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request },
+        organizationId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
+        source,
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
+      },
+      jobId,
+      { attempts: 3, replaceTerminalJob: true },
+    );
+    this.loggerService.log('Queued trend maintenance workflow', {
+      context: this.context,
+      jobId: queued,
+      workflowId: definition.canonicalId,
+    });
+    return queued;
   }
 }

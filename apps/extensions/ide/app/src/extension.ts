@@ -6,7 +6,6 @@ import {
 import { AnalyticsViewProvider } from '@views/analytics-view.provider';
 import { GalleryViewProvider } from '@views/gallery-view.provider';
 import { PresetsViewProvider } from '@views/presets-view.provider';
-import { RunQueueViewProvider } from '@views/run-queue-view.provider';
 import { TemplatesViewProvider } from '@views/templates-view.provider';
 import * as vscode from 'vscode';
 import { registerCommands } from '@/commands';
@@ -40,14 +39,6 @@ export async function activate(
     ),
   );
 
-  const runQueueProvider = new RunQueueViewProvider();
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      RunQueueViewProvider.viewType,
-      runQueueProvider,
-    ),
-  );
-
   const templatesProvider = new TemplatesViewProvider();
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
@@ -73,7 +64,6 @@ export async function activate(
     analyticsProvider,
     galleryProvider,
     presetsProvider,
-    runQueueProvider,
     statusBar,
     templatesProvider,
   });

@@ -74,220 +74,254 @@
       "targetHandle": "prompt"
     },
     {
-      "id": "e11",
-      "source": "videoGen-1",
-      "sourceHandle": "video",
-      "target": "animation-1",
-      "targetHandle": "video"
-    },
-    {
-      "id": "e12",
-      "source": "videoGen-2",
-      "sourceHandle": "video",
-      "target": "animation-2",
-      "targetHandle": "video"
-    },
-    {
-      "id": "e13",
-      "source": "animation-1",
-      "sourceHandle": "video",
-      "target": "stitch-1",
-      "targetHandle": "videos"
-    },
-    {
-      "id": "e14",
-      "source": "animation-2",
-      "sourceHandle": "video",
-      "target": "stitch-1",
-      "targetHandle": "videos"
-    },
-    {
       "id": "e15",
       "source": "stitch-1",
       "sourceHandle": "video",
       "target": "output-1",
       "targetHandle": "media"
+    },
+    {
+      "id": "e11-e13",
+      "source": "videoGen-1",
+      "sourceHandle": "video",
+      "target": "stitch-1",
+      "targetHandle": "videos"
+    },
+    {
+      "id": "e12-e14",
+      "source": "videoGen-2",
+      "sourceHandle": "video",
+      "target": "stitch-1",
+      "targetHandle": "videos"
     }
   ],
   "name": "Full Content Pipeline",
   "nodes": [
     {
       "data": {
-        "label": "Concept",
-        "prompt": "Create a 3-scene story about a robot discovering nature for the first time. Scene 1: Robot in city. Scene 2: Robot enters forest. Scene 3: Robot watches sunset.",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "Create a 3-scene story about a robot discovering nature for the first time. Scene 1: Robot in city. Scene 2: Robot enters forest. Scene 3: Robot watches sunset.",
+          "inputName": "concept",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Concept"
       },
       "id": "concept",
-      "position": { "x": 50, "y": 300 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 300
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Story Expander",
-        "maxTokens": 2048,
-        "outputText": null,
-        "status": "idle",
-        "systemPrompt": "Expand the concept into 3 detailed visual prompts. For each scene, include: setting, lighting, mood, camera angle, and specific details. Number each 1., 2., 3.",
-        "temperature": 0.8,
-        "topP": 0.9
+        "config": {
+          "actionId": "llm",
+          "parameters": {
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Story Expander",
+            "maxTokens": 2048,
+            "outputText": null,
+            "status": "idle",
+            "systemPrompt": "Expand the concept into 3 detailed visual prompts. For each scene, include: setting, lighting, mood, camera angle, and specific details. Number each 1., 2., 3.",
+            "temperature": 0.8,
+            "topP": 0.9
+          }
+        },
+        "label": "Story Expander"
       },
       "id": "llm-story",
-      "position": { "x": 350, "y": 300 },
-      "type": "llm"
+      "position": {
+        "x": 350,
+        "y": 300
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "16:9",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Scene 1 Image",
-        "model": "nano-banana-pro",
-        "outputFormat": "jpg",
-        "outputImage": null,
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "16:9",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Scene 1 Image",
+            "model": "nano-banana-pro",
+            "outputFormat": "jpg",
+            "outputImage": null,
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Scene 1 Image"
       },
       "id": "imageGen-1",
-      "position": { "x": 700, "y": 100 },
-      "type": "imageGen"
+      "position": {
+        "x": 700,
+        "y": 100
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "16:9",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Scene 2 Image",
-        "model": "nano-banana-pro",
-        "outputFormat": "jpg",
-        "outputImage": null,
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "16:9",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Scene 2 Image",
+            "model": "nano-banana-pro",
+            "outputFormat": "jpg",
+            "outputImage": null,
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Scene 2 Image"
       },
       "id": "imageGen-2",
-      "position": { "x": 700, "y": 300 },
-      "type": "imageGen"
+      "position": {
+        "x": 700,
+        "y": 300
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "16:9",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Scene 3 Image",
-        "model": "nano-banana-pro",
-        "outputFormat": "jpg",
-        "outputImage": null,
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "16:9",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Scene 3 Image",
+            "model": "nano-banana-pro",
+            "outputFormat": "jpg",
+            "outputImage": null,
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Scene 3 Image"
       },
       "id": "imageGen-3",
-      "position": { "x": 700, "y": 500 },
-      "type": "imageGen"
+      "position": {
+        "x": 700,
+        "y": 500
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "16:9",
-        "duration": 6,
-        "generateAudio": true,
-        "inputImage": null,
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Scene 1-2 Video",
-        "lastFrame": null,
-        "model": "veo-3.1",
-        "negativePrompt": "blurry, distorted, artifacts",
-        "outputVideo": null,
-        "referenceImages": [],
-        "resolution": "1080p",
-        "status": "idle"
+        "config": {
+          "actionId": "videoGen",
+          "parameters": {
+            "aspectRatio": "16:9",
+            "duration": 6,
+            "generateAudio": true,
+            "inputImage": null,
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Scene 1-2 Video",
+            "lastFrame": null,
+            "model": "veo-3.1",
+            "negativePrompt": "blurry, distorted, artifacts",
+            "outputVideo": null,
+            "referenceImages": [],
+            "resolution": "1080p",
+            "status": "idle"
+          }
+        },
+        "label": "Scene 1-2 Video"
       },
       "id": "videoGen-1",
-      "position": { "x": 1050, "y": 150 },
-      "type": "videoGen"
+      "position": {
+        "x": 1050,
+        "y": 150
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "16:9",
-        "duration": 6,
-        "generateAudio": true,
-        "inputImage": null,
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Scene 2-3 Video",
-        "lastFrame": null,
-        "model": "veo-3.1",
-        "negativePrompt": "blurry, distorted, artifacts",
-        "outputVideo": null,
-        "referenceImages": [],
-        "resolution": "1080p",
-        "status": "idle"
+        "config": {
+          "actionId": "videoGen",
+          "parameters": {
+            "aspectRatio": "16:9",
+            "duration": 6,
+            "generateAudio": true,
+            "inputImage": null,
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Scene 2-3 Video",
+            "lastFrame": null,
+            "model": "veo-3.1",
+            "negativePrompt": "blurry, distorted, artifacts",
+            "outputVideo": null,
+            "referenceImages": [],
+            "resolution": "1080p",
+            "status": "idle"
+          }
+        },
+        "label": "Scene 2-3 Video"
       },
       "id": "videoGen-2",
-      "position": { "x": 1050, "y": 400 },
-      "type": "videoGen"
-    },
-    {
-      "data": {
-        "curveType": "preset",
-        "customCurve": [0.645, 0.045, 0.355, 1],
-        "inputVideo": null,
-        "label": "Ease Animation 1",
-        "outputVideo": null,
-        "preset": "easeInOutCubic",
-        "speedMultiplier": 1,
-        "status": "idle"
+      "position": {
+        "x": 1050,
+        "y": 400
       },
-      "id": "animation-1",
-      "position": { "x": 1400, "y": 150 },
-      "type": "animation"
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "curveType": "preset",
-        "customCurve": [0.645, 0.045, 0.355, 1],
-        "inputVideo": null,
-        "label": "Ease Animation 2",
-        "outputVideo": null,
-        "preset": "easeInOutCubic",
-        "speedMultiplier": 1,
-        "status": "idle"
-      },
-      "id": "animation-2",
-      "position": { "x": 1400, "y": 400 },
-      "type": "animation"
-    },
-    {
-      "data": {
-        "audioCodec": "aac",
-        "inputVideos": [],
-        "label": "Video Stitcher",
-        "outputQuality": "full",
-        "outputVideo": null,
-        "seamlessLoop": true,
-        "status": "idle",
-        "transitionDuration": 0.5,
-        "transitionType": "crossfade"
+        "config": {
+          "actionId": "videoStitch",
+          "parameters": {
+            "audioCodec": "aac",
+            "inputVideos": [],
+            "label": "Video Stitcher",
+            "outputQuality": "full",
+            "outputVideo": null,
+            "seamlessLoop": true,
+            "status": "idle",
+            "transitionDuration": 0.5,
+            "transitionType": "crossfade"
+          }
+        },
+        "label": "Video Stitcher"
       },
       "id": "stitch-1",
-      "position": { "x": 1750, "y": 275 },
-      "type": "videoStitch"
+      "position": {
+        "x": 1750,
+        "y": 275
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "inputMedia": null,
-        "inputType": "video",
-        "label": "Final Video",
-        "outputName": "full-pipeline-output",
-        "status": "idle"
+        "config": {
+          "actionId": "workflow.collect-output",
+          "parameters": {
+            "inputMedia": null,
+            "inputType": "video",
+            "label": "Final Video",
+            "outputName": "full-pipeline-output",
+            "status": "idle"
+          }
+        },
+        "label": "Final Video"
       },
       "id": "output-1",
-      "position": { "x": 2100, "y": 275 },
-      "type": "output"
+      "position": {
+        "x": 2100,
+        "y": 275
+      },
+      "type": "genfeedAction"
     }
   ],
   "updatedAt": "2025-01-19T00:00:00.000Z",

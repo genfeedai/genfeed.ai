@@ -4,7 +4,6 @@ import { Injectable, Optional } from '@nestjs/common';
 import { AgentCampaignsService } from '@server/collections/agent-campaigns/services/agent-campaigns.service';
 import { type AgentMemoryDocument } from '@server/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { AgentMessageBusService } from '@server/services/agent-campaign/agent-message-bus.service';
@@ -25,10 +24,7 @@ import type {
   AgentChatResult,
 } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@server/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
-import {
-  mergeAgentArtifactCompletionMetadata,
-  persistRunArtifacts,
-} from '@server/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
+import { mergeAgentArtifactCompletionMetadata } from '@server/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { normalizeFinalAssistantContent } from '@server/services/agent-orchestrator/utils/agent-final-content.util';
 import { buildResolvedModelMetadata } from '@server/services/agent-orchestrator/utils/agent-response-model.util';
 import { buildAgentRoutingMetadata } from '@server/services/agent-orchestrator/utils/agent-routing-policy.util';
@@ -67,7 +63,6 @@ export class AgentOrchestratorSyncLoopService {
     private readonly contextService: AgentOrchestratorContextService,
     private readonly completionCardBuilder: AgentCompletionCardBuilderService,
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
-    private readonly agentRunsService: AgentRunsService,
     @Optional()
     private readonly agentMessageBusService?: AgentMessageBusService,
     @Optional()
@@ -132,7 +127,7 @@ export class AgentOrchestratorSyncLoopService {
     await this.threadEventRecorder.recordThreadTurnStarted({
       context,
       model,
-      runId: context.runId,
+      runId: context.executionId,
       source: request.source,
       threadId,
     });
@@ -234,7 +229,7 @@ export class AgentOrchestratorSyncLoopService {
                   },
                 },
               ],
-              id: `terminal-tool-${context.runId ?? threadId}`,
+              id: `terminal-tool-${context.executionId ?? threadId}`,
               usage: latestProviderUsage,
             }
           : await this.llmDispatcher.chatCompletion(
@@ -251,7 +246,7 @@ export class AgentOrchestratorSyncLoopService {
               context.organizationId,
               {
                 brandId: context.scope?.brandId,
-                runId: context.runId,
+                runId: context.executionId,
                 threadId,
                 userId: context.userId,
               },
@@ -265,7 +260,7 @@ export class AgentOrchestratorSyncLoopService {
               context,
               requestedModel: model,
               responseModel: response.model,
-              runId: context.runId,
+              executionId: context.executionId,
               source: request.source,
               threadId,
             });
@@ -356,11 +351,6 @@ export class AgentOrchestratorSyncLoopService {
               : {}),
           };
 
-          await persistRunArtifacts(
-            this.agentRunsService,
-            context,
-            artifactMetadata,
-          );
           await this.agentMessagesService.addMessage({
             brandId: context.scope?.brandId,
             content,
@@ -393,13 +383,13 @@ export class AgentOrchestratorSyncLoopService {
             content,
             context,
             metadata: assistantMetadata,
-            runId: context.runId,
+            runId: context.executionId,
             threadId,
           });
           await this.threadEventRecorder.recordRunCompleted({
             context,
             detail: 'Agent completed',
-            runId: context.runId,
+            runId: context.executionId,
             threadId,
           });
 
@@ -429,20 +419,12 @@ export class AgentOrchestratorSyncLoopService {
           state: toolRoundState,
           strategy: {
             logParseErrors: true,
-            onRecordRunToolCall: (summary) => {
-              if (!context.runId) {
-                return;
-              }
-              this.agentRunsService
-                .recordToolCall(context.runId, context.organizationId, summary)
-                .catch(() => undefined);
-            },
             onToolCompleted: async (event) => {
               await this.threadEventRecorder.recordToolCompleted({
                 context,
                 durationMs: event.durationMs,
                 error: event.summary.error,
-                runId: context.runId,
+                runId: context.executionId,
                 status: event.summary.status,
                 threadId,
                 toolCallId: event.toolCallId,
@@ -453,7 +435,7 @@ export class AgentOrchestratorSyncLoopService {
               await this.threadEventRecorder.recordToolStarted({
                 context,
                 parameters: event.parameters,
-                runId: context.runId,
+                runId: context.executionId,
                 threadId,
                 toolCallId: event.toolCallId,
                 toolName: event.toolName,
@@ -465,7 +447,7 @@ export class AgentOrchestratorSyncLoopService {
                 blocks: event.blocks,
                 context,
                 operation: event.operation,
-                runId: context.runId,
+                runId: context.executionId,
                 threadId,
               });
             },
@@ -490,7 +472,7 @@ export class AgentOrchestratorSyncLoopService {
       await this.threadEventRecorder.recordRunFailed({
         context,
         error: error instanceof Error ? error.message : 'Unknown error',
-        runId: context.runId,
+        runId: context.executionId,
         threadId,
       });
       throw error;

@@ -135,14 +135,15 @@ export interface TrendAttributes {
  */
 export interface WorkflowAttributes {
   createdAt?: string;
-  currentStepIndex?: number;
   description?: string;
   id?: string;
   lastRunAt?: string;
   name?: string;
   nextRunAt?: string;
   status?: string;
-  steps?: unknown[];
+  nodes?: unknown[];
+  version?: number;
+  versionId?: string;
   updatedAt?: string;
 }
 
@@ -155,7 +156,7 @@ export interface WorkflowTemplateAttributes {
   description?: string;
   estimatedDuration?: number;
   name?: string;
-  steps?: unknown[];
+  nodes?: unknown[];
 }
 
 /**

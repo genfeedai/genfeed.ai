@@ -55,7 +55,7 @@ describe('Isolated worker publish and refusal (#3839)', () => {
     if (!job) {
       throw new Error('Due-now write did not enqueue a publish job');
     }
-    const result = await harness.cronPostsService.processQueuedPost(job);
+    const result = await harness.executeWorkflow(job);
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -97,8 +97,7 @@ describe('Isolated worker publish and refusal (#3839)', () => {
       }),
     ]);
 
-    const result = await harness.cronPostsService.processQueuedPost({
-      enqueuedAt: new Date().toISOString(),
+    const result = await harness.executeWorkflow({
       organizationId: fixture.organizationId,
       postId,
       source: 'scheduled_sweep',

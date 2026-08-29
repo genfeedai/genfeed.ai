@@ -13,21 +13,18 @@
  * cannot reach GENFEEDAI_WEBHOOKS_URL. Cloud deployments receive the
  * completion via webhook and do not enqueue poll jobs.
  */
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { TasksService } from '@server/collections/tasks/services/tasks.service';
-import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
-import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
-import { HeygenAvatarProvider } from '@server/services/avatar-video/providers/heygen-avatar.provider';
+
 import {
-  HEYGEN_POLL_DELAY_MS,
   HEYGEN_POLL_MAX_ATTEMPTS,
   HEYGEN_POLL_QUEUE,
   HeygenPollJobData,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { forwardRef, Inject } from '@nestjs/common';
+import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
+import { WorkflowNodeContinuationCoordinatorService } from '@server/collections/workflows/services/workflow-node-continuation-coordinator.service';
+import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
+import { HeygenAvatarProvider } from '@server/services/avatar-video/providers/heygen-avatar.provider';
 import { Job } from 'bullmq';
 
 @Processor(HEYGEN_POLL_QUEUE, {
@@ -41,12 +38,8 @@ export class HeygenPollProcessor extends WorkerHost {
     private readonly logger: LoggerService,
     private readonly heygenAvatarProvider: HeygenAvatarProvider,
     private readonly webhooksService: WebhooksService,
-    private readonly metadataService: MetadataService,
-    private readonly ingredientsService: IngredientsService,
-    @Inject(forwardRef(() => TasksService))
-    private readonly tasksService: TasksService,
-    @Inject(forwardRef(() => HeygenPollQueueService))
-    private readonly heygenPollQueueService: HeygenPollQueueService,
+    private readonly continuationCoordinator: WorkflowNodeContinuationCoordinatorService,
+    private readonly continuations: WorkflowNodeContinuationService,
   ) {
     super();
   }
@@ -55,7 +48,7 @@ export class HeygenPollProcessor extends WorkerHost {
     const { data } = job;
 
     this.logger.log(
-      `${this.logContext}: polling HeyGen for task ${data.taskId} (attempt ${data.attempt})`,
+      `${this.logContext}: polling HeyGen continuation ${data.continuationId} (attempt ${data.attempt})`,
       {
         externalId: data.externalId,
         ingredientId: data.ingredientId,
@@ -70,7 +63,7 @@ export class HeygenPollProcessor extends WorkerHost {
     if (result.status === 'processing' || result.status === 'queued') {
       if (data.attempt >= HEYGEN_POLL_MAX_ATTEMPTS) {
         this.logger.error(
-          `${this.logContext}: polling timeout for task ${data.taskId}`,
+          `${this.logContext}: polling timeout for continuation ${data.continuationId}`,
           {
             attempt: data.attempt,
             externalId: data.externalId,
@@ -81,10 +74,12 @@ export class HeygenPollProcessor extends WorkerHost {
         return;
       }
 
-      await this.heygenPollQueueService.schedule(
-        { ...data, attempt: data.attempt + 1 },
-        HEYGEN_POLL_DELAY_MS,
-      );
+      await this.continuations.requestHeygenPollAttempt({
+        attempt: data.attempt + 1,
+        continuationId: data.continuationId,
+        externalId: data.externalId,
+        organizationId: data.organizationId,
+      });
       return;
     }
 
@@ -113,35 +108,22 @@ export class HeygenPollProcessor extends WorkerHost {
         providerVideoId,
       );
 
-      await this.tasksService.recordTaskEvent(
-        data.taskId,
-        data.organizationId,
-        data.userId,
-        {
-          payload: {
-            ingredientId: data.ingredientId,
-            videoUrl,
-          },
-          type: 'facecam_completed',
+      await this.continuationCoordinator.completeProviderAction({
+        identity: {
+          continuationId: data.continuationId,
+          organizationId: data.organizationId,
         },
-        {
-          progress: {
-            activeRunCount: 0,
-            message: 'Facecam video ready.',
-            percent: 100,
-            stage: 'completed',
-          },
-          status: 'done',
-        },
-      );
+        provider: 'heygen',
+        providerResult: { externalId: providerVideoId, url: videoUrl },
+      });
 
       this.logger.log(
-        `${this.logContext}: finalized success for task ${data.taskId}`,
+        `${this.logContext}: finalized success for continuation ${data.continuationId}`,
         { ingredientId: data.ingredientId, videoUrl },
       );
     } catch (error: unknown) {
       this.logger.error(
-        `${this.logContext}: finalizeSuccess failed for task ${data.taskId}`,
+        `${this.logContext}: finalizeSuccess failed for continuation ${data.continuationId}`,
         error,
       );
       throw error;
@@ -153,47 +135,31 @@ export class HeygenPollProcessor extends WorkerHost {
     errorMessage: string,
   ): Promise<void> {
     try {
-      const ingredient = await this.ingredientsService.findOne({
-        id: data.ingredientId,
-      });
-      if (ingredient?.metadataId) {
-        await this.metadataService.patch(ingredient.metadataId, {
-          error: errorMessage,
-        });
-      }
-
-      await this.tasksService.recordTaskEvent(
-        data.taskId,
-        data.organizationId,
-        data.userId,
-        {
-          payload: {
-            error: errorMessage,
-            ingredientId: data.ingredientId,
-          },
-          type: 'facecam_failed',
-        },
-        {
-          failureReason: errorMessage,
-          progress: {
-            activeRunCount: 0,
-            message: errorMessage,
-            percent: 100,
-            stage: 'failed',
-          },
-          status: 'failed',
-        },
+      await this.webhooksService.handleFailedGenerationForIngredient(
+        data.ingredientId,
+        errorMessage,
       );
 
+      await this.continuationCoordinator.failProviderAction({
+        error: errorMessage,
+        identity: {
+          continuationId: data.continuationId,
+          organizationId: data.organizationId,
+        },
+        provider: 'heygen',
+        providerResult: { externalId: data.externalId },
+      });
+
       this.logger.error(
-        `${this.logContext}: finalized failure for task ${data.taskId}`,
+        `${this.logContext}: finalized failure for continuation ${data.continuationId}`,
         { error: errorMessage, ingredientId: data.ingredientId },
       );
     } catch (patchError: unknown) {
       this.logger.error(
-        `${this.logContext}: finalizeFailure cleanup failed for task ${data.taskId}`,
+        `${this.logContext}: finalizeFailure cleanup failed for continuation ${data.continuationId}`,
         patchError,
       );
+      throw patchError;
     }
   }
 }

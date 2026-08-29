@@ -1,4 +1,3 @@
-import { ContentExecutionService } from '@server/services/content-engine/content-execution.service';
 import {
   ContentPlanItemStatus,
   ContentPlanItemType,
@@ -7,6 +6,7 @@ import {
   VideoTaskModel,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ContentExecutionService } from '@server/services/content-engine/content-execution.service';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -83,12 +83,50 @@ describe('ContentExecutionService', () => {
     );
   });
 
+  async function executePlanAtomically(
+    organizationId: string,
+    targetBrandId: string,
+    targetPlanId: string,
+    targetUserId: string,
+  ) {
+    const prepared = await service.preparePlanExecution(
+      organizationId,
+      targetBrandId,
+      targetPlanId,
+      targetUserId,
+    );
+    // `preparePlanExecution` projects the pending items down to bare ids, so
+    // the per-item action reloads each full record the way its node does.
+    const pendingItems = (await mockContentPlanItemsService.listPendingByPlan
+      .mock.results[0]?.value) as Array<Record<string, unknown>>;
+    const results = [];
+    for (const [index, item] of prepared.items.entries()) {
+      mockContentPlanItemsService.getByIdOrFail.mockResolvedValueOnce(
+        pendingItems[index],
+      );
+      results.push(
+        await service.executeSingleItem(
+          organizationId,
+          targetBrandId,
+          targetUserId,
+          String(item.id),
+        ),
+      );
+    }
+    return service.finalizePlanExecution(
+      organizationId,
+      targetBrandId,
+      targetPlanId,
+      { results: results.map((result) => ({ result })) },
+    );
+  }
+
   // ---------------------------------------------------------------------------
-  // executePlan
+  // atomic plan execution actions
   // ---------------------------------------------------------------------------
-  describe('executePlan', () => {
+  describe('atomic plan execution actions', () => {
     it('should validate the plan exists before executing', async () => {
-      await service.executePlan(orgId, brandId, planId, userId);
+      await executePlanAtomically(orgId, brandId, planId, userId);
 
       expect(mockContentPlansService.getByIdOrFail).toHaveBeenCalledWith(
         orgId,
@@ -97,7 +135,7 @@ describe('ContentExecutionService', () => {
     });
 
     it('should set plan status to EXECUTING at the start', async () => {
-      await service.executePlan(orgId, brandId, planId, userId);
+      await executePlanAtomically(orgId, brandId, planId, userId);
 
       expect(mockContentPlansService.updateStatus).toHaveBeenCalledWith(
         orgId,
@@ -107,7 +145,12 @@ describe('ContentExecutionService', () => {
     });
 
     it('should return empty results with summary when no pending items', async () => {
-      const result = await service.executePlan(orgId, brandId, planId, userId);
+      const result = await executePlanAtomically(
+        orgId,
+        brandId,
+        planId,
+        userId,
+      );
 
       expect(result.results).toEqual([]);
       expect(result.summary).toEqual({ completed: 0, failed: 0, total: 0 });
@@ -127,7 +170,7 @@ describe('ContentExecutionService', () => {
         source: 'skill',
       });
 
-      await service.executePlan(orgId, brandId, planId, userId);
+      await executePlanAtomically(orgId, brandId, planId, userId);
 
       const updateStatusCalls = mockContentPlansService.updateStatus.mock.calls;
       const lastCall = updateStatusCalls[updateStatusCalls.length - 1];
@@ -141,7 +184,7 @@ describe('ContentExecutionService', () => {
         new Error('skill error'),
       );
 
-      await service.executePlan(orgId, brandId, planId, userId);
+      await executePlanAtomically(orgId, brandId, planId, userId);
 
       const updateStatusCalls = mockContentPlansService.updateStatus.mock.calls;
       const lastCall = updateStatusCalls[updateStatusCalls.length - 1];
@@ -169,7 +212,12 @@ describe('ContentExecutionService', () => {
         })
         .mockRejectedValueOnce(new Error('fail'));
 
-      const result = await service.executePlan(orgId, brandId, planId, userId);
+      const result = await executePlanAtomically(
+        orgId,
+        brandId,
+        planId,
+        userId,
+      );
 
       expect(result.summary).toMatchObject({
         completed: 1,
@@ -196,7 +244,7 @@ describe('ContentExecutionService', () => {
         source: 'skill',
       });
 
-      await service.executePlan(orgId, brandId, planId, userId);
+      await executePlanAtomically(orgId, brandId, planId, userId);
 
       expect(
         mockContentPlansService.incrementExecutedCount,
@@ -209,7 +257,7 @@ describe('ContentExecutionService', () => {
       );
 
       await expect(
-        service.executePlan(orgId, brandId, planId, userId),
+        executePlanAtomically(orgId, brandId, planId, userId),
       ).rejects.toThrow('Plan not found');
     });
   });
@@ -301,7 +349,7 @@ describe('ContentExecutionService', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // executeItem (via executePlan) — SKILL type
+  // executeSingleItem — SKILL type
   // ---------------------------------------------------------------------------
   describe('executeItem (SKILL type)', () => {
     it('should set item status to EXECUTING, then COMPLETED on success', async () => {
@@ -318,7 +366,7 @@ describe('ContentExecutionService', () => {
         source: 'skill',
       });
 
-      await service.executePlan(orgId, brandId, planId, userId);
+      await executePlanAtomically(orgId, brandId, planId, userId);
 
       expect(mockContentPlanItemsService.updateStatus).toHaveBeenCalledWith(
         orgId,
@@ -347,7 +395,7 @@ describe('ContentExecutionService', () => {
         source: 'skill',
       });
 
-      await service.executePlan(orgId, brandId, planId, userId);
+      await executePlanAtomically(orgId, brandId, planId, userId);
 
       expect(mockSkillExecutorService.execute).toHaveBeenCalledWith(
         'content-writing',
@@ -371,7 +419,7 @@ describe('ContentExecutionService', () => {
         source: 'cache',
       });
 
-      await service.executePlan(orgId, brandId, planId, userId);
+      await executePlanAtomically(orgId, brandId, planId, userId);
 
       expect(mockReviewablePostsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -393,7 +441,12 @@ describe('ContentExecutionService', () => {
         new Error('skill exploded'),
       );
 
-      const result = await service.executePlan(orgId, brandId, planId, userId);
+      const result = await executePlanAtomically(
+        orgId,
+        brandId,
+        planId,
+        userId,
+      );
 
       expect(result.results[0]).toMatchObject({
         error: 'skill exploded',
@@ -412,7 +465,12 @@ describe('ContentExecutionService', () => {
       mockContentPlanItemsService.listPendingByPlan.mockResolvedValue([item]);
       mockSkillExecutorService.execute.mockRejectedValue('string error');
 
-      const result = await service.executePlan(orgId, brandId, planId, userId);
+      const result = await executePlanAtomically(
+        orgId,
+        brandId,
+        planId,
+        userId,
+      );
 
       expect(result.results[0].error).toBe('Unknown execution error');
     });
@@ -453,7 +511,7 @@ describe('ContentExecutionService', () => {
         steps: [{ result: { url: 'https://cdn.example.com/video.mp4' } }],
       });
 
-      await service.executePlan(orgId, brandId, planId, userId);
+      await executePlanAtomically(orgId, brandId, planId, userId);
 
       expect(
         mockContentOrchestrationService.generateAndPublish,
@@ -478,7 +536,7 @@ describe('ContentExecutionService', () => {
         ],
       });
 
-      await service.executePlan(orgId, brandId, planId, userId);
+      await executePlanAtomically(orgId, brandId, planId, userId);
 
       expect(mockReviewablePostsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -510,7 +568,7 @@ describe('ContentExecutionService', () => {
         steps: [{ result: { url: 'https://cdn.example.com/image.jpg' } }],
       });
 
-      await service.executePlan(orgId, brandId, planId, userId);
+      await executePlanAtomically(orgId, brandId, planId, userId);
 
       expect(mockReviewablePostsService.create).toHaveBeenCalledWith(
         expect.objectContaining({ content: 'Step-level review content' }),
@@ -527,7 +585,7 @@ describe('ContentExecutionService', () => {
         id: 'post-from-pipeline',
       });
 
-      await service.executePlan(orgId, brandId, planId, userId);
+      await executePlanAtomically(orgId, brandId, planId, userId);
 
       expect(mockReviewablePostsService.requireOwnedPost).toHaveBeenCalledWith(
         'post-from-pipeline',
@@ -544,7 +602,12 @@ describe('ContentExecutionService', () => {
         steps: [{ error: { message: 'Model timeout' } }],
       });
 
-      const result = await service.executePlan(orgId, brandId, planId, userId);
+      const result = await executePlanAtomically(
+        orgId,
+        brandId,
+        planId,
+        userId,
+      );
 
       expect(result.results[0]).toMatchObject({
         error: 'Model timeout',
@@ -559,7 +622,12 @@ describe('ContentExecutionService', () => {
         steps: [],
       });
 
-      const result = await service.executePlan(orgId, brandId, planId, userId);
+      const result = await executePlanAtomically(
+        orgId,
+        brandId,
+        planId,
+        userId,
+      );
 
       expect(result.results[0].error).toBe('Pipeline execution failed');
     });
@@ -573,7 +641,12 @@ describe('ContentExecutionService', () => {
         itemNoPipeline,
       ]);
 
-      const result = await service.executePlan(orgId, brandId, planId, userId);
+      const result = await executePlanAtomically(
+        orgId,
+        brandId,
+        planId,
+        userId,
+      );
 
       expect(result.results[0].status).toBe(ContentPlanItemStatus.FAILED);
       expect(result.results[0].error).toContain('at least one pipeline step');
@@ -598,7 +671,7 @@ describe('ContentExecutionService', () => {
         steps: [{ result: { url: 'https://cdn.example.com/audio.mp3' } }],
       });
 
-      await service.executePlan(orgId, brandId, planId, userId);
+      await executePlanAtomically(orgId, brandId, planId, userId);
 
       const callArgs =
         mockContentOrchestrationService.generateAndPublish.mock.calls[0][0];
@@ -628,7 +701,7 @@ describe('ContentExecutionService', () => {
         steps: [{ result: { url: 'https://cdn.example.com/music.mp3' } }],
       });
 
-      await service.executePlan(orgId, brandId, planId, userId);
+      await executePlanAtomically(orgId, brandId, planId, userId);
 
       const callArgs =
         mockContentOrchestrationService.generateAndPublish.mock.calls[0][0];
@@ -657,7 +730,7 @@ describe('ContentExecutionService', () => {
         steps: [{ result: { url: 'https://cdn.example.com/img.png' } }],
       });
 
-      await service.executePlan(orgId, brandId, planId, userId);
+      await executePlanAtomically(orgId, brandId, planId, userId);
 
       const callArgs =
         mockContentOrchestrationService.generateAndPublish.mock.calls[0][0];

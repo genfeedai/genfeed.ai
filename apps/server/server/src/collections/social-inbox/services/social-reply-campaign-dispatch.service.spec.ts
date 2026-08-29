@@ -1,14 +1,17 @@
 import {
-  SOCIAL_REPLY_CAMPAIGN_DISPATCH_STALE_MS,
-  SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS,
-  SocialReplyCampaignDispatchService,
-} from '@server/collections/social-inbox/services/social-reply-campaign-dispatch.service';
-import {
   SocialMessageType,
   SocialReplyCampaignRecipientStatus,
   SocialReplyCampaignStatus,
 } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
+import { SOCIAL_INBOX_OUTBOUND_ACTION_IDS } from '@server/collections/social-inbox/services/social-inbox-outbound-workflow-definition';
+import { buildSocialReplyCampaignWorkflowDefinition } from '@server/collections/social-inbox/services/social-reply-campaign-workflow-definition';
+import {
+  SOCIAL_REPLY_CAMPAIGN_DISPATCH_STALE_MS,
+  SOCIAL_REPLY_CAMPAIGN_MAX_ATTEMPTS,
+  SocialReplyCampaignDispatchService,
+} from '@server/collections/social-inbox/services/social-reply-campaign-dispatch.service';
+import { createSystemWorkflowRunnerMock } from '@server/shared/testing/system-workflow-runner-mock';
 
 type StoreCampaign = Record<string, unknown> & {
   dispatchCursor: number;
@@ -68,7 +71,15 @@ function matchesWhere<T extends Record<string, unknown>>(
       }
     }
 
-    return item[key] === value;
+    // Prisma compares timestamp columns by value; the dispatch graph carries
+    // `dispatchedAt` across actions as an ISO string, so the claim instant
+    // arrives back here as a fresh Date object.
+    const current = item[key];
+    if (current instanceof Date && value instanceof Date) {
+      return current.getTime() === value.getTime();
+    }
+
+    return current === value;
   });
 }
 
@@ -269,35 +280,83 @@ function createContext(options: {
     postReply: vi.fn().mockResolvedValue({ id: 'message-1' }),
     sendDm: vi.fn().mockResolvedValue({ id: 'dm-message-1' }),
   };
-  const queueService = {
-    enqueueTick: vi.fn().mockResolvedValue('job-1'),
-    removeTick: vi.fn().mockResolvedValue(undefined),
+  const workflowQueue = {
+    queueSystemWorkflow: vi.fn().mockResolvedValue('job-1'),
   };
-  const provenanceService = {
-    runAction: vi
-      .fn()
-      .mockImplementation(
-        async (
-          _input: unknown,
-          action: (provenance: {
-            executionId: string;
-            workflowId: string;
-            workflowLabel: string;
-          }) => Promise<unknown>,
-        ) => ({
-          result: await action({
-            executionId: 'execution-1',
-            workflowId: 'workflow-1',
-            workflowLabel: 'Inbox Reply Campaign Dispatch',
-          }),
-        }),
-      ),
-  };
+  const actionExecutors = new Map<
+    string,
+    (request: Record<string, unknown>) => Promise<unknown>
+  >();
+  actionExecutors.set(
+    SOCIAL_INBOX_OUTBOUND_ACTION_IDS.RESERVE,
+    async (request) =>
+      (request.input as Record<string, unknown>).state as Record<
+        string,
+        unknown
+      >,
+  );
+  actionExecutors.set(
+    SOCIAL_INBOX_OUTBOUND_ACTION_IDS.PROVIDER,
+    async (request) => {
+      const input = request.input as Record<string, unknown>;
+      const state = input.state as Record<string, unknown>;
+      if (state.outcome) return state;
+      const scope = {
+        brandId: 'brand-1',
+        organizationId: state.organizationId,
+        userId: state.userId,
+      };
+      try {
+        const message =
+          state.messageType === 'dm'
+            ? await actionService.sendDm(scope, state.conversationId, {
+                idempotencyKey: state.idempotencyKey,
+                text: state.body,
+                workflowRunId: state.workflowRunId,
+              })
+            : await actionService.postReply(scope, state.conversationId, {
+                idempotencyKey: state.idempotencyKey,
+                text: state.body,
+                workflowRunId: state.workflowRunId,
+              });
+        return { ...state, outboundMessageId: message.id };
+      } catch (error: unknown) {
+        return {
+          ...state,
+          error: error instanceof Error ? error.message : 'Dispatch failed',
+          errorKind:
+            error instanceof BadRequestException ? 'bad-request' : 'provider',
+        };
+      }
+    },
+  );
+  actionExecutors.set(
+    SOCIAL_INBOX_OUTBOUND_ACTION_IDS.FINALIZE,
+    async (request) =>
+      (request.input as Record<string, unknown>).state as Record<
+        string,
+        unknown
+      >,
+  );
+  const provenanceService = createSystemWorkflowRunnerMock({
+    definitions: [buildSocialReplyCampaignWorkflowDefinition()],
+  });
+  for (const [actionId, executor] of actionExecutors) {
+    provenanceService.registerAction(actionId, executor as never);
+  }
   const logger = {
     error: vi.fn(),
     log: vi.fn(),
     warn: vi.fn(),
   };
+
+  const service = new SocialReplyCampaignDispatchService(
+    prisma as never,
+    workflowQueue as never,
+    provenanceService as never,
+    logger as never,
+  );
+  service.onModuleInit();
 
   return {
     actionService,
@@ -305,15 +364,9 @@ function createContext(options: {
     conversations,
     prisma,
     provenanceService,
-    queueService,
+    workflowQueue,
     recipients,
-    service: new SocialReplyCampaignDispatchService(
-      prisma as never,
-      actionService as never,
-      queueService as never,
-      provenanceService as never,
-      logger as never,
-    ),
+    service,
   };
 }
 
@@ -334,7 +387,7 @@ describe('SocialReplyCampaignDispatchService', () => {
 
       expect(result).toEqual({ outcome: 'campaign-inactive' });
       expect(context.actionService.postReply).not.toHaveBeenCalled();
-      expect(context.queueService.enqueueTick).not.toHaveBeenCalled();
+      expect(context.workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
     });
 
     it('no-ops when a resume already moved the cursor past this tick', async () => {
@@ -392,13 +445,19 @@ describe('SocialReplyCampaignDispatchService', () => {
         dispatchCursor: 2,
         sentCount: 1,
       });
-      expect(context.queueService.enqueueTick).toHaveBeenCalledWith(
-        {
-          campaignId: 'campaign-1',
-          dispatchCursor: 2,
-          organizationId: 'org-1',
-        },
-        60,
+      expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          canonicalId: 'social.reply-campaign.dispatch-tick',
+          inputValues: {
+            request: {
+              campaignId: 'campaign-1',
+              dispatchCursor: 2,
+              organizationId: 'org-1',
+            },
+          },
+        }),
+        'social-reply-campaign-campaign-1-2',
+        expect.objectContaining({ delayMs: 60_000 }),
       );
     });
 
@@ -413,23 +472,17 @@ describe('SocialReplyCampaignDispatchService', () => {
       expect(context.actionService.postReply).not.toHaveBeenCalled();
     });
 
-    it('records the dispatch as a system workflow action run', async () => {
+    it('records the dispatch as a multi-action system workflow run', async () => {
       const context = createContext({});
 
       await context.service.dispatchTick(TICK);
 
-      expect(context.provenanceService.runAction).toHaveBeenCalledWith(
+      expect(context.provenanceService.runWorkflow).toHaveBeenCalledWith(
         expect.objectContaining({
-          actionType: 'social-reply-campaign',
-          canonicalId: 'social-reply-campaign',
-          inputValues: expect.objectContaining({
-            campaignId: 'campaign-1',
-            conversationId: 'conversation-1',
-            recipientId: 'recipient-1',
-          }),
+          canonicalId: 'social.reply-campaign.dispatch-tick',
+          inputValues: { request: TICK },
           organizationId: 'org-1',
         }),
-        expect.any(Function),
       );
     });
 
@@ -482,13 +535,12 @@ describe('SocialReplyCampaignDispatchService', () => {
       expect(result.outcome).toBe('throttled');
       expect(result.nextRunInSeconds).toBeGreaterThan(0);
       expect(context.actionService.postReply).not.toHaveBeenCalled();
-      expect(context.queueService.enqueueTick).toHaveBeenCalledWith(
-        {
-          campaignId: 'campaign-1',
-          dispatchCursor: 2,
-          organizationId: 'org-1',
-        },
-        result.nextRunInSeconds,
+      expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
+        expect.anything(),
+        'social-reply-campaign-campaign-1-2',
+        expect.objectContaining({
+          delayMs: (result.nextRunInSeconds ?? 0) * 1000,
+        }),
       );
     });
 
@@ -531,7 +583,7 @@ describe('SocialReplyCampaignDispatchService', () => {
         nextRunAt: null,
         status: SocialReplyCampaignStatus.COMPLETED,
       });
-      expect(context.queueService.enqueueTick).not.toHaveBeenCalled();
+      expect(context.workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
     });
   });
 
@@ -559,13 +611,10 @@ describe('SocialReplyCampaignDispatchService', () => {
       });
       expect(context.campaigns[0].skippedCount).toBe(1);
       // No cooldown for a skip — nothing was actually sent.
-      expect(context.queueService.enqueueTick).toHaveBeenCalledWith(
-        {
-          campaignId: 'campaign-1',
-          dispatchCursor: 2,
-          organizationId: 'org-1',
-        },
-        0,
+      expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
+        expect.anything(),
+        'social-reply-campaign-campaign-1-2',
+        expect.objectContaining({ delayMs: 0 }),
       );
     });
 
@@ -591,13 +640,10 @@ describe('SocialReplyCampaignDispatchService', () => {
         failedCount: 0,
         lastError: 'provider unavailable',
       });
-      expect(context.queueService.enqueueTick).toHaveBeenCalledWith(
-        {
-          campaignId: 'campaign-1',
-          dispatchCursor: 2,
-          organizationId: 'org-1',
-        },
-        60,
+      expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
+        expect.anything(),
+        'social-reply-campaign-campaign-1-2',
+        expect.objectContaining({ delayMs: 60_000 }),
       );
     });
 
@@ -637,7 +683,9 @@ describe('SocialReplyCampaignDispatchService', () => {
 
       const result = await context.service.dispatchTick(TICK);
 
+      // Nothing was sent, so the successor tick keeps draining immediately.
       expect(result).toEqual({
+        nextRunInSeconds: 0,
         outcome: 'recipient-skipped',
         recipientId: 'recipient-1',
       });
@@ -723,13 +771,10 @@ describe('SocialReplyCampaignDispatchService', () => {
           (row) => row.status !== SocialReplyCampaignRecipientStatus.SENT,
         ),
       ).toBe(true);
-      expect(context.queueService.enqueueTick).toHaveBeenCalledWith(
-        {
-          campaignId: 'campaign-1',
-          dispatchCursor: 2,
-          organizationId: 'org-1',
-        },
-        0,
+      expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
+        expect.anything(),
+        'social-reply-campaign-campaign-1-2',
+        expect.objectContaining({ delayMs: 0 }),
       );
     });
 
@@ -743,7 +788,7 @@ describe('SocialReplyCampaignDispatchService', () => {
       const result = await context.service.dispatchTick(TICK);
 
       expect(result.outcome).toBe('recipient-sent');
-      expect(context.queueService.enqueueTick).not.toHaveBeenCalled();
+      expect(context.workflowQueue.queueSystemWorkflow).not.toHaveBeenCalled();
       expect(context.campaigns[0].dispatchCursor).toBe(1);
     });
 
@@ -785,7 +830,7 @@ describe('SocialReplyCampaignDispatchService', () => {
       expect(context.campaigns[0].status).toBe(
         SocialReplyCampaignStatus.RUNNING,
       );
-      expect(context.queueService.enqueueTick).toHaveBeenCalled();
+      expect(context.workflowQueue.queueSystemWorkflow).toHaveBeenCalled();
     });
   });
 

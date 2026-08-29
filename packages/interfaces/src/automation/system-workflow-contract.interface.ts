@@ -1,7 +1,9 @@
 export const SYSTEM_WORKFLOW_METADATA_KEY = 'systemWorkflow';
 export const SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY =
   'duplicatedFromSystemWorkflow';
+export const HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE = 'hidden-system-workflow';
 export const SYSTEM_WORKFLOW_OWNER = 'genfeed';
+export const SYSTEM_WORKFLOW_PRINCIPAL_ID = 'genfeed-public-tools';
 export const SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE = 1011;
 export const SYSTEM_WORKFLOW_TEMPLATE_VERSION = 1;
 export const SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY =
@@ -24,7 +26,7 @@ export type SystemWorkflowMetadata = {
   productizationIssue: typeof SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE;
   sourceIssue?: number;
   version: number;
-  visibility: 'organization';
+  visibility: 'internal' | 'organization';
 };
 
 export type SystemWorkflowDuplicateMetadata = {
@@ -72,6 +74,16 @@ export function buildSystemWorkflowMetadata(
   };
 }
 
+export function buildHiddenSystemWorkflowMetadata(
+  input: BuildSystemWorkflowMetadataInput,
+): SystemWorkflowMetadata {
+  return {
+    ...buildSystemWorkflowMetadata(input),
+    duplicable: false,
+    visibility: 'internal',
+  };
+}
+
 export function getMetadataRecord(metadata: unknown): Record<string, unknown> {
   if (isRecord(metadata)) {
     return { ...metadata };
@@ -102,6 +114,17 @@ export function getSystemWorkflowDuplicateMetadata(
 
 export function isProtectedSystemWorkflowMetadata(metadata: unknown): boolean {
   return getSystemWorkflowMetadata(metadata)?.immutable === true;
+}
+
+export function isHiddenSystemWorkflowMetadata(metadata: unknown): boolean {
+  const metadataRecord = getMetadataRecord(metadata);
+  const systemWorkflow = getSystemWorkflowMetadata(metadataRecord);
+
+  return (
+    metadataRecord.sourceType === HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE &&
+    systemWorkflow?.duplicable === false &&
+    systemWorkflow.visibility === 'internal'
+  );
 }
 
 export function buildSystemWorkflowDuplicateMetadata(
@@ -227,7 +250,7 @@ function normalizeSystemWorkflowMetadata(
     productizationIssue !== SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE ||
     !isOptionalIssueNumber(value.sourceIssue) ||
     !isPositiveInteger(version) ||
-    visibility !== 'organization'
+    (visibility !== 'internal' && visibility !== 'organization')
   ) {
     return null;
   }
@@ -243,7 +266,7 @@ function normalizeSystemWorkflowMetadata(
     productizationIssue: SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE,
     sourceIssue: value.sourceIssue,
     version,
-    visibility: 'organization',
+    visibility,
   };
 }
 

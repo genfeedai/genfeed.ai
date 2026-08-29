@@ -1,6 +1,6 @@
-import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { Timeframe } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { INSIGHT_GENERATION_ACTION_IDS } from '@server/collections/insights/services/insight-generation-workflow-definition';
 import { InsightsService } from '@server/collections/insights/services/insights.service';
 import type { ModelsService } from '@server/collections/models/services/models.service';
 import type { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
@@ -13,6 +13,10 @@ type MockInsightDelegate = {
   findFirst: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
 };
+
+type WorkflowActionHandler = (context: {
+  input: Record<string, unknown>;
+}) => Promise<unknown> | unknown;
 
 describe('InsightsService', () => {
   let service: InsightsService;
@@ -27,6 +31,7 @@ describe('InsightsService', () => {
     log: ReturnType<typeof vi.fn>;
     warn: ReturnType<typeof vi.fn>;
   };
+  let workflowActions: Map<string, WorkflowActionHandler>;
 
   const existing = {
     data: { forecast: { value: 42 }, isRead: false },
@@ -87,6 +92,7 @@ describe('InsightsService', () => {
       log: vi.fn(),
       warn: vi.fn(),
     };
+    workflowActions = new Map();
 
     service = new InsightsService(
       {
@@ -96,7 +102,17 @@ describe('InsightsService', () => {
       logger as unknown as LoggerService,
       {} as unknown as ModelsService,
       llmDispatcherService as unknown as LlmDispatcherService,
+      { queueSystemWorkflow: vi.fn() } as never,
+      {
+        registerAction: vi.fn(
+          (actionId: string, handler: WorkflowActionHandler) => {
+            workflowActions.set(actionId, handler);
+          },
+        ),
+        registerWorkflow: vi.fn(),
+      } as never,
     );
+    service.onModuleInit();
   });
 
   afterEach(() => {
@@ -166,17 +182,48 @@ describe('InsightsService', () => {
     });
   });
 
-  describe('generateInsightsIfNeeded', () => {
-    it('uses the authenticated LLM dispatcher and persists generated insights in organization scope', async () => {
-      const result = await service.generateInsightsIfNeeded('org-1', 1);
+  describe('insight generation workflow actions', () => {
+    it('loads only stable JSON identifiers into workflow state', async () => {
+      delegate.findMany.mockResolvedValue([
+        { id: 'insight-1' },
+        { id: 'insight-2' },
+      ]);
+      const load = workflowActions.get(INSIGHT_GENERATION_ACTION_IDS.LOAD);
 
-      expect(llmDispatcherService.chatCompletion).toHaveBeenCalledWith(
-        expect.objectContaining({
-          messages: [expect.objectContaining({ role: 'user' })],
-          model: LLM_DEFAULTS.planning,
-        }),
-        'org-1',
+      await expect(
+        load?.({ input: { request: { limit: 5, organizationId: 'org-1' } } }),
+      ).resolves.toEqual({
+        existingIds: ['insight-1', 'insight-2'],
+        missingCount: 3,
+        organizationId: 'org-1',
+      });
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ select: { id: true }, take: 5 }),
       );
+    });
+
+    it('persists drafts and returns identifiers instead of Prisma rows', async () => {
+      const persist = workflowActions.get(
+        INSIGHT_GENERATION_ACTION_IDS.PERSIST,
+      );
+
+      await expect(
+        persist?.({
+          input: {
+            generated: {
+              drafts: [{ category: 'opportunity', title: 'Keep shipping' }],
+            },
+            plan: {
+              existingIds: ['insight-1'],
+              missingCount: 1,
+              organizationId: 'org-1',
+            },
+          },
+        }),
+      ).resolves.toEqual({
+        insightIds: ['insight-1', 'generated-insight'],
+        persisted: 1,
+      });
       expect(delegate.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           isDismissed: false,
@@ -184,19 +231,6 @@ describe('InsightsService', () => {
           organizationId: 'org-1',
         }),
       });
-      expect(result).toHaveLength(1);
-    });
-
-    it('does not call a provider when enough active insights already exist', async () => {
-      delegate.findMany.mockResolvedValue([
-        { ...existing, id: 'insight-1', isDismissed: false, isRead: false },
-        { ...existing, id: 'insight-2', isDismissed: false, isRead: false },
-      ]);
-
-      const result = await service.generateInsightsIfNeeded('org-1', 2);
-
-      expect(result).toHaveLength(2);
-      expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
     });
   });
 

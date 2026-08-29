@@ -1,33 +1,4 @@
 import {
-  type PendingReviewGateExecution,
-  WorkflowExecutionsService,
-} from '@server/collections/workflow-executions/services/workflow-executions.service';
-import type { WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
-import { ReviewGateNotificationService } from '@server/collections/workflows/services/review-gate-notification.service';
-import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
-import { WorkflowExecutionFinalizerService } from '@server/collections/workflows/services/workflow-execution-finalizer.service';
-import { WorkflowExecutionGraphService } from '@server/collections/workflows/services/workflow-execution-graph.service';
-import { WorkflowExecutionProgressService } from '@server/collections/workflows/services/workflow-execution-progress.service';
-import {
-  EXECUTABLE_WORKFLOW_SELECT,
-  type ExecutableWorkflowRow,
-} from '@server/collections/workflows/services/workflow-executor.constants';
-import type {
-  DelayResumeJobData,
-  ReviewGateApprovalResult,
-  ReviewGateTimeoutResolution,
-  TriggerEvent,
-  WorkflowExecutionResult,
-} from '@server/collections/workflows/services/workflow-executor.types';
-import { WorkflowExecutorDocumentService } from '@server/collections/workflows/services/workflow-executor-document.service';
-import { WorkflowNodeClaimService } from '@server/collections/workflows/services/workflow-node-claim.service';
-import { WorkflowNodeGraphRunnerService } from '@server/collections/workflows/services/workflow-node-graph-runner.service';
-import { WorkflowNodeProgressTrackerService } from '@server/collections/workflows/services/workflow-node-progress-tracker.service';
-import { WorkflowReviewGateService } from '@server/collections/workflows/services/workflow-review-gate.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
-import {
   ActionOrigin,
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
@@ -47,6 +18,37 @@ import {
 } from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+import {
+  type PendingReviewGateExecution,
+  WorkflowExecutionsService,
+} from '@server/collections/workflow-executions/services/workflow-executions.service';
+import type { WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
+import { ReviewGateNotificationService } from '@server/collections/workflows/services/review-gate-notification.service';
+import { WorkflowArtifactLifecycleService } from '@server/collections/workflows/services/workflow-artifact-lifecycle.service';
+import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
+import { WorkflowExecutionFinalizerService } from '@server/collections/workflows/services/workflow-execution-finalizer.service';
+import { WorkflowExecutionGraphService } from '@server/collections/workflows/services/workflow-execution-graph.service';
+import { WorkflowExecutionProgressService } from '@server/collections/workflows/services/workflow-execution-progress.service';
+import {
+  EXECUTABLE_WORKFLOW_SELECT,
+  type ExecutableWorkflowRow,
+} from '@server/collections/workflows/services/workflow-executor.constants';
+import type {
+  DelayResumeJobData,
+  ReviewGateApprovalResult,
+  ReviewGateTimeoutResolution,
+  TriggerEvent,
+  WorkflowExecutionResult,
+} from '@server/collections/workflows/services/workflow-executor.types';
+import { WorkflowExecutorDocumentService } from '@server/collections/workflows/services/workflow-executor-document.service';
+import { WorkflowNodeClaimService } from '@server/collections/workflows/services/workflow-node-claim.service';
+import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
+import { WorkflowNodeGraphRunnerService } from '@server/collections/workflows/services/workflow-node-graph-runner.service';
+import { WorkflowNodeProgressTrackerService } from '@server/collections/workflows/services/workflow-node-progress-tracker.service';
+import { WorkflowReviewGateService } from '@server/collections/workflows/services/workflow-review-gate.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
 
 export {
   EXECUTABLE_WORKFLOW_SELECT,
@@ -91,6 +93,10 @@ export class WorkflowExecutorService {
     private readonly agentScopeContextService?: AgentScopeContextService,
     @Optional()
     private readonly nodeClaimService?: WorkflowNodeClaimService,
+    @Optional()
+    private readonly artifactLifecycleService?: WorkflowArtifactLifecycleService,
+    @Optional()
+    private readonly nodeContinuationService?: WorkflowNodeContinuationService,
   ) {
     this.documentService = new WorkflowExecutorDocumentService(this.prisma);
     this.graphService = new WorkflowExecutionGraphService();
@@ -105,9 +111,9 @@ export class WorkflowExecutorService {
       this.graphService,
       this.websocketService,
       this.logger,
+      this.artifactLifecycleService,
     );
     this.reviewGateService = new WorkflowReviewGateService(
-      this.prisma,
       this.engineAdapter,
       this.executionsService,
       this.documentService,
@@ -115,10 +121,20 @@ export class WorkflowExecutorService {
       this.progressService,
       this.finalizer,
       this.reviewGateNotifier,
+      (input) =>
+        this.graphRunner.executeNodeGraph(
+          input.workflow,
+          input.triggerEvent,
+          input.executionId,
+          {
+            nodeOutputCache: input.nodeOutputCache,
+            startedAt: input.startedAt,
+            workflowLabel: input.workflowLabel,
+          },
+        ),
     );
     this.nodeProgressTracker = new WorkflowNodeProgressTrackerService(
       this.progressService,
-      this.graphService,
     );
     // Prefer injected claim service; fall back to a prisma-backed instance so
     // durable (executionId, nodeId) claims always exist in process (#2359).
@@ -133,6 +149,7 @@ export class WorkflowExecutorService {
       this.reviewGateService,
       this.executionsService,
       durableClaims,
+      this.nodeContinuationService,
     );
   }
 
@@ -251,34 +268,81 @@ export class WorkflowExecutorService {
         completedAt: execution.completedAt ?? new Date(),
         error: undefined,
         executionId,
-        nodeResults: [],
+        nodeResults: execution.nodeResults.map((nodeResult) => ({
+          completedAt: nodeResult.completedAt ?? undefined,
+          creditsUsed: nodeResult.creditsUsed ?? 0,
+          error: nodeResult.error ?? undefined,
+          nodeId: nodeResult.nodeId,
+          nodeType: nodeResult.nodeType,
+          output: nodeResult.output,
+          retryCount: nodeResult.retryCount ?? 0,
+          startedAt: nodeResult.startedAt ?? undefined,
+          status: nodeResult.status as WorkflowExecutionStatus,
+        })),
         startedAt: execution.startedAt ?? new Date(),
         status:
           status === WorkflowExecutionStatus.CANCELLED
             ? WorkflowExecutionStatus.CANCELLED
             : WorkflowExecutionStatus.COMPLETED,
-        totalCreditsUsed: 0,
+        totalCreditsUsed: execution.creditsUsed ?? 0,
         workflowId,
       };
     }
 
-    const workflowDoc = await findOrThrow(
-      this.prisma.workflow,
-      {
-        select: EXECUTABLE_WORKFLOW_SELECT,
-        where: scopedWhere(event.organizationId, { id: workflowId }),
-      },
-      'Workflow',
+    const normalizedWorkflow = await this.documentService.findPinnedWorkflow(
       workflowId,
+      execution.workflowVersionId,
+      event.organizationId,
+      event.userId,
     );
+    if (!normalizedWorkflow) {
+      throw new Error(
+        `Workflow version ${execution.workflowVersionId} not found for execution ${executionId}`,
+      );
+    }
 
     return this.executeWorkflowDocumentWithActionOrigin(
-      this.documentService.normalizeWorkflowDocument(workflowDoc),
+      normalizedWorkflow,
       event,
-      WorkflowExecutionTrigger.EVENT,
-      { continuedFromExecutionId: executionId },
+      (execution.trigger as WorkflowExecutionTrigger | null) ??
+        WorkflowExecutionTrigger.EVENT,
+      {
+        ...(execution.metadata ?? {}),
+        continuedFromExecutionId: executionId,
+      },
       executionId,
     );
+  }
+
+  async continueProviderCallbackExecution(input: {
+    executionId: string;
+    organizationId: string;
+    workflowVersionId: string;
+  }): Promise<WorkflowExecutionResult> {
+    const execution = await this.executionsService.findOne({
+      id: input.executionId,
+      isDeleted: false,
+      organizationId: input.organizationId,
+    });
+    if (!execution || execution.workflowVersionId !== input.workflowVersionId) {
+      throw new Error(
+        `Provider continuation execution ${input.executionId} does not match its immutable workflow version`,
+      );
+    }
+
+    return this.continueExistingExecution(input.executionId, {
+      data: execution.inputValues ?? {},
+      organizationId: input.organizationId,
+      platform:
+        typeof execution.metadata?.platform === 'string'
+          ? execution.metadata.platform
+          : 'provider-callback',
+      type:
+        typeof execution.metadata?.triggerType === 'string'
+          ? execution.metadata.triggerType
+          : 'manual',
+      userId: execution.userId,
+    });
   }
 
   async executeTriggeredWorkflow(
@@ -332,7 +396,7 @@ export class WorkflowExecutorService {
     }
 
     return this.executeManualWorkflowDocument(
-      workflowDoc,
+      this.documentService.normalizeWorkflowDocument(workflowDoc),
       userId,
       organizationId,
       inputValues,
@@ -343,6 +407,67 @@ export class WorkflowExecutorService {
     );
   }
 
+  async executePinnedManualWorkflow(
+    workflowId: string,
+    workflowVersionId: string,
+    userId: string,
+    organizationId: string,
+    inputValues: Record<string, unknown> = {},
+    metadata?: Record<string, unknown>,
+    idempotencyKey?: string,
+  ): Promise<{
+    execution: WorkflowExecutionResult;
+    workflowLabel: string;
+  }> {
+    const workflowDoc = await this.documentService.findPinnedWorkflow(
+      workflowId,
+      workflowVersionId,
+      organizationId,
+      userId,
+    );
+    if (!workflowDoc) {
+      throw new Error(
+        `Workflow ${workflowId} version ${workflowVersionId} is unavailable in organization ${organizationId}`,
+      );
+    }
+
+    if (idempotencyKey) {
+      const existingExecution = await this.executionsService.findOne({
+        idempotencyKey,
+        isDeleted: false,
+        organizationId,
+      });
+      if (existingExecution) {
+        return {
+          execution: await this.continueExistingExecution(
+            existingExecution.id,
+            {
+              data: inputValues,
+              organizationId,
+              platform: 'manual',
+              type: 'manual',
+              userId,
+            },
+          ),
+          workflowLabel: this.documentService.getWorkflowLabel(workflowDoc),
+        };
+      }
+    }
+
+    return {
+      execution: await this.executeManualWorkflowDocument(
+        workflowDoc,
+        userId,
+        organizationId,
+        inputValues,
+        metadata,
+        WorkflowExecutionTrigger.API,
+        idempotencyKey,
+      ),
+      workflowLabel: this.documentService.getWorkflowLabel(workflowDoc),
+    };
+  }
+
   async executeManualWorkflowDocument(
     workflowDoc: WorkflowDocument | ExecutableWorkflowRow,
     userId: string,
@@ -350,6 +475,7 @@ export class WorkflowExecutorService {
     inputValues: Record<string, unknown> = {},
     metadata?: Record<string, unknown>,
     trigger: WorkflowExecutionTrigger = WorkflowExecutionTrigger.MANUAL,
+    idempotencyKey?: string,
   ): Promise<WorkflowExecutionResult> {
     return this.executeWorkflowDocument(
       this.documentService.normalizeWorkflowDocument(workflowDoc),
@@ -362,6 +488,33 @@ export class WorkflowExecutorService {
       },
       trigger,
       metadata,
+      undefined,
+      idempotencyKey,
+    );
+  }
+
+  async executePartialWorkflowDocument(
+    workflowDoc: WorkflowDocument | ExecutableWorkflowRow,
+    userId: string,
+    organizationId: string,
+    nodeIds: string[],
+    respectLocks = true,
+  ): Promise<WorkflowExecutionResult> {
+    return this.executeWorkflowDocument(
+      this.documentService.normalizeWorkflowDocument(workflowDoc),
+      {
+        data: {},
+        organizationId,
+        platform: 'manual',
+        type: 'partial',
+        userId,
+      },
+      WorkflowExecutionTrigger.MANUAL,
+      {
+        executionMode: 'partial',
+        selectedNodeIds: nodeIds,
+      },
+      { respectLocks, selectedNodeIds: nodeIds },
     );
   }
 
@@ -432,10 +585,18 @@ export class WorkflowExecutorService {
       workflowId,
     });
 
-    const workflowDoc = await this.prisma.workflow.findFirst({
-      select: EXECUTABLE_WORKFLOW_SELECT,
-      where: scopedWhere(jobData.organizationId, { id: workflowId }),
+    const delayedExecution = await this.executionsService.findOne({
+      id: executionId,
+      organizationId: jobData.organizationId,
     });
+    const workflowDoc = delayedExecution
+      ? await this.documentService.findPinnedWorkflow(
+          workflowId,
+          delayedExecution.workflowVersionId,
+          jobData.organizationId,
+          delayedExecution.userId,
+        )
+      : null;
 
     if (!workflowDoc) {
       const errorMessage = `Workflow ${workflowId} not found for delay resume`;
@@ -468,8 +629,7 @@ export class WorkflowExecutorService {
       };
     }
 
-    const normalizedWorkflowDoc =
-      this.documentService.normalizeWorkflowDocument(workflowDoc);
+    const normalizedWorkflowDoc = workflowDoc;
     const workflowLabel = this.documentService.getWorkflowLabel(
       normalizedWorkflowDoc,
     );
@@ -501,39 +661,22 @@ export class WorkflowExecutorService {
       );
       this.agentScopeContextService.assertResourceBrand(
         resumedAgentScope,
-        workflowDoc.brandId,
+        normalizedWorkflowDoc.brandId,
         'workflow',
       );
     }
-    const resumedCompletedNodeIds = new Set(Object.keys(nodeOutputCache));
-    const resumedSkippedNodeIds = new Set<string>();
-
-    for (const node of executableWorkflow.nodes) {
-      if (nodeOutputCache[node.id] !== undefined) {
-        node.cachedOutput = nodeOutputCache[node.id];
-      }
-    }
-
-    const result = await this.engineAdapter.executeWorkflow(
+    const result = await this.graphRunner.executeNodeGraph(
       executableWorkflow,
+      triggerEvent,
+      executionId,
       {
-        executionId,
-        nodeIds: remainingNodeIds,
-        onNodeStatusChange: this.progressService.buildNodeStatusChangeHandler({
-          baselineEstimatedDurationMs:
-            this.progressService.extractEstimatedDurationMs(
-              existingExecution?.metadata,
-            ),
-          completedNodeIds: resumedCompletedNodeIds,
-          executionId,
-          progressFallback: existingExecution?.progress ?? 0,
-          skippedNodeIds: resumedSkippedNodeIds,
-          startedAt: existingExecution?.startedAt ?? new Date(),
-          userId: triggerEvent.userId,
-          workflow: executableWorkflow,
-          workflowId,
-          workflowLabel,
-        }),
+        baselineEstimatedDurationMs:
+          this.progressService.extractEstimatedDurationMs(
+            existingExecution?.metadata,
+          ),
+        nodeOutputCache,
+        startedAt: existingExecution?.startedAt ?? new Date(),
+        workflowLabel,
       },
     );
 
@@ -606,6 +749,8 @@ export class WorkflowExecutorService {
     event: TriggerEvent,
     trigger: WorkflowExecutionTrigger,
     metadata?: Record<string, unknown>,
+    graphOptions?: { respectLocks?: boolean; selectedNodeIds?: string[] },
+    idempotencyKey?: string,
   ): Promise<WorkflowExecutionResult> {
     return runWithActionOrigin(
       resolveNestedActionOrigin(ActionOrigin.WORKFLOW),
@@ -615,6 +760,9 @@ export class WorkflowExecutorService {
           event,
           trigger,
           metadata,
+          undefined,
+          graphOptions,
+          idempotencyKey,
         ),
     );
   }
@@ -625,6 +773,8 @@ export class WorkflowExecutorService {
     trigger: WorkflowExecutionTrigger,
     metadata?: Record<string, unknown>,
     existingExecutionId?: string,
+    graphOptions?: { respectLocks?: boolean; selectedNodeIds?: string[] },
+    idempotencyKey?: string,
   ): Promise<WorkflowExecutionResult> {
     const workflowLabel = this.documentService.getWorkflowLabel(workflowDoc);
     const workflowId = String(
@@ -634,7 +784,8 @@ export class WorkflowExecutorService {
     const startedAt = new Date();
     const keepsWorkflowActive =
       trigger === WorkflowExecutionTrigger.SCHEDULED ||
-      trigger === WorkflowExecutionTrigger.EVENT;
+      trigger === WorkflowExecutionTrigger.EVENT ||
+      metadata?.isSystemAction === true;
 
     let executableWorkflow =
       this.engineAdapter.convertToExecutableWorkflow(workflowDoc);
@@ -670,11 +821,13 @@ export class WorkflowExecutorService {
           etaConfidence: initialEta.etaConfidence,
           etaCurrentPhase: initialEta.currentPhase,
           inputValues: event.data,
+          idempotencyKey,
           metadata: executionMetadata,
           remainingDurationMs: initialEta.remainingDurationMs,
           totalNodes: executableWorkflow.nodes.length,
           trigger,
           workflowId,
+          workflowVersionId: workflowDoc.versionId,
         },
       );
       executionId = execution.id;
@@ -706,10 +859,12 @@ export class WorkflowExecutorService {
         where: { id: workflowId },
       });
 
-      await this.progressService.emitEvent(workflowId, 'started', {
-        executionId,
-        status: 'started',
-      });
+      if (executableWorkflow.emitSharedEvents !== false) {
+        await this.progressService.emitEvent(workflowId, 'started', {
+          executionId,
+          status: 'started',
+        });
+      }
 
       const result = await this.graphRunner.executeNodeGraph(
         executableWorkflow,
@@ -717,6 +872,8 @@ export class WorkflowExecutorService {
         executionId,
         {
           baselineEstimatedDurationMs: initialEta.estimatedDurationMs,
+          respectLocks: graphOptions?.respectLocks,
+          selectedNodeIds: graphOptions?.selectedNodeIds,
           startedAt,
           workflowLabel,
         },
@@ -751,16 +908,18 @@ export class WorkflowExecutorService {
           );
         }
 
-        await this.progressService.emitEvent(
-          workflowId,
-          finalStatus === WorkflowExecutionStatus.COMPLETED
-            ? 'completed'
-            : 'failed',
-          {
-            executionId,
-            status: finalStatus,
-          },
-        );
+        if (executableWorkflow.emitSharedEvents !== false) {
+          await this.progressService.emitEvent(
+            workflowId,
+            finalStatus === WorkflowExecutionStatus.COMPLETED
+              ? 'completed'
+              : 'failed',
+            {
+              executionId,
+              status: finalStatus,
+            },
+          );
+        }
 
         await this.progressService.publishWorkflowTaskUpdate({
           error: result.error,
@@ -779,10 +938,12 @@ export class WorkflowExecutorService {
           workflowLabel,
         });
       } else {
-        await this.progressService.emitEvent(workflowId, 'delayed', {
-          executionId,
-          status: finalStatus,
-        });
+        if (executableWorkflow.emitSharedEvents !== false) {
+          await this.progressService.emitEvent(workflowId, 'delayed', {
+            executionId,
+            status: finalStatus,
+          });
+        }
       }
 
       const delayJobData = (result as unknown as Record<string, unknown>)
@@ -801,9 +962,7 @@ export class WorkflowExecutorService {
         totalCreditsUsed: result.totalCreditsUsed,
         workflowId,
         ...(delayJobData ? { _delayJobData: delayJobData } : {}),
-      } as WorkflowExecutionResult & {
-        _delayJobData?: unknown;
-      };
+      } as WorkflowExecutionResult;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -821,10 +980,12 @@ export class WorkflowExecutorService {
         where: { id: workflowId },
       });
 
-      await this.progressService.emitEvent(workflowId, 'error', {
-        error: errorMessage,
-        executionId,
-      });
+      if (executableWorkflow.emitSharedEvents !== false) {
+        await this.progressService.emitEvent(workflowId, 'error', {
+          error: errorMessage,
+          executionId,
+        });
+      }
 
       await this.progressService.publishWorkflowTaskUpdate({
         error: errorMessage,

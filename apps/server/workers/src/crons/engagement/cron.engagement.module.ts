@@ -1,4 +1,5 @@
 import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { PublishersModule } from '@api/services/integrations/publishers/publishers.module';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { Module } from '@nestjs/common';
@@ -6,7 +7,7 @@ import { CronEngagementTriggersService } from '@workers/crons/engagement/cron.en
 
 @Module({
   exports: [CronEngagementTriggersService],
-  imports: [PrismaModule, PostGroupsModule, PublishersModule],
+  imports: [PrismaModule, PostGroupsModule, PublishersModule, WorkflowsModule],
   providers: [CronEngagementTriggersService],
 })
 export class CronEngagementModule {}

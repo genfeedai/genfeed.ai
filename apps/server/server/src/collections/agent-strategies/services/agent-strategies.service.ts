@@ -1,3 +1,8 @@
+import { AgentStrategyRunStatus } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { getAgentTypeWorkflowDefault } from '@server/collections/agent-strategies/constants/agent-type-workflow-defaults.constant';
 import { CreateAgentStrategyDto } from '@server/collections/agent-strategies/dto/create-agent-strategy.dto';
 import { UpdateAgentStrategyDto } from '@server/collections/agent-strategies/dto/update-agent-strategy.dto';
@@ -8,11 +13,6 @@ import {
   BaseService,
   type PopulateInput,
 } from '@server/shared/services/base/base.service';
-import { AgentRunStatus } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 type AgentStrategyWriteDto = Partial<
   Omit<
@@ -266,7 +266,7 @@ export class AgentStrategiesService extends BaseService<
     run: {
       startedAt: Date;
       completedAt: Date;
-      status: AgentRunStatus;
+      status: AgentStrategyRunStatus;
       creditsUsed: number;
       contentGenerated: number;
       threadId?: string;

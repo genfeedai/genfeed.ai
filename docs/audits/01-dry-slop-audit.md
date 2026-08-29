@@ -126,17 +126,13 @@ Impact: AI output consistency. Two queue processors use near-identical prompt, L
 
 Evidence:
 
-- `apps/server/workers/src/processors/api/queues/clip-analyze/clip-analyze.processor.ts`
+- `apps/server/server/src/collections/clip-projects/services/clip-highlight-detector.service.ts`
   - `HIGHLIGHT_SYSTEM_PROMPT` at line 32.
   - `detectHighlights` call at line 135.
   - `detectHighlights` implementation at line 255.
   - `parseHighlights` at line 312.
-- `apps/server/workers/src/processors/api/queues/clip-factory/clip-factory.processor.ts`
-  - `HIGHLIGHT_SYSTEM_PROMPT` at line 29.
-  - `detectHighlights` call at line 134.
-  - `detectHighlights` implementation at line 303.
-  - `parseHighlights` at line 360.
-- jscpd reports a 144-line clone between the two processors.
+- The duplicate clip-factory worker processor was removed. Clip analysis and factory
+  generation now share the domain-owned detector through action-backed workflows.
 
 Refactor direction:
 
@@ -582,7 +578,7 @@ Not recommended:
 | Vitest warning filter consolidation | Low | Run the smallest config consumer check available, or validate imports/config references statically. |
 | UI guard consolidation | Medium | Add scanner unit tests for raw buttons, styled anchors, raw inputs/selects, allowlist entries, and lint-staged changed-file mode. Run the consolidated scanner on a sample path set. |
 | Duplicate export cleanup | Low-medium | Package API surface check for each touched package. Preserve compatibility exports if consumers exist. |
-| Clip highlight detector extraction | Medium | Focused tests for prompt construction, provider failure fallback, JSON parse failure, max clip cap, and transcript timestamp handling. Run clip-analyze and clip-factory processor specs if they exist. |
+| Clip highlight detector extraction | Medium | Focused tests for prompt construction, provider failure fallback, JSON parse failure, max clip cap, and transcript timestamp handling. Run the clip analysis and factory workflow service specs if they exist. |
 | Path/command sanitizer extraction | High | Security-focused unit tests for traversal, encoded traversal, absolute path boundaries, command argument type checks, blocked patterns, and known-good paths. Add regression tests in both API and files service import paths. |
 | Health module extension | Medium | Controller tests for shared core endpoints and service-specific extras. Verify Docker/deploy healthcheck paths. |
 | PollUntilService adoption | Medium-high | Fake-timer tests for timeout, backoff, cancellation/abort if supported, provider error retry behavior, and ingredient completion semantics. Verify callers that catch `PollingTimeoutError` are updated intentionally. |

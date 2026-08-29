@@ -7,7 +7,7 @@ import {
   normalizeReviewDecision,
   ReviewDecision,
 } from '@genfeedai/enums';
-import type { IAgentRun } from '@genfeedai/interfaces';
+import type { IWorkflowExecution } from '@genfeedai/interfaces';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task, TasksService } from '@services/management/tasks.service';
@@ -37,7 +37,7 @@ import { WorkspaceTaskRow } from './workspace-task-row';
 interface WorkspaceOverviewSidebarProps {
   busyTaskId: string | null;
   historyPreviewItems: Task[];
-  initialActiveRuns: IAgentRun[];
+  activeExecutions: IWorkflowExecution[];
   initialReviewInbox: ReviewInboxSummary;
   inProgressTasks: Task[];
   isTasksLoading?: boolean;
@@ -53,7 +53,7 @@ interface WorkspaceOverviewSidebarProps {
 export function WorkspaceOverviewSidebar({
   busyTaskId,
   historyPreviewItems,
-  initialActiveRuns,
+  activeExecutions,
   initialReviewInbox,
   inProgressTasks,
   isTasksLoading = false,
@@ -137,7 +137,7 @@ export function WorkspaceOverviewSidebar({
           <div className="border-t border-border pt-4">
             <div className="flex items-center justify-between text-sm text-foreground/55">
               <span>{translate('liveRuns')}</span>
-              <span>{initialActiveRuns.length}</span>
+              <span>{activeExecutions.length}</span>
             </div>
           </div>
         </Card>

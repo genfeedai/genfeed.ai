@@ -1,22 +1,25 @@
+import { videoGenerationBriefSchema } from '@api-types/contracts/generation-brief.contract';
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import type {
+  ClipGenerationReference,
+  ClipReferenceProvenance,
+  ClipResultMode,
+  SupportedAvatarVideoProviderName,
+} from '@genfeedai/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
 import { ClipLibraryLinkService } from '@server/collections/clip-projects/services/clip-library-link.service';
 import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
 import type { CreateClipResultDto } from '@server/collections/clip-results/dto/create-clip-result.dto';
 import { type ClipResultDocument } from '@server/collections/clip-results/schemas/clip-result.schema';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { AvatarVideoService } from '@server/services/avatar-video/avatar-video.service';
-import { ClipOrchestratorService } from '@server/services/clip-orchestrator/clip-orchestrator.service';
-import { ClipRunState } from '@server/services/clip-orchestrator/clip-run-state.enum';
 import {
-  type GenerationBriefReference,
-  videoGenerationBriefSchema,
-} from '@api-types/contracts/generation-brief.contract';
-import type {
-  ClipReferenceProvenance,
-  ClipResultMode,
-} from '@genfeedai/interfaces';
-import type { SupportedAvatarVideoProviderName } from '@genfeedai/queue-contracts';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+  buildClipGenerationWorkflowDefinition,
+  CLIP_GENERATION_WORKFLOW_ID,
+} from './clip-generation-workflow-definition';
 import { generateClipSrt, type TranscriptSegment } from './clip-srt.util';
 import {
   getRawCutTrimJobId,
@@ -68,14 +71,12 @@ export interface ClipGenerationInput {
   sourceVideoUrl?: string;
   transcriptSegments?: TranscriptSegment[];
   room?: string;
-  runReferences?: readonly ClipRunGenerationReference[];
+  runReferences?: readonly ClipGenerationReference[];
   /** Opt into hook-first approval for a multi-clip batch. */
   hookApprovalRequired?: boolean;
+  /** Original batch position used by the one-highlight action node. */
+  resultIndex?: number;
 }
-
-export type ClipRunGenerationReference = GenerationBriefReference & {
-  url: string;
-};
 
 export interface ClipGenerationResult {
   awaitingHookApproval?: boolean;
@@ -85,12 +86,8 @@ export interface ClipGenerationResult {
   queuedClipCount: number;
 }
 
-export interface HookClipApprovalPlan {
+export interface ClipHookReviewContext {
   attempt: number;
-  hookClipResultId: string;
-  hookInput: ClipGenerationInput;
-  phase: 'generating_hook' | 'resuming' | 'approved' | 'rejected' | 'failed';
-  remainingInput: ClipGenerationInput;
   feedback?: string;
   lastAction?: 'approve' | 'request_changes' | 'reject';
 }
@@ -120,8 +117,9 @@ interface GenerationLoopConfig {
   orgId: string;
   projectId: string;
   referenceProvenance?: ClipReferenceProvenance;
+  resultIndex?: number;
   userId: string;
-  runReferences: readonly ClipRunGenerationReference[];
+  runReferences: readonly ClipGenerationReference[];
   /** Provider name persisted on a clip-result when its dispatch throws. */
   failureProviderName: string;
   dispatch: (context: {
@@ -132,7 +130,7 @@ interface GenerationLoopConfig {
 }
 
 @Injectable()
-export class ClipGenerationService {
+export class ClipGenerationService implements OnModuleInit {
   private readonly logContext = 'ClipGenerationService';
 
   constructor(
@@ -141,12 +139,20 @@ export class ClipGenerationService {
     private readonly rawCutClipService: RawCutClipService,
     private readonly logger: LoggerService,
     @Optional()
-    private readonly clipOrchestrator?: ClipOrchestratorService,
-    @Optional()
     private readonly clipLibraryLinkService?: ClipLibraryLinkService,
     @Optional()
     private readonly clipProjectsService?: ClipProjectsService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef,
   ) {}
+
+  onModuleInit(): void {
+    const runner = this.requireWorkflowRunner();
+    runner.registerAction('clip.generation.generate-one', ({ input }) =>
+      this.executeGenerateOne(input),
+    );
+    runner.registerWorkflow(buildClipGenerationWorkflowDefinition());
+  }
 
   /**
    * Creates ClipResult records for each highlight and dispatches generation
@@ -155,16 +161,51 @@ export class ClipGenerationService {
    */
   async generateClips(
     input: ClipGenerationInput,
+    reviewContext: ClipHookReviewContext = { attempt: 1 },
   ): Promise<ClipGenerationResult> {
-    const mode: ClipGenerationMode = input.mode ?? 'avatar';
-    const hookApprovalRequired =
-      input.hookApprovalRequired ??
-      (mode === 'avatar' && input.highlights.length > 1);
-    if (hookApprovalRequired && input.highlights.length > 1) {
-      return this.generateHookFirst(input);
+    if (input.highlights.length === 0) {
+      throw new Error('Clip generation requires at least one highlight');
+    }
+    const request = this.toPersistedInput(input);
+    const definition = buildClipGenerationWorkflowDefinition();
+    const { execution } = await this.requireWorkflowRunner().startWorkflow({
+      actionType: CLIP_GENERATION_WORKFLOW_ID,
+      canonicalId: definition.canonicalId,
+      inputValues: { request, reviewContext },
+      metadata: {
+        clipHookReviewAttempt: reviewContext.attempt,
+        ...(reviewContext.feedback
+          ? { clipHookReviewFeedback: reviewContext.feedback }
+          : {}),
+        ...(reviewContext.lastAction
+          ? { clipHookReviewLastAction: reviewContext.lastAction }
+          : {}),
+        projectId: request.projectId,
+      },
+      organizationId: request.orgId,
+      source: CLIP_GENERATION_WORKFLOW_ID,
+      userId: request.userId,
+    });
+
+    if (execution.status === WorkflowExecutionStatus.FAILED) {
+      throw new Error(execution.error ?? 'Clip generation workflow failed');
     }
 
-    return this.dispatchClips(input);
+    const hookReviewRequired = this.isHookReviewRequired(request);
+    if (
+      hookReviewRequired &&
+      execution.status === WorkflowExecutionStatus.RUNNING
+    ) {
+      const result = this.collectForEachResults(execution.nodeResults, [
+        'generate-hook',
+      ]);
+      return { ...result, awaitingHookApproval: true };
+    }
+
+    return this.collectForEachResults(execution.nodeResults, [
+      'generate-hook',
+      'generate-remaining',
+    ]);
   }
 
   private async dispatchClips(
@@ -177,79 +218,6 @@ export class ClipGenerationService {
     }
 
     return this.generateAvatarClips(input);
-  }
-
-  private async generateHookFirst(
-    input: ClipGenerationInput,
-  ): Promise<ClipGenerationResult> {
-    if (!this.clipOrchestrator) {
-      throw new Error('Clip orchestrator is required for hook approval');
-    }
-
-    const hookIndex = input.highlights.findIndex(
-      (highlight) => highlight.clip_type.toLowerCase() === 'hook',
-    );
-    const resolvedHookIndex = hookIndex >= 0 ? hookIndex : 0;
-    const hook = input.highlights[resolvedHookIndex];
-    if (!hook) {
-      throw new Error('Hook approval requires at least one highlight');
-    }
-    const remainingHighlights = input.highlights.filter(
-      (_, index) => index !== resolvedHookIndex,
-    );
-    const immutableReferences = Object.freeze(
-      (input.runReferences ?? []).map((reference) =>
-        Object.freeze({ ...reference }),
-      ),
-    );
-    const hookInput: ClipGenerationInput = {
-      ...input,
-      highlights: [hook],
-      hookApprovalRequired: false,
-      runReferences: immutableReferences,
-    };
-    const remainingInput: ClipGenerationInput = {
-      ...input,
-      highlights: remainingHighlights,
-      hookApprovalRequired: false,
-      runReferences: immutableReferences,
-    };
-    const run = await this.clipOrchestrator.startRun({
-      confirmationRequired: true,
-      organizationId: input.orgId,
-      projectId: input.projectId,
-      runReferences: immutableReferences,
-      userId: input.userId,
-    });
-    await this.clipOrchestrator.transition(run.id, ClipRunState.Generating);
-
-    const result = await this.dispatchClips(hookInput);
-    const hookClipResultId = result.clipResultIds[0];
-    if (!hookClipResultId || result.queuedClipCount === 0) {
-      await this.clipOrchestrator.reject(
-        run.id,
-        'Hook generation failed before a provider job was queued.',
-      );
-      return result;
-    }
-
-    const hookApproval: HookClipApprovalPlan = {
-      attempt: 1,
-      hookClipResultId,
-      hookInput,
-      phase: 'generating_hook',
-      remainingInput,
-    };
-    await this.clipOrchestrator.updateMetadata(run.id, { hookApproval });
-    if (result.completedClipCount) {
-      await this.clipProjectsService?.patch(
-        input.projectId,
-        { error: null, status: 'generating' },
-        [],
-        input.orgId,
-      );
-    }
-    return { ...result, awaitingHookApproval: true };
   }
 
   /**
@@ -345,6 +313,7 @@ export class ClipGenerationService {
       orgId,
       projectId,
       referenceProvenance: input.referenceProvenance,
+      resultIndex: input.resultIndex,
       runReferences,
       userId,
     });
@@ -422,6 +391,7 @@ export class ClipGenerationService {
       orgId,
       projectId,
       referenceProvenance: input.referenceProvenance,
+      resultIndex: input.resultIndex,
       runReferences: input.runReferences ?? [],
       userId,
     });
@@ -460,7 +430,7 @@ export class ClipGenerationService {
       // 1. Persist the ClipResult in pending state
       const clipResultId = await this.createPendingClipResult(
         highlight,
-        i,
+        config.resultIndex ?? i,
         orgId,
         projectId,
         userId,
@@ -593,7 +563,7 @@ export class ClipGenerationService {
     userId: string,
     referenceProvenance: ClipReferenceProvenance | undefined,
     mode: ClipGenerationMode,
-    runReferences: readonly ClipRunGenerationReference[],
+    runReferences: readonly ClipGenerationReference[],
   ): Promise<string> {
     const generationBrief = videoGenerationBriefSchema.parse({
       constraints: [],
@@ -650,5 +620,151 @@ export class ClipGenerationService {
    */
   private buildAvatarScript(highlight: ClipHighlight): string {
     return `${highlight.title}. ${highlight.summary}`;
+  }
+
+  private async executeGenerateOne(
+    actionInput: Record<string, unknown>,
+  ): Promise<ClipGenerationResult> {
+    const request = this.readGenerationInput(actionInput.request);
+    const originalIndex = this.readNonNegativeInteger(
+      actionInput.originalIndex,
+      'originalIndex',
+    );
+    const highlight = request.highlights[originalIndex];
+    if (!highlight) {
+      throw new Error(
+        `Clip generation action could not resolve highlight ${originalIndex}`,
+      );
+    }
+    const result = await this.dispatchClips({
+      ...request,
+      highlights: [highlight],
+      hookApprovalRequired: false,
+      resultIndex: originalIndex,
+    });
+    if (result.queuedClipCount !== 1) {
+      throw new Error(
+        `Clip generation action ${originalIndex} failed before dispatch`,
+      );
+    }
+    return result;
+  }
+
+  private collectForEachResults(
+    nodeResults: Array<{ nodeId: string; output?: unknown }>,
+    nodeIds: string[],
+  ): ClipGenerationResult {
+    const orderedResults = nodeResults
+      .filter((nodeResult) => nodeIds.includes(nodeResult.nodeId))
+      .flatMap((nodeResult) => {
+        const output = this.readRecord(nodeResult.output);
+        return Array.isArray(output.results)
+          ? output.results.map((entry, index) => {
+              const child = this.readRecord(this.readRecord(entry).result);
+              return {
+                index: this.readNonNegativeInteger(
+                  child.originalIndex,
+                  `${nodeResult.nodeId}.results[${index}].originalIndex`,
+                ),
+                result: this.readGenerationResult(
+                  child,
+                  `${nodeResult.nodeId}.results[${index}]`,
+                ),
+              };
+            })
+          : [];
+      })
+      .sort((left, right) => left.index - right.index);
+    if (orderedResults.length === 0) {
+      throw new Error('Clip generation workflow returned no child results');
+    }
+    const completedClipCount = orderedResults.reduce(
+      (total, item) => total + (item.result.completedClipCount ?? 0),
+      0,
+    );
+    return {
+      clipResultIds: orderedResults.flatMap(
+        (item) => item.result.clipResultIds,
+      ),
+      ...(completedClipCount > 0 ? { completedClipCount } : {}),
+      providerJobIds: orderedResults.flatMap(
+        (item) => item.result.providerJobIds,
+      ),
+      queuedClipCount: orderedResults.reduce(
+        (total, item) => total + item.result.queuedClipCount,
+        0,
+      ),
+    };
+  }
+
+  private readGenerationInput(value: unknown): ClipGenerationInput {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error('Clip generation action requires a request object');
+    }
+    const request = value as Partial<ClipGenerationInput>;
+    if (
+      !Array.isArray(request.highlights) ||
+      typeof request.orgId !== 'string' ||
+      typeof request.projectId !== 'string' ||
+      typeof request.userId !== 'string'
+    ) {
+      throw new Error('Clip generation action received an invalid request');
+    }
+    return request as ClipGenerationInput;
+  }
+
+  private readGenerationResult(
+    value: unknown,
+    nodeId: string,
+  ): ClipGenerationResult {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error(`Workflow node ${nodeId} returned no clip result`);
+    }
+    const result = value as Partial<ClipGenerationResult>;
+    if (
+      !Array.isArray(result.clipResultIds) ||
+      !Array.isArray(result.providerJobIds) ||
+      typeof result.queuedClipCount !== 'number'
+    ) {
+      throw new Error(
+        `Workflow node ${nodeId} returned an invalid clip result`,
+      );
+    }
+    return result as ClipGenerationResult;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private readNonNegativeInteger(value: unknown, field: string): number {
+    if (!Number.isInteger(value) || Number(value) < 0) {
+      throw new Error(`Clip generation action requires ${field}`);
+    }
+    return Number(value);
+  }
+
+  private isHookReviewRequired(input: ClipGenerationInput): boolean {
+    return (
+      (input.hookApprovalRequired ??
+        ((input.mode ?? 'avatar') === 'avatar' &&
+          input.highlights.length > 1)) &&
+      input.highlights.length > 1
+    );
+  }
+
+  private toPersistedInput(input: ClipGenerationInput): ClipGenerationInput {
+    return JSON.parse(JSON.stringify(input)) as ClipGenerationInput;
+  }
+
+  private requireWorkflowRunner(): SystemWorkflowRunnerService {
+    if (!this.moduleRef) {
+      throw new Error('Workflow action runner is unavailable');
+    }
+    return this.moduleRef.get(SystemWorkflowRunnerService, {
+      strict: false,
+    });
   }
 }

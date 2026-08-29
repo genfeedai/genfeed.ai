@@ -1,5 +1,5 @@
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
-import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { TwitterModule } from '@api/services/integrations/twitter/twitter.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
@@ -17,7 +17,8 @@ import { Module } from '@nestjs/common';
     OpenRouterModule,
     ReplyBotModule,
     TwitterModule,
+    WorkflowsCoreModule,
   ],
-  providers: [TwitterPipelineService, SystemWorkflowProvenanceService],
+  providers: [TwitterPipelineService],
 })
 export class TwitterPipelineModule {}

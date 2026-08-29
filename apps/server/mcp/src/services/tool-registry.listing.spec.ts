@@ -1,4 +1,4 @@
-import type { McpToolOutput } from '@genfeedai/tools';
+import type { McpToolOutput } from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
@@ -43,7 +43,7 @@ const SUPERADMIN_TOOL = {
 
 const ALL_TOOLS = [USER_TOOL, ADMIN_TOOL, SUPERADMIN_TOOL];
 
-vi.mock('@genfeedai/tools', () => ({
+vi.mock('@genfeedai/actions', () => ({
   getToolByName: vi.fn(),
   getToolsForSurface: vi.fn(() => ALL_TOOLS),
   toMcpTools: vi.fn((tools) => tools),

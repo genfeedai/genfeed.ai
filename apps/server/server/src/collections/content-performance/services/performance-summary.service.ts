@@ -40,7 +40,7 @@ export interface PerformanceContentItem {
   comments: number;
   shares: number;
   saves: number;
-  publishDate?: Date;
+  publishDate?: string;
 }
 
 export interface PlatformEngagement {
@@ -432,6 +432,9 @@ export class PerformanceSummaryService {
 
     return analytics.map((item) => {
       const post = postMap.get(String(item.postId));
+      const publishDate = post?.publicationDate
+        ? new Date(post.publicationDate).toISOString()
+        : undefined;
       return {
         comments: Number(item.totalComments || 0),
         description: String(post?.description || ''),
@@ -439,7 +442,7 @@ export class PerformanceSummaryService {
         likes: Number(item.totalLikes || 0),
         platform: String(item.platform || ''),
         postId: String(item.postId),
-        publishDate: post?.publicationDate ?? undefined,
+        ...(publishDate ? { publishDate } : {}),
         saves: Number(item.totalSaves || 0),
         shares: Number(item.totalShares || 0),
         title: String(post?.label || ''),

@@ -2,7 +2,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { PatternExtractionQueueService } from '@workers/queues/pattern-extraction-queue.service';
+import { PatternExtractionWorkflowService } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction-workflow.service';
 
 @Injectable()
 export class CronPatternExtractionService {
@@ -10,7 +10,7 @@ export class CronPatternExtractionService {
 
   constructor(
     private readonly logger: LoggerService,
-    private readonly patternExtractionQueueService: PatternExtractionQueueService,
+    private readonly patternExtractionWorkflow: PatternExtractionWorkflowService,
   ) {}
 
   @Cron('0 2 * * *') // 2 AM daily
@@ -19,9 +19,32 @@ export class CronPatternExtractionService {
     this.logger.log(`${url} started`);
 
     try {
-      await this.patternExtractionQueueService.enqueueScan();
+      const organizationIds =
+        await this.patternExtractionWorkflow.listEligibleOrganizationIds();
+      const dateKey = new Date().toISOString().slice(0, 10);
+      let queued = 0;
+      let failed = 0;
+      for (const organizationId of organizationIds) {
+        try {
+          await this.patternExtractionWorkflow.queueOrganization(
+            organizationId,
+            dateKey,
+          );
+          queued += 1;
+        } catch (error: unknown) {
+          failed += 1;
+          this.logger.error(`${url} failed to queue organization`, {
+            error,
+            organizationId,
+          });
+        }
+      }
 
-      this.logger.log(`${url} enqueued 1 pattern extraction scan`);
+      this.logger.log(`${url} enqueued organization pattern workflows`, {
+        failed,
+        organizations: organizationIds.length,
+        queued,
+      });
     } catch (error: unknown) {
       this.logger.error(`${url} failed`, error);
     }

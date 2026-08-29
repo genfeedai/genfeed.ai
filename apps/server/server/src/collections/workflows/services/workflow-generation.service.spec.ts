@@ -1,7 +1,8 @@
-import { WorkflowGenerationService } from '@server/collections/workflows/services/workflow-generation.service';
-import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { WorkflowFormatConverterService } from '@server/collections/workflows/services/workflow-format-converter.service';
+import { WorkflowGenerationService } from '@server/collections/workflows/services/workflow-generation.service';
+import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
 
 vi.mock('@server/collections/workflows/registry/node-registry-adapter', () => ({
   UNIFIED_NODE_REGISTRY: {
@@ -12,14 +13,14 @@ vi.mock('@server/collections/workflows/registry/node-registry-adapter', () => ({
       isEnabled: false,
       outputs: {},
     },
-    image_gen: {
+    imageGen: {
       category: 'generation',
       description: 'Generate image',
       inputs: { prompt: {} },
       isEnabled: true,
       outputs: { imageUrl: {} },
     },
-    text_to_video: {
+    videoGen: {
       category: 'generation',
       description: 'Generate video from text',
       inputs: { prompt: {} },
@@ -60,7 +61,7 @@ describe('WorkflowGenerationService', () => {
         data: { config: {}, label: 'Input' },
         id: 'n1',
         position: { x: 0, y: 0 },
-        type: 'text_to_video',
+        type: 'videoGen',
       },
     ],
   };
@@ -77,6 +78,7 @@ describe('WorkflowGenerationService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WorkflowGenerationService,
+        WorkflowFormatConverterService,
         { provide: OpenRouterService, useValue: openRouterService },
       ],
     }).compile();
@@ -93,11 +95,24 @@ describe('WorkflowGenerationService', () => {
   });
 
   describe('generateWorkflowFromDescription', () => {
-    it('returns parsed workflow JSON on success', async () => {
+    it('compiles generated presentation nodes into action-backed nodes', async () => {
       const result = await service.generateWorkflowFromDescription({
         description: 'Create a short video workflow',
       });
-      expect(result.workflow).toEqual(validWorkflow);
+      expect(result.workflow).toEqual({
+        ...validWorkflow,
+        nodes: [
+          {
+            data: {
+              config: { actionId: 'videoGen', parameters: {} },
+              label: 'Input',
+            },
+            id: 'n1',
+            position: { x: 0, y: 0 },
+            type: 'genfeedAction',
+          },
+        ],
+      });
     });
 
     it('returns token count from LLM response', async () => {
@@ -177,14 +192,15 @@ describe('WorkflowGenerationService', () => {
       expect(result.tokensUsed).toBe(0);
     });
 
-    it('handles empty LLM response gracefully (returns empty object)', async () => {
+    it('rejects an LLM response without a workflow graph', async () => {
       openRouterService.chatCompletion.mockResolvedValue(
         makeOpenRouterResponse('{}'),
       );
-      const result = await service.generateWorkflowFromDescription({
-        description: 'edge case',
-      });
-      expect(result.workflow).toEqual({});
+      await expect(
+        service.generateWorkflowFromDescription({
+          description: 'edge case',
+        }),
+      ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
     });
   });
 });

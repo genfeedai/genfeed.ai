@@ -2,15 +2,17 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((value: string) => value) },
 }));
 
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { DistributionsService } from '@server/collections/distributions/services/distributions.service';
-import { QueueService } from '@server/queues/core/queue.service';
-import { TelegramDistributionService } from '@server/services/distribution/telegram/telegram-distribution.service';
 import { DistributionContentType } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { DistributionsService } from '@server/collections/distributions/services/distributions.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import { TelegramDistributionService } from '@server/services/distribution/telegram/telegram-distribution.service';
+import { createSystemWorkflowRunnerMock } from '@server/shared/testing/system-workflow-runner-mock';
 
 describe('TelegramDistributionService', () => {
   let service: TelegramDistributionService;
@@ -48,7 +50,14 @@ describe('TelegramDistributionService', () => {
             markAsPublished: vi.fn(),
           },
         },
-        { provide: QueueService, useValue: { add: vi.fn() } },
+        {
+          provide: WorkflowExecutionQueueService,
+          useValue: { queueSystemWorkflow: vi.fn() },
+        },
+        {
+          provide: SystemWorkflowRunnerService,
+          useValue: createSystemWorkflowRunnerMock(),
+        },
         { provide: HttpService, useValue: { post: httpPostMock } },
         {
           provide: LoggerService,

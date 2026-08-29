@@ -203,7 +203,7 @@ describe('ConfigService (Workers)', () => {
     // part of its validation schema so misconfiguration is visible and the
     // schema is the single source of truth (no silent passthrough).
     const consumedKeys = [
-      'OPENROUTER_API_KEY', // clip-factory / clip-analyze processors
+      'OPENROUTER_API_KEY', // clip analysis/factory workflow actions
       'REPLICATE_KEY', // model-watcher cron + model-discovery service
       'AWS_REGION', // llm-idle cron EC2Client
       'AWS_ACCESS_KEY_ID', // llm-idle cron EC2Client

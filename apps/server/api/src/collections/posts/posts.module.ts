@@ -12,6 +12,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
+import { AnalyticsCollectionModule } from '@api/collections/posts/analytics-collection.module';
 import { PostsAnalyticsController } from '@api/collections/posts/controllers/analytics/posts-analytics.controller';
 import { ContentMentionsController } from '@api/collections/posts/controllers/content-mentions.controller';
 import { PostsGenerationController } from '@api/collections/posts/controllers/operations/posts-generation.controller';
@@ -22,17 +23,13 @@ import { PostVariationSourceGuard } from '@api/collections/posts/guards/post-var
 import { PostAccountFanoutModule } from '@api/collections/posts/post-account-fanout.module';
 import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
-import { PostAnalyticsService } from '@server/collections/posts/services/post-analytics.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
-import { PostRepurposeService } from '@server/collections/posts/services/post-repurpose.service';
 import { PostRetryService } from '@api/collections/posts/services/post-retry.service';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostVariationService } from '@api/collections/posts/services/post-variation.service';
-import { ReviewablePostsService } from '@server/collections/posts/services/reviewable-posts.service';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
-import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { QueuesModule } from '@api/queues/core/queues.module';
@@ -43,10 +40,9 @@ import { NotificationsPublisherModule } from '@api/services/notifications/publis
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
 import { SeoModule } from '@api/services/seo/seo.module';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { SERVER_TOKENS } from '@genfeedai/server';
 import { Module } from '@nestjs/common';
-import { PostAnalyticsCollectionStateService } from '@server/analytics/services/post-analytics-collection-state.service';
+import { PostRepurposeService } from '@server/collections/posts/services/post-repurpose.service';
+import { ReviewablePostsService } from '@server/collections/posts/services/reviewable-posts.service';
 
 @Module({
   // PostsOperationsController must register before PostsController: its static
@@ -62,16 +58,15 @@ import { PostAnalyticsCollectionStateService } from '@server/analytics/services/
     PostsController,
   ],
   exports: [
-    AnalyticsSyncWorkflowService,
+    AnalyticsCollectionModule,
     PostAccountFanoutModule,
-    PostAnalyticsCollectionStateService,
-    PostAnalyticsService,
     PostLifecycleModule,
     PostRepurposeService,
     PostsCoreModule,
     ReviewablePostsService,
   ],
   imports: [
+    AnalyticsCollectionModule,
     QueuesModule,
     ActivitiesModule,
     PostsCoreModule,
@@ -96,12 +91,8 @@ import { PostAnalyticsCollectionStateService } from '@server/analytics/services/
     TrendsModule,
   ],
   providers: [
-    AnalyticsSyncWorkflowService,
     CreditsGuard,
     CreditsInterceptor,
-    PostAnalyticsCollectionStateService,
-    { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
-    PostAnalyticsService,
     PostGenerationService,
     PostRetryService,
     PostRepurposeService,

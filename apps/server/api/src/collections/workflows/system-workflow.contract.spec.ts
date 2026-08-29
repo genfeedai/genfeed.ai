@@ -33,7 +33,7 @@ describe('system workflow contract', () => {
       const metadata = buildSystemWorkflowDuplicateMetadata(
         {
           systemWorkflow: buildSystemWorkflowMetadata({
-            canonicalId: 'reply-dm-automation',
+            canonicalId: 'reply-bot.send-dm',
             changeSummary: 'Initial reply and DM workflow wrapper.',
             sourceIssue: 1011,
             version: 3,
@@ -44,7 +44,7 @@ describe('system workflow contract', () => {
 
       expect(metadata.systemWorkflow).toBeUndefined();
       expect(metadata.duplicatedFromSystemWorkflow).toMatchObject({
-        canonicalId: 'reply-dm-automation',
+        canonicalId: 'reply-bot.send-dm',
         currentSystemWorkflowChangeSummary:
           'Initial reply and DM workflow wrapper.',
         currentSystemWorkflowVersion: 3,

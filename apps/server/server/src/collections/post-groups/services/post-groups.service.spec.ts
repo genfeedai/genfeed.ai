@@ -1,11 +1,3 @@
-import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
-import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
-import { PostGroupPersistenceService } from '@server/collections/post-groups/services/post-group-persistence.service';
-import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
-import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
-import { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
-import { PublishingProviderSetupService } from '@server/collections/publishing-setup/services/publishing-provider-setup.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   ApiKeyScope,
   CredentialPlatform,
@@ -17,14 +9,20 @@ import {
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/enums';
-import {
-  PostLifecycleService,
-  PostPublishQueueService,
-} from '@genfeedai/server';
+import { PostLifecycleService } from '@genfeedai/server';
 import type { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
+import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
+import { PostGroupPersistenceService } from '@server/collections/post-groups/services/post-group-persistence.service';
+import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
+import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
+import { ScheduledPostWorkflowQueueService } from '@server/collections/posts/services/scheduled-post-workflow-queue.service';
+import { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
+import { PublishingProviderSetupService } from '@server/collections/publishing-setup/services/publishing-provider-setup.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 /**
  * Setup signals are not what these tests exercise, so every provider reads as
@@ -79,7 +77,6 @@ type MockCredential = {
 type MockPostTarget = {
   agentContextSource: string | null;
   agentContextVersion: number | null;
-  agentRunId: string | null;
   agentStrategyId: string | null;
   agentThreadId: string | null;
   brandId: string | null;
@@ -257,7 +254,7 @@ describe('PostGroupsService', () => {
           useValue: postLifecycleService,
         },
         {
-          provide: PostPublishQueueService,
+          provide: ScheduledPostWorkflowQueueService,
           useValue: postPublishQueueService,
         },
         {
@@ -473,7 +470,7 @@ describe('PostGroupsService', () => {
       {
         agentContextSource: 'explicit',
         agentContextVersion: 3,
-        agentRunId: 'run-1',
+        workflowExecutionId: 'run-1',
         agentStrategyId: 'strategy-1',
         agentThreadId: 'thread-1',
         source: 'agent',
@@ -494,7 +491,7 @@ describe('PostGroupsService', () => {
         data: expect.objectContaining({
           agentContextSource: 'explicit',
           agentContextVersion: 3,
-          agentRunId: 'run-1',
+          workflowExecutionId: 'run-1',
           agentStrategyId: 'strategy-1',
           agentThreadId: 'thread-1',
           groupId: 'group-1',
@@ -1117,11 +1114,7 @@ describe('PostGroupsService', () => {
       userId: 'user-1',
       versionPinId: 'pin-1',
     });
-    expect(publishApprovalsService.markQueued).toHaveBeenCalledWith(
-      'approval-1',
-      'org-1',
-      'user-1',
-    );
+    expect(publishApprovalsService.markQueued).not.toHaveBeenCalled();
   });
 
   it('schedules a canonical target with a version-bound approval in the same transaction', async () => {
@@ -2033,7 +2026,6 @@ function makeTarget(overrides: Partial<MockPostTarget> = {}): MockPostTarget {
   return {
     agentContextSource: null,
     agentContextVersion: null,
-    agentRunId: null,
     agentStrategyId: null,
     agentThreadId: null,
     brandId: 'brand-1',

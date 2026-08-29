@@ -1,4 +1,10 @@
 import {
+  ActionOrigin,
+  WorkflowExecutionStatus,
+  WorkflowStatus,
+} from '@genfeedai/enums';
+import { runWithActionOrigin } from '@genfeedai/server';
+import {
   WorkflowExecutionQueueService,
   workflowSchedulerId,
 } from '@server/collections/workflows/services/workflow-execution-queue.service';
@@ -7,8 +13,6 @@ import type {
   TriggerEvent,
 } from '@server/collections/workflows/services/workflow-executor.service';
 import { buildSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
-import { ActionOrigin, WorkflowStatus } from '@genfeedai/enums';
-import { runWithActionOrigin } from '@genfeedai/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockQueue() {
@@ -145,6 +149,94 @@ describe('WorkflowExecutionQueueService', () => {
     });
   });
 
+  describe('queueSystemWorkflow', () => {
+    it('queues registered workflow identity and runtime input without a graph', async () => {
+      const input = {
+        actionType: 'clip-continuity',
+        canonicalId: 'clip-continuity:v1:1',
+        inputValues: { projectId: 'project-1' },
+        organizationId: 'org-1',
+        source: 'clip-generation-completion',
+      };
+
+      await expect(
+        service.queueSystemWorkflow(input, 'clip-continuity-project-1', {
+          failureWorkflow: {
+            canonicalId: 'clip.continuity.failure',
+            inputValues: { projectId: 'project-1' },
+          },
+        }),
+      ).resolves.toBe('job-123');
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'system-run',
+        {
+          actionContext: { origin: ActionOrigin.UNKNOWN },
+          systemRun: {
+            failureWorkflow: {
+              canonicalId: 'clip.continuity.failure',
+              inputValues: { projectId: 'project-1' },
+            },
+            input,
+          },
+          type: 'system-run',
+        },
+        expect.objectContaining({
+          attempts: 3,
+          jobId: 'clip-continuity-project-1',
+        }),
+      );
+    });
+
+    it('supports durable delayed child workflow dispatch', async () => {
+      const input = {
+        actionType: 'campaign-reply-target',
+        canonicalId: 'campaign-reply-target',
+        inputValues: { targetId: 'target-1' },
+        organizationId: 'org-1',
+        source: 'workflow.for-each',
+      };
+
+      await service.queueSystemWorkflow(input, 'campaign-target-1', {
+        delayMs: 30_000,
+      });
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'system-run',
+        expect.anything(),
+        expect.objectContaining({ delay: 30_000 }),
+      );
+    });
+
+    it('queues an already-created immutable parent execution', async () => {
+      const input = {
+        actionType: 'workflow.batch.execute',
+        canonicalId: 'workflow.batch.execute',
+        organizationId: 'org-1',
+        source: 'batch',
+        userId: 'user-1',
+      };
+      const priorExecution = {
+        executionId: 'parent-execution',
+        status: WorkflowExecutionStatus.PENDING,
+        userId: 'user-1',
+        workflowId: 'hidden-parent',
+        workflowLabel: 'Execute Workflow Batch',
+      };
+
+      await service.queueSystemWorkflow(input, 'system-workflow-parent', {
+        priorExecution,
+      });
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'system-run',
+        expect.objectContaining({
+          systemRun: { input, priorExecution },
+        }),
+        expect.objectContaining({ jobId: 'system-workflow-parent' }),
+      );
+    });
+  });
+
   describe('queueDelayedResume', () => {
     it('should add a delayed resume job with correct delay', async () => {
       const data = createDelayResumeData();
@@ -163,6 +255,7 @@ describe('WorkflowExecutionQueueService', () => {
         expect.objectContaining({
           attempts: 3,
           delay: 1800000,
+          jobId: expect.stringMatching(/^workflow-delay-/),
         }),
       );
     });

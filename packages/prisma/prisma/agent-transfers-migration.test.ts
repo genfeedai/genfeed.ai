@@ -9,6 +9,13 @@ const migration = readFileSync(
   join(prismaDir, 'migrations/20260826140000_agent_transfers/migration.sql'),
   'utf8',
 );
+const executionHardCutMigration = readFileSync(
+  join(
+    prismaDir,
+    'migrations/20260829120000_drop_agent_runs_link_workflow_executions/migration.sql',
+  ),
+  'utf8',
+);
 
 describe('agent transfer persistence (#2714)', () => {
   it('keeps the durable transfer model tenant scoped and idempotent', () => {
@@ -17,7 +24,10 @@ describe('agent transfer persistence (#2714)', () => {
       '@@unique([organizationId, userId, idempotencyKey]',
     );
     expect(schema).toContain(
-      'destinationRunId            String?                   @unique',
+      'destinationExecutionId      String?                   @unique',
+    );
+    expect(executionHardCutMigration).toContain(
+      'agent_transfers_destinationExecutionId_fkey',
     );
     expect(migration).toContain('agent_transfers_depth_check');
     expect(migration).toContain('agent_transfers_progress_check');

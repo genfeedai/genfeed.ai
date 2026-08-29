@@ -1,72 +1,74 @@
-import { SocialInboxService } from '@server/collections/social-inbox/services/social-inbox.service';
+import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
-import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import {
+  buildYoutubeCommentsSweepDefinition,
+  YOUTUBE_MAINTENANCE_ACTION_IDS,
+} from '@workers/crons/youtube/youtube-maintenance-workflow-definition';
+
+const YOUTUBE_MESSAGES_SWEEP_INTERVAL_MS = 30 * 60 * 1000;
+const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';
 
 @Injectable()
-export class CronYoutubeMessagesService {
-  private readonly constructorName: string = String(this.constructor.name);
-
+export class CronYoutubeMessagesService implements OnModuleInit {
   constructor(
-    private readonly logger: LoggerService,
     private readonly prisma: PrismaService,
-    private readonly socialInboxService: SocialInboxService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
   ) {}
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  onModuleInit(): void {
+    this.systemWorkflowRunner.registerAction(
+      YOUTUBE_MAINTENANCE_ACTION_IDS.DISCOVER_CREDENTIALS,
+      async () => {
+        const credentials = await this.prisma.credential.findMany({
+          select: { brandId: true, id: true, organizationId: true },
+          where: {
+            brandId: { not: null },
+            isConnected: true,
+            isDeleted: false,
+            organizationId: { not: null },
+            platform: PrismaCredentialPlatform.YOUTUBE,
+          },
+        });
+        return {
+          items: credentials.flatMap((credential) =>
+            credential.organizationId && credential.brandId
+              ? [
+                  {
+                    brandId: credential.brandId,
+                    credentialId: credential.id,
+                    organizationId: credential.organizationId,
+                  },
+                ]
+              : [],
+          ),
+        };
+      },
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildYoutubeCommentsSweepDefinition(),
+    );
+  }
+
   async syncYoutubeMessages(): Promise<void> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.logger.log(`${url} started`);
-
-    try {
-      const credentials = await this.prisma.credential.findMany({
-        select: { brandId: true, id: true, organizationId: true },
-        where: {
-          brandId: { not: null },
-          isConnected: true,
-          isDeleted: false,
-          organizationId: { not: null },
-          platform: PrismaCredentialPlatform.YOUTUBE,
-        },
-      });
-
-      let messagesCreated = 0;
-      let conversationsCreated = 0;
-
-      for (const credential of credentials) {
-        if (!credential.organizationId || !credential.brandId) {
-          continue;
-        }
-
-        try {
-          const result = await this.socialInboxService.ingestYoutubeComments(
-            {
-              brandId: credential.brandId,
-              organizationId: credential.organizationId,
-            },
-            { credentialId: credential.id, limit: 25 },
-          );
-
-          messagesCreated += result.messagesCreated;
-          conversationsCreated += result.conversationsCreated;
-        } catch (error: unknown) {
-          this.logger.warn(`${url} credential sync failed`, {
-            credentialId: credential.id,
-            error,
-          });
-        }
-      }
-
-      this.logger.log(`${url} completed`, {
-        conversationsCreated,
-        credentialCount: credentials.length,
-        messagesCreated,
-      });
-    } catch (error: unknown) {
-      this.logger.error(`${url} failed`, error);
-    }
+    const now = new Date();
+    const definition = buildYoutubeCommentsSweepDefinition();
+    await this.workflowQueue.queueSystemWorkflow(
+      {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request: { requestedAt: now.toISOString() } },
+        organizationId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
+        source: 'youtube_messages_sweep',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
+      },
+      `youtube-comments-sweep-${Math.floor(now.getTime() / YOUTUBE_MESSAGES_SWEEP_INTERVAL_MS)}`,
+      { attempts: 3, replaceTerminalJob: true },
+    );
   }
 }

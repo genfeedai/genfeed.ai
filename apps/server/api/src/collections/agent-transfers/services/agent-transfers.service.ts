@@ -1,18 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { CreateAgentTransferDto } from '@api/collections/agent-transfers/dto/create-agent-transfer.dto';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
-  AgentTurnAcceptanceService,
-  buildAgentTurnRunId,
-} from '@server/services/agent-orchestrator/agent-turn-acceptance.service';
-import type { AgentChatContext } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import {
-  AgentExecutionStatus,
   AgentMessageRole,
   AgentThreadStatus,
   AgentTransferDeliveryMode,
   AgentTransferStatus,
+  WorkflowExecutionStatus,
 } from '@genfeedai/enums';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
@@ -22,6 +15,43 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import {
+  AgentTurnAcceptanceService,
+  buildAgentTurnIdempotencyKey,
+} from '@server/services/agent-orchestrator/agent-turn-acceptance.service';
+import type { AgentChatContext } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+
+/**
+ * Projection of the agent-turn workflow result JSON that a transfer mirrors.
+ *
+ * `WorkflowExecution.result` is an untyped Json column, so the completion
+ * fields are read defensively rather than cast.
+ */
+function readAgentTurnResult(value: unknown): {
+  artifactReferences: unknown[];
+  artifactVersionPinIds: string[];
+  summary: string | null;
+} {
+  const record =
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+
+  return {
+    artifactReferences: Array.isArray(record.artifactReferences)
+      ? record.artifactReferences
+      : [],
+    artifactVersionPinIds: Array.isArray(record.artifactVersionPinIds)
+      ? record.artifactVersionPinIds.filter(
+          (id): id is string => typeof id === 'string',
+        )
+      : [],
+    summary:
+      typeof record.summary === 'string' ? record.summary.slice(0, 500) : null,
+  };
+}
 
 const MAX_TRANSFER_DEPTH = 3;
 const MAX_SELECTED_CONTEXT_BYTES = 16_000;
@@ -394,7 +424,7 @@ export class AgentTransfersService {
       );
       await this.prisma.agentTransfer.updateMany({
         data: {
-          destinationRunId: acknowledgement.runId,
+          destinationExecutionId: acknowledgement.executionId,
           lastAttemptAt: new Date(),
           queuedAt: new Date(acknowledgement.queuedAt),
           status: AgentTransferStatus.QUEUED,
@@ -404,56 +434,58 @@ export class AgentTransfersService {
           userId: actor.userId,
         }),
       });
-      const currentRun = await this.prisma.agentRun.findFirst({
+      const execution = await this.prisma.workflowExecution.findFirst({
         where: scopedWhere(actor.organizationId, {
-          id: acknowledgement.runId,
+          id: acknowledgement.executionId,
           userId: actor.userId,
         }),
       });
-      if (currentRun && currentRun.status !== AgentExecutionStatus.PENDING) {
-        const status = currentRun.status as AgentExecutionStatus;
+      if (execution && execution.status !== WorkflowExecutionStatus.PENDING) {
+        const status = execution.status as WorkflowExecutionStatus;
+        const turnResult = readAgentTurnResult(execution.result);
         await this.prisma.agentTransfer.updateMany({
           data: {
-            completedAt: currentRun.completedAt,
-            completionSummary: currentRun.summary,
-            failureReason: currentRun.error?.slice(0, 500),
-            outputArtifactReferences: (currentRun.artifactReferences ??
-              []) as Prisma.InputJsonValue,
-            outputArtifactVersionPinIds: currentRun.artifactVersionPinIds ?? [],
-            progress: currentRun.progress,
-            startedAt: currentRun.startedAt,
+            completedAt: execution.completedAt,
+            completionSummary: turnResult.summary,
+            failureReason: execution.error?.slice(0, 500),
+            outputArtifactReferences:
+              turnResult.artifactReferences as Prisma.InputJsonValue,
+            outputArtifactVersionPinIds: turnResult.artifactVersionPinIds,
+            progress: execution.progress,
+            startedAt: execution.startedAt,
             status:
-              status === AgentExecutionStatus.RUNNING
+              status === WorkflowExecutionStatus.RUNNING
                 ? AgentTransferStatus.RUNNING
-                : status === AgentExecutionStatus.COMPLETED
+                : status === WorkflowExecutionStatus.COMPLETED
                   ? AgentTransferStatus.COMPLETED
-                  : status === AgentExecutionStatus.CANCELLED
+                  : status === WorkflowExecutionStatus.CANCELLED
                     ? AgentTransferStatus.CANCELLED
                     : AgentTransferStatus.FAILED,
           },
           where: scopedWhere(actor.organizationId, {
-            destinationRunId: acknowledgement.runId,
+            destinationExecutionId: acknowledgement.executionId,
             id: transferId,
             userId: actor.userId,
           }),
         });
       }
     } catch (error: unknown) {
-      const destinationRunId = buildAgentTurnRunId(
-        actor.organizationId,
-        actor.userId,
-        `agent-transfer:${transferId}`,
-      );
-      const failedRun = await this.prisma.agentRun.findFirst({
+      const failedExecution = await this.prisma.workflowExecution.findFirst({
         select: { id: true },
         where: scopedWhere(actor.organizationId, {
-          id: destinationRunId,
+          idempotencyKey: buildAgentTurnIdempotencyKey(
+            actor.organizationId,
+            actor.userId,
+            `agent-transfer:${transferId}`,
+          ),
           userId: actor.userId,
         }),
       });
       await this.prisma.agentTransfer.updateMany({
         data: {
-          ...(failedRun ? { destinationRunId: failedRun.id } : {}),
+          ...(failedExecution
+            ? { destinationExecutionId: failedExecution.id }
+            : {}),
           failureReason:
             error instanceof Error
               ? error.message.slice(0, 500)

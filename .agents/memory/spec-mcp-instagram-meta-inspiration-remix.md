@@ -34,7 +34,7 @@ Expose a coherent curated MCP flow that discovers public Instagram inspiration f
 
 ## Key Decisions
 
-- Canonical action definitions live in `@genfeedai/tools`; MCP dispatches all six actions through the existing Agent executor route.
+- Canonical action definitions live in `@genfeedai/actions`; MCP dispatches all six actions through the existing Agent executor route.
 - Instagram reads are ephemeral. Short-lived cache entries are namespaced by organization, brand, seeds, and query shape; the global trend corpus is never a tenant fallback.
 - Explicit `brandId` must resolve inside the caller organization. Otherwise the current user-selected brand is required. Remix writes never fall back to the first organization brand.
 - V1 creative analysis uses caption and metadata heuristics to describe hook, format, pacing, and visual style. It produces an original prompt, not transformed source video.

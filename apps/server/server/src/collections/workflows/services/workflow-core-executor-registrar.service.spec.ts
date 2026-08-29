@@ -1,10 +1,11 @@
-import { WorkflowCoreExecutorRegistrarService } from '@server/collections/workflows/services/workflow-core-executor-registrar.service';
-import type { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
 import {
+  createExecutableActionNode,
   type INodeExecutor,
   type NodeExecutor,
   WorkflowEngine,
 } from '@genfeedai/workflows/engine';
+import { WorkflowCoreExecutorRegistrarService } from '@server/collections/workflows/services/workflow-core-executor-registrar.service';
+import type { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -37,7 +38,7 @@ describe('WorkflowCoreExecutorRegistrarService', () => {
       logger,
       brandsService as never,
     ).register(engine);
-    return engine.getRegisteredNodeTypes();
+    return engine.getRegisteredActionIds();
   }
 
   it('registers brand-scoped executors when BrandsService is available', () => {
@@ -55,6 +56,76 @@ describe('WorkflowCoreExecutorRegistrarService', () => {
     expect(registered).not.toContain('brand');
     expect(registered).not.toContain('brandAsset');
     expect(registered).not.toContain('brandContext');
+  });
+
+  it('registers executable conditional branch semantics', async () => {
+    const engine = new WorkflowEngine();
+    new WorkflowCoreExecutorRegistrarService(helper, logger).register(engine);
+    const executor = engine.getExecutor('condition');
+
+    const result = await executor?.(
+      {
+        config: {
+          customField: 'hookReviewRequired',
+          field: 'custom',
+          operator: 'isTrue',
+        },
+        id: 'hook-review-condition',
+        inputs: ['value'],
+        label: 'Require hook review',
+        type: 'condition',
+      },
+      new Map([['value', { hookReviewRequired: true }]]),
+      {
+        organizationId: 'org-1',
+        runId: 'run-1',
+        userId: 'user-1',
+        workflowId: 'workflow-1',
+        workflowVersionId: 'version-1',
+      },
+    );
+
+    expect(result).toEqual({
+      data: { hookReviewRequired: true },
+      result: true,
+      value: true,
+    });
+    expect(engine.getRegisteredNodeTypes()).toContain('condition');
+  });
+
+  it('registers durable delay metadata for the graph runner', async () => {
+    const engine = new WorkflowEngine();
+    new WorkflowCoreExecutorRegistrarService(helper, logger).register(engine);
+    const executor = engine.getExecutor('delay');
+
+    const result = await executor?.(
+      {
+        config: { duration: 2, mode: 'fixed', unit: 'minutes' },
+        id: 'delay-publication',
+        inputs: ['trigger'],
+        label: 'Delay publication',
+        type: 'delay',
+      },
+      new Map([['trigger', { postId: 'post-1' }]]),
+      {
+        organizationId: 'org-1',
+        runId: 'run-1',
+        userId: 'user-1',
+        workflowId: 'workflow-1',
+        workflowVersionId: 'version-1',
+      },
+    );
+
+    expect(result).toMatchObject({
+      data: { postId: 'post-1' },
+      delayMs: 120_000,
+    });
+    const resumeAt =
+      result && typeof result === 'object' && 'resumeAt' in result
+        ? result.resumeAt
+        : undefined;
+    expect(Date.parse(String(resumeAt))).toBeGreaterThan(Date.now());
+    expect(engine.getRegisteredNodeTypes()).toContain('delay');
   });
 
   it('resolves the full effective voice while retaining the legacy voice string', async () => {
@@ -97,21 +168,21 @@ describe('WorkflowCoreExecutorRegistrarService', () => {
       brandsService as never,
     ).register(engine);
 
-    const executor = engine.getExecutor('brandContext');
+    const executor = engine.getExecutor('genfeedAction');
     const result = await executor?.(
-      {
-        config: { brandId: 'brand-1' },
+      createExecutableActionNode({
+        actionId: 'brandContext',
         id: 'node-1',
-        inputs: [],
         label: 'Brand Context',
-        type: 'brandContext',
-      },
+        parameters: { brandId: 'brand-1' },
+      }),
       new Map(),
       {
         organizationId: 'org-1',
         runId: 'run-1',
         userId: 'user-1',
         workflowId: 'workflow-1',
+        workflowVersionId: 'version-1',
       },
     );
 

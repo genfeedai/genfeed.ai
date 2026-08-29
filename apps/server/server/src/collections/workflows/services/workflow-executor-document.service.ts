@@ -1,19 +1,22 @@
+import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import type {
   WorkflowDocument,
-  WorkflowEdge,
-  WorkflowInputVariable,
-  WorkflowStep,
   WorkflowVisualNode,
 } from '@server/collections/workflows/schemas/workflow.schema';
 import {
   EVENT_TYPE_TO_NODE_TYPE,
+  EXECUTABLE_WORKFLOW_IDENTITY_SELECT,
   EXECUTABLE_WORKFLOW_SELECT,
   VISUAL_TRIGGER_NODE_TYPE_TO_EXECUTOR,
 } from '@server/collections/workflows/services/workflow-executor.constants';
 import type { TriggerEvent } from '@server/collections/workflows/services/workflow-executor.types';
+import {
+  isHiddenSystemWorkflowMetadata,
+  SYSTEM_WORKFLOW_PRINCIPAL_ID,
+} from '@server/collections/workflows/system-workflow.contract';
+import { hydrateWorkflowDefinition } from '@server/collections/workflows/workflow-version-definition';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
 
 export class WorkflowExecutorDocumentService {
   constructor(private readonly prisma: PrismaService) {}
@@ -44,20 +47,68 @@ export class WorkflowExecutorDocumentService {
     });
   }
 
+  async findPinnedWorkflow(
+    workflowId: string,
+    workflowVersionId: string,
+    organizationId: string,
+    actorUserId: string,
+  ): Promise<WorkflowDocument | null> {
+    // tenant-scope-ignore: immutable version/workflow IDs are globally unique; the loaded owner tuple is checked below before tenant projection, and only the fixed-principal hidden mirror may cross the tenant boundary
+    const version = await this.prisma.workflowVersion.findFirst({
+      select: {
+        graph: true,
+        id: true,
+        inputSchema: true,
+        organizationId: true,
+        userId: true,
+        version: true,
+        workflow: { select: EXECUTABLE_WORKFLOW_IDENTITY_SELECT },
+      },
+      where: {
+        id: workflowVersionId,
+        workflowId,
+      },
+    });
+    if (!version) {
+      return null;
+    }
+
+    const isTenantOwned =
+      version.organizationId === organizationId &&
+      version.organizationId === version.workflow.organizationId &&
+      version.userId === version.workflow.userId;
+    if (isTenantOwned) {
+      return this.normalizeWorkflowDocument({
+        ...version.workflow,
+        currentVersion: version,
+      });
+    }
+
+    const isGlobalHiddenMirror =
+      version.organizationId === SYSTEM_WORKFLOW_PRINCIPAL_ID &&
+      version.userId === SYSTEM_WORKFLOW_PRINCIPAL_ID &&
+      version.workflow.organizationId === SYSTEM_WORKFLOW_PRINCIPAL_ID &&
+      version.workflow.userId === SYSTEM_WORKFLOW_PRINCIPAL_ID &&
+      isHiddenSystemWorkflowMetadata(version.workflow.metadata);
+    if (!isGlobalHiddenMirror) {
+      return null;
+    }
+
+    return this.normalizeWorkflowDocument({
+      ...version.workflow,
+      currentVersion: version,
+      organizationId,
+      userId: actorUserId,
+    });
+  }
+
   normalizeWorkflowDocument(workflow: unknown): WorkflowDocument {
     const workflowRecord = workflow as Record<string, unknown>;
-
-    return {
-      ...(workflowRecord as unknown as WorkflowDocument),
+    return hydrateWorkflowDefinition({
+      ...workflowRecord,
       config: this.readObjectRecord(workflowRecord.config) ?? undefined,
-      edges: this.readArray<WorkflowEdge>(workflowRecord.edges),
-      inputVariables: this.readArray<WorkflowInputVariable>(
-        workflowRecord.inputVariables,
-      ),
       metadata: this.readObjectRecord(workflowRecord.metadata) ?? undefined,
-      nodes: this.readArray<WorkflowVisualNode>(workflowRecord.nodes),
-      steps: this.readArray<WorkflowStep>(workflowRecord.steps),
-    };
+    });
   }
 
   getWorkflowLabel(workflow: Pick<WorkflowDocument, 'label'>): string {
@@ -202,10 +253,6 @@ export class WorkflowExecutorDocumentService {
 
   private optionalString(value: unknown): string | undefined {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
-  }
-
-  private readArray<T>(value: unknown): T[] {
-    return Array.isArray(value) ? (value as T[]) : [];
   }
 
   private readObjectRecord(value: unknown): Record<string, unknown> | null {

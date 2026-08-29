@@ -1,18 +1,19 @@
 import {
-  AgentExecutionStatus,
   AgentMessageRole,
   AgentType,
   type RouterPriority,
+  WorkflowExecutionStatus,
 } from '@genfeedai/enums';
 import { AgentToolName, type AgentUIBlocksEvent } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { type AgentMemoryDocument } from '@server/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
 import { runEffectPromise } from '@server/helpers/utils/effect/effect.util';
 import { AgentChatModelRegistryService } from '@server/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentCompletionCardBuilderService } from '@server/services/agent-orchestrator/agent-completion-card-builder.service';
@@ -31,10 +32,7 @@ import type {
   AgentChatRequest,
 } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@server/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
-import {
-  mergeAgentArtifactCompletionMetadata,
-  persistRunArtifacts,
-} from '@server/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
+import { mergeAgentArtifactCompletionMetadata } from '@server/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { normalizeFinalAssistantContent } from '@server/services/agent-orchestrator/utils/agent-final-content.util';
 import { buildResolvedModelMetadata } from '@server/services/agent-orchestrator/utils/agent-response-model.util';
 import { buildAgentRoutingMetadata } from '@server/services/agent-orchestrator/utils/agent-routing-policy.util';
@@ -103,7 +101,7 @@ export class AgentOrchestratorStreamLoopService {
     private readonly contextService: AgentOrchestratorContextService,
     private readonly completionCardBuilder: AgentCompletionCardBuilderService,
     private readonly streamEffects: AgentStreamEffectsService,
-    private readonly agentRunsService: AgentRunsService,
+    private readonly workflowExecutionsService: WorkflowExecutionsService,
     @Optional()
     private readonly skillRuntimeService?: SkillRuntimeService,
     @Optional()
@@ -297,7 +295,7 @@ export class AgentOrchestratorStreamLoopService {
           await runEffectPromise(
             this.streamEffects
               .publishStreamTokenEffect({
-                runId: context.runId,
+                runId: context.executionId,
                 threadId,
                 token: delta,
                 userId: context.userId,
@@ -348,7 +346,7 @@ export class AgentOrchestratorStreamLoopService {
                     },
                   },
                 ],
-                id: `terminal-tool-${context.runId ?? threadId}`,
+                id: `terminal-tool-${context.executionId ?? threadId}`,
                 usage: latestProviderUsage,
               }
             : await (async () => {
@@ -360,7 +358,7 @@ export class AgentOrchestratorStreamLoopService {
                         onStreamToken,
                         {
                           brandId: context.scope?.brandId,
-                          runId: context.runId,
+                          runId: context.executionId,
                           threadId,
                           userId: context.userId,
                         },
@@ -370,7 +368,7 @@ export class AgentOrchestratorStreamLoopService {
                         context.organizationId,
                         {
                           brandId: context.scope?.brandId,
-                          runId: context.runId,
+                          runId: context.executionId,
                           threadId,
                           userId: context.userId,
                         },
@@ -396,7 +394,7 @@ export class AgentOrchestratorStreamLoopService {
               context,
               requestedModel: model,
               responseModel: response.model,
-              runId: context.runId,
+              executionId: context.executionId,
               source,
               threadId,
             });
@@ -482,16 +480,8 @@ export class AgentOrchestratorStreamLoopService {
             toolRoundState.artifactMetadata,
           );
 
-          // Save assistant message to DB
-          await persistRunArtifacts(
-            this.agentRunsService,
-            context,
-            artifactMetadata,
-          );
-          if (await this.isRunCancelled(context)) {
-            await this.handleCancelledStream(context, threadId);
-            return;
-          }
+          // Save assistant message to DB. The enclosing workflow result owns
+          // artifact provenance; the message keeps the user-facing projection.
           await this.agentMessagesService.addMessage({
             brandId: context.scope?.brandId,
             content,
@@ -541,37 +531,6 @@ export class AgentOrchestratorStreamLoopService {
             userId: context.userId,
           });
 
-          let runDurationMs: number | undefined;
-          if (context.runId) {
-            const completedRun = await this.agentRunsService.complete(
-              context.runId,
-              context.organizationId,
-              content.slice(0, 200),
-            );
-            if (completedRun?.status === AgentExecutionStatus.CANCELLED) {
-              await this.handleCancelledStream(context, threadId);
-              return;
-            }
-            if (
-              !completedRun ||
-              completedRun.status !== AgentExecutionStatus.COMPLETED
-            ) {
-              this.loggerService.warn(
-                `${this.constructorName} skipped a stale completion event`,
-                {
-                  organizationId: context.organizationId,
-                  runId: context.runId,
-                  status: completedRun?.status ?? 'missing',
-                },
-              );
-              return;
-            }
-            runDurationMs =
-              typeof completedRun?.durationMs === 'number'
-                ? completedRun.durationMs
-                : undefined;
-          }
-
           await runEffectPromise(
             this.streamEffects.publishStreamCompletionEffect({
               completionMetadata: {
@@ -595,7 +554,6 @@ export class AgentOrchestratorStreamLoopService {
               context,
               creditsRemaining,
               creditsUsed: toolRoundState.totalCreditsUsed,
-              durationMs: runDurationMs,
               runStartedAt,
               threadId,
               ...(appliedThreadTitle
@@ -726,7 +684,7 @@ export class AgentOrchestratorStreamLoopService {
                   blocks: event.blocks as AgentUIBlocksEvent['blocks'],
                   context,
                   operation: event.operation,
-                  runId: context.runId,
+                  runId: context.executionId,
                   threadId,
                 }),
               );
@@ -798,14 +756,14 @@ export class AgentOrchestratorStreamLoopService {
   }
 
   private async isRunCancelled(context: AgentChatContext): Promise<boolean> {
-    if (!context.runId) {
+    if (!context.executionId) {
       return false;
     }
 
-    return await this.agentRunsService.isCancelled(
-      context.runId,
-      context.organizationId,
+    const execution = await this.workflowExecutionsService.findOne(
+      scopedWhere(context.organizationId, { id: context.executionId }),
     );
+    return execution?.status === WorkflowExecutionStatus.CANCELLED;
   }
 
   private async handleCancelledStream(

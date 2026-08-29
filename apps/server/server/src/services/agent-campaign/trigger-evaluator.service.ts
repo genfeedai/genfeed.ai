@@ -1,3 +1,6 @@
+import { AnalyticsMetric } from '@genfeedai/enums';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { type AgentCampaignDocument } from '@server/collections/agent-campaigns/schemas/agent-campaign.schema';
 import { AgentCampaignsService } from '@server/collections/agent-campaigns/services/agent-campaigns.service';
 import { type AgentStrategyDocument } from '@server/collections/agent-strategies/schemas/agent-strategy.schema';
@@ -10,8 +13,9 @@ import {
 } from '@server/endpoints/analytics/analytics.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
-  ContentEngineService,
+  type ContentEngineCycleResult,
   type TriggerDispatchType,
+  type TriggeredCampaignDispatchInput,
 } from '@server/services/agent-campaign/content-engine.service';
 import {
   MAX_TRIGGER_DISPATCHES_PER_TYPE,
@@ -21,9 +25,6 @@ import {
   VIRAL_POST_MIN_ENGAGEMENT_RATE,
 } from '@server/services/agent-campaign/orchestrator.constants';
 import { isOrchestratorAgentType } from '@server/services/agent-orchestrator/constants/agent-type.constants';
-import { AnalyticsMetric } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 /**
  * Ids resolved once from the campaign's scalar FKs so that none of the five
@@ -38,7 +39,7 @@ type CampaignAnalyticsScope = {
   organizationId: string;
 };
 
-type AnalyticsOverviewSnapshot = {
+export type AnalyticsOverviewSnapshot = {
   avgEngagementRate: number;
   growth?: {
     engagement?: number;
@@ -50,13 +51,26 @@ type AnalyticsOverviewSnapshot = {
   totalViews: number;
 };
 
-type TopContentEntry = {
+export type TopContentEntry = {
   description?: string;
   engagementRate?: number;
   isVideo?: boolean;
   label?: string;
   platform?: string;
   totalViews?: number;
+};
+
+export type TriggerTrendEntry = {
+  growthRate: number;
+  mentions: number;
+  metadata?: {
+    creatorHandle?: string;
+    hashtags?: string[];
+    sampleContent?: string;
+  };
+  platform: string;
+  topic: string;
+  viralityScore: number;
 };
 
 type TriggerCandidate = {
@@ -67,8 +81,29 @@ type TriggerCandidate = {
   type: TriggerDispatchType;
 };
 
-type TriggerDispatchGroup = TriggerCandidate & {
+export type TriggerDispatchGroup = TriggerCandidate & {
   strategies: AgentStrategyDocument[];
+};
+
+export type TriggerEvaluationState = {
+  analyticsOverview: AnalyticsOverviewSnapshot;
+  bestPostingTimes: AnalyticsBestPostingTime[];
+  brandDescription: string;
+  campaign: AgentCampaignDocument;
+  campaignId: string;
+  dispatchGroups?: TriggerDispatchGroup[];
+  items?: TriggeredCampaignDispatchInput[];
+  organizationId: string;
+  skippedReason?: string;
+  strategies: AgentStrategyDocument[];
+  topContent: TopContentEntry[];
+  trends: TriggerTrendEntry[];
+};
+
+export type PostingRecommendationItem = {
+  organizationId: string;
+  preferredPostingTimes: string[];
+  strategyId: string;
 };
 
 export type TriggerEvaluationResult = {
@@ -89,7 +124,6 @@ export class TriggerEvaluatorService {
     private readonly analyticsService: AnalyticsService,
     private readonly brandsService: BrandsService,
     private readonly trendsService: TrendsService,
-    private readonly contentEngineService: ContentEngineService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -103,10 +137,10 @@ export class TriggerEvaluatorService {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 
-  async evaluateCampaign(
+  async loadEvaluationContext(
     campaignId: string,
     organizationId: string,
-  ): Promise<TriggerEvaluationResult> {
+  ): Promise<TriggerEvaluationState> {
     const campaign = await this.agentCampaignsService.findOneById(
       campaignId,
       organizationId,
@@ -117,10 +151,22 @@ export class TriggerEvaluatorService {
     }
 
     if (campaign.status !== 'active') {
-      return this.buildSkippedResult(
+      return {
+        analyticsOverview: {
+          avgEngagementRate: 0,
+          totalPosts: 0,
+          totalViews: 0,
+        },
+        bestPostingTimes: [],
+        brandDescription: '',
+        campaign,
         campaignId,
-        `Campaign is ${campaign.status}, skipping trigger evaluation.`,
-      );
+        organizationId,
+        skippedReason: `Campaign is ${campaign.status}, skipping trigger evaluation.`,
+        strategies: [],
+        topContent: [],
+        trends: [],
+      };
     }
 
     const strategies = await this.loadEligibleStrategies(
@@ -128,10 +174,22 @@ export class TriggerEvaluatorService {
       organizationId,
     );
     if (strategies.length === 0) {
-      return this.buildSkippedResult(
+      return {
+        analyticsOverview: {
+          avgEngagementRate: 0,
+          totalPosts: 0,
+          totalViews: 0,
+        },
+        bestPostingTimes: [],
+        brandDescription: '',
+        campaign,
         campaignId,
-        'No campaign strategies have trigger watchers enabled.',
-      );
+        organizationId,
+        skippedReason: 'No campaign strategies have trigger watchers enabled.',
+        strategies: [],
+        topContent: [],
+        trends: [],
+      };
     }
 
     const scope: CampaignAnalyticsScope = {
@@ -155,88 +213,120 @@ export class TriggerEvaluatorService {
       this.loadCurrentTrends(scope),
     ]);
 
-    await this.persistPostingRecommendations(
-      strategies,
-      organizationId,
-      bestPostingTimes,
-    );
-
-    const dispatchGroups = this.buildDispatchGroups({
+    return {
       analyticsOverview,
       bestPostingTimes,
       brandDescription,
       campaign,
+      campaignId,
+      organizationId,
       strategies,
       topContent,
       trends,
-    });
-
-    if (dispatchGroups.length === 0) {
-      return this.buildSkippedResult(
-        campaignId,
-        'No trigger thresholds were met for the current evaluation window.',
-      );
-    }
-
-    let dispatchCount = 0;
-    const dispatchedTriggerTypes: TriggerDispatchType[] = [];
-
-    for (const dispatchGroup of dispatchGroups) {
-      const result = await this.contentEngineService.dispatchTriggeredRuns({
-        campaignId,
-        contentMixSummary: this.buildContentMixSummary(
-          dispatchGroup.strategies[0],
-          topContent,
-        ),
-        organizationId,
-        postingRecommendations: bestPostingTimes,
-        strategies: dispatchGroup.strategies,
-        triggerContextLines: dispatchGroup.contextLines,
-        triggerMetadata: dispatchGroup.metadata,
-        triggerSummary: dispatchGroup.summary,
-        triggerType: dispatchGroup.type,
-      });
-
-      if (result.dispatchCount > 0) {
-        dispatchCount += result.dispatchCount;
-        dispatchedTriggerTypes.push(dispatchGroup.type);
-      }
-    }
-
-    const summary =
-      dispatchCount > 0
-        ? `Trigger evaluation dispatched ${dispatchCount} run(s) across ${dispatchedTriggerTypes.join(', ')}.`
-        : 'Trigger evaluation completed without any dispatches.';
-
-    this.logger.log(`${this.logContext} completed`, {
-      campaignId,
-      dispatchCount,
-      dispatchedTriggerTypes,
-    });
-
-    return {
-      campaignId,
-      dispatchCount,
-      dispatchedTriggerTypes,
-      summary,
     };
   }
 
-  private buildSkippedResult(
-    campaignId: string,
-    skippedReason: string,
-  ): TriggerEvaluationResult {
-    this.logger.log(`${this.logContext} skipped`, {
-      campaignId,
-      skippedReason,
+  planPostingRecommendations(state: TriggerEvaluationState): Omit<
+    TriggerEvaluationState,
+    'items'
+  > & {
+    items: PostingRecommendationItem[];
+  } {
+    if (state.skippedReason) return { ...state, items: [] };
+    const items = state.strategies.flatMap((strategy) => {
+      const platforms = strategy.platforms ?? [];
+      const preferredPostingTimes = state.bestPostingTimes
+        .filter((recommendation) =>
+          platforms.length > 0
+            ? platforms.includes(recommendation.platform)
+            : true,
+        )
+        .map(
+          (recommendation) =>
+            `${String(recommendation.hour).padStart(2, '0')}:00`,
+        )
+        .slice(0, 3);
+      return preferredPostingTimes.length > 0
+        ? [
+            {
+              organizationId: state.organizationId,
+              preferredPostingTimes,
+              strategyId: String(strategy.id),
+            },
+          ]
+        : [];
     });
+    return { ...state, items };
+  }
 
+  async persistPostingRecommendation(
+    item: PostingRecommendationItem,
+  ): Promise<PostingRecommendationItem> {
+    await this.agentStrategiesService.patch(item.strategyId, {
+      preferredPostingTimes: item.preferredPostingTimes,
+    });
+    this.logger.debug(`${this.logContext} stored posting recommendations`, {
+      organizationId: item.organizationId,
+      preferredTimes: item.preferredPostingTimes,
+      strategyId: item.strategyId,
+    });
+    return item;
+  }
+
+  planTriggerGroups(
+    state: TriggerEvaluationState,
+  ): TriggerEvaluationState & { items: TriggeredCampaignDispatchInput[] } {
+    if (state.skippedReason) return { ...state, items: [] };
+    const dispatchGroups = this.buildDispatchGroups(state);
+    if (dispatchGroups.length === 0) {
+      return {
+        ...state,
+        dispatchGroups,
+        items: [],
+        skippedReason:
+          'No trigger thresholds were met for the current evaluation window.',
+      };
+    }
+    const items = dispatchGroups.map((group) => ({
+      campaignId: state.campaignId,
+      contentMixSummary: this.buildContentMixSummary(
+        group.strategies[0],
+        state.topContent,
+      ),
+      organizationId: state.organizationId,
+      postingRecommendations: state.bestPostingTimes,
+      strategies: group.strategies,
+      triggerContextLines: group.contextLines,
+      triggerMetadata: group.metadata,
+      triggerSummary: group.summary,
+      triggerType: group.type,
+    }));
+    return { ...state, dispatchGroups, items };
+  }
+
+  finalizeEvaluation(
+    state: TriggerEvaluationState,
+    results: ContentEngineCycleResult[],
+  ): TriggerEvaluationResult {
+    const dispatchCount = results.reduce(
+      (total, result) => total + result.dispatchCount,
+      0,
+    );
+    const dispatchedTriggerTypes = (state.dispatchGroups ?? [])
+      .filter((_group, index) => (results[index]?.dispatchCount ?? 0) > 0)
+      .map((group) => group.type);
+    const skippedReason = state.skippedReason;
+    const summary = skippedReason
+      ? skippedReason
+      : dispatchCount > 0
+        ? `Trigger evaluation dispatched ${dispatchCount} run(s) across ${dispatchedTriggerTypes.join(', ')}.`
+        : 'Trigger evaluation completed without any dispatches.';
     return {
-      campaignId,
-      dispatchCount: 0,
-      dispatchedTriggerTypes: [],
-      skippedReason,
-      summary: skippedReason,
+      campaignId: state.campaignId,
+      dispatchCount,
+      dispatchedTriggerTypes,
+      ...(skippedReason ? { skippedReason } : {}),
+      summary,
     };
   }
 
@@ -312,20 +402,9 @@ export class TriggerEvaluatorService {
     )) as TopContentEntry[];
   }
 
-  private async loadCurrentTrends(scope: CampaignAnalyticsScope): Promise<
-    Array<{
-      growthRate: number;
-      mentions: number;
-      metadata?: {
-        creatorHandle?: string;
-        hashtags?: string[];
-        sampleContent?: string;
-      };
-      platform: string;
-      topic: string;
-      viralityScore: number;
-    }>
-  > {
+  private async loadCurrentTrends(
+    scope: CampaignAnalyticsScope,
+  ): Promise<TriggerTrendEntry[]> {
     try {
       return await this.trendsService.getTrends(
         scope.organizationId,
@@ -365,43 +444,6 @@ export class TriggerEvaluatorService {
     return [brand.label, brand.description, brand.text]
       .filter((value): value is string => Boolean(value))
       .join(' ');
-  }
-
-  private async persistPostingRecommendations(
-    strategies: AgentStrategyDocument[],
-    organizationId: string,
-    bestPostingTimes: AnalyticsBestPostingTime[],
-  ): Promise<void> {
-    await Promise.all(
-      strategies.map(async (strategy) => {
-        const platforms = strategy.platforms ?? [];
-        const preferredTimes = bestPostingTimes
-          .filter((recommendation) =>
-            platforms.length > 0
-              ? platforms.includes(recommendation.platform)
-              : true,
-          )
-          .map(
-            (recommendation) =>
-              `${String(recommendation.hour).padStart(2, '0')}:00`,
-          )
-          .slice(0, 3);
-
-        if (preferredTimes.length === 0) {
-          return;
-        }
-
-        await this.agentStrategiesService.patch(String(strategy.id), {
-          preferredPostingTimes: preferredTimes,
-        });
-
-        this.logger.debug(`${this.logContext} stored posting recommendations`, {
-          organizationId,
-          preferredTimes,
-          strategyId: String(strategy.id),
-        });
-      }),
-    );
   }
 
   private buildDispatchGroups(input: {

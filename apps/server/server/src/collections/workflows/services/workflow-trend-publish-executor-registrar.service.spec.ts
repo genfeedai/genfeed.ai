@@ -1,14 +1,15 @@
-import type { PostAccountTarget } from '@server/collections/posts/services/post-account-fanout.service';
-import type { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
-import { WorkflowTrendPublishExecutorRegistrarService } from '@server/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
 import { CredentialPlatform, Platform } from '@genfeedai/enums';
 import {
+  createExecutableActionNode,
   type INodeExecutor,
   type NodeExecutor,
   WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
+import type { PostAccountTarget } from '@server/collections/posts/services/post-account-fanout.service';
+import type { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
+import { WorkflowTrendPublishExecutorRegistrarService } from '@server/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
 import { describe, expect, it, vi } from 'vitest';
 
 function createHelper(): WorkflowEngineExecutorHelperService {
@@ -53,24 +54,24 @@ function runPublishNode(
     fanoutService as never,
   ).register(engine);
 
-  return engine.getExecutor('publish')?.(
-    {
-      config: {
+  return engine.getExecutor('genfeedAction')?.(
+    createExecutableActionNode({
+      actionId: 'publish',
+      id: 'publish',
+      label: 'Publish',
+      parameters: {
         caption: 'Launch post',
-        platforms: { twitter: true },
+        platforms: ['twitter'],
         schedule: { type: 'immediate' },
       },
-      id: 'publish',
-      inputs: [],
-      label: 'Publish',
-      type: 'publish',
-    },
+    }),
     new Map([['brand', 'brand-1']]),
     {
       organizationId: 'org-1',
       runId: 'run-1',
       userId: 'user-1',
       workflowId: 'wf-1',
+      workflowVersionId: 'version-1',
     },
   );
 }

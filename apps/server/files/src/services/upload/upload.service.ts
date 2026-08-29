@@ -8,6 +8,7 @@ import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import type { StorageProvider } from '@genfeedai/storage';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  assertSafeObjectKey,
   resolveContainedObjectKey,
   resolveContainedPath,
 } from '@libs/security';
@@ -62,6 +63,11 @@ export class UploadService {
     private readonly loggerService: LoggerService,
     @Inject('STORAGE_PROVIDER') private readonly storage: StorageProvider,
   ) {}
+
+  async deleteStoredObject(storageKey: string): Promise<void> {
+    const safeStorageKey = assertSafeObjectKey(storageKey, createBadRequest);
+    await this.storage.delete(safeStorageKey);
+  }
 
   private async getVideoDimensions(filePath: string): Promise<{
     width: number;

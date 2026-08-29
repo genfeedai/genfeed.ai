@@ -20,7 +20,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import type { CreateArticleDto } from '@server/collections/articles/dto/create-article.dto';
 import { ArticleInsightsService } from '@server/collections/articles/services/article-insights.service';
 import { ArticleRemixService } from '@server/collections/articles/services/article-remix.service';
-import { ArticleTranscriptService } from '@server/collections/articles/services/article-transcript.service';
 import { ArticleVersionService } from '@server/collections/articles/services/article-version.service';
 import { ArticlesService } from '@server/collections/articles/services/articles.service';
 import { ARTICLE_CREATE_UNKNOWN_PRISMA_FIELDS } from '@server/helpers/utils/article-filter/article-filter.util';
@@ -85,7 +84,6 @@ describe('ArticlesService create persistence', () => {
       logger,
       configService,
       new ArticleVersionService(logger),
-      new ArticleTranscriptService(configService, logger),
       new ArticleInsightsService(logger, configService),
       new ArticleRemixService(logger),
     );

@@ -1,20 +1,26 @@
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { BrandMemoryService } from '@server/collections/brand-memory/services/brand-memory.service';
 import {
   type OptimizationCycleResult,
   OptimizationCycleService,
 } from '@server/collections/content-performance/services/optimization-cycle.service';
-import { TrendPreferencesService } from '@server/collections/trends/services/trend-preferences.service';
-import { SecurityUtil } from '@server/helpers/utils/security/security.util';
-import { AbTestSuggestionHarnessService } from '@server/services/content-optimization/ab-test-suggestion-harness.service';
-import type { AbTestOutcome } from '@server/services/content-optimization/ab-test-suggestion-harness.types';
-import { OpenAiLlmService } from '@server/services/integrations/openai-llm/services/openai-llm.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
 import {
   type PerformanceContentItem,
   PerformanceSummaryService,
   type WeeklySummary,
 } from '@server/collections/content-performance/services/performance-summary.service';
+import { TrendPreferencesService } from '@server/collections/trends/services/trend-preferences.service';
+import type { SystemWorkflowActionRequest } from '@server/collections/workflows/system-workflow-runner.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import { SecurityUtil } from '@server/helpers/utils/security/security.util';
+import type { AbTestOutcome } from '@server/services/content-optimization/ab-test-suggestion-harness.types';
+import {
+  CONTENT_OPTIMIZATION_ACTION_IDS,
+  CONTENT_OPTIMIZATION_WORKFLOW_DEFINITIONS,
+  CONTENT_OPTIMIZATION_WORKFLOW_IDS,
+} from '@server/services/content-optimization/content-optimization-workflow-definition';
+import { OpenAiLlmService } from '@server/services/integrations/openai-llm/services/openai-llm.service';
 
 // ─── Interfaces ──────────────────────────────────────────────────────
 
@@ -172,7 +178,7 @@ const MAX_WINNER_KEYWORDS = 8;
 // ─── Service ─────────────────────────────────────────────────────────
 
 @Injectable()
-export class ContentOptimizationService {
+export class ContentOptimizationService implements OnModuleInit {
   private readonly logContext = 'ContentOptimizationService';
 
   constructor(
@@ -182,9 +188,50 @@ export class ContentOptimizationService {
     private readonly openAiLlmService: OpenAiLlmService,
     private readonly brandMemoryService: BrandMemoryService,
     private readonly trendPreferencesService: TrendPreferencesService,
-    @Optional()
-    private readonly abTestHarness?: AbTestSuggestionHarnessService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
   ) {}
+
+  onModuleInit(): void {
+    this.workflowRunner.registerAction(
+      CONTENT_OPTIMIZATION_ACTION_IDS.LOAD_SUMMARY,
+      (request) => this.loadSummaryAction(request),
+    );
+    this.workflowRunner.registerAction(
+      CONTENT_OPTIMIZATION_ACTION_IDS.RUN_CYCLE,
+      (request) => this.runCycleAction(request),
+    );
+    this.workflowRunner.registerAction(
+      CONTENT_OPTIMIZATION_ACTION_IDS.DERIVE_ANALYSIS,
+      async (request) => this.deriveAnalysisAction(request),
+    );
+    this.workflowRunner.registerAction(
+      CONTENT_OPTIMIZATION_ACTION_IDS.LOAD_PROMPT_CONTEXT,
+      (request) => this.loadPromptContextAction(request),
+    );
+    this.workflowRunner.registerAction(
+      CONTENT_OPTIMIZATION_ACTION_IDS.OPTIMIZE_PROMPT,
+      (request) => this.optimizePromptAction(request),
+    );
+    this.workflowRunner.registerAction(
+      CONTENT_OPTIMIZATION_ACTION_IDS.DERIVE_RECOMMENDATIONS,
+      (request) => this.deriveRecommendationsAction(request),
+    );
+    this.workflowRunner.registerAction(
+      CONTENT_OPTIMIZATION_ACTION_IDS.GENERATE_SUGGESTIONS,
+      (request) => this.generateSuggestionsAction(request),
+    );
+    this.workflowRunner.registerAction(
+      CONTENT_OPTIMIZATION_ACTION_IDS.APPLY_SUGGESTION,
+      (request) => this.applySuggestionAction(request),
+    );
+    this.workflowRunner.registerAction(
+      CONTENT_OPTIMIZATION_ACTION_IDS.REQUEUE_WINNER,
+      (request) => this.requeueWinnerAction(request),
+    );
+    for (const definition of CONTENT_OPTIMIZATION_WORKFLOW_DEFINITIONS) {
+      this.workflowRunner.registerWorkflow(definition);
+    }
+  }
 
   // ─── 1. Content Performance Analysis ─────────────────────────────
 
@@ -193,25 +240,23 @@ export class ContentOptimizationService {
     brandId: string,
     options: AnalyzePerformanceOptions = {},
   ): Promise<PerformanceAnalysis> {
-    const caller = `${this.logContext}.analyzePerformance`;
-    this.logger.log(caller, { brandId, options });
-
-    const [summary, optimizationCycle] = await Promise.all([
-      this.performanceSummaryService.getWeeklySummary(organizationId, brandId, {
-        endDate: options.endDate,
-        startDate: options.startDate,
-        topN: options.topN ?? 10,
-      }),
-      this.optimizationCycleService.runOptimizationCycle(
-        organizationId,
+    const normalizedOptions = {
+      ...(options.endDate
+        ? { endDate: this.toIsoDate(options.endDate, 'endDate') }
+        : {}),
+      ...(options.startDate
+        ? { startDate: this.toIsoDate(options.startDate, 'startDate') }
+        : {}),
+      ...(options.topN === undefined ? {} : { topN: options.topN }),
+    };
+    return this.runWorkflow<PerformanceAnalysis>(
+      CONTENT_OPTIMIZATION_WORKFLOW_IDS.ANALYZE,
+      {
         brandId,
-        { topN: options.topN ?? 10 },
-      ),
-    ]);
-
-    const insights = this.deriveInsights(summary, optimizationCycle);
-
-    return { insights, optimizationCycle, summary };
+        options: normalizedOptions,
+        organizationId,
+      },
+    );
   }
 
   // ─── 2. Prompt Optimization ──────────────────────────────────────
@@ -221,54 +266,14 @@ export class ContentOptimizationService {
     brandId: string,
     originalPrompt: string,
   ): Promise<PromptOptimizationResult> {
-    const caller = `${this.logContext}.optimizePrompt`;
-    this.logger.log(caller, { brandId, promptLength: originalPrompt.length });
-
-    // Gather performance context
-    const [topPerformers, worstPerformers, performanceContext] =
-      await Promise.all([
-        this.performanceSummaryService.getTopPerformers(
-          organizationId,
-          brandId,
-          5,
-        ),
-        this.performanceSummaryService.getWorstPerformers(
-          organizationId,
-          brandId,
-          5,
-        ),
-        this.performanceSummaryService.generatePerformanceContext(
-          organizationId,
-          brandId,
-        ),
-      ]);
-
-    const systemPrompt = this.buildOptimizationSystemPrompt(
-      topPerformers,
-      worstPerformers,
-      performanceContext,
+    return this.runWorkflow<PromptOptimizationResult>(
+      CONTENT_OPTIMIZATION_WORKFLOW_IDS.OPTIMIZE_PROMPT,
+      {
+        brandId,
+        organizationId,
+        originalPrompt,
+      },
     );
-
-    try {
-      const response = await this.openAiLlmService.chatCompletion({
-        max_tokens: 1500,
-        messages: [
-          { content: systemPrompt, role: 'system' },
-          {
-            content: `Optimize this content prompt for better engagement:\n\n"${originalPrompt}"\n\nReturn JSON with keys: optimizedPrompt, reasoning, suggestions (array of strings), confidenceScore (0-1).`,
-            role: 'user',
-          },
-        ],
-        model: 'gpt-4o-mini',
-        temperature: 0.7,
-      });
-
-      const content = response.choices?.[0]?.message?.content ?? '';
-      return this.parseOptimizationResponse(content, originalPrompt);
-    } catch (error) {
-      this.logger.error(`${caller} LLM call failed, using heuristic`, error);
-      return this.heuristicOptimize(originalPrompt, topPerformers);
-    }
   }
 
   // ─── 3. query Recommendations ─────────────────────────────────
@@ -277,76 +282,29 @@ export class ContentOptimizationService {
     organizationId: string,
     brandId: string,
   ): Promise<OptimizationRecommendations> {
-    const caller = `${this.logContext}.getRecommendations`;
-    this.logger.log(caller, { brandId });
-
-    const analysis = await this.analyzePerformance(organizationId, brandId);
-    const { summary, optimizationCycle } = analysis;
-
-    // Posting schedule
-    const postingSchedule = summary.avgEngagementByPlatform.map((p) => {
-      const platformTimes = summary.bestPostingTimes
-        .filter((t) => t.postCount >= 2)
-        .sort((a, b) => b.avgEngagementRate - a.avgEngagementRate)
-        .slice(0, 3)
-        .map((t) => t.hour);
-
-      return {
-        bestHours: platformTimes.length > 0 ? platformTimes : [9, 12, 18],
-        platform: p.platform,
-      };
-    });
-
-    // Content type recommendations
-    const contentTypes = summary.avgEngagementByContentType.map((ct) => ({
-      avgEngagement: ct.avgEngagementRate,
-      recommendation:
-        ct.avgEngagementRate > 5
-          ? `${ct.category} content performs well — increase production`
-          : ct.avgEngagementRate > 2
-            ? `${ct.category} content is average — experiment with variations`
-            : `${ct.category} content underperforms — consider reducing or pivoting`,
-      type: ct.category,
-    }));
-
-    // query config suggestions
-    const pipelineConfigs = this.derivePipelineConfigs(summary);
-
-    // A/B test suggestions
-    const abTestSuggestions = this.deriveAbTestSuggestions(
-      summary,
-      optimizationCycle,
+    return this.runWorkflow<OptimizationRecommendations>(
+      CONTENT_OPTIMIZATION_WORKFLOW_IDS.RECOMMEND,
+      {
+        brandId,
+        organizationId,
+      },
     );
-
-    // General recommendations from optimization cycle
-    const general: ContentRecommendation[] =
-      optimizationCycle.recommendations.map((r) => ({
-        basedOnDataPoints: r.basedOn,
-        category: r.category,
-        priority:
-          r.confidence > 0.7
-            ? ('high' as const)
-            : r.confidence > 0.4
-              ? ('medium' as const)
-              : ('low' as const),
-        recommendation: r.recommendation,
-      }));
-
-    const validatedAbTests = this.abTestHarness
-      ? await this.abTestHarness.getValidatedOutcomes(organizationId, brandId)
-      : [];
-
-    return {
-      abTestSuggestions,
-      contentTypes,
-      general,
-      pipelineConfigs,
-      postingSchedule,
-      validatedAbTests,
-    };
   }
 
   async generateSuggestions(
+    organizationId: string,
+    brandId: string,
+  ): Promise<OptimizationSuggestion[]> {
+    return this.runWorkflow<OptimizationSuggestion[]>(
+      CONTENT_OPTIMIZATION_WORKFLOW_IDS.SUGGEST,
+      {
+        brandId,
+        organizationId,
+      },
+    );
+  }
+
+  private async performGenerateSuggestions(
     organizationId: string,
     brandId: string,
   ): Promise<OptimizationSuggestion[]> {
@@ -432,8 +390,23 @@ export class ContentOptimizationService {
     brandId: string,
     suggestionId: string,
   ): Promise<AutoApplyResult> {
+    return this.runWorkflow<AutoApplyResult>(
+      CONTENT_OPTIMIZATION_WORKFLOW_IDS.APPLY_SUGGESTION,
+      {
+        brandId,
+        organizationId,
+        suggestionId,
+      },
+    );
+  }
+
+  private async performApplySuggestion(
+    organizationId: string,
+    brandId: string,
+    suggestionId: string,
+    suggestions: OptimizationSuggestion[],
+  ): Promise<AutoApplyResult> {
     const minConfidenceThreshold = 0.75;
-    const suggestions = await this.generateSuggestions(organizationId, brandId);
     const suggestion = suggestions.find((item) => item.id === suggestionId);
 
     if (!suggestion) {
@@ -504,6 +477,21 @@ export class ContentOptimizationService {
     brandId: string | undefined,
     winner: WinnerContentSignal,
   ): Promise<RequeueWinnerResult> {
+    return this.runWorkflow<RequeueWinnerResult>(
+      CONTENT_OPTIMIZATION_WORKFLOW_IDS.REQUEUE_WINNER,
+      {
+        brandId,
+        organizationId,
+        winner,
+      },
+    );
+  }
+
+  private async performRequeueWinnerIntoTrends(
+    organizationId: string,
+    brandId: string | undefined,
+    winner: WinnerContentSignal,
+  ): Promise<RequeueWinnerResult> {
     const caller = `${this.logContext}.requeueWinnerIntoTrends`;
 
     const preferences = await this.trendPreferencesService.getPreferences(
@@ -551,6 +539,352 @@ export class ContentOptimizationService {
       requeued: true,
       trendPreferencesId: updated.id,
     };
+  }
+
+  private async runWorkflow<T>(
+    canonicalId: string,
+    request: Record<string, unknown>,
+  ): Promise<T> {
+    const organizationId = this.requiredString(
+      request.organizationId,
+      'organizationId',
+    );
+    const { result } = await this.workflowRunner.runWorkflow<T>({
+      actionType: canonicalId,
+      canonicalId,
+      inputValues: { request },
+      organizationId,
+      source: `ContentOptimizationService.${canonicalId}`,
+    });
+    return result;
+  }
+
+  private async loadSummaryAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<WeeklySummary> {
+    const request = this.readActionRequest(action);
+    const options = this.readOptions(request.options);
+    return this.performanceSummaryService.getWeeklySummary(
+      this.requiredString(request.organizationId, 'organizationId'),
+      this.requiredString(request.brandId, 'brandId'),
+      {
+        endDate: options.endDate,
+        startDate: options.startDate,
+        topN: options.topN ?? 10,
+      },
+    );
+  }
+
+  private async runCycleAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<OptimizationCycleResult> {
+    const request = this.readActionRequest(action);
+    const options = this.readOptions(request.options);
+    return this.optimizationCycleService.runOptimizationCycle(
+      this.requiredString(request.organizationId, 'organizationId'),
+      this.requiredString(request.brandId, 'brandId'),
+      {
+        ...(options.endDate ? { endDate: options.endDate } : {}),
+        ...(options.startDate ? { startDate: options.startDate } : {}),
+        topN: options.topN ?? 10,
+      },
+    );
+  }
+
+  private deriveAnalysisAction(
+    action: SystemWorkflowActionRequest,
+  ): PerformanceAnalysis {
+    const summary = this.readSummary(action.input.summary);
+    const optimizationCycle = this.readCycle(action.input.cycle);
+    return {
+      insights: this.deriveInsights(summary, optimizationCycle),
+      optimizationCycle,
+      summary,
+    };
+  }
+
+  private async loadPromptContextAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<{
+    performanceContext: string;
+    topPerformers: PerformanceContentItem[];
+    worstPerformers: PerformanceContentItem[];
+  }> {
+    const request = this.readActionRequest(action);
+    const organizationId = this.requiredString(
+      request.organizationId,
+      'organizationId',
+    );
+    const brandId = this.requiredString(request.brandId, 'brandId');
+    const [topPerformers, worstPerformers, performanceContext] =
+      await Promise.all([
+        this.performanceSummaryService.getTopPerformers(
+          organizationId,
+          brandId,
+          5,
+        ),
+        this.performanceSummaryService.getWorstPerformers(
+          organizationId,
+          brandId,
+          5,
+        ),
+        this.performanceSummaryService.generatePerformanceContext(
+          organizationId,
+          brandId,
+        ),
+      ]);
+    return { performanceContext, topPerformers, worstPerformers };
+  }
+
+  private async optimizePromptAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<PromptOptimizationResult> {
+    const request = this.readActionRequest(action);
+    const originalPrompt = this.requiredString(
+      request.originalPrompt,
+      'originalPrompt',
+    );
+    const performance = this.readRecord(
+      action.input.performance,
+      'performance',
+    );
+    const topPerformers = this.readPerformers(
+      performance.topPerformers,
+      'topPerformers',
+    );
+    const worstPerformers = this.readPerformers(
+      performance.worstPerformers,
+      'worstPerformers',
+    );
+    const systemPrompt = this.buildOptimizationSystemPrompt(
+      topPerformers,
+      worstPerformers,
+      this.requiredString(performance.performanceContext, 'performanceContext'),
+    );
+    const response = await this.openAiLlmService.chatCompletion({
+      max_tokens: 1500,
+      messages: [
+        { content: systemPrompt, role: 'system' },
+        {
+          content: `Optimize this content prompt for better engagement:\n\n"${originalPrompt}"\n\nReturn JSON with keys: optimizedPrompt, reasoning, suggestions (array of strings), confidenceScore (0-1).`,
+          role: 'user',
+        },
+      ],
+      model: 'gpt-4o-mini',
+      temperature: 0.7,
+    });
+    const content = response.choices?.[0]?.message?.content;
+    if (!content) {
+      throw new Error('Prompt optimization action returned no content');
+    }
+    return this.parseOptimizationResponse(content);
+  }
+
+  private async deriveRecommendationsAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<OptimizationRecommendations> {
+    const summary = this.readSummary(action.input.summary);
+    const optimizationCycle = this.readCycle(action.input.cycle);
+    const postingSchedule = summary.avgEngagementByPlatform.map((platform) => {
+      const bestHours = summary.bestPostingTimes
+        .filter((time) => time.postCount >= 2)
+        .sort((left, right) => right.avgEngagementRate - left.avgEngagementRate)
+        .slice(0, 3)
+        .map((time) => time.hour);
+      return {
+        bestHours: bestHours.length > 0 ? bestHours : [9, 12, 18],
+        platform: platform.platform,
+      };
+    });
+    const contentTypes = summary.avgEngagementByContentType.map((content) => ({
+      avgEngagement: content.avgEngagementRate,
+      recommendation:
+        content.avgEngagementRate > 5
+          ? `${content.category} content performs well — increase production`
+          : content.avgEngagementRate > 2
+            ? `${content.category} content is average — experiment with variations`
+            : `${content.category} content underperforms — consider reducing or pivoting`,
+      type: content.category,
+    }));
+    const general: ContentRecommendation[] =
+      optimizationCycle.recommendations.map((recommendation) => ({
+        basedOnDataPoints: recommendation.basedOn,
+        category: recommendation.category,
+        priority:
+          recommendation.confidence > 0.7
+            ? 'high'
+            : recommendation.confidence > 0.4
+              ? 'medium'
+              : 'low',
+        recommendation: recommendation.recommendation,
+      }));
+    const validatedAbTests = this.readAbTestOutcomes(
+      action.input.validatedAbTests,
+    );
+    return {
+      abTestSuggestions: this.deriveAbTestSuggestions(
+        summary,
+        optimizationCycle,
+      ),
+      contentTypes,
+      general,
+      pipelineConfigs: this.derivePipelineConfigs(summary),
+      postingSchedule,
+      validatedAbTests,
+    };
+  }
+
+  private async generateSuggestionsAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<OptimizationSuggestion[]> {
+    const request = this.readActionRequest(action);
+    return this.performGenerateSuggestions(
+      this.requiredString(request.organizationId, 'organizationId'),
+      this.requiredString(request.brandId, 'brandId'),
+    );
+  }
+
+  private async applySuggestionAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<AutoApplyResult> {
+    const request = this.readActionRequest(action);
+    const suggestions = this.readSuggestions(action.input.suggestions);
+    return this.performApplySuggestion(
+      this.requiredString(request.organizationId, 'organizationId'),
+      this.requiredString(request.brandId, 'brandId'),
+      this.requiredString(request.suggestionId, 'suggestionId'),
+      suggestions,
+    );
+  }
+
+  private async requeueWinnerAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<RequeueWinnerResult> {
+    const request = this.readActionRequest(action);
+    const brandId = this.optionalString(request.brandId);
+    return this.performRequeueWinnerIntoTrends(
+      this.requiredString(request.organizationId, 'organizationId'),
+      brandId,
+      this.readWinner(request.winner),
+    );
+  }
+
+  private readActionRequest(
+    action: SystemWorkflowActionRequest,
+  ): Record<string, unknown> {
+    return this.readRecord(action.input.request, 'request');
+  }
+
+  private readOptions(value: unknown): AnalyzePerformanceOptions {
+    if (value === undefined) {
+      return {};
+    }
+    const options = this.readRecord(value, 'options');
+    return {
+      ...(typeof options.endDate === 'string'
+        ? { endDate: options.endDate }
+        : {}),
+      ...(typeof options.startDate === 'string'
+        ? { startDate: options.startDate }
+        : {}),
+      ...(typeof options.topN === 'number' && Number.isFinite(options.topN)
+        ? { topN: options.topN }
+        : {}),
+    };
+  }
+
+  private readSummary(value: unknown): WeeklySummary {
+    return this.readRecord(value, 'summary') as unknown as WeeklySummary;
+  }
+
+  private readCycle(value: unknown): OptimizationCycleResult {
+    return this.readRecord(
+      value,
+      'cycle',
+    ) as unknown as OptimizationCycleResult;
+  }
+
+  private readPerformers(
+    value: unknown,
+    field: string,
+  ): PerformanceContentItem[] {
+    if (!Array.isArray(value)) {
+      throw new Error(`Content optimization workflow requires ${field}`);
+    }
+    return value as PerformanceContentItem[];
+  }
+
+  private readSuggestions(value: unknown): OptimizationSuggestion[] {
+    if (!Array.isArray(value)) {
+      throw new Error('Content optimization workflow requires suggestions');
+    }
+    return value as OptimizationSuggestion[];
+  }
+
+  private readAbTestOutcomes(value: unknown): AbTestOutcome[] {
+    if (!Array.isArray(value)) {
+      throw new Error(
+        'Content optimization workflow requires validated A/B tests',
+      );
+    }
+    return value as AbTestOutcome[];
+  }
+
+  private readWinner(value: unknown): WinnerContentSignal {
+    const winner = this.readRecord(value, 'winner');
+    return {
+      ...(typeof winner.avgEngagementRate === 'number'
+        ? { avgEngagementRate: winner.avgEngagementRate }
+        : {}),
+      ...(this.optionalString(winner.contentRunId)
+        ? { contentRunId: this.optionalString(winner.contentRunId) }
+        : {}),
+      ...(this.optionalString(winner.format)
+        ? { format: this.optionalString(winner.format) }
+        : {}),
+      ...(Array.isArray(winner.hashtags)
+        ? {
+            hashtags: winner.hashtags.filter(
+              (item): item is string => typeof item === 'string',
+            ),
+          }
+        : {}),
+      ...(this.optionalString(winner.hook)
+        ? { hook: this.optionalString(winner.hook) }
+        : {}),
+      ...(Array.isArray(winner.keywords)
+        ? {
+            keywords: winner.keywords.filter(
+              (item): item is string => typeof item === 'string',
+            ),
+          }
+        : {}),
+      ...(this.optionalString(winner.platform)
+        ? { platform: this.optionalString(winner.platform) }
+        : {}),
+      variantId: this.requiredString(winner.variantId, 'variantId'),
+    };
+  }
+
+  private readRecord(value: unknown, field: string): Record<string, unknown> {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error(`Content optimization workflow requires ${field}`);
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private optionalString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0
+      ? value.trim()
+      : undefined;
+  }
+
+  private requiredString(value: unknown, field: string): string {
+    const resolved = this.optionalString(value);
+    if (!resolved) {
+      throw new Error(`Content optimization workflow requires ${field}`);
+    }
+    return resolved;
   }
 
   private deriveWinnerTrendSignals(winner: WinnerContentSignal): {
@@ -608,6 +942,14 @@ export class ContentOptimizationService {
 
   private normalizeToken(value: string | undefined): string {
     return typeof value === 'string' ? value.trim().toLowerCase() : '';
+  }
+
+  private toIsoDate(value: Date | string, field: string): string {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      throw new Error(`Content optimization requires a valid ${field}`);
+    }
+    return date.toISOString();
   }
 
   // ─── Private Helpers ─────────────────────────────────────────────
@@ -694,61 +1036,35 @@ Return ONLY valid JSON.`;
     return SecurityUtil.sanitizePromptInput(rawLabel, 140);
   }
 
-  private parseOptimizationResponse(
-    content: string,
-    originalPrompt: string,
-  ): PromptOptimizationResult {
-    try {
-      // Extract JSON from possible markdown code blocks
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No JSON found');
-
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        confidenceScore: Math.min(
-          1,
-          Math.max(0, Number(parsed.confidenceScore) || 0.5),
-        ),
-        optimizedPrompt: String(parsed.optimizedPrompt || originalPrompt),
-        reasoning: String(parsed.reasoning || ''),
-        suggestions: Array.isArray(parsed.suggestions)
-          ? parsed.suggestions.map(String)
-          : [],
-      };
-    } catch {
-      return {
-        confidenceScore: 0.3,
-        optimizedPrompt: originalPrompt,
-        reasoning: 'Failed to parse AI response; returning original prompt.',
-        suggestions: [],
-      };
+  private parseOptimizationResponse(content: string): PromptOptimizationResult {
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Prompt optimization action returned no JSON object');
     }
-  }
-
-  private heuristicOptimize(
-    originalPrompt: string,
-    topPerformers: PerformanceContentItem[],
-  ): PromptOptimizationResult {
-    const suggestions: string[] = [];
-
-    if (topPerformers.length > 0) {
-      const topHook = (
-        topPerformers[0].description || topPerformers[0].title
-      ).split(/[.\n]/)[0];
-      if (topHook) {
-        suggestions.push(`Consider a hook style similar to: "${topHook}"`);
-      }
+    const parsed = this.readRecord(JSON.parse(jsonMatch[0]), 'LLM response');
+    if (
+      typeof parsed.confidenceScore !== 'number' ||
+      !Number.isFinite(parsed.confidenceScore) ||
+      parsed.confidenceScore < 0 ||
+      parsed.confidenceScore > 1
+    ) {
+      throw new Error(
+        'Prompt optimization action requires confidenceScore from 0 to 1',
+      );
     }
-
-    suggestions.push('Keep prompts under 200 characters for better engagement');
-    suggestions.push('Include a clear call-to-action');
-
+    if (!Array.isArray(parsed.suggestions)) {
+      throw new Error('Prompt optimization action requires suggestions');
+    }
     return {
-      confidenceScore: 0.4,
-      optimizedPrompt: originalPrompt,
-      reasoning:
-        'Heuristic-based suggestions (AI optimization unavailable). Review top-performing content hooks for inspiration.',
-      suggestions,
+      confidenceScore: parsed.confidenceScore,
+      optimizedPrompt: this.requiredString(
+        parsed.optimizedPrompt,
+        'optimizedPrompt',
+      ),
+      reasoning: this.requiredString(parsed.reasoning, 'reasoning'),
+      suggestions: parsed.suggestions.map((suggestion, index) =>
+        this.requiredString(suggestion, `suggestions[${index}]`),
+      ),
     };
   }
 

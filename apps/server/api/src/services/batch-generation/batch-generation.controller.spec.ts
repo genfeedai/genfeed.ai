@@ -1,9 +1,10 @@
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { BatchGenerationController } from '@api/services/batch-generation/batch-generation.controller';
-import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
+import { BatchGenerationWorkflowService } from '@server/services/batch-generation/batch-generation-workflow.service';
 import type { Request } from 'express';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -14,6 +15,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 describe('BatchGenerationController', () => {
   let controller: BatchGenerationController;
   let service: vi.Mocked<BatchGenerationService>;
+  let workflowService: { queueBatch: ReturnType<typeof vi.fn> };
 
   const mockReq = {} as Request;
 
@@ -43,6 +45,12 @@ describe('BatchGenerationController', () => {
           },
         },
         {
+          provide: BatchGenerationWorkflowService,
+          useValue: {
+            queueBatch: vi.fn().mockResolvedValue('job-1'),
+          },
+        },
+        {
           provide: LoggerService,
           useValue: {
             debug: vi.fn(),
@@ -61,6 +69,7 @@ describe('BatchGenerationController', () => {
       BatchGenerationController,
     );
     service = module.get(BatchGenerationService);
+    workflowService = module.get(BatchGenerationWorkflowService);
   });
 
   it('should be defined', () => {
@@ -140,18 +149,22 @@ describe('BatchGenerationController', () => {
   });
 
   describe('processBatch', () => {
-    it('should delegate to service to start processing', async () => {
+    it('queues the batch workflow instead of processing inline', async () => {
       const user = {
         id: 'user-123',
         organizationId: 'org',
         userId: 'usr',
       } as never;
-      (
-        service as unknown as Record<string, ReturnType<typeof vi.fn>>
-      ).processBatch = vi.fn().mockResolvedValue({ status: 'processing' });
 
-      const result = await controller.processBatch(mockReq, 'batch-1', user);
-      expect(result).toBeDefined();
+      const result = await controller.processBatch('batch-1', user);
+
+      expect(workflowService.queueBatch).toHaveBeenCalledWith({
+        batchId: 'batch-1',
+        organizationId: 'org',
+        userId: 'usr',
+      });
+      expect(service.processBatch).not.toHaveBeenCalled();
+      expect(result).toEqual({ jobId: 'job-1', status: 'queued' });
     });
   });
 

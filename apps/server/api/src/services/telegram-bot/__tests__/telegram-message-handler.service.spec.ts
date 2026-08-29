@@ -6,10 +6,8 @@ import type {
 } from '@api/services/telegram-bot/telegram-bot.types';
 import { TelegramConversationService } from '@api/services/telegram-bot/telegram-conversation.service';
 import { TelegramMessageHandlerService } from '@api/services/telegram-bot/telegram-message-handler.service';
-import type { TelegramRunCommandsService } from '@api/services/telegram-bot/telegram-run-commands.service';
 import type { TelegramWorkflowRunnerService } from '@api/services/telegram-bot/telegram-workflow-runner.service';
 import { FileInputType } from '@genfeedai/enums';
-import type { WorkflowEngine } from '@genfeedai/workflows/engine';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Context } from 'grammy';
@@ -220,7 +218,6 @@ describe('TelegramMessageHandlerService media inputs', () => {
     const service = new TelegramMessageHandlerService(
       logger,
       conversation,
-      {} as unknown as TelegramRunCommandsService,
       filesClientService,
     );
     service.setBotToken('bot-token');
@@ -263,7 +260,6 @@ describe('TelegramMessageHandlerService media inputs', () => {
     const service = new TelegramMessageHandlerService(
       logger,
       conversation,
-      {} as unknown as TelegramRunCommandsService,
       filesClientService,
     );
     service.setBotToken('bot-token');
@@ -306,7 +302,6 @@ describe('TelegramMessageHandlerService media inputs', () => {
     const service = new TelegramMessageHandlerService(
       logger,
       conversation,
-      {} as unknown as TelegramRunCommandsService,
       filesClientService,
     );
     service.setBotToken('bot-token');
@@ -339,8 +334,7 @@ describe('TelegramMessageHandlerService media inputs', () => {
     const runner = {
       execute,
     } as unknown as TelegramWorkflowRunnerService;
-    conversation = new TelegramConversationService(logger, runner);
-    conversation.attachEngine({} as WorkflowEngine);
+    conversation = new TelegramConversationService(runner);
     conversation.setWorkflows(
       new Map<string, WorkflowJson>([
         ['media-workflow', createMediaWorkflow()],
@@ -356,7 +350,6 @@ describe('TelegramMessageHandlerService media inputs', () => {
     const service = new TelegramMessageHandlerService(
       logger,
       conversation,
-      {} as unknown as TelegramRunCommandsService,
       filesClientService,
     );
     service.setBotToken('bot-token');

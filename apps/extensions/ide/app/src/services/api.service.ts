@@ -1,10 +1,10 @@
+import type { AgentToolName, AgentToolResult } from '@genfeedai/interfaces';
 import { AuthService } from '@services/auth.service';
 import { captureExtensionError } from '@services/error-tracking.service';
 import { getValidatedApiEndpoint } from '@services/trusted-origins';
 import type {
   ApiError,
   ApiResponse,
-  CampaignAuthoringContext,
   DraftRecord,
   DraftSavePayload,
   GeneratedImage,
@@ -12,9 +12,6 @@ import type {
   ImageGenerationPayload,
   ImagePreset,
   PromptTemplate,
-  RunActionType,
-  RunRecord,
-  RunTimelineEvent,
 } from '@/types';
 
 export class ApiService {
@@ -179,86 +176,15 @@ export class ApiService {
     return extractDataArray(contentTemplates);
   }
 
-  // Runs Control Plane
-  async createRun(
-    actionType: RunActionType,
-    input: Record<string, unknown>,
-    options?: {
-      campaign?: CampaignAuthoringContext;
-      idempotencyKey?: string;
-      metadata?: Record<string, unknown>;
-    },
-  ): Promise<RunRecord> {
-    const result = await this.request<{ reused: boolean; run: RunRecord }>(
+  executeAgentTool(
+    name: AgentToolName,
+    parameters: Record<string, unknown>,
+  ): Promise<AgentToolResult> {
+    return this.request<AgentToolResult>(
       'POST',
-      '/action-runs',
-      {
-        actionType,
-        campaign: options?.campaign,
-        idempotencyKey: options?.idempotencyKey,
-        input,
-        metadata: options?.metadata,
-        surface: 'ide',
-        trigger: 'manual',
-      },
+      `/agent-tools/${encodeURIComponent(name)}/execute`,
+      { parameters },
     );
-
-    return result.run;
-  }
-
-  executeRun(runId: string): Promise<RunRecord> {
-    return this.request<RunRecord>('PATCH', `/action-runs/${runId}`, {
-      status: 'running',
-    });
-  }
-
-  getRun(runId: string): Promise<RunRecord> {
-    return this.request<RunRecord>('GET', `/action-runs/${runId}`);
-  }
-
-  async listRuns(options?: {
-    actionType?: RunActionType;
-    limit?: number;
-    status?: string;
-  }): Promise<RunRecord[]> {
-    const params = new URLSearchParams();
-    if (options?.limit) {
-      params.set('limit', String(options.limit));
-    }
-    if (options?.actionType) {
-      params.set('actionType', options.actionType);
-    }
-    if (options?.status) {
-      params.set('status', options.status);
-    }
-
-    const query = params.toString();
-    const endpoint = query ? `/action-runs?${query}` : '/action-runs';
-    const result = await this.request<
-      ApiResponse<RunRecord[]> | { runs: RunRecord[] } | RunRecord[]
-    >('GET', endpoint);
-
-    if (Array.isArray(result)) {
-      return result;
-    }
-
-    if ('runs' in result && Array.isArray(result.runs)) {
-      return result.runs;
-    }
-
-    return extractDataArray(result);
-  }
-
-  // NOTE: the API exposes no `/timeline` route on either runs controller, so
-  // this 404s and `safeLoadTimeline` swallows it into an empty timeline. Moved
-  // under `action-runs` for namespace correctness only — wiring it to the
-  // existing `GET /action-runs/:runId/events` needs an envelope-to-event shape
-  // mapping and is tracked separately.
-  async getRunTimeline(runId: string): Promise<RunTimelineEvent[]> {
-    const result = await this.request<
-      ApiResponse<RunTimelineEvent[]> | RunTimelineEvent[]
-    >('GET', `/action-runs/${runId}/timeline`);
-    return extractDataArray(result);
   }
 
   // Drafts
@@ -298,19 +224,6 @@ export class ApiService {
     }
 
     return extractDataArray(result);
-  }
-
-  async createAndExecuteRun(
-    actionType: RunActionType,
-    input: Record<string, unknown>,
-    options?: {
-      campaign?: CampaignAuthoringContext;
-      idempotencyKey?: string;
-      metadata?: Record<string, unknown>;
-    },
-  ): Promise<RunRecord> {
-    const run = await this.createRun(actionType, input, options);
-    return this.executeRun(run.id);
   }
 }
 

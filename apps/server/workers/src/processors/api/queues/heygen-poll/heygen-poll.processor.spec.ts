@@ -1,5 +1,4 @@
 import {
-  HEYGEN_POLL_DELAY_MS,
   HEYGEN_POLL_MAX_ATTEMPTS,
   type HeygenPollJobData,
 } from '@genfeedai/queue-contracts';
@@ -11,11 +10,10 @@ function buildJob(data: Partial<HeygenPollJobData>): Job<HeygenPollJobData> {
   return {
     data: {
       attempt: 1,
+      continuationId: 'continuation-1',
       externalId: 'heygen-1',
       ingredientId: 'ingredient-1',
       organizationId: 'org-1',
-      taskId: 'task-1',
-      userId: 'user-1',
       ...data,
     },
   } as unknown as Job<HeygenPollJobData>;
@@ -29,12 +27,14 @@ describe('HeygenPollProcessor', () => {
   };
   let heygenAvatarProvider: { getStatus: ReturnType<typeof vi.fn> };
   let webhooksService: {
+    handleFailedGenerationForIngredient: ReturnType<typeof vi.fn>;
     processMediaForIngredient: ReturnType<typeof vi.fn>;
   };
-  let metadataService: { patch: ReturnType<typeof vi.fn> };
-  let ingredientsService: { findOne: ReturnType<typeof vi.fn> };
-  let tasksService: { recordTaskEvent: ReturnType<typeof vi.fn> };
-  let heygenPollQueueService: { schedule: ReturnType<typeof vi.fn> };
+  let continuationCoordinator: {
+    completeProviderAction: ReturnType<typeof vi.fn>;
+    failProviderAction: ReturnType<typeof vi.fn>;
+  };
+  let continuations: { requestHeygenPollAttempt: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     logger = { error: vi.fn(), log: vi.fn() };
@@ -42,35 +42,35 @@ describe('HeygenPollProcessor', () => {
       getStatus: vi.fn().mockResolvedValue({ status: 'processing' }),
     };
     webhooksService = {
+      handleFailedGenerationForIngredient: vi.fn().mockResolvedValue(undefined),
       processMediaForIngredient: vi.fn().mockResolvedValue(undefined),
     };
-    metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
-    ingredientsService = {
-      findOne: vi.fn().mockResolvedValue({ metadataId: 'metadata-1' }),
+    continuationCoordinator = {
+      completeProviderAction: vi.fn().mockResolvedValue('queued'),
+      failProviderAction: vi.fn().mockResolvedValue('queued'),
     };
-    tasksService = { recordTaskEvent: vi.fn().mockResolvedValue(undefined) };
-    heygenPollQueueService = {
-      schedule: vi.fn().mockResolvedValue(undefined),
+    continuations = {
+      requestHeygenPollAttempt: vi.fn().mockResolvedValue(undefined),
     };
 
     processor = new HeygenPollProcessor(
       logger as never,
       heygenAvatarProvider as never,
       webhooksService as never,
-      metadataService as never,
-      ingredientsService as never,
-      tasksService as never,
-      heygenPollQueueService as never,
+      continuationCoordinator as never,
+      continuations as never,
     );
   });
 
   it('reschedules itself while the video is still processing', async () => {
     await processor.process(buildJob({ attempt: 2 }));
 
-    expect(heygenPollQueueService.schedule).toHaveBeenCalledWith(
-      expect.objectContaining({ attempt: 3, externalId: 'heygen-1' }),
-      HEYGEN_POLL_DELAY_MS,
-    );
+    expect(continuations.requestHeygenPollAttempt).toHaveBeenCalledWith({
+      attempt: 3,
+      continuationId: 'continuation-1',
+      externalId: 'heygen-1',
+      organizationId: 'org-1',
+    });
     expect(webhooksService.processMediaForIngredient).not.toHaveBeenCalled();
   });
 
@@ -79,20 +79,11 @@ describe('HeygenPollProcessor', () => {
 
     await processor.process(buildJob({ attempt: HEYGEN_POLL_MAX_ATTEMPTS }));
 
-    expect(heygenPollQueueService.schedule).not.toHaveBeenCalled();
-    expect(metadataService.patch).toHaveBeenCalledWith('metadata-1', {
-      error: 'HeyGen polling timeout',
-    });
-    expect(tasksService.recordTaskEvent).toHaveBeenCalledWith(
-      'task-1',
-      'org-1',
-      'user-1',
-      expect.objectContaining({ type: 'facecam_failed' }),
-      expect.objectContaining({
-        failureReason: 'HeyGen polling timeout',
-        status: 'failed',
-      }),
-    );
+    expect(continuations.requestHeygenPollAttempt).not.toHaveBeenCalled();
+    expect(
+      webhooksService.handleFailedGenerationForIngredient,
+    ).toHaveBeenCalledWith('ingredient-1', 'HeyGen polling timeout');
+    expect(continuationCoordinator.failProviderAction).toHaveBeenCalled();
   });
 
   it('processes media and records completion on success', async () => {
@@ -110,12 +101,13 @@ describe('HeygenPollProcessor', () => {
       'https://cdn.example/video.mp4',
       'provider-video-1',
     );
-    expect(tasksService.recordTaskEvent).toHaveBeenCalledWith(
-      'task-1',
-      'org-1',
-      'user-1',
-      expect.objectContaining({ type: 'facecam_completed' }),
-      expect.objectContaining({ status: 'done' }),
+    expect(continuationCoordinator.completeProviderAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        identity: {
+          continuationId: 'continuation-1',
+          organizationId: 'org-1',
+        },
+      }),
     );
   });
 
@@ -142,45 +134,39 @@ describe('HeygenPollProcessor', () => {
 
     await processor.process(buildJob({}));
 
-    expect(tasksService.recordTaskEvent).toHaveBeenCalledWith(
-      'task-1',
-      'org-1',
-      'user-1',
-      expect.objectContaining({
-        payload: { error: 'render failed', ingredientId: 'ingredient-1' },
-      }),
-      expect.objectContaining({ failureReason: 'render failed' }),
+    expect(
+      webhooksService.handleFailedGenerationForIngredient,
+    ).toHaveBeenCalledWith('ingredient-1', 'render failed');
+    expect(continuationCoordinator.failProviderAction).toHaveBeenCalledWith(
+      expect.objectContaining({ error: 'render failed' }),
     );
   });
 
-  it('falls back to a default failure message and skips metadata patch without an ingredient', async () => {
+  it('falls back to a default failure message', async () => {
     heygenAvatarProvider.getStatus.mockResolvedValue({ status: 'failed' });
-    ingredientsService.findOne.mockResolvedValue(null);
 
     await processor.process(buildJob({}));
 
-    expect(metadataService.patch).not.toHaveBeenCalled();
-    expect(tasksService.recordTaskEvent).toHaveBeenCalledWith(
-      'task-1',
-      'org-1',
-      'user-1',
-      expect.objectContaining({
-        payload: expect.objectContaining({
-          error: 'HeyGen generation failed without error message',
-        }),
-      }),
-      expect.anything(),
+    expect(
+      webhooksService.handleFailedGenerationForIngredient,
+    ).toHaveBeenCalledWith(
+      'ingredient-1',
+      'HeyGen generation failed without error message',
     );
   });
 
-  it('swallows cleanup failures while finalizing a failure', async () => {
+  it('rethrows cleanup failures so the durable poll transport retries', async () => {
     heygenAvatarProvider.getStatus.mockResolvedValue({ status: 'failed' });
-    ingredientsService.findOne.mockRejectedValue(new Error('lookup failed'));
+    webhooksService.handleFailedGenerationForIngredient.mockRejectedValue(
+      new Error('lookup failed'),
+    );
 
-    await processor.process(buildJob({}));
+    await expect(processor.process(buildJob({}))).rejects.toThrow(
+      'lookup failed',
+    );
 
     expect(logger.error).toHaveBeenCalledWith(
-      'HeygenPollProcessor: finalizeFailure cleanup failed for task task-1',
+      'HeygenPollProcessor: finalizeFailure cleanup failed for continuation continuation-1',
       expect.any(Error),
     );
   });

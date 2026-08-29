@@ -20,6 +20,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from '@nestjs/common';
+import type { SystemWorkflowActionExecutor } from '@server/collections/workflows/system-workflow-runner.service';
 import { AiActionType } from '@server/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentAdsResearchToolHandler } from '@server/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@server/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
@@ -56,11 +57,66 @@ import { AgentWorkflowToolHandler } from '@server/services/agent-orchestrator/to
 import { AgentWorkflowToolInstallService } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
 import { AgentWorkspaceToolHandler } from '@server/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@server/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
-import { BatchGenerationStreamService } from '@server/services/batch-generation/batch-generation-stream.service';
 import { Effect } from 'effect';
 import { of } from 'rxjs';
 
 describe('AgentToolExecutorService', () => {
+  const createWorkflowRunner = () => {
+    const executors = new Map<string, SystemWorkflowActionExecutor>();
+    const workflows = new Set<string>();
+    return {
+      registerAction: vi.fn(
+        (actionId: string, executor: SystemWorkflowActionExecutor) => {
+          executors.set(actionId, executor);
+        },
+      ),
+      registerWorkflow: vi.fn((definition: { canonicalId: string }) => {
+        workflows.add(definition.canonicalId);
+      }),
+      runWorkflow: vi.fn(
+        async (request: {
+          actionType: string;
+          canonicalId: string;
+          inputValues?: Record<string, unknown>;
+          organizationId: string;
+          runtimeContext?: unknown;
+          userId?: string;
+        }) => {
+          if (!workflows.has(request.canonicalId)) {
+            throw new Error(`Missing test workflow ${request.canonicalId}`);
+          }
+          const executor = executors.get(request.actionType);
+          if (!executor) {
+            throw new Error(`Missing test action ${request.actionType}`);
+          }
+          const provenance = {
+            executionId: 'execution-1',
+            workflowId: 'workflow-1',
+            workflowLabel: request.canonicalId,
+          };
+          const result = await executor({
+            context: {
+              organizationId: request.organizationId,
+              runId: 'run-1',
+              userId: request.userId ?? testId('user'),
+              workflowId: 'workflow-1',
+              workflowVersionId: 'workflow-version-1',
+            },
+            input:
+              request.inputValues?.parameters &&
+              typeof request.inputValues.parameters === 'object' &&
+              !Array.isArray(request.inputValues.parameters)
+                ? (request.inputValues.parameters as Record<string, unknown>)
+                : {},
+            provenance,
+            runtimeContext: request.runtimeContext,
+          });
+          return { provenance, result };
+        },
+      ),
+    };
+  };
+
   const scopedContext = (brandId: string): ToolExecutionContext => ({
     brandId,
     organizationId: testId('org'),
@@ -318,16 +374,22 @@ describe('AgentToolExecutorService', () => {
           name: 'Generated Workflow',
           nodes: [
             {
-              data: { config: {}, label: 'Start' },
+              data: {
+                config: { actionId: 'postGen', parameters: {} },
+                label: 'Start',
+              },
               id: 'node-1',
               position: { x: 0, y: 0 },
-              type: 'ai-generate-post',
+              type: 'genfeedAction',
             },
             {
-              data: { config: {}, label: 'Finish' },
+              data: {
+                config: { actionId: 'postGen', parameters: {} },
+                label: 'Finish',
+              },
               id: 'node-2',
               position: { x: 240, y: 0 },
-              type: 'ai-generate-post',
+              type: 'genfeedAction',
             },
           ],
         },
@@ -408,6 +470,9 @@ describe('AgentToolExecutorService', () => {
       getBatch: vi.fn(),
       getReviewInboxSummary: vi.fn(),
       processBatch: vi.fn().mockResolvedValue(undefined),
+    };
+    const batchGenerationWorkflowService = {
+      queueBatch: vi.fn().mockResolvedValue('job-1'),
     };
     const batchCreditsService = {
       recordUpfrontCharge: vi.fn().mockResolvedValue(true),
@@ -964,18 +1029,11 @@ describe('AgentToolExecutorService', () => {
       new AgentMediaBatchGenerationService(
         loggerService,
         brandsService as never,
+        batchGenerationWorkflowService as never,
         batchGenerationService as never,
         credentialsService as never,
-        streamPublisher as never,
         creditsUtilsService as never,
         batchCreditsService as never,
-        // Real, not mocked: the async batch path only streams into the thread
-        // when this builder hands back callbacks, so stubbing it would assert
-        // nothing about whether progress actually reaches the user.
-        new BatchGenerationStreamService(
-          loggerService,
-          streamPublisher as never,
-        ),
       ),
     );
     const qualityHandler = new AgentQualityToolHandler(
@@ -1000,6 +1058,7 @@ describe('AgentToolExecutorService', () => {
     );
     const spawnHandler = new AgentSpawnToolHandler(loggerService, undefined);
 
+    const systemWorkflowRunner = createWorkflowRunner();
     const service = new AgentToolExecutorService(
       loggerService,
       routeRewriteService,
@@ -1027,7 +1086,10 @@ describe('AgentToolExecutorService', () => {
       prepareHandler,
       spawnHandler,
       agentScopeContextService as never,
+      undefined,
+      systemWorkflowRunner as never,
     );
+    service.onModuleInit();
 
     return {
       adsResearchService,
@@ -1038,6 +1100,7 @@ describe('AgentToolExecutorService', () => {
       brandInterviewService,
       analyticsService,
       batchGenerationService,
+      batchGenerationWorkflowService,
       botsLivestreamService,
       botsService,
       brandsService,
@@ -2188,7 +2251,7 @@ describe('AgentToolExecutorService', () => {
       }),
       expect.stringMatching(/^agent-publish:[a-f0-9]{64}$/),
       expect.objectContaining({
-        agentRunId: testId('run'),
+        workflowExecutionId: testId('run'),
         agentStrategyId: testId('strategy'),
         agentThreadId: testId('thread'),
         source: 'agent',
@@ -3765,9 +3828,13 @@ describe('AgentToolExecutorService', () => {
     });
   });
 
-  it('seeds async batch item processes into the live agent thread', async () => {
-    const { batchGenerationService, brandsService, service, streamPublisher } =
-      createService();
+  it('hands an async batch to the workflow queue with its live thread identity', async () => {
+    const {
+      batchGenerationService,
+      batchGenerationWorkflowService,
+      brandsService,
+      service,
+    } = createService();
 
     brandsService.findOne.mockResolvedValue({
       description: 'Brand description',
@@ -3778,17 +3845,6 @@ describe('AgentToolExecutorService', () => {
       label: 'Genfeed',
       text: 'Publish content. Now.',
     });
-
-    let capturedOptions:
-      | Parameters<typeof batchGenerationService.processBatch>[2]
-      | undefined;
-
-    batchGenerationService.processBatch.mockImplementation(
-      async (_batchId, _orgId, options) => {
-        capturedOptions = options;
-        return undefined as never;
-      },
-    );
 
     const result = await service.executeTool(
       AgentToolName.GENERATE_CONTENT_BATCH,
@@ -3816,71 +3872,16 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(batchGenerationService.processBatch).toHaveBeenCalledWith(
-      testId('batch'),
-      testId('org'),
-      expect.any(Object),
-    );
-    expect(capturedOptions).toBeDefined();
-
-    const itemId = testId('entitybb');
-
-    await capturedOptions?.onBatchStarted?.({
+    // Generation runs in the batch workflow now — the tool only reserves credits
+    // and hands over the identity the workflow streams progress back through.
+    expect(batchGenerationWorkflowService.queueBatch).toHaveBeenCalledWith({
       batchId: testId('batch'),
-      totalCount: 2,
+      organizationId: testId('org'),
+      runId: 'run-1',
+      threadId: 'thread-1',
+      userId: testId('user'),
     });
-    await capturedOptions?.onItemStarted?.({
-      batchId: testId('batch'),
-      completedCount: 0,
-      failedCount: 0,
-      index: 0,
-      item: {
-        id: itemId,
-        format: 'image',
-        platform: 'instagram',
-        status: 'generating',
-      } as never,
-      topic: 'launch day',
-      totalCount: 2,
-    });
-    await capturedOptions?.onItemCompleted?.({
-      batchId: testId('batch'),
-      completedCount: 1,
-      failedCount: 0,
-      index: 0,
-      item: {
-        id: itemId,
-        format: 'image',
-        platform: 'instagram',
-        status: 'completed',
-      } as never,
-      postId: 'post-1',
-      previewText: 'Draft ready',
-      topic: 'launch day',
-      totalCount: 2,
-    });
-
-    expect(streamPublisher.publishWorkEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        label: 'Batch generation started',
-        toolCallId: `batch:${testId('batch')}`,
-        toolName: AgentToolName.GENERATE_CONTENT_BATCH,
-      }),
-    );
-    expect(streamPublisher.publishWorkEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        label: 'Generating post 1',
-        toolCallId: `batch:${testId('batch')}:item:${testId('entitybb')}`,
-        toolName: AgentToolName.GENERATE_CONTENT_BATCH,
-      }),
-    );
-    expect(streamPublisher.publishWorkEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        label: 'Generated post 1',
-        toolCallId: `batch:${testId('batch')}:item:${testId('entitybb')}`,
-        toolName: AgentToolName.GENERATE_CONTENT_BATCH,
-      }),
-    );
+    expect(batchGenerationService.processBatch).not.toHaveBeenCalled();
   });
 
   it('should return clip_workflow_run_card from prepare_clip_workflow_run', async () => {
@@ -4275,7 +4276,10 @@ describe('AgentToolExecutorService', () => {
         isScheduleEnabled: true,
         nodes: [
           expect.objectContaining({
-            type: 'ai-generate-image',
+            data: expect.objectContaining({
+              config: expect.objectContaining({ actionId: 'imageGen' }),
+            }),
+            type: 'genfeedAction',
           }),
         ],
         schedule: '0 17 * * *',
@@ -4531,24 +4535,26 @@ describe('AgentToolExecutorService', () => {
           {
             data: {
               config: {
-                prompt: 'Plan next week of content',
+                actionId: 'postGen',
+                parameters: { prompt: 'Plan next week of content' },
               },
               label: 'Plan Content',
             },
             id: 'plan',
             position: { x: 120, y: 120 },
-            type: 'ai-generate-post',
+            type: 'genfeedAction',
           },
           {
             data: {
               config: {
-                prompt: 'Draft the strongest option',
+                actionId: 'postGen',
+                parameters: { prompt: 'Draft the strongest option' },
               },
               label: 'Draft Content',
             },
             id: 'draft',
             position: { x: 420, y: 120 },
-            type: 'ai-generate-post',
+            type: 'genfeedAction',
           },
         ],
         schedule: ' 0 9 * * 1 ',
@@ -4648,12 +4654,15 @@ describe('AgentToolExecutorService', () => {
           expect.objectContaining({
             data: expect.objectContaining({
               config: expect.objectContaining({
-                brandId: testId('currentbrand'),
-                brandLabel: 'Genfeed',
-                prompt: 'Create one daily post draft about product learnings',
+                actionId: 'postGen',
+                parameters: expect.objectContaining({
+                  brandId: testId('currentbrand'),
+                  brandLabel: 'Genfeed',
+                  prompt: 'Create one daily post draft about product learnings',
+                }),
               }),
             }),
-            type: 'ai-generate-post',
+            type: 'genfeedAction',
           }),
         ],
       }),
@@ -4692,13 +4701,17 @@ describe('AgentToolExecutorService', () => {
           expect.objectContaining({
             data: expect.objectContaining({
               config: expect.objectContaining({
-                brandId: testId('currentbrand'),
-                brandLabel: 'Genfeed',
-                instructions: 'Keep the issue practical and operator-focused.',
-                prompt: 'Draft the next daily newsletter issue',
+                actionId: 'newsletterGen',
+                parameters: expect.objectContaining({
+                  brandId: testId('currentbrand'),
+                  brandLabel: 'Genfeed',
+                  instructions:
+                    'Keep the issue practical and operator-focused.',
+                  prompt: 'Draft the next daily newsletter issue',
+                }),
               }),
             }),
-            type: 'ai-generate-newsletter',
+            type: 'genfeedAction',
           }),
         ],
       }),
@@ -5316,6 +5329,7 @@ describe('AgentToolExecutorService', () => {
       usersService as never,
       undefined,
     );
+    const systemWorkflowRunner = createWorkflowRunner();
     const serviceWithoutScorer = new AgentToolExecutorService(
       loggerService,
       new AgentRouteRewriteService(
@@ -5418,6 +5432,7 @@ describe('AgentToolExecutorService', () => {
         new AgentMediaBatchGenerationService(
           loggerService,
           brandsService as never,
+          { queueBatch: vi.fn().mockResolvedValue('job-1') } as never,
           {} as never,
           credentialsService as never,
         ),
@@ -5436,7 +5451,10 @@ describe('AgentToolExecutorService', () => {
       ),
       new AgentSpawnToolHandler(loggerService, undefined),
       undefined as never, // agentScopeContextService
+      undefined,
+      systemWorkflowRunner as never,
     );
+    serviceWithoutScorer.onModuleInit();
 
     const result = await serviceWithoutScorer.executeTool(
       AgentToolName.RATE_CONTENT,

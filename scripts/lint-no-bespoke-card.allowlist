@@ -20,7 +20,6 @@
 # A graph node is not a content card. Product decision (#1271): keep these as a
 # separate node primitive; they are not scheduled for Card migration.
 apps/app/src/features/workflows/nodes/UnknownWorkflowNode.tsx
-apps/app/src/features/workflows/nodes/TemplateCompatibilityNode.tsx
 apps/app/src/features/workflows/components/ui/card/NodeCard.tsx
 
 # ─── Verified NON-tripping (documented; no entry needed) ──────────────────────

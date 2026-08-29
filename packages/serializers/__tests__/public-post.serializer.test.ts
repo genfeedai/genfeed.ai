@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 describe('PublicPostSerializer', () => {
   it('excludes private ownership, credential, and workflow data', () => {
     const document = PublicPostSerializer.serialize({
-      agentRunId: 'run_1',
+      workflowExecutionId: 'run_1',
       brandId: 'brand_1',
       createdAt: new Date('2026-08-05T00:00:00.000Z'),
       credential: { id: 'credential_1', isConnected: true },
@@ -45,7 +45,7 @@ describe('PublicPostSerializer', () => {
       targetExecutionState: TargetExecutionState.PUBLISHED,
       visibility: PostVisibility.PUBLIC,
     });
-    expect(document.data.attributes).not.toHaveProperty('agentRunId');
+    expect(document.data.attributes).not.toHaveProperty('workflowExecutionId');
     expect(document.data.attributes).not.toHaveProperty('brandId');
     expect(document.data.attributes).not.toHaveProperty('credential');
     expect(document.data.attributes).not.toHaveProperty('credentialId');

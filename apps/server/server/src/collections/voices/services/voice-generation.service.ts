@@ -1,11 +1,3 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import type { GenerateVoiceDto } from '@server/collections/voices/dto/generate-voice.dto';
-import { VoiceCreditsService } from '@server/collections/voices/services/voice-credits.service';
-import { VoicesService } from '@server/collections/voices/services/voices.service';
-import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
-import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
 import {
   IngredientCategory,
   IngredientStatus,
@@ -14,8 +6,23 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import type { IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import type { GenerateVoiceDto } from '@server/collections/voices/dto/generate-voice.dto';
+import { VoiceCreditsService } from '@server/collections/voices/services/voice-credits.service';
+import { VoicesService } from '@server/collections/voices/services/voices.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
-import type { Request } from 'express';
+import { SharedService } from '@server/shared/services/shared/shared.service';
+import { PopulatePatterns } from '@server/shared/utils/populate/populate.util';
+
+export type VoiceGenerationActionResult = {
+  cdnUrl?: string;
+  duration?: number;
+  id: string;
+  s3Key?: string;
+  status: string;
+};
 
 @Injectable()
 export class VoiceGenerationService {
@@ -27,13 +34,12 @@ export class VoiceGenerationService {
     private readonly sharedService: SharedService,
     private readonly voiceCreditsService: VoiceCreditsService,
     private readonly voicesService: VoicesService,
-    private readonly agentRunQueueService: AgentRunQueueService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
   ) {}
 
   async generate(
     user: User,
     dto: GenerateVoiceDto,
-    request: Request,
   ): Promise<IngredientDocument> {
     this.validateRequest(dto);
 
@@ -58,7 +64,7 @@ export class VoiceGenerationService {
         if (
           String(accepted.status).toUpperCase() === IngredientStatus.PROCESSING
         ) {
-          await this.agentRunQueueService.queueVoiceGeneration({
+          await this.enqueueGeneration({
             ingredientId: String(accepted.id),
             organizationId: user.organizationId,
             text: dto.text,
@@ -89,41 +95,51 @@ export class VoiceGenerationService {
     );
     const ingredientId = String(ingredientData.id);
 
-    if (dto.waitForCompletion !== true) {
-      await this.agentRunQueueService.queueVoiceGeneration({
-        ingredientId,
-        organizationId: user.organizationId,
-        text: dto.text,
-        userId: user.userId ?? user.id,
-        voiceId: dto.voiceId,
-      });
-      const accepted = await this.voicesService.findOne(
-        {
-          id: ingredientId,
-          isDeleted: false,
-          organizationId: user.organizationId,
-        },
-        [PopulatePatterns.metadataFull],
-      );
-      if (!accepted) {
-        throw new HttpException(
-          {
-            detail: `Ingredient ${ingredientId} not found after acceptance`,
-            title: 'Generation error',
-          },
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-      return accepted;
-    }
-
-    return this.executeGeneration({
+    await this.enqueueGeneration({
       ingredientId,
       organizationId: user.organizationId,
-      request,
       text: dto.text,
       userId: user.userId ?? user.id,
       voiceId: dto.voiceId,
+    });
+    const accepted = await this.voicesService.findOne(
+      {
+        id: ingredientId,
+        isDeleted: false,
+        organizationId: user.organizationId,
+      },
+      [PopulatePatterns.metadataFull],
+    );
+    if (!accepted) {
+      throw new HttpException(
+        {
+          detail: `Ingredient ${ingredientId} not found after acceptance`,
+          title: 'Generation error',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+    return accepted;
+  }
+
+  private async enqueueGeneration(params: {
+    ingredientId: string;
+    organizationId: string;
+    text: string;
+    userId: string;
+    voiceId: string;
+  }): Promise<void> {
+    await this.workflowRunner.enqueueWorkflow({
+      actionType: 'voice.generate',
+      canonicalId: 'voice.generate',
+      inputValues: params,
+      metadata: {
+        ingredientId: params.ingredientId,
+        retentionClass: 'ephemeral-processing',
+      },
+      organizationId: params.organizationId,
+      source: 'VoiceGenerationService.generate',
+      userId: params.userId,
     });
   }
 
@@ -133,7 +149,7 @@ export class VoiceGenerationService {
     text: string;
     userId: string;
     voiceId: string;
-  }): Promise<IngredientDocument> {
+  }): Promise<VoiceGenerationActionResult> {
     const existing = await this.voicesService.findOne(
       {
         id: params.ingredientId,
@@ -152,15 +168,30 @@ export class VoiceGenerationService {
         organizationId: params.organizationId,
         userId: params.userId,
       });
-      return existing;
+      return this.toActionResult(existing);
     }
-    return this.executeGeneration(params);
+    const generated = await this.executeGeneration(params);
+    return this.toActionResult(generated);
+  }
+
+  private toActionResult(
+    ingredient: IngredientDocument,
+  ): VoiceGenerationActionResult {
+    const record = ingredient as Record<string, unknown>;
+    return {
+      ...(typeof record.cdnUrl === 'string' ? { cdnUrl: record.cdnUrl } : {}),
+      ...(typeof record.duration === 'number'
+        ? { duration: record.duration }
+        : {}),
+      id: String(record.id),
+      ...(typeof record.s3Key === 'string' ? { s3Key: record.s3Key } : {}),
+      status: String(record.status),
+    };
   }
 
   private async executeGeneration(params: {
     ingredientId: string;
     organizationId: string;
-    request?: Request;
     text: string;
     userId: string;
     voiceId: string;
@@ -195,51 +226,32 @@ export class VoiceGenerationService {
       );
     }
 
-    try {
-      if (params.request) {
-        await this.voiceCreditsService.settleGenerationCredits(
-          params.request,
-          params.organizationId,
-          result.duration,
-        );
-      } else {
-        await this.voiceCreditsService.settleBackgroundGenerationCredits({
-          durationSeconds: result.duration,
-          ingredientId: params.ingredientId,
-          organizationId: params.organizationId,
-          userId: params.userId,
-        });
-      }
+    await this.voiceCreditsService.settleBackgroundGenerationCredits({
+      durationSeconds: result.duration,
+      ingredientId: params.ingredientId,
+      organizationId: params.organizationId,
+      userId: params.userId,
+    });
 
-      const completedIngredient = await this.voicesService.findOne(
+    const completedIngredient = await this.voicesService.findOne(
+      {
+        id: params.ingredientId,
+        isDeleted: false,
+        organizationId: params.organizationId,
+      },
+      [PopulatePatterns.metadataFull],
+    );
+    if (!completedIngredient) {
+      throw new HttpException(
         {
-          id: params.ingredientId,
-          isDeleted: false,
-          organizationId: params.organizationId,
+          detail: `Ingredient ${params.ingredientId} not found after generation`,
+          title: 'Generation error',
         },
-        [PopulatePatterns.metadataFull],
-      );
-      if (!completedIngredient) {
-        throw new HttpException(
-          {
-            detail: `Ingredient ${params.ingredientId} not found after generation`,
-            title: 'Generation error',
-          },
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      return completedIngredient;
-    } catch (error: unknown) {
-      if (!params.request) {
-        throw error;
-      }
-      return await this.handleFailure(
-        params.ingredientId,
-        params.organizationId,
-        error,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+
+    return completedIngredient;
   }
 
   private validateRequest(dto: GenerateVoiceDto): void {

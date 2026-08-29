@@ -1,5 +1,4 @@
 import type { NodeDefinition } from '@server/collections/workflows/registry/node-registry';
-import { WorkflowStepCategory } from '@genfeedai/enums';
 
 export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
   'control-branch': {
@@ -8,11 +7,6 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       customField: {
         description: 'Dot-notation path when field is "custom"',
         label: 'Custom Field Path',
-        type: 'string',
-      },
-      expression: {
-        description: 'JS-like expression (e.g. value > 10)',
-        label: 'Expression',
         type: 'string',
       },
       field: {
@@ -44,12 +38,10 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
           'notContains',
           'startsWith',
           'endsWith',
-          'matches',
           'isTrue',
           'isFalse',
           'isEmpty',
           'isNotEmpty',
-          'expression',
         ],
         type: 'select',
       },
@@ -146,13 +138,7 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
         default: 'fixed',
         description: 'Delay mode',
         label: 'Mode',
-        options: ['fixed', 'until', 'optimal'],
-        type: 'select',
-      },
-      platform: {
-        description: 'Platform for optimal posting time',
-        label: 'Platform',
-        options: ['instagram', 'tiktok', 'youtube', 'twitter', 'facebook'],
+        options: ['fixed', 'until'],
         type: 'select',
       },
       timezone: {
@@ -180,24 +166,8 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       trigger: { label: 'Trigger', type: 'any' },
     },
     label: 'Delay',
-    maps: WorkflowStepCategory.DELAY,
     outputs: {
       trigger: { label: 'Continue', type: 'any' },
-    },
-  },
-
-  'control-loop': {
-    category: 'control',
-    configSchema: {},
-    description: 'Iterate over array of items',
-    icon: 'RefreshCw',
-    inputs: {
-      items: { label: 'Items', multiple: true, type: 'any' },
-    },
-    label: 'Loop',
-    outputs: {
-      index: { label: 'Index', type: 'number' },
-      item: { label: 'Current Item', type: 'any' },
     },
   },
 
@@ -234,7 +204,6 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       video: { label: 'Video', type: 'video' },
     },
     label: 'Add Captions',
-    maps: WorkflowStepCategory.CAPTION,
     outputs: {
       video: { label: 'Captioned Video', type: 'video' },
     },
@@ -326,7 +295,6 @@ export const FLOW_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
     },
     isPremium: false,
     label: 'Color Grade',
-    maps: WorkflowStepCategory.COLOR_GRADE,
     outputs: {
       image: { label: 'Graded Image', type: 'image' },
     },

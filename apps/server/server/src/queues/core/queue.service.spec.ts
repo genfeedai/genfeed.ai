@@ -1,14 +1,13 @@
-import { QueueService } from '@server/queues/core/queue.service';
 import {
   DEFAULT_QUEUE,
   QueueDegradationReason,
   QueueDispatchStatus,
-  SOCIAL_REPLY_CAMPAIGN_QUEUE,
 } from '@genfeedai/queue-contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, TestingModule } from '@nestjs/testing';
+import { QueueService } from '@server/queues/core/queue.service';
 import { Job, Queue } from 'bullmq';
 
 describe('QueueService', () => {
@@ -49,24 +48,6 @@ describe('QueueService', () => {
       providers: [
         QueueService,
         { provide: getQueueToken('default'), useValue: mockQueue },
-        { provide: getQueueToken('analytics-twitter'), useValue: mockQueue },
-        { provide: getQueueToken('analytics-youtube'), useValue: mockQueue },
-        { provide: getQueueToken('analytics-social'), useValue: mockQueue },
-        { provide: getQueueToken('ad-sync-meta'), useValue: mockQueue },
-        { provide: getQueueToken('ad-sync-google'), useValue: mockQueue },
-        { provide: getQueueToken('ad-sync-tiktok'), useValue: mockQueue },
-        { provide: getQueueToken('analytics-sync'), useValue: mockQueue },
-        { provide: getQueueToken('email-digest'), useValue: mockQueue },
-        { provide: getQueueToken('ad-bulk-upload'), useValue: mockQueue },
-        { provide: getQueueToken('ad-optimization'), useValue: mockQueue },
-        { provide: getQueueToken('telegram-distribute'), useValue: mockQueue },
-        { provide: getQueueToken('analytics-facebook'), useValue: mockQueue },
-        { provide: getQueueToken('analytics-threads'), useValue: mockQueue },
-        { provide: getQueueToken('social-inbox-sync'), useValue: mockQueue },
-        {
-          provide: getQueueToken(SOCIAL_REPLY_CAMPAIGN_QUEUE),
-          useValue: mockQueue,
-        },
         { provide: ConfigService, useValue: mockConfigService },
         {
           provide: LoggerService,

@@ -1,31 +1,15 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { BatchContentController } from '@api/services/batch-content/batch-content.controller';
-import { BatchContentService } from '@server/services/batch-content/batch-content.service';
-import { BatchContentQueueService } from '@server/services/batch-content/batch-content-queue.service';
-import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
+import { BatchContentService } from '@server/services/batch-content/batch-content.service';
 
 @Module({
   controllers: [BatchContentController],
-  exports: [BatchContentQueueService, BatchContentService],
-  imports: [
-    BrandsModule,
-    LoggerModule,
-    NotificationsPublisherModule,
-    SkillExecutorModule,
-    BullModule.registerQueue({
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: { delay: 1000, type: 'exponential' },
-        removeOnComplete: 100,
-        removeOnFail: 50,
-      },
-      name: 'batch-content',
-    }),
-  ],
-  providers: [BatchContentService, BatchContentQueueService],
+  exports: [BatchContentService],
+  imports: [BrandsModule, LoggerModule, SkillExecutorModule, WorkflowsModule],
+  providers: [BatchContentService],
 })
 export class BatchContentModule {}

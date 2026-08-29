@@ -72,20 +72,6 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(source).toContain("by: ['status', 'reviewDecision']");
   });
 
-  it('aggregates agent-run stats with groupBy instead of four counts', () => {
-    const source = readSourceOf('AgentRunsService', { root: API_SRC });
-    expect(source).toContain('this.prisma.agentRun.groupBy({');
-    expect(source).toContain("by: ['status']");
-    // Guard against reintroducing the four-count fan-out on the bootstrap path.
-    const countCalls = source.match(/this\.delegate\.count\(/g) ?? [];
-    // getStats must not use count; other methods may still use count elsewhere
-    // in the file — assert the comment that documents the two-groupBy path.
-    expect(source).toContain(
-      'Two groupBy queries replace four separate COUNTs',
-    );
-    expect(countCalls.length).toBeLessThan(20);
-  });
-
   it('fails closed when Replicate webhook signing secret is missing', () => {
     const source = readSourceOf('ReplicateWebhookController', {
       root: API_SRC,
@@ -104,6 +90,66 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(source).toContain('continueExistingExecution');
     expect(source).toContain('continuedOnRetry');
     expect(source).toContain('attemptsMade');
+  });
+
+  it('executes content pipelines as persisted action graphs without a parallel queue engine', () => {
+    const service = readSourceOf('ContentOrchestrationService', {
+      root: API_SRC,
+    });
+    const queueNames = readRepo(
+      'packages/queue-contracts/src/queue-names.constant.ts',
+    );
+    const processors = readSourceOf('ProcessorsModule', {
+      root: WORKERS_SRC,
+    });
+
+    expect(service).toContain('buildContentPipelineWorkflowDefinition');
+    expect(service).toContain(
+      'systemWorkflowRunner.runDefinition<PipelineResultV2>',
+    );
+    expect(service).toContain("'content.pipeline.generate-image'");
+    expect(service).toContain("'content.pipeline.publish'");
+    expect(service).toContain("'content.pipeline.resolve-context'");
+    expect(service).not.toContain('for (let i = 0; i < config.steps.length');
+    expect(queueNames).not.toContain('CONTENT_PIPELINE_QUEUE');
+    expect(processors).not.toContain('ContentPipelineProcessor');
+  });
+
+  it('executes clip generation and hook review through persisted workflow nodes', () => {
+    const generation = readSourceOf('ClipGenerationService', {
+      root: API_SRC,
+    });
+    const approval = readSourceOf('HookClipApprovalService', {
+      root: API_SRC,
+    });
+    const clipModule = readSourceOf('ClipProjectsModule', { root: API_SRC });
+
+    expect(generation).toContain('buildClipGenerationWorkflowDefinition');
+    expect(generation).toContain('startWorkflow');
+    expect(generation).toContain("'clip.generation.generate-one'");
+    expect(generation).not.toContain('ClipOrchestratorService');
+    expect(approval).toContain('submitReviewGateApproval');
+    expect(approval).not.toContain('claimConfirmation');
+    expect(clipModule).not.toContain('ClipOrchestratorModule');
+  });
+
+  it('executes clip continuity as queued action nodes without Redis polling', () => {
+    const continuity = readSourceOf('ClipContinuityWorkflowService', {
+      root: API_SRC,
+    });
+    const definition = readSourceOf('buildClipContinuityWorkflowDefinition', {
+      root: API_SRC,
+    });
+    const workflowQueue = readSourceOf('WorkflowExecutionQueueService', {
+      root: API_SRC,
+    });
+
+    expect(continuity).toContain('queueSystemWorkflow');
+    expect(continuity).toContain('CLIP_CONTINUITY_ACTION_IDS.PERSIST_REPORT');
+    expect(continuity).not.toContain('@Interval');
+    expect(continuity).not.toContain('ClipOrchestratorStateStore');
+    expect(definition).toContain("actionId: 'videoQa'");
+    expect(workflowQueue).toContain("'system-run'");
   });
 
   it('treats completed and cancelled prior executions as terminal on continue', () => {
@@ -208,12 +254,14 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(registrar).toContain('socialRead twitter rate limited');
     expect(registrar).toContain('wireSocialReadExecutor');
     expect(registrar).toContain('wireReportDeliveryExecutor');
-    expect(palette).toContain('socialRead');
-    expect(palette).toContain('reportDelivery');
-    expect(credits).toContain('socialRead: 1');
-    expect(credits).toContain('reportDelivery: 0');
-    expect(canvas).toContain('socialRead: TemplateCompatibilityNode');
-    expect(canvas).toContain('reportDelivery: TemplateCompatibilityNode');
+    expect(palette).toContain('ALL_ACTIONS');
+    expect(palette).toContain("action.visibility === 'workflow'");
+    expect(palette).toContain("type: 'genfeedAction'");
+    expect(credits).toContain('ALL_ACTIONS');
+    expect(credits).toContain('action.credits.amount');
+    expect(canvas).toContain('genfeedAction: coreNodeTypes.genfeedAction');
+    expect(canvas).not.toContain('socialRead:');
+    expect(canvas).not.toContain('reportDelivery:');
   });
 
   it('agent executeWorkflow is organization-scoped before the executor runs', () => {
@@ -221,10 +269,21 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
       root: API_SRC,
     });
     const executeIdx = source.indexOf('async executeWorkflow(');
-    const slice = source.slice(executeIdx, executeIdx + 1200);
-    expect(slice).toContain('organizationId: ctx.organizationId');
-    expect(slice).toContain('Missing required workflow inputs');
-    expect(slice).toContain('executeManualWorkflow');
+    expect(executeIdx).toBeGreaterThan(-1);
+    // Assert by ordering rather than a fixed window: new branches at the top of
+    // executeWorkflow must not be able to push the org scope past the executor.
+    const scopeIdx = source.indexOf(
+      'organizationId: ctx.organizationId',
+      executeIdx,
+    );
+    const inputsIdx = source.indexOf(
+      'Missing required workflow inputs',
+      executeIdx,
+    );
+    const executorIdx = source.indexOf('executeManualWorkflow', executeIdx);
+    expect(scopeIdx).toBeGreaterThan(executeIdx);
+    expect(inputsIdx).toBeGreaterThan(scopeIdx);
+    expect(executorIdx).toBeGreaterThan(scopeIdx);
   });
 
   it('in-process node claim map hydrates completed nodes for same executionId', () => {
@@ -232,8 +291,8 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
       root: API_SRC,
     });
     expect(source).toContain('hydrateCompletedNodesFromExecution');
-    expect(source).toContain('this.nodeClaims.set');
-    expect(source).toContain('claimNodeOnce');
+    expect(source).toContain('completeNodeClaim(this.nodeClaims');
+    expect(source).toContain('claimNodeOnce(this.nodeClaims');
     expect(source).toContain('nodeClaimService.tryClaim');
     expect(source).toContain('nodeClaimService.complete');
   });
@@ -289,7 +348,10 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
       root: API_SRC,
     });
     expect(controller).toContain("Post('promote-winners')");
-    expect(controller).toContain('promoteTopPerformers');
+    expect(controller).toContain(
+      'AUTOMATION_WORKFLOW_IDS.HARNESS_WINNERS_BRAND',
+    );
+    expect(controller).toContain('runWorkflow');
   });
 
   it('uses Postgres pgvector as brand content memory (no separate vector product)', () => {
@@ -328,8 +390,8 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     const extract = readSourceOf('UnsupportedKnowledgeSourceError', {
       root: API_SRC,
     });
-    const processor = readSourceOf('KnowledgeSourceIngestProcessor', {
-      root: WORKERS_SRC,
+    const workflow = readSourceOf('KnowledgeSourceIngestWorkflowService', {
+      root: SERVER_SRC,
     });
     expect(autoCreate).toContain('chunkText');
     expect(autoCreate).toContain('this.addEntry');
@@ -338,8 +400,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(ingest).toContain('scanForBackfill');
     expect(extract).toContain('safeFetch');
     expect(extract).toContain('UnsupportedKnowledgeSourceError');
-    expect(processor).toContain('KNOWLEDGE_SOURCE_INGEST_QUEUE');
-    expect(processor).toContain('KNOWLEDGE_SOURCE_BACKFILL_JOB_NAME');
+    expect(workflow).toContain('KNOWLEDGE_SOURCE_ACTION_IDS.LOAD');
+    expect(workflow).toContain('KNOWLEDGE_SOURCE_ACTION_IDS.FINALIZE');
+    expect(workflow).toContain('queueSystemWorkflow');
   });
 
   it('registers platform-x harness pack from open-source ranking signals', () => {
@@ -409,25 +472,24 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(delivery).toContain('schedulePostWatch');
   });
 
-  it('registers X activity webhook and reply inbound/post-watch pipes', () => {
+  it('registers X activity webhook and reply inbound/post-watch workflows', () => {
     const controller = readSourceOf('XActivityWebhookController', {
       root: API_SRC,
     });
-    const inboundQueueName = readSourceOf('REPLY_INBOUND_QUEUE', {
-      root: 'packages/queue-contracts/src',
+    const definitions = readSourceOf('REPLY_INGESTION_WORKFLOW_IDS', {
+      root: API_SRC,
     });
-    const postWatchQueueName = readSourceOf('REPLY_POST_WATCH_QUEUE', {
-      root: 'packages/queue-contracts/src',
+    const inbound = readSourceOf('ReplyInboundProcessorService', {
+      root: API_SRC,
     });
-    const inbound = readSourceOf('ReplyInboundQueueService', { root: API_SRC });
+    const postWatch = readSourceOf('ReplyPostWatchService', { root: API_SRC });
     expect(controller).toContain("Controller('webhooks/x-activity')");
     expect(controller).toContain('handleCrc');
-    expect(inboundQueueName).toContain("REPLY_INBOUND_QUEUE = 'reply-inbound'");
-    expect(postWatchQueueName).toContain(
-      "REPLY_POST_WATCH_QUEUE = 'reply-post-watch'",
-    );
-    expect(inbound).toContain('schedulePostWatch');
-    expect(inbound).toContain('enqueueInbound');
+    expect(definitions).toContain("INBOUND: 'reply.inbound.process'");
+    expect(definitions).toContain("POST_WATCH: 'reply.post-watch.process'");
+    expect(inbound).toContain('queueSystemWorkflow');
+    expect(postWatch).toContain('schedulePostWatch');
+    expect(postWatch).toContain('queueSystemWorkflow');
   });
 
   it('classifies reply intents and caps comment age at 48h', () => {

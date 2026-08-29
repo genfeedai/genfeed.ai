@@ -1,261 +1,197 @@
-vi.mock('@server/collections/workflows/registry/node-registry-adapter', () => ({
-  UNIFIED_NODE_REGISTRY: {
-    'ai-generate-image': { label: 'AI Generate Image' },
-    'control-branch': { label: 'Branch' },
-    'input-template': { label: 'Input Template' },
-    'output-publish': { label: 'Publish' },
-  },
-}));
-
+import { describe, expect, it } from 'vitest';
 import {
   type CloudWorkflowFormat,
   type CoreWorkflowFormat,
   detectFormat,
   WorkflowFormatConverterService,
-} from '@server/collections/workflows/services/workflow-format-converter.service';
+} from './workflow-format-converter.service';
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+const service = new WorkflowFormatConverterService();
 
-const makeCoreWorkflow = (
-  overrides: Partial<CoreWorkflowFormat> = {},
-): CoreWorkflowFormat => ({
-  edges: [],
-  nodes: [
-    {
-      data: { label: 'Generate' },
-      id: 'n1',
-      position: { x: 0, y: 0 },
-      type: 'imageGen',
-    },
-  ],
-  ...overrides,
-});
-
-const makeCloudWorkflow = (
-  overrides: Partial<CloudWorkflowFormat> = {},
-): CloudWorkflowFormat => ({
-  edges: [],
-  nodes: [
-    {
-      data: { config: {}, label: 'AI Generate Image' },
-      id: 'n1',
-      position: { x: 0, y: 0 },
-      type: 'ai-generate-image',
-    },
-  ],
-  ...overrides,
-});
-
-// ─── Tests ───────────────────────────────────────────────────────────────────
-
-describe('detectFormat', () => {
-  it('returns "cloud" for empty node list', () => {
-    expect(detectFormat({ edges: [], nodes: [] })).toBe('cloud');
-  });
-
-  it('detects kebab-case nodes as cloud format', () => {
-    expect(detectFormat(makeCloudWorkflow())).toBe('cloud');
-  });
-
-  it('detects camelCase nodes as core format', () => {
-    expect(detectFormat(makeCoreWorkflow())).toBe('core');
-  });
-
-  it('detects cloud format when nodes match registry entries', () => {
-    const mixed = makeCloudWorkflow({
-      nodes: [
-        {
-          data: { config: {}, label: 'Publish' },
-          id: 'n1',
-          position: { x: 0, y: 0 },
-          type: 'output-publish',
-        },
-      ],
-    });
-    expect(detectFormat(mixed)).toBe('cloud');
-  });
-});
+function coreWorkflow(nodes: CoreWorkflowFormat['nodes']): CoreWorkflowFormat {
+  return { edges: [], name: 'Workflow', nodes };
+}
 
 describe('WorkflowFormatConverterService', () => {
-  let service: WorkflowFormatConverterService;
+  it('detects explicit action graphs as the persisted cloud format', () => {
+    const workflow = coreWorkflow([
+      {
+        data: {
+          config: { actionId: 'imageGen', parameters: {} },
+          label: 'Image',
+        },
+        id: 'image',
+        position: { x: 0, y: 0 },
+        type: 'genfeedAction',
+      },
+    ]);
 
-  beforeEach(() => {
-    service = new WorkflowFormatConverterService();
+    expect(detectFormat(workflow)).toBe('cloud');
   });
 
-  // ─── convertCoreToCloud ────────────────────────────────────────────────────
+  it('converts editor product nodes to action-backed persisted nodes', () => {
+    const result = service.convertCoreToCloud(
+      coreWorkflow([
+        {
+          data: { label: 'Image', model: 'flux', prompt: 'A lighthouse' },
+          id: 'image',
+          position: { x: 100, y: 200 },
+          type: 'imageGen',
+        },
+      ]),
+    );
 
-  describe('convertCoreToCloud', () => {
-    it('maps known camelCase node types to kebab-case', () => {
-      const core = makeCoreWorkflow({
-        nodes: [
-          {
-            data: { label: 'Gen' },
-            id: 'n1',
-            position: { x: 0, y: 0 },
-            type: 'imageGen',
-          },
-          {
-            data: { label: 'Branch' },
-            id: 'n2',
-            position: { x: 100, y: 0 },
-            type: 'condition',
-          },
-        ],
-      });
-      const { workflow } = service.convertCoreToCloud(core);
-      expect(workflow.nodes[0].type).toBe('ai-generate-image');
-      expect(workflow.nodes[1].type).toBe('control-branch');
-    });
-
-    it('preserves node id and position', () => {
-      const core = makeCoreWorkflow();
-      const { workflow } = service.convertCoreToCloud(core);
-      expect(workflow.nodes[0].id).toBe('n1');
-      expect(workflow.nodes[0].position).toEqual({ x: 0, y: 0 });
-    });
-
-    it('records unmapped node types and emits warnings', () => {
-      const core = makeCoreWorkflow({
-        nodes: [
-          {
-            data: { label: 'Mystery' },
-            id: 'n1',
-            position: { x: 0, y: 0 },
-            type: 'unknownNode',
-          },
-        ],
-      });
-      const { unmappedNodeTypes, warnings } = service.convertCoreToCloud(core);
-      expect(unmappedNodeTypes).toContain('unknownNode');
-      expect(warnings.length).toBeGreaterThan(0);
-    });
-
-    it('maps edges preserving handles', () => {
-      const core: CoreWorkflowFormat = {
-        edges: [
-          {
-            id: 'e1',
-            source: 'n1',
-            sourceHandle: 'out',
-            target: 'n2',
-            targetHandle: 'in',
-          },
-        ],
-        nodes: [
-          { data: {}, id: 'n1', position: { x: 0, y: 0 }, type: 'imageGen' },
-          { data: {}, id: 'n2', position: { x: 100, y: 0 }, type: 'publish' },
-        ],
-      };
-      const { workflow } = service.convertCoreToCloud(core);
-      expect(workflow.edges[0]).toMatchObject({
-        id: 'e1',
-        source: 'n1',
-        sourceHandle: 'out',
-        target: 'n2',
-        targetHandle: 'in',
-      });
-    });
-
-    it('preserves name and description from core workflow', () => {
-      const core = makeCoreWorkflow({
-        description: 'A workflow',
-        name: 'My Workflow',
-      });
-      const { workflow } = service.convertCoreToCloud(core);
-      expect(workflow.name).toBe('My Workflow');
-      expect(workflow.description).toBe('A workflow');
-    });
-
-    it('strips non-config fields (status, error, progress) from node data', () => {
-      const core: CoreWorkflowFormat = {
-        edges: [],
+    expect(result).toMatchObject({
+      unmappedNodeTypes: [],
+      warnings: [],
+      workflow: {
         nodes: [
           {
             data: {
-              error: 'oops',
-              label: 'Gen',
-              prompt: 'hello',
-              status: 'idle',
+              config: {
+                actionId: 'imageGen',
+                parameters: { model: 'flux', prompt: 'A lighthouse' },
+              },
+              label: 'Image',
             },
-            id: 'n1',
-            position: { x: 0, y: 0 },
-            type: 'imageGen',
+            id: 'image',
+            type: 'genfeedAction',
           },
         ],
-      };
-      const { workflow } = service.convertCoreToCloud(core);
-      expect(workflow.nodes[0].data.config).toHaveProperty('prompt');
-      expect(workflow.nodes[0].data.config).not.toHaveProperty('status');
-      expect(workflow.nodes[0].data.config).not.toHaveProperty('error');
+      },
     });
   });
 
-  // ─── convertCloudToCore ────────────────────────────────────────────────────
-
-  describe('convertCloudToCore', () => {
-    it('maps kebab-case types back to camelCase', () => {
-      const cloud = makeCloudWorkflow();
-      const { workflow } = service.convertCloudToCore(cloud);
-      expect(workflow.nodes[0].type).toBe('imageGen');
-    });
-
-    it('warns for unmapped cloud node types', () => {
-      const cloud = makeCloudWorkflow({
-        nodes: [
-          {
-            data: { config: {}, label: 'X' },
-            id: 'n1',
-            position: { x: 0, y: 0 },
-            type: 'custom-type',
+  it('preserves and validates existing action envelopes', () => {
+    const workflow: CloudWorkflowFormat = {
+      edges: [],
+      nodes: [
+        {
+          data: {
+            config: {
+              actionId: 'promptConstructor',
+              parameters: { template: 'Hello {{name}}' },
+            },
+            label: 'Prompt',
           },
-        ],
-      });
-      const { warnings } = service.convertCloudToCore(cloud);
-      expect(warnings.length).toBeGreaterThan(0);
-    });
+          id: 'prompt',
+          position: { x: 0, y: 0 },
+          type: 'genfeedAction',
+        },
+      ],
+    };
 
-    it('sets version to 1 on output', () => {
-      const { workflow } = service.convertCloudToCore(makeCloudWorkflow());
-      expect(workflow.version).toBe(1);
-    });
+    expect(service.ensureCloudFormat(workflow).workflow).toEqual(workflow);
+  });
 
-    it('merges config into node data with status: idle', () => {
-      const cloud: CloudWorkflowFormat = {
-        edges: [],
-        nodes: [
-          {
-            data: { config: { model: 'flux' }, label: 'Gen' },
-            id: 'n1',
-            position: { x: 0, y: 0 },
-            type: 'ai-generate-image',
+  it('converts media presentation nodes to workflow inputs', () => {
+    const result = service.convertCoreToCloud(
+      coreWorkflow([
+        {
+          data: {
+            image: 'https://example.com/reference.png',
+            label: 'Reference',
           },
-        ],
-      };
-      const { workflow } = service.convertCloudToCore(cloud);
-      expect(workflow.nodes[0].data).toMatchObject({
-        model: 'flux',
-        status: 'idle',
-      });
+          id: 'reference',
+          position: { x: 0, y: 0 },
+          type: 'imageInput',
+        },
+      ]),
+    );
+
+    expect(result.workflow.nodes[0]).toMatchObject({
+      data: {
+        config: {
+          defaultValue: 'https://example.com/reference.png',
+          inputName: 'reference',
+          inputType: 'image',
+          required: false,
+        },
+      },
+      type: 'workflowInput',
     });
   });
 
-  // ─── ensureCloudFormat ────────────────────────────────────────────────────
+  it('converts prompt presentation nodes to workflow inputs', () => {
+    const result = service.convertCoreToCloud(
+      coreWorkflow([
+        {
+          data: { label: 'Brief', text: 'Write a launch article' },
+          id: 'brief',
+          position: { x: 0, y: 0 },
+          type: 'input-prompt',
+        },
+      ]),
+    );
 
-  describe('ensureCloudFormat', () => {
-    it('returns cloud workflow as-is when already in cloud format', () => {
-      const cloud = makeCloudWorkflow();
-      const { unmappedNodeTypes, warnings, workflow } =
-        service.ensureCloudFormat(cloud);
-      expect(workflow).toBe(cloud);
-      expect(warnings).toEqual([]);
-      expect(unmappedNodeTypes).toEqual([]);
+    expect(result.workflow.nodes[0]).toMatchObject({
+      data: {
+        config: {
+          defaultValue: 'Write a launch article',
+          inputName: 'brief',
+          inputType: 'text',
+          required: false,
+        },
+      },
+      type: 'workflowInput',
+    });
+  });
+
+  it('preserves engine-native control nodes', () => {
+    const result = service.convertCoreToCloud(
+      coreWorkflow([
+        {
+          data: { expression: 'score > 10', label: 'Branch' },
+          id: 'branch',
+          position: { x: 0, y: 0 },
+          type: 'condition',
+        },
+      ]),
+    );
+
+    expect(result.workflow.nodes[0]).toMatchObject({
+      data: { config: { expression: 'score > 10' } },
+      type: 'condition',
+    });
+  });
+
+  it('fails closed for unsupported product nodes', () => {
+    expect(() =>
+      service.convertCoreToCloud(
+        coreWorkflow([
+          {
+            data: { label: 'Unknown' },
+            id: 'unknown',
+            position: { x: 0, y: 0 },
+            type: 'unregistered-operation',
+          },
+        ]),
+      ),
+    ).toThrow(/unsupported product node type/);
+  });
+
+  it('hydrates action nodes back to editor presentation nodes', () => {
+    const result = service.convertCloudToCore({
+      edges: [],
+      nodes: [
+        {
+          data: {
+            config: {
+              actionId: 'effect-captions',
+              parameters: { language: 'en' },
+            },
+            label: 'Captions',
+          },
+          id: 'captions',
+          position: { x: 0, y: 0 },
+          type: 'genfeedAction',
+        },
+      ],
     });
 
-    it('converts core format workflow to cloud', () => {
-      const core = makeCoreWorkflow();
-      const { workflow } = service.ensureCloudFormat(core);
-      expect(workflow.nodes[0].type).toBe('ai-generate-image');
+    expect(result.workflow.nodes[0]).toMatchObject({
+      data: { label: 'Captions', language: 'en', status: 'idle' },
+      type: 'captionGen',
     });
   });
 });

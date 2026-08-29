@@ -117,34 +117,7 @@ export interface ApiError {
   error?: string;
 }
 
-export type RunActionType = 'generate' | 'post' | 'analytics' | 'composite';
-export type RunStatus =
-  | 'pending'
-  | 'running'
-  | 'completed'
-  | 'failed'
-  | 'cancelled';
-
-export interface RunRecord {
-  id: string;
-  actionType: RunActionType;
-  status: RunStatus;
-  progress: number;
-  traceId?: string;
-  input?: Record<string, unknown>;
-  output?: Record<string, unknown>;
-  error?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface RunTimelineEvent {
-  level: 'info' | 'warn' | 'error';
-  message: string;
-  stage: string;
-  timestamp: string;
-  data?: Record<string, unknown>;
-}
+export type ToolActionType = 'analytics' | 'generate' | 'post';
 
 export interface WorkspaceCampaignDefaults {
   defaultChannel?: string;
@@ -153,17 +126,11 @@ export interface WorkspaceCampaignDefaults {
 }
 
 export interface CampaignAuthoringContext {
-  actionType: RunActionType;
+  actionType: ToolActionType;
   campaignName: string;
   channel: string;
   objective?: string;
   actionInput: string;
-}
-
-export interface RunArtifactBundle {
-  run: RunRecord;
-  campaign?: CampaignAuthoringContext;
-  timeline: RunTimelineEvent[];
 }
 
 // Draft types — used by explain-and-post and commit-to-post
@@ -174,7 +141,6 @@ export interface DraftRecord {
   content: string;
   channel: string;
   status: DraftStatus;
-  sourceRunId?: string;
   sourceType?: string;
   createdAt: string;
   updatedAt: string;
@@ -183,7 +149,6 @@ export interface DraftRecord {
 export interface DraftSavePayload {
   content: string;
   channel: string;
-  sourceRunId?: string;
   sourceType?: string;
   /** Original commit message (commit-to-post flow). */
   commitMessage?: string;

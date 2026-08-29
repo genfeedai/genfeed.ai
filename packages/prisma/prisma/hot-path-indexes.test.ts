@@ -13,6 +13,9 @@ const migrationSource = readFileSync(
   'utf8',
 );
 
+// `agent_runs_org_deleted_status_completed_at_idx` is intentionally absent:
+// `20260829120000_drop_agent_runs_link_workflow_executions` drops the
+// `agent_runs` table, and the overview payload no longer projects run stats.
 const hotPathIndexes = [
   'members_org_user_deleted_idx',
   'brands_org_deleted_label_idx',
@@ -20,7 +23,6 @@ const hotPathIndexes = [
   'posts_brand_deleted_status_created_at_idx',
   'posts_brand_credential_deleted_created_at_idx',
   'posts_brand_platform_deleted_created_at_idx',
-  'agent_runs_org_deleted_status_completed_at_idx',
   'content_runs_org_brand_deleted_created_at_idx',
   'content_runs_org_brand_deleted_status_created_at_idx',
   'activities_deleted_created_at_idx',

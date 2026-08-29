@@ -12,7 +12,6 @@ describe('HarnessWinnerPromotionService', () => {
       findMany: vi.fn(),
     },
   };
-  const logger = { log: vi.fn(), warn: vi.fn() };
   const performanceSummaryService = {
     getWeeklySummary: vi.fn(),
   };
@@ -26,11 +25,35 @@ describe('HarnessWinnerPromotionService', () => {
     vi.clearAllMocks();
     service = new HarnessWinnerPromotionService(
       prisma as never,
-      logger as never,
       performanceSummaryService as never,
       contextsService as never,
     );
   });
+
+  async function executeAtomicWinnerBatch(
+    input: Parameters<
+      HarnessWinnerPromotionService['discoverTopPerformers']
+    >[0],
+  ) {
+    const discovery = await service.discoverTopPerformers(input);
+    const results = [];
+    for (const candidate of discovery.items) {
+      results.push(
+        await service.promoteTopPerformer(
+          input.organizationId,
+          discovery.contextBaseId,
+          candidate,
+        ),
+      );
+    }
+    return {
+      contextBaseId: discovery.contextBaseId,
+      promoted: results.reduce((total, result) => total + result.promoted, 0),
+      skipped:
+        discovery.skipped +
+        results.reduce((total, result) => total + result.skipped, 0),
+    };
+  }
 
   it('creates a winners context base and promotes unique top performers', async () => {
     performanceSummaryService.getWeeklySummary.mockResolvedValue({
@@ -56,7 +79,7 @@ describe('HarnessWinnerPromotionService', () => {
     prisma.contextEntry.findMany.mockResolvedValue([]);
     prisma.contextEntry.create.mockResolvedValue({ id: 'entry-1' });
 
-    const result = await service.promoteTopPerformers({
+    const result = await executeAtomicWinnerBatch({
       brandId: 'brand-1',
       organizationId: 'org-1',
       limit: 5,
@@ -89,7 +112,7 @@ describe('HarnessWinnerPromotionService', () => {
     prisma.contextBase.findFirst.mockResolvedValue({ id: 'ctx-1' });
     prisma.contextEntry.findMany.mockResolvedValue([]);
 
-    const result = await service.promoteTopPerformers({
+    const result = await executeAtomicWinnerBatch({
       brandId: 'brand-1',
       organizationId: 'org-1',
     });
@@ -131,7 +154,7 @@ describe('HarnessWinnerPromotionService', () => {
     prisma.contextBase.findFirst.mockResolvedValue({ id: 'ctx-1' });
     prisma.contextEntry.findMany.mockResolvedValue([]);
 
-    await service.promoteTopPerformers({
+    await executeAtomicWinnerBatch({
       brandId: 'brand-1',
       organizationId: 'org-1',
       limit: 1,
@@ -182,7 +205,7 @@ describe('HarnessWinnerPromotionService', () => {
     prisma.contextBase.findFirst.mockResolvedValue({ id: 'ctx-1' });
     prisma.contextEntry.findMany.mockResolvedValue([]);
 
-    await service.promoteTopPerformers({
+    await executeAtomicWinnerBatch({
       brandId: 'brand-1',
       organizationId: 'org-1',
       limit: 1,

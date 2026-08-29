@@ -1,7 +1,3 @@
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
-import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
-import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
-import { AgentThreadEngineService } from '@server/services/agent-threading/services/agent-thread-engine.service';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import type {
   IAgentRuntimeStartTurnInput,
@@ -9,21 +5,18 @@ import type {
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import { AgentThreadEngineService } from '@server/services/agent-threading/services/agent-thread-engine.service';
 
-/**
- * Thin runtime facade for non-chat turn starts (campaigns, future task loops).
- * Chat still goes through AgentOrchestratorService; this module owns the
- * create-run + queue + thread provenance sequence for automation callers.
- */
+const AGENT_TURN_WORKFLOW_ID = 'agent.turn.execute';
+
 @Injectable()
 export class AgentRuntimeService {
-  private readonly constructorName = String(this.constructor.name);
-
   constructor(
     private readonly logger: LoggerService,
-    private readonly agentRunsService: AgentRunsService,
-    private readonly agentRunQueueService: AgentRunQueueService,
     private readonly agentThreadsService: AgentThreadsService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
     @Optional()
     private readonly agentThreadEngineService?: AgentThreadEngineService,
   ) {}
@@ -33,59 +26,61 @@ export class AgentRuntimeService {
   ): Promise<IAgentRuntimeTurnHandle> {
     const threadId =
       input.threadId ?? (await this.createThreadForTurn(input)).id;
-
-    const run = await this.agentRunsService.create({
-      brandId: input.brandId ?? undefined,
-      creditBudget: input.creditBudget,
-      label: input.label,
+    const { executionId } = await this.workflowRunner.enqueueWorkflow({
+      actionType: AGENT_TURN_WORKFLOW_ID,
+      canonicalId: AGENT_TURN_WORKFLOW_ID,
+      ...(typeof input.metadata?.clientRequestId === 'string'
+        ? {
+            idempotencyKey: [
+              AGENT_TURN_WORKFLOW_ID,
+              input.organizationId,
+              input.userId,
+              input.metadata.clientRequestId,
+            ].join(':'),
+          }
+        : {}),
+      inputValues: {
+        request: {
+          content: input.objective,
+          strategyId: input.strategyId,
+          threadId,
+          ...(input.agentType ? { agentType: input.agentType } : {}),
+          ...(input.autonomyMode ? { autonomyMode: input.autonomyMode } : {}),
+          ...(input.brandId !== undefined ? { brandId: input.brandId } : {}),
+          ...(input.campaignId ? { campaignId: input.campaignId } : {}),
+          ...(input.creditBudget !== undefined
+            ? { creditBudget: input.creditBudget }
+            : {}),
+          ...(input.model ? { model: input.model } : {}),
+        },
+      },
       metadata: {
         ...(input.metadata ?? {}),
         ...(input.campaignId ? { campaignId: input.campaignId } : {}),
-        ...(input.model ? { model: input.model } : {}),
+        label: input.label,
         source: input.campaignId ? 'campaign' : 'runtime',
         threadId,
       },
-      objective: input.objective,
       organizationId: input.organizationId,
-      strategyId: input.strategyId,
-      threadId,
-      trigger: input.trigger,
-      userId: input.userId,
-    });
-
-    const runId = String(run.id);
-
-    await this.agentRunQueueService.queueRun({
-      agentType: input.agentType,
-      autonomyMode: input.autonomyMode,
-      campaignId: input.campaignId,
-      creditBudget: input.creditBudget,
-      model: input.model,
-      objective: input.objective,
-      organizationId: input.organizationId,
-      runId,
-      strategyId: input.strategyId,
-      threadId,
+      source: 'AgentRuntimeService.startTurn',
       userId: input.userId,
     });
 
     await this.appendTurnRequestedBestEffort({
+      executionId,
       objective: input.objective,
       organizationId: input.organizationId,
-      runId,
       threadId,
       userId: input.userId,
     });
-
-    this.logger.log(`${this.constructorName} started turn`, {
+    this.logger.log('Agent workflow execution started', {
       campaignId: input.campaignId,
+      executionId,
       organizationId: input.organizationId,
-      runId,
       strategyId: input.strategyId,
       threadId,
     });
-
-    return { runId, threadId };
+    return { executionId, threadId };
   }
 
   private async createThreadForTurn(
@@ -93,7 +88,6 @@ export class AgentRuntimeService {
   ): Promise<{ id: string }> {
     const title =
       input.threadTitle?.trim() || input.label.slice(0, 120) || 'Campaign run';
-
     const thread = await this.agentThreadsService.create({
       brandId: input.brandId ?? undefined,
       organizationId: input.organizationId,
@@ -102,44 +96,37 @@ export class AgentRuntimeService {
       title,
       userId: input.userId,
     });
-
     return { id: String(thread.id) };
   }
 
   private async appendTurnRequestedBestEffort(params: {
+    executionId: string;
     objective: string;
     organizationId: string;
-    runId: string;
     threadId: string;
     userId: string;
   }): Promise<void> {
-    if (!this.agentThreadEngineService) {
-      return;
-    }
-
+    if (!this.agentThreadEngineService) return;
     try {
       await this.agentThreadEngineService.appendEvent({
-        commandId: `turn-requested:${params.runId}`,
+        commandId: `turn-requested:${params.executionId}`,
         organizationId: params.organizationId,
         payload: {
           detail: params.objective.slice(0, 280),
+          executionId: params.executionId,
           label: 'Turn requested',
           status: 'queued',
         },
-        runId: params.runId,
         threadId: params.threadId,
         type: 'thread.turn_requested',
         userId: params.userId,
       });
     } catch (error) {
-      this.logger.warn(
-        `${this.constructorName} failed to append turn.requested (best-effort)`,
-        {
-          error: (error as Error)?.message,
-          runId: params.runId,
-          threadId: params.threadId,
-        },
-      );
+      this.logger.warn('Failed to append turn.requested (best-effort)', {
+        error: error instanceof Error ? error.message : String(error),
+        executionId: params.executionId,
+        threadId: params.threadId,
+      });
     }
   }
 }

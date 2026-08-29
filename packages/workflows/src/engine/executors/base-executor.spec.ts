@@ -5,7 +5,6 @@ import {
   createSimpleExecutor,
   type ExecutorInput,
   type ExecutorOutput,
-  NoopExecutor,
 } from './base-executor';
 
 class TestExecutor extends BaseExecutor {
@@ -13,6 +12,30 @@ class TestExecutor extends BaseExecutor {
 
   async execute(input: ExecutorInput): Promise<ExecutorOutput> {
     return { data: input.inputs.get('key') ?? null };
+  }
+
+  optionalConfig<T>(
+    config: Record<string, unknown>,
+    key: string,
+    defaultValue: T,
+  ): T {
+    return this.getOptionalConfig(config, key, defaultValue);
+  }
+
+  optionalInput<T>(
+    inputs: Map<string, unknown>,
+    key: string,
+    defaultValue: T,
+  ): T {
+    return this.getOptionalInput(inputs, key, defaultValue);
+  }
+
+  requiredConfig<T>(config: Record<string, unknown>, key: string): T {
+    return this.getRequiredConfig(config, key);
+  }
+
+  requiredInput<T>(inputs: Map<string, unknown>, key: string): T {
+    return this.getRequiredInput(inputs, key);
   }
 }
 
@@ -41,7 +64,7 @@ describe('BaseExecutor', () => {
   it('getRequiredInput throws on missing key', () => {
     const exec = new TestExecutor();
     const inputs = new Map<string, unknown>();
-    expect(() => (exec as any).getRequiredInput(inputs, 'missing')).toThrow(
+    expect(() => exec.requiredInput(inputs, 'missing')).toThrow(
       'Missing required input',
     );
   });
@@ -49,55 +72,19 @@ describe('BaseExecutor', () => {
   it('getOptionalInput returns default on missing key', () => {
     const exec = new TestExecutor();
     const inputs = new Map<string, unknown>();
-    expect((exec as any).getOptionalInput(inputs, 'missing', 'default')).toBe(
-      'default',
-    );
+    expect(exec.optionalInput(inputs, 'missing', 'default')).toBe('default');
   });
 
   it('getRequiredConfig throws on missing key', () => {
     const exec = new TestExecutor();
-    expect(() => (exec as any).getRequiredConfig({}, 'missing')).toThrow(
+    expect(() => exec.requiredConfig({}, 'missing')).toThrow(
       'Missing required config',
     );
   });
 
   it('getOptionalConfig returns default on missing key', () => {
     const exec = new TestExecutor();
-    expect((exec as any).getOptionalConfig({}, 'missing', 42)).toBe(42);
-  });
-});
-
-describe('NoopExecutor', () => {
-  it('passes through first input', async () => {
-    const exec = new NoopExecutor();
-    const inputs = new Map<string, unknown>([['a', 'value']]);
-    const result = await exec.execute({
-      context: {
-        organizationId: 'o',
-        runId: 'r',
-        userId: 'u',
-        workflowId: 'w',
-      },
-      inputs,
-      node: makeNode('noop'),
-    });
-    expect(result.data).toBe('value');
-    expect(result.metadata?.passthrough).toBe(true);
-  });
-
-  it('returns null when no inputs', async () => {
-    const exec = new NoopExecutor();
-    const result = await exec.execute({
-      context: {
-        organizationId: 'o',
-        runId: 'r',
-        userId: 'u',
-        workflowId: 'w',
-      },
-      inputs: new Map(),
-      node: makeNode('noop'),
-    });
-    expect(result.data).toBeNull();
+    expect(exec.optionalConfig({}, 'missing', 42)).toBe(42);
   });
 });
 
@@ -111,6 +98,7 @@ describe('createSimpleExecutor', () => {
         runId: 'r',
         userId: 'u',
         workflowId: 'w',
+        workflowVersionId: 'wv',
       },
       inputs: new Map(),
       node: makeNode('simple'),

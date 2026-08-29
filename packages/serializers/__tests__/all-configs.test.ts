@@ -53,7 +53,6 @@ import { personaSerializerConfig } from '@serializers/configs/content/persona.co
 import { postSerializerConfig } from '@serializers/configs/content/post.config';
 import { presignedUploadSerializerConfig } from '@serializers/configs/content/presigned-upload.config';
 import { templateSerializerConfig } from '@serializers/configs/content/template.config';
-import { transcriptSerializerConfig } from '@serializers/configs/content/transcript.config';
 import {
   videoCaptionSerializerConfig,
   videoEditSerializerConfig,
@@ -233,7 +232,6 @@ const SERIALIZER_CONFIGS: Array<{
     config: ingredientMergeSerializerConfig,
     name: 'ingredientMergeSerializerConfig',
   },
-  { config: transcriptSerializerConfig, name: 'transcriptSerializerConfig' },
   { config: videoSerializerConfig, name: 'videoSerializerConfig' },
   { config: videoEditSerializerConfig, name: 'videoEditSerializerConfig' },
   {

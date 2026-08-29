@@ -1,15 +1,15 @@
-import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
-import { WorkflowExecutionGraphService } from '@server/collections/workflows/services/workflow-execution-graph.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
   WorkflowStatus,
 } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
 import type { ExecutionRunResult } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
+import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
+import type { WorkflowArtifactLifecycleService } from '@server/collections/workflows/services/workflow-artifact-lifecycle.service';
+import { WorkflowExecutionGraphService } from '@server/collections/workflows/services/workflow-execution-graph.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 type CompletedExecution = Awaited<
   ReturnType<WorkflowExecutionsService['completeExecution']>
@@ -22,6 +22,7 @@ export class WorkflowExecutionFinalizerService {
     private readonly graphService: WorkflowExecutionGraphService,
     private readonly notificationsPublisher?: NotificationsPublisherService,
     private readonly logger?: LoggerService,
+    private readonly artifactLifecycle?: WorkflowArtifactLifecycleService,
   ) {}
 
   mapRunResultToExecutionStatus(
@@ -72,6 +73,31 @@ export class WorkflowExecutionFinalizerService {
 
     await this.notifyScheduledFailure(input, completedExecution);
 
+    if (
+      completedExecution?.organizationId &&
+      completedExecution.userId &&
+      this.artifactLifecycle
+    ) {
+      try {
+        await this.artifactLifecycle.applyTerminalRetention({
+          executionId: input.executionId,
+          organizationId: completedExecution.organizationId,
+          userId: completedExecution.userId,
+        });
+      } catch (error: unknown) {
+        this.logger?.error(
+          'Workflow execution terminal payload scrubbing failed',
+          error,
+          'WorkflowExecutionFinalizerService',
+        );
+      }
+      await this.artifactLifecycle.scheduleTerminalCleanup({
+        executionId: input.executionId,
+        organizationId: completedExecution.organizationId,
+        userId: completedExecution.userId,
+      });
+    }
+
     return completedExecution;
   }
 
@@ -98,9 +124,10 @@ export class WorkflowExecutionFinalizerService {
       return;
     }
 
-    const workflow = await this.prisma.workflow.findFirst({
+    // tenant-scope-ignore: the tenant-owned execution row already proves authorization; hidden executions reference a global workflow mirror, so label lookup must use that pinned identity instead of the run tenant
+    const workflow = await this.prisma.workflow.findUnique({
       select: { label: true },
-      where: scopedWhere(organizationId, { id: input.workflowId }),
+      where: { id: input.workflowId },
     });
     const workflowLabel =
       typeof workflow?.label === 'string' && workflow.label.trim().length > 0

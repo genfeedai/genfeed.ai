@@ -2,9 +2,8 @@
  * Telegram Message Handler Service
  *
  * Handles Telegram photo, audio, video, document, and text messages:
- * downloading media from Telegram, feeding it into the active conversation as
- * collected inputs, capturing a pending generation reference image, and routing
- * free-text prompts to either input collection or a pending-image generate run.
+ * downloading media from Telegram and feeding it into the active workflow
+ * conversation as collected inputs.
  */
 
 import path from 'node:path';
@@ -13,7 +12,6 @@ import type {
   WorkflowInput,
 } from '@api/services/telegram-bot/telegram-bot.types';
 import type { TelegramConversationService } from '@api/services/telegram-bot/telegram-conversation.service';
-import type { TelegramRunCommandsService } from '@api/services/telegram-bot/telegram-run-commands.service';
 import { FileInputType } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
@@ -41,7 +39,6 @@ export class TelegramMessageHandlerService {
   constructor(
     private readonly loggerService: LoggerService,
     private readonly conversation: TelegramConversationService,
-    private readonly runCommands: TelegramRunCommandsService,
     private readonly filesClientService?: FilesClientService,
   ) {}
 
@@ -49,7 +46,7 @@ export class TelegramMessageHandlerService {
     this.botToken = token;
   }
 
-  /** Handle an incoming photo (image input or pending generation reference). */
+  /** Handle an incoming photo for the active workflow input. */
   async handlePhoto(ctx: Context): Promise<void> {
     const chatId = ctx.chat?.id;
     if (!chatId || !ctx.message?.photo) {
@@ -66,30 +63,9 @@ export class TelegramMessageHandlerService {
     const bestPhoto = photos[photos.length - 1];
 
     if (state?.step !== 'collecting_inputs') {
-      try {
-        const { imageUrl } = await this.downloadPhotoFromTelegram(
-          ctx,
-          bestPhoto.file_id,
-          chatId,
-          'agent-generate',
-        );
-
-        this.conversation.setPendingImage(chatId, imageUrl);
-        this.loggerService.log(
-          'TelegramBotService: Pending generation photo saved',
-          { chatId },
-        );
-
-        await ctx.reply(
-          '📸 Image received.\nNow send your prompt as a normal message and I will generate from it.',
-        );
-      } catch (error) {
-        this.loggerService.error(
-          'TelegramBotService: Failed to store pending generation photo',
-          { error },
-        );
-        await ctx.reply('❌ Failed to download the photo. Please try again.');
-      }
+      await ctx.reply(
+        'Select a workflow with /workflows before sending media.',
+      );
       return;
     }
 
@@ -186,7 +162,7 @@ export class TelegramMessageHandlerService {
     });
   }
 
-  /** Handle an incoming text message (prompt input or pending generation). */
+  /** Handle an incoming text message for the active workflow input. */
   async handleText(ctx: Context): Promise<void> {
     const chatId = ctx.chat?.id;
     if (!chatId || !ctx.message?.text) {
@@ -200,14 +176,6 @@ export class TelegramMessageHandlerService {
 
     const state = this.conversation.getState(chatId);
     if (!state) {
-      const pendingImageUrl = this.conversation.peekPendingImage(chatId);
-      const prompt = ctx.message.text.trim();
-      if (pendingImageUrl && prompt.length > 0) {
-        // Clear the pending image only after a successful generate so a failed
-        // run leaves the reference image available for retry.
-        await this.runCommands.runGenerate(ctx, { pendingImageUrl, prompt });
-        this.conversation.clearPendingImage(chatId);
-      }
       return;
     }
 

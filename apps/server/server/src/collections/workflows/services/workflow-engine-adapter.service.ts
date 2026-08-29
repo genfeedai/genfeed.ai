@@ -28,21 +28,20 @@ import { AvatarVideoGenerationService } from '@server/collections/videos/service
 import { VideoMusicOrchestrationService } from '@server/collections/videos/services/video-music-orchestration.service';
 import type {
   WorkflowInputVariable,
-  WorkflowStep,
   WorkflowVisualNode,
 } from '@server/collections/workflows/schemas/workflow.schema';
 import { AdAutomationWorkflowService } from '@server/collections/workflows/services/ad-automation-workflow.service';
+import { AdBulkUploadWorkflowService } from '@server/collections/workflows/services/ad-bulk-upload-workflow.service';
 import { SocialAdapterFactory } from '@server/collections/workflows/services/adapters/social-adapter.factory';
 import { YoutubeSocialAdapter } from '@server/collections/workflows/services/adapters/youtube-social.adapter';
 import { AgentAutopilotWorkflowService } from '@server/collections/workflows/services/agent-autopilot-workflow.service';
 import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
-import { CampaignOrchestrationWorkflowService } from '@server/collections/workflows/services/campaign-orchestration-workflow.service';
 import { ContentProductionWorkflowService } from '@server/collections/workflows/services/content-production-workflow.service';
 import { LivestreamBotWorkflowService } from '@server/collections/workflows/services/livestream-bot-workflow.service';
-import { OutreachCampaignDispatchWorkflowService } from '@server/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
 import { PaidCreativeResearchWorkflowService } from '@server/collections/workflows/services/paid-creative-research-workflow.service';
 import { ReplyPollingWorkflowService } from '@server/collections/workflows/services/reply-polling-workflow.service';
 import { TrendNotificationWorkflowService } from '@server/collections/workflows/services/trend-notification-workflow.service';
+import { VideoQaContinuityResolverService } from '@server/collections/workflows/services/video-qa-continuity-resolver.service';
 import { WorkflowAutomationExecutorRegistrarService } from '@server/collections/workflows/services/workflow-automation-executor-registrar.service';
 import { WorkflowContentExecutorRegistrarService } from '@server/collections/workflows/services/workflow-content-executor-registrar.service';
 import { WorkflowCoreExecutorRegistrarService } from '@server/collections/workflows/services/workflow-core-executor-registrar.service';
@@ -54,6 +53,7 @@ import { WorkflowEngineExecutorHelperService } from '@server/collections/workflo
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@server/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import { WorkflowMediaProcessingExecutorRegistrarService } from '@server/collections/workflows/services/workflow-media-processing-executor-registrar.service';
+import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowSocialExecutorRegistrarService } from '@server/collections/workflows/services/workflow-social-executor-registrar.service';
 import { WorkflowTrendPublishExecutorRegistrarService } from '@server/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
 import { CacheService } from '@server/services/cache/cache.service';
@@ -119,8 +119,6 @@ export class WorkflowEngineAdapterService {
     @Optional()
     private readonly adAutomationWorkflowService?: AdAutomationWorkflowService,
     @Optional()
-    private readonly campaignOrchestrationWorkflowService?: CampaignOrchestrationWorkflowService,
-    @Optional()
     private readonly agentAutopilotWorkflowService?: AgentAutopilotWorkflowService,
     @Optional()
     private readonly analyticsSyncWorkflowService?: AnalyticsSyncWorkflowService,
@@ -147,9 +145,13 @@ export class WorkflowEngineAdapterService {
     @Optional()
     private readonly paidCreativeResearchWorkflowService?: PaidCreativeResearchWorkflowService,
     @Optional()
-    private readonly outreachCampaignDispatchWorkflowService?: OutreachCampaignDispatchWorkflowService,
-    @Optional()
     private readonly postAccountFanoutService?: PostAccountFanoutService,
+    @Optional()
+    private readonly videoQaContinuityResolver?: VideoQaContinuityResolverService,
+    @Optional()
+    private readonly adBulkUploadWorkflowService?: AdBulkUploadWorkflowService,
+    @Optional()
+    private readonly workflowNodeContinuationService?: WorkflowNodeContinuationService,
   ) {
     this.engine = new WorkflowEngine({ maxConcurrency: 3 });
     this.converter = new WorkflowEngineConverterService();
@@ -159,6 +161,7 @@ export class WorkflowEngineAdapterService {
       this.sharedService,
       this.metadataService,
       this.ingredientsService,
+      this.workflowNodeContinuationService,
     );
 
     const coreRegistrar = new WorkflowCoreExecutorRegistrarService(
@@ -193,6 +196,7 @@ export class WorkflowEngineAdapterService {
         this.sharedService,
         this.videoMusicOrchestrationService,
         this.whisperService,
+        this.videoQaContinuityResolver,
       );
     const mediaGenerationRegistrar =
       new WorkflowMediaGenerationExecutorRegistrarService(
@@ -214,9 +218,7 @@ export class WorkflowEngineAdapterService {
       this.postAccountFanoutService,
     );
     const automationRegistrar = new WorkflowAutomationExecutorRegistrarService(
-      helper,
       this.adAutomationWorkflowService,
-      this.campaignOrchestrationWorkflowService,
       this.agentAutopilotWorkflowService,
       this.analyticsSyncWorkflowService,
       this.contentProductionWorkflowService,
@@ -225,7 +227,7 @@ export class WorkflowEngineAdapterService {
       this.livestreamBotWorkflowService,
       this.winnerPromotionWorkflowService,
       this.paidCreativeResearchWorkflowService,
-      this.outreachCampaignDispatchWorkflowService,
+      this.adBulkUploadWorkflowService,
     );
     this.trendPublishRegistrar =
       new WorkflowTrendPublishExecutorRegistrarService(
@@ -259,6 +261,10 @@ export class WorkflowEngineAdapterService {
     );
   }
 
+  getRegisteredActionIds(): string[] {
+    return this.engine.getRegisteredActionIds();
+  }
+
   convertToExecutableWorkflow(
     workflowDoc: WorkflowDocumentShape,
   ): ExecutableWorkflow {
@@ -277,20 +283,6 @@ export class WorkflowEngineAdapterService {
       workflowDoc,
       executableWorkflow,
       inputValues,
-    );
-  }
-
-  convertStepsToExecutableWorkflow(
-    workflowId: string,
-    steps: WorkflowStep[],
-    userId: string,
-    organizationId: string,
-  ): ExecutableWorkflow {
-    return this.converter.convertStepsToExecutableWorkflow(
-      workflowId,
-      steps,
-      userId,
-      organizationId,
     );
   }
 

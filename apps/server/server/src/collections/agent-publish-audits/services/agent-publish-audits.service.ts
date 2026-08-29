@@ -10,7 +10,7 @@ import type {
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 type StoredAgentPublishAuditRow = {
-  agentRunId: string | null;
+  workflowExecutionId: string | null;
   agentStrategyId: string | null;
   agentThreadId: string | null;
   autonomyMode: string;
@@ -37,7 +37,7 @@ export class AgentPublishAuditsService {
   ): Promise<AgentPublishAuditDocument> {
     const created = await this.delegate().create({
       data: {
-        agentRunId: input.agentRunId ?? null,
+        workflowExecutionId: input.workflowExecutionId ?? null,
         agentStrategyId: input.agentStrategyId ?? null,
         agentThreadId: input.agentThreadId ?? null,
         autonomyMode: input.autonomyMode,
@@ -64,7 +64,9 @@ export class AgentPublishAuditsService {
     const page = Math.max(1, query.page ?? 1);
     const limit = Math.min(100, Math.max(1, query.limit ?? 10));
     const where = scopedWhere(context.organizationId, {
-      ...(query.agentRunId ? { agentRunId: query.agentRunId } : {}),
+      ...(query.workflowExecutionId
+        ? { workflowExecutionId: query.workflowExecutionId }
+        : {}),
       ...(query.brandId ? { brandId: query.brandId } : {}),
       ...(query.postGroupId ? { postGroupId: query.postGroupId } : {}),
     });
@@ -91,7 +93,7 @@ export class AgentPublishAuditsService {
     row: StoredAgentPublishAuditRow,
   ): AgentPublishAuditDocument {
     return {
-      agentRunId: row.agentRunId,
+      workflowExecutionId: row.workflowExecutionId,
       agentStrategyId: row.agentStrategyId,
       agentThreadId: row.agentThreadId,
       autonomyMode: row.autonomyMode,

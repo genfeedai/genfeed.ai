@@ -24,6 +24,4 @@ export {
   AgentBaseApiService,
   runAgentApiEffect,
 } from '@genfeedai/agent/services/agent-base-api.service';
-export type { ListAgentRunsParams } from '@genfeedai/agent/services/agent-run-api.helpers';
-
 export { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';

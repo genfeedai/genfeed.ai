@@ -14,7 +14,7 @@ Genfeed Core stores reviewed model records behind one generation-facing surface.
 | Replicate watcher  | `apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`  | Creates inactive review drafts for models from verified Replicate owners            |
 | Agent model filter | `packages/agent/src/hooks/use-agent-registry-models.ts`                      | Filters reviewed registry records for the shared agent model selector                |
 | BYOK access        | `apps/server/api/src/services/byok/*`                                        | Resolves organization provider keys before hosted/server fallback at execution time |
-| Generation tools   | `packages/tools/src/registry/source/index.ts`                                | Exposes stable agent-facing tools such as `generate_image` and `generate_video`      |
+| Generation tools   | `packages/actions/src/registry/source/index.ts`                                | Exposes stable agent-facing tools such as `generate_image` and `generate_video`      |
 
 ## How Discovery Works
 
@@ -43,8 +43,8 @@ Core does not require every provider key. At least one generation-capable provid
 For v1, callers should treat these as the stable generation-facing surfaces:
 
 - Core Loop Step 3 docs: [Generation Service](/core-loop/generation-service)
-- Agent tool metadata: `packages/tools/src/registry/source.ts`
-- Agent tool registry/UI mapping: `packages/tools/src/registry/tool-registry.ts`
+- Agent tool metadata: `packages/actions/src/registry/source.ts`
+- Agent tool registry/UI mapping: `packages/actions/src/registry/tool-registry.ts`
 - Internal media APIs: `/v1/images`, `/v1/videos`, `/v1/musics`, `/v1/voices/generate`
 - Skill execution path: `apps/server/api/src/services/skill-executor/*`
 - Replicate discovery path: `apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`

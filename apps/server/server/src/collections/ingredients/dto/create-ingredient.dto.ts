@@ -1,5 +1,3 @@
-import type { PrismaIngredientCategoryValue } from '@server/helpers/utils/category-prisma/category-prisma.util';
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
   AssetScope,
   ContentRating,
@@ -11,6 +9,8 @@ import {
   TransformationCategory,
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
+import type { PrismaIngredientCategoryValue } from '@server/helpers/utils/category-prisma/category-prisma.util';
+import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
   IsArray,
   IsBoolean,
@@ -94,7 +94,7 @@ export class CreateIngredientDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly agentRunId?: string;
+  readonly workflowExecutionId?: string;
 
   @IsEntityId()
   @IsOptional()

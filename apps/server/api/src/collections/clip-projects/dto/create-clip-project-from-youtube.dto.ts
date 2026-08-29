@@ -1,14 +1,12 @@
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
   CLIP_RESULT_MODES,
   type ClipResultMode,
   DEFAULT_CLIP_RESULT_MODE,
-} from '@genfeedai/interfaces';
-import {
   SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
   type SupportedAvatarVideoProviderName,
-} from '@genfeedai/queue-contracts';
+} from '@genfeedai/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
   IsIn,
   IsNumber,

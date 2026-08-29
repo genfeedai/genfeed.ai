@@ -66,6 +66,10 @@ describe('OptimizationCycleService', () => {
         'Stop scrolling if you sell online',
       );
       expect(result.nextBatchSuggestions[0].confidence).toBeGreaterThan(0);
+      expect(result.cycleStats.dateRange).toEqual({
+        end: '2026-07-20T18:00:00.000Z',
+        start: '2026-07-20T18:00:00.000Z',
+      });
     });
 
     it('returns a generic nextBatchSuggestion when ranked content has no hooks', async () => {

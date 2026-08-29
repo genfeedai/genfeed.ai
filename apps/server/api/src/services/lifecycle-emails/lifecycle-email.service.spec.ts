@@ -1,149 +1,141 @@
 vi.mock('@genfeedai/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/config')>();
-
-  return {
-    ...actual,
-    isSelfHostedDeployment: () => false,
-  };
+  return { ...actual, isSelfHostedDeployment: () => false };
 });
 
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { SystemWorkflowActionExecutor } from '@server/collections/workflows/system-workflow-runner.service';
 import { LifecycleEmailService } from './lifecycle-email.service';
-import { LifecycleEmailQueueService } from './lifecycle-email-queue.service';
-
-const CHECKOUT_RECOVERY_DELAY_MS = 2 * 60 * 60 * 1000;
+import {
+  LIFECYCLE_SCHEDULING_ACTION_IDS,
+  LIFECYCLE_SCHEDULING_WORKFLOW_DEFINITIONS,
+  LIFECYCLE_SCHEDULING_WORKFLOW_IDS,
+} from './lifecycle-email-scheduling-workflow-definition';
 
 describe('LifecycleEmailService', () => {
-  let service: LifecycleEmailService;
-  let prisma: {
-    lifecycleEmailDelivery: {
-      create: ReturnType<typeof vi.fn>;
-      findFirst: ReturnType<typeof vi.fn>;
-      updateMany: ReturnType<typeof vi.fn>;
-    };
-    user: { findFirst: ReturnType<typeof vi.fn> };
-  };
-  let queueService: { scheduleEmail: ReturnType<typeof vi.fn> };
-
-  const user = {
+  const deliveryItem = {
     email: 'founder@example.com',
-    firstName: 'Vincent',
-    id: 'user_1',
-    isDeleted: false,
+    organizationId: 'org-1',
+    scheduledFor: '2026-08-28T12:00:00.000Z',
+    sequence: 'welcome',
+    step: 'welcome-day-0',
+    triggerKey: 'signup-user-1',
+    userId: 'user-1',
+  } as const;
+
+  const createService = () => {
+    const actions = new Map<string, SystemWorkflowActionExecutor>();
+    const prisma = {
+      lifecycleEmailDelivery: {
+        create: vi.fn().mockResolvedValue({ id: 'delivery-1' }),
+        findFirst: vi.fn(),
+        updateMany: vi.fn(),
+      },
+      member: {
+        findFirst: vi.fn().mockResolvedValue({ organizationId: 'org-1' }),
+      },
+      user: {
+        findFirst: vi.fn().mockResolvedValue({
+          email: 'founder@example.com',
+          firstName: 'Vincent',
+          id: 'user-1',
+          isDeleted: false,
+        }),
+      },
+    };
+    const workflowService = { scheduleEmail: vi.fn() };
+    const runner = {
+      registerAction: vi.fn(
+        (id: string, executor: SystemWorkflowActionExecutor) => {
+          actions.set(id, executor);
+        },
+      ),
+      registerWorkflow: vi.fn(),
+      runWorkflow: vi.fn().mockResolvedValue({ result: undefined }),
+    };
+    const service = new LifecycleEmailService(
+      prisma as never,
+      workflowService as never,
+      runner as never,
+      { warn: vi.fn() } as never,
+    );
+    service.onModuleInit();
+    return { actions, prisma, runner, service, workflowService };
   };
 
-  beforeEach(() => {
-    prisma = {
-      lifecycleEmailDelivery: {
-        create: vi.fn().mockResolvedValue({ id: 'delivery_1' }),
-        findFirst: vi.fn().mockResolvedValue({ userId: 'user_1' }),
-        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-      },
-      user: { findFirst: vi.fn().mockResolvedValue(user) },
-    };
+  it('registers every scheduling action and immutable graph', () => {
+    const { actions, runner } = createService();
 
-    queueService = {
-      scheduleEmail: vi.fn().mockResolvedValue(undefined),
-    };
-
-    service = new LifecycleEmailService(
-      prisma as unknown as PrismaService,
-      queueService as unknown as LifecycleEmailQueueService,
-      { log: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
+    expect([...actions.keys()]).toEqual(
+      expect.arrayContaining(Object.values(LIFECYCLE_SCHEDULING_ACTION_IDS)),
+    );
+    expect(runner.registerWorkflow).toHaveBeenCalledTimes(
+      LIFECYCLE_SCHEDULING_WORKFLOW_DEFINITIONS.length,
     );
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
+  it('routes signup scheduling through the tenant workflow', async () => {
+    const { runner, service } = createService();
 
-  it('schedules welcome and activation lifecycle steps for a new signup', async () => {
-    await service.scheduleSignupLifecycle('user_1');
+    await service.scheduleSignupLifecycle('user-1');
 
-    expect(prisma.lifecycleEmailDelivery.create).toHaveBeenCalledTimes(4);
-    expect(queueService.scheduleEmail).toHaveBeenCalledTimes(4);
-    expect(
-      prisma.lifecycleEmailDelivery.create.mock.calls.map(
-        ([call]) => call.data.step,
-      ),
-    ).toEqual([
-      'welcome-day-0',
-      'welcome-day-2',
-      'welcome-day-7',
-      'activation-nudge',
-    ]);
-  });
-
-  it('schedules abandoned checkout recovery with checkout metadata', async () => {
-    const now = new Date('2026-07-06T12:00:00.000Z');
-    vi.useFakeTimers();
-    vi.setSystemTime(now);
-
-    await service.recordCheckoutStarted({
-      checkoutSessionId: 'cs_1',
-      checkoutUrl: 'https://checkout.stripe.com/session',
-      organizationId: 'org_1',
-      source: 'organization-checkout',
-      userId: 'user_1',
-    });
-
-    expect(prisma.lifecycleEmailDelivery.create).toHaveBeenCalledWith(
+    expect(runner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          metadata: {
-            checkoutUrl: 'https://checkout.stripe.com/session',
-            organizationId: 'org_1',
-            source: 'organization-checkout',
-          },
-          sequence: 'abandoned-checkout',
-          step: 'checkout-recovery',
-          triggerKey: 'checkout-cs_1',
-          userId: 'user_1',
-        }),
+        canonicalId: LIFECYCLE_SCHEDULING_WORKFLOW_IDS.SCHEDULE,
+        inputValues: {
+          request: { operation: 'signup', userId: 'user-1' },
+        },
+        organizationId: 'org-1',
       }),
     );
-    expect(queueService.scheduleEmail).toHaveBeenCalledWith(
-      expect.objectContaining({
-        checkoutSessionId: 'cs_1',
-        sequence: 'abandoned-checkout',
-        step: 'checkout-recovery',
-      }),
-      new Date(now.getTime() + CHECKOUT_RECOVERY_DELAY_MS),
+  });
+
+  it('plans the four signup deliveries without persisting or queueing them', async () => {
+    const { actions, prisma, workflowService } = createService();
+    const plan = actions.get(LIFECYCLE_SCHEDULING_ACTION_IDS.PLAN);
+
+    const result = await plan?.({
+      context: { organizationId: 'org-1' } as never,
+      input: { request: { operation: 'signup', userId: 'user-1' } },
+      provenance: {} as never,
+    });
+
+    expect((result as { deliveryItems: unknown[] }).deliveryItems).toHaveLength(
+      4,
     );
+    expect(prisma.lifecycleEmailDelivery.create).not.toHaveBeenCalled();
+    expect(workflowService.scheduleEmail).not.toHaveBeenCalled();
   });
 
-  it('cancels pending abandoned checkout deliveries when checkout completes', async () => {
-    await service.recordCheckoutCompleted('cs_1');
+  it('persists a delivery without queueing it in the persistence action', async () => {
+    const { actions, prisma, workflowService } = createService();
 
-    expect(prisma.lifecycleEmailDelivery.findFirst).toHaveBeenCalledWith({
-      select: { userId: true },
-      where: {
-        sequence: 'abandoned-checkout',
-        status: { in: ['scheduled', 'failed'] },
-        triggerKey: 'checkout-cs_1',
-      },
+    await actions.get(LIFECYCLE_SCHEDULING_ACTION_IDS.PERSIST_DELIVERY)?.({
+      context: { organizationId: 'org-1' } as never,
+      input: { request: deliveryItem },
+      provenance: {} as never,
     });
-    expect(prisma.lifecycleEmailDelivery.updateMany).toHaveBeenCalledWith({
-      data: {
-        canceledAt: expect.any(Date),
-        status: 'canceled',
-      },
-      where: {
-        sequence: 'abandoned-checkout',
-        status: { in: ['scheduled', 'failed'] },
-        triggerKey: 'checkout-cs_1',
-        userId: 'user_1',
-      },
-    });
+
+    expect(prisma.lifecycleEmailDelivery.create).toHaveBeenCalledOnce();
+    expect(workflowService.scheduleEmail).not.toHaveBeenCalled();
   });
 
-  it('skips checkout completion cancellation when no pending delivery exists', async () => {
-    prisma.lifecycleEmailDelivery.findFirst.mockResolvedValue(null);
+  it('queues a persisted delivery without writing it again', async () => {
+    const { actions, prisma, workflowService } = createService();
 
-    await service.recordCheckoutCompleted('cs_missing');
+    await actions.get(LIFECYCLE_SCHEDULING_ACTION_IDS.ENQUEUE_DELIVERY)?.({
+      context: { organizationId: 'org-1' } as never,
+      input: { request: deliveryItem },
+      provenance: {} as never,
+    });
 
-    expect(prisma.lifecycleEmailDelivery.updateMany).not.toHaveBeenCalled();
+    expect(workflowService.scheduleEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        triggerKey: deliveryItem.triggerKey,
+        userId: deliveryItem.userId,
+      }),
+      new Date(deliveryItem.scheduledFor),
+    );
+    expect(prisma.lifecycleEmailDelivery.create).not.toHaveBeenCalled();
   });
 });

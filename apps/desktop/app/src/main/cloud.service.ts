@@ -382,7 +382,6 @@ export class DesktopCloudService implements IDesktopDataService {
     agentId: string,
   ): Promise<IDesktopDataResult<IDesktopAgentRunResult>> {
     const response = await this.fetchJson<{
-      agentRunId?: string;
       data?: { id?: string; attributes?: Record<string, unknown> };
       message?: string;
       runId?: string;
@@ -395,9 +394,7 @@ export class DesktopCloudService implements IDesktopDataService {
     return {
       data: {
         ...(response.message ? { message: response.message } : {}),
-        runId: String(
-          response.data?.id ?? response.agentRunId ?? response.runId ?? '',
-        ),
+        runId: String(response.data?.id ?? response.runId ?? ''),
         status: normalizeAgentRunStatus(attributes.status ?? response.status),
       },
       status: 'success',

@@ -1,6 +1,7 @@
 import type { ExecutableEdge, ExecutableNode } from '../types';
+import { createExecutableActionNode } from '../utils/action-node';
 import { getNodeCreditCost } from '../utils/credit-calculator';
-import type { WorkflowTemplate } from './cinematic-video.template';
+import type { WorkflowTemplate } from './workflow-template';
 
 export const DEFAULT_CLIP_CHAIN_SEGMENT_COUNT = 3;
 export const CLIP_CHAIN_VIDEO_TEMPLATE_ID = 'clip-chain-video';
@@ -115,34 +116,38 @@ function buildClipChainNodes(
     );
     const inputs = index === 1 ? [] : [`frame-extract-${index - 1}`];
 
-    nodes.push({
-      config: {
-        aspectRatio: videoConfig?.aspectRatio ?? '16:9',
-        duration: videoConfig?.duration ?? 8,
-        generateAudio: true,
-        identityDirective,
-        model: videoConfig?.model ?? 'veo-3.1-fast',
-        prompt,
-        segmentIndex: index,
-        segmentPrompt,
-      },
-      id: `video-gen-${index}`,
-      inputs,
-      label: `Segment ${index} Video`,
-      type: 'videoGen',
-    });
+    nodes.push(
+      createExecutableActionNode({
+        actionId: 'videoGen',
+        id: `video-gen-${index}`,
+        inputs,
+        label: `Segment ${index} Video`,
+        parameters: {
+          aspectRatio: videoConfig?.aspectRatio ?? '16:9',
+          duration: videoConfig?.duration ?? 8,
+          model: videoConfig?.model ?? 'veo-3.1-fast',
+          // identityDirective + segmentPrompt are already folded into `prompt`
+          // above; segmentIndex is template bookkeeping only. None are part
+          // of the videoGen action's input contract, so they stay off the
+          // action's parameters (closed input schema).
+          prompt,
+        },
+      }),
+    );
 
-    nodes.push({
-      config: {
-        // TODO(#3435): a future video QA node can gate this last-frame extract
-        // before the next start-frame handoff.
-        selectionMode: 'last',
-      },
-      id: `frame-extract-${index}`,
-      inputs: [`video-gen-${index}`],
-      label: `Segment ${index} Last Frame`,
-      type: 'videoFrameExtract',
-    });
+    nodes.push(
+      createExecutableActionNode({
+        actionId: 'videoFrameExtract',
+        id: `frame-extract-${index}`,
+        inputs: [`video-gen-${index}`],
+        label: `Segment ${index} Last Frame`,
+        parameters: {
+          // TODO(#3435): a future video QA node can gate this last-frame extract
+          // before the next start-frame handoff.
+          selectionMode: 'last',
+        },
+      }),
+    );
   }
 
   const videoGenIds = Array.from(
@@ -150,19 +155,21 @@ function buildClipChainNodes(
     (_, index) => `video-gen-${index + 1}`,
   );
 
-  nodes.push({
-    config: {
-      audioCodec: 'aac',
-      outputQuality: 'full',
-      seamlessLoop: false,
-      transitionDuration: 0,
-      transitionType: 'cut',
-    },
-    id: 'video-stitch-1',
-    inputs: videoGenIds,
-    label: 'Concatenate Clips',
-    type: 'videoStitch',
-  });
+  nodes.push(
+    createExecutableActionNode({
+      actionId: 'videoStitch',
+      id: 'video-stitch-1',
+      inputs: videoGenIds,
+      label: 'Concatenate Clips',
+      parameters: {
+        audioCodec: 'aac',
+        outputQuality: 'full',
+        seamlessLoop: false,
+        transitionDuration: 0,
+        transitionType: 'cut',
+      },
+    }),
+  );
 
   return nodes;
 }
@@ -174,7 +181,9 @@ function buildClipChainEdges(segmentCount: number): ExecutableEdge[] {
     edges.push({
       id: `edge-video-extract-${index}`,
       source: `video-gen-${index}`,
-      sourceHandle: 'video',
+      // videoGen's action output only ever carries a `videoUrl` key
+      // (GENERATED_MEDIA_OUTPUT) — there is no `video` key to bind to.
+      sourceHandle: 'videoUrl',
       target: `frame-extract-${index}`,
       targetHandle: 'video',
     });
@@ -192,9 +201,15 @@ function buildClipChainEdges(segmentCount: number): ExecutableEdge[] {
     edges.push({
       id: `edge-video-stitch-${index}`,
       source: `video-gen-${index}`,
-      sourceHandle: 'video',
+      sourceHandle: 'videoUrl',
       target: 'video-stitch-1',
-      targetHandle: `video-${index}`,
+      // videoStitch's input contract is a closed schema with a single
+      // `videos` array field — it has no dynamic video-N keys. The engine
+      // merges multiple edges delivered to the same targetHandle into an
+      // array (in edge push order, which follows segment order here), so
+      // routing every segment through the shared `videos` handle both
+      // satisfies the contract and preserves stitch ordering.
+      targetHandle: 'videos',
     });
   }
 
@@ -323,8 +338,12 @@ export function buildVideoExtensionTemplate(
           label: 'Source Video',
           type: 'input-video',
         },
-        {
-          config: {
+        createExecutableActionNode({
+          actionId: 'videoGen',
+          id: 'extension-video',
+          inputs: ['source-video'],
+          label: 'Extended Video',
+          parameters: {
             actionVerb: 'extend',
             brandId: params.brandId,
             duration: params.duration ?? 8,
@@ -332,11 +351,7 @@ export function buildVideoExtensionTemplate(
             parentIngredientId: params.sourceVideoId,
             prompt: params.prompt,
           },
-          id: 'extension-video',
-          inputs: ['source-video'],
-          label: 'Extended Video',
-          type: 'videoGen',
-        },
+        }),
       ],
     };
   }
@@ -365,14 +380,19 @@ export function buildVideoExtensionTemplate(
         source: 'source-video',
         sourceHandle: 'video',
         target: 'extended-video',
-        targetHandle: 'video-1',
+        // videoStitch's closed input contract has one `videos` array field,
+        // not dynamic video-N keys — the engine merges same-handle edges
+        // into an ordered array (source, then extension, per push order).
+        targetHandle: 'videos',
       },
       {
         id: 'edge-extension-stitch',
         source: 'extension-video',
-        sourceHandle: 'video',
+        // extension-video is a videoGen action node — its output only
+        // carries `videoUrl` (GENERATED_MEDIA_OUTPUT), not `video`.
+        sourceHandle: 'videoUrl',
         target: 'extended-video',
-        targetHandle: 'video-2',
+        targetHandle: 'videos',
       },
     ],
     id: 'video-extension',
@@ -396,27 +416,31 @@ export function buildVideoExtensionTemplate(
         label: 'Source Video',
         type: 'input-video',
       },
-      {
-        config: { selectionMode: 'last' },
+      createExecutableActionNode({
+        actionId: 'videoFrameExtract',
         id: 'source-last-frame',
         inputs: ['source-video'],
         label: 'Source Last Frame',
-        type: 'videoFrameExtract',
-      },
-      {
-        config: {
+        parameters: { selectionMode: 'last' },
+      }),
+      createExecutableActionNode({
+        actionId: 'videoGen',
+        id: 'extension-video',
+        inputs: ['source-last-frame'],
+        label: 'Generated Continuation',
+        parameters: {
           brandId: params.brandId,
           duration: params.duration ?? 8,
           model: params.model,
           prompt: params.prompt,
         },
-        id: 'extension-video',
-        inputs: ['source-last-frame'],
-        label: 'Generated Continuation',
-        type: 'videoGen',
-      },
-      {
-        config: {
+      }),
+      createExecutableActionNode({
+        actionId: 'videoStitch',
+        id: 'extended-video',
+        inputs: ['source-video', 'extension-video'],
+        label: 'Extended Video',
+        parameters: {
           audioCodec: 'aac',
           dispatchMode: 'fabricated',
           model: params.model,
@@ -426,11 +450,7 @@ export function buildVideoExtensionTemplate(
           transitionDuration: 0,
           transitionType: 'cut',
         },
-        id: 'extended-video',
-        inputs: ['source-video', 'extension-video'],
-        label: 'Extended Video',
-        type: 'videoStitch',
-      },
+      }),
     ],
   };
 }

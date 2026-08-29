@@ -1,16 +1,11 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { PromoteWinnersDto } from '@api/collections/harness-profiles/dto/promote-winners.dto';
-import { UpdateHarnessProfileDto } from '@server/collections/harness-profiles/dto/update-harness-profile.dto';
-import { UpsertHarnessProfileDto } from '@server/collections/harness-profiles/dto/upsert-harness-profile.dto';
-import { HarnessProfilesService } from '@server/collections/harness-profiles/services/harness-profiles.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { HarnessWinnerPromotionService } from '@server/services/harness/harness-winner-promotion.service';
+import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { HarnessProfileSerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
@@ -28,6 +23,13 @@ import {
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { ApiTags } from '@nestjs/swagger';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { UpdateHarnessProfileDto } from '@server/collections/harness-profiles/dto/update-harness-profile.dto';
+import { UpsertHarnessProfileDto } from '@server/collections/harness-profiles/dto/upsert-harness-profile.dto';
+import { HarnessProfilesService } from '@server/collections/harness-profiles/services/harness-profiles.service';
+import { AUTOMATION_WORKFLOW_IDS } from '@server/collections/workflows/services/automation-workflow-definitions';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -37,7 +39,7 @@ export class HarnessProfilesController {
   constructor(
     private readonly harnessProfilesService: HarnessProfilesService,
     @Optional()
-    private readonly harnessWinnerPromotionService?: HarnessWinnerPromotionService,
+    private readonly systemWorkflowRunner?: SystemWorkflowRunnerService,
     @Optional()
     private readonly moduleRef?: ModuleRef,
   ) {}
@@ -85,6 +87,8 @@ export class HarnessProfilesController {
   /**
    * Promote this week's top-performing posts into the brand's harness
    * performance-winners context base (structured entries, not a RAG product).
+   * The endpoint is an entry surface only: discovery and promotion run as the
+   * immutable `harness.winners.promote.brand` system workflow.
    */
   @Post('promote-winners')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -97,29 +101,42 @@ export class HarnessProfilesController {
       throw new BadRequestException('brandId is required');
     }
 
-    const harnessWinnerPromotionService =
-      this.resolveHarnessWinnerPromotionService();
-    if (!harnessWinnerPromotionService) {
+    const runner = this.resolveSystemWorkflowRunner();
+    if (!runner) {
       throw new ServiceUnavailableException(
         'Harness winner promotion is unavailable',
       );
     }
-    return harnessWinnerPromotionService.promoteTopPerformers({
-      brandId: dto.brandId,
-      limit: dto.limit,
+    const { result } = await runner.runWorkflow<{
+      brandId?: string;
+      promoted: number;
+      skipped: number;
+      status: string;
+    }>({
+      actionType: AUTOMATION_WORKFLOW_IDS.HARNESS_WINNERS_BRAND,
+      canonicalId: AUTOMATION_WORKFLOW_IDS.HARNESS_WINNERS_BRAND,
+      inputValues: {
+        item: dto.brandId,
+        ...(dto.limit === undefined ? {} : { limit: dto.limit }),
+        organizationId: organization,
+        ...(dto.platform ? { platform: dto.platform } : {}),
+      },
       organizationId: organization,
-      platform: dto.platform,
+      source: 'api:harness-profiles.promote-winners',
+      trigger: WorkflowExecutionTrigger.API,
+      userId: user.userId ?? user.id,
     });
+    return result;
   }
 
-  private resolveHarnessWinnerPromotionService():
-    | HarnessWinnerPromotionService
+  private resolveSystemWorkflowRunner():
+    | SystemWorkflowRunnerService
     | undefined {
-    if (this.harnessWinnerPromotionService) {
-      return this.harnessWinnerPromotionService;
+    if (this.systemWorkflowRunner) {
+      return this.systemWorkflowRunner;
     }
     try {
-      return this.moduleRef?.get(HarnessWinnerPromotionService, {
+      return this.moduleRef?.get(SystemWorkflowRunnerService, {
         strict: false,
       });
     } catch {

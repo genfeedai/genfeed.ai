@@ -1,3 +1,12 @@
+import {
+  ModelCategory,
+  PromptTemplateKey,
+  SystemPromptKey,
+} from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { Injectable, Optional } from '@nestjs/common';
 import { ViralityAnalysisResponse } from '@server/collections/articles/dto/analyze-virality.dto';
 import type { UpdateArticleDto } from '@server/collections/articles/dto/update-article.dto';
 import type { ArticleDocument } from '@server/collections/articles/schemas/article.schema';
@@ -10,17 +19,8 @@ import { TemplatesService } from '@server/collections/templates/services/templat
 import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@server/constants/text-generation-limits.constant';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
-import {
-  ModelCategory,
-  PromptTemplateKey,
-  SystemPromptKey,
-} from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable, Optional } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { PromptBuilderService } from '@server/services/prompt-builder/prompt-builder.service';
 
 type ArticleFinder = (
   criteria: Record<string, unknown>,
@@ -167,25 +167,14 @@ export class ArticleInsightsService {
     }
   }
 
-  async generatePromptFromArticle(
-    articleId: string,
-    userId: string,
+  async generateHeaderPrompt(
+    article: ArticleDocument,
     organizationId: string,
-    findArticle: ArticleFinder,
-    patchArticle: ArticlePatcher,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      this.logger.debug(`${url} started`, { articleId });
-      const article = await findArticle({
-        id: articleId,
-        OR: [{ userId }, { organizationId }],
-        isDeleted: false,
-      });
-      if (!article) {
-        throw new NotFoundException('Article');
-      }
+      this.logger.debug(`${url} started`, { articleId: article.id });
       if (!this.replicateService) {
         throw new Error('OpenAI service not available');
       }
@@ -229,16 +218,13 @@ export class ArticleInsightsService {
         throw new Error('Failed to generate prompt from AI service');
       }
 
-      await patchArticle(articleId, {
-        generationPrompt: responseText.trim(),
-      });
       this.logger.log(`${url} completed`, {
-        articleId,
+        articleId: article.id,
         promptLength: responseText.length,
       });
       return responseText.trim();
     } catch (error: unknown) {
-      this.logger.error(`${url} failed`, { articleId, error });
+      this.logger.error(`${url} failed`, { articleId: article.id, error });
       throw error;
     }
   }

@@ -3,13 +3,12 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
-import type { AgentRunStats } from '@genfeedai/types';
+import type { IAnalytics } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import * as Sentry from '@sentry/nextjs';
-import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { Task, TasksService } from '@services/management/tasks.service';
 import { WebSocketPaths } from '@utils/network/websocket.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -25,7 +24,6 @@ import { OPEN_TASK_COMPOSER_EVENT } from '@/lib/workspace/task-composer-events';
 import {
   applyRealtimeTaskUpdate,
   DEFAULT_REVIEW_INBOX,
-  EMPTY_AGENT_RUNS,
   type InboxView,
   isTaskInInboxQueue,
   isUnreadInboxTask,
@@ -39,7 +37,7 @@ const WORKSPACE_OVERVIEW_LOAD_TIMEOUT_MS = 15_000;
 const WORKSPACE_OVERVIEW_LOAD_WARNING =
   'Workspace data is taking longer than expected. You can keep this page open or try again.';
 
-type WorkspaceOverviewLoadScope = 'runs' | 'tasks';
+type WorkspaceOverviewLoadScope = 'tasks';
 type WorkspaceLoadWarningState = Partial<
   Record<WorkspaceOverviewLoadScope, true>
 >;
@@ -62,22 +60,16 @@ function addWorkspaceLoadTimeoutBreadcrumb(
 
 export interface UseWorkspacePageContentParams {
   defaultInboxView?: InboxView;
-  initialActiveRuns?: IAgentRun[];
   initialAnalytics?: Partial<IAnalytics>;
   initialReviewInbox?: ReviewInboxSummary;
-  initialRuns?: IAgentRun[];
-  initialStats?: AgentRunStats | null;
   initialTimeSeriesData?: PlatformTimeSeriesDataPoint[];
   section?: WorkspaceSection;
 }
 
 export function useWorkspacePageContent({
   defaultInboxView = 'unread',
-  initialActiveRuns = EMPTY_AGENT_RUNS,
   initialAnalytics,
   initialReviewInbox = DEFAULT_REVIEW_INBOX,
-  initialRuns = EMPTY_AGENT_RUNS,
-  initialStats = null,
   initialTimeSeriesData,
   section = 'overview',
 }: UseWorkspacePageContentParams) {
@@ -100,16 +92,21 @@ export function useWorkspacePageContent({
   const [isWorkspaceRefreshing, setWorkspaceRefreshing] = useState(false);
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [activeRuns, setActiveRuns] = useState<IAgentRun[]>(initialActiveRuns);
-  const [agentRuns, setAgentRuns] = useState<IAgentRun[]>(initialRuns);
-  const [agentStats, setAgentStats] = useState<AgentRunStats | null>(
-    initialStats,
+  const {
+    executions,
+    isLoading: isWorkspaceExecutionsLoading,
+    stats: executionStats,
+  } = useWorkflowExecutions({ limit: 20, sort: '-createdAt' });
+  const activeExecutions = executions.filter(
+    (execution) =>
+      execution.status === 'PENDING' || execution.status === 'RUNNING',
+  );
+  const recentExecutions = executions.filter(
+    (execution) =>
+      execution.status !== 'PENDING' && execution.status !== 'RUNNING',
   );
   const [workspaceLoadWarnings, setWorkspaceLoadWarnings] =
     useState<WorkspaceLoadWarningState>({});
-  const [isWorkspaceRunsLoading, setWorkspaceRunsLoading] = useState(
-    section === 'overview',
-  );
   const [isWorkspaceTasksLoading, setWorkspaceTasksLoading] = useState(true);
   const [workspaceTasks, setWorkspaceTasks] = useState<Task[]>([]);
 
@@ -139,9 +136,7 @@ export function useWorkspacePageContent({
 
   const workspaceLoadWarning = useMemo(
     () =>
-      workspaceLoadWarnings.tasks || workspaceLoadWarnings.runs
-        ? WORKSPACE_OVERVIEW_LOAD_WARNING
-        : null,
+      workspaceLoadWarnings.tasks ? WORKSPACE_OVERVIEW_LOAD_WARNING : null,
     [workspaceLoadWarnings],
   );
 
@@ -256,20 +251,20 @@ export function useWorkspacePageContent({
       },
       {
         label: 'In Progress',
-        value: String(inProgressTasks.length + activeRuns.length),
+        value: String(inProgressTasks.length + activeExecutions.length),
       },
       {
         label: 'Completed Today',
-        value: String(agentStats?.completedToday ?? 0),
+        value: String(executionStats.completed),
       },
       {
         label: 'Failed Today',
-        value: String(agentStats?.failedToday ?? 0),
+        value: String(executionStats.failed),
       },
     ],
     [
-      activeRuns.length,
-      agentStats,
+      activeExecutions.length,
+      executionStats,
       inProgressTasks.length,
       unreadInboxTasks.length,
     ],
@@ -337,85 +332,6 @@ export function useWorkspacePageContent({
 
     return () => {
       controller.abort();
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [
-    clearWorkspaceLoadWarning,
-    getToken,
-    markWorkspaceLoadWarning,
-    pathname,
-    section,
-  ]);
-
-  useEffect(() => {
-    if (section !== 'overview') {
-      setWorkspaceRunsLoading(false);
-      return;
-    }
-
-    let isMounted = true;
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    setWorkspaceRunsLoading(true);
-    clearWorkspaceLoadWarning('runs');
-
-    timeoutId = setTimeout(() => {
-      if (!isMounted) {
-        return;
-      }
-
-      markWorkspaceLoadWarning('runs');
-      addWorkspaceLoadTimeoutBreadcrumb('runs', pathname);
-    }, WORKSPACE_OVERVIEW_LOAD_TIMEOUT_MS);
-
-    const loadWorkspaceRuns = async () => {
-      try {
-        const token = await resolveAuthToken(getToken);
-        if (!token || !isMounted) {
-          return;
-        }
-
-        const service = AgentRunsService.getInstance(token);
-        const [runsResult, activeRunsResult, statsResult] =
-          await Promise.allSettled([
-            service.list({ page: 1 }),
-            service.getActive(),
-            service.getStats(),
-          ]);
-
-        if (!isMounted) {
-          return;
-        }
-
-        startTransition(() => {
-          if (runsResult.status === 'fulfilled') {
-            setAgentRuns(runsResult.value);
-          }
-          if (activeRunsResult.status === 'fulfilled') {
-            setActiveRuns(activeRunsResult.value);
-          }
-          if (statsResult.status === 'fulfilled') {
-            setAgentStats(statsResult.value);
-          }
-        });
-      } catch {
-        // Keep the dashboard shell mounted; empty run state already renders safely.
-      } finally {
-        if (isMounted) {
-          setWorkspaceRunsLoading(false);
-          clearWorkspaceLoadWarning('runs');
-        }
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-        }
-      }
-    };
-
-    void loadWorkspaceRuns();
-
-    return () => {
-      isMounted = false;
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
@@ -569,20 +485,20 @@ export function useWorkspacePageContent({
     defaultInboxView,
     historyPreviewItems,
     inProgressTasks,
-    initialActiveRuns: activeRuns,
+    activeExecutions,
     initialReviewInbox,
-    initialRuns: agentRuns,
-    initialStats: agentStats,
+    executionStats,
     isInboxSection,
     isOverviewSection,
     isTaskComposerOpen,
     isWorkspaceRefreshing,
-    isWorkspaceRunsLoading,
+    isWorkspaceExecutionsLoading,
     isWorkspaceTasksLoading,
     mutateTask,
     openPlanningConversation,
     queueTasks,
     recentInboxTasks,
+    recentExecutions,
     refreshWorkspaceTasks,
     replaceTaskSearchParam,
     reviewInboxTasks,

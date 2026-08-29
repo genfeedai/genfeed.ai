@@ -5,11 +5,11 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import { LoggerService } from '@libs/logger/logger.service';
+import type { ModuleRef } from '@nestjs/core';
 import { DefaultRecurringContentService } from '@server/collections/brands/services/default-recurring-content.service';
 import type { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import type { ModuleRef } from '@nestjs/core';
 
 /**
  * Regression coverage for the duplicate-default-workflow race.
@@ -65,7 +65,16 @@ type FakeTxClient = {
   workflow: {
     create: (args: CreateArgs) => Promise<StoredWorkflow>;
     findFirst: (args: FindArgs) => Promise<StoredWorkflow | null>;
+    findUniqueOrThrow: (args: {
+      include?: Record<string, unknown>;
+      where: { id: string };
+    }) => Promise<StoredWorkflow>;
     update: (args: UpdateArgs) => Promise<StoredWorkflow | null>;
+  };
+  // Workflow identity and its immutable version row are written in the same
+  // transaction, so the double has to carry the version delegate too.
+  workflowVersion: {
+    create: (args: CreateArgs) => Promise<Record<string, unknown>>;
   };
 };
 
@@ -160,6 +169,7 @@ type FakePrismaOptions = {
  */
 function createFakePrisma(options: FakePrismaOptions) {
   const committed: StoredWorkflow[] = [...(options.initialWorkflows ?? [])];
+  const committedVersions: Record<string, unknown>[] = [];
   let seq = 0;
   const nextId = () => `wf_${++seq}`;
   const barrier = createBarrier(options.bulkReadBarrierSize ?? 1);
@@ -172,6 +182,7 @@ function createFakePrisma(options: FakePrismaOptions) {
       // Snapshot taken at transaction start — identity copy of committed rows.
       const snapshot = committed.slice();
       const staged: StoredWorkflow[] = [];
+      const stagedVersions: Record<string, unknown>[] = [];
 
       // The fix reads credentials OUTSIDE the transaction, so the tx client only
       // needs the workflow delegate.
@@ -187,6 +198,15 @@ function createFakePrisma(options: FakePrismaOptions) {
             const visible = [...snapshot, ...staged];
             return visible.find((row) => matches(row, where)) ?? null;
           },
+          findUniqueOrThrow: async ({ where }) => {
+            const row =
+              staged.find((r) => r.id === where.id) ??
+              snapshot.find((r) => r.id === where.id);
+            if (!row) {
+              throw new Error(`Workflow ${where.id} not found`);
+            }
+            return row;
+          },
           update: async ({ data, where }: UpdateArgs) => {
             const row =
               staged.find((r) => r.id === where.id) ??
@@ -195,6 +215,12 @@ function createFakePrisma(options: FakePrismaOptions) {
               row.isScheduleEnabled = data.isScheduleEnabled as boolean | null;
             }
             return row ?? null;
+          },
+        },
+        workflowVersion: {
+          create: async ({ data }: CreateArgs) => {
+            stagedVersions.push(data);
+            return data;
           },
         },
       };
@@ -257,6 +283,7 @@ function createFakePrisma(options: FakePrismaOptions) {
         }
       }
       committed.push(...staged);
+      committedVersions.push(...stagedVersions);
       return result;
     },
   );
@@ -309,7 +336,7 @@ function createFakePrisma(options: FakePrismaOptions) {
     },
   } as unknown as PrismaService;
 
-  return { committed, prisma, transactionSpy };
+  return { committed, committedVersions, prisma, transactionSpy };
 }
 
 function createLogger() {
@@ -454,7 +481,11 @@ describe('DefaultRecurringContentService', () => {
     // Strategy: the spy throws P2034 on the first call and succeeds on the
     // second. We also need a real committed store so getStatus (called at the
     // end via includeStatus: undefined default) can observe the created row.
-    const { committed, prisma: basePrisma } = createFakePrisma({
+    const {
+      committed,
+      prisma: basePrisma,
+      transactionSpy: baseTransaction,
+    } = createFakePrisma({
       brand: buildBrand(),
     });
 
@@ -475,7 +506,7 @@ describe('DefaultRecurringContentService', () => {
           throw error;
         }
         // Subsequent calls: delegate to the real fake transaction logic.
-        return basePrisma.$transaction(fn, opts);
+        return baseTransaction(fn, opts);
       },
     );
 

@@ -29,7 +29,6 @@ const commandRegistrationCalls: Array<{
   analyticsProvider: unknown;
   galleryProvider: unknown;
   presetsProvider: unknown;
-  runQueueProvider: unknown;
   statusBar: unknown;
   templatesProvider: unknown;
 }> = [];
@@ -194,7 +193,6 @@ mock.module('@/commands', () => ({
       analyticsProvider: unknown;
       galleryProvider: unknown;
       presetsProvider: unknown;
-      runQueueProvider: unknown;
       statusBar: unknown;
       templatesProvider: unknown;
     },
@@ -210,7 +208,6 @@ mock.module('./commands', () => ({
       analyticsProvider: unknown;
       galleryProvider: unknown;
       presetsProvider: unknown;
-      runQueueProvider: unknown;
       statusBar: unknown;
       templatesProvider: unknown;
     },
@@ -283,13 +280,6 @@ mock.module('./views/presets-view.provider', () => ({
   PresetsViewProvider: createViewProviderMock('genfeed.presetsView'),
 }));
 
-mock.module('@views/run-queue-view.provider', () => ({
-  RunQueueViewProvider: createViewProviderMock('genfeed.runQueueView'),
-}));
-mock.module('./views/run-queue-view.provider', () => ({
-  RunQueueViewProvider: createViewProviderMock('genfeed.runQueueView'),
-}));
-
 mock.module('@views/templates-view.provider', () => ({
   TemplatesViewProvider: createViewProviderMock('genfeed.templatesView'),
 }));
@@ -319,7 +309,6 @@ describe('activate', () => {
     expect(registeredViewProviders).toEqual([
       'genfeed.presetsView',
       'genfeed.galleryView',
-      'genfeed.runQueueView',
       'genfeed.templatesView',
       'genfeed.analyticsView',
     ]);

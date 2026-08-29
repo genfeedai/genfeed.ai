@@ -2,6 +2,7 @@ import { RssSourcesController } from '@api/collections/rss-sources/controllers/r
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { ApiKeyScope } from '@genfeedai/enums';
 import { ForbiddenException } from '@nestjs/common';
+import type { RssSourceWorkflowService } from '@server/collections/rss-sources/services/rss-source-workflow.service';
 import type { RssSourcesService } from '@server/collections/rss-sources/services/rss-sources.service';
 
 const MUTATION_SCOPES = [
@@ -41,12 +42,15 @@ describe('RssSourcesController', () => {
     createScoped: vi.fn(),
     findAllScoped: vi.fn(),
     findOneScoped: vi.fn(),
-    pollSource: vi.fn(),
     removeScoped: vi.fn(),
     updateScoped: vi.fn(),
   };
+  const rssSourceWorkflowService = {
+    enqueueSource: vi.fn(),
+  };
   const controller = new RssSourcesController(
     service as unknown as RssSourcesService,
+    rssSourceWorkflowService as unknown as RssSourceWorkflowService,
   );
 
   beforeEach(() => {
@@ -101,14 +105,14 @@ describe('RssSourcesController', () => {
     const query = { brandId: 'brand-1' } as never;
     service.findOneScoped.mockResolvedValue({ id: 'rss-1' });
     service.updateScoped.mockResolvedValue({ id: 'rss-1' });
-    service.pollSource.mockResolvedValue({ id: 'rss-1' });
+    rssSourceWorkflowService.enqueueSource.mockResolvedValue('job-1');
 
     await controller.findOne(request, user, query, 'rss-1');
     await controller.update(request, user, query, 'rss-1', {
       label: 'Updated',
     } as never);
     await controller.remove(user, query, 'rss-1');
-    await controller.poll(request, user, query, 'rss-1');
+    await controller.poll(user, query, 'rss-1');
 
     expect(service.findOneScoped).toHaveBeenCalledWith('rss-1', {
       brandId: 'brand-1',
@@ -129,9 +133,11 @@ describe('RssSourcesController', () => {
       organizationId: 'org-1',
       userId: 'user-1',
     });
-    expect(service.pollSource).toHaveBeenCalledWith('rss-1', {
+    // Manual poll no longer runs inline — it queues the RSS source workflow.
+    expect(rssSourceWorkflowService.enqueueSource).toHaveBeenCalledWith({
       brandId: 'brand-1',
       organizationId: 'org-1',
+      sourceId: 'rss-1',
       userId: 'user-1',
     });
   });

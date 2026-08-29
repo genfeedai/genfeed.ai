@@ -1,16 +1,4 @@
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
-import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { PostEntity } from '@server/collections/posts/entities/post.entity';
-import type { PostDocument } from '@server/collections/posts/post.schema';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowProvenanceService,
-} from '@server/collections/workflows/system-workflow-provenance.service';
-import { ReplyInboundQueueService } from '@server/queues/reply-bot/reply-inbound-queue.service';
-import { QuotaService } from '@server/services/quota/quota.service';
+import { postExecutionStateReadFilter } from '@api-types/contracts';
 import {
   resolveChannelTargetSettings,
   validateChannelTargetSettings,
@@ -21,9 +9,7 @@ import {
   fromPrismaCredentialPlatform,
   Platform,
   TargetExecutionState,
-  WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
-import type { PostPublishJobData } from '@genfeedai/queue-contracts';
 import {
   type CredentialDocument,
   type IPublisher,
@@ -32,12 +18,28 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
   type ServerPublisherFactory,
+  scopedWhere,
   WORKFLOW_APPROVED_SCHEDULE_SETTING,
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import { CredentialPublishingReadinessService } from '@server/collections/credentials/services/credential-publishing-readiness.service';
+import type { OrganizationDocument } from '@server/collections/organizations/schemas/organization.schema';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { PostEntity } from '@server/collections/posts/entities/post.entity';
+import type { PostDocument } from '@server/collections/posts/post.schema';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import {
+  SCHEDULED_POST_ACTION_IDS,
+  type ScheduledPostWorkflowInput,
+} from '@server/collections/posts/services/scheduled-post-workflow-definition';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import { QuotaService } from '@server/services/quota/quota.service';
+import { ReplyPostWatchService } from '@server/services/reply-bot/reply-post-watch.service';
+import { PublishEventWebhookService } from '@server/services/webhook-client/publish-event-webhook.service';
 import {
   createChannelTargetError,
   createFailedPublishResult,
@@ -50,7 +52,6 @@ import {
 } from '@workers/crons/posts/post-publish-error.util';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
-import { PublishEventWebhookService } from '@server/services/webhook-client/publish-event-webhook.service';
 import {
   SchedulerPublishStateService,
   type SchedulerPublishTargetUpdate,
@@ -76,7 +77,7 @@ type DeliveryLoad<T> =
   | { ok: false; result: PublishResult };
 
 @Injectable()
-export class ScheduledPostDeliveryService {
+export class ScheduledPostDeliveryService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
   private readonly MAX_RETRY_ATTEMPTS = 3;
 
@@ -90,17 +91,48 @@ export class ScheduledPostDeliveryService {
     private readonly quotaService: QuotaService,
     @Inject(SERVER_TOKENS.publisherFactory)
     private readonly publisherFactory: ServerPublisherFactory,
-    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     private readonly publishEventWebhookService: PublishEventWebhookService,
     private readonly schedulerPublishStateService: SchedulerPublishStateService,
-    private readonly replyInboundQueueService: ReplyInboundQueueService,
+    private readonly replyPostWatchService: ReplyPostWatchService,
     private readonly publishingReadinessService: CredentialPublishingReadinessService,
     private readonly prisma: PrismaService,
   ) {}
 
-  async publishSinglePost(
+  onModuleInit(): void {
+    this.systemWorkflowRunner.registerAction(
+      SCHEDULED_POST_ACTION_IDS.DELIVER,
+      ({ input, provenance }) =>
+        this.publishAction(input, provenance.executionId),
+    );
+  }
+
+  private async publishAction(
+    input: Record<string, unknown>,
+    workflowExecutionId: string,
+  ): Promise<PublishResult> {
+    const request = this.readActionRequest(input.request);
+    const claim = this.readRecord(input.claim);
+    if (claim.isAlreadyPublished === true) {
+      return this.readPublishResult(claim.publishedResult);
+    }
+    const post = await this.loadActionPost(request);
+    if (!post) {
+      throw new Error(
+        `Scheduled post ${request.postId} is no longer publishable`,
+      );
+    }
+    return this.publishSinglePostAction(
+      post,
+      request.source,
+      workflowExecutionId,
+    );
+  }
+
+  private async publishSinglePostAction(
     post: PostEntity,
-    source: PostPublishJobData['source'],
+    source: ScheduledPostWorkflowInput['source'],
+    workflowExecutionId: string,
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -130,10 +162,41 @@ export class ScheduledPostDeliveryService {
         return prepared.result;
       }
 
-      return await this.executeProviderPublish(post, ids, prepared.value, url);
+      return await this.executeProviderPublish(
+        post,
+        prepared.value,
+        workflowExecutionId,
+        url,
+      );
     } catch (error: unknown) {
       return await this.handlePublishError(post, error);
     }
+  }
+
+  private async loadActionPost(
+    input: ScheduledPostWorkflowInput,
+  ): Promise<PostEntity | null> {
+    const post = await this.prisma.post.findFirst({
+      include: {
+        children: {
+          include: { credential: true, ingredients: true },
+          where: {
+            isDeleted: false,
+            ...postExecutionStateReadFilter(TargetExecutionState.SCHEDULED),
+          },
+        },
+        ingredients: true,
+      },
+      where: scopedWhere(input.organizationId, {
+        id: input.postId,
+        parentId: null,
+        ...postExecutionStateReadFilter([
+          TargetExecutionState.SCHEDULED,
+          TargetExecutionState.PUBLISHING,
+        ]),
+      }),
+    });
+    return post as unknown as PostEntity | null;
   }
 
   async failTerminalValidation(
@@ -357,7 +420,7 @@ export class ScheduledPostDeliveryService {
 
   private async preparePublisherAndContext(
     post: PostEntity,
-    source: PostPublishJobData['source'],
+    source: ScheduledPostWorkflowInput['source'],
     ids: PostDeliveryIds,
     credential: CredentialDocument,
     organization: OrganizationDocument,
@@ -464,53 +527,12 @@ export class ScheduledPostDeliveryService {
 
   private async executeProviderPublish(
     post: PostEntity,
-    ids: PostDeliveryIds,
     prepared: PreparedPostDelivery,
+    workflowExecutionId: string,
     url: string,
   ): Promise<PublishResult> {
-    let workflowExecutionId: string | undefined;
-
     try {
-      const { provenance, result } =
-        await this.systemWorkflowProvenanceService.runAction<PublishResult>(
-          {
-            actionType: 'publish-post',
-            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
-            description:
-              'Publishes due scheduled posts through the connected brand credential.',
-            failureMessage: (publishResult) =>
-              publishResult.success
-                ? undefined
-                : publishResult.error || 'Scheduled post publishing failed',
-            inputValues: {
-              brandId: ids.brandId ?? '',
-              platform: prepared.credential.platform,
-              postId: post.id.toString(),
-              visibility: prepared.context.visibility,
-              scheduledDate:
-                post.scheduledDate instanceof Date
-                  ? post.scheduledDate.toISOString()
-                  : post.scheduledDate,
-            },
-            label: 'Scheduled Post Publishing',
-            metadata: {
-              credentialId:
-                prepared.credential.id?.toString?.() ?? prepared.credential.id,
-              hasThreadChildren: Boolean(post.children?.length),
-            },
-            organizationId: ids.organizationId ?? '',
-            postIds: [post.id.toString()],
-            schedule: '*/15 * * * *',
-            source: 'CronPostsService.publishSinglePost',
-            trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId: ids.userId,
-          },
-          (currentProvenance) => {
-            workflowExecutionId = currentProvenance.executionId;
-            return prepared.publisher.publish(prepared.context);
-          },
-        );
-      workflowExecutionId = provenance.executionId;
+      const result = await prepared.publisher.publish(prepared.context);
 
       if (result.success) {
         return await this.persistProviderSuccess(
@@ -928,7 +950,7 @@ export class ScheduledPostDeliveryService {
       undefined;
     const watchPlatform = isYouTube ? Platform.YOUTUBE : Platform.TWITTER;
 
-    void this.replyInboundQueueService
+    void this.replyPostWatchService
       .schedulePostWatch({
         brandId: String(brandId),
         organizationId: String(organizationId),
@@ -969,6 +991,54 @@ export class ScheduledPostDeliveryService {
       platform,
       post,
     });
+  }
+
+  private readActionRequest(value: unknown): ScheduledPostWorkflowInput {
+    const request = this.readRecord(value);
+    const source = String(request.source ?? '');
+    if (!['manual_retry', 'publish_now', 'scheduled_sweep'].includes(source)) {
+      throw new Error(
+        `Scheduled post delivery received invalid source ${source}`,
+      );
+    }
+    const organizationId = String(request.organizationId ?? '');
+    const postId = String(request.postId ?? '');
+    if (!organizationId || !postId) {
+      throw new Error(
+        'Scheduled post delivery requires organizationId and postId',
+      );
+    }
+    return {
+      organizationId,
+      postId,
+      source: source as ScheduledPostWorkflowInput['source'],
+    };
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private readPublishResult(value: unknown): PublishResult {
+    const result = this.readRecord(value);
+    const executionState = Object.values(TargetExecutionState).includes(
+      result.executionState as TargetExecutionState,
+    )
+      ? (result.executionState as TargetExecutionState)
+      : TargetExecutionState.FAILED;
+
+    return {
+      ...(typeof result.error === 'string' ? { error: result.error } : {}),
+      executionState,
+      externalId:
+        typeof result.externalId === 'string' ? result.externalId : null,
+      ...(result.isProviderDraft === true ? { isProviderDraft: true } : {}),
+      platform: typeof result.platform === 'string' ? result.platform : '',
+      success: result.success === true,
+      url: typeof result.url === 'string' ? result.url : '',
+    };
   }
 
   private async failChildren(post: PostEntity, reason: string): Promise<void> {

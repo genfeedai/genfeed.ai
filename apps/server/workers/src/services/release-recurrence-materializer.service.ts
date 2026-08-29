@@ -360,7 +360,6 @@ export class ReleaseRecurrenceMaterializerService {
       data: {
         agentContextSource: sourceTarget.agentContextSource,
         agentContextVersion: sourceTarget.agentContextVersion,
-        agentRunId: sourceTarget.agentRunId,
         agentStrategyId: sourceTarget.agentStrategyId,
         agentThreadId: sourceTarget.agentThreadId,
         brandId: sourceTarget.brandId,
@@ -442,7 +441,6 @@ export class ReleaseRecurrenceMaterializerService {
       data: {
         agentContextSource: sourceChild.agentContextSource,
         agentContextVersion: sourceChild.agentContextVersion,
-        agentRunId: sourceChild.agentRunId,
         agentStrategyId: sourceChild.agentStrategyId,
         agentThreadId: sourceChild.agentThreadId,
         brandId: sourceChild.brandId,

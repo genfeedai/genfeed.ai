@@ -83,7 +83,7 @@ import { FilesClientService } from '@server/services/files-microservice/client/f
 import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { StripeService } from '@server/services/integrations/stripe/services/stripe.service';
-import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/workspace-task-queue.service';
+import { WorkspaceTaskWorkflowQueueService } from '@server/services/task-orchestration/workspace-task-workflow-queue.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 /**
@@ -249,7 +249,7 @@ export const TASK_E2E_MOCK_PROVIDERS = [
     },
   },
   {
-    provide: WorkspaceTaskQueueService,
+    provide: WorkspaceTaskWorkflowQueueService,
     useValue: {
       enqueue: () => Promise.resolve(),
     },

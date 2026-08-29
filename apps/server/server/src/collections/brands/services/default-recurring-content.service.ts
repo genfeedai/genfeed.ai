@@ -1,5 +1,5 @@
+import { GENFEED_ACTION_NODE_TYPE } from '@genfeedai/actions';
 import { WorkflowStatus } from '@genfeedai/enums';
-import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -10,6 +10,7 @@ import {
   computeNextRunAtOrThrow,
   isSchedulableTimezone,
 } from '@server/collections/workflows/utils/cron-schedule.util';
+import { createVersionedWorkflow } from '@server/collections/workflows/workflow-version-definition';
 import type { PrismaTransactionClient } from '@server/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
@@ -461,8 +462,9 @@ export class DefaultRecurringContentService {
       scheduleConfig.cronExpression,
       scheduleConfig.timezone,
     );
-    const workflow = await params.tx.workflow.create({
-      data: {
+    const workflow = await createVersionedWorkflow(
+      params.tx,
+      {
         brandId,
         // Denormalized brand identity used by the partial unique index
         // `workflows_default_recurring_brand_org_type_uidx`. Setting this
@@ -471,9 +473,7 @@ export class DefaultRecurringContentService {
         // legitimate "concurrent winner" signal.
         defaultRecurringBrandId: brandId,
         description: workflowDescription,
-        edges: toPrismaJson([]),
         executionCount: 0,
-        inputVariables: toPrismaJson([]),
         isDeleted: false,
         isScheduleEnabled: scheduleConfig.isEnabled,
         label: workflowLabel,
@@ -487,34 +487,40 @@ export class DefaultRecurringContentService {
           },
           taskType: 'default-recurring-content',
         },
-        nodes: toPrismaJson([
-          {
-            data: {
-              config: this.buildNodeConfig({
-                brandId,
-                brandLabel: params.brand.label,
-                contentType: params.contentType,
-                credentialId: params.credentialId ?? undefined,
-                timezone: scheduleConfig.timezone,
-              }),
-              label: this.buildNodeLabel(params.contentType),
-            },
-            id: `generate-${params.contentType}`,
-            position: { x: 120, y: 120 },
-            type: this.buildNodeType(params.contentType),
-          },
-        ]),
         organizationId: params.organizationId,
         progress: 0,
         schedule: scheduleConfig.cronExpression,
         status: WorkflowStatus.ACTIVE,
-        steps: toPrismaJson([]),
         timezone: scheduleConfig.timezone,
         userId: params.userId,
       },
-    });
+      {
+        edges: [],
+        inputVariables: [],
+        nodes: [
+          {
+            data: {
+              config: {
+                actionId: this.buildActionId(params.contentType),
+                parameters: this.buildNodeConfig({
+                  brandId,
+                  brandLabel: params.brand.label,
+                  contentType: params.contentType,
+                  credentialId: params.credentialId ?? undefined,
+                  timezone: scheduleConfig.timezone,
+                }),
+              },
+              label: this.buildNodeLabel(params.contentType),
+            },
+            id: `generate-${params.contentType}`,
+            position: { x: 120, y: 120 },
+            type: GENFEED_ACTION_NODE_TYPE,
+          },
+        ],
+      },
+    );
 
-    const workflowId = workflow.id;
+    const workflowId = String((workflow as Record<string, unknown>).id);
 
     this.logger.log(`${this.logContext} created default recurring workflow`, {
       brandId,
@@ -572,14 +578,14 @@ export class DefaultRecurringContentService {
     }
   }
 
-  private buildNodeType(contentType: DefaultRecurringContentType): string {
+  private buildActionId(contentType: DefaultRecurringContentType): string {
     switch (contentType) {
       case 'post':
-        return 'ai-generate-post';
+        return 'postGen';
       case 'newsletter':
-        return 'ai-generate-newsletter';
+        return 'newsletterGen';
       case 'image':
-        return 'ai-generate-image';
+        return 'imageGen';
     }
   }
 

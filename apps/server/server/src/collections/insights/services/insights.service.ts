@@ -1,24 +1,30 @@
 import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { Timeframe } from '@genfeedai/enums';
+import type { InsightGenerationWorkflowInput } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Injectable,
-  Optional,
+  type OnModuleInit,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { GetForecastDto } from '@server/collections/insights/dto/forecast.dto';
 import { PredictViralDto } from '@server/collections/insights/dto/predict-viral.dto';
 import type { ForecastDocument } from '@server/collections/insights/schemas/forecast.schema';
 import type { InsightDocument } from '@server/collections/insights/schemas/insight.schema';
+import {
+  buildInsightGenerationWorkflowDefinition,
+  INSIGHT_GENERATION_ACTION_IDS,
+} from '@server/collections/insights/services/insight-generation-workflow-definition';
 import { ModelsService } from '@server/collections/models/services/models.service';
 import { baseModelKey } from '@server/collections/models/utils/model-key.util';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
 import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 import { JsonParserUtil } from '@server/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@server/helpers/utils/text-pricing/text-pricing.util';
-import { InsightGenerationQueueService } from '@server/queues/insight-generation/insight-generation-queue.service';
 import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
@@ -39,6 +45,17 @@ type InsightData = {
   title?: string;
 };
 
+type InsightGenerationPlan = {
+  existingIds: string[];
+  missingCount: number;
+  organizationId: string;
+};
+
+type PersistedInsightGeneration = {
+  insightIds: string[];
+  persisted: number;
+};
+
 type ForecastData = {
   metric?: string;
   period?: string;
@@ -47,15 +64,41 @@ type ForecastData = {
 };
 
 @Injectable()
-export class InsightsService {
+export class InsightsService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly modelsService: ModelsService,
     private readonly llmDispatcherService: LlmDispatcherService,
-    @Optional()
-    private readonly insightGenerationQueue?: InsightGenerationQueueService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
   ) {}
+
+  onModuleInit(): void {
+    this.workflowRunner.registerAction(
+      INSIGHT_GENERATION_ACTION_IDS.LOAD,
+      ({ input }) =>
+        this.loadInsightGenerationContext(
+          input.request as InsightGenerationWorkflowInput,
+        ),
+    );
+    this.workflowRunner.registerAction(
+      INSIGHT_GENERATION_ACTION_IDS.GENERATE,
+      ({ input }) =>
+        this.generateInsightDrafts(input.plan as InsightGenerationPlan),
+    );
+    this.workflowRunner.registerAction(
+      INSIGHT_GENERATION_ACTION_IDS.PERSIST,
+      ({ input }) =>
+        this.persistGeneratedInsights(
+          input.plan as InsightGenerationPlan,
+          input.generated as { drafts?: InsightData[] },
+        ),
+    );
+    this.workflowRunner.registerWorkflow(
+      buildInsightGenerationWorkflowDefinition(),
+    );
+  }
 
   private capInsightLimit(limit: number): number {
     return Math.min(Math.max(limit, 1), 50);
@@ -306,10 +349,22 @@ export class InsightsService {
       return;
     }
 
-    await this.insightGenerationQueue?.enqueueGeneration({
+    const request: InsightGenerationWorkflowInput = {
       limit: this.capInsightLimit(limit),
       organizationId,
-    });
+    };
+    const definition = buildInsightGenerationWorkflowDefinition();
+    await this.workflowQueue.queueSystemWorkflow(
+      {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request },
+        organizationId,
+        source: 'insights-fill',
+      },
+      `insight-generate-${organizationId}`,
+      { attempts: 3, replaceTerminalJob: true },
+    );
   }
 
   async needsInsightGeneration(
@@ -324,21 +379,24 @@ export class InsightsService {
     return activeCount < cappedLimit;
   }
 
-  async generateInsightsIfNeeded(
-    organizationId: string,
-    limit: number = 5,
-  ): Promise<Insight[]> {
-    const cappedLimit = this.capInsightLimit(limit);
-    const existing = await this.getInsights(organizationId, cappedLimit);
-    if (existing.length >= cappedLimit) {
-      return existing;
-    }
-
-    const generated = await this.generateInsights(
-      organizationId,
-      cappedLimit - existing.length,
-    );
-    return [...existing, ...generated];
+  private async loadInsightGenerationContext(
+    request: InsightGenerationWorkflowInput,
+  ): Promise<InsightGenerationPlan> {
+    const limit = this.capInsightLimit(request.limit);
+    const existing = await this.prisma.insight.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+      take: limit,
+      where: scopedWhere(
+        request.organizationId,
+        this.activeInsightFilters(new Date()),
+      ),
+    });
+    return {
+      existingIds: existing.map(({ id }) => id),
+      missingCount: Math.max(0, limit - existing.length),
+      organizationId: request.organizationId,
+    };
   }
 
   /**
@@ -624,12 +682,11 @@ Provide 5-7 optimal time slots.`;
     );
   }
 
-  private async generateInsights(
-    organizationId: string,
-    count: number,
-    onBilling?: (amount: number) => void,
-  ): Promise<Insight[]> {
-    const prompt = `Generate ${count} actionable insights for a content creator.
+  private async generateInsightDrafts(
+    plan: InsightGenerationPlan,
+  ): Promise<{ drafts: InsightData[] }> {
+    if (plan.missingCount === 0) return { drafts: [] };
+    const prompt = `Generate ${plan.missingCount} actionable insights for a content creator.
 
 Return ONLY valid JSON with this structure. Do not include any text before or after the JSON:
 {
@@ -657,33 +714,43 @@ Confidence: 0-100`;
     const response = await this.generateTextCompletion(
       prompt,
       input.max_completion_tokens,
-      organizationId,
+      plan.organizationId,
     );
-    onBilling?.(await this.calculateDefaultTextCharge(input, response));
 
     const result = JsonParserUtil.parseAIResponse<Record<string, unknown>>(
       response,
       { insights: [] },
     );
     const insights = (result.insights as Record<string, unknown>[]) || [];
-
-    const savedInsights: Insight[] = [];
-
-    for (const insightData of insights) {
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
-
-      const payload = {
+    return {
+      drafts: insights.map((insightData) => ({
         actionableSteps: (insightData.actionableSteps as string[]) || [],
         category: insightData.type as string,
         confidence: insightData.confidence as number,
         description: insightData.description as string,
-        expiresAt: expiresAt.toISOString(),
         impact: insightData.impact as string,
         isDismissed: false,
         isRead: false,
         relatedMetrics: (insightData.relatedMetrics as string[]) || [],
         title: insightData.title as string,
+      })),
+    };
+  }
+
+  private async persistGeneratedInsights(
+    plan: InsightGenerationPlan,
+    generated: { drafts?: InsightData[] },
+  ): Promise<PersistedInsightGeneration> {
+    const savedInsightIds: string[] = [];
+    for (const insightData of generated.drafts ?? []) {
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      const payload = {
+        ...insightData,
+        expiresAt: expiresAt.toISOString(),
+        isDismissed: false,
+        isRead: false,
       } satisfies InsightData;
 
       const insight = await this.prisma.insight.create({
@@ -693,14 +760,17 @@ Confidence: 0-100`;
           expiresAt,
           isDismissed: false,
           isRead: false,
-          organizationId,
+          organizationId: plan.organizationId,
         },
       });
 
-      savedInsights.push(this.toInsightDocument(insight));
+      savedInsightIds.push(insight.id);
     }
 
-    return savedInsights;
+    return {
+      insightIds: [...plan.existingIds, ...savedInsightIds],
+      persisted: savedInsightIds.length,
+    };
   }
 
   private async generateTextCompletion(

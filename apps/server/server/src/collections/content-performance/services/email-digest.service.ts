@@ -30,6 +30,16 @@ export interface EmailDigestOptions {
   endDate?: Date | string;
 }
 
+export interface EmailDigestPrepared {
+  options: EmailDigestOptions;
+  organizationName: string;
+  summary: WeeklySummary;
+}
+
+export interface EmailDigestRendered {
+  deliveries: Array<{ email: string; html: string; subject: string }>;
+}
+
 @Injectable()
 export class EmailDigestService {
   constructor(
@@ -42,65 +52,66 @@ export class EmailDigestService {
     private readonly logger: ServerLogger,
   ) {}
 
-  /**
-   * Send a performance digest email for an organization/brand.
-   */
-  async sendDigest(options: EmailDigestOptions): Promise<EmailDigestResult> {
-    const { organizationId, brandId, startDate, endDate } = options;
+  async prepareDigest(
+    options: EmailDigestOptions,
+  ): Promise<EmailDigestPrepared> {
+    const summary = await this.performanceSummaryService.getWeeklySummary(
+      options.organizationId,
+      options.brandId,
+      {
+        endDate: options.endDate as string,
+        startDate: options.startDate as string,
+      },
+    );
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: options.organizationId },
+    });
+    return {
+      options,
+      organizationName: organization?.label ?? 'Your Organization',
+      summary,
+    };
+  }
 
-    const result: EmailDigestResult = { errors: 0, sent: 0, skipped: 0 };
+  async discoverDigestRecipients(
+    prepared: EmailDigestPrepared,
+  ): Promise<EmailDigestPrepared & { recipients: string[] }> {
+    return {
+      ...prepared,
+      recipients: await this.resolveRecipients(
+        prepared.options.organizationId,
+        prepared.options.recipientEmails,
+      ),
+    };
+  }
 
+  renderDigest(
+    state: EmailDigestPrepared & { recipients: string[] },
+  ): EmailDigestRendered {
+    const html = this.buildDigestHtml(state.summary, state.organizationName);
+    const subject = `Weekly Performance Digest - ${state.organizationName}`;
+    return {
+      deliveries: state.recipients.map((email) => ({ email, html, subject })),
+    };
+  }
+
+  async deliverDigestRecipient(input: {
+    email: string;
+    html: string;
+    subject: string;
+  }): Promise<{ email: string; sent: boolean; error?: string }> {
     try {
-      // Get the weekly summary
-      const summary = await this.performanceSummaryService.getWeeklySummary(
-        organizationId,
-        brandId,
-        { endDate: endDate as string, startDate: startDate as string },
+      await this.notificationsService.sendEmail(
+        input.email,
+        input.subject,
+        input.html,
       );
-
-      // Determine recipients
-      const recipients = await this.resolveRecipients(
-        organizationId,
-        options.recipientEmails,
-      );
-
-      if (recipients.length === 0) {
-        this.logger.warn(
-          `No recipients found for digest email org=${organizationId}`,
-        );
-        result.skipped++;
-        return result;
-      }
-
-      // Get org name for email subject
-      const org = await this.prisma.organization.findUnique({
-        where: { id: organizationId },
-      });
-      const orgName = org?.label ?? 'Your Organization';
-
-      // Build email HTML
-      const html = this.buildDigestHtml(summary, orgName);
-      const subject = `Weekly Performance Digest - ${orgName}`;
-
-      // Send to each recipient
-      for (const email of recipients) {
-        try {
-          await this.notificationsService.sendEmail(email, subject, html);
-          result.sent++;
-        } catch (error) {
-          result.errors++;
-          this.logger.error(`Failed to send digest email to ${email}`, error);
-        }
-      }
-    } catch (error) {
-      result.errors++;
-      this.logger.error(
-        `Failed to generate digest for org=${organizationId}`,
-        error,
-      );
+      return { email: input.email, sent: true };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to send digest email to ${input.email}`, error);
+      return { email: input.email, error: message, sent: false };
     }
-
-    return result;
   }
 
   /**

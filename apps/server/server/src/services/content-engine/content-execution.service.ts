@@ -1,10 +1,3 @@
-import { type ContentPlanItemDocument } from '@server/collections/content-plan-items/schemas/content-plan-item.schema';
-import { ContentPlanItemsService } from '@server/collections/content-plan-items/services/content-plan-items.service';
-import { ContentPlansService } from '@server/collections/content-plans/services/content-plans.service';
-import { ReviewablePostsService } from '@server/collections/posts/services/reviewable-posts.service';
-import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
-import { PipelineStep } from '@server/services/content-orchestration/pipeline.interfaces';
-import { SkillExecutorService } from '@server/services/skill-executor/skill-executor.service';
 import {
   ContentPlanItemStatus,
   ContentPlanItemType,
@@ -15,6 +8,13 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { type ContentPlanItemDocument } from '@server/collections/content-plan-items/schemas/content-plan-item.schema';
+import { ContentPlanItemsService } from '@server/collections/content-plan-items/services/content-plan-items.service';
+import { ContentPlansService } from '@server/collections/content-plans/services/content-plans.service';
+import { ReviewablePostsService } from '@server/collections/posts/services/reviewable-posts.service';
+import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
+import { PipelineStep } from '@server/services/content-orchestration/pipeline.interfaces';
+import { SkillExecutorService } from '@server/services/skill-executor/skill-executor.service';
 
 export interface ExecutionResult {
   itemId: string;
@@ -36,77 +36,74 @@ export class ContentExecutionService {
     private readonly logger: LoggerService,
   ) {}
 
-  async executePlan(
+  async preparePlanExecution(
     organizationId: string,
     brandId: string,
     planId: string,
     userId: string,
   ): Promise<{
-    results: ExecutionResult[];
-    summary: { total: number; completed: number; failed: number };
+    baseInput: {
+      brandId: string;
+      organizationId: string;
+      planId: string;
+      userId: string;
+    };
+    brandId: string;
+    items: Array<{ id: string }>;
+    planId: string;
   }> {
-    // Validate plan exists before executing
     await this.contentPlansService.getByIdOrFail(organizationId, planId);
-
     await this.contentPlansService.updateStatus(
       organizationId,
       planId,
       ContentPlanStatus.EXECUTING,
     );
-
-    const pendingItems = await this.contentPlanItemsService.listPendingByPlan(
+    const items = await this.contentPlanItemsService.listPendingByPlan(
       organizationId,
       planId,
     );
+    return {
+      // `brandId` is duplicated at the top level because the finalize node
+      // receives this whole object as its `state` input.
+      baseInput: { brandId, organizationId, planId, userId },
+      brandId,
+      items: items.map((item) => ({ id: String(item.id) })),
+      planId,
+    };
+  }
 
-    const results: ExecutionResult[] = [];
-    let completed = 0;
-    let failed = 0;
-
-    for (const item of pendingItems) {
-      const result = await this.executeItem(
-        organizationId,
-        brandId,
-        userId,
-        item,
-      );
-
-      results.push(result);
-
-      if (result.status === ContentPlanItemStatus.COMPLETED) {
-        completed++;
-        await this.contentPlansService.incrementExecutedCount(
-          organizationId,
-          planId,
-        );
-      } else {
-        failed++;
-      }
-    }
-
-    const finalStatus =
-      failed === pendingItems.length
-        ? ContentPlanStatus.ACTIVE
-        : ContentPlanStatus.COMPLETED;
-
+  async finalizePlanExecution(
+    organizationId: string,
+    brandId: string,
+    planId: string,
+    batch: unknown,
+  ): Promise<{
+    results: ExecutionResult[];
+    summary: { total: number; completed: number; failed: number };
+  }> {
+    const results = this.readBatchResults(batch);
+    const completed = results.filter(
+      (result) => result.status === ContentPlanItemStatus.COMPLETED,
+    ).length;
+    const failed = results.length - completed;
     await this.contentPlansService.updateStatus(
       organizationId,
       planId,
-      finalStatus,
+      failed === results.length && results.length > 0
+        ? ContentPlanStatus.ACTIVE
+        : ContentPlanStatus.COMPLETED,
     );
-
     this.logger.log(`${this.constructorName}: Plan execution completed`, {
       brandId,
       completed,
       failed,
       organizationId,
       planId,
-      total: pendingItems.length,
+      total: results.length,
     });
-
     return {
       results,
-      summary: { completed, failed, total: pendingItems.length },
+      summary: { completed, failed, total: results.length },
     };
   }
 
@@ -136,6 +133,27 @@ export class ContentExecutionService {
     }
 
     return result;
+  }
+
+  private readBatchResults(value: unknown): ExecutionResult[] {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      return [];
+    }
+    const results = (value as { results?: unknown }).results;
+    if (!Array.isArray(results)) {
+      return [];
+    }
+    return results.flatMap((entry) => {
+      if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+        return [];
+      }
+      const result = (entry as { result?: unknown }).result;
+      return result !== null &&
+        typeof result === 'object' &&
+        !Array.isArray(result)
+        ? [result as ExecutionResult]
+        : [];
+    });
   }
 
   private async executeItem(
@@ -333,14 +351,13 @@ export class ContentExecutionService {
       }
     });
 
-    // ContentOrchestrationService requires a personaId which we don't have in the engine context.
-    // For now, we create a draft record directly from the pipeline result.
+    // The hidden workflow is scoped to a persona identity. Content-plan items
+    // currently use their owning brand identity for that system-only scope.
     const pipelineResult =
       await this.contentOrchestrationService.generateAndPublish({
         brandId,
         organizationId,
-        // The orchestration service requires a personaId — use brandId as a proxy.
-        // In production, this should be resolved from the brand's linked persona.
+        // The content-plan contract does not yet store a persona reference.
         personaId: brandId,
         platforms: itemPlatforms,
         prompt: itemPrompt,

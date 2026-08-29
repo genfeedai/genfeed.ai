@@ -1,8 +1,8 @@
 import {
   AssetScope,
-  BatchStatus,
   IngredientCategory,
   IngredientStatus,
+  WorkflowExecutionStatus,
 } from '@genfeedai/enums';
 import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
@@ -15,12 +15,16 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import type {
-  BatchItemStatus,
-  BatchJobStatus,
-  BatchJobSummary,
+  BatchExecution,
+  BatchExecutionItem,
+  BatchExecutionSummary,
   WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
+import {
+  toBatchExecution,
+  toBatchExecutionSummary,
+} from '@/features/workflows/utils/batch-execution';
 import { isTerminalBatchStatus } from '@/features/workflows/utils/batch-status';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
@@ -61,7 +65,7 @@ function getLibraryPathForCategory(category?: string): string | null {
   }
 }
 
-function buildBatchIngredient(item: BatchItemStatus): IIngredient | null {
+function buildBatchIngredient(item: BatchExecutionItem): IIngredient | null {
   const outputSummary = item.outputSummary;
 
   if (!outputSummary) {
@@ -100,27 +104,29 @@ function buildBatchIngredient(item: BatchItemStatus): IIngredient | null {
   } as IIngredient;
 }
 
-function toBatchJobSummary(batchJob: BatchJobStatus): BatchJobSummary {
+function toExecutionSummary(execution: BatchExecution): BatchExecutionSummary {
   return {
-    id: batchJob.id,
-    completedCount: batchJob.completedCount,
-    createdAt: batchJob.createdAt,
-    failedCount: batchJob.failedCount,
-    status: batchJob.status,
-    totalCount: batchJob.totalCount,
-    workflowId: batchJob.workflowId,
+    id: execution.id,
+    completedCount: execution.completedCount,
+    createdAt: execution.createdAt,
+    failedCount: execution.failedCount,
+    status: execution.status,
+    totalCount: execution.totalCount,
+    workflowId: execution.workflowId,
   };
 }
 
-function upsertRecentJob(
-  previousJobs: BatchJobSummary[],
-  batchJob: BatchJobStatus | BatchJobSummary,
-): BatchJobSummary[] {
+function upsertRecentExecution(
+  previousExecutions: BatchExecutionSummary[],
+  execution: BatchExecution | BatchExecutionSummary,
+): BatchExecutionSummary[] {
   const nextSummary =
-    'items' in batchJob ? toBatchJobSummary(batchJob) : batchJob;
-  const remainingJobs = previousJobs.filter((job) => job.id !== nextSummary.id);
+    'items' in execution ? toExecutionSummary(execution) : execution;
+  const remainingExecutions = previousExecutions.filter(
+    (candidate) => candidate.id !== nextSummary.id,
+  );
 
-  return [nextSummary, ...remainingJobs];
+  return [nextSummary, ...remainingExecutions];
 }
 
 export function useBatchWorkflowPage() {
@@ -128,24 +134,26 @@ export function useBatchWorkflowPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
-  const requestedJobId = searchParams.get('job') ?? null;
+  const requestedExecutionId = searchParams.get('execution') ?? null;
 
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
-  const [recentJobs, setRecentJobs] = useState<BatchJobSummary[]>([]);
+  const [recentExecutions, setRecentExecutions] = useState<
+    BatchExecutionSummary[]
+  >([]);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState('');
   const [activeBatchStatus, setActiveBatchStatus] =
-    useState<BatchJobStatus | null>(null);
+    useState<BatchExecution | null>(null);
   const [selectedOutputIds, setSelectedOutputIds] = useState<Set<string>>(
     () => new Set(),
   );
   const [isBootstrapping, setIsBootstrapping] = useState(true);
-  const [isLoadingJob, setIsLoadingJob] = useState(false);
+  const [isLoadingExecution, setIsLoadingExecution] = useState(false);
   const [isStartingBatch, setIsStartingBatch] = useState(false);
   const [isRunningBulkAction, setIsRunningBulkAction] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<UploadedFile[]>(files);
-  const startedBatchJobIdRef = useRef<string | null>(null);
+  const startedBatchExecutionIdRef = useRef<string | null>(null);
 
   const getService = useAuthedService(createWorkflowApiService);
   const getIngredientsService = useAuthedService((token: string) =>
@@ -161,7 +169,7 @@ export function useBatchWorkflowPage() {
   const availableOutputs = useMemo(
     () =>
       (activeBatchStatus?.items ?? []).reduce<
-        { ingredient: IIngredient; item: BatchItemStatus }[]
+        { ingredient: IIngredient; item: BatchExecutionItem }[]
       >((outputs, item) => {
         const ingredient = buildBatchIngredient(item);
         if (ingredient) {
@@ -184,14 +192,14 @@ export function useBatchWorkflowPage() {
     !hasPendingUploads &&
     !isStartingBatch;
 
-  const replaceJobQuery = useCallback(
-    (batchJobId: string | null) => {
+  const replaceExecutionQuery = useCallback(
+    (executionId: string | null) => {
       const nextSearchParams = new URLSearchParams(searchParamsString);
 
-      if (batchJobId) {
-        nextSearchParams.set('job', batchJobId);
+      if (executionId) {
+        nextSearchParams.set('execution', executionId);
       } else {
-        nextSearchParams.delete('job');
+        nextSearchParams.delete('execution');
       }
 
       const query = nextSearchParams.toString();
@@ -200,31 +208,35 @@ export function useBatchWorkflowPage() {
     [pathname, replace, searchParamsString],
   );
 
-  const loadBatchJob = useCallback(
-    async (batchJobId: string) => {
-      setIsLoadingJob(true);
+  const loadBatchExecution = useCallback(
+    async (executionId: string) => {
+      setIsLoadingExecution(true);
 
       try {
         const service = await getService();
-        const batchJob = await service.getBatchStatus(batchJobId);
+        const document = await service.getExecution(executionId);
+        const batchExecution = toBatchExecution(document);
+        if (!batchExecution) {
+          throw new Error('Execution is not a workflow batch');
+        }
 
-        setActiveBatchStatus(batchJob);
-        setRecentJobs((previousJobs) =>
-          upsertRecentJob(previousJobs, batchJob),
+        setActiveBatchStatus(batchExecution);
+        setRecentExecutions((previousExecutions) =>
+          upsertRecentExecution(previousExecutions, batchExecution),
         );
-        setSelectedWorkflowId(batchJob.workflowId);
-      } catch (jobError) {
+        setSelectedWorkflowId(batchExecution.workflowId);
+      } catch (executionError) {
         const message =
-          jobError instanceof Error
-            ? jobError.message
-            : 'Failed to load batch job.';
+          executionError instanceof Error
+            ? executionError.message
+            : 'Failed to load batch execution.';
         setError(message);
-        logger.error('Failed to load batch job', {
-          batchJobId,
-          error: jobError,
+        logger.error('Failed to load batch execution', {
+          executionId,
+          error: executionError,
         });
       } finally {
-        setIsLoadingJob(false);
+        setIsLoadingExecution(false);
       }
     },
     [getService],
@@ -249,9 +261,9 @@ export function useBatchWorkflowPage() {
       try {
         setIsBootstrapping(true);
         const service = await getService();
-        const [workflowData, batchJobs] = await Promise.all([
+        const [workflowData, executions] = await Promise.all([
           service.list(),
-          service.listBatchJobs(),
+          service.listExecutions({ limit: 100 }),
         ]);
 
         if (cancelled) {
@@ -259,7 +271,12 @@ export function useBatchWorkflowPage() {
         }
 
         setWorkflows(workflowData);
-        setRecentJobs(batchJobs);
+        setRecentExecutions(
+          executions.flatMap((execution) => {
+            const summary = toBatchExecutionSummary(execution);
+            return summary ? [summary] : [];
+          }),
+        );
       } catch (loadError) {
         if (cancelled) {
           return;
@@ -288,12 +305,15 @@ export function useBatchWorkflowPage() {
   }, [getService]);
 
   useEffect(() => {
-    if (!requestedJobId || requestedJobId === activeBatchStatus?.id) {
+    if (
+      !requestedExecutionId ||
+      requestedExecutionId === activeBatchStatus?.id
+    ) {
       return;
     }
 
-    void loadBatchJob(requestedJobId);
-  }, [activeBatchStatus?.id, loadBatchJob, requestedJobId]);
+    void loadBatchExecution(requestedExecutionId);
+  }, [activeBatchStatus?.id, loadBatchExecution, requestedExecutionId]);
 
   const activeBatchId = activeBatchStatus?.id;
   const activeBatchLifecycleStatus = activeBatchStatus?.status;
@@ -304,7 +324,7 @@ export function useBatchWorkflowPage() {
   useEffect(() => {
     if (
       !activeBatchId ||
-      startedBatchJobIdRef.current !== activeBatchId ||
+      startedBatchExecutionIdRef.current !== activeBatchId ||
       !activeBatchLifecycleStatus ||
       !isTerminalBatchStatus(activeBatchLifecycleStatus)
     ) {
@@ -313,12 +333,12 @@ export function useBatchWorkflowPage() {
 
     captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED, {
       outcome:
-        activeBatchLifecycleStatus === BatchStatus.COMPLETED
+        activeBatchLifecycleStatus === WorkflowExecutionStatus.COMPLETED
           ? 'success'
           : 'failure',
       workflowType: 'batch',
     });
-    startedBatchJobIdRef.current = null;
+    startedBatchExecutionIdRef.current = null;
   }, [activeBatchId, activeBatchLifecycleStatus]);
 
   const pollActiveBatchStatus = useCallback(async () => {
@@ -328,7 +348,11 @@ export function useBatchWorkflowPage() {
 
     try {
       const service = await getService();
-      const nextBatchStatus = await service.getBatchStatus(activeBatchId);
+      const execution = await service.getExecution(activeBatchId);
+      const nextBatchStatus = toBatchExecution(execution);
+      if (!nextBatchStatus) {
+        throw new Error('Execution is not a workflow batch');
+      }
 
       // The operator may have switched batches while this request was in
       // flight; a late response must not overwrite the one they are watching.
@@ -337,13 +361,13 @@ export function useBatchWorkflowPage() {
       }
 
       setActiveBatchStatus(nextBatchStatus);
-      setRecentJobs((previousJobs) =>
-        upsertRecentJob(previousJobs, nextBatchStatus),
+      setRecentExecutions((previousExecutions) =>
+        upsertRecentExecution(previousExecutions, nextBatchStatus),
       );
     } catch (pollError) {
       logger.error('Failed to poll batch status', {
-        batchJobId: activeBatchId,
         error: pollError,
+        executionId: activeBatchId,
       });
     }
   }, [activeBatchId, getService]);
@@ -489,28 +513,24 @@ export function useBatchWorkflowPage() {
         workflowType: 'batch',
       });
       runStarted = true;
-      startedBatchJobIdRef.current = null;
-      const result = await service.runBatch(selectedWorkflowId, ingredientIds);
-      startedBatchJobIdRef.current = result.batchJobId;
-      replaceJobQuery(result.batchJobId);
-      setSelectedOutputIds(new Set());
-
-      try {
-        const batchJob = await service.getBatchStatus(result.batchJobId);
-
-        setActiveBatchStatus(batchJob);
-        setRecentJobs((previousJobs) =>
-          upsertRecentJob(previousJobs, batchJob),
-        );
-      } catch (statusError) {
-        setError('Batch started. Reconnecting to its status…');
-        logger.error('Failed to hydrate newly created batch workflow run', {
-          batchJobId: result.batchJobId,
-          error: statusError,
-        });
+      startedBatchExecutionIdRef.current = null;
+      const execution = await service.startBatchExecution(
+        selectedWorkflowId,
+        ingredientIds,
+      );
+      const batchExecution = toBatchExecution(execution);
+      if (!batchExecution) {
+        throw new Error('Workflow batch execution metadata is missing');
       }
+      startedBatchExecutionIdRef.current = execution.id;
+      replaceExecutionQuery(execution.id);
+      setSelectedOutputIds(new Set());
+      setActiveBatchStatus(batchExecution);
+      setRecentExecutions((previousExecutions) =>
+        upsertRecentExecution(previousExecutions, batchExecution),
+      );
     } catch (runError) {
-      if (runStarted && !startedBatchJobIdRef.current) {
+      if (runStarted && !startedBatchExecutionIdRef.current) {
         captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED, {
           outcome: 'failure',
           workflowType: 'batch',
@@ -523,23 +543,29 @@ export function useBatchWorkflowPage() {
     } finally {
       setIsStartingBatch(false);
     }
-  }, [canRunBatch, files, getService, replaceJobQuery, selectedWorkflowId]);
+  }, [
+    canRunBatch,
+    files,
+    getService,
+    replaceExecutionQuery,
+    selectedWorkflowId,
+  ]);
 
-  const handleOpenRecentJob = useCallback(
-    async (batchJobId: string) => {
+  const handleOpenRecentExecution = useCallback(
+    async (executionId: string) => {
       setError(null);
-      replaceJobQuery(batchJobId);
-      await loadBatchJob(batchJobId);
+      replaceExecutionQuery(executionId);
+      await loadBatchExecution(executionId);
     },
-    [loadBatchJob, replaceJobQuery],
+    [loadBatchExecution, replaceExecutionQuery],
   );
 
   const handleBackToComposer = useCallback(() => {
     setActiveBatchStatus(null);
     setSelectedOutputIds(new Set());
     setError(null);
-    replaceJobQuery(null);
-  }, [replaceJobQuery]);
+    replaceExecutionQuery(null);
+  }, [replaceExecutionQuery]);
 
   const toggleOutputSelection = useCallback((itemId: string) => {
     setSelectedOutputIds((previousIds) => {
@@ -650,18 +676,18 @@ export function useBatchWorkflowPage() {
     handleBackToComposer,
     handleDownload,
     handleOpenInLibrary,
-    handleOpenRecentJob,
+    handleOpenRecentExecution,
     handlePublish,
     handleRunBatch,
     hasPendingUploads,
     isDragActive,
     isBootstrapping,
-    isLoadingJob,
+    isLoadingExecution,
     isRunningBulkAction,
     isStartingBatch,
     openPostBatchModal,
     push,
-    recentJobs,
+    recentExecutions,
     removeFile,
     selectedOutputIds,
     selectedOutputs,

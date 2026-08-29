@@ -49,7 +49,7 @@ export interface WorkspaceTaskRealtimeSnapshotInput {
   failureReason?: unknown;
   linkedApprovalIds?: IdLike[] | null;
   linkedOutputIds?: IdLike[] | null;
-  linkedRunIds?: IdLike[] | null;
+  linkedExecutionIds?: IdLike[] | null;
   outputType?: unknown;
   planningThreadId?: IdLike | null;
   platforms?: unknown;
@@ -115,7 +115,7 @@ export function buildWorkspaceTaskRealtimeSnapshot(
   const approvedOutputIds = task.approvedOutputIds ?? [];
   const linkedApprovalIds = task.linkedApprovalIds ?? [];
   const linkedOutputIds = task.linkedOutputIds ?? [];
-  const linkedRunIds = task.linkedRunIds ?? [];
+  const linkedExecutionIds = task.linkedExecutionIds ?? [];
   const skillVariantIds = task.skillVariantIds ?? [];
   const eventStream = task.eventStream ?? [];
 
@@ -135,7 +135,7 @@ export function buildWorkspaceTaskRealtimeSnapshot(
     id: task.id,
     linkedApprovalIds: linkedApprovalIds.map((id) => id.toString()),
     linkedOutputIds: linkedOutputIds.map((id) => id.toString()),
-    linkedRunIds: linkedRunIds.map((id) => id.toString()),
+    linkedExecutionIds: linkedExecutionIds.map((id) => id.toString()),
     organizationId: task.organizationId,
     outputType: task.outputType,
     planningThreadId: task.planningThreadId?.toString(),

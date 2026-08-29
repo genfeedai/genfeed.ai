@@ -1,12 +1,22 @@
+import { BRAND_REMIX_DOWNSTREAM_ACTION_IDS } from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
 import { PausedXAdsCampaignDraftService } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
 import { IngredientStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+type CapturedWorkflowAction = (request: {
+  input: Record<string, unknown>;
+  provenance: {
+    executionId: string;
+    workflowId: string;
+    workflowLabel: string;
+  };
+}) => Promise<unknown> | unknown;
 
 describe('PausedXAdsCampaignDraftService', () => {
   const prisma = {
     credential: { findFirst: vi.fn() },
     ingredient: { findFirst: vi.fn() },
-    post: { findFirst: vi.fn() },
+    post: { findFirst: vi.fn(), updateMany: vi.fn() },
   };
   const xAdsService = {
     createCampaign: vi.fn(),
@@ -19,7 +29,14 @@ describe('PausedXAdsCampaignDraftService', () => {
     listLineItems: vi.fn(),
     listPromotedTweets: vi.fn(),
   };
-  const workflowProvenanceService = { runAction: vi.fn() };
+  const actions = new Map<string, CapturedWorkflowAction>();
+  const workflowRunner = {
+    registerAction: vi.fn((id: string, action: CapturedWorkflowAction) => {
+      actions.set(id, action);
+    }),
+    registerWorkflow: vi.fn(),
+    runWorkflow: vi.fn(),
+  };
   const adCreativeMappingsService = {
     create: vi.fn(),
     findByContentId: vi.fn(),
@@ -27,7 +44,7 @@ describe('PausedXAdsCampaignDraftService', () => {
   const service = new PausedXAdsCampaignDraftService(
     prisma as never,
     xAdsService as never,
-    workflowProvenanceService as never,
+    workflowRunner as never,
     adCreativeMappingsService as never,
   );
   const input = {
@@ -89,6 +106,13 @@ describe('PausedXAdsCampaignDraftService', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    actions.clear();
+    workflowRunner.registerAction.mockImplementation(
+      (id: string, action: CapturedWorkflowAction) => {
+        actions.set(id, action);
+      },
+    );
+    service.onModuleInit();
     prisma.credential.findFirst.mockResolvedValue({
       accessToken: 'legacy-plaintext-token',
       accessTokenSecret: 'legacy-plaintext-token-secret',
@@ -130,22 +154,51 @@ describe('PausedXAdsCampaignDraftService', () => {
       id: 'promoted-tweet-1',
       tweetId: 'tweet-1',
     });
-    workflowProvenanceService.runAction.mockImplementation(
-      async (_options, action) => ({
-        provenance: {
-          executionId: 'workflow-execution-1',
-          workflowId: 'workflow-1',
-          workflowLabel: 'Paused X Ads Draft',
-        },
-        result: await action(),
-      }),
-    );
+    workflowRunner.runWorkflow.mockImplementation(async (request) => {
+      const provenance = {
+        executionId: 'workflow-execution-1',
+        workflowId: 'workflow-1',
+        workflowLabel: 'Paused X Ads Draft',
+      };
+      const execute = async (
+        id: string,
+        stateInput: Record<string, unknown>,
+      ) => {
+        const action = actions.get(id);
+        if (!action) throw new Error(`Missing action ${id}`);
+        return action({ input: stateInput, provenance });
+      };
+      const ids = BRAND_REMIX_DOWNSTREAM_ACTION_IDS;
+      let state = await execute(ids.X_VALIDATE_SOURCE, {
+        request: request.inputValues.request,
+      });
+      for (const id of [
+        ids.X_RESOLVE_ACCOUNT,
+        ids.X_RESOLVE_FUNDING,
+        ids.X_VALIDATE_TWEET,
+        ids.X_ENSURE_CAMPAIGN,
+        ids.X_ENSURE_LINE_ITEM,
+        ids.X_ENSURE_PROMOTED_TWEET,
+        ids.X_PERSIST_MAPPING,
+      ]) {
+        state = await execute(id, { state });
+      }
+      const result = await execute(ids.X_PERSIST_LINEAGE, { state });
+      return { provenance, result };
+    });
     adCreativeMappingsService.findByContentId.mockResolvedValue([]);
+    prisma.post.updateMany.mockResolvedValue({ count: 1 });
   });
 
   it('creates all three objects with PAUSED-only inputs and complete lineage', async () => {
     const result = await service.prepare(input);
 
+    expect(workflowRunner.runWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({ canonicalId: 'brand-remix.x.paused-draft' }),
+    );
+    expect(
+      JSON.stringify(workflowRunner.runWorkflow.mock.calls[0]?.[0].inputValues),
+    ).not.toContain('legacy-plaintext-token');
     expect(xAdsService.createCampaign).toHaveBeenCalledWith(
       oauthCredentials,
       'act-123',
@@ -265,7 +318,7 @@ describe('PausedXAdsCampaignDraftService', () => {
     );
 
     expect(xAdsService.listPublishedTweets).not.toHaveBeenCalled();
-    expect(workflowProvenanceService.runAction).not.toHaveBeenCalled();
+    expect(workflowRunner.runWorkflow).toHaveBeenCalledOnce();
     expect(xAdsService.createCampaign).not.toHaveBeenCalled();
   });
 
@@ -276,7 +329,7 @@ describe('PausedXAdsCampaignDraftService', () => {
       'published Tweet is unavailable to the selected X Ads account',
     );
 
-    expect(workflowProvenanceService.runAction).not.toHaveBeenCalled();
+    expect(workflowRunner.runWorkflow).toHaveBeenCalledOnce();
     expect(xAdsService.createCampaign).not.toHaveBeenCalled();
     expect(xAdsService.createLineItem).not.toHaveBeenCalled();
     expect(xAdsService.createPromotedTweet).not.toHaveBeenCalled();

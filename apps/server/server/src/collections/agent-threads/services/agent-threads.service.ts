@@ -1,16 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import { resolveLastGeneratedAsset } from '@genfeedai/agent/server';
 import {
-  AgentExecutionStatus,
   AgentThreadStatus,
   IngredientCategory,
+  WorkflowExecutionStatus,
 } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
+import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
-import type { AgentRunDocument } from '@server/collections/agent-runs/schemas/agent-run.schema';
 import type { AgentRoomDocument } from '@server/collections/agent-threads/schemas/agent-thread.schema';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type { AgentThreadSnapshotDocument } from '@server/services/agent-threading/schemas/agent-thread-snapshot.schema';
@@ -43,12 +42,35 @@ type ThreadGeneratedAsset = {
   url: string;
 };
 
+type WorkflowExecutionRecord = {
+  id: string;
+  status: WorkflowExecutionStatus | string;
+};
+
+/**
+ * One row of the thread -> execution join. `threadId` is not a column: agent
+ * turns store it inside the execution `result` JSON at `metadata.threadId`
+ * (written by `AgentOrchestratorService`), so it is projected out in SQL.
+ */
+type ThreadExecutionRow = {
+  id: string;
+  status: string;
+  threadId: string;
+};
+
 const LIST_THUMB_INGREDIENT_CATEGORIES: IngredientCategory[] = [
   IngredientCategory.AVATAR,
   IngredientCategory.GIF,
   IngredientCategory.IMAGE,
   IngredientCategory.IMAGE_EDIT,
 ];
+
+/**
+ * Upper bound on the thread -> execution scan. Rows arrive newest-first, so
+ * both consumers (latest run status, latest generated thumbnail) stay correct
+ * under the bound; only very old executions of very chatty threads fall out.
+ */
+const THREAD_EXECUTION_SCAN_LIMIT = 500;
 
 type AgentThreadWithSummary = AgentRoomDocument & AgentThreadSummary;
 
@@ -284,14 +306,23 @@ export class AgentThreadsService extends BaseService<
         this.normalizeSnapshot(snapshot as unknown as Record<string, unknown>),
       ]),
     );
-    const latestRunsByThreadId = await this.findLatestRunsByThreadIds(
+    const executionRows = await this.findExecutionsByThreadIds(
       organizationId,
       threadIds,
+    );
+    // Rows arrive newest-first, so the first row per thread is that thread's
+    // latest execution.
+    const latestExecutionsByThreadId = new Map<string, WorkflowExecutionRecord>(
+      executionRows
+        .map(
+          (row) => [row.threadId, { id: row.id, status: row.status }] as const,
+        )
+        .reverse(),
     );
     const latestAssetsByThreadId =
       await this.findLatestGeneratedAssetsByThreadIds(
         organizationId,
-        threadIds,
+        new Map(executionRows.map((row) => [row.id, row.threadId])),
       );
     const brandLabelsById = await this.findBrandLabelsByIds(
       organizationId,
@@ -302,7 +333,7 @@ export class AgentThreadsService extends BaseService<
 
     return threads.map((thread) => {
       const snapshot = snapshotsByThreadId.get(String(thread.id));
-      const latestRun = latestRunsByThreadId.get(String(thread.id));
+      const latestExecution = latestExecutionsByThreadId.get(String(thread.id));
       const brandLabel = thread.brandId
         ? brandLabelsById.get(thread.brandId)
         : undefined;
@@ -311,7 +342,7 @@ export class AgentThreadsService extends BaseService<
         ...(brandLabel ? { brandLabel } : {}),
         ...this.buildThreadSummary(
           snapshot,
-          latestRun,
+          latestExecution,
           latestAssetsByThreadId.get(String(thread.id)),
         ),
       };
@@ -320,7 +351,7 @@ export class AgentThreadsService extends BaseService<
 
   private buildThreadSummary(
     snapshot?: AgentThreadSnapshotDocument | null,
-    latestRun?: AgentRunDocument | null,
+    latestExecution?: WorkflowExecutionRecord | null,
     latestAsset?: ThreadGeneratedAsset,
   ): AgentThreadSummary {
     const lastGeneratedAsset = resolveLastGeneratedAsset({
@@ -352,7 +383,7 @@ export class AgentThreadsService extends BaseService<
     const rawRunStatus = this.readString(activeRun, 'status');
     const runStatus = this.reconcileRunStatus(
       this.normalizeRunStatus(rawRunStatus, pendingInputCount),
-      latestRun,
+      latestExecution,
       pendingInputCount,
     );
     const lastAssistantMessage = this.asRecord(snapshot.lastAssistantMessage);
@@ -381,64 +412,65 @@ export class AgentThreadsService extends BaseService<
     };
   }
 
-  private async findLatestRunsByThreadIds(
+  /**
+   * Latest workflow executions for the listed threads. Agent turns record the
+   * originating thread in the execution `result` JSON (`metadata.threadId`),
+   * not in a column, so the join is projected in SQL rather than scanned in
+   * memory over every execution in the organization.
+   */
+  private async findExecutionsByThreadIds(
     organizationId: string,
     threadIds: string[],
-  ): Promise<Map<string, AgentRunDocument>> {
-    const runs = await this.prisma.agentRun.findMany({
-      orderBy: { createdAt: 'desc' },
-      where: scopedWhere(organizationId, { threadId: { in: threadIds } }),
-    });
-
-    const latestRunsByThreadId = new Map<string, AgentRunDocument>();
-
-    for (const run of runs) {
-      const threadId = (run as Record<string, unknown>).threadId as
-        | string
-        | null;
-
-      if (!threadId || latestRunsByThreadId.has(threadId)) {
-        continue;
-      }
-
-      latestRunsByThreadId.set(threadId, run as unknown as AgentRunDocument);
+  ): Promise<ThreadExecutionRow[]> {
+    if (threadIds.length === 0) {
+      return [];
     }
 
-    return latestRunsByThreadId;
+    return this.prisma.$queryRaw<ThreadExecutionRow[]>`
+      SELECT
+        execution.id AS "id",
+        execution.status::text AS "status",
+        execution.result -> 'metadata' ->> 'threadId' AS "threadId"
+      FROM workflow_executions AS execution
+      WHERE execution."organizationId" = ${organizationId}
+        AND execution."isDeleted" = false
+        AND execution.result -> 'metadata' ->> 'threadId' IN (${Prisma.join(
+          threadIds,
+        )})
+      ORDER BY execution."createdAt" DESC
+      LIMIT ${THREAD_EXECUTION_SCAN_LIMIT}
+    `;
   }
 
   private async findLatestGeneratedAssetsByThreadIds(
     organizationId: string,
-    threadIds: string[],
+    threadIdByExecutionId: Map<string, string>,
   ): Promise<Map<string, ThreadGeneratedAsset>> {
-    if (threadIds.length === 0) {
+    const executionIds = [...threadIdByExecutionId.keys()];
+    if (executionIds.length === 0) {
       return new Map();
     }
 
     const ingredients = await this.prisma.ingredient.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
-        agentRun: {
-          select: { threadId: true },
-        },
         cdnUrl: true,
         createdAt: true,
+        workflowExecutionId: true,
       },
       where: scopedWhere(organizationId, {
-        agentRun: {
-          isDeleted: false,
-          organizationId,
-          threadId: { in: threadIds },
-        },
         category: { in: LIST_THUMB_INGREDIENT_CATEGORIES },
         cdnUrl: { not: null },
+        workflowExecutionId: { in: executionIds },
       }),
     });
 
     const latestByThreadId = new Map<string, ThreadGeneratedAsset>();
 
     for (const ingredient of ingredients) {
-      const threadId = ingredient.agentRun?.threadId;
+      const threadId = ingredient.workflowExecutionId
+        ? threadIdByExecutionId.get(ingredient.workflowExecutionId)
+        : undefined;
       const url = ingredient.cdnUrl;
       if (!threadId || !url || latestByThreadId.has(threadId)) {
         continue;
@@ -503,28 +535,30 @@ export class AgentThreadsService extends BaseService<
 
   private reconcileRunStatus(
     snapshotStatus: ThreadRunStatus,
-    latestRun?: AgentRunDocument | null,
+    latestExecution?: WorkflowExecutionRecord | null,
     pendingInputCount = 0,
   ): ThreadRunStatus {
     if (pendingInputCount > 0) {
       return 'waiting_input';
     }
 
-    if (!latestRun) {
+    if (!latestExecution) {
       return snapshotStatus;
     }
 
-    const latestRunStatus = this.mapAgentRunStatus(latestRun.status);
+    const latestExecutionStatus = this.mapWorkflowExecutionStatus(
+      latestExecution.status,
+    );
 
     if (
       (snapshotStatus === 'queued' || snapshotStatus === 'running') &&
-      latestRunStatus !== 'queued' &&
-      latestRunStatus !== 'running'
+      latestExecutionStatus !== 'queued' &&
+      latestExecutionStatus !== 'running'
     ) {
-      return latestRunStatus;
+      return latestExecutionStatus;
     }
 
-    return snapshotStatus === 'idle' ? latestRunStatus : snapshotStatus;
+    return snapshotStatus === 'idle' ? latestExecutionStatus : snapshotStatus;
   }
 
   private normalizeSnapshot(
@@ -542,22 +576,22 @@ export class AgentThreadsService extends BaseService<
     };
   }
 
-  private mapAgentRunStatus(
-    status?: AgentExecutionStatus | string | null,
+  private mapWorkflowExecutionStatus(
+    status?: WorkflowExecutionStatus | string | null,
   ): ThreadRunStatus {
     const normalized = String(status ?? '').toUpperCase();
     switch (normalized) {
-      case AgentExecutionStatus.PENDING:
+      case WorkflowExecutionStatus.PENDING:
       case 'QUEUED':
         return 'queued';
-      case AgentExecutionStatus.RUNNING:
+      case WorkflowExecutionStatus.RUNNING:
         return 'running';
-      case AgentExecutionStatus.COMPLETED:
+      case WorkflowExecutionStatus.COMPLETED:
         return 'completed';
-      case AgentExecutionStatus.FAILED:
+      case WorkflowExecutionStatus.FAILED:
       case 'BUDGET_EXHAUSTED':
         return 'failed';
-      case AgentExecutionStatus.CANCELLED:
+      case WorkflowExecutionStatus.CANCELLED:
         return 'cancelled';
       default:
         return 'idle';

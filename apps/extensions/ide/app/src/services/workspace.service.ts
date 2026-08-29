@@ -3,8 +3,6 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 import type {
   CampaignAuthoringContext,
-  RunArtifactBundle,
-  RunTimelineEvent,
   WorkspaceCampaignDefaults,
 } from '@/types';
 
@@ -33,21 +31,6 @@ async function ensureDirectory(dirPath: string): Promise<void> {
 }
 
 export const WorkspaceService = {
-  createTimelineEvent(
-    stage: string,
-    message: string,
-    level: RunTimelineEvent['level'] = 'info',
-    data?: Record<string, unknown>,
-  ): RunTimelineEvent {
-    return {
-      data,
-      level,
-      message,
-      stage,
-      timestamp: new Date().toISOString(),
-    };
-  },
-
   getWorkspaceFolder(): vscode.WorkspaceFolder | undefined {
     const [workspaceFolder] = vscode.workspace.workspaceFolders ?? [];
     return workspaceFolder;
@@ -122,48 +105,5 @@ export const WorkspaceService = {
     );
 
     return campaignPath;
-  },
-
-  async writeRunArtifacts(
-    runId: string,
-    artifact: RunArtifactBundle,
-  ): Promise<string | undefined> {
-    const rootPath = WorkspaceService.getWorkspaceRootPath();
-    if (!rootPath) {
-      return undefined;
-    }
-
-    const normalizedRunId = sanitizeFileSegment(runId) || 'run';
-    const runDir = path.join(
-      rootPath,
-      WORKSPACE_ROOT_DIR,
-      'runs',
-      normalizedRunId,
-    );
-    await ensureDirectory(runDir);
-
-    await fs.writeFile(
-      path.join(runDir, 'run.json'),
-      `${JSON.stringify(artifact.run, null, 2)}\n`,
-    );
-
-    if (artifact.campaign) {
-      await fs.writeFile(
-        path.join(runDir, 'campaign.json'),
-        `${JSON.stringify(artifact.campaign, null, 2)}\n`,
-      );
-    }
-
-    await fs.writeFile(
-      path.join(runDir, 'timeline.json'),
-      `${JSON.stringify(artifact.timeline, null, 2)}\n`,
-    );
-
-    const logs = artifact.timeline
-      .map((event) => JSON.stringify(event))
-      .join('\n');
-    await fs.writeFile(path.join(runDir, 'logs.ndjson'), `${logs}\n`);
-
-    return runDir;
   },
 };

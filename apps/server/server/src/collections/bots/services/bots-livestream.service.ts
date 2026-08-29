@@ -1,5 +1,9 @@
 import { randomUUID } from 'node:crypto';
-
+import { BotPlatform, LivestreamTranscriptSource } from '@genfeedai/enums';
+import { toPrismaJson } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 import type {
   BotDocument,
   BotLivestreamMessageTemplate,
@@ -12,14 +16,9 @@ import type {
   LivestreamPlatformState,
   LivestreamTranscriptChunk,
 } from '@server/collections/bots/schemas/livestream-bot-session.schema';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { requireRelationId } from '@server/shared/utils/relation-id/relation-id.util';
-import { BotPlatform, LivestreamTranscriptSource } from '@genfeedai/enums';
-import { toPrismaJson } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import {
   mergeLivestreamSessionContext,
   normalizeLivestreamBotDocument,
@@ -55,17 +54,6 @@ interface SendNowPayload {
   message?: string;
   platform: LivestreamPlatform;
   type?: LivestreamMessageType;
-}
-
-export interface LivestreamBotProcessingResult {
-  action: 'livestreamBotSessionProcessing';
-  failed: number;
-  organizationId: string;
-  processed: number;
-  reason?: string;
-  sessions: number;
-  skipped: number;
-  status: 'completed' | 'skipped';
 }
 
 function isLivestreamPlatform(
@@ -338,10 +326,10 @@ export class BotsLivestreamService {
     return session;
   }
 
-  async processActiveSessionsForOrganization(
+  async discoverActiveSessionsForOrganization(
     organizationId: string,
-  ): Promise<LivestreamBotProcessingResult> {
-    const sessions = (
+  ): Promise<LivestreamBotSessionDocument[]> {
+    return (
       await this.prisma.livestreamBotSession.findMany({
         where: scopedWhere(organizationId),
       })
@@ -350,68 +338,38 @@ export class BotsLivestreamService {
         normalizeLivestreamSessionDocument(session as Record<string, unknown>),
       )
       .filter((session) => session.status === 'active');
+  }
 
-    let failed = 0;
-    let processed = 0;
-    let skipped = sessions.length === 0 ? 1 : 0;
-
-    for (const session of sessions) {
-      try {
-        if (!session.botId) {
-          skipped++;
-          continue;
-        }
-
-        const bot = await this.prisma.bot.findFirst({
-          where: scopedWhere(organizationId, { id: session.botId }),
-        });
-
-        if (!bot) {
-          skipped++;
-          continue;
-        }
-
-        await this.processSession(
-          normalizeLivestreamBotDocument(bot as unknown as BotDocument),
-          session,
-        );
-        processed++;
-      } catch (error) {
-        failed++;
-        this.loggerService.error(
-          'Failed to process livestream session',
-          error,
-          {
-            botId: session.botId,
-            organizationId,
-            sessionId: session.id,
-          },
-        );
-      }
+  async loadActiveSessionContext(
+    organizationId: string,
+    session: LivestreamBotSessionDocument,
+  ): Promise<Record<string, unknown>> {
+    if (!session.botId) {
+      return { sessionId: session.id, status: 'skipped' };
     }
-
+    const bot = await this.prisma.bot.findFirst({
+      where: scopedWhere(organizationId, { id: session.botId }),
+    });
+    if (!bot) {
+      return { sessionId: session.id, status: 'skipped' };
+    }
     return {
-      action: 'livestreamBotSessionProcessing',
-      failed,
-      organizationId,
-      processed,
-      reason:
-        sessions.length === 0 ? 'no_active_livestream_sessions' : undefined,
-      sessions: sessions.length,
-      skipped,
-      status: sessions.length === 0 ? 'skipped' : 'completed',
+      bot: normalizeLivestreamBotDocument(bot as unknown as BotDocument),
+      session,
+      sessionId: session.id,
+      status: 'loaded',
     };
   }
 
-  private async processSession(
-    bot: BotDocument,
-    session: LivestreamBotSessionDocument,
-  ): Promise<void> {
-    const now = new Date();
-    const cadenceMinutes =
-      bot.livestreamSettings?.scheduledCadenceMinutes ?? 10;
-
-    // Restream-first: pull unified multistream chat into session context before posts.
+  async syncActiveSessionRestream(
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    if (input.status !== 'loaded') {
+      return input;
+    }
+    const bot = normalizeLivestreamBotDocument(
+      input.bot as unknown as BotDocument,
+    );
     const transcriptSource = bot.livestreamSettings?.transcriptSource;
     if (
       this.restreamChatService &&
@@ -424,18 +382,31 @@ export class BotsLivestreamService {
         this.loggerService.warn('Restream chat sync skipped for session', {
           botId: bot.id,
           error,
-          sessionId: session.id,
+          sessionId: input.sessionId,
         });
       }
     }
+    return input;
+  }
 
-    for (const target of bot.targets ?? []) {
+  discoverActiveSessionTargets(
+    input: Record<string, unknown>,
+  ): Record<string, unknown> {
+    if (input.status !== 'loaded') {
+      return { ...input, baseInput: {}, items: [] };
+    }
+    const bot = normalizeLivestreamBotDocument(
+      input.bot as unknown as BotDocument,
+    );
+    const session = normalizeLivestreamSessionDocument(
+      input.session as Record<string, unknown>,
+    );
+    const now = new Date();
+    const cadenceMinutes =
+      bot.livestreamSettings?.scheduledCadenceMinutes ?? 10;
+    const items = (bot.targets ?? []).filter((target) => {
       const platform = target.platform;
-
-      if (!target.isEnabled || !isLivestreamPlatform(platform)) {
-        continue;
-      }
-
+      if (!target.isEnabled || !isLivestreamPlatform(platform)) return false;
       const platformState = this.getPlatformState(session, platform);
       const eligibility = this.runtimeService.getDeliveryEligibility(
         {
@@ -451,28 +422,61 @@ export class BotsLivestreamService {
         },
         now,
       );
-
-      if (!eligibility.allowed) {
-        continue;
-      }
-
+      if (!eligibility.allowed) return false;
       if (
         platformState?.lastPostedAt &&
         now.getTime() - platformState.lastPostedAt.getTime() <
           cadenceMinutes * 60 * 1000
       ) {
-        continue;
+        return false;
       }
+      return this.buildAutomaticMessage(bot, session, platform) !== null;
+    });
+    return {
+      ...input,
+      baseInput: {
+        bot,
+        organizationId: session.organizationId,
+        sessionId: session.id,
+      },
+      items,
+    };
+  }
 
-      const message = this.buildAutomaticMessage(bot, session, platform);
-
-      if (!message) {
-        continue;
-      }
-
-      const type = this.inferMessageType(message);
-      await this.dispatchMessage(bot, session, target, platform, message, type);
+  async deliverActiveSessionTarget(
+    organizationId: string,
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const target = input.item as BotTarget | undefined;
+    if (!target || !isLivestreamPlatform(target.platform)) {
+      return { status: 'skipped' };
     }
+    const sessionId = String(input.sessionId ?? '');
+    const sessionRow = await this.prisma.livestreamBotSession.findFirst({
+      where: scopedWhere(organizationId, { id: sessionId }),
+    });
+    if (!sessionRow) {
+      return { status: 'skipped', targetId: target.channelId };
+    }
+    const bot = normalizeLivestreamBotDocument(
+      input.bot as unknown as BotDocument,
+    );
+    const session = normalizeLivestreamSessionDocument(
+      sessionRow as Record<string, unknown>,
+    );
+    const message = this.buildAutomaticMessage(bot, session, target.platform);
+    if (!message) {
+      return { status: 'skipped', targetId: target.channelId };
+    }
+    await this.dispatchMessage(
+      bot,
+      session,
+      target,
+      target.platform,
+      message,
+      this.inferMessageType(message),
+    );
+    return { status: 'processed', targetId: target.channelId };
   }
 
   private async dispatchMessage(

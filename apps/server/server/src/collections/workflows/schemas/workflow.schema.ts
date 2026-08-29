@@ -1,6 +1,7 @@
 import type {
   Workflow as PrismaWorkflow,
   WorkflowExecution as PrismaWorkflowExecution,
+  WorkflowVersion as PrismaWorkflowVersion,
 } from '@genfeedai/prisma';
 
 export type { PrismaWorkflowExecution as WorkflowExecutionDocument };
@@ -49,31 +50,24 @@ export type WorkflowInputVariable = {
   validation?: WorkflowInputVariableValidation;
 };
 
-export type WorkflowStep = {
-  id: string;
-  label: string;
-  name?: string;
-  category?: string;
-  config: Record<string, unknown>;
-  dependsOn?: string[];
-  status?: string;
-  output?: string;
-  outputModel?: string;
-  error?: string;
-  startedAt?: Date;
-  completedAt?: Date;
-  progress?: number;
-  [key: string]: unknown;
+export type WorkflowVersionGraph = {
+  edges: WorkflowEdge[];
+  lockedNodeIds: string[];
+  nodes: WorkflowVisualNode[];
+};
+
+export type WorkflowVersionDocument = Omit<
+  PrismaWorkflowVersion,
+  'graph' | 'inputSchema'
+> & {
+  graph: WorkflowVersionGraph;
+  inputSchema: WorkflowInputVariable[];
 };
 
 export interface WorkflowDocument
   extends Omit<
     PrismaWorkflow,
     | 'config'
-    | 'edges'
-    | 'inputVariables'
-    | 'nodes'
-    | 'steps'
     | 'metadata'
     | 'progress'
     | 'startedAt'
@@ -87,15 +81,15 @@ export interface WorkflowDocument
     | 'timezone'
     | 'isScheduleEnabled'
     | 'lifecycle'
-    | 'lockedNodeIds'
   > {
   trigger: string | null;
   sourceAsset?: string | null;
   sourceAssetModel?: string | null;
-  steps: WorkflowStep[];
   nodes: WorkflowVisualNode[];
   edges: WorkflowEdge[];
   inputVariables: WorkflowInputVariable[];
+  versionId: string;
+  version: number;
   config?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
   progress?: number;

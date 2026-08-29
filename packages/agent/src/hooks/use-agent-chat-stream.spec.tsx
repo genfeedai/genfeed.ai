@@ -159,8 +159,8 @@ describe('useAgentChatStream', () => {
         return {
           brandId: null,
           contextVersion: 1,
-          runId: 'run-1',
-          startedAt,
+          executionId: 'run-1',
+          queuedAt: startedAt,
           threadId: 'thread-new',
         };
       }),
@@ -211,7 +211,7 @@ describe('useAgentChatStream', () => {
         contextId: 'thread-recovered:v1',
         contextVersion: 1,
         queuedAt: acceptedAt,
-        runId: 'run-recovered',
+        executionId: 'run-recovered',
         status: 'queued',
         threadId: 'thread-recovered',
       });
@@ -259,8 +259,8 @@ describe('useAgentChatStream', () => {
       chatStream: vi.fn().mockResolvedValue({
         brandId: null,
         contextVersion: 1,
-        runId: 'run-send',
-        startedAt: '2026-03-09T13:00:00.000Z',
+        executionId: 'run-send',
+        queuedAt: '2026-03-09T13:00:00.000Z',
         threadId: 'thread-send',
       }),
     });
@@ -297,8 +297,8 @@ describe('useAgentChatStream', () => {
       chatStream: vi.fn().mockResolvedValue({
         brandId: null,
         contextVersion: 1,
-        runId: 'run-finalize',
-        startedAt,
+        executionId: 'run-finalize',
+        queuedAt: startedAt,
         threadId: 'thread-finalize',
       }),
     });
@@ -469,8 +469,8 @@ describe('useAgentChatStream', () => {
       chatStream: vi.fn().mockResolvedValue({
         brandId: null,
         contextVersion: 1,
-        runId: 'run-shared',
-        startedAt,
+        executionId: 'run-shared',
+        queuedAt: startedAt,
         threadId: 'thread-shared',
       }),
     });
@@ -537,8 +537,8 @@ describe('useAgentChatStream', () => {
       chatStream: vi.fn().mockResolvedValue({
         brandId: null,
         contextVersion: 1,
-        runId: 'run-swap',
-        startedAt,
+        executionId: 'run-swap',
+        queuedAt: startedAt,
         threadId: 'thread-swap',
       }),
     });
@@ -594,8 +594,8 @@ describe('useAgentChatStream', () => {
     const chatStream = vi.fn().mockResolvedValue({
       brandId: 'brand-1',
       contextVersion: 1,
-      runId: 'run-reference',
-      startedAt: '2026-07-13T00:00:00.000Z',
+      executionId: 'run-reference',
+      queuedAt: '2026-07-13T00:00:00.000Z',
       threadId: 'thread-reference',
     });
     const apiService = createApiService({ chatStream });
@@ -633,7 +633,7 @@ describe('useAgentChatStream', () => {
         contextId: 'context-offline-socket',
         contextVersion: 1,
         queuedAt,
-        runId: 'run-offline-socket',
+        executionId: 'run-offline-socket',
         status: 'queued',
         threadId: 'thread-fallback',
       }),
@@ -676,8 +676,8 @@ describe('useAgentChatStream', () => {
     const startedAt = '2026-03-09T10:00:00.000Z';
     const apiService = createApiService({
       chatStream: vi.fn().mockResolvedValue({
-        runId: 'run-kimi-default',
-        startedAt,
+        executionId: 'run-kimi-default',
+        queuedAt: startedAt,
         threadId: 'thread-kimi-default',
       }),
     });
@@ -719,8 +719,8 @@ describe('useAgentChatStream', () => {
 
     const startedAt = '2026-03-09T10:00:00.000Z';
     const chatStream = vi.fn().mockResolvedValue({
-      runId: 'run-plain-context',
-      startedAt,
+      executionId: 'run-plain-context',
+      queuedAt: startedAt,
       threadId: 'thread-plain-context',
     });
     const apiService = createApiService({
@@ -756,8 +756,8 @@ describe('useAgentChatStream', () => {
 
   it('sends composer media settings through the supported page context', async () => {
     const chatStream = vi.fn().mockResolvedValue({
-      runId: 'run-image-settings',
-      startedAt: '2026-03-09T10:00:00.000Z',
+      executionId: 'run-image-settings',
+      queuedAt: '2026-03-09T10:00:00.000Z',
       threadId: 'thread-image-settings',
     });
     const apiService = createApiService({ chatStream });
@@ -790,8 +790,8 @@ describe('useAgentChatStream', () => {
     const startedAt = '2026-03-09T10:00:00.000Z';
     const apiService = createApiService({
       chatStream: vi.fn().mockResolvedValue({
-        runId: 'run-model-override',
-        startedAt,
+        executionId: 'run-model-override',
+        queuedAt: startedAt,
         threadId: 'thread-model-override',
       }),
     });
@@ -822,8 +822,8 @@ describe('useAgentChatStream', () => {
     const startedAt = '2026-03-09T10:00:00.000Z';
     const apiService = createApiService({
       chatStream: vi.fn().mockResolvedValue({
-        runId: 'run-2',
-        startedAt,
+        executionId: 'run-2',
+        queuedAt: startedAt,
         threadId: 'thread-recover',
       }),
       getMessages: vi.fn().mockResolvedValue([
@@ -875,8 +875,8 @@ describe('useAgentChatStream', () => {
     const startedAt = '2026-03-09T10:00:00.000Z';
     const apiService = createApiService({
       chatStream: vi.fn().mockResolvedValue({
-        runId: 'run-3',
-        startedAt,
+        executionId: 'run-3',
+        queuedAt: startedAt,
         threadId: 'thread-slow',
       }),
       getMessages: vi
@@ -944,8 +944,8 @@ describe('useAgentChatStream', () => {
     const startedAt = '2026-03-09T10:00:00.000Z';
     const apiService = createApiService({
       chatStream: vi.fn().mockResolvedValue({
-        runId: 'run-background',
-        startedAt,
+        executionId: 'run-background',
+        queuedAt: startedAt,
         threadId: 'thread-a',
       }),
     });

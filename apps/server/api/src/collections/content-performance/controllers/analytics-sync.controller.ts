@@ -1,17 +1,12 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { QueueService } from '@server/queues/core/queue.service';
-import {
-  ANALYTICS_SYNC_QUEUE,
-  EMAIL_DIGEST_QUEUE,
-} from '@genfeedai/queue-contracts';
-import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { AnalyticsSyncService } from '@server/collections/content-performance/services/analytics-sync.service';
-import { EmailDigestService } from '@server/collections/content-performance/services/email-digest.service';
+import { EmailDigestWorkflowService } from '@server/collections/content-performance/services/email-digest-workflow.service';
+import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { IsDateString, IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class TriggerSyncDto {
@@ -45,13 +40,10 @@ export class TriggerDigestDto {
 @Controller('content-performance/analytics-sync')
 @UseGuards(RolesGuard)
 export class AnalyticsSyncController {
-  private readonly constructorName = this.constructor.name;
-
   constructor(
     private readonly analyticsSyncService: AnalyticsSyncService,
-    private readonly emailDigestService: EmailDigestService,
-    private readonly queueService: QueueService,
-    private readonly logger: LoggerService,
+    private readonly analyticsWorkflow: AnalyticsSyncWorkflowService,
+    private readonly emailDigestWorkflow: EmailDigestWorkflowService,
   ) {}
 
   /**
@@ -63,42 +55,35 @@ export class AnalyticsSyncController {
   async triggerSync(@Body() dto: TriggerSyncDto, @CurrentUser() user: User) {
     const organizationId = user.organizationId;
 
-    const job = await this.queueService.add(ANALYTICS_SYNC_QUEUE, {
+    const job = await this.analyticsWorkflow.queueGenericSync({
       brandId: dto.brandId,
-      incremental: !dto.since,
       organizationId,
       since: dto.since,
+      userId: user.userId ?? user.id,
     });
 
     return {
-      jobId: job.id,
-      message: 'Analytics sync job enqueued',
+      jobId: job.jobId,
+      message: 'Analytics workflow enqueued',
       status: 'queued',
+      workflowId: job.workflowId,
     };
   }
 
   /**
-   * Run analytics sync immediately (synchronous — for smaller datasets or testing).
+   * Start the same action-backed workflow used by scheduled analytics sync.
    */
   @Post('run')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async runSync(@Body() dto: TriggerSyncDto, @CurrentUser() user: User) {
     const organizationId = user.organizationId;
 
-    const lastSync = dto.since
-      ? new Date(dto.since)
-      : await this.analyticsSyncService.getLastSyncDate(
-          organizationId,
-          dto.brandId,
-        );
-
-    const result = await this.analyticsSyncService.syncAnalytics({
+    return this.analyticsWorkflow.queueGenericSync({
       brandId: dto.brandId,
       organizationId,
-      since: lastSync ?? undefined,
+      since: dto.since,
+      userId: user.userId ?? user.id,
     });
-
-    return result;
   }
 
   /**
@@ -134,16 +119,17 @@ export class AnalyticsSyncController {
   ) {
     const organizationId = user.organizationId;
 
-    const job = await this.queueService.add(EMAIL_DIGEST_QUEUE, {
+    const jobId = await this.emailDigestWorkflow.enqueue({
       brandId: dto.brandId,
       endDate: dto.endDate,
       organizationId,
       recipientEmails: dto.recipientEmails,
       startDate: dto.startDate,
+      userId: user.userId ?? user.id,
     });
 
     return {
-      jobId: job.id,
+      jobId,
       message: 'Email digest job enqueued',
       status: 'queued',
     };
@@ -157,12 +143,13 @@ export class AnalyticsSyncController {
   async sendDigest(@Body() dto: TriggerDigestDto, @CurrentUser() user: User) {
     const organizationId = user.organizationId;
 
-    const result = await this.emailDigestService.sendDigest({
+    const result = await this.emailDigestWorkflow.run({
       brandId: dto.brandId,
       endDate: dto.endDate,
       organizationId,
       recipientEmails: dto.recipientEmails,
       startDate: dto.startDate,
+      userId: user.userId ?? user.id,
     });
 
     return result;

@@ -70,8 +70,8 @@ the processor named by `queueName` + `jobId`.
 **Verified from code**
 
 - Multi-minute processors (`agent-run`, `workflow-execution`,
-  `batch-workflow`, `batch-generation`, `clip-analyze`, `clip-factory`,
-  `article-generation`, `content-pipeline`, plus files
+  `batch-generation`, `article-generation`,
+  `content-pipeline`, plus files
   `video-processing` / `youtube-processing`) can exceed a 30s lock. Locks
   renew while the event loop is healthy; a 30s lease still stalls when
   renewal is delayed by event-loop pressure or a brief Redis blip.

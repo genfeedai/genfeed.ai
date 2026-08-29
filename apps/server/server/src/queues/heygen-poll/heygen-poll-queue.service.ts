@@ -47,7 +47,7 @@ export class HeygenPollQueueService {
     }
 
     const attempt = data.attempt ?? 1;
-    const jobId = `heygen-poll-${data.ingredientId}-${attempt}`;
+    const jobId = this.jobId(data.continuationId, attempt);
     const job = await this.queue.add(
       'poll-heygen-video',
       { ...data, attempt },
@@ -66,9 +66,22 @@ export class HeygenPollQueueService {
       externalId: data.externalId,
       ingredientId: data.ingredientId,
       jobId: job.id,
-      taskId: data.taskId,
+      continuationId: data.continuationId,
     });
 
     return job.id ?? undefined;
+  }
+
+  async hasAttempt(continuationId: string, attempt: number): Promise<boolean> {
+    if (!this.queue) {
+      return false;
+    }
+    return (
+      (await this.queue.getJob(this.jobId(continuationId, attempt))) !== null
+    );
+  }
+
+  private jobId(continuationId: string, attempt: number): string {
+    return `heygen-poll-${continuationId}-${attempt}`;
   }
 }

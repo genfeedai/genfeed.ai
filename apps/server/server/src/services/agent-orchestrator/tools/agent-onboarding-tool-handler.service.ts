@@ -1,16 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { ImagesService } from '@server/collections/images/services/images.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { UsersService } from '@server/collections/users/services/users.service';
-import { runEffectPromise } from '@server/helpers/utils/effect/effect.util';
-import { AgentStreamPublisherService } from '@server/services/agent-orchestrator/agent-stream-publisher.service';
-import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { AgentToolInternalApiService } from '@server/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import {
   hasOrganizationBilling,
   isSelfHostedDeployment,
@@ -37,6 +25,18 @@ import {
   Injectable,
   Optional,
 } from '@nestjs/common';
+import { ContentGeneratorService } from '@server/collections/content-intelligence/services/content-generator.service';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { ImagesService } from '@server/collections/images/services/images.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { UsersService } from '@server/collections/users/services/users.service';
+import { runEffectPromise } from '@server/helpers/utils/effect/effect.util';
+import { AgentStreamPublisherService } from '@server/services/agent-orchestrator/agent-stream-publisher.service';
+import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentToolInternalApiService } from '@server/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { Effect } from 'effect';
 
 /**
@@ -1271,7 +1271,7 @@ export class AgentOnboardingToolHandler {
       text: prompt,
       waitForCompletion: true,
       width: dimensions.width,
-      ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
+      ...(ctx.runId ? { workflowExecutionId: ctx.runId } : {}),
       ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
     };
 

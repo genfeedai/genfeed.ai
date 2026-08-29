@@ -1,6 +1,6 @@
 import { AuthBootstrapService } from '@api/auth/services/auth-bootstrap.service';
-import type { AccessBootstrapCachePayload } from '@server/common/services/access-bootstrap-cache.service';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
+import type { AccessBootstrapCachePayload } from '@server/common/services/access-bootstrap-cache.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -37,10 +37,6 @@ vi.mock('@genfeedai/enums', () => ({
     }
     return normalized || 'INCOMPLETE';
   },
-}));
-
-vi.mock('@server/collections/agent-runs/services/agent-runs.service', () => ({
-  AgentRunsService: class AgentRunsService {},
 }));
 
 vi.mock('@server/collections/brands/services/brands.service', () => ({
@@ -93,11 +89,6 @@ describe('AuthBootstrapService', () => {
     get: vi.fn(),
     set: vi.fn(),
   };
-  const agentRunsService = {
-    getActiveRuns: vi.fn(),
-    getStats: vi.fn(),
-    listRecentRuns: vi.fn(),
-  };
   const brandsService = {
     findForOrganization: vi.fn(),
   };
@@ -127,7 +118,6 @@ describe('AuthBootstrapService', () => {
 
     service = new AuthBootstrapService(
       accessBootstrapCacheService as never,
-      agentRunsService as never,
       brandsService as never,
       creditsUtilsService as never,
       batchGenerationService as never,
@@ -139,9 +129,6 @@ describe('AuthBootstrapService', () => {
 
     accessBootstrapCacheService.get.mockResolvedValue(null);
     accessBootstrapCacheService.set.mockResolvedValue(undefined);
-    agentRunsService.getActiveRuns.mockResolvedValue([]);
-    agentRunsService.getStats.mockResolvedValue(null);
-    agentRunsService.listRecentRuns.mockResolvedValue([]);
     brandsService.findForOrganization.mockResolvedValue([]);
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(0);
     batchGenerationService.getReviewInboxSummary.mockResolvedValue({
@@ -539,23 +526,6 @@ describe('AuthBootstrapService', () => {
       .spyOn(service, 'getBootstrap')
       .mockResolvedValue(bootstrapPayload);
 
-    agentRunsService.listRecentRuns.mockResolvedValue([{ id: 'run_1' }]);
-    agentRunsService.getActiveRuns.mockResolvedValue([{ id: 'run_2' }]);
-    agentRunsService.getStats.mockResolvedValue({
-      activeRuns: 1,
-      anomalies: [],
-      autoRoutedRuns: 1,
-      completedToday: 2,
-      failedToday: 0,
-      routingPaths: [],
-      timeRange: '7d',
-      topActualModels: [{ count: 1, model: 'google/gemini-2.5-flash' }],
-      topRequestedModels: [{ count: 1, model: 'openai/gpt-5.6-terra' }],
-      totalCreditsToday: 15,
-      totalRuns: 10,
-      trends: [],
-      webEnabledRuns: 1,
-    });
     const result = await service.getOverviewBootstrap({
       context: {
         brandId,
@@ -572,17 +542,12 @@ describe('AuthBootstrapService', () => {
 
     expect(getBootstrapSpy).not.toHaveBeenCalled();
     expect(usersService.findOne).not.toHaveBeenCalled();
-    expect(agentRunsService.listRecentRuns).toHaveBeenCalledWith(
-      organizationId,
-      20,
-    );
     expect(batchGenerationService.getReviewInboxSummary).toHaveBeenCalledWith(
       organizationId,
       brandId,
       5,
     );
     expect(result).toEqual({
-      activeRuns: [{ id: 'run_2' }],
       analytics: {},
       reviewInbox: {
         approvedCount: 1,
@@ -604,22 +569,6 @@ describe('AuthBootstrapService', () => {
           },
         ],
         rejectedCount: 0,
-      },
-      runs: [{ id: 'run_1' }],
-      stats: {
-        activeRuns: 1,
-        anomalies: [],
-        autoRoutedRuns: 1,
-        completedToday: 2,
-        failedToday: 0,
-        routingPaths: [],
-        timeRange: '7d',
-        topActualModels: [{ count: 1, model: 'google/gemini-2.5-flash' }],
-        topRequestedModels: [{ count: 1, model: 'openai/gpt-5.6-terra' }],
-        totalCreditsToday: 15,
-        totalRuns: 10,
-        trends: [],
-        webEnabledRuns: 1,
       },
       timeSeries: [],
     });
@@ -668,9 +617,6 @@ describe('AuthBootstrapService', () => {
     expect(batchGenerationService.getReviewInboxSummary).toHaveBeenCalledTimes(
       1,
     );
-    expect(agentRunsService.listRecentRuns).toHaveBeenCalledTimes(1);
-    expect(agentRunsService.getActiveRuns).toHaveBeenCalledTimes(1);
-    expect(agentRunsService.getStats).toHaveBeenCalledTimes(1);
     expect(accessBootstrapCacheService.get).toHaveBeenCalledTimes(1);
   });
 });

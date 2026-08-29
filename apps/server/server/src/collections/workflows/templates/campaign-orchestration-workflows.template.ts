@@ -1,16 +1,21 @@
 import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
+import {
+  buildAgentCampaignDueOrchestrationWorkflowDefinition,
+  buildAgentCampaignTriggerSweepWorkflowDefinition,
+} from '@server/services/agent-campaign/agent-campaign-workflow-definition';
 
 export type CampaignOrchestrationWorkflowTemplate = WorkflowTemplate & {
   schedule: string;
 };
 
-function actionTemplate(params: {
+function workflowTemplate(params: {
   description: string;
+  definition: ReturnType<
+    typeof buildAgentCampaignDueOrchestrationWorkflowDefinition
+  >;
   icon: string;
   id: string;
   name: string;
-  nodeLabel: string;
-  nodeType: string;
   schedule: string;
 }): CampaignOrchestrationWorkflowTemplate {
   return {
@@ -19,41 +24,30 @@ function actionTemplate(params: {
     icon: params.icon,
     id: params.id,
     name: params.name,
-    nodes: [
-      {
-        data: {
-          config: {},
-          label: params.nodeLabel,
-        },
-        id: params.nodeType,
-        position: { x: 0, y: 120 },
-        type: params.nodeType,
-      },
-    ],
+    edges: params.definition.definition.edges,
+    inputVariables: params.definition.definition.inputVariables,
+    nodes: params.definition.definition.nodes,
     schedule: params.schedule,
-    steps: [],
   };
 }
 
 export const CAMPAIGN_ORCHESTRATION_WORKFLOW_TEMPLATES = [
-  actionTemplate({
+  workflowTemplate({
     description:
-      'Per-organization campaign orchestration scanner that queues due active campaigns.',
+      'Per-organization campaign orchestration graph that discovers and executes due active campaigns.',
+    definition: buildAgentCampaignDueOrchestrationWorkflowDefinition(),
     icon: 'send',
     id: 'agent-campaign-orchestration',
     name: 'Agent Campaign Orchestration',
-    nodeLabel: 'Process Due Campaigns',
-    nodeType: 'agentCampaignOrchestration',
     schedule: '*/1 * * * *',
   }),
-  actionTemplate({
+  workflowTemplate({
     description:
-      'Per-organization campaign trigger evaluation scanner for active campaigns with agents.',
+      'Per-organization campaign trigger graph that discovers and evaluates active campaigns with agents.',
+    definition: buildAgentCampaignTriggerSweepWorkflowDefinition(),
     icon: 'radar',
     id: 'agent-campaign-trigger-evaluation',
     name: 'Agent Campaign Trigger Evaluation',
-    nodeLabel: 'Evaluate Campaign Triggers',
-    nodeType: 'agentCampaignTriggerEvaluation',
     schedule: '*/15 * * * *',
   }),
 ] satisfies CampaignOrchestrationWorkflowTemplate[];

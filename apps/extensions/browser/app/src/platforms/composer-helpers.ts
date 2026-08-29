@@ -7,27 +7,11 @@ export interface ComposerActionResult {
 }
 
 export interface ComposerState {
-  canSubmit: boolean;
   composeBoxAvailable: boolean;
-  submitButtonAvailable: boolean;
 }
 
 function isTwitterHost(hostname: string): boolean {
   return hostname.includes('twitter.com') || hostname.includes('x.com');
-}
-
-function isButtonDisabled(button: HTMLElement): boolean {
-  if (button.hasAttribute('disabled')) {
-    return true;
-  }
-
-  const ariaDisabled = button.getAttribute('aria-disabled');
-  if (ariaDisabled === 'true') {
-    return true;
-  }
-
-  const nativeButton = button as HTMLButtonElement;
-  return Boolean(nativeButton.disabled);
 }
 
 function dispatchComposerInputEvents(element: HTMLElement): void {
@@ -57,38 +41,13 @@ function findComposeBox(platform: PlatformConfig | null): HTMLElement | null {
   return null;
 }
 
-function findSubmitButton(platform: PlatformConfig | null): HTMLElement | null {
-  if (!platform?.selectors.submitButton) {
-    return isTwitterHost(window.location.hostname)
-      ? findElement('submitButton')
-      : null;
-  }
-
-  const candidate = document.querySelector(
-    platform.selectors.submitButton,
-  ) as HTMLElement | null;
-
-  if (candidate) {
-    return candidate;
-  }
-
-  if (isTwitterHost(window.location.hostname)) {
-    return findElement('submitButton');
-  }
-
-  return null;
-}
-
 export function getComposerState(
   platform: PlatformConfig | null,
 ): ComposerState {
   const composeBox = findComposeBox(platform);
-  const submitButton = findSubmitButton(platform);
 
   return {
-    canSubmit: Boolean(submitButton && !isButtonDisabled(submitButton)),
     composeBoxAvailable: Boolean(composeBox),
-    submitButtonAvailable: Boolean(submitButton),
   };
 }
 
@@ -133,51 +92,4 @@ export function insertContentIntoComposer(
     error: 'Unsupported composer element type.',
     success: false,
   };
-}
-
-export function publishComposer(
-  platform: PlatformConfig | null,
-): ComposerActionResult {
-  const submitButton = findSubmitButton(platform);
-
-  if (!submitButton) {
-    return {
-      error: 'Publish button not found on the active page.',
-      success: false,
-    };
-  }
-
-  if (isButtonDisabled(submitButton)) {
-    return {
-      error: 'Publish button is currently disabled.',
-      success: false,
-    };
-  }
-
-  submitButton.dispatchEvent(
-    new MouseEvent('click', {
-      bubbles: true,
-      cancelable: true,
-      composed: true,
-    }),
-  );
-
-  if (typeof (submitButton as HTMLButtonElement).click === 'function') {
-    (submitButton as HTMLButtonElement).click();
-  }
-
-  return { success: true };
-}
-
-export function insertAndPublishContent(
-  content: string,
-  platform: PlatformConfig | null,
-): ComposerActionResult {
-  const insertResult = insertContentIntoComposer(content, platform);
-
-  if (!insertResult.success) {
-    return insertResult;
-  }
-
-  return publishComposer(platform);
 }

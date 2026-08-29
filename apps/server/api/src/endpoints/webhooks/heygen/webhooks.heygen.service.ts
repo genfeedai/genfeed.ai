@@ -1,14 +1,16 @@
-import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import { ClipLibraryLinkService } from '@server/collections/clip-projects/services/clip-library-link.service';
-import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
 import { HeygenWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import { ClipLibraryLinkService } from '@server/collections/clip-projects/services/clip-library-link.service';
+import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
+import { WorkflowNodeContinuationCoordinatorService } from '@server/collections/workflows/services/workflow-node-continuation-coordinator.service';
+import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
 
 @Injectable()
 export class HeygenWebhookService {
@@ -23,6 +25,8 @@ export class HeygenWebhookService {
     private readonly metadataService: MetadataService,
     private readonly microservicesService: MicroservicesService,
     private readonly webhooksService: WebhooksService,
+    private readonly continuationCoordinator: WorkflowNodeContinuationCoordinatorService,
+    private readonly continuations: WorkflowNodeContinuationService,
   ) {}
 
   private readString(value: unknown): string | undefined {
@@ -116,6 +120,24 @@ export class HeygenWebhookService {
 
       const successVideoUrl = this.getSuccessVideoUrl(body);
       const providerVideoId = body.event_data?.video_id;
+      const organizationId = this.readString(ingredient.organizationId);
+      if (organizationId) {
+        const continuation =
+          await this.continuations.findIngredientCallbackTarget({
+            ingredientId: ingredient.id.toString(),
+            organizationId,
+            provider: 'heygen',
+          });
+        if (
+          continuation?.externalId &&
+          providerVideoId &&
+          continuation.externalId !== providerVideoId
+        ) {
+          throw new Error(
+            `HeyGen callback ${providerVideoId} does not own ingredient ${ingredient.id}`,
+          );
+        }
+      }
 
       if (successVideoUrl) {
         updateData.result = successVideoUrl;
@@ -126,6 +148,10 @@ export class HeygenWebhookService {
 
       if (this.isFailureEvent(event_type)) {
         updateData.error = JSON.stringify(event_data);
+        await this.webhooksService.handleFailedGenerationForIngredient(
+          ingredient.id.toString(),
+          JSON.stringify(event_data),
+        );
       } else if (event_type === 'avatar_video.success' && successVideoUrl) {
         await this.webhooksService.processMediaForIngredient(
           ingredient.id.toString(),
@@ -136,6 +162,36 @@ export class HeygenWebhookService {
       }
 
       await this.metadataService.patch(metadata.id, updateData);
+
+      if (organizationId && this.isFailureEvent(event_type)) {
+        await this.continuationCoordinator.failProviderAction({
+          error: JSON.stringify(event_data),
+          identity: {
+            ingredientId: ingredient.id.toString(),
+            organizationId,
+          },
+          provider: 'heygen',
+          providerResult: {
+            ...(providerVideoId ? { externalId: providerVideoId } : {}),
+          },
+        });
+      } else if (
+        organizationId &&
+        event_type === 'avatar_video.success' &&
+        successVideoUrl
+      ) {
+        await this.continuationCoordinator.completeProviderAction({
+          identity: {
+            ingredientId: ingredient.id.toString(),
+            organizationId,
+          },
+          provider: 'heygen',
+          providerResult: {
+            ...(providerVideoId ? { externalId: providerVideoId } : {}),
+            url: successVideoUrl,
+          },
+        });
+      }
 
       this.loggerService.log(`${url} completed`, {
         callbackId,

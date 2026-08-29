@@ -1,37 +1,36 @@
 'use client';
 
-import { SAAS_NODE_DEFINITIONS } from '@genfeedai/workflows/nodes';
+import { ALL_ACTIONS } from '@genfeedai/actions';
 import {
   NodePalette,
   type PaletteNodeDefinition,
 } from '@genfeedai/workflows/ui';
 import { useMemo } from 'react';
-import { extendedNodeDefinitions } from '@/features/workflows/nodes/definitions';
+
+const CLOUD_ENGINE_NATIVE_NODE_TYPES = ['workflowInput'] as const;
 
 /**
- * Cloud workflow palette: core nodes + SaaS/extended entries including
- * socialRead and reportDelivery (#2664).
+ * Cloud workflow palette: engine primitives plus catalog-generated action
+ * entries. Product actions all create the same `genfeedAction` node shape.
  */
 export function CloudNodePalette() {
   const additionalNodes = useMemo((): PaletteNodeDefinition[] => {
-    const saas = Object.values(SAAS_NODE_DEFINITIONS).map((def) => ({
-      category: def.category,
-      description: def.description,
-      icon: def.icon,
-      label: def.label,
-      type: def.type,
-    }));
-
-    const extended = Object.values(extendedNodeDefinitions).map((def) => ({
-      category: def.category,
-      description: def.description,
-      icon: def.icon,
-      label: def.label,
-      type: def.type,
-    }));
-
-    return [...saas, ...extended];
+    return ALL_ACTIONS.filter((action) => action.visibility === 'workflow').map(
+      (action) => ({
+        actionId: action.id,
+        category: 'processing',
+        description: action.description,
+        icon: 'Workflow',
+        label: action.label,
+        type: 'genfeedAction',
+      }),
+    );
   }, []);
 
-  return <NodePalette additionalNodes={additionalNodes} />;
+  return (
+    <NodePalette
+      additionalNodes={additionalNodes}
+      baseNodeTypes={CLOUD_ENGINE_NATIVE_NODE_TYPES}
+    />
+  );
 }

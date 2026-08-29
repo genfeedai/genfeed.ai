@@ -1,23 +1,8 @@
 import {
-  AD_BULK_UPLOAD_QUEUE,
-  AD_OPTIMIZATION_QUEUE,
-  AD_SYNC_GOOGLE_QUEUE,
-  AD_SYNC_META_QUEUE,
-  AD_SYNC_TIKTOK_QUEUE,
-  ANALYTICS_FACEBOOK_QUEUE,
-  ANALYTICS_SOCIAL_QUEUE,
-  ANALYTICS_SYNC_QUEUE,
-  ANALYTICS_THREADS_QUEUE,
-  ANALYTICS_TWITTER_QUEUE,
-  ANALYTICS_YOUTUBE_QUEUE,
   DEFAULT_QUEUE,
-  EMAIL_DIGEST_QUEUE,
   QueueDegradationReason,
   type QueueDispatchResult,
   QueueDispatchStatus,
-  SOCIAL_INBOX_SYNC_QUEUE,
-  SOCIAL_REPLY_CAMPAIGN_QUEUE,
-  TELEGRAM_DISTRIBUTE_QUEUE,
 } from '@genfeedai/queue-contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -36,36 +21,6 @@ export interface QueueJob<T = Record<string, unknown>> {
 export class QueueService {
   constructor(
     @InjectQueue(DEFAULT_QUEUE) private readonly defaultQueue: Queue,
-    @InjectQueue(ANALYTICS_TWITTER_QUEUE)
-    private readonly analyticsTwitterQueue: Queue,
-    @InjectQueue(ANALYTICS_YOUTUBE_QUEUE)
-    private readonly analyticsYouTubeQueue: Queue,
-    @InjectQueue(ANALYTICS_SOCIAL_QUEUE)
-    private readonly analyticsSocialQueue: Queue,
-    @InjectQueue(AD_SYNC_META_QUEUE)
-    private readonly adSyncMetaQueue: Queue,
-    @InjectQueue(AD_SYNC_GOOGLE_QUEUE)
-    private readonly adSyncGoogleQueue: Queue,
-    @InjectQueue(AD_SYNC_TIKTOK_QUEUE)
-    private readonly adSyncTikTokQueue: Queue,
-    @InjectQueue(ANALYTICS_SYNC_QUEUE)
-    private readonly analyticsSyncQueue: Queue,
-    @InjectQueue(EMAIL_DIGEST_QUEUE)
-    private readonly emailDigestQueue: Queue,
-    @InjectQueue(AD_BULK_UPLOAD_QUEUE)
-    private readonly adBulkUploadQueue: Queue,
-    @InjectQueue(AD_OPTIMIZATION_QUEUE)
-    private readonly adOptimizationQueue: Queue,
-    @InjectQueue(TELEGRAM_DISTRIBUTE_QUEUE)
-    private readonly telegramDistributeQueue: Queue,
-    @InjectQueue(ANALYTICS_FACEBOOK_QUEUE)
-    private readonly analyticsFacebookQueue: Queue,
-    @InjectQueue(ANALYTICS_THREADS_QUEUE)
-    private readonly analyticsThreadsQueue: Queue,
-    @InjectQueue(SOCIAL_INBOX_SYNC_QUEUE)
-    private readonly socialInboxSyncQueue: Queue,
-    @InjectQueue(SOCIAL_REPLY_CAMPAIGN_QUEUE)
-    private readonly socialReplyCampaignQueue: Queue,
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
   ) {}
@@ -128,42 +83,10 @@ export class QueueService {
   }
 
   private getQueue(queueName: string): Queue {
-    switch (queueName) {
-      case DEFAULT_QUEUE:
-        return this.defaultQueue;
-      case ANALYTICS_TWITTER_QUEUE:
-        return this.analyticsTwitterQueue;
-      case ANALYTICS_YOUTUBE_QUEUE:
-        return this.analyticsYouTubeQueue;
-      case ANALYTICS_SOCIAL_QUEUE:
-        return this.analyticsSocialQueue;
-      case AD_SYNC_META_QUEUE:
-        return this.adSyncMetaQueue;
-      case AD_SYNC_GOOGLE_QUEUE:
-        return this.adSyncGoogleQueue;
-      case AD_SYNC_TIKTOK_QUEUE:
-        return this.adSyncTikTokQueue;
-      case ANALYTICS_SYNC_QUEUE:
-        return this.analyticsSyncQueue;
-      case EMAIL_DIGEST_QUEUE:
-        return this.emailDigestQueue;
-      case AD_BULK_UPLOAD_QUEUE:
-        return this.adBulkUploadQueue;
-      case AD_OPTIMIZATION_QUEUE:
-        return this.adOptimizationQueue;
-      case TELEGRAM_DISTRIBUTE_QUEUE:
-        return this.telegramDistributeQueue;
-      case ANALYTICS_FACEBOOK_QUEUE:
-        return this.analyticsFacebookQueue;
-      case ANALYTICS_THREADS_QUEUE:
-        return this.analyticsThreadsQueue;
-      case SOCIAL_INBOX_SYNC_QUEUE:
-        return this.socialInboxSyncQueue;
-      case SOCIAL_REPLY_CAMPAIGN_QUEUE:
-        return this.socialReplyCampaignQueue;
-      default:
-        throw new Error(`Unsupported queue: ${queueName}`);
+    if (queueName !== DEFAULT_QUEUE) {
+      throw new Error(`Unsupported queue: ${queueName}`);
     }
+    return this.defaultQueue;
   }
 
   getJob<T = Record<string, unknown>>(

@@ -1,3 +1,4 @@
+import { AgentToolName } from '@genfeedai/interfaces';
 import { ApiService } from '@services/api.service';
 import { AuthService } from '@services/auth.service';
 import * as vscode from 'vscode';
@@ -61,24 +62,28 @@ export async function explainAndPost(
 
   const prompt = buildExplainPrompt(selectedText, language, fileName, platform);
 
-  const run = await vscode.window.withProgress(
+  const result = await vscode.window.withProgress(
     {
       cancellable: false,
       location: vscode.ProgressLocation.Notification,
       title: `GenFeed: generating ${platform} post…`,
     },
     () =>
-      ApiService.getInstance().createAndExecuteRun('generate', {
-        channel: platform,
-        prompt,
-      }),
+      ApiService.getInstance().executeAgentTool(
+        AgentToolName.GENERATE_CONTENT,
+        {
+          platform: normalizePlatform(platform),
+          topic: prompt,
+          type: 'post',
+        },
+      ),
   );
 
-  const generatedText = extractGeneratedText(run.output);
+  const generatedText = extractGeneratedText(result.data);
 
-  if (!generatedText) {
+  if (!result.success || !generatedText) {
     vscode.window.showErrorMessage(
-      `GenFeed: generation failed (run ${run.id}).`,
+      result.error || 'GenFeed: generation workflow failed.',
     );
     return;
   }
@@ -111,7 +116,6 @@ export async function explainAndPost(
       await ApiService.getInstance().saveDraft({
         channel: platform,
         content: generatedText,
-        sourceRunId: run.id,
         sourceType: 'explain-and-post',
       });
       vscode.window.showInformationMessage('Draft saved to GenFeed.');
@@ -122,6 +126,16 @@ export async function explainAndPost(
       vscode.window.showErrorMessage(`Failed to save draft: ${message}`);
     }
   }
+}
+
+function normalizePlatform(platform: string): string {
+  if (platform === 'x') {
+    return 'twitter';
+  }
+  if (platform === 'blog') {
+    return 'newsletter';
+  }
+  return platform;
 }
 
 function buildExplainPrompt(

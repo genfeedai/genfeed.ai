@@ -1,37 +1,26 @@
 import { AgentCampaignsModule } from '@api/collections/agent-campaigns/agent-campaigns.module';
 import { AgentGoalsModule } from '@api/collections/agent-goals/agent-goals.module';
 import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memories.module';
-import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
-import { QueuesModule } from '@api/queues/core/queues.module';
-import { CampaignMemoryQueueService } from '@server/services/agent-campaign/campaign-memory-queue.service';
+import { AgentRuntimeModule } from '@api/services/agent-runtime/agent-runtime.module';
+import { LoggerModule } from '@libs/logger/logger.module';
+import { Module } from '@nestjs/common';
+import { AgentCampaignWorkflowService } from '@server/services/agent-campaign/agent-campaign-workflow.service';
 import { CampaignWinnerExtractionService } from '@server/services/agent-campaign/campaign-winner-extraction.service';
 import { ContentEngineService } from '@server/services/agent-campaign/content-engine.service';
 import { ContentRotationService } from '@server/services/agent-campaign/content-rotation.service';
-import { OrchestratorQueueService } from '@server/services/agent-campaign/orchestrator-queue.service';
 import { TriggerEvaluatorService } from '@server/services/agent-campaign/trigger-evaluator.service';
-import { TriggerEvaluatorQueueService } from '@server/services/agent-campaign/trigger-evaluator-queue.service';
-import { AgentRuntimeModule } from '@api/services/agent-runtime/agent-runtime.module';
-import {
-  CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
-  ORCHESTRATOR_RUN_QUEUE,
-  TRIGGER_EVALUATION_QUEUE,
-} from '@genfeedai/queue-contracts';
-import { LoggerModule } from '@libs/logger/logger.module';
-import { BullModule } from '@nestjs/bullmq';
-import { Module } from '@nestjs/common';
 
 @Module({
   exports: [
-    CampaignMemoryQueueService,
+    AgentCampaignWorkflowService,
     CampaignWinnerExtractionService,
     ContentEngineService,
     ContentRotationService,
-    OrchestratorQueueService,
-    TriggerEvaluatorQueueService,
     TriggerEvaluatorService,
   ],
   imports: [
@@ -40,47 +29,17 @@ import { Module } from '@nestjs/common';
     BrandsModule,
     AgentStrategiesModule,
     AgentGoalsModule,
-    AgentRunsModule,
     AgentMemoriesModule,
     AnalyticsModule,
     TrendsModule,
-    QueuesModule,
     AgentRuntimeModule,
-    BullModule.registerQueue({
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: { delay: 10_000, type: 'exponential' },
-        removeOnComplete: 100,
-        removeOnFail: 50,
-      },
-      name: ORCHESTRATOR_RUN_QUEUE,
-    }),
-    BullModule.registerQueue({
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: { delay: 10_000, type: 'exponential' },
-        removeOnComplete: 100,
-        removeOnFail: 50,
-      },
-      name: CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
-    }),
-    BullModule.registerQueue({
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: { delay: 5_000, type: 'exponential' },
-        removeOnComplete: 100,
-        removeOnFail: 50,
-      },
-      name: TRIGGER_EVALUATION_QUEUE,
-    }),
+    WorkflowsModule,
   ],
   providers: [
-    CampaignMemoryQueueService,
+    AgentCampaignWorkflowService,
     CampaignWinnerExtractionService,
     ContentEngineService,
     ContentRotationService,
-    OrchestratorQueueService,
-    TriggerEvaluatorQueueService,
     TriggerEvaluatorService,
   ],
 })

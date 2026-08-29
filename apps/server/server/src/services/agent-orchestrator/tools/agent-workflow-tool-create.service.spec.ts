@@ -1,6 +1,6 @@
+import { AgentToolName } from '@genfeedai/interfaces';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentWorkflowToolCreateService } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
-import { AgentToolName } from '@genfeedai/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentWorkflowToolCreateService', () => {
@@ -111,9 +111,22 @@ describe('AgentWorkflowToolCreateService', () => {
       }),
     );
     const payload = workflowsService.createWorkflow.mock.calls[0]?.[2] as {
-      nodes: Array<{ type: string }>;
+      nodes: Array<{
+        data: { config: { actionId: string; parameters: unknown } };
+        type: string;
+      }>;
     };
-    expect(payload.nodes[0]?.type).toBe('ai-generate-image');
+    expect(payload.nodes[0]).toMatchObject({
+      data: {
+        config: {
+          actionId: 'imageGen',
+          parameters: expect.objectContaining({
+            prompt: expect.stringContaining('sunrise city skyline'),
+          }),
+        },
+      },
+      type: 'genfeedAction',
+    });
     expect(result.success).toBe(true);
     expect(result.creditsUsed).toBe(1);
     expect(result.data).toMatchObject({
@@ -130,7 +143,17 @@ describe('AgentWorkflowToolCreateService', () => {
           description: 'Generated digest',
           edges: [{ id: 'e1' }],
           name: 'Generated digest',
-          nodes: [{ id: 'n1' }],
+          nodes: [
+            {
+              data: {
+                config: { actionId: 'trendDigest', parameters: {} },
+                label: 'Build digest',
+              },
+              id: 'n1',
+              position: { x: 0, y: 0 },
+              type: 'genfeedAction',
+            },
+          ],
         },
       },
     );
@@ -153,7 +176,15 @@ describe('AgentWorkflowToolCreateService', () => {
         description: 'Generated digest',
         edges: [{ id: 'e1' }],
         label: 'Generated digest',
-        nodes: [{ id: 'n1' }],
+        nodes: [
+          expect.objectContaining({
+            data: expect.objectContaining({
+              config: expect.objectContaining({ actionId: 'trendDigest' }),
+            }),
+            id: 'n1',
+            type: 'genfeedAction',
+          }),
+        ],
       }),
     );
     expect(result.success).toBe(true);

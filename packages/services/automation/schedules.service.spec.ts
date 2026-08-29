@@ -162,19 +162,6 @@ describe('SmartSchedulerService', () => {
     );
   });
 
-  it('createWorkflow POSTs to /automation/workflows', async () => {
-    const wf = { id: 'wf-1', name: 'Post Flow' };
-    mockFetch.mockResolvedValue(makeOkResponse(wf));
-
-    const svc = SmartSchedulerService.getInstance(token);
-    await svc.createWorkflow({ name: 'Post Flow' } as never);
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/automation/workflows'),
-      expect.objectContaining({ method: 'POST' }),
-    );
-  });
-
   it('executeWorkflow POSTs to /workflow-executions and unwraps JSON:API', async () => {
     mockFetch.mockResolvedValue(
       makeOkResponse({

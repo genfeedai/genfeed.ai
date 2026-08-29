@@ -1,11 +1,10 @@
 import { AgentCampaignExecutionService } from '@server/collections/agent-campaigns/services/agent-campaign-execution.service';
 import { AgentRuntimeService } from '@server/services/agent-runtime/agent-runtime.service';
-import { AgentExecutionTrigger } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
- * Smoke path: campaign execute → AgentRuntime.startTurn → run + queue +
- * thread.turn_requested snapshot event.
+ * Smoke path: campaign execute → AgentRuntime.startTurn → agent-turn workflow
+ * execution + thread.turn_requested snapshot event.
  */
 describe('campaign → runtime → thread snapshot smoke', () => {
   const logger = {
@@ -22,11 +21,9 @@ describe('campaign → runtime → thread snapshot smoke', () => {
     pauseStrategy: vi.fn(),
     setActive: vi.fn(),
   };
-  const agentRunsService = {
-    create: vi.fn(),
-  };
-  const agentRunQueueService = {
-    queueRun: vi.fn(),
+  const prisma = {};
+  const workflowRunner = {
+    enqueueWorkflow: vi.fn(),
   };
   const agentThreadsService = {
     create: vi.fn(),
@@ -42,16 +39,15 @@ describe('campaign → runtime → thread snapshot smoke', () => {
     vi.clearAllMocks();
     runtimeService = new AgentRuntimeService(
       logger as never,
-      agentRunsService as never,
-      agentRunQueueService as never,
       agentThreadsService as never,
+      workflowRunner as never,
       agentThreadEngineService as never,
     );
     executionService = new AgentCampaignExecutionService(
       logger as never,
       agentCampaignsService as never,
       agentStrategiesService as never,
-      agentRunsService as never,
+      prisma as never,
       runtimeService,
     );
   });
@@ -90,8 +86,9 @@ describe('campaign → runtime → thread snapshot smoke', () => {
       model: 'openai/gpt-5.6-terra',
     });
     agentThreadsService.create.mockResolvedValue({ id: 'thread-1' });
-    agentRunsService.create.mockResolvedValue({ id: 'run-1' });
-    agentRunQueueService.queueRun.mockResolvedValue(undefined);
+    workflowRunner.enqueueWorkflow.mockResolvedValue({
+      executionId: 'execution-1',
+    });
     agentThreadEngineService.appendEvent.mockResolvedValue(undefined);
 
     const updated = await executionService.execute(
@@ -115,36 +112,34 @@ describe('campaign → runtime → thread snapshot smoke', () => {
         userId,
       }),
     );
-    expect(agentRunsService.create).toHaveBeenCalledWith(
+    expect(workflowRunner.enqueueWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
+        actionType: 'agent.turn.execute',
+        canonicalId: 'agent.turn.execute',
+        inputValues: {
+          request: expect.objectContaining({
+            content: 'Grow engagement on X',
+            creditBudget: 20,
+            strategyId,
+            threadId: 'thread-1',
+          }),
+        },
         metadata: expect.objectContaining({
           campaignId,
           source: 'campaign',
           threadId: 'thread-1',
         }),
-        objective: 'Grow engagement on X',
         organizationId,
-        strategyId,
-        threadId: 'thread-1',
-        trigger: AgentExecutionTrigger.CRON,
         userId,
-      }),
-    );
-    expect(agentRunQueueService.queueRun).toHaveBeenCalledWith(
-      expect.objectContaining({
-        campaignId,
-        runId: 'run-1',
-        strategyId,
-        threadId: 'thread-1',
       }),
     );
     expect(agentThreadEngineService.appendEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         payload: expect.objectContaining({
+          executionId: 'execution-1',
           label: 'Turn requested',
           status: 'queued',
         }),
-        runId: 'run-1',
         threadId: 'thread-1',
         type: 'thread.turn_requested',
       }),

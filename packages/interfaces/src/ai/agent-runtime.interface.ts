@@ -1,9 +1,6 @@
-import type { AgentExecutionTrigger } from '@genfeedai/enums';
-
 /**
  * Minimal AgentRuntime turn input — campaign (and future non-chat) callers
- * create a run through the runtime instead of writing AgentRun + queueing
- * directly. See apps/docs/content/core-loop/agent-orchestration.mdx.
+ * enqueue the hidden agent-turn system workflow.
  */
 export interface IAgentRuntimeStartTurnInput {
   agentType?: string;
@@ -19,11 +16,11 @@ export interface IAgentRuntimeStartTurnInput {
   strategyId: string;
   threadId?: string;
   threadTitle?: string;
-  trigger: AgentExecutionTrigger;
+  trigger?: string;
   userId: string;
 }
 
 export interface IAgentRuntimeTurnHandle {
-  runId: string;
+  executionId: string;
   threadId: string;
 }

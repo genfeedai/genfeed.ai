@@ -1,246 +1,70 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/enums';
-import {
-  AGENT_RUN_SORT_MODES,
-  AGENT_RUN_TIME_RANGES,
-  type AgentRunSortMode,
-  type AgentRunTimeRange,
-  DEFAULT_AGENT_RUN_SORT_MODE,
-  DEFAULT_AGENT_RUN_TIME_RANGE,
-} from '@genfeedai/types';
-import { useActiveAgentRuns } from '@hooks/data/agent-runs/use-active-agent-runs';
-import { useAgentRuns } from '@hooks/data/agent-runs/use-agent-runs';
+import { ComponentSize, WorkflowExecutionStatus } from '@genfeedai/enums';
+import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import FormSearchbar from '@ui/primitives/searchbar';
-import { SelectField } from '@ui/primitives/select';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import ActiveRunsPanel from './ActiveRunsPanel';
-import RunAnomaliesPanel from './RunAnomaliesPanel';
-import RunChartsGrid from './RunChartsGrid';
 import RunHistoryList from './RunHistoryList';
-import RunRoutingInsights from './RunRoutingInsights';
 import RunStatsStrip from './RunStatsStrip';
-import RunTrendsPanel from './RunTrendsPanel';
 
-function getMetadataString(
-  metadata: Record<string, unknown> | undefined,
-  key: string,
-): string | undefined {
-  const value = metadata?.[key];
-  return typeof value === 'string' && value.trim().length > 0
-    ? value
-    : undefined;
-}
+export default function MissionControl() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const { cancelExecution, executions, isLoading, refresh, stats } =
+    useWorkflowExecutions({ limit: 100, sort: '-createdAt' });
 
-function parseSortMode(value: string | null): AgentRunSortMode {
-  return AGENT_RUN_SORT_MODES.includes(value as AgentRunSortMode)
-    ? (value as AgentRunSortMode)
-    : DEFAULT_AGENT_RUN_SORT_MODE;
-}
+  const filteredExecutions = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return executions;
+    return executions.filter((execution) => {
+      const label = execution.workflow?.label ?? execution.workflowId;
+      return (
+        label.toLowerCase().includes(query) ||
+        execution.id.toLowerCase().includes(query) ||
+        execution.error?.toLowerCase().includes(query)
+      );
+    });
+  }, [executions, searchQuery]);
 
-function parseTimeRange(value: string | null): AgentRunTimeRange {
-  return AGENT_RUN_TIME_RANGES.includes(value as AgentRunTimeRange)
-    ? (value as AgentRunTimeRange)
-    : DEFAULT_AGENT_RUN_TIME_RANGE;
-}
-
-function MissionControlContent() {
-  const pathname = usePathname();
-  const { replace } = useRouter();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
-
-  const [searchQuery, setSearchQuery] = useState(
-    () => searchParams.get('q') ?? '',
+  const activeExecutions = filteredExecutions.filter(
+    (execution) =>
+      execution.status === WorkflowExecutionStatus.PENDING ||
+      execution.status === WorkflowExecutionStatus.RUNNING,
   );
-  const [selectedModel, setSelectedModel] = useState(
-    () => searchParams.get('model') ?? 'all',
-  );
-  const [sortMode, setSortMode] = useState<AgentRunSortMode>(() =>
-    parseSortMode(searchParams.get('sort')),
-  );
-  const [timeRange, setTimeRange] = useState<AgentRunTimeRange>(() =>
-    parseTimeRange(searchParams.get('range')),
-  );
-
-  const { runs, stats, isLoading, refresh, cancelRun } = useAgentRuns({
-    historyOnly: true,
-    model: selectedModel === 'all' ? undefined : selectedModel,
-    q: searchQuery.trim() || undefined,
-    sortMode,
-    timeRange,
-  });
-  const { activeRuns, refresh: refreshActive } = useActiveAgentRuns();
-
-  // The active-runs poll (/runs/active) and the history query (/runs?historyOnly)
-  // overlap the instant a run finishes: the just-failed run lands in history
-  // while it's still in the active poll, so the same run.error rendered in both
-  // ActiveRunsPanel and RunHistoryList — one failure shown twice. History is the
-  // canonical/persistent source, so drop any active run already present there.
-  const dedupedActiveRuns = useMemo(() => {
-    if (activeRuns.length === 0) return activeRuns;
-    const historyRunIds = new Set(runs.map((run) => run.id));
-    return activeRuns.filter((run) => !historyRunIds.has(run.id));
-  }, [activeRuns, runs]);
-
-  const refreshAll = useCallback(async () => {
-    await Promise.all([refresh(), refreshActive()]);
-  }, [refresh, refreshActive]);
-
-  useEffect(() => {
-    const nextParams = new URLSearchParams(searchParamsString);
-
-    if (searchQuery.trim().length > 0) {
-      nextParams.set('q', searchQuery.trim());
-    } else {
-      nextParams.delete('q');
-    }
-
-    if (selectedModel !== 'all') {
-      nextParams.set('model', selectedModel);
-    } else {
-      nextParams.delete('model');
-    }
-
-    if (sortMode !== DEFAULT_AGENT_RUN_SORT_MODE) {
-      nextParams.set('sort', sortMode);
-    } else {
-      nextParams.delete('sort');
-    }
-
-    if (timeRange !== DEFAULT_AGENT_RUN_TIME_RANGE) {
-      nextParams.set('range', timeRange);
-    } else {
-      nextParams.delete('range');
-    }
-
-    const nextQuery = nextParams.toString();
-    const currentQuery = searchParamsString;
-
-    if (nextQuery !== currentQuery) {
-      replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
-        scroll: false,
-      });
-    }
-  }, [
-    pathname,
-    replace,
-    searchParamsString,
-    searchQuery,
-    selectedModel,
-    sortMode,
-    timeRange,
-  ]);
-
-  const availableModels = useMemo(
-    () =>
-      Array.from(
-        new Set([
-          ...runs.flatMap((run) => {
-            const requestedModel = getMetadataString(
-              run.metadata,
-              'requestedModel',
-            );
-            const actualModel = getMetadataString(run.metadata, 'actualModel');
-
-            return [requestedModel, actualModel].filter(
-              (model): model is string => Boolean(model),
-            );
-          }),
-          ...(stats?.topActualModels ?? []).map((entry) => entry.model),
-          ...(stats?.topRequestedModels ?? []).map((entry) => entry.model),
-          ...(selectedModel !== 'all' ? [selectedModel] : []),
-        ]),
-      )
-        .filter((model) => model !== 'all')
-        .sort((left, right) => left.localeCompare(right)),
-    [runs, selectedModel, stats?.topActualModels, stats?.topRequestedModels],
+  const historyExecutions = filteredExecutions.filter(
+    (execution) =>
+      execution.status !== WorkflowExecutionStatus.PENDING &&
+      execution.status !== WorkflowExecutionStatus.RUNNING,
   );
 
   return (
     <Container>
       <div className="flex flex-col gap-6">
         <div className="flex items-center justify-end">
-          <h1 className="sr-only">Agent Runs</h1>
-          <ButtonRefresh onClick={refreshAll} />
+          <h1 className="sr-only">Workflow Executions</h1>
+          <ButtonRefresh onClick={refresh} />
         </div>
 
-        <RunStatsStrip stats={stats} isLoading={isLoading} />
+        <RunStatsStrip isLoading={isLoading} stats={stats} />
 
-        <RunChartsGrid runs={runs} stats={stats} />
+        <ActiveRunsPanel
+          executions={activeExecutions}
+          onCancel={cancelExecution}
+        />
 
-        <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
-          <RunTrendsPanel stats={stats} />
-          <RunAnomaliesPanel stats={stats} />
-        </div>
+        <FormSearchbar
+          className="w-full"
+          inputClassName="gen-card min-h-11 bg-transparent px-3 text-sm"
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="Search workflow executions"
+          size={ComponentSize.MD}
+          value={searchQuery}
+        />
 
-        <RunRoutingInsights stats={stats} />
-
-        <ActiveRunsPanel runs={dedupedActiveRuns} onCancel={cancelRun} />
-
-        <div className="grid gap-3 md:grid-cols-4">
-          <FormSearchbar
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search runs, objectives, or routing"
-            className="w-full"
-            inputClassName="gen-card min-h-11 bg-transparent px-3 text-sm"
-            size={ComponentSize.MD}
-          />
-          <SelectField
-            name="model"
-            value={selectedModel}
-            onChange={(event) => setSelectedModel(event.target.value)}
-            className="gen-card min-h-11 bg-transparent px-3 text-sm"
-            placeholder=""
-          >
-            <option value="all">All models</option>
-            {availableModels.map((model) => (
-              <option key={model} value={model}>
-                {model}
-              </option>
-            ))}
-          </SelectField>
-          <SelectField
-            name="sortMode"
-            value={sortMode}
-            onChange={(event) => setSortMode(parseSortMode(event.target.value))}
-            className="gen-card min-h-11 bg-transparent px-3 text-sm"
-            placeholder=""
-          >
-            <option value="latest">Sort: Latest</option>
-            <option value="credits">Sort: Credits</option>
-            <option value="duration">Sort: Duration</option>
-            <option value="model">Sort: Model</option>
-          </SelectField>
-          <SelectField
-            name="timeRange"
-            value={timeRange}
-            onChange={(event) =>
-              setTimeRange(parseTimeRange(event.target.value))
-            }
-            className="gen-card min-h-11 bg-transparent px-3 text-sm"
-            placeholder=""
-          >
-            <option value="7d">Window: 7d</option>
-            <option value="14d">Window: 14d</option>
-            <option value="30d">Window: 30d</option>
-          </SelectField>
-        </div>
-
-        <RunHistoryList runs={runs} isLoading={isLoading} />
+        <RunHistoryList executions={historyExecutions} isLoading={isLoading} />
       </div>
     </Container>
-  );
-}
-
-export default function MissionControl() {
-  return (
-    <Suspense fallback={null}>
-      <MissionControlContent />
-    </Suspense>
   );
 }

@@ -1,27 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  buildRunIdempotencyKey,
   extractAnalyticsSnapshot,
   extractGeneratedPreview,
   extractPostResults,
-  summarizeRunHistory,
 } from '~components/create/content-engine.utils';
 
 describe('content-engine utils', () => {
-  it('buildRunIdempotencyKey is stable for identical input', () => {
-    const input = {
-      payload: 'Ship this post',
-      platform: 'twitter',
-    };
-
-    const first = buildRunIdempotencyKey('post', input, 'brand_1');
-    const second = buildRunIdempotencyKey('post', input, 'brand_1');
-
-    expect(first).toBe(second);
-    expect(first.startsWith('ext:post:')).toBe(true);
-  });
-
   it('extractGeneratedPreview handles nested outputs', () => {
     const output = {
       result: {
@@ -51,6 +36,14 @@ describe('content-engine utils', () => {
     expect(results[0].publishedUrl).toBe('https://x.com/acme/status/123');
   });
 
+  it('extractPostResults recognizes create_post draft results', () => {
+    expect(
+      extractPostResults({ executionState: 'draft', id: 'post-1' }),
+    ).toEqual([
+      expect.objectContaining({ externalId: 'post-1', status: 'draft' }),
+    ]);
+  });
+
   it('extractAnalyticsSnapshot uses payload values and fallback history', () => {
     const output = {
       counts: {
@@ -75,29 +68,5 @@ describe('content-engine utils', () => {
     expect(snapshot.clicks).toBe(80);
     expect(snapshot.publishSuccessRate).toBeCloseTo(85.71, 1);
     expect(snapshot.lastSnapshotAt).toBe('2026-02-10T10:00:00.000Z');
-  });
-
-  it('summarizeRunHistory counts generated and post outcomes', () => {
-    const summary = summarizeRunHistory([
-      {
-        actionType: 'generate',
-        progress: 100,
-        status: 'completed',
-      },
-      {
-        actionType: 'post',
-        progress: 100,
-        status: 'completed',
-      },
-      {
-        actionType: 'post',
-        progress: 100,
-        status: 'failed',
-      },
-    ]);
-
-    expect(summary.generated).toBe(1);
-    expect(summary.published).toBe(1);
-    expect(summary.failedPosts).toBe(1);
   });
 });

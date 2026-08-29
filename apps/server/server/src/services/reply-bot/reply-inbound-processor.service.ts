@@ -1,134 +1,208 @@
-/**
- * Shared processor for inbound reply jobs (XAA, post-watch, manual).
- */
+import {
+  ReplyBotPlatform,
+  ReplyBotType,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 import { ProcessedTweetsService } from '@server/collections/processed-tweets/services/processed-tweets.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import {
+  type SystemWorkflowActionRequest,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
+import {
+  buildReplyInboundWorkflowDefinition,
+  REPLY_INGESTION_ACTION_IDS,
+  type ReplyInboundWorkflowInput,
+  type ReplyInboundWorkflowResult,
+} from '@server/services/reply-bot/reply-ingestion-workflow-definition';
 import {
   getReplyIntentPersona,
   resolveReplyIntent,
 } from '@server/services/reply-bot/reply-intent.util';
-import { ReplyBotPlatform, ReplyBotType } from '@genfeedai/enums';
-import type {
-  ReplyInboundJobData,
-  ReplyInboundResult,
-} from '@genfeedai/queue-contracts';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+
+type InboundPreparation = {
+  input: ReplyInboundWorkflowInput;
+  items: Array<Record<string, unknown>>;
+  outcome?: ReplyInboundWorkflowResult;
+};
 
 @Injectable()
-export class ReplyInboundProcessorService {
-  private readonly constructorName = String(this.constructor.name);
-
+export class ReplyInboundProcessorService implements OnModuleInit {
   constructor(
-    private readonly logger: LoggerService,
     private readonly processedTweetsService: ProcessedTweetsService,
     private readonly authorReplyLoopService: AuthorReplyLoopService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
   ) {}
 
-  async process(data: ReplyInboundJobData): Promise<ReplyInboundResult> {
+  onModuleInit(): void {
+    this.workflowRunner.registerWorkflow(buildReplyInboundWorkflowDefinition());
+    this.workflowRunner.registerAction(
+      REPLY_INGESTION_ACTION_IDS.PREPARE_INBOUND,
+      (request) => this.prepareAction(request),
+    );
+    this.workflowRunner.registerAction(
+      REPLY_INGESTION_ACTION_IDS.FINALIZE_INBOUND,
+      (request) => this.finalizeAction(request),
+    );
+  }
+
+  async enqueue(data: ReplyInboundWorkflowInput): Promise<{ jobId: string }> {
+    const definition = buildReplyInboundWorkflowDefinition();
+    const jobId = await this.workflowQueue.queueSystemWorkflow(
+      {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request: data },
+        metadata: { commentId: data.commentId },
+        organizationId: data.organizationId,
+        source: `reply-inbound-${data.source}`,
+        trigger: WorkflowExecutionTrigger.EVENT,
+      },
+      `reply-inbound-${data.organizationId}-${data.commentId}`,
+      { replaceTerminalJob: true },
+    );
+    return { jobId };
+  }
+
+  async process(
+    data: ReplyInboundWorkflowInput,
+  ): Promise<ReplyInboundWorkflowResult> {
+    const definition = buildReplyInboundWorkflowDefinition();
+    const { result } =
+      await this.workflowRunner.runWorkflow<ReplyInboundWorkflowResult>({
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request: data },
+        organizationId: data.organizationId,
+        source: 'ReplyInboundProcessorService.process',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+      });
+    return result;
+  }
+
+  private async prepareAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<InboundPreparation> {
+    const input = this.readInput(action.input.request);
+    const baseResult = {
+      commentId: input.commentId,
+      organizationId: input.organizationId,
+    };
     const already = await this.processedTweetsService.isProcessed(
-      data.commentId,
-      data.organizationId,
+      input.commentId,
+      input.organizationId,
       ReplyBotType.COMMENT_RESPONDER,
     );
     if (already) {
       return {
-        commentId: data.commentId,
-        organizationId: data.organizationId,
-        skipped: true,
-        success: true,
+        input,
+        items: [],
+        outcome: { ...baseResult, skipped: true, success: true },
       };
     }
 
-    const intent = resolveReplyIntent(data.commentText);
-    const persona = getReplyIntentPersona(intent);
-    if (persona.shouldSkipAuto) {
+    const intent = resolveReplyIntent(input.commentText);
+    if (getReplyIntentPersona(intent).shouldSkipAuto) {
       await this.processedTweetsService.markAsProcessed(
-        data.commentId,
-        data.organizationId,
+        input.commentId,
+        input.organizationId,
         ReplyBotType.COMMENT_RESPONDER,
       );
-      this.logger.log(`${this.constructorName} skipped spam/low-signal`, {
-        commentId: data.commentId,
-        intent,
-      });
       return {
-        commentId: data.commentId,
-        organizationId: data.organizationId,
-        skipped: true,
-        success: true,
+        input,
+        items: [],
+        outcome: { ...baseResult, skipped: true, success: true },
       };
     }
-
-    if (!data.brandId) {
-      this.logger.warn(
-        `${this.constructorName} missing brandId — cannot auto-send`,
-        { commentId: data.commentId },
-      );
+    if (!input.brandId) {
       return {
-        commentId: data.commentId,
-        error: 'brandId required for auto-send',
-        organizationId: data.organizationId,
-        skipped: true,
-        success: false,
+        input,
+        items: [],
+        outcome: {
+          ...baseResult,
+          error: 'brandId required for auto-send',
+          skipped: true,
+          success: false,
+        },
       };
     }
-
-    const replyPlatform =
-      data.platform === 'youtube'
+    const platform =
+      input.platform === 'youtube'
         ? ReplyBotPlatform.YOUTUBE
         : ReplyBotPlatform.TWITTER;
-    const botUserId =
-      await this.authorReplyLoopService.findResponderOwnerUserId(
-        data.organizationId,
-        data.brandId,
-        replyPlatform,
-      );
-    if (!botUserId) {
+    const userId = await this.authorReplyLoopService.findResponderOwnerUserId(
+      input.organizationId,
+      input.brandId,
+      platform,
+    );
+    if (!userId) {
       return {
-        commentId: data.commentId,
-        error: 'no reply bot owner — enable auto-replies for this brand first',
-        organizationId: data.organizationId,
-        skipped: true,
-        success: false,
+        input,
+        items: [],
+        outcome: {
+          ...baseResult,
+          error:
+            'no reply bot owner — enable auto-replies for this brand first',
+          skipped: true,
+          success: false,
+        },
       };
     }
+    return {
+      input,
+      items: [
+        {
+          brandId: input.brandId,
+          commentAuthor: input.commentAuthorUsername,
+          ...(input.commentAuthorId === undefined
+            ? {}
+            : { commentAuthorId: input.commentAuthorId }),
+          commentId: input.commentId,
+          commentText: input.commentText,
+          intent,
+          organizationId: input.organizationId,
+          parentPostId: input.parentPostId,
+          ...(input.parentPostPreview === undefined
+            ? {}
+            : { parentPostPreview: input.parentPostPreview }),
+          platform,
+          userId,
+        },
+      ],
+    };
+  }
 
-    try {
-      const result = await this.authorReplyLoopService.sendReply({
-        brandId: data.brandId,
-        commentAuthor: data.commentAuthorUsername,
-        commentAuthorId: data.commentAuthorId,
-        commentId: data.commentId,
-        commentText: data.commentText,
-        intent,
-        organizationId: data.organizationId,
-        parentPostId: data.parentPostId,
-        parentPostPreview: data.parentPostPreview,
-        platform: replyPlatform,
-        userId: botUserId,
-      });
+  private async finalizeAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<ReplyInboundWorkflowResult> {
+    const state = this.readRecord(action.input.state) as InboundPreparation;
+    if (state.outcome) return state.outcome;
+    const input = this.readInput(state.input);
+    const batch = this.readRecord(action.input.batch);
+    const results = Array.isArray(batch.results) ? batch.results : [];
+    const first = this.readRecord(results[0]);
+    const result = this.readRecord(first.result);
+    const error = typeof result.error === 'string' ? result.error : undefined;
+    return {
+      commentId: input.commentId,
+      ...(error === undefined ? {} : { error }),
+      organizationId: input.organizationId,
+      skipped: false,
+      success: result.success === true,
+    };
+  }
 
-      return {
-        commentId: data.commentId,
-        error: result.error,
-        organizationId: data.organizationId,
-        skipped: false,
-        success: result.success,
-      };
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'unknown';
-      this.logger.error(`${this.constructorName} failed`, {
-        commentId: data.commentId,
-        error: message,
-      });
-      return {
-        commentId: data.commentId,
-        error: message,
-        organizationId: data.organizationId,
-        skipped: false,
-        success: false,
-      };
-    }
+  private readInput(value: unknown): ReplyInboundWorkflowInput {
+    const input = this.readRecord(value);
+    return input as unknown as ReplyInboundWorkflowInput;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
   }
 }

@@ -1,15 +1,14 @@
-import { type WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
-import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
-import { WorkflowStepRunnerService } from '@server/collections/workflows/services/workflow-step-runner.service';
-import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { Injectable, Optional } from '@nestjs/common';
+import { type WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
+import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
+import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 export type WorkflowWebhookAuthType = 'none' | 'secret' | 'bearer';
 
@@ -25,8 +24,6 @@ export class WorkflowWebhookService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly workflowsService: WorkflowsService,
-    @Optional()
-    private readonly workflowStepRunner?: WorkflowStepRunnerService,
     @Optional()
     private readonly workflowExecutorService?: WorkflowExecutorService,
   ) {}
@@ -160,20 +157,6 @@ export class WorkflowWebhookService {
       webhookTriggerCount: currentWebhookTriggerCount + 1,
     });
 
-    if (!this.shouldUseNodeExecutor(workflow)) {
-      if (!this.workflowStepRunner) {
-        throw new Error(
-          'Workflow step runner is not available - cannot trigger step workflow',
-        );
-      }
-
-      await this.workflowStepRunner.executeWorkflow(String(workflow.id));
-      return {
-        runId: String(workflow.id),
-        status: 'started',
-      };
-    }
-
     if (!this.workflowExecutorService) {
       throw new Error(
         'Workflow executor service is not available - cannot trigger workflow',
@@ -196,12 +179,6 @@ export class WorkflowWebhookService {
       runId: result.executionId,
       status: result.status,
     };
-  }
-
-  private shouldUseNodeExecutor(
-    workflow: Pick<WorkflowDocument, 'nodes'> | null | undefined,
-  ): boolean {
-    return Array.isArray(workflow?.nodes) && workflow.nodes.length > 0;
   }
 
   /**

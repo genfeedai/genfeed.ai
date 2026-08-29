@@ -7,7 +7,7 @@ import {
 } from '@server/collections/workflows/registry/node-registry';
 import { describe, expect, it } from 'vitest';
 
-describe('legacy node registry', () => {
+describe('workflow presentation node registry', () => {
   it('preserves the ordered public node definition catalog', () => {
     expect(Object.keys(NODE_REGISTRY)).toEqual([
       'ai-avatar-video',
@@ -31,7 +31,6 @@ describe('legacy node registry', () => {
       'control-branch',
       'reviewGate',
       'control-delay',
-      'control-loop',
       'effect-captions',
       'effect-color-grade',
       'effect-ken-burns',
@@ -46,7 +45,6 @@ describe('legacy node registry', () => {
       'trendTrigger',
       'sendEmail',
       'trendDigest',
-      'trendSummaryNotifications',
       'output-export',
       'output-notify',
       'output-publish',
@@ -60,9 +58,6 @@ describe('legacy node registry', () => {
       'process-reverse',
       'process-transform',
       'process-trim',
-      'workflow-input',
-      'workflow-output',
-      'workflow-ref',
     ]);
   });
 
@@ -86,11 +81,6 @@ describe('legacy node registry', () => {
       category: 'effects',
       icon: 'ShieldCheck',
       label: 'Add Watermark',
-    });
-    expect(getNodeDefinition('workflow-ref')).toMatchObject({
-      category: 'control',
-      icon: 'RefreshCw',
-      label: 'Sub-workflow',
     });
     expect(SOURCE_CORPUS_CONFIG_LIMITS).toEqual({
       days: { default: 7, max: 30, min: 1 },

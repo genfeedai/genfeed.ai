@@ -99,6 +99,7 @@ describe('buildPromptBrandingFromBrand', () => {
     const brand = makeBrand({ audience: [], tone: 'bold' });
     const result = buildPromptBrandingFromBrand(brand);
     expect(result?.audience).toBeUndefined();
+    expect(Object.hasOwn(result ?? {}, 'audience')).toBe(false);
   });
 });
 

@@ -1,12 +1,12 @@
+import type { AvatarVideoProviderName } from '@genfeedai/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import type {
   AvatarVideoJobInput,
   AvatarVideoJobResult,
   AvatarVideoProvider,
 } from '@server/services/avatar-video/avatar-video-provider.interface';
 import { ArgilService } from '@server/services/integrations/argil/services/argil.service';
-import type { AvatarVideoProviderName } from '@genfeedai/queue-contracts';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ArgilAvatarProvider implements AvatarVideoProvider {

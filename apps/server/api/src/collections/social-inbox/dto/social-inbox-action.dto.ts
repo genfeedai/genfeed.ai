@@ -1,6 +1,6 @@
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import { SocialConversationStatus, SocialMessageType } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
   ArrayMaxSize,
   IsArray,
@@ -28,11 +28,6 @@ export class SocialReplyDto {
   @IsOptional()
   @IsString()
   workflowRunId?: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  agentRunId?: string;
 }
 
 export class SocialDmDto extends SocialReplyDto {

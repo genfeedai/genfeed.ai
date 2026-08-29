@@ -109,7 +109,7 @@ export class AgentPublishToolHandler {
       {
         agentContextSource: input.ctx.validatedScope?.source,
         agentContextVersion: input.ctx.validatedScope?.contextVersion,
-        agentRunId: input.ctx.runId,
+        workflowExecutionId: input.ctx.runId,
         agentStrategyId: input.ctx.strategyId,
         agentThreadId: input.ctx.validatedScope?.threadId,
       },
@@ -308,7 +308,7 @@ export class AgentPublishToolHandler {
       {
         agentContextSource: ctx.validatedScope?.source,
         agentContextVersion: ctx.validatedScope?.contextVersion,
-        agentRunId: ctx.runId,
+        workflowExecutionId: ctx.runId,
         agentStrategyId: ctx.strategyId,
         agentThreadId: ctx.validatedScope?.threadId,
         autoPublishPolicyId: autoPublishPolicy.policyId,
@@ -441,7 +441,7 @@ export class AgentPublishToolHandler {
       return;
     }
     await this.agentPublishAuditsService.createAudit({
-      agentRunId: params.ctx.runId ?? null,
+      workflowExecutionId: params.ctx.runId ?? null,
       agentStrategyId: params.ctx.strategyId ?? null,
       agentThreadId: params.ctx.validatedScope?.threadId ?? null,
       autonomyMode: params.policy.autonomyMode,
@@ -925,7 +925,7 @@ export class AgentPublishToolHandler {
     );
 
     const post = await this.postsService.create({
-      ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
+      ...(ctx.runId ? { workflowExecutionId: ctx.runId } : {}),
       ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
       agentContextSource: ctx.validatedScope?.source,
       agentContextVersion: ctx.validatedScope?.contextVersion,

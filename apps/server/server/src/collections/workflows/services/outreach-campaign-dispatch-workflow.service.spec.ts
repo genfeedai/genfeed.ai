@@ -1,102 +1,44 @@
+import { CampaignPlatform, CampaignType } from '@genfeedai/enums';
 import { OutreachCampaignDispatchWorkflowService } from '@server/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
-import { CampaignQueueService } from '@server/queues/campaign/campaign-queue.service';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CAMPAIGN_DISPATCH_ACTION_IDS } from '@server/services/campaign/campaign-dispatch-workflow-definition';
+import { describe, expect, it, vi } from 'vitest';
 
-describe('OutreachCampaignDispatchWorkflowService', () => {
-  const cacheService = {
-    acquireLock: vi.fn(),
-    releaseLock: vi.fn(),
-  };
-  const logger = {
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  };
-  const campaignQueueService = {
-    dispatchActiveCampaigns: vi.fn(),
-  };
+describe('OutreachCampaignDispatchWorkflowService atomic actions', () => {
+  it('classifies active campaigns into child-workflow inputs', async () => {
+    const actions = new Map<string, (request: never) => Promise<unknown>>();
+    const campaigns = {
+      findActiveForDispatch: vi.fn().mockResolvedValue([
+        {
+          campaignType: CampaignType.DM_OUTREACH,
+          id: 'dm-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+          platform: CampaignPlatform.TWITTER,
+        },
+      ]),
+    };
+    const runner = {
+      registerAction: vi.fn(
+        (id: string, action: (request: never) => Promise<unknown>) =>
+          actions.set(id, action),
+      ),
+    };
+    const service = new OutreachCampaignDispatchWorkflowService(
+      campaigns as never,
+      runner as never,
+    );
+    service.onModuleInit();
 
-  let service: OutreachCampaignDispatchWorkflowService;
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    cacheService.acquireLock.mockResolvedValue(true);
-    cacheService.releaseLock.mockResolvedValue(undefined);
-    campaignQueueService.dispatchActiveCampaigns.mockResolvedValue({
-      alreadyQueued: 0,
-      enqueued: 1,
-      failed: 0,
-      organizationId: 'org-1',
-      skipped: 0,
-      status: 'completed',
+    const discover = actions.get(CAMPAIGN_DISPATCH_ACTION_IDS.DISCOVER);
+    expect(discover).toBeDefined();
+    await expect(
+      discover?.({
+        context: { organizationId: 'org-1' },
+        input: { request: {} },
+      } as never),
+    ).resolves.toMatchObject({
+      dmItems: [{ campaignId: 'dm-1', limit: 10, organizationId: 'org-1' }],
+      replyItems: [],
     });
-
-    service = new OutreachCampaignDispatchWorkflowService(
-      cacheService as never,
-      logger as never,
-      campaignQueueService as unknown as CampaignQueueService,
-    );
-  });
-
-  it('skips when the org lock already exists', async () => {
-    cacheService.acquireLock.mockResolvedValue(false);
-
-    const result = await service.runActiveCampaignDispatch('org-1');
-
-    expect(result).toMatchObject({
-      action: 'outreachCampaignDispatch',
-      enqueued: 0,
-      organizationId: 'org-1',
-      reason: 'outreach_campaign_dispatch_already_running',
-      status: 'skipped',
-    });
-    expect(campaignQueueService.dispatchActiveCampaigns).not.toHaveBeenCalled();
-    expect(cacheService.releaseLock).not.toHaveBeenCalled();
-  });
-
-  it('dispatches active campaigns through the queue service scoped to the organization', async () => {
-    const result = await service.runActiveCampaignDispatch('org-1');
-
-    expect(cacheService.acquireLock).toHaveBeenCalledWith(
-      'workflow-outreach-campaign-dispatch:org-1',
-      60,
-    );
-    expect(campaignQueueService.dispatchActiveCampaigns).toHaveBeenCalledWith(
-      'org-1',
-    );
-    expect(result).toMatchObject({
-      action: 'outreachCampaignDispatch',
-      enqueued: 1,
-      organizationId: 'org-1',
-      status: 'completed',
-    });
-    expect(cacheService.releaseLock).toHaveBeenCalledWith(
-      'workflow-outreach-campaign-dispatch:org-1',
-    );
-  });
-
-  it('skips diagnosably when the queue service is unavailable', async () => {
-    service = new OutreachCampaignDispatchWorkflowService(
-      cacheService as never,
-      logger as never,
-    );
-
-    const result = await service.runActiveCampaignDispatch('org-1');
-
-    expect(result).toMatchObject({
-      reason: 'campaign_queue_service_unavailable',
-      status: 'skipped',
-    });
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('queue service unavailable'),
-      expect.objectContaining({
-        organizationId: 'org-1',
-        reason: 'campaign_queue_service_unavailable',
-      }),
-    );
   });
 });

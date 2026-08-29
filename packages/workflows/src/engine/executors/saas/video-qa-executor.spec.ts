@@ -414,6 +414,69 @@ describe('VideoQaExecutor', () => {
       );
     });
 
+    it('accepts configured video and workflow-input references', async () => {
+      const processor = vi.fn().mockResolvedValue({
+        contactSheetUrl: 'https://cdn.example/sheet.png',
+        decodeOk: true,
+        detectLog: '',
+        loudnessLog: ON_TARGET_LOUDNESS_LOG,
+        probeJson: HEALTHY_PROBE_JSON,
+      });
+      const resolver = vi.fn().mockResolvedValue({
+        finding: {
+          character: {
+            confidence: 1,
+            summary: 'Consistent.',
+            verdict: 'consistent',
+          },
+          clipId: 'clip-1',
+          clipIndex: 0,
+          errors: [],
+          evidenceFrames: [],
+          outfit: {
+            confidence: 1,
+            summary: 'Consistent.',
+            verdict: 'consistent',
+          },
+          product: {
+            confidence: null,
+            summary: 'Not assessed.',
+            verdict: 'not_assessed',
+          },
+          videoUrl: 'https://cdn.example/clip.mp4',
+        },
+        modelKey: 'openai/vision',
+      });
+
+      await createVideoQaExecutor(processor, resolver).execute({
+        context: ctx,
+        inputs: new Map<string, unknown>([
+          ['characterReferenceUrls', ['https://cdn.example/face.png']],
+        ]),
+        node: {
+          config: {
+            inputVideo: 'https://cdn.example/clip.mp4',
+            isContinuityQaEnabled: true,
+          },
+          id: '1',
+          inputs: [],
+          label: 'QA',
+          type: 'videoQa',
+        },
+      });
+
+      expect(processor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          videoUrl: 'https://cdn.example/clip.mp4',
+        }),
+      );
+      expect(resolver).toHaveBeenCalledWith(
+        expect.objectContaining({
+          characterReferenceUrls: ['https://cdn.example/face.png'],
+        }),
+      );
+    });
+
     it('records an observable continuity skip when no resolver is configured', async () => {
       const processor = vi.fn().mockResolvedValue({
         contactSheetUrl: 'https://cdn.example/sheet.png',

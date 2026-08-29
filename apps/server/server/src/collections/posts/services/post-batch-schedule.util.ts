@@ -1,9 +1,10 @@
 import { PostCategory, TargetExecutionState } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
-import { type PostPublishQueueService, scopedWhere } from '@genfeedai/server';
+import { scopedWhere } from '@genfeedai/server';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PostDocument } from '@server/collections/posts/post.schema';
 import { bindScheduledPublishApproval } from '@server/collections/posts/services/post-schedule-approval.util';
+import type { ScheduledPostWorkflowQueueService } from '@server/collections/posts/services/scheduled-post-workflow-queue.service';
 import type { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
 import { EntityIdUtil } from '@server/helpers/utils/entity-id/entity-id.util';
 import type { CacheService } from '@server/services/cache/cache.service';
@@ -40,11 +41,14 @@ export interface PostBatchScheduleContext {
   logger: Pick<LoggerService, 'log'>;
   normalizeData: (data: unknown) => Record<string, unknown>;
   normalizeDocument: (document: unknown) => PostDocument;
-  postPublishQueueService?: Pick<PostPublishQueueService, 'enqueue'>;
+  scheduledPostWorkflowQueue?: Pick<
+    ScheduledPostWorkflowQueueService,
+    'enqueue'
+  >;
   prisma: PrismaService;
   publishApprovalsService?: Pick<
     PublishApprovalsService,
-    'assertPostMutable' | 'createForCurrentPost' | 'markQueued'
+    'assertPostMutable' | 'createForCurrentPost'
   >;
 }
 
@@ -215,7 +219,7 @@ export async function batchSchedulePosts(
       bindScheduledPublishApproval({
         actorUserId: context.actorUserId,
         post,
-        postPublishQueueService: context.postPublishQueueService,
+        scheduledPostWorkflowQueue: context.scheduledPostWorkflowQueue,
         provenanceSurface: 'posts-batch-schedule',
         publishApprovalsService: context.publishApprovalsService,
       }),

@@ -2,49 +2,49 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import type { Ingredient } from '@models/content/ingredient.model';
-import { AgentRunsService } from '@services/ai/agent-runs.service';
+import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { type Task, TasksService } from '@services/management/tasks.service';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  getEmptyLinkedExecutionSummary,
   getEmptyLinkedIssueSummary,
   getEmptyLinkedOutputSummary,
-  getEmptyLinkedRunSummary,
   isNonEmptyString,
+  type WorkspaceTaskLinkedExecutionSummary,
   type WorkspaceTaskLinkedIssueSummary,
   type WorkspaceTaskLinkedOutputSummary,
-  type WorkspaceTaskLinkedRunSummary,
 } from './workspace-task-inspector-helpers';
 
 // ─── Private hooks ────────────────────────────────────────────────────────────
 
-export function useWorkspaceTaskLinkedRunSummary(
+export function useWorkspaceTaskLinkedExecutionSummary(
   task: Task | null,
-): WorkspaceTaskLinkedRunSummary & { isLoading: boolean } {
+): WorkspaceTaskLinkedExecutionSummary & { isLoading: boolean } {
   const { getToken } = useAuthIdentity();
-  const [summary, setSummary] = useState<WorkspaceTaskLinkedRunSummary>(() =>
-    getEmptyLinkedRunSummary(),
+  const [summary, setSummary] = useState<WorkspaceTaskLinkedExecutionSummary>(
+    () => getEmptyLinkedExecutionSummary(),
   );
   const [isLoading, setIsLoading] = useState(false);
-  const _linkedRunIdsKey = useMemo(
-    () => task?.linkedRunIds?.join('|') ?? '',
-    [task?.linkedRunIds],
+  const _linkedExecutionIdsKey = useMemo(
+    () => task?.linkedExecutionIds?.join('|') ?? '',
+    [task?.linkedExecutionIds],
   );
 
   useEffect(() => {
-    if (!task || (task.linkedRunIds?.length ?? 0) === 0) {
-      setSummary(getEmptyLinkedRunSummary());
+    if (!task || (task.linkedExecutionIds?.length ?? 0) === 0) {
+      setSummary(getEmptyLinkedExecutionSummary());
       setIsLoading(false);
       return;
     }
 
     const capturedTask = task;
-    const linkedRunIds = capturedTask.linkedRunIds ?? [];
+    const linkedExecutionIds = capturedTask.linkedExecutionIds ?? [];
 
     let isCancelled = false;
 
-    async function loadLinkedRunSummary() {
+    async function loadLinkedExecutionSummary() {
       try {
         setIsLoading(true);
         const token = await resolveAuthToken(getToken);
@@ -53,13 +53,15 @@ export function useWorkspaceTaskLinkedRunSummary(
         }
 
         if (!token) {
-          setSummary(getEmptyLinkedRunSummary());
+          setSummary(getEmptyLinkedExecutionSummary());
           setIsLoading(false);
           return;
         }
 
-        const service = AgentRunsService.getInstance(token);
-        const batchResults = await service.getBatch(linkedRunIds);
+        const service = WorkflowExecutionsService.getInstance(token);
+        const batchResults = await Promise.all(
+          linkedExecutionIds.map((executionId) => service.getById(executionId)),
+        );
 
         if (isCancelled) {
           return;
@@ -67,18 +69,19 @@ export function useWorkspaceTaskLinkedRunSummary(
 
         const reportThreadIds = Array.from(
           batchResults.reduce<Set<string>>((threadIds, result) => {
-            if (isNonEmptyString(result.threadId)) {
-              threadIds.add(result.threadId);
+            const threadId = result.metadata?.threadId;
+            if (isNonEmptyString(threadId)) {
+              threadIds.add(threadId);
             }
             return threadIds;
           }, new Set()),
         );
 
         setSummary({
-          generatedContentCount: batchResults.reduce(
-            (total, result) => total + result.contentCount,
-            0,
-          ),
+          generatedContentCount: batchResults.reduce((total, result) => {
+            const references = result.metadata?.artifactReferences;
+            return total + (Array.isArray(references) ? references.length : 0);
+          }, 0),
           reportThreadCount: reportThreadIds.length,
           reportThreadId: reportThreadIds[0] ?? null,
         });
@@ -92,7 +95,7 @@ export function useWorkspaceTaskLinkedRunSummary(
           reportToSentry: false,
           taskId: capturedTask.id,
         });
-        setSummary(getEmptyLinkedRunSummary());
+        setSummary(getEmptyLinkedExecutionSummary());
       } finally {
         if (!isCancelled) {
           setIsLoading(false);
@@ -100,7 +103,7 @@ export function useWorkspaceTaskLinkedRunSummary(
       }
     }
 
-    void loadLinkedRunSummary();
+    void loadLinkedExecutionSummary();
 
     return () => {
       isCancelled = true;

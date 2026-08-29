@@ -26,7 +26,6 @@ export interface SocialActionProvenance {
   action?: string;
   actedAt?: string;
   actorType?: SocialActionActorType;
-  agentRunId?: string | null;
   approvedAt?: string;
   approvedBy?: string | null;
   approvedMessageId?: string;
@@ -119,7 +118,6 @@ export interface SocialMessage {
   sourceUrl?: string | null;
   idempotencyKey?: string | null;
   workflowRunId?: string | null;
-  agentRunId?: string | null;
   workflowTriggerStatus?: SocialMessageWorkflowTriggerStatus | null;
   workflowTriggerJobId?: string | null;
   workflowTriggerError?: string | null;
@@ -192,7 +190,6 @@ export interface SocialMessageQuery {
 }
 
 export interface SocialActionInput {
-  agentRunId?: string;
   idempotencyKey?: string;
   messageType?: 'dm' | 'reply';
   recipientId?: string;

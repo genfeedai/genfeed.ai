@@ -1,11 +1,10 @@
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
   WorkflowRecurrenceType,
   WorkflowStatus,
-  WorkflowStepCategory,
   WorkflowTrigger,
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import { Type } from 'class-transformer';
 import {
   Allow,
@@ -205,41 +204,6 @@ export class WorkflowInputVariableDto {
   readonly validation?: WorkflowInputVariableValidationDto;
 }
 
-// =============================================================================
-// WORKFLOW STEP DTOs
-// =============================================================================
-
-export class WorkflowStepDto {
-  @IsString()
-  @ApiProperty({ description: 'Unique identifier for this step' })
-  readonly id!: string;
-
-  @IsString()
-  @ApiProperty({ description: 'Human-readable name for this step' })
-  readonly label!: string;
-
-  @IsEnum(WorkflowStepCategory)
-  @ApiProperty({
-    description: 'Category of workflow step',
-    enum: WorkflowStepCategory,
-    enumName: 'WorkflowStepCategory',
-  })
-  readonly category!: WorkflowStepCategory;
-
-  @IsObject()
-  @ApiProperty({ description: 'Configuration for this step' })
-  readonly config!: Record<string, unknown>;
-
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  @ApiProperty({
-    description: 'IDs of steps that must complete before this one',
-    required: false,
-  })
-  readonly dependsOn?: string[];
-}
-
 export class WorkflowRecurrenceDto {
   @IsEnum(WorkflowRecurrenceType)
   @ApiProperty({
@@ -348,17 +312,6 @@ export class CreateWorkflowDto {
     required: false,
   })
   readonly sourceAsset?: string;
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => WorkflowStepDto)
-  @IsOptional()
-  @ApiProperty({
-    description: 'Steps to execute in the workflow',
-    required: false,
-    type: [WorkflowStepDto],
-  })
-  readonly steps?: WorkflowStepDto[];
 
   @IsObject()
   @IsOptional()

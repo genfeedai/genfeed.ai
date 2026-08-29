@@ -1,24 +1,80 @@
-import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowProvenanceService,
-} from '@server/collections/workflows/system-workflow-provenance.service';
-import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import {
+  buildReviewGateTimeoutResolveDefinition,
+  buildReviewGateTimeoutSweepDefinition,
+  REVIEW_GATE_TIMEOUT_ACTION_IDS,
+} from '@workers/crons/review-gate/review-gate-timeout-workflow-definition';
 
 const MS_PER_HOUR = 60 * 60 * 1000;
-const REVIEW_GATE_TIMEOUT_SCHEDULE = '*/15 * * * *';
+const REVIEW_GATE_SWEEP_INTERVAL_MS = 15 * 60 * 1000;
+const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';
+
+type ReviewGateTimeoutRequest = {
+  executionId: string;
+  nodeId: string;
+  organizationId: string;
+  workflowId: string;
+};
 
 @Injectable()
-export class CronReviewGateTimeoutService {
-  private readonly context = 'CronReviewGateTimeoutService';
-
+export class CronReviewGateTimeoutService implements OnModuleInit {
   constructor(
-    private readonly logger: LoggerService,
     private readonly executorService: WorkflowExecutorService,
-    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
+    private readonly workflowQueue: WorkflowExecutionQueueService,
   ) {}
+
+  onModuleInit(): void {
+    this.systemWorkflowRunner.registerAction(
+      REVIEW_GATE_TIMEOUT_ACTION_IDS.DISCOVER,
+      async () => {
+        const now = Date.now();
+        const pending =
+          await this.executorService.findPendingReviewGateExecutions();
+        return {
+          items: pending.flatMap((gate) => {
+            const requestedAtMs = new Date(gate.requestedAt).getTime();
+            if (
+              !Number.isFinite(requestedAtMs) ||
+              requestedAtMs + gate.timeoutHours * MS_PER_HOUR > now
+            ) {
+              return [];
+            }
+            return [
+              {
+                executionId: gate.executionId,
+                nodeId: gate.nodeId,
+                organizationId: gate.organizationId,
+                workflowId: gate.workflowId,
+              } satisfies ReviewGateTimeoutRequest,
+            ];
+          }),
+        };
+      },
+    );
+    this.systemWorkflowRunner.registerAction(
+      REVIEW_GATE_TIMEOUT_ACTION_IDS.RESOLVE,
+      ({ input }) => {
+        const request = input.request as ReviewGateTimeoutRequest;
+        return this.executorService.resolveTimedOutReviewGate(
+          request.workflowId,
+          request.executionId,
+          request.organizationId,
+          request.nodeId,
+        );
+      },
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildReviewGateTimeoutSweepDefinition(),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildReviewGateTimeoutResolveDefinition(),
+    );
+  }
 
   /**
    * Auto-resolves review gates whose reviewer timeout has elapsed. Fired every
@@ -26,70 +82,20 @@ export class CronReviewGateTimeoutService {
    * recorded as a system workflow execution for tenant-visible provenance.
    */
   async resolveTimedOutReviewGates(): Promise<void> {
-    const pending =
-      await this.executorService.findPendingReviewGateExecutions();
     const now = Date.now();
-
-    const totals = { approved: 0, checked: pending.length, rejected: 0 };
-
-    for (const gate of pending) {
-      const requestedAtMs = new Date(gate.requestedAt).getTime();
-      if (!Number.isFinite(requestedAtMs)) {
-        continue;
-      }
-
-      const deadlineMs = requestedAtMs + gate.timeoutHours * MS_PER_HOUR;
-      if (deadlineMs > now) {
-        continue;
-      }
-
-      try {
-        const { result } = await this.systemWorkflowProvenanceService.runAction(
-          {
-            actionType: 'review-gate-timeout',
-            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.REVIEW_GATE_TIMEOUT,
-            description:
-              'Auto-resolves review gates whose reviewer timeout elapsed.',
-            inputValues: {
-              autoApproveIfNoResponse: gate.autoApproveIfNoResponse,
-              executionId: gate.executionId,
-              nodeId: gate.nodeId,
-            },
-            label: 'Review Gate Timeout Resolution',
-            organizationId: gate.organizationId,
-            schedule: REVIEW_GATE_TIMEOUT_SCHEDULE,
-            source: 'CronReviewGateTimeoutService.resolveTimedOutReviewGates',
-            trigger: WorkflowExecutionTrigger.SCHEDULED,
-          },
-          () =>
-            this.executorService.resolveTimedOutReviewGate(
-              gate.workflowId,
-              gate.executionId,
-              gate.organizationId,
-              gate.nodeId,
-            ),
-        );
-
-        if (result?.resolution === 'approved') {
-          totals.approved += 1;
-        } else if (result?.resolution === 'rejected') {
-          totals.rejected += 1;
-        }
-      } catch (error: unknown) {
-        this.logger.error(
-          'Review-gate timeout resolution failed for execution',
-          {
-            error: (error as Error)?.message,
-            executionId: gate.executionId,
-            nodeId: gate.nodeId,
-          },
-        );
-      }
-    }
-
-    this.logger.log('CronReviewGateTimeoutService completed', {
-      ...totals,
-      context: this.context,
-    });
+    const definition = buildReviewGateTimeoutSweepDefinition();
+    await this.workflowQueue.queueSystemWorkflow(
+      {
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request: { requestedAt: new Date(now).toISOString() } },
+        organizationId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
+        source: 'review_gate_timeout_sweep',
+        trigger: WorkflowExecutionTrigger.SCHEDULED,
+        userId: SYSTEM_MAINTENANCE_PRINCIPAL_ID,
+      },
+      `review-gate-timeout-sweep-${Math.floor(now / REVIEW_GATE_SWEEP_INTERVAL_MS)}`,
+      { attempts: 3, replaceTerminalJob: true },
+    );
   }
 }

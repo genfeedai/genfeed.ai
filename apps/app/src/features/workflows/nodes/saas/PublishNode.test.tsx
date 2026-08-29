@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PublishNode } from './PublishNode';
@@ -142,12 +142,14 @@ describe('PublishNode', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Instagram' }));
     expect(mocks.updateNodeData).toHaveBeenCalledWith('publish-node', {
-      platforms: {
-        instagram: true,
-        linkedin: false,
-        tiktok: false,
-        twitter: false,
-      },
+      platforms: ['instagram'],
+    });
+
+    cleanup();
+    renderPublish({ platforms: ['instagram', 'tiktok'] });
+    fireEvent.click(screen.getByRole('button', { name: 'Instagram' }));
+    expect(mocks.updateNodeData).toHaveBeenCalledWith('publish-node', {
+      platforms: ['tiktok'],
     });
 
     fireEvent.change(screen.getByLabelText('Schedule'), {
@@ -189,12 +191,7 @@ describe('PublishNode', () => {
 
   it('renders published links, processing state, and empty help', () => {
     const { rerender } = renderPublish({
-      platforms: {
-        instagram: true,
-        linkedin: false,
-        tiktok: false,
-        twitter: false,
-      },
+      platforms: ['instagram'],
       publishedUrls: [
         'https://instagram.example.test/post-1',
         'https://linkedin.example.test/post-1',

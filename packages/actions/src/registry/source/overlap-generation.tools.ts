@@ -1,0 +1,62 @@
+import type { SourceTool } from '../../interfaces/source-tool.interface';
+
+/**
+ * Batch-generation definition split out of `overlap.tools.ts` to keep that
+ * module under the per-file line budget (`source-tools.test.ts`). Its Agent/MCP
+ * availability is declared only in `curated-action-catalog.ts`.
+ */
+export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
+  {
+    // Floor for preflight only. Real amount is format+model-aware and billed
+    // dynamically in the handler (isBillingDelegated).
+    creditCost: 1,
+    description:
+      'Generate a batch of content (images, videos, carousels) for a brand. Specify count, platforms, and date range. Use handle param to resolve @username to a credential. Returns a batch ID for tracking. Credits scale by item format and caption model tier — not a flat fee.',
+    name: 'generate_content_batch',
+    parameters: {
+      properties: {
+        brandId: {
+          description: 'Brand ID to generate content for',
+          type: 'string',
+        },
+        contentMix: {
+          description:
+            'Content format distribution (e.g., { imagePercent: 60, videoPercent: 25, carouselPercent: 10, reelPercent: 5, storyPercent: 0 })',
+          type: 'object',
+        },
+        count: {
+          description: 'Number of content pieces to generate (1-100)',
+          type: 'number',
+        },
+        dateRange: {
+          description:
+            'Date range for scheduling (e.g., { start: "2026-02-10", end: "2026-02-17" })',
+          type: 'object',
+        },
+        handle: {
+          description:
+            'Social media handle to resolve (e.g., "@shaylamonroe"). Will auto-resolve to brandId and credential.',
+          type: 'string',
+        },
+        platforms: {
+          description: 'Target platforms for content',
+          items: { type: 'string' },
+          type: 'array',
+        },
+        style: {
+          description:
+            'Style direction for generation (e.g., "lifestyle", "professional", "urban")',
+          type: 'string',
+        },
+        topics: {
+          description: 'Content topics or themes',
+          items: { type: 'string' },
+          type: 'array',
+        },
+      },
+      required: ['count', 'platforms'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+];

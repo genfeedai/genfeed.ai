@@ -1,11 +1,3 @@
-import { AdWatchedAdvertisersService } from '@server/collections/ad-watched-advertisers/services/ad-watched-advertisers.service';
-import { buildPaidCreativeReferenceClassification } from '@server/collections/trends/utils/trend-source-classification.util';
-import type {
-  PaidCreativeIngestionErrorCode,
-  PaidCreativeIngestionResult,
-  PaidCreativePlatformReadiness,
-} from '@server/services/paid-creative-research/interfaces/paid-creative-research.interface';
-import { PaidCreativeProviderRegistry } from '@server/services/paid-creative-research/providers/paid-creative-provider.registry';
 import type {
   NormalizedPaidCreativeRecord,
   PaidCreativePlatform,
@@ -18,11 +10,19 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
+import { AdWatchedAdvertisersService } from '@server/collections/ad-watched-advertisers/services/ad-watched-advertisers.service';
+import { buildPaidCreativeReferenceClassification } from '@server/collections/trends/utils/trend-source-classification.util';
+import type {
+  PaidCreativeIngestionErrorCode,
+  PaidCreativeIngestionResult,
+  PaidCreativePlatformReadiness,
+} from '@server/services/paid-creative-research/interfaces/paid-creative-research.interface';
+import { PaidCreativeProviderRegistry } from '@server/services/paid-creative-research/providers/paid-creative-provider.registry';
 
 /** Ads pulled per advertiser per run. Transparency archives are long tails. */
 const DEFAULT_CREATIVE_LIMIT = 50;
 
-type WatchedAdvertiserScope = {
+export type WatchedAdvertiserScope = {
   advertiserHandle: string;
   brandId: string | null;
   externalAdvertiserId: string | null;
@@ -67,32 +67,18 @@ export class PaidCreativeResearchIngestionService {
     return this.providerRegistry.getReadiness();
   }
 
-  async ingestForAccount(
+  async discoverAdvertisers(
     organizationId: string,
     options: PaidCreativeIngestionOptions = {},
-  ): Promise<PaidCreativeIngestionResult[]> {
-    const watchedAdvertisers =
-      await this.adWatchedAdvertisersService.findAllByAccount(
-        organizationId,
-        options.brandId,
-        options.platform,
-      );
-
-    const results: PaidCreativeIngestionResult[] = [];
-    for (const advertiser of watchedAdvertisers) {
-      results.push(
-        await this.ingestOne(
-          organizationId,
-          advertiser as WatchedAdvertiserScope,
-          options,
-        ),
-      );
-    }
-
-    return results;
+  ): Promise<WatchedAdvertiserScope[]> {
+    return (await this.adWatchedAdvertisersService.findAllByAccount(
+      organizationId,
+      options.brandId,
+      options.platform,
+    )) as WatchedAdvertiserScope[];
   }
 
-  private async ingestOne(
+  async ingestOne(
     organizationId: string,
     advertiser: WatchedAdvertiserScope,
     options: PaidCreativeIngestionOptions,

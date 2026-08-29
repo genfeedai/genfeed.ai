@@ -148,6 +148,20 @@ describe('ReplicateService', () => {
       );
     });
 
+    it('binds a workflow continuation identity into the completion webhook', async () => {
+      isCloudMock.mockReturnValue(true);
+      const { service } = createHarness();
+
+      await service.runModel('owner/model', {}, undefined, 'continuation/1');
+
+      expect(predictionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          webhook:
+            'https://hooks.test/v1/webhooks/replicate/callback?workflowContinuationId=continuation%2F1',
+        }),
+      );
+    });
+
     it('omits the webhook off-cloud', async () => {
       const { service } = createHarness();
 

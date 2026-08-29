@@ -1,7 +1,7 @@
-import { getToolsForSurface } from '@genfeedai/tools';
+import { getToolsForSurface } from '@genfeedai/actions';
 import { describe, expect, it } from 'vitest';
 
-describe('@genfeedai/tools CLI agent surface', () => {
+describe('@genfeedai/actions CLI agent surface', () => {
   it('exposes the canonical CLI-safe agent tools', () => {
     const names = getToolsForSurface('cli').map((tool) => tool.name);
 

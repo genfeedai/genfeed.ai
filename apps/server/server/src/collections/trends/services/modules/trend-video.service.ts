@@ -1,3 +1,7 @@
+import { Timeframe } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import type {
   TrendTimelineEntry,
   TrendTurnoverStats,
@@ -8,10 +12,6 @@ import type { TrendingVideoDocument } from '@server/collections/trends/schemas/t
 import { CacheService } from '@server/services/cache/cache.service';
 import { ApifyService } from '@server/services/integrations/apify/services/apify.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { Timeframe } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 /** Separator that cannot appear in a platform id or external id. */
 const TREND_KEY_SEPARATOR = '\u0000';
@@ -135,7 +135,7 @@ export class TrendVideoService {
   async fetchAndCacheViralVideos(
     platform: string,
     limit: number = 12,
-  ): Promise<void> {
+  ): Promise<number> {
     const videoFetchers: Record<
       string,
       () => Promise<Record<string, unknown>[]>
@@ -152,7 +152,7 @@ export class TrendVideoService {
 
     const fetcher = videoFetchers[platform];
     if (!fetcher) {
-      return;
+      return 0;
     }
 
     try {
@@ -233,11 +233,13 @@ export class TrendVideoService {
       this.loggerService.log(
         `Cached ${videos.length} viral videos for ${platform}`,
       );
+      return videos.length;
     } catch (error: unknown) {
       this.loggerService.error(
         `Failed to fetch viral videos for ${platform}`,
         error,
       );
+      return 0;
     }
   }
 
@@ -308,7 +310,7 @@ export class TrendVideoService {
   async fetchAndCacheHashtags(
     platform: string,
     limit: number = 12,
-  ): Promise<void> {
+  ): Promise<number> {
     try {
       const hashtags = await this.apifyService.getTrendingHashtags(
         platform,
@@ -316,7 +318,7 @@ export class TrendVideoService {
       );
 
       if (hashtags.length === 0) {
-        return;
+        return 0;
       }
 
       const expiresAt = new Date(
@@ -374,11 +376,13 @@ export class TrendVideoService {
       this.loggerService.log(
         `Cached ${hashtags.length} hashtags for ${platform}`,
       );
+      return hashtags.length;
     } catch (error: unknown) {
       this.loggerService.error(
         `Failed to fetch hashtags for ${platform}`,
         error,
       );
+      return 0;
     }
   }
 
@@ -439,12 +443,12 @@ export class TrendVideoService {
   /**
    * Fetch and store trending sounds from Apify (TikTok)
    */
-  async fetchAndCacheSounds(limit: number = 12): Promise<void> {
+  async fetchAndCacheSounds(limit: number = 12): Promise<number> {
     try {
       const sounds = await this.apifyService.getTikTokSounds(limit);
 
       if (sounds.length === 0) {
-        return;
+        return 0;
       }
 
       const expiresAt = new Date(
@@ -497,8 +501,10 @@ export class TrendVideoService {
       }
 
       this.loggerService.log(`Cached ${sounds.length} trending sounds`);
+      return sounds.length;
     } catch (error: unknown) {
       this.loggerService.error('Failed to fetch trending sounds', error);
+      return 0;
     }
   }
 

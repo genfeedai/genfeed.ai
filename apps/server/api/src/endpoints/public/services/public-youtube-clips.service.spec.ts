@@ -1,15 +1,13 @@
 import { PublicYoutubeClipsService } from '@api/endpoints/public/services/public-youtube-clips.service';
-import type { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
+import type { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import type { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
 import type {
   PublicClipToolStoreService,
   StoredPublicYoutubeClipSession,
 } from '@server/services/public-clip-tool/public-clip-tool-store.service';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
-import type { LoggerService } from '@libs/logger/logger.service';
-import type { HttpService } from '@nestjs/axios';
-import { BadRequestException } from '@nestjs/common';
-import { of } from 'rxjs';
 
 const token = 'a'.repeat(43);
 const storedSession: StoredPublicYoutubeClipSession = {
@@ -27,9 +25,8 @@ const storedSession: StoredPublicYoutubeClipSession = {
 };
 
 describe('PublicYoutubeClipsService', () => {
-  const queue = { enqueue: vi.fn() };
+  const scheduledAnalysisJobs: unknown[] = [];
   const files = { getJobStatus: vi.fn(), processVideo: vi.fn() };
-  const http = { get: vi.fn() };
   const logger = { error: vi.fn(), warn: vi.fn() };
   const store = {
     createSession: vi.fn(),
@@ -40,11 +37,16 @@ describe('PublicYoutubeClipsService', () => {
     reservePreview: vi.fn(),
     toWorkerProjectId: vi.fn(),
   };
+  let actions: Map<
+    string,
+    (request: { input: Record<string, unknown> }) => Promise<unknown>
+  >;
   let service: PublicYoutubeClipsService;
+  let runner: SystemWorkflowRunnerService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    http.get.mockReturnValue(of({ data: { title: 'Public video' } }));
+    scheduledAnalysisJobs.length = 0;
     store.createSession.mockResolvedValue({
       isNew: true,
       previewToken: token,
@@ -53,36 +55,102 @@ describe('PublicYoutubeClipsService', () => {
     store.toWorkerProjectId.mockReturnValue(
       `public-youtube-clip-session-${'f'.repeat(64)}`,
     );
-    queue.enqueue.mockResolvedValue({ id: 'analysis-job' });
+    store.getSession.mockResolvedValue(storedSession);
+    actions = new Map();
+    const actionRequest = (input: Record<string, unknown>) => ({ input });
+    runner = {
+      registerAction: vi.fn(
+        (
+          actionId: string,
+          executor: (request: {
+            input: Record<string, unknown>;
+          }) => Promise<unknown>,
+        ) => {
+          actions.set(actionId, executor);
+        },
+      ),
+      registerWorkflow: vi.fn(),
+      runWorkflow: vi.fn(
+        async (input: {
+          canonicalId: string;
+          inputValues?: Record<string, unknown>;
+        }) => {
+          if (input.canonicalId === 'public-youtube-clip.create') {
+            const youtubeUrl = String(input.inputValues?.youtubeUrl ?? '');
+            if (!youtubeUrl.includes('youtube.com/watch?v=')) {
+              throw new BadRequestException('Unsupported YouTube URL');
+            }
+            const sessionEnvelope = await actions.get(
+              'youtube.clip.create-session',
+            )?.(
+              actionRequest({
+                idempotencyKey: input.inputValues?.idempotencyKey,
+                source: {
+                  title: 'Public video',
+                  videoId: 'abc12345',
+                  youtubeUrl,
+                },
+              }),
+            );
+            const envelope = sessionEnvelope as {
+              analysisJobs?: unknown[];
+              previewToken?: string;
+            };
+            scheduledAnalysisJobs.push(...(envelope.analysisJobs ?? []));
+            return {
+              provenance: {},
+              result: await actions.get('youtube.clip.read-session')?.(
+                actionRequest({ previewToken: envelope.previewToken }),
+              ),
+            };
+          }
+          if (input.canonicalId === 'public-youtube-clip.preview') {
+            const previewEnvelope = await actions.get(
+              'youtube.clip.reserve-preview',
+            )?.(
+              actionRequest({
+                previewToken: input.inputValues?.previewToken,
+                recommendationId: input.inputValues?.recommendationId,
+              }),
+            );
+            return {
+              provenance: {},
+              result: await actions.get('youtube.clip.dispatch-preview')?.(
+                actionRequest({ previewEnvelope }),
+              ),
+            };
+          }
+          return {
+            provenance: {},
+            result: await actions.get('youtube.clip.read-session')?.(
+              actionRequest({ previewToken: input.inputValues?.previewToken }),
+            ),
+          };
+        },
+      ),
+    } as unknown as SystemWorkflowRunnerService;
     service = new PublicYoutubeClipsService(
-      queue as unknown as ClipAnalyzeQueueService,
       files as unknown as FileQueueService,
-      http as unknown as HttpService,
       logger as unknown as LoggerService,
+      runner,
       store as unknown as PublicClipToolStoreService,
     );
+    service.onModuleInit();
   });
 
-  it('normalizes YouTube URLs before storage and uses the free model with fallback', async () => {
+  it('uses the workflow-resolved YouTube source and the free analysis model', async () => {
     await service.create(
-      'https://youtu.be/abc12345?si=tracking',
+      'https://www.youtube.com/watch?v=abc12345',
       'request-key-1',
     );
 
-    expect(http.get).toHaveBeenCalledWith('https://www.youtube.com/oembed', {
-      params: {
-        format: 'json',
-        url: 'https://www.youtube.com/watch?v=abc12345',
-      },
-      timeout: 5_000,
-    });
     expect(store.createSession).toHaveBeenCalledWith(
       expect.objectContaining({
         idempotencyKey: 'request-key-1',
         sourceVideoUrl: 'https://www.youtube.com/watch?v=abc12345',
       }),
     );
-    expect(queue.enqueue).toHaveBeenCalledWith(
+    expect(scheduledAnalysisJobs).toContainEqual(
       expect.objectContaining({
         highlightFallback: 'deterministic',
         highlightModel: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
@@ -103,8 +171,7 @@ describe('PublicYoutubeClipsService', () => {
       await expect(service.create(url)).rejects.toBeInstanceOf(
         BadRequestException,
       );
-      expect(http.get).not.toHaveBeenCalled();
-      expect(queue.enqueue).not.toHaveBeenCalled();
+      expect(scheduledAnalysisJobs).toHaveLength(0);
     },
   );
 
@@ -120,25 +187,46 @@ describe('PublicYoutubeClipsService', () => {
       'request-key-1',
     );
 
-    expect(queue.enqueue).not.toHaveBeenCalled();
+    expect(scheduledAnalysisJobs).toHaveLength(0);
   });
 
-  it('releases only the failed enqueue reservations so retries stay safe', async () => {
-    queue.enqueue.mockRejectedValueOnce(new Error('queue unavailable'));
+  it('registers terminal workflow compensation for analysis scheduling failure', async () => {
+    const createWorkflow = vi
+      .mocked(runner.registerWorkflow)
+      .mock.calls.map(([definition]) => definition)
+      .find(
+        (definition) => definition.canonicalId === 'public-youtube-clip.create',
+      );
+    expect(createWorkflow?.definition.edges).toContainEqual({
+      id: 'analysis-failure-to-release',
+      source: 'schedule-analysis',
+      sourceHandle: 'failure',
+      target: 'release-session',
+      targetHandle: 'failure',
+    });
 
-    await expect(
-      service.create(
-        'https://www.youtube.com/watch?v=abc12345',
-        'request-key-1',
-      ),
-    ).rejects.toMatchObject({ status: 503 });
+    await actions.get('youtube.clip.release-session')?.({
+      input: {
+        failure: {
+          error: 'Redis unavailable',
+          failedNodeId: 'schedule-analysis',
+          nodeOutputs: {
+            'create-session': {
+              idempotencyKey: 'request-key-1',
+              isNew: true,
+              previewToken: token,
+              session: storedSession,
+            },
+          },
+        },
+      },
+    });
 
     expect(store.releaseFailedSession).toHaveBeenCalledWith(
       token,
-      storedSession.sourceFingerprint,
+      'fingerprint',
       'request-key-1',
     );
-    expect(store.deleteSession).not.toHaveBeenCalled();
   });
 
   it('renders the one preview from the durable source artifact', async () => {

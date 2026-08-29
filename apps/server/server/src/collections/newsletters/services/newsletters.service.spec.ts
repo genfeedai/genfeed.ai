@@ -8,14 +8,15 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import type { CreateNewsletterDto } from '@server/collections/newsletters/dto/create-newsletter.dto';
-import { NewslettersService } from '@server/collections/newsletters/services/newsletters.service';
-import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { AgentArtifactReferenceService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import type { CreateNewsletterDto } from '@server/collections/newsletters/dto/create-newsletter.dto';
+import { NewslettersService } from '@server/collections/newsletters/services/newsletters.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 type MockDelegate = {
   count: ReturnType<typeof vi.fn>;
@@ -30,7 +31,7 @@ type MockDelegate = {
 // `organization`/`approvedByUser`, or pre-reconciliation columns like `title`)
 // threw PrismaClientValidationError in production.
 const NEWSLETTER_WRITE_FIELDS = new Set([
-  'agentRunId',
+  'workflowExecutionId',
   'angle',
   'approvedAt',
   'approvedByUserId',
@@ -74,6 +75,11 @@ describe('NewslettersService (Prisma schema reconciliation)', () => {
     assertVersionPinCurrent: ReturnType<typeof vi.fn>;
     createOrReuseVersionPin: ReturnType<typeof vi.fn>;
   };
+  let workflowRunner: {
+    registerAction: ReturnType<typeof vi.fn>;
+    registerWorkflow: ReturnType<typeof vi.fn>;
+    runWorkflow: ReturnType<typeof vi.fn>;
+  };
 
   const existingNewsletter = {
     approvedAt: null,
@@ -101,6 +107,11 @@ describe('NewslettersService (Prisma schema reconciliation)', () => {
       assertVersionPinCurrent: vi.fn(),
       createOrReuseVersionPin: vi.fn().mockResolvedValue({ id: 'pin-1' }),
     };
+    workflowRunner = {
+      registerAction: vi.fn(),
+      registerWorkflow: vi.fn(),
+      runWorkflow: vi.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -116,6 +127,7 @@ describe('NewslettersService (Prisma schema reconciliation)', () => {
           provide: AgentArtifactReferenceService,
           useValue: agentArtifactReferenceService,
         },
+        { provide: SystemWorkflowRunnerService, useValue: workflowRunner },
       ],
     }).compile();
 
@@ -247,5 +259,42 @@ describe('NewslettersService (Prisma schema reconciliation)', () => {
       { publishedAt: 'desc' },
       { createdAt: 'desc' },
     ]);
+  });
+
+  it('keeps newsletter workflow state JSON-only and re-fetches the persisted draft', async () => {
+    workflowRunner.runWorkflow.mockResolvedValue({
+      result: { newsletterId: existingNewsletter.id },
+    });
+
+    await expect(
+      service.generateDraft(
+        {
+          angle: undefined,
+          sourceRefs: [
+            {
+              label: 'Primary source',
+              note: undefined,
+              sourceType: 'url',
+              url: 'https://example.com/source',
+            },
+          ],
+          topic: 'Workflow architecture',
+        },
+        ctx,
+      ),
+    ).resolves.toEqual(existingNewsletter);
+
+    const request = workflowRunner.runWorkflow.mock.calls[0][0];
+    expect(Object.hasOwn(request.inputValues.dto, 'angle')).toBe(false);
+    expect(Object.hasOwn(request.inputValues.dto.sourceRefs[0], 'note')).toBe(
+      false,
+    );
+    expect(delegate.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: existingNewsletter.id,
+        isDeleted: false,
+        organizationId: ctx.organizationId,
+      },
+    });
   });
 });

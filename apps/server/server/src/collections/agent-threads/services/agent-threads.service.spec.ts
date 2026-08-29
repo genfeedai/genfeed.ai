@@ -5,12 +5,12 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import { AgentThreadStatus } from '@genfeedai/enums';
+import type { LoggerService } from '@libs/logger/logger.service';
 import type { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
 import type { AgentRoomDocument } from '@server/collections/agent-threads/schemas/agent-thread.schema';
 import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
 import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { AgentThreadStatus } from '@genfeedai/enums';
-import type { LoggerService } from '@libs/logger/logger.service';
 
 type AgentThreadDelegate = {
   findMany: ReturnType<typeof vi.fn>;
@@ -26,7 +26,7 @@ describe('AgentThreadsService Prisma row contract', () => {
   let brandDelegate: { findMany: ReturnType<typeof vi.fn> };
   let delegate: AgentThreadDelegate;
   let ingredientDelegate: { findMany: ReturnType<typeof vi.fn> };
-  let runDelegate: { findMany: ReturnType<typeof vi.fn> };
+  let queryRaw: ReturnType<typeof vi.fn>;
   let snapshotDelegate: { findMany: ReturnType<typeof vi.fn> };
   let service: AgentThreadsService;
 
@@ -37,12 +37,12 @@ describe('AgentThreadsService Prisma row contract', () => {
       update: vi.fn(),
     };
     ingredientDelegate = { findMany: vi.fn().mockResolvedValue([]) };
-    runDelegate = { findMany: vi.fn().mockResolvedValue([]) };
+    queryRaw = vi.fn().mockResolvedValue([]);
     snapshotDelegate = { findMany: vi.fn().mockResolvedValue([]) };
 
     service = new AgentThreadsService(
       {
-        agentRun: runDelegate,
+        $queryRaw: queryRaw,
         agentThread: delegate,
         agentThreadSnapshot: snapshotDelegate,
         brand: brandDelegate,
@@ -149,12 +149,17 @@ describe('AgentThreadsService Prisma row contract', () => {
         threadId: 'thread-1',
       },
     ]);
+    // `threadId` is not a column: the service projects it out of the execution
+    // `result` JSON, so the raw join result is what maps assets back to threads.
+    queryRaw.mockResolvedValue([
+      { id: 'execution-1', status: 'COMPLETED', threadId: 'thread-1' },
+    ]);
     ingredientDelegate.findMany.mockResolvedValue([
       {
-        agentRun: { threadId: 'thread-1' },
         category: 'IMAGE',
         cdnUrl: 'https://cdn.test/portrait.png',
         createdAt: new Date('2026-08-19T11:00:00.000Z'),
+        workflowExecutionId: 'execution-1',
       },
     ]);
     brandDelegate.findMany.mockResolvedValue([
@@ -172,6 +177,7 @@ describe('AgentThreadsService Prisma row contract', () => {
         where: expect.objectContaining({
           isDeleted: false,
           organizationId: 'org-1',
+          workflowExecutionId: { in: ['execution-1'] },
         }),
       }),
     );

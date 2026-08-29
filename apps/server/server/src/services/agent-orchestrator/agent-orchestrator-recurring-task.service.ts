@@ -1,5 +1,7 @@
+import { AgentMessageRole } from '@genfeedai/enums';
+import { AgentToolName, type ValidatedAgentScope } from '@genfeedai/interfaces';
+import { Injectable, Optional } from '@nestjs/common';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
@@ -23,10 +25,7 @@ import {
   extractStyleNotes,
 } from '@server/services/agent-orchestrator/utils/agent-orchestrator-input-parsing.util';
 import { buildResolvedModelMetadata } from '@server/services/agent-orchestrator/utils/agent-response-model.util';
-import {
-  buildAgentScopeMetadata,
-  recordAgentRunScope,
-} from '@server/services/agent-orchestrator/utils/agent-scope-metadata.util';
+import { buildAgentScopeMetadata } from '@server/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import {
   buildFallbackThreadTitle,
   maybeUpdateThreadTitle,
@@ -36,9 +35,6 @@ import {
   getRuntimeBindingEffect,
   upsertRuntimeBindingEffect,
 } from '@server/services/agent-threading/services/agent-runtime-session.service';
-import { AgentMessageRole } from '@genfeedai/enums';
-import { AgentToolName, type ValidatedAgentScope } from '@genfeedai/interfaces';
-import { Injectable, Optional } from '@nestjs/common';
 
 type RecurringTaskContentType = 'image' | 'video' | 'post' | 'newsletter';
 type RecurringTaskInputField = 'prompt' | 'schedule' | 'variationBrief';
@@ -78,7 +74,6 @@ export class AgentOrchestratorRecurringTaskService {
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly streamPublisher: AgentStreamPublisherService,
     private readonly streamEffects: AgentStreamEffectsService,
-    private readonly agentRunsService: AgentRunsService,
     @Optional()
     private readonly agentRuntimeSessionService?: AgentRuntimeSessionService,
   ) {}
@@ -87,11 +82,11 @@ export class AgentOrchestratorRecurringTaskService {
     answer: string;
     fieldId?: string;
     organizationId: string;
-    runId?: string;
+    executionId?: string;
     scope: ValidatedAgentScope;
     threadId: string;
     userId: string;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const binding = await runEffectPromise(
       getRuntimeBindingEffect(
         this.agentRuntimeSessionService,
@@ -104,7 +99,7 @@ export class AgentOrchestratorRecurringTaskService {
     );
 
     if (!resumeCursor) {
-      return;
+      return false;
     }
 
     const draft = { ...resumeCursor.draft };
@@ -112,19 +107,17 @@ export class AgentOrchestratorRecurringTaskService {
       | RecurringTaskInputField
       | undefined;
     if (!fieldId) {
-      return;
+      return false;
     }
 
     this.applyRecurringTaskAnswer(draft, fieldId, params.answer);
 
     const context: AgentChatContext = {
+      executionId: params.executionId,
       organizationId: params.organizationId,
-      runId: params.runId ?? binding?.runId,
       scope: params.scope,
       userId: params.userId,
     };
-    await recordAgentRunScope(this.agentRunsService, context);
-
     const assistantResponse = await this.processRecurringTaskDraft({
       context,
       draft,
@@ -136,7 +129,7 @@ export class AgentOrchestratorRecurringTaskService {
     });
 
     if (!assistantResponse) {
-      return;
+      return false;
     }
 
     const creditsRemaining =
@@ -172,6 +165,7 @@ export class AgentOrchestratorRecurringTaskService {
         }),
       );
     }
+    return true;
   }
 
   async tryHandleRecurringTaskDraftTurn(params: {
@@ -220,13 +214,13 @@ export class AgentOrchestratorRecurringTaskService {
       content: assistantResponse.content,
       context: params.context,
       metadata: assistantMetadata,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       threadId: params.threadId,
     });
     await this.threadEventRecorder.recordRunCompleted({
       context: params.context,
       detail: 'Recurring automation setup completed',
-      runId: params.context.runId,
+      runId: params.context.executionId,
       threadId: params.threadId,
     });
 
@@ -401,7 +395,7 @@ export class AgentOrchestratorRecurringTaskService {
         apiKeyContext: params.context.apiKeyContext,
         brandId: params.context.scope?.brandId,
         organizationId: params.context.organizationId,
-        runId: params.context.runId,
+        runId: params.context.executionId,
         validatedScope: params.context.scope,
         threadId: params.threadId,
         userId: params.context.userId,
@@ -516,7 +510,7 @@ export class AgentOrchestratorRecurringTaskService {
         metadata: {
           flow: 'recurring_workflow_setup',
         },
-        runId: context.runId,
+        runId: context.executionId,
         threadId,
       }),
     );
@@ -543,7 +537,7 @@ export class AgentOrchestratorRecurringTaskService {
       upsertRuntimeBindingEffect(this.agentRuntimeSessionService, {
         organizationId: context.organizationId,
         resumeCursor,
-        runId: context.runId,
+        runId: context.executionId,
         status: completedAt
           ? 'completed'
           : awaitingField

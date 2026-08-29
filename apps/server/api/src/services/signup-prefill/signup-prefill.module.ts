@@ -1,25 +1,26 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
-import { SignupPrefillService } from '@server/services/signup-prefill/signup-prefill.service';
+import { SignupPrefillWorkflowService } from '@api/services/signup-prefill/signup-prefill-workflow.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
+import { SignupPrefillService } from '@server/services/signup-prefill/signup-prefill.service';
 
 /**
- * Consumer half of signup prefill — the actual scrape → analyze → persist →
- * seed work, resolved by the workers process. The API never imports this
- * module; it only enqueues through {@link SignupPrefillQueueModule}.
+ * Registers the immutable signup prefill workflow and its action executors.
  */
 @Module({
-  exports: [SignupPrefillService],
+  exports: [SignupPrefillService, SignupPrefillWorkflowService],
   imports: [
     ConfigModule,
     LoggerModule,
     BrandsModule,
     BrandScraperModule,
     HarnessProfilesModule,
+    WorkflowsModule,
   ],
-  providers: [SignupPrefillService],
+  providers: [SignupPrefillService, SignupPrefillWorkflowService],
 })
 export class SignupPrefillModule {}

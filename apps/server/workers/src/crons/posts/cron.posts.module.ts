@@ -2,8 +2,10 @@ import { ActivitiesModule } from '@api/collections/activities/activities.module'
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { PublishersModule } from '@api/services/integrations/publishers/publishers.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
+import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import {
   AgentArtifactReferenceService,
@@ -16,14 +18,15 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
-import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
+import { ScheduledPostWorkflowQueueService } from '@server/collections/posts/services/scheduled-post-workflow-queue.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-recurrence-materializer.service';
 import { ScheduledPostDeliveryService } from '@workers/services/scheduled-post-delivery.service';
+import { ScheduledPostDiscoveryService } from '@workers/services/scheduled-post-discovery.service';
 import { ScheduledPostExecutionGuardService } from '@workers/services/scheduled-post-execution-guard.service';
-import { ScheduledPostQueueService } from '@workers/services/scheduled-post-queue.service';
+import { ScheduledPostWorkflowService } from '@workers/services/scheduled-post-workflow.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 @Module({
@@ -35,8 +38,10 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
     forwardRef(() => WebhookClientModule),
     PublishersModule,
     QuotaModule,
+    forwardRef(() => ReplyBotModule),
     PrismaModule,
     forwardRef(() => WorkersQueuesModule),
+    forwardRef(() => WorkflowsModule),
   ],
   exports: [CronPostsService],
   providers: [
@@ -44,9 +49,10 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
     CronPostsService,
     PostRepeatSchedulerService,
     ScheduledPostDeliveryService,
+    ScheduledPostDiscoveryService,
     ScheduledPostExecutionGuardService,
-    ScheduledPostQueueService,
-    SystemWorkflowProvenanceService,
+    ScheduledPostWorkflowQueueService,
+    ScheduledPostWorkflowService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
     {

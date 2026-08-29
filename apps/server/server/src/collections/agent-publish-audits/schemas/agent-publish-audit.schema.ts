@@ -9,7 +9,7 @@ export type AgentPublishAuditScope = {
 };
 
 export type CreateAgentPublishAuditInput = {
-  agentRunId?: string | null;
+  workflowExecutionId?: string | null;
   agentStrategyId?: string | null;
   agentThreadId?: string | null;
   autonomyMode: string;

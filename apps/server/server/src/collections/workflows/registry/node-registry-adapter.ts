@@ -1,20 +1,18 @@
-import {
-  normalizeWorkflowNodeTypeToCanonical,
-  normalizeWorkflowNodeTypeToLegacy,
-} from '@server/collections/workflows/node-type-aliases';
-import {
-  NODE_REGISTRY as LEGACY_NODE_REGISTRY,
-  type NodePort,
-  type NodeDefinition as RegistryNodeDefinition,
-} from '@server/collections/workflows/registry/node-registry';
 import type {
   HandleDefinition,
   NodeDefinition as ModernNodeDefinition,
 } from '@genfeedai/types/nodes';
 import {
+  getWorkflowActionIdForNodeType,
   NODE_DEFINITIONS as MERGED_DEFINITIONS,
   type SaaSNodeDefinition,
 } from '@genfeedai/workflows/nodes';
+import {
+  type NodePort,
+  NODE_REGISTRY as PRESENTATION_NODE_REGISTRY,
+  type NodeDefinition as RegistryNodeDefinition,
+} from '@server/collections/workflows/registry/node-registry';
+import { isPersistableWorkflowNodeType } from '@server/collections/workflows/workflow-version-definition';
 
 export type { RegistryNodeDefinition as NodeDefinition };
 
@@ -94,30 +92,36 @@ function modernToRegistryDefinition(
 function buildUnifiedRegistry(): Record<string, RegistryNodeDefinition> {
   const unified: Record<string, RegistryNodeDefinition> = {};
   for (const [type, def] of Object.entries(MERGED_DEFINITIONS)) {
+    if (!isPersistablePresentationNodeType(type)) {
+      continue;
+    }
     unified[type] = modernToRegistryDefinition(
       type,
       def as ModernNodeDefinition | SaaSNodeDefinition,
     );
   }
 
-  for (const [type, def] of Object.entries(LEGACY_NODE_REGISTRY)) {
-    const canonicalType = normalizeWorkflowNodeTypeToCanonical(type);
-
-    if (
-      !(type in unified) ||
-      type === 'ai-avatar-video' ||
-      type === 'workflow-input' ||
-      type === 'workflow-output'
-    ) {
+  for (const [type, def] of Object.entries(PRESENTATION_NODE_REGISTRY)) {
+    if (isPersistablePresentationNodeType(type) && !(type in unified)) {
       unified[type] = def;
-    }
-
-    if (!(canonicalType in unified)) {
-      unified[canonicalType] = { ...def, type: canonicalType };
     }
   }
 
   return unified;
+}
+
+const WORKFLOW_INPUT_PRESENTATION_NODE_TYPES = new Set([
+  'audioInput',
+  'imageInput',
+  'videoInput',
+]);
+
+function isPersistablePresentationNodeType(type: string): boolean {
+  return (
+    WORKFLOW_INPUT_PRESENTATION_NODE_TYPES.has(type) ||
+    isPersistableWorkflowNodeType(type) ||
+    getWorkflowActionIdForNodeType(type) !== undefined
+  );
 }
 
 /**
@@ -129,11 +133,7 @@ export const UNIFIED_NODE_REGISTRY = buildUnifiedRegistry();
  * Check if a node type exists in the unified registry
  */
 export function isValidNodeType(type: string): boolean {
-  return (
-    type in UNIFIED_NODE_REGISTRY ||
-    normalizeWorkflowNodeTypeToCanonical(type) in UNIFIED_NODE_REGISTRY ||
-    normalizeWorkflowNodeTypeToLegacy(type) in UNIFIED_NODE_REGISTRY
-  );
+  return type in UNIFIED_NODE_REGISTRY;
 }
 
 /**
@@ -142,11 +142,7 @@ export function isValidNodeType(type: string): boolean {
 export function getNodeDefinition(
   type: string,
 ): RegistryNodeDefinition | undefined {
-  return (
-    UNIFIED_NODE_REGISTRY[type] ??
-    UNIFIED_NODE_REGISTRY[normalizeWorkflowNodeTypeToCanonical(type)] ??
-    UNIFIED_NODE_REGISTRY[normalizeWorkflowNodeTypeToLegacy(type)]
-  );
+  return UNIFIED_NODE_REGISTRY[type];
 }
 
 /**

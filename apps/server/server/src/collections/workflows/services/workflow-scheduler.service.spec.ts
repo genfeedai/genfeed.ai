@@ -1,8 +1,7 @@
+import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import type { WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
 import { EXECUTABLE_WORKFLOW_SELECT } from '@server/collections/workflows/services/workflow-executor.service';
 import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
-import { buildSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
-import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 function createMockLogger() {
@@ -31,6 +30,27 @@ function createMockQueueService() {
   };
 }
 
+function versionedWorkflow(input: {
+  id: string;
+  inputVariables?: unknown[];
+  nodes?: unknown[];
+  organizationId?: string | null;
+  userId?: string | null;
+  [key: string]: unknown;
+}) {
+  const { inputVariables = [], nodes = [], ...identity } = input;
+
+  return {
+    ...identity,
+    currentVersion: {
+      graph: { edges: [], lockedNodeIds: [], nodes },
+      id: `${input.id}-version-1`,
+      inputSchema: inputVariables,
+      version: 1,
+    },
+  };
+}
+
 function createService(
   overrides: {
     prisma?: ReturnType<typeof createMockPrisma>;
@@ -47,10 +67,6 @@ function createService(
   const configService = {
     isDevSchedulersEnabled: overrides.isDevSchedulersEnabled ?? false,
   };
-  const workflowsService = { executeWorkflow: vi.fn().mockResolvedValue({}) };
-  const workflowExecutionsService = {
-    createExecution: vi.fn().mockResolvedValue({}),
-  };
   const workflowExecutorService = overrides.workflowExecutorService ?? {
     executeManualWorkflow: vi.fn().mockResolvedValue({}),
     executeManualWorkflowDocument: vi.fn().mockResolvedValue({}),
@@ -61,24 +77,14 @@ function createService(
     WorkflowSchedulerService as unknown as new (
       ...args: unknown[]
     ) => WorkflowSchedulerService
-  )(
-    prisma,
-    logger,
-    configService,
-    workflowsService,
-    workflowExecutionsService,
-    workflowExecutorService,
-    queueService,
-  );
+  )(prisma, logger, configService, workflowExecutorService, queueService);
 
   return {
     logger,
     prisma,
     queueService,
     service,
-    workflowExecutionsService,
     workflowExecutorService,
-    workflowsService,
   };
 }
 
@@ -87,24 +93,22 @@ afterEach(() => {
 });
 
 describe('WorkflowSchedulerService — job scheduler registration', () => {
-  it('never registers job schedulers for sweep-driven system workflows (their actions fire from the workers sweep scheduler)', async () => {
+  it('registers every enabled system workflow through the shared scheduler', async () => {
     const { queueService, service } = createService({});
 
     await service.scheduleWorkflow({
       id: 'wf-system',
       isScheduleEnabled: true,
-      metadata: {
-        systemWorkflow: buildSystemWorkflowMetadata({
-          canonicalId: 'scheduled-post-publishing',
-        }),
-      },
       schedule: '*/15 * * * *',
+      timezone: 'UTC',
     } as unknown as WorkflowDocument);
 
-    expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
-    expect(queueService.removeWorkflowScheduler).toHaveBeenCalledWith(
-      'wf-system',
-    );
+    expect(queueService.upsertWorkflowScheduler).toHaveBeenCalledWith({
+      cronExpression: '*/15 * * * *',
+      timezone: 'UTC',
+      workflowId: 'wf-system',
+    });
+    expect(queueService.removeWorkflowScheduler).not.toHaveBeenCalled();
   });
 
   it('registers job schedulers for catalog system workflows with executable graphs', async () => {
@@ -113,11 +117,6 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
     await service.scheduleWorkflow({
       id: 'wf-loop',
       isScheduleEnabled: true,
-      metadata: {
-        systemWorkflow: buildSystemWorkflowMetadata({
-          canonicalId: 'content-loop-autopilot',
-        }),
-      },
       schedule: '0 8 * * *',
       timezone: 'UTC',
     } as unknown as WorkflowDocument);
@@ -133,12 +132,14 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
   it('upserts a BullMQ job scheduler when a schedule is set and enabled', async () => {
     const prisma = createMockPrisma();
     prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });
-    prisma.workflow.update.mockResolvedValue({
-      id: 'wf-1',
-      isScheduleEnabled: true,
-      schedule: '0 7 * * *',
-      timezone: 'Europe/Amsterdam',
-    });
+    prisma.workflow.update.mockResolvedValue(
+      versionedWorkflow({
+        id: 'wf-1',
+        isScheduleEnabled: true,
+        schedule: '0 7 * * *',
+        timezone: 'Europe/Amsterdam',
+      }),
+    );
     const { queueService, service } = createService({ prisma });
 
     const updated = await service.updateSchedule(
@@ -160,11 +161,13 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
   it('removes the job scheduler when the schedule is disabled', async () => {
     const prisma = createMockPrisma();
     prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });
-    prisma.workflow.update.mockResolvedValue({
-      id: 'wf-1',
-      isScheduleEnabled: false,
-      schedule: '0 7 * * *',
-    });
+    prisma.workflow.update.mockResolvedValue(
+      versionedWorkflow({
+        id: 'wf-1',
+        isScheduleEnabled: false,
+        schedule: '0 7 * * *',
+      }),
+    );
     const { queueService, service } = createService({ prisma });
 
     await service.updateSchedule('wf-1', '0 7 * * *', 'UTC', false);
@@ -176,11 +179,13 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
   it('removes the job scheduler when the schedule is cleared', async () => {
     const prisma = createMockPrisma();
     prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });
-    prisma.workflow.update.mockResolvedValue({
-      id: 'wf-1',
-      isScheduleEnabled: false,
-      schedule: null,
-    });
+    prisma.workflow.update.mockResolvedValue(
+      versionedWorkflow({
+        id: 'wf-1',
+        isScheduleEnabled: false,
+        schedule: null,
+      }),
+    );
     const { queueService, service } = createService({ prisma });
 
     await service.updateSchedule('wf-1', null, 'UTC', true);
@@ -201,7 +206,7 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
 
   it('rejects an invalid cron expression before persistence', async () => {
     const prisma = createMockPrisma();
-    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1', metadata: {} });
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });
     const { queueService, service } = createService({ prisma });
 
     await expect(
@@ -216,7 +221,7 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
 
   it('rejects an unknown IANA timezone before persistence', async () => {
     const prisma = createMockPrisma();
-    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1', metadata: {} });
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });
     const { queueService, service } = createService({ prisma });
 
     await expect(
@@ -229,44 +234,17 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
     expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
   });
 
-  it('rejects schedule mutations on sweep-driven system workflows with an explanation', async () => {
-    const prisma = createMockPrisma();
-    prisma.workflow.findFirst.mockResolvedValue({
-      id: 'wf-system',
-      metadata: {
-        systemWorkflow: buildSystemWorkflowMetadata({
-          canonicalId: 'scheduled-post-publishing',
-        }),
-      },
-    });
-    const { queueService, service } = createService({ prisma });
-
-    await expect(
-      service.updateSchedule('wf-system', '0 7 * * *', 'UTC', true),
-    ).rejects.toMatchObject({
-      message: expect.stringContaining('platform sweep scheduler'),
-      status: 400,
-    });
-    expect(prisma.workflow.update).not.toHaveBeenCalled();
-    expect(queueService.upsertWorkflowScheduler).not.toHaveBeenCalled();
-  });
-
   it('allows schedule pause on catalog system workflows', async () => {
     const prisma = createMockPrisma();
-    prisma.workflow.findFirst.mockResolvedValue({
-      id: 'wf-loop',
-      metadata: {
-        systemWorkflow: buildSystemWorkflowMetadata({
-          canonicalId: 'content-loop-autopilot',
-        }),
-      },
-    });
-    prisma.workflow.update.mockResolvedValue({
-      id: 'wf-loop',
-      isScheduleEnabled: false,
-      schedule: '0 8 * * *',
-      timezone: 'UTC',
-    });
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-loop' });
+    prisma.workflow.update.mockResolvedValue(
+      versionedWorkflow({
+        id: 'wf-loop',
+        isScheduleEnabled: false,
+        schedule: '0 8 * * *',
+        timezone: 'UTC',
+      }),
+    );
     const { queueService, service } = createService({ prisma });
 
     const updated = await service.updateSchedule(
@@ -286,13 +264,15 @@ describe('WorkflowSchedulerService — job scheduler registration', () => {
 
   it('surfaces scheduler registration failures to the caller instead of logging silently', async () => {
     const prisma = createMockPrisma();
-    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1', metadata: {} });
-    prisma.workflow.update.mockResolvedValue({
-      id: 'wf-1',
-      isScheduleEnabled: true,
-      schedule: '0 7 * * *',
-      timezone: 'UTC',
-    });
+    prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-1' });
+    prisma.workflow.update.mockResolvedValue(
+      versionedWorkflow({
+        id: 'wf-1',
+        isScheduleEnabled: true,
+        schedule: '0 7 * * *',
+        timezone: 'UTC',
+      }),
+    );
     const queueService = createMockQueueService();
     queueService.upsertWorkflowScheduler.mockRejectedValue(
       new Error('redis unavailable'),
@@ -343,7 +323,6 @@ describe('WorkflowSchedulerService — boot sync', () => {
       select: {
         id: true,
         isScheduleEnabled: true,
-        metadata: true,
         schedule: true,
         timezone: true,
       },
@@ -371,13 +350,15 @@ describe('WorkflowSchedulerService — boot sync', () => {
 describe('WorkflowSchedulerService — scheduled fire execution', () => {
   it('executes a node-based workflow via the workflow engine executor', async () => {
     const prisma = createMockPrisma();
-    prisma.workflow.findFirst.mockResolvedValue({
-      id: 'wf-1',
-      inputVariables: [],
-      nodes: [{ id: 'node-1' }],
-      organizationId: 'org-1',
-      userId: 'user-1',
-    });
+    prisma.workflow.findFirst.mockResolvedValue(
+      versionedWorkflow({
+        id: 'wf-1',
+        inputVariables: [],
+        nodes: [{ id: 'node-1' }],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    );
     const workflowExecutorService = {
       executeManualWorkflow: vi.fn().mockResolvedValue({}),
       executeManualWorkflowDocument: vi.fn().mockResolvedValue({}),
@@ -410,20 +391,22 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
 
   it('disables and unschedules workflows when required input defaults are missing', async () => {
     const prisma = createMockPrisma();
-    prisma.workflow.findFirst.mockResolvedValue({
-      id: 'wf-1',
-      inputVariables: [
-        {
-          key: 'titleText',
-          label: 'Title text',
-          required: true,
-          type: 'text',
-        },
-      ],
-      nodes: [{ id: 'node-1' }],
-      organizationId: 'org-1',
-      userId: 'user-1',
-    });
+    prisma.workflow.findFirst.mockResolvedValue(
+      versionedWorkflow({
+        id: 'wf-1',
+        inputVariables: [
+          {
+            key: 'titleText',
+            label: 'Title text',
+            required: true,
+            type: 'text',
+          },
+        ],
+        nodes: [{ id: 'node-1' }],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    );
     const workflowExecutorService = {
       executeManualWorkflow: vi.fn().mockResolvedValue({}),
       executeManualWorkflowDocument: vi.fn().mockResolvedValue({}),
@@ -453,31 +436,6 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
     );
   });
 
-  it('creates an execution record for legacy step-based workflows', async () => {
-    const prisma = createMockPrisma();
-    prisma.workflow.findFirst.mockResolvedValue({
-      id: 'wf-legacy',
-      inputVariables: [],
-      nodes: [],
-      organizationId: 'org-1',
-      userId: 'user-1',
-    });
-    const { service, workflowExecutionsService, workflowsService } =
-      createService({ prisma });
-
-    await service.executeScheduledWorkflow('wf-legacy');
-
-    expect(workflowExecutionsService.createExecution).toHaveBeenCalledWith(
-      'user-1',
-      'org-1',
-      expect.objectContaining({
-        trigger: WorkflowExecutionTrigger.SCHEDULED,
-        workflowId: 'wf-legacy',
-      }),
-    );
-    expect(workflowsService.executeWorkflow).toHaveBeenCalledWith('wf-legacy');
-  });
-
   it('removes the job scheduler when the workflow is missing or inactive', async () => {
     const prisma = createMockPrisma();
     prisma.workflow.findFirst.mockResolvedValue(null);
@@ -504,17 +462,19 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
 
   it('fires a node-based morning digest three times on schedule (#2664)', async () => {
     const prisma = createMockPrisma();
-    prisma.workflow.findFirst.mockResolvedValue({
-      id: 'wf-morning-digest',
-      inputVariables: [],
-      nodes: [
-        { id: 'read', type: 'socialRead' },
-        { id: 'analyze', type: 'analyze' },
-        { id: 'report', type: 'reportDelivery' },
-      ],
-      organizationId: 'org-1',
-      userId: 'user-1',
-    });
+    prisma.workflow.findFirst.mockResolvedValue(
+      versionedWorkflow({
+        id: 'wf-morning-digest',
+        inputVariables: [],
+        nodes: [
+          { id: 'read', type: 'socialRead' },
+          { id: 'analyze', type: 'analyze' },
+          { id: 'report', type: 'reportDelivery' },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    );
     const workflowExecutorService = {
       executeManualWorkflow: vi.fn().mockResolvedValue({}),
       executeManualWorkflowDocument: vi.fn().mockResolvedValue({}),
@@ -548,13 +508,15 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
 
   it('removes the job scheduler for systemic templates without user/org', async () => {
     const prisma = createMockPrisma();
-    prisma.workflow.findFirst.mockResolvedValue({
-      id: 'wf-template',
-      inputVariables: [],
-      nodes: [{ id: 'node-1' }],
-      organizationId: null,
-      userId: null,
-    });
+    prisma.workflow.findFirst.mockResolvedValue(
+      versionedWorkflow({
+        id: 'wf-template',
+        inputVariables: [],
+        nodes: [{ id: 'node-1' }],
+        organizationId: null,
+        userId: null,
+      }),
+    );
     const workflowExecutorService = {
       executeManualWorkflow: vi.fn().mockResolvedValue({}),
       executeManualWorkflowDocument: vi.fn().mockResolvedValue({}),

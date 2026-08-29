@@ -110,9 +110,14 @@ describe('VideosExtendController', () => {
           expect.objectContaining({ id: 'extension-video' }),
           expect.objectContaining({
             data: expect.objectContaining({
+              // Action-backed nodes carry `{actionId, parameters}` (validated
+              // against the action's contract), not flattened fields.
               config: expect.objectContaining({
-                actionVerb: 'extend',
-                parentIngredientId: sourceVideo.id,
+                actionId: 'videoGen',
+                parameters: expect.objectContaining({
+                  actionVerb: 'extend',
+                  parentIngredientId: sourceVideo.id,
+                }),
               }),
             }),
             id: 'extension-video',

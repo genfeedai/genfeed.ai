@@ -1,20 +1,17 @@
 import type {
+  ArticleCategory,
+  PromptTemplateKey,
+  SystemPromptKey,
+} from '@genfeedai/enums';
+import type { ContentHarnessBrief } from '@genfeedai/harness';
+import type { ArticleCreatePayload } from '@genfeedai/interfaces/content/article.interface';
+import type {
   ArticleGenerationType,
   GenerateArticlesDto,
 } from '@server/collections/articles/dto/generate-articles.dto';
 import type { ArticleDocument } from '@server/collections/articles/schemas/article.schema';
 import type { ArticleTextGenerationService } from '@server/collections/articles/services/article-text-generation.service';
 import type { PromptBuilderParams } from '@server/services/prompt-builder/interfaces/prompt-builder-params.interface';
-import type {
-  ArticleCategory,
-  PromptTemplateKey,
-  SystemPromptKey,
-} from '@genfeedai/enums';
-import type { ContentHarnessBrief } from '@genfeedai/harness';
-import type {
-  ArticleCreatePayload,
-  ArticleGenerationResponse,
-} from '@genfeedai/interfaces/content/article.interface';
 
 /**
  * Billing charge emitted after a text-generation model call.
@@ -93,6 +90,46 @@ export interface ArticleGenerationDraft extends ArticleDraftFields {
   tags?: string[];
 }
 
+export interface ArticleGenerationContext {
+  brandId: string;
+  category: ArticleCategory;
+  generateDto: GenerateArticlesDto;
+  generationType: ArticleGenerationType;
+  harnessContext: ArticleHarnessContext;
+  maxCount?: number;
+  modelConfig: ArticleCycleModelConfig;
+  organizationId: string;
+  parseFailureLabel: string;
+  prompt: string;
+  systemPromptTemplate: SystemPromptKey;
+  textPromptTemplate: PromptTemplateKey;
+  userId: string;
+}
+
+export interface ArticleGenerationWorkItem {
+  context: ArticleGenerationContext;
+  draft: ArticleGenerationDraft;
+}
+
+export interface ArticleGenerationReviewState
+  extends ArticleGenerationWorkItem {
+  billedCredits: number;
+  review: ArticleReviewRubric;
+}
+
+export interface ArticleGenerationRevisionState
+  extends ArticleGenerationReviewState {
+  updated: ArticleDraftFields;
+}
+
+export interface ArticleExistingReviewContext {
+  article: ArticleDocument;
+  focus?: string;
+  harnessContext: ArticleHarnessContext;
+  modelConfig: ArticleCycleModelConfig;
+  organizationId: string;
+}
+
 export type ArticleCreateFn = (
   articleData: ArticleCreatePayload,
   userId: string,
@@ -114,27 +151,4 @@ export interface PersistGeneratedArticleParams {
 export interface ParsedXArticleDrafts {
   drafts: ArticleGenerationDraft[];
   wordCount: number;
-}
-
-export interface ArticleGenerationOrchestrationParams {
-  brandId: string;
-  category: ArticleCategory;
-  createArticleFn: ArticleCreateFn;
-  generateDto: GenerateArticlesDto;
-  generationType: ArticleGenerationType;
-  harnessSourceLines: string[];
-  maxCount?: number;
-  modelConfig: ArticleCycleModelConfig;
-  onBilling?: (charge: TextGenerationCharge) => void;
-  organizationId: string;
-  parseFailureLabel: string;
-  promptTransform?: (prompt: string) => string;
-  startContext: Record<string, unknown>;
-  startMessage: string;
-  systemPromptTemplate: SystemPromptKey;
-  templateKey: PromptTemplateKey;
-  templateVariables: Record<string, unknown>;
-  textPromptTemplate: PromptTemplateKey;
-  toDrafts: (response: ArticleGenerationResponse) => ArticleGenerationDraft[];
-  userId: string;
 }

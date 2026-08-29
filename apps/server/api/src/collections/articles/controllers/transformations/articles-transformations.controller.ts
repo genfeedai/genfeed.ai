@@ -10,15 +10,8 @@
  * - Generate image / video configuration
  */
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { CreateRemixArticleDto } from '@api/collections/articles/dto/create-remix-article.dto';
-import { EditArticleWithAIDto } from '@server/collections/articles/dto/generate-articles.dto';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -26,15 +19,11 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
-import { resolveGenerationDefaultModel } from '@server/helpers/utils/generation-defaults/generation-defaults.util';
 import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { RouterService } from '@server/services/router/router.service';
 import { ScoreSeoDto } from '@api/services/seo/dto/score-seo.dto';
-import { SeoScorerService } from '@server/services/seo/seo-scorer.service';
 import { ActivitySource, ModelCategory } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { ArticleSerializer } from '@genfeedai/serializers';
@@ -48,6 +37,17 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { EditArticleWithAIDto } from '@server/collections/articles/dto/generate-articles.dto';
+import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
+import { resolveGenerationDefaultModel } from '@server/helpers/utils/generation-defaults/generation-defaults.util';
+import { RouterService } from '@server/services/router/router.service';
+import { SeoScorerService } from '@server/services/seo/seo-scorer.service';
 import type { Request } from 'express';
 
 /**
@@ -167,7 +167,7 @@ export class ArticlesTransformationsController {
       },
     );
 
-    if (!results || !results.docs || results.docs.length === 0) {
+    if (!results?.docs || results.docs.length === 0) {
       ErrorResponse.notFound(ARTICLE_ENTITY_NAME, articleId);
     }
 
@@ -253,11 +253,10 @@ export class ArticlesTransformationsController {
     @Param('articleId') articleId: string,
     @CurrentUser() user: User,
   ) {
-    const prompt = await this.articlesService.generatePromptFromArticle(
+    const prompt = await this.articlesService.generateHeaderPrompt(
       articleId,
       user.userId ?? user.id,
       user.organizationId,
-      user.brandId,
     );
 
     return { prompt };

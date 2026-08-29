@@ -1,180 +1,102 @@
-import { QueueService } from '@server/queues/core/queue.service';
 import {
   AdBulkUploadService,
-  CreateBulkUploadInput,
+  type CreateBulkUploadInput,
 } from '@api/services/integrations/meta-ads/services/ad-bulk-upload.service';
 import { testId } from '@helpers/testing/test-id.helper';
-import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-import { AdBulkUploadJobsService } from '@server/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
+import { Test, type TestingModule } from '@nestjs/testing';
+import { AdBulkUploadWorkflowService } from '@server/collections/workflows/services/ad-bulk-upload-workflow.service';
 
 describe('AdBulkUploadService', () => {
   let service: AdBulkUploadService;
-  let bulkUploadJobsService: Record<string, ReturnType<typeof vi.fn>>;
-  let queueService: Record<string, ReturnType<typeof vi.fn>>;
+  let workflow: { queue: ReturnType<typeof vi.fn> };
 
   const validInput: CreateBulkUploadInput = {
-    accessToken: 'tok_123',
     adAccountId: 'act_1',
     adSetId: 'adset_1',
     bodyCopies: ['Body 1'],
     campaignId: 'camp_1',
-    creativeSource: 'manual-upload' as const,
+    creativeSource: 'manual-upload',
     credentialId: testId('credential'),
     headlines: ['Headline 1'],
     images: ['https://img.com/1.jpg'],
     linkUrl: 'https://example.com',
     organizationId: testId('org'),
+    userId: testId('user'),
     videos: [],
   };
 
   beforeEach(async () => {
-    const jobId = 'test-object-id';
-    bulkUploadJobsService = {
-      create: vi.fn().mockResolvedValue({ id: jobId }),
-    };
-
-    queueService = {
-      add: vi.fn().mockResolvedValue(undefined),
+    workflow = {
+      queue: vi.fn().mockResolvedValue({
+        jobId: 'bulk-job-1',
+        workflowJobId: 'workflow-job-1',
+      }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AdBulkUploadService,
-        {
-          provide: AdBulkUploadJobsService,
-          useValue: bulkUploadJobsService,
-        },
-        { provide: QueueService, useValue: queueService },
-        {
-          provide: LoggerService,
-          useValue: {
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
-        },
+        { provide: AdBulkUploadWorkflowService, useValue: workflow },
       ],
     }).compile();
 
-    service = module.get<AdBulkUploadService>(AdBulkUploadService);
+    service = module.get(AdBulkUploadService);
   });
 
   afterEach(() => vi.clearAllMocks());
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
+  it('queues the action-backed workflow without credential secrets', async () => {
+    await expect(service.createBulkUpload(validInput)).resolves.toEqual({
+      jobId: 'bulk-job-1',
+      workflowJobId: 'workflow-job-1',
+    });
 
-  it('creates a bulk upload job and queues it', async () => {
-    const result = await service.createBulkUpload(validInput);
-    expect(result).toHaveProperty('jobId');
-    expect(bulkUploadJobsService.create).toHaveBeenCalledWith(
+    expect(workflow.queue).toHaveBeenCalledWith(
       expect.objectContaining({
         adAccountId: 'act_1',
-        status: 'pending',
-        totalPermutations: 1, // 1 image * 1 headline * 1 body
+        credentialId: testId('credential'),
+        jobId: expect.any(String),
+        organizationId: testId('org'),
       }),
+      testId('user'),
     );
-    expect(queueService.add).toHaveBeenCalledWith(
-      'ad-bulk-upload',
-      expect.objectContaining({ accessToken: 'tok_123' }),
-      expect.objectContaining({ attempts: 3 }),
-    );
+    expect(workflow.queue.mock.calls[0]?.[0]).not.toHaveProperty('accessToken');
   });
 
-  it('calculates correct permutations for multiple media and copy', async () => {
-    const input: CreateBulkUploadInput = {
-      ...validInput,
-      bodyCopies: ['Body 1', 'Body 2'],
-      headlines: ['H1', 'H2', 'H3'],
-      images: ['img1', 'img2'],
-      videos: ['vid1'],
-    };
-    await service.createBulkUpload(input);
-    // (2 images + 1 video) * 3 headlines * 2 bodies = 18
-    expect(bulkUploadJobsService.create).toHaveBeenCalledWith(
-      expect.objectContaining({ totalPermutations: 18 }),
-    );
-  });
-
-  it('throws BadRequestException when credentialId is missing', async () => {
+  it.each([
+    ['credentialId', ''],
+    ['adAccountId', ''],
+    ['campaignId', ''],
+    ['adSetId', ''],
+    ['linkUrl', ''],
+  ] as const)('rejects a missing %s', async (field, value) => {
     await expect(
-      service.createBulkUpload({ ...validInput, credentialId: '' }),
+      service.createBulkUpload({ ...validInput, [field]: value }),
     ).rejects.toThrow(BadRequestException);
+    expect(workflow.queue).not.toHaveBeenCalled();
   });
 
-  it('throws BadRequestException when adAccountId is missing', async () => {
-    await expect(
-      service.createBulkUpload({ ...validInput, adAccountId: '' }),
-    ).rejects.toThrow(BadRequestException);
-  });
-
-  it('throws BadRequestException when campaignId is missing', async () => {
-    await expect(
-      service.createBulkUpload({ ...validInput, campaignId: '' }),
-    ).rejects.toThrow(BadRequestException);
-  });
-
-  it('throws BadRequestException when adSetId is missing', async () => {
-    await expect(
-      service.createBulkUpload({ ...validInput, adSetId: '' }),
-    ).rejects.toThrow(BadRequestException);
-  });
-
-  it('throws BadRequestException when linkUrl is missing', async () => {
-    await expect(
-      service.createBulkUpload({ ...validInput, linkUrl: '' }),
-    ).rejects.toThrow(BadRequestException);
-  });
-
-  it('throws BadRequestException when headlines are empty', async () => {
+  it('rejects empty creative permutations', async () => {
     await expect(
       service.createBulkUpload({ ...validInput, headlines: [] }),
     ).rejects.toThrow(BadRequestException);
-  });
-
-  it('throws BadRequestException when bodyCopies are empty', async () => {
     await expect(
       service.createBulkUpload({ ...validInput, bodyCopies: [] }),
     ).rejects.toThrow(BadRequestException);
-  });
-
-  it('throws BadRequestException when no media items provided', async () => {
     await expect(
       service.createBulkUpload({ ...validInput, images: [], videos: [] }),
     ).rejects.toThrow(BadRequestException);
+    expect(workflow.queue).not.toHaveBeenCalled();
   });
 
-  it('handles content-library creativeSource', async () => {
-    const input: CreateBulkUploadInput = {
-      ...validInput,
-      creativeSource: 'content-library' as const,
-    };
-    const result = await service.createBulkUpload(input);
-    expect(result).toHaveProperty('jobId');
-  });
-
-  it('handles ai-generated creativeSource', async () => {
-    const input: CreateBulkUploadInput = {
-      ...validInput,
-      creativeSource: 'ai-generated' as const,
-    };
-    const result = await service.createBulkUpload(input);
-    expect(result).toHaveProperty('jobId');
-  });
-
-  it('includes brandId in job doc when provided', async () => {
-    const input: CreateBulkUploadInput = {
-      ...validInput,
-      brandId: testId('brand'),
-    };
-    await service.createBulkUpload(input);
-    expect(bulkUploadJobsService.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandId: expect.any(String),
-      }),
-    );
-  });
+  it.each(['content-library', 'ai-generated'] as const)(
+    'rejects %s until it has an explicit asset-resolution workflow',
+    async (creativeSource) => {
+      await expect(
+        service.createBulkUpload({ ...validInput, creativeSource }),
+      ).rejects.toThrow(BadRequestException);
+      expect(workflow.queue).not.toHaveBeenCalled();
+    },
+  );
 });

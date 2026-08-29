@@ -1,10 +1,3 @@
-import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
-import {
-  normalizeReplyBotPlatform,
-  unsupportedReplyBotPlatformMessage,
-} from '@server/services/reply-bot/reply-bot-platform.util';
 import { ReplyBotPlatform } from '@genfeedai/enums';
 import type {
   IReplyBotContentData,
@@ -17,6 +10,13 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
+import {
+  normalizeReplyBotPlatform,
+  unsupportedReplyBotPlatformMessage,
+} from '@server/services/reply-bot/reply-bot-platform.util';
 import { TwitterApi } from 'twitter-api-v2';
 
 @Injectable()
@@ -491,7 +491,7 @@ export class BotActionExecutorService {
         throw new Error('organizationId and brandId required for Instagram');
       }
 
-      await this.instagramService.sendCommentReplyDm(
+      const contentId = await this.instagramService.sendCommentReplyDm(
         credential.organizationId,
         credential.brandId,
         recipientUserId,
@@ -505,7 +505,7 @@ export class BotActionExecutorService {
         recipientUserId,
       });
 
-      return { success: true };
+      return { contentId: contentId ?? undefined, success: true };
     } catch (error: unknown) {
       const errorMessage = (error as Error)?.message || 'Unknown error';
 
@@ -557,60 +557,6 @@ export class BotActionExecutorService {
       });
       return null;
     }
-  }
-
-  /**
-   * Post a reply and optionally send a DM
-   */
-  async executeActions(
-    credential: IReplyBotCredentialData,
-    targetContent: IReplyBotContentData,
-    replyText: string,
-    dmText?: string,
-    dmDelayMs: number = 60000,
-  ): Promise<{
-    reply: IReplyBotReplyResult;
-    dm?: IReplyBotDmResult;
-  }> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    const replyResult = await this.postReply(
-      credential,
-      targetContent,
-      replyText,
-    );
-
-    if (!replyResult.success || !dmText) {
-      return { reply: replyResult };
-    }
-
-    if (dmDelayMs > 0) {
-      await this.delay(dmDelayMs);
-    }
-
-    const dmResult = await this.sendDm(
-      credential,
-      targetContent.authorId,
-      dmText,
-    );
-
-    this.loggerService.log(`${url} completed`, {
-      dmSuccess: dmResult.success,
-      platform: credential.platform || ReplyBotPlatform.TWITTER,
-      replySuccess: replyResult.success,
-    });
-
-    return {
-      dm: dmResult,
-      reply: replyResult,
-    };
-  }
-
-  /**
-   * Delay helper for natural-looking DM timing
-   */
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**

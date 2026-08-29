@@ -1,13 +1,27 @@
-import { WorkflowActionContextDto } from '@server/collections/workflows/dto/workflow-action-context.dto';
 import { ApiProperty } from '@nestjs/swagger';
+import { WorkflowActionContextDto } from '@server/collections/workflows/dto/workflow-action-context.dto';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
   IsBoolean,
   IsObject,
   IsOptional,
   IsString,
 } from 'class-validator';
+
+export class ExecuteWorkflowBatchDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
+  @ApiProperty({
+    description: 'Tenant-owned ingredient IDs supplied to the child workflow',
+    type: [String],
+  })
+  readonly ingredientIds!: string[];
+}
 
 /**
  * Canvas Run posts here (`packages/workflows` execution store). Full runs

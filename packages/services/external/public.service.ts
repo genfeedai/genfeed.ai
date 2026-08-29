@@ -3,7 +3,9 @@ import type {
   IBrandOsPreview,
   IBrandOsPreviewRequest,
   IPublicYoutubeClipToolSession,
+  IPublicYoutubeLongFormToolResult,
   IQueryParams,
+  PublicYoutubeLongFormOutputType,
 } from '@genfeedai/interfaces';
 import { Article } from '@genfeedai/models/content/article.model';
 import { Ingredient } from '@genfeedai/models/content/ingredient.model';
@@ -116,6 +118,20 @@ export class PublicService extends HTTPBaseService {
       )
       .then((res) =>
         deserializeResource<IPublicYoutubeClipToolSession>(res.data),
+      );
+  }
+
+  public async createPublicYoutubeLongForm(
+    youtubeUrl: string,
+    outputType: PublicYoutubeLongFormOutputType,
+  ): Promise<IPublicYoutubeLongFormToolResult> {
+    return await this.instance
+      .post<JsonApiResponseDocument>('youtube-long-form', {
+        outputType,
+        youtubeUrl,
+      })
+      .then((res) =>
+        deserializeResource<IPublicYoutubeLongFormToolResult>(res.data),
       );
   }
 

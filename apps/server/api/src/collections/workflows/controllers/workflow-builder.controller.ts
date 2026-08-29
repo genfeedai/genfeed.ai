@@ -1,13 +1,19 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateWorkflowDto } from '@server/collections/workflows/dto/create-workflow.dto';
 import {
   GenerateWorkflowDto,
   ImportWorkflowDto,
 } from '@api/collections/workflows/dto/execute-workflow.dto';
-import {
-  isWorkflowInputNodeType,
-  isWorkflowOutputNodeType,
-} from '@server/collections/workflows/node-type-aliases';
+import { WorkflowValidator } from '@api/collections/workflows/validators/workflow.validator';
+import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
+import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { WorkflowTrigger } from '@genfeedai/enums';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { WorkflowSerializer } from '@genfeedai/serializers';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreateWorkflowDto } from '@server/collections/workflows/dto/create-workflow.dto';
 import {
   getNodeDefinition,
   getNodesByCategory,
@@ -23,17 +29,11 @@ import {
 } from '@server/collections/workflows/services/workflow-format-converter.service';
 import { WorkflowGenerationService } from '@server/collections/workflows/services/workflow-generation.service';
 import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
-import { WorkflowValidator } from '@api/collections/workflows/validators/workflow.validator';
+import {
+  isWorkflowInputNodeType,
+  isWorkflowOutputNode,
+} from '@server/collections/workflows/workflow-node-predicates';
 import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
-import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { wrapError } from '@api/helpers/utils/controller/wrap-error.util';
-import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { WorkflowTrigger } from '@genfeedai/enums';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
-import { WorkflowSerializer } from '@genfeedai/serializers';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 /**
@@ -230,9 +230,12 @@ export class WorkflowBuilderController {
     }
 
     for (const node of workflow.nodes || []) {
-      if (isWorkflowOutputNodeType(node.type)) {
+      if (isWorkflowOutputNode(node)) {
+        const parameters = node.data?.config?.parameters as
+          | Record<string, unknown>
+          | undefined;
         const outputName =
-          (node.data?.config?.outputName as string | undefined) ?? node.id;
+          (parameters?.outputName as string | undefined) ?? node.id;
         outputs[outputName] = { type: 'any' };
       }
     }

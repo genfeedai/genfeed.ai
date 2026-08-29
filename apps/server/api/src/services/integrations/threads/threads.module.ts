@@ -1,4 +1,4 @@
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { ThreadsController } from '@api/services/integrations/threads/controllers/threads.controller';
 import { createServiceModule } from '@api/shared/service-module.factory';
@@ -7,7 +7,7 @@ import { Module } from '@nestjs/common';
 import { ThreadsService } from '@server/services/integrations/threads/services/threads.service';
 
 const BaseModule = createServiceModule(ThreadsService, {
-  additionalImports: [HttpModule, BrandsModule, CredentialsCoreModule],
+  additionalImports: [HttpModule, BrandsCoreModule, CredentialsCoreModule],
 });
 
 @Module({

@@ -369,7 +369,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     await this.threadEventRecorder.recordToolStarted({
       context: params.context,
       parameters: toolPayload,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       threadId: params.threadId,
       toolName,
     });
@@ -385,7 +385,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
           overrides.generationPriority ?? params.context.generationPriority,
         organizationId: params.context.organizationId,
         confirmationOrigin: overrides.confirmationOrigin,
-        runId: params.context.runId,
+        runId: params.context.executionId,
         sourceActionId: overrides.sourceActionId,
         strategyId: params.context.strategyId,
         threadId: params.threadId,
@@ -405,7 +405,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
       context: params.context,
       durationMs,
       error: summary.error,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       status: summary.status,
       threadId: params.threadId,
       toolName,

@@ -942,7 +942,6 @@ export async function mockAnalyticsData(page: Page): Promise<void> {
   await routeApiPattern(page, '/auth/bootstrap/overview**', async (route) => {
     await route.fulfill({
       body: JSON.stringify({
-        activeRuns: [],
         analytics: {
           activePlatforms: ['instagram', 'tiktok'],
           activeWorkflows: 2,
@@ -979,14 +978,6 @@ export async function mockAnalyticsData(page: Page): Promise<void> {
             },
           ],
           rejectedCount: 0,
-        },
-        runs: [],
-        stats: {
-          activeRuns: 0,
-          completedToday: 2,
-          failedToday: 0,
-          totalCreditsToday: 25,
-          totalRuns: 7,
         },
         timeSeries: [
           { date: '2026-03-04', instagram: 20, tiktok: 10 },
@@ -1080,7 +1071,7 @@ interface MockWorkspaceTaskRecord {
   id: string;
   linkedApprovalIds: string[];
   linkedOutputIds: string[];
-  linkedRunIds: string[];
+  linkedExecutionIds: string[];
   organization: string;
   outputType: 'caption' | 'image' | 'ingredient' | 'video';
   platforms: string[];
@@ -1146,7 +1137,7 @@ function buildMockWorkspaceTask(
     id: overrides.id ?? `workspace-task-${Date.now()}`,
     linkedApprovalIds: [],
     linkedOutputIds: [],
-    linkedRunIds: [],
+    linkedExecutionIds: [],
     organization: 'mock-org-id-e2e-test',
     outputType: 'ingredient',
     planningThreadId: undefined,
@@ -2403,52 +2394,56 @@ export async function mockEmptyBrands(page: Page): Promise<void> {
  * Mock for automation overview data
  */
 export async function mockAutomationData(page: Page): Promise<void> {
-  const runFixtures = [
+  const executionFixtures = [
     {
       completedAt: '2026-03-26T10:15:00.000Z',
       createdAt: '2026-03-26T10:00:00.000Z',
       creditsUsed: 6,
       durationMs: 18000,
-      id: 'run-1',
-      label: 'Trend scan',
-      metadata: {
-        actualModel: 'google/gemini-2.5-flash',
-        requestedModel: 'openai/gpt-5.6-terra',
-        routingPolicy: 'fresh-live-data',
-        webSearchEnabled: true,
-      },
-      objective: 'Find latest creator trends',
-      organization: 'mock-org-id-e2e-test',
+      id: 'execution-1',
+      inputValues: {},
+      metadata: { label: 'Trend scan' },
+      nodeResults: [
+        {
+          actionId: 'trends.scan',
+          nodeId: 'node-1',
+          status: 'COMPLETED',
+        },
+      ],
+      organizationId: 'mock-org-id-e2e-test',
       progress: 100,
-      retryCount: 0,
       startedAt: '2026-03-26T10:01:00.000Z',
-      status: 'completed',
-      toolCalls: [],
-      trigger: 'manual',
+      status: 'COMPLETED',
+      trigger: 'MANUAL',
       updatedAt: '2026-03-26T10:15:00.000Z',
-      user: 'mock-user-id-e2e-test',
+      userId: 'mock-user-id-e2e-test',
+      workflow: { id: 'workflow-1', label: 'Trend scan' },
+      workflowId: 'workflow-1',
     },
     {
       completedAt: '2026-03-26T08:15:00.000Z',
       createdAt: '2026-03-26T08:00:00.000Z',
       creditsUsed: 3,
       durationMs: 9000,
-      id: 'run-2',
-      label: 'Caption draft',
-      metadata: {
-        actualModel: 'anthropic/claude-sonnet-5',
-        requestedModel: 'anthropic/claude-sonnet-5',
-      },
-      objective: 'Write captions',
-      organization: 'mock-org-id-e2e-test',
+      id: 'execution-2',
+      inputValues: {},
+      metadata: { label: 'Caption draft' },
+      nodeResults: [
+        {
+          actionId: 'captions.draft',
+          nodeId: 'node-1',
+          status: 'COMPLETED',
+        },
+      ],
+      organizationId: 'mock-org-id-e2e-test',
       progress: 100,
-      retryCount: 0,
       startedAt: '2026-03-26T08:01:00.000Z',
-      status: 'completed',
-      toolCalls: [],
-      trigger: 'manual',
+      status: 'COMPLETED',
+      trigger: 'MANUAL',
       updatedAt: '2026-03-26T08:15:00.000Z',
-      user: 'mock-user-id-e2e-test',
+      userId: 'mock-user-id-e2e-test',
+      workflow: { id: 'workflow-2', label: 'Caption draft' },
+      workflowId: 'workflow-2',
     },
   ];
   const now = new Date();
@@ -2464,7 +2459,6 @@ export async function mockAutomationData(page: Page): Promise<void> {
   await routeApiPattern(page, '/auth/bootstrap/overview**', async (route) => {
     await route.fulfill({
       body: JSON.stringify({
-        activeRuns: [],
         analytics: {
           activePlatforms: ['instagram', 'twitter', 'tiktok'],
           activeWorkflows: 2,
@@ -2480,14 +2474,6 @@ export async function mockAutomationData(page: Page): Promise<void> {
           recentItems: [],
           rejectedCount: 0,
         },
-        runs: runFixtures,
-        stats: {
-          activeRuns: 0,
-          completedToday: 2,
-          failedToday: 0,
-          totalCreditsToday: 9,
-          totalRuns: runFixtures.length,
-        },
         timeSeries: [
           { date: '2026-03-27', instagram: 40, tiktok: 20, twitter: 15 },
           { date: '2026-03-28', instagram: 55, tiktok: 26, twitter: 19 },
@@ -2498,117 +2484,30 @@ export async function mockAutomationData(page: Page): Promise<void> {
     });
   });
 
-  await routeApiPattern(page, '/runs/stats**', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        activeRuns: 0,
-        anomalies: [
-          {
-            baselineValue: 0.2,
-            currentValue: 0.55,
-            description:
-              'Auto-routing jumped materially above the recent baseline.',
-            kind: 'auto_routing_spike',
-            severity: 'warning',
-            title: 'Auto-routing spike',
-          },
-        ],
-        autoRoutedRuns: 1,
-        completedToday: 2,
-        failedToday: 0,
-        routingPaths: [
-          {
-            actualModel: 'google/gemini-2.5-flash',
-            count: 1,
-            requestedModel: 'openai/gpt-5.6-terra',
-          },
-        ],
-        timeRange:
-          new URL(route.request().url()).searchParams.get('timeRange') ?? '7d',
-        topActualModels: [{ count: 1, model: 'google/gemini-2.5-flash' }],
-        topRequestedModels: [{ count: 1, model: 'openai/gpt-5.6-terra' }],
-        totalCreditsToday: 9,
-        totalRuns: 2,
-        trends: [
-          {
-            autoRoutedRate: 0.5,
-            autoRoutedRuns: 1,
-            averageCreditsUsed: 4.5,
-            bucket: '2026-03-25',
-            totalCreditsUsed: 9,
-            totalRuns: 2,
-            webEnabledRate: 0.5,
-            webEnabledRuns: 1,
-          },
-        ],
-        webEnabledRuns: 1,
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
-
-  await routeApiPattern(page, '/runs/active**', async (route) => {
-    await route.fulfill({
-      body: JSON.stringify({
-        data: [],
-        meta: { page: 1, pageSize: 0, totalCount: 0 },
-      }),
-      contentType: 'application/json',
-      status: 200,
-    });
-  });
-
-  await routeApiPattern(page, '/runs**', async (route) => {
+  await routeApiPattern(page, '/workflow-executions**', async (route) => {
     if (route.request().method() !== 'GET') {
       await route.continue();
       return;
     }
 
     const url = new URL(route.request().url());
-    if (
-      url.pathname.endsWith('/runs/stats') ||
-      url.pathname.endsWith('/runs/active')
-    ) {
-      await route.continue();
-      return;
-    }
     const query = (url.searchParams.get('q') ?? '').toLowerCase();
-    const model = url.searchParams.get('model');
 
-    const filteredRuns = runFixtures.filter((run) => {
-      if (
-        query &&
-        ![
-          run.label,
-          run.objective ?? '',
-          String(run.metadata.actualModel ?? ''),
-          String(run.metadata.requestedModel ?? ''),
-        ]
-          .join(' ')
-          .toLowerCase()
-          .includes(query)
-      ) {
-        return false;
-      }
-
-      if (!model) {
-        return true;
-      }
-
-      return (
-        run.metadata.actualModel === model ||
-        run.metadata.requestedModel === model
-      );
+    const filteredExecutions = executionFixtures.filter((execution) => {
+      if (!query) return true;
+      return [execution.workflow.label, execution.id]
+        .join(' ')
+        .toLowerCase()
+        .includes(query);
     });
 
     await route.fulfill({
       body: JSON.stringify(
         buildJsonApiCollection(
-          'agent-runs',
-          filteredRuns.map((run) => ({
-            attributes: run,
-            id: run.id,
+          'workflow-executions',
+          filteredExecutions.map((execution) => ({
+            attributes: execution,
+            id: execution.id,
           })),
         ),
       ),
@@ -2616,6 +2515,7 @@ export async function mockAutomationData(page: Page): Promise<void> {
       status: 200,
     });
   });
+
   await page.route('**/api.genfeed.ai/v1/bots**', async (route) => {
     if (route.request().method() === 'GET') {
       await route.fulfill({
@@ -3037,175 +2937,6 @@ export async function mockAutomationData(page: Page): Promise<void> {
         }),
         contentType: 'application/json',
         status: 201,
-      });
-      return;
-    }
-
-    await route.continue();
-  });
-
-  await routeApiPattern(page, '/runs**', async (route) => {
-    if (route.request().method() === 'GET') {
-      const resources = [
-        {
-          attributes: {
-            completedAt: nowIso,
-            createdAt: twoDaysAgoIso,
-            creditsUsed: 24,
-            durationMs: 240000,
-            error: undefined,
-            id: 'run-1',
-            label: 'Launch Sprint',
-            metadata: {},
-            objective: 'Draft launch content',
-            organization: 'mock-org-id-e2e-test',
-            parentRun: undefined,
-            progress: 100,
-            retryCount: 0,
-            startedAt: twoDaysAgoIso,
-            status: 'completed',
-            strategy: 'strategy-1',
-            summary: 'Generated launch assets',
-            toolCalls: [
-              {
-                creditsUsed: 8,
-                durationMs: 12000,
-                executedAt: twoDaysAgoIso,
-                status: 'completed',
-                toolName: 'research',
-              },
-              {
-                creditsUsed: 6,
-                durationMs: 9000,
-                executedAt: nowIso,
-                status: 'completed',
-                toolName: 'compose',
-              },
-            ],
-            trigger: 'scheduled',
-            updatedAt: nowIso,
-            user: 'mock-user-id-e2e-test',
-          },
-          id: 'run-1',
-        },
-        {
-          attributes: {
-            completedAt: new Date(
-              now.getTime() - 3 * 60 * 60 * 1000,
-            ).toISOString(),
-            createdAt: new Date(
-              now.getTime() - 4 * 60 * 60 * 1000,
-            ).toISOString(),
-            creditsUsed: 18,
-            durationMs: 420000,
-            error: 'Timeout while fetching insights',
-            id: 'run-2',
-            label: 'Audience Pulse',
-            metadata: {},
-            objective: 'Summarize audience signals',
-            organization: 'mock-org-id-e2e-test',
-            parentRun: undefined,
-            progress: 100,
-            retryCount: 1,
-            startedAt: new Date(
-              now.getTime() - 4 * 60 * 60 * 1000,
-            ).toISOString(),
-            status: 'failed',
-            strategy: 'strategy-1',
-            summary: 'Hit an analytics timeout',
-            toolCalls: [
-              {
-                creditsUsed: 5,
-                durationMs: 8000,
-                error: 'Timeout while fetching insights',
-                executedAt: new Date(
-                  now.getTime() - 4 * 60 * 60 * 1000,
-                ).toISOString(),
-                status: 'failed',
-                toolName: 'analytics',
-              },
-            ],
-            trigger: 'manual',
-            updatedAt: nowIso,
-            user: 'mock-user-id-e2e-test',
-          },
-          id: 'run-2',
-        },
-      ];
-
-      await route.fulfill({
-        body: JSON.stringify(buildJsonApiCollection('agent-runs', resources)),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    await route.continue();
-  });
-
-  await routeApiPattern(page, '/runs/stats**', async (route) => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({
-        body: JSON.stringify({
-          activeRuns: 1,
-          completedToday: 3,
-          failedToday: 1,
-          totalCreditsToday: 96,
-          totalRuns: 42,
-        }),
-        contentType: 'application/json',
-        status: 200,
-      });
-      return;
-    }
-
-    await route.continue();
-  });
-
-  await routeApiPattern(page, '/runs/active**', async (route) => {
-    if (route.request().method() === 'GET') {
-      await route.fulfill({
-        body: JSON.stringify(
-          buildJsonApiCollection('agent-runs', [
-            {
-              attributes: {
-                completedAt: null,
-                createdAt: nowIso,
-                creditsUsed: 12,
-                durationMs: 182000,
-                error: undefined,
-                id: 'run-active-1',
-                label: 'Launch Sprint',
-                metadata: {},
-                objective: 'Draft launch content',
-                organization: 'mock-org-id-e2e-test',
-                parentRun: undefined,
-                progress: 48,
-                retryCount: 0,
-                startedAt: nowIso,
-                status: 'running',
-                strategy: 'strategy-1',
-                summary: 'Generating launch assets',
-                toolCalls: [
-                  {
-                    creditsUsed: 4,
-                    durationMs: 6000,
-                    executedAt: nowIso,
-                    status: 'completed',
-                    toolName: 'research',
-                  },
-                ],
-                trigger: 'manual',
-                updatedAt: nowIso,
-                user: 'mock-user-id-e2e-test',
-              },
-              id: 'run-active-1',
-            },
-          ]),
-        ),
-        contentType: 'application/json',
-        status: 200,
       });
       return;
     }

@@ -1,10 +1,10 @@
+import type { AvatarVideoProviderName } from '@genfeedai/interfaces';
+import { Injectable, NotImplementedException } from '@nestjs/common';
 import type {
   AvatarVideoJobInput,
   AvatarVideoJobResult,
   AvatarVideoProvider,
 } from '@server/services/avatar-video/avatar-video-provider.interface';
-import type { AvatarVideoProviderName } from '@genfeedai/queue-contracts';
-import { Injectable, NotImplementedException } from '@nestjs/common';
 
 @Injectable()
 export class TavusAvatarProvider implements AvatarVideoProvider {

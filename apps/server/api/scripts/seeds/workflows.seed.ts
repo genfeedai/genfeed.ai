@@ -20,6 +20,7 @@ import { resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { isEntityId } from '@api-types/helpers/entity-id';
+import { GENFEED_ACTION_NODE_TYPE } from '@genfeedai/actions';
 import { WorkflowTrigger } from '@genfeedai/enums';
 import { PrismaClient } from '@genfeedai/prisma';
 import {
@@ -28,6 +29,7 @@ import {
 } from '@libs/prisma/prisma-pg-config';
 import { Logger } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { createVersionedWorkflow } from '@server/collections/workflows/workflow-version-definition';
 
 const logger = new Logger('WorkflowsSeed');
 const SUPPORTED_CLUSTERS = ['local', 'staging', 'production'] as const;
@@ -235,14 +237,14 @@ function buildNodeLabel(contentType: DefaultRecurringContentType): string {
   }
 }
 
-function buildNodeType(contentType: DefaultRecurringContentType): string {
+function buildActionId(contentType: DefaultRecurringContentType): string {
   switch (contentType) {
     case 'post':
-      return 'ai-generate-post';
+      return 'postGen';
     case 'newsletter':
-      return 'ai-generate-newsletter';
+      return 'newsletterGen';
     default:
-      return 'ai-generate-image';
+      return 'imageGen';
   }
 }
 
@@ -367,56 +369,63 @@ async function ensureDefaultBundle(params: {
           })
         : null;
 
-    await params.prisma.workflow.create({
-      data: {
-        brandId: params.brand.id,
-        description: buildWorkflowDescription(
-          contentType,
-          DEFAULT_RECURRING_SCHEDULE,
-          timezone,
-        ),
-        edges: [],
-        executionCount: 0,
-        inputVariables: [],
-        isDeleted: false,
-        isScheduleEnabled: true,
-        label: buildWorkflowLabel(params.brand.label, contentType),
-        metadata: {
-          createdFrom: 'system',
-          defaultRecurringContent: {
+    await params.prisma.$transaction(async (transaction) => {
+      await createVersionedWorkflow(
+        transaction,
+        {
+          brandId: params.brand.id,
+          description: buildWorkflowDescription(
             contentType,
-            managedBy: 'system',
-            origin: 'system',
-            version: 1,
-          },
-          taskType: 'default-recurring-content',
-        },
-        nodes: [
-          {
-            data: {
-              config: buildNodeConfig({
-                brandId: params.brand.id,
-                brandLabel: params.brand.label,
-                contentType,
-                credentialId: credential?.id,
-                timezone,
-              }),
-              label: buildNodeLabel(contentType),
+            DEFAULT_RECURRING_SCHEDULE,
+            timezone,
+          ),
+          executionCount: 0,
+          isDeleted: false,
+          isScheduleEnabled: true,
+          label: buildWorkflowLabel(params.brand.label, contentType),
+          metadata: {
+            createdFrom: 'system',
+            defaultRecurringContent: {
+              contentType,
+              managedBy: 'system',
+              origin: 'system',
+              version: 1,
             },
-            id: `generate-${contentType}`,
-            position: { x: 120, y: 120 },
-            type: buildNodeType(contentType),
+            taskType: 'default-recurring-content',
           },
-        ],
-        organizationId: params.brand.organizationId,
-        progress: 0,
-        schedule: DEFAULT_RECURRING_SCHEDULE,
-        status: 'active',
-        steps: [],
-        timezone,
-        trigger: WorkflowTrigger.SCHEDULED,
-        userId: params.userId,
-      },
+          organizationId: params.brand.organizationId,
+          progress: 0,
+          schedule: DEFAULT_RECURRING_SCHEDULE,
+          status: 'active',
+          timezone,
+          trigger: WorkflowTrigger.SCHEDULED,
+          userId: params.userId,
+        },
+        {
+          edges: [],
+          inputVariables: [],
+          nodes: [
+            {
+              data: {
+                config: {
+                  actionId: buildActionId(contentType),
+                  parameters: buildNodeConfig({
+                    brandId: params.brand.id,
+                    brandLabel: params.brand.label,
+                    contentType,
+                    credentialId: credential?.id,
+                    timezone,
+                  }),
+                },
+                label: buildNodeLabel(contentType),
+              },
+              id: `generate-${contentType}`,
+              position: { x: 120, y: 120 },
+              type: GENFEED_ACTION_NODE_TYPE,
+            },
+          ],
+        },
+      );
     });
   }
 

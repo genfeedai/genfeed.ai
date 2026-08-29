@@ -1,5 +1,3 @@
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { SystemWorkflowProvenanceService } from '@server/collections/workflows/system-workflow-provenance.service';
 import {
   CredentialPlatform,
   PostCategory,
@@ -10,6 +8,8 @@ import {
 import { PublishApprovalsService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-recurrence-materializer.service';
 
@@ -31,8 +31,10 @@ describe('PostRepeatSchedulerService', () => {
     materializeNext: ReturnType<typeof vi.fn>;
     shouldMaterialize: ReturnType<typeof vi.fn>;
   };
-  let systemWorkflowProvenanceService: {
-    runAction: ReturnType<typeof vi.fn>;
+  let systemWorkflowRunner: {
+    registerAction: ReturnType<typeof vi.fn>;
+    registerWorkflow: ReturnType<typeof vi.fn>;
+    runWorkflow: ReturnType<typeof vi.fn>;
   };
 
   const basePost = {
@@ -73,16 +75,13 @@ describe('PostRepeatSchedulerService', () => {
       }),
       shouldMaterialize: vi.fn().mockResolvedValue(false),
     };
-    systemWorkflowProvenanceService = {
-      runAction: vi.fn(
-        async (
-          _input: unknown,
-          action: (provenance: { executionId: string }) => Promise<unknown>,
-        ) => {
-          const provenance = { executionId: 'execution-1' };
-          return { provenance, result: await action(provenance) };
-        },
-      ),
+    systemWorkflowRunner = {
+      registerAction: vi.fn(),
+      registerWorkflow: vi.fn(),
+      runWorkflow: vi.fn().mockResolvedValue({
+        provenance: { executionId: 'execution-1' },
+        result: { occurrenceId: 'release-2', status: 'created' },
+      }),
     };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -107,8 +106,8 @@ describe('PostRepeatSchedulerService', () => {
           useValue: publishApprovalsService,
         },
         {
-          provide: SystemWorkflowProvenanceService,
-          useValue: systemWorkflowProvenanceService,
+          provide: SystemWorkflowRunnerService,
+          useValue: systemWorkflowRunner,
         },
         {
           provide: ReleaseRecurrenceMaterializerService,
@@ -408,20 +407,15 @@ describe('PostRepeatSchedulerService', () => {
       userId: 'user-1',
     } as never);
 
-    expect(systemWorkflowProvenanceService.runAction).toHaveBeenCalledWith(
+    expect(systemWorkflowRunner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
-        actionType: 'expand-evergreen-release',
-        canonicalId: 'evergreen-release-expansion',
+        actionType: 'evergreen.release.expand',
+        canonicalId: 'evergreen.release.expand',
         organizationId: 'organization-1',
       }),
-      expect.any(Function),
     );
     expect(
       releaseRecurrenceMaterializerService.materializeNext,
-    ).toHaveBeenCalledWith({
-      groupId: 'release-1',
-      organizationId: 'organization-1',
-      workflowExecutionId: 'execution-1',
-    });
+    ).not.toHaveBeenCalled();
   });
 });

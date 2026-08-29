@@ -1,4 +1,4 @@
-import { AgentExecutionTrigger } from '@genfeedai/enums';
+import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentRuntimeService } from './agent-runtime.service';
 
@@ -7,11 +7,8 @@ describe('AgentRuntimeService', () => {
     log: vi.fn(),
     warn: vi.fn(),
   };
-  const agentRunsService = {
-    create: vi.fn(),
-  };
-  const agentRunQueueService = {
-    queueRun: vi.fn(),
+  const workflowRunner = {
+    enqueueWorkflow: vi.fn(),
   };
   const agentThreadsService = {
     create: vi.fn(),
@@ -26,17 +23,17 @@ describe('AgentRuntimeService', () => {
     vi.clearAllMocks();
     service = new AgentRuntimeService(
       logger as never,
-      agentRunsService as never,
-      agentRunQueueService as never,
       agentThreadsService as never,
+      workflowRunner as never,
       agentThreadEngineService as never,
     );
   });
 
-  it('startTurn creates thread, run, queues execution, and appends turn_requested', async () => {
+  it('startTurn creates a thread, enqueues the agent-turn workflow, and appends turn_requested', async () => {
     agentThreadsService.create.mockResolvedValue({ id: 'thread-1' });
-    agentRunsService.create.mockResolvedValue({ id: 'run-1' });
-    agentRunQueueService.queueRun.mockResolvedValue(undefined);
+    workflowRunner.enqueueWorkflow.mockResolvedValue({
+      executionId: 'execution-1',
+    });
     agentThreadEngineService.appendEvent.mockResolvedValue(undefined);
 
     const handle = await service.startTurn({
@@ -46,16 +43,20 @@ describe('AgentRuntimeService', () => {
       campaignId: 'campaign-1',
       creditBudget: 12,
       label: 'Campaign run: Spring Push - Specialist',
+      metadata: { clientRequestId: 'client-1' },
       model: 'openai/gpt-5.6-terra',
       objective: 'Grow engagement',
       organizationId: 'org-1',
       strategyId: 'strategy-1',
       threadTitle: 'Spring Push · Specialist',
-      trigger: AgentExecutionTrigger.CRON,
+      trigger: WorkflowExecutionTrigger.SCHEDULED,
       userId: 'user-1',
     });
 
-    expect(handle).toEqual({ runId: 'run-1', threadId: 'thread-1' });
+    expect(handle).toEqual({
+      executionId: 'execution-1',
+      threadId: 'thread-1',
+    });
     expect(agentThreadsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         organizationId: 'org-1',
@@ -64,34 +65,36 @@ describe('AgentRuntimeService', () => {
         userId: 'user-1',
       }),
     );
-    expect(agentRunsService.create).toHaveBeenCalledWith(
+    expect(workflowRunner.enqueueWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
+        actionType: 'agent.turn.execute',
+        canonicalId: 'agent.turn.execute',
+        // The turn is deduped on the caller-supplied client request id, so a
+        // retried enqueue rejoins the execution it already created.
+        idempotencyKey: 'agent.turn.execute:org-1:user-1:client-1',
+        inputValues: {
+          request: expect.objectContaining({
+            agentType: 'general',
+            brandId: 'brand-1',
+            campaignId: 'campaign-1',
+            content: 'Grow engagement',
+            creditBudget: 12,
+            strategyId: 'strategy-1',
+            threadId: 'thread-1',
+          }),
+        },
         metadata: expect.objectContaining({
-          campaignId: 'campaign-1',
           source: 'campaign',
           threadId: 'thread-1',
         }),
-        objective: 'Grow engagement',
         organizationId: 'org-1',
-        strategyId: 'strategy-1',
-        threadId: 'thread-1',
-        userId: 'user-1',
-      }),
-    );
-    expect(agentRunQueueService.queueRun).toHaveBeenCalledWith(
-      expect.objectContaining({
-        campaignId: 'campaign-1',
-        organizationId: 'org-1',
-        runId: 'run-1',
-        strategyId: 'strategy-1',
-        threadId: 'thread-1',
         userId: 'user-1',
       }),
     );
     expect(agentThreadEngineService.appendEvent).toHaveBeenCalledWith(
       expect.objectContaining({
+        commandId: 'turn-requested:execution-1',
         organizationId: 'org-1',
-        runId: 'run-1',
         threadId: 'thread-1',
         type: 'thread.turn_requested',
         userId: 'user-1',
@@ -99,10 +102,32 @@ describe('AgentRuntimeService', () => {
     );
   });
 
+  it('startTurn omits the idempotency key when no client request id is supplied', async () => {
+    agentThreadsService.create.mockResolvedValue({ id: 'thread-1' });
+    workflowRunner.enqueueWorkflow.mockResolvedValue({
+      executionId: 'execution-1',
+    });
+    agentThreadEngineService.appendEvent.mockResolvedValue(undefined);
+
+    await service.startTurn({
+      label: 'Campaign run',
+      objective: 'Grow engagement',
+      organizationId: 'org-1',
+      strategyId: 'strategy-1',
+      trigger: WorkflowExecutionTrigger.SCHEDULED,
+      userId: 'user-1',
+    });
+
+    expect(workflowRunner.enqueueWorkflow).toHaveBeenCalledWith(
+      expect.not.objectContaining({ idempotencyKey: expect.anything() }),
+    );
+  });
+
   it('startTurn continues when thread event append fails', async () => {
     agentThreadsService.create.mockResolvedValue({ id: 'thread-1' });
-    agentRunsService.create.mockResolvedValue({ id: 'run-1' });
-    agentRunQueueService.queueRun.mockResolvedValue(undefined);
+    workflowRunner.enqueueWorkflow.mockResolvedValue({
+      executionId: 'execution-1',
+    });
     agentThreadEngineService.appendEvent.mockRejectedValue(
       new Error('append failed'),
     );
@@ -112,11 +137,14 @@ describe('AgentRuntimeService', () => {
       objective: 'Grow engagement',
       organizationId: 'org-1',
       strategyId: 'strategy-1',
-      trigger: AgentExecutionTrigger.CRON,
+      trigger: WorkflowExecutionTrigger.SCHEDULED,
       userId: 'user-1',
     });
 
-    expect(handle).toEqual({ runId: 'run-1', threadId: 'thread-1' });
+    expect(handle).toEqual({
+      executionId: 'execution-1',
+      threadId: 'thread-1',
+    });
     expect(logger.warn).toHaveBeenCalled();
   });
 });

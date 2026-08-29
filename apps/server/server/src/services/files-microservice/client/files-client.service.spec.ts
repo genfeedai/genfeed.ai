@@ -611,6 +611,20 @@ describe('FilesClientService', () => {
     });
   });
 
+  describe('deleteStoredObject', () => {
+    it('deletes one full storage key through the files service', async () => {
+      const { post, service } = createHarness();
+      post.mockReturnValue(of({ data: { deleted: true } }));
+
+      await expect(
+        service.deleteStoredObject('videos/source.mp4'),
+      ).resolves.toBeUndefined();
+      expect(post).toHaveBeenCalledWith(`${BASE}/v1/files/delete`, {
+        storageKey: 'videos/source.mp4',
+      });
+    });
+  });
+
   describe('splitImage', () => {
     it('decodes every returned frame back to a buffer', async () => {
       const { post, service } = createHarness();

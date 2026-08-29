@@ -508,11 +508,18 @@ export class WorkflowTrendPublishExecutorRegistrarService {
     if (this.prismaService && params.workflowId) {
       try {
         const workflowDoc = await this.prismaService.workflow.findFirst({
-          select: { nodes: true },
+          select: {
+            currentVersion: { select: { graph: true } },
+          },
           where: { id: params.workflowId, isDeleted: false },
         });
-        const nodes = Array.isArray(workflowDoc?.nodes)
-          ? (workflowDoc.nodes as Array<{ type?: string }>)
+        const graph = workflowDoc?.currentVersion?.graph;
+        const graphNodes =
+          graph !== null && typeof graph === 'object' && !Array.isArray(graph)
+            ? (graph as { nodes?: unknown }).nodes
+            : undefined;
+        const nodes = Array.isArray(graphNodes)
+          ? (graphNodes as Array<{ type?: string }>)
           : [];
         isPostPublishWorkflow = nodes.some(
           (node) => node.type === 'postPublishTrigger',

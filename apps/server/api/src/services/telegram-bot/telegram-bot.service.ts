@@ -3,36 +3,31 @@
  *
  * Workflow execution bot using grammy. Allows users to browse and execute
  * GenFeed workflows via Telegram with conversational input collection.
- * Wired to the real WorkflowEngine for actual execution via Replicate.
+ * Uses the shared immutable workflow engine and Genfeed action executors.
  *
  * Separate from the existing TelegramService (social auth integration).
  *
  * This service owns the bot lifecycle and transport (polling/webhook) and wires
  * handlers to its collaborators:
- *  - {@link TelegramRunCommandsService} — run control-plane commands + auth
+ *  - {@link TelegramAuthContextService} — per-chat authentication context
  *  - {@link TelegramConversationService} — conversational workflow runner
  *  - {@link TelegramWorkflowRunnerService} — workflow execution + results
  */
 
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
-import { RunsService } from '@api/collections/runs/services/runs.service';
+import { TelegramAuthContextService } from '@api/services/telegram-bot/telegram-auth-context.service';
 import {
   TELEGRAM_BOT_CONSTANTS,
   TELEGRAM_BOT_ENV,
 } from '@api/services/telegram-bot/telegram-bot.constants';
 import type { WorkflowJson } from '@api/services/telegram-bot/telegram-bot.types';
-import { extractCommandArgs } from '@api/services/telegram-bot/telegram-command-args.util';
 import { TelegramConversationService } from '@api/services/telegram-bot/telegram-conversation.service';
 import { TelegramMessageHandlerService } from '@api/services/telegram-bot/telegram-message-handler.service';
-import { TelegramRunCommandsService } from '@api/services/telegram-bot/telegram-run-commands.service';
-import { registerWorkflowExecutors } from '@api/services/telegram-bot/telegram-workflow-executors';
-import { loadTelegramWorkflows } from '@api/services/telegram-bot/telegram-workflow-loader';
-import { TelegramWorkflowRunnerService } from '@api/services/telegram-bot/telegram-workflow-runner.service';
-import { ParseMode, RunAuthType } from '@genfeedai/enums';
 import {
-  createWorkflowEngine,
-  type WorkflowEngine,
-} from '@genfeedai/workflows/engine';
+  loadTelegramWorkflows,
+  toTelegramSystemWorkflowDefinition,
+} from '@api/services/telegram-bot/telegram-workflow-loader';
+import { TelegramWorkflowRunnerService } from '@api/services/telegram-bot/telegram-workflow-runner.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -41,9 +36,9 @@ import {
   type OnModuleInit,
   Optional,
 } from '@nestjs/common';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
-import { FalService } from '@server/services/integrations/fal/services/fal.service';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { Bot, type Context } from 'grammy';
 
 @Injectable()
@@ -51,9 +46,8 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
   private bot: Bot | null = null;
   private allowedUserIds: Set<number> = new Set();
   private isRunning = false;
-  private engine: WorkflowEngine | null = null;
 
-  private readonly runCommands: TelegramRunCommandsService;
+  private readonly authContexts: TelegramAuthContextService;
   private readonly runner: TelegramWorkflowRunnerService;
   private readonly conversation: TelegramConversationService;
   private readonly messageHandler: TelegramMessageHandlerService;
@@ -61,29 +55,22 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
-    private readonly replicateService: ReplicateService,
-    @Optional() private readonly falService?: FalService,
-    @Optional() private readonly runsService?: RunsService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
+    private readonly prisma: PrismaService,
     @Optional() private readonly apiKeysService?: ApiKeysService,
     @Optional() private readonly filesClientService?: FilesClientService,
   ) {
-    this.runCommands = new TelegramRunCommandsService(
-      this.loggerService,
-      this.runsService,
-      this.apiKeysService,
-    );
+    this.authContexts = new TelegramAuthContextService(this.apiKeysService);
     this.runner = new TelegramWorkflowRunnerService(
       this.loggerService,
-      (chatId) => this.runCommands.resolveAuthContext(chatId),
+      this.systemWorkflowRunner,
+      this.prisma,
+      (chatId) => this.authContexts.resolveAuthContext(chatId),
     );
-    this.conversation = new TelegramConversationService(
-      this.loggerService,
-      this.runner,
-    );
+    this.conversation = new TelegramConversationService(this.runner);
     this.messageHandler = new TelegramMessageHandlerService(
       this.loggerService,
       this.conversation,
-      this.runCommands,
       this.filesClientService,
     );
   }
@@ -133,21 +120,18 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
       TELEGRAM_BOT_ENV.DEFAULT_USER_ID,
     );
     if (defaultOrganizationId && defaultUserId) {
-      this.runCommands.setDefaultAuthContext({
-        authType: RunAuthType.BETTER_AUTH,
+      this.authContexts.setDefaultAuthContext({
+        authType: 'better_auth',
         organizationId: String(defaultOrganizationId),
         userId: String(defaultUserId),
       });
       this.loggerService.log(
-        'TelegramBotService: default org/user context enabled for run commands',
+        'TelegramBotService: default org/user context enabled for workflows',
       );
     }
 
     // Load workflows
     await this.loadWorkflows();
-
-    // Initialize workflow engine with executors
-    this.initializeEngine();
 
     // Create bot
     this.bot = new Bot(String(token));
@@ -165,30 +149,14 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     this.stopBot();
   }
 
-  /** Initialize the WorkflowEngine with executors for each node type. */
-  private initializeEngine() {
-    this.engine = createWorkflowEngine({
-      maxConcurrency: 1,
-      retryConfig: {
-        backoffMultiplier: 2,
-        baseDelayMs: 2000,
-        maxDelayMs: 30000,
-        maxRetries: 2,
-      },
-    });
-
-    registerWorkflowExecutors(this.engine, {
-      falService: this.falService,
-      loggerService: this.loggerService,
-      replicateService: this.replicateService,
-    });
-
-    this.conversation.attachEngine(this.engine);
-  }
-
-  /** Load workflow JSONs from the core workflows package. */
+  /** Load action-backed recipes and register hidden system workflows. */
   private async loadWorkflows() {
     const workflows = await loadTelegramWorkflows(this.loggerService);
+    for (const [workflowId, workflow] of workflows) {
+      this.systemWorkflowRunner.registerWorkflow(
+        toTelegramSystemWorkflowDefinition(workflowId, workflow),
+      );
+    }
     this.conversation.setWorkflows(workflows);
   }
 
@@ -221,19 +189,8 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
       await next();
     });
 
-    // Run control-plane commands
     this.bot.command(COMMANDS.CONNECT, (ctx) =>
-      this.runCommands.handleConnect(ctx),
-    );
-    this.bot.command(COMMANDS.GENERATE, (ctx) =>
-      this.handleGenerateCommand(ctx),
-    );
-    this.bot.command(COMMANDS.POST, (ctx) => this.handlePostCommand(ctx));
-    this.bot.command(COMMANDS.ANALYTICS, (ctx) =>
-      this.runCommands.runAnalytics(ctx, extractCommandArgs(ctx)),
-    );
-    this.bot.command(COMMANDS.RUN, (ctx) =>
-      this.runCommands.runComposite(ctx, extractCommandArgs(ctx)),
+      this.authContexts.handleConnect(ctx),
     );
 
     // /start and /workflows - list available workflows
@@ -253,7 +210,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
       this.conversation.handleCancelCommand(ctx),
     );
 
-    // /status - bot or run status
+    // /status - workflow bot status for this chat
     this.bot.command(COMMANDS.STATUS, (ctx) => this.handleStatusCommand(ctx));
 
     // Callback queries (inline keyboard buttons)
@@ -276,66 +233,24 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     this.bot.on('message:text', (ctx) => this.messageHandler.handleText(ctx));
   }
 
-  /** /generate - generate content, optionally from a pending reference image. */
-  private async handleGenerateCommand(ctx: Context): Promise<void> {
-    const prompt = extractCommandArgs(ctx);
-    if (!prompt) {
-      await ctx.reply('Usage: `/generate <prompt>`', {
-        parse_mode: ParseMode.MARKDOWN,
-      });
-      return;
-    }
-
-    const chatId = ctx.chat?.id;
-    const pendingImageUrl =
-      typeof chatId === 'number'
-        ? this.conversation.takePendingImage(chatId)
-        : undefined;
-
-    await this.runCommands.runGenerate(ctx, { pendingImageUrl, prompt });
-  }
-
-  /** /post - publish content. */
-  private async handlePostCommand(ctx: Context): Promise<void> {
-    const postInput = extractCommandArgs(ctx);
-    if (!postInput) {
-      await ctx.reply('Usage: `/post <content|asset_id|draft_id>`', {
-        parse_mode: ParseMode.MARKDOWN,
-      });
-      return;
-    }
-
-    await this.runCommands.runPost(ctx, postInput);
-  }
-
-  /** /status - report bot status, or a specific run's status when given an id. */
+  /** /status - report workflow-bot status for this chat. */
   private async handleStatusCommand(ctx: Context): Promise<void> {
-    const args = extractCommandArgs(ctx);
-    if (args) {
-      await this.runCommands.getRunStatus(ctx, args);
-      return;
-    }
-
     const chatId = ctx.chat?.id;
-    const { statusLine, hasPendingImage } =
-      this.conversation.describeStatus(chatId);
+    const { statusLine } = this.conversation.describeStatus(chatId);
     const connectedContext = chatId
-      ? this.runCommands.resolveAuthContext(chatId)
+      ? this.authContexts.resolveAuthContext(chatId)
       : null;
 
     await ctx.reply(
       `🤖 GenFeed Bot\n` +
         `📦 Workflows loaded: ${this.conversation.workflowsLoaded()}\n` +
         `💬 Active conversations: ${this.conversation.getActiveCount()}\n` +
-        `🖼 Pending image prompt: ${
-          chatId ? (hasPendingImage ? 'yes' : 'no') : 'n/a'
-        }\n` +
         `🔐 Chat context: ${
           connectedContext
             ? `${connectedContext.authType} (${connectedContext.organizationId})`
             : 'not connected'
         }\n` +
-        `🔧 Engine: ${this.engine ? 'Ready' : 'Not initialized'}\n` +
+        `🔧 Workflow engine: Shared\n` +
         `📍 Your status: ${statusLine}\n` +
         `✅ Status: Running`,
     );
@@ -386,9 +301,9 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     return {
       activeConversations: this.conversation.getActiveCount(),
       allowedUsers: this.allowedUserIds.size,
-      connectedChats: this.runCommands.getConnectedChatCount(),
-      engineReady: !!this.engine,
-      hasDefaultContext: this.runCommands.hasDefaultContext(),
+      connectedChats: this.authContexts.getConnectedChatCount(),
+      engineReady: this.conversation.workflowsLoaded() > 0,
+      hasDefaultContext: this.authContexts.hasDefaultContext(),
       running: this.isRunning,
       workflowsLoaded: this.conversation.workflowsLoaded(),
     };

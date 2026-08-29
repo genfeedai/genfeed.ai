@@ -79,7 +79,6 @@ const SCHEDULER_POST_GROUP_SELECT = {
 const SCHEDULER_POST_TARGET_SELECT = {
   agentContextSource: true,
   agentContextVersion: true,
-  agentRunId: true,
   agentStrategyId: true,
   agentThreadId: true,
   analyticsCollectedAt: true,
@@ -235,8 +234,8 @@ export class PostGroupPersistenceService {
           ...(params.provenance?.agentContextVersion !== undefined && {
             agentContextVersion: params.provenance.agentContextVersion,
           }),
-          ...(params.provenance?.agentRunId && {
-            agentRunId: params.provenance.agentRunId,
+          ...(params.provenance?.workflowExecutionId && {
+            workflowExecutionId: params.provenance.workflowExecutionId,
           }),
           ...(params.provenance?.agentStrategyId && {
             agentStrategyId: params.provenance.agentStrategyId,

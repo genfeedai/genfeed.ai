@@ -1,4 +1,3 @@
-import { SYSTEM_WORKFLOW_ACTION_DEFINITIONS } from '@server/collections/workflows/system-workflow-provenance.service';
 import {
   SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE,
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
@@ -55,7 +54,6 @@ export type SystemWorkflowCatalogEntry = {
   nodes: NonNullable<WorkflowTemplate['nodes']>;
   schedule?: string;
   sourceIssue: number;
-  steps: WorkflowTemplate['steps'];
   timezone: string;
   version: number;
 };
@@ -167,45 +165,9 @@ function toCatalogEntry(
     nodes: template.nodes ?? [],
     schedule,
     sourceIssue: source.sourceIssue,
-    steps: template.steps ?? [],
     timezone: template.timezone ?? 'UTC',
     version,
   };
-}
-
-function systemActionCatalogEntries(): SystemWorkflowCatalogEntry[] {
-  return SYSTEM_WORKFLOW_ACTION_DEFINITIONS.map((definition) => {
-    return {
-      canonicalId: definition.canonicalId,
-      category: 'system-action',
-      changeSummary:
-        definition.changeSummary ?? SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
-      description: definition.description,
-      edges: [],
-      family: 'system-action' as const,
-      // Product code creates these on demand; catalog lists them for inspect.
-      installable: false,
-      inputVariables: [],
-      isScheduleEnabled: false,
-      label: definition.label,
-      nodes: [
-        {
-          data: {
-            config: { canonicalId: definition.canonicalId },
-            label: definition.label,
-          },
-          id: 'system-action',
-          position: { x: 0, y: 120 },
-          type: 'systemWorkflowAction',
-        },
-      ],
-      schedule: definition.schedule,
-      sourceIssue: SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE,
-      steps: [],
-      timezone: 'UTC',
-      version: definition.version ?? SYSTEM_WORKFLOW_TEMPLATE_VERSION,
-    };
-  });
 }
 
 let cachedCatalog: readonly SystemWorkflowCatalogEntry[] | null = null;
@@ -222,8 +184,6 @@ export function listSystemWorkflowCatalog(): readonly SystemWorkflowCatalogEntry
       entries.push(toCatalogEntry(template, source));
     }
   }
-
-  entries.push(...systemActionCatalogEntries());
 
   cachedCatalog = entries;
   return cachedCatalog;

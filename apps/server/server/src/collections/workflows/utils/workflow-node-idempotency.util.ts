@@ -40,8 +40,9 @@ export function resolveNodeClaimDecision(
 }
 
 /**
- * In-memory claim map used by unit tests and lightweight single-process
- * guards. Production path uses durable `workflow_executions.result.nodeResults`.
+ * In-memory claim map used as a same-process concurrency guard. The production
+ * retry contract is owned by durable WorkflowNodeClaim rows and persisted node
+ * results; callers release these transient claims when one graph pass ends.
  */
 export function claimNodeOnce(
   claims: Map<string, NodeClaimRecord>,

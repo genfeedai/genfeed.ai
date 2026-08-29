@@ -89,7 +89,7 @@ export function shouldApplyVideoGenerationGate(input: {
 }
 
 /**
- * Pilot runs reuse the existing `videoGen` / `generateVideo` cost. There is no
+ * Pilot runs reuse the canonical `videoGen` action cost. There is no
  * `videoPilot` key in `DEFAULT_CREDIT_COSTS` — charge is `base * duration / reference`.
  */
 export function scaleVideoGenerationCredits(

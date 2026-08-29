@@ -22,7 +22,6 @@ export const socialMessageAttributes = createEntityAttributes([
   'sourceUrl',
   'idempotencyKey',
   'workflowRunId',
-  'agentRunId',
   'workflowTriggerStatus',
   'workflowTriggerJobId',
   'workflowTriggerError',

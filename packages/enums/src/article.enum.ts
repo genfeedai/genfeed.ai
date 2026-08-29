@@ -41,18 +41,10 @@ export enum ArticleCategory {
   ANALYSIS = 'analysis',
   REVIEW = 'review',
   INTERVIEW = 'interview',
-  TRANSCRIPT = 'transcript',
+  ARTICLE = 'article',
   WHITEPAPER = 'whitepaper',
   ESSAY = 'essay',
   LISTICLE = 'listicle',
+  LINKEDIN_ARTICLE = 'linkedin-article',
   X_ARTICLE = 'x-article',
-}
-
-export enum TranscriptStatus {
-  PENDING = 'pending',
-  DOWNLOADING = 'downloading',
-  TRANSCRIBING = 'transcribing',
-  GENERATING_ARTICLE = 'generating-article',
-  GENERATED = 'generated',
-  FAILED = 'failed',
 }

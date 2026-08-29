@@ -20,7 +20,7 @@ import type {
   PopulateOption,
 } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
-import { PostPublishQueueService, scopedWhere } from '@genfeedai/server';
+import { scopedWhere } from '@genfeedai/server';
 import type { IOnboardingJourneyMissionState } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
@@ -39,6 +39,7 @@ import {
   type PostBatchScheduleTarget,
 } from '@server/collections/posts/services/post-batch-schedule.util';
 import { bindScheduledPublishApproval } from '@server/collections/posts/services/post-schedule-approval.util';
+import { ScheduledPostWorkflowQueueService } from '@server/collections/posts/services/scheduled-post-workflow-queue.service';
 import { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
 import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 import { CacheService } from '@server/services/cache/cache.service';
@@ -97,7 +98,7 @@ type ContentMentionPostRecord = {
 export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   agentContextSource?: string;
   agentContextVersion?: number;
-  agentRunId?: string;
+  workflowExecutionId?: string;
   agentStrategyId?: string;
   agentThreadId?: string;
   brandId?: string;
@@ -136,7 +137,6 @@ type PostUpdateInput = Partial<UpdatePostDto> & {
 const POST_SCALAR_FIELDS = [
   'agentContextSource',
   'agentContextVersion',
-  'agentRunId',
   'agentStrategyId',
   'agentThreadId',
   'analyticsCollectedAt',
@@ -235,7 +235,7 @@ export class PostsService extends BaseService<
     @Optional()
     private readonly publishApprovalsService?: PublishApprovalsService,
     @Optional()
-    private readonly postPublishQueueService?: PostPublishQueueService,
+    private readonly scheduledPostWorkflowQueue?: ScheduledPostWorkflowQueueService,
   ) {
     super(prisma, 'post', logger, undefined, cacheService);
   }
@@ -658,7 +658,7 @@ export class PostsService extends BaseService<
         normalizeData: (data) =>
           this.normalizeData(data) as Record<string, unknown>,
         normalizeDocument: (document) => this.normalizeDocument(document),
-        postPublishQueueService: this.postPublishQueueService,
+        scheduledPostWorkflowQueue: this.scheduledPostWorkflowQueue,
         prisma: this.prisma,
         publishApprovalsService: this.publishApprovalsService,
       },
@@ -678,7 +678,7 @@ export class PostsService extends BaseService<
     await bindScheduledPublishApproval({
       actorUserId,
       post,
-      postPublishQueueService: this.postPublishQueueService,
+      scheduledPostWorkflowQueue: this.scheduledPostWorkflowQueue,
       publishApprovalsService: this.publishApprovalsService,
     });
   }

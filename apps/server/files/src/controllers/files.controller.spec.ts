@@ -183,6 +183,7 @@ describe('FilesController', () => {
   };
 
   const mockUploadService = {
+    deleteStoredObject: vi.fn().mockResolvedValue(undefined),
     uploadToS3: vi.fn().mockResolvedValue({
       key: 'ingredients/video/uploaded-file.mp4',
       publicUrl: 'https://s3.amazonaws.com/uploaded-file.mp4',
@@ -394,6 +395,8 @@ describe('FilesController', () => {
       cleanupTempFiles:
         metadataController.cleanupTempFiles.bind(metadataController),
       copyFile: storageController.copyFile.bind(storageController),
+      deleteStoredObject:
+        storageController.deleteStoredObject.bind(storageController),
       downloadFile: storageController.downloadFile.bind(storageController),
       generateThumbnail:
         processingController.generateThumbnail.bind(processingController),

@@ -1,5 +1,9 @@
-import type { RouterPriority } from '@genfeedai/enums';
-import { ActionOrigin } from '@genfeedai/enums';
+import { getToolByName } from '@genfeedai/actions';
+import {
+  ActionOrigin,
+  type RouterPriority,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
 import type {
   AgentToolResult,
   ValidatedAgentScope,
@@ -11,7 +15,8 @@ import {
   runWithActionOrigin,
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import {
   type ApiKeyPublishingContext,
   assertApiKeyAgentPublishingScope as assertScope,
@@ -41,6 +46,10 @@ import { AgentRouteRewriteService } from '@server/services/agent-orchestrator/to
 import { AgentSpawnToolHandler } from '@server/services/agent-orchestrator/tools/agent-spawn-tool-handler.service';
 import { AgentToolCatalogHandler } from '@server/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
 import { readOptionalString } from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import {
+  AGENT_TOOL_WORKFLOW_DEFINITIONS,
+  findAgentToolWorkflowDefinition,
+} from '@server/services/agent-orchestrator/tools/agent-tool-workflow-definition';
 import { AgentTransferToolHandler } from '@server/services/agent-orchestrator/tools/agent-transfer-tool-handler.service';
 import { AgentTrendsToolHandler } from '@server/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
 import { AgentWorkflowToolHandler } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
@@ -71,7 +80,7 @@ export interface ToolExecutionContext {
   };
   brandId?: string;
   platform?: string;
-  /** Agent run ID for content attribution */
+  /** Owning workflow execution id, used for content attribution */
   runId?: string;
   /** Durable identity of the confirmed conversation action. */
   sourceActionId?: string;
@@ -124,7 +133,7 @@ const BRANDLESS_AGENT_TOOLS = new Set<AgentToolName>([
  * Thin agent tool router. Tool families live in dedicated handlers (#519).
  */
 @Injectable()
-export class AgentToolExecutorService {
+export class AgentToolExecutorService implements OnModuleInit {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
@@ -157,7 +166,54 @@ export class AgentToolExecutorService {
     private readonly agentScopeContextService?: AgentScopeContextService,
     @Optional()
     private readonly transferHandler?: AgentTransferToolHandler,
+    @Optional()
+    private readonly systemWorkflowRunner?: SystemWorkflowRunnerService,
   ) {}
+
+  onModuleInit(): void {
+    const runner = this.requireWorkflowRunner();
+    for (const toolName of Object.values(AgentToolName)) {
+      const definition = getToolByName(toolName);
+      if (
+        !definition ||
+        (!definition.surfaces.agent && !definition.surfaces.mcp)
+      ) {
+        continue;
+      }
+      runner.registerAction(
+        toolName,
+        async ({ context: workflowContext, input, runtimeContext }) => {
+          const liveContext =
+            runtimeContext &&
+            typeof runtimeContext === 'object' &&
+            !Array.isArray(runtimeContext)
+              ? (runtimeContext as ToolExecutionContext)
+              : undefined;
+          if (!liveContext) {
+            throw new Error(
+              `Agent tool ${toolName} requires its authenticated runtime context`,
+            );
+          }
+          const result = await this.executeToolWithActionOrigin(
+            toolName,
+            input,
+            {
+              ...liveContext,
+              organizationId: workflowContext.organizationId,
+              userId: workflowContext.userId,
+            },
+          );
+          // A fail-closed tool result is a completed action that returned a
+          // remediation envelope — the workflow node keeps its `data` and
+          // `nextActions` instead of collapsing them into a thrown message.
+          return result;
+        },
+      );
+    }
+    for (const definition of AGENT_TOOL_WORKFLOW_DEFINITIONS) {
+      runner.registerWorkflow(definition);
+    }
+  }
 
   async executeTool(
     toolName: AgentToolName,
@@ -165,10 +221,48 @@ export class AgentToolExecutorService {
     context: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     assertScope(context.apiKeyContext ?? {}, toolName, parameters);
-    return runWithActionOrigin(
-      resolveNestedActionOrigin(ActionOrigin.AGENT),
-      () => this.executeToolWithActionOrigin(toolName, parameters, context),
-    );
+    try {
+      return await runWithActionOrigin(
+        resolveNestedActionOrigin(ActionOrigin.AGENT),
+        async () => {
+          const definition = findAgentToolWorkflowDefinition(toolName);
+          const { result } =
+            await this.requireWorkflowRunner().runWorkflow<AgentToolResult>({
+              actionType: toolName,
+              canonicalId: definition.canonicalId,
+              inputValues: {
+                parameters,
+              },
+              metadata: {
+                brandId: context.brandId,
+                origin: 'agent',
+                threadId: context.threadId,
+              },
+              organizationId: context.organizationId,
+              runtimeContext: context,
+              source: 'AgentToolExecutorService.executeTool',
+              trigger: WorkflowExecutionTrigger.API,
+              userId: context.userId,
+            });
+          return result;
+        },
+      );
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.loggerService.error(
+        `Tool ${toolName} workflow failed: ${errorMessage}`,
+        this.constructorName,
+      );
+      return { creditsUsed: 0, error: errorMessage, success: false };
+    }
+  }
+
+  private requireWorkflowRunner(): SystemWorkflowRunnerService {
+    if (!this.systemWorkflowRunner) {
+      throw new Error('Workflow action runner is unavailable');
+    }
+    return this.systemWorkflowRunner;
   }
 
   private async executeToolWithActionOrigin(

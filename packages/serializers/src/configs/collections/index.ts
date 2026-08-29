@@ -3,7 +3,6 @@ export * from '@serializers/configs/collections/model-catalog.config';
 export * from '@serializers/configs/collections/platform-setting.config';
 export * from '@serializers/configs/collections/prompt.config';
 export * from '@serializers/configs/collections/role.config';
-export * from '@serializers/configs/collections/run.config';
 export * from '@serializers/configs/collections/training.config';
 export * from '@serializers/configs/collections/trend.config';
 export * from '@serializers/configs/collections/vote.config';

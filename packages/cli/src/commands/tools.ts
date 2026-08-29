@@ -1,4 +1,4 @@
-import { getToolsForSurface } from '@genfeedai/tools';
+import { getToolsForSurface } from '@genfeedai/actions';
 import { Command } from 'commander';
 import { print } from '@/ui/theme';
 

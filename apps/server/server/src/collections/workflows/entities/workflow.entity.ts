@@ -1,12 +1,11 @@
+import { WorkflowRecurrenceType } from '@genfeedai/enums';
 import {
   WorkflowDocument,
   WorkflowEdge,
   WorkflowInputVariable,
-  WorkflowStep,
   WorkflowVisualNode,
 } from '@server/collections/workflows/schemas/workflow.schema';
 import { BaseEntity } from '@server/entities/base.entity';
-import { WorkflowRecurrenceType } from '@genfeedai/enums';
 
 export class WorkflowRecurrenceEntity {
   type!: WorkflowRecurrenceType;
@@ -15,27 +14,13 @@ export class WorkflowRecurrenceEntity {
   nextRunAt?: Date;
 }
 
-export class WorkflowStepEntity {
-  id!: string;
-  label!: string;
-  category?: WorkflowStep['category'];
-  config!: Record<string, unknown>;
-  dependsOn?: string[];
-  status?: WorkflowStep['status'];
-  output?: string;
-  outputModel?: string;
-  error?: string;
-  startedAt?: Date;
-  completedAt?: Date;
-  progress?: number;
-}
-
 export class WorkflowEntity extends BaseEntity implements WorkflowDocument {
   declare id: string;
   declare defaultRecurringBrandId: string | null;
   declare organizationId: string;
   declare brandId: string | null;
   declare userId: string;
+  declare currentVersionId: string;
   declare label: string;
   declare description: WorkflowDocument['description'];
   declare templateId?: string;
@@ -43,7 +28,6 @@ export class WorkflowEntity extends BaseEntity implements WorkflowDocument {
   declare status: WorkflowDocument['status'];
   declare sourceAsset?: string;
   declare sourceAssetModel?: string;
-  declare steps: WorkflowDocument['steps'];
   declare metadata?: Record<string, unknown>;
   declare progress?: number;
   declare startedAt?: Date;
@@ -57,6 +41,8 @@ export class WorkflowEntity extends BaseEntity implements WorkflowDocument {
   declare nodes: WorkflowVisualNode[];
   declare edges: WorkflowEdge[];
   declare inputVariables: WorkflowInputVariable[];
+  declare versionId: string;
+  declare version: number;
   declare thumbnail?: string | null;
   declare thumbnailNodeId?: string | null;
   declare schedule?: string;

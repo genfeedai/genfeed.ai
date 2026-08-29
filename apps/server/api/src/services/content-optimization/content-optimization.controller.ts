@@ -1,17 +1,21 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import { AbTestSuggestionHarnessService } from '@server/services/content-optimization/ab-test-suggestion-harness.service';
 import {
   type AnalyzePerformanceOptions,
   ContentOptimizationService,
 } from '@server/services/content-optimization/content-optimization.service';
-import { ContentOptimizationQueueService } from '@server/services/content-optimization/content-optimization-queue.service';
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { IsOptional, IsString } from 'class-validator';
 
 export class AutoApplySuggestionDto {
   @IsString()
   suggestionId!: string;
+}
+
+export class OptimizePromptDto {
+  @IsString()
+  prompt!: string;
 }
 
 export class ExecuteAbTestSuggestionDto {
@@ -39,7 +43,6 @@ export class ExecuteAbTestSuggestionDto {
 export class ContentOptimizationController {
   constructor(
     private readonly contentOptimizationService: ContentOptimizationService,
-    private readonly queueService: ContentOptimizationQueueService,
     private readonly abTestHarness: AbTestSuggestionHarnessService,
   ) {}
 
@@ -78,7 +81,7 @@ export class ContentOptimizationController {
   async optimizePrompt(
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
-    @Body() body: { prompt: string },
+    @Body() body: OptimizePromptDto,
   ) {
     const organizationId = user.organizationId;
 
@@ -158,12 +161,12 @@ export class ContentOptimizationController {
       suggestion: {
         hypothesis: body.hypothesis,
         platform: body.platform,
-        suggestionId: body.suggestionId,
+        ...(body.suggestionId ? { suggestionId: body.suggestionId } : {}),
         variable: body.variable,
         variantA: body.variantA,
         variantB: body.variantB,
       },
-      userId: user.userId,
+      userId: user.userId ?? user.id,
     });
   }
 
@@ -177,24 +180,5 @@ export class ContentOptimizationController {
     @CurrentUser() user: User,
   ) {
     return this.abTestHarness.resolveOutcomes(user.organizationId, brandId);
-  }
-
-  /**
-   * POST v1/brands/:brandId/optimization/trigger
-   * Triggers an async optimization run via BullMQ.
-   */
-  @Post('trigger')
-  async triggerOptimization(
-    @Param('brandId') brandId: string,
-    @CurrentUser() user: User,
-  ) {
-    const organizationId = user.organizationId;
-
-    const jobId = await this.queueService.queueAnalysis(
-      organizationId,
-      brandId,
-    );
-
-    return { jobId, status: 'queued' };
   }
 }

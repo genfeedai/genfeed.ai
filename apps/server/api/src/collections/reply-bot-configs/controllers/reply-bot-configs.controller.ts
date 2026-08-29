@@ -1,4 +1,3 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
 import {
   AuthorReplyDraftDto,
   AuthorReplyInboxQueryDto,
@@ -6,21 +5,13 @@ import {
   EnsureAuthorResponderDto,
   SchedulePostWatchDto,
 } from '@api/collections/reply-bot-configs/dto/author-reply-loop.dto';
-import { CreateReplyBotConfigDto } from '@server/collections/reply-bot-configs/dto/create-reply-bot-config.dto';
 import { ReplyBotConfigsQueryDto } from '@api/collections/reply-bot-configs/dto/reply-bot-configs-query.dto';
-import { UpdateReplyBotConfigDto } from '@server/collections/reply-bot-configs/dto/update-reply-bot-config.dto';
-import type { ReplyBotConfigDocument } from '@server/collections/reply-bot-configs/schemas/reply-bot-config.schema';
-import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
-import { ReplyInboundQueueService } from '@server/queues/reply-bot/reply-inbound-queue.service';
-import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
-import { ReplyBotOrchestratorService } from '@server/services/reply-bot/reply-bot-orchestrator.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/constants';
 import { ReplyBotConfigSerializer } from '@genfeedai/serializers';
@@ -37,6 +28,14 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreateReplyBotConfigDto } from '@server/collections/reply-bot-configs/dto/create-reply-bot-config.dto';
+import { UpdateReplyBotConfigDto } from '@server/collections/reply-bot-configs/dto/update-reply-bot-config.dto';
+import type { ReplyBotConfigDocument } from '@server/collections/reply-bot-configs/schemas/reply-bot-config.schema';
+import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
+import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
+import { ReplyBotOrchestratorService } from '@server/services/reply-bot/reply-bot-orchestrator.service';
+import { ReplyPostWatchService } from '@server/services/reply-bot/reply-post-watch.service';
 import type { Request } from 'express';
 
 @ApiTags('Reply Bot Configs')
@@ -52,10 +51,9 @@ export class ReplyBotConfigsController extends BaseCRUDController<
   constructor(
     public readonly replyBotConfigsService: ReplyBotConfigsService,
     public readonly loggerService: LoggerService,
-    private readonly replyBotQueueService: ReplyBotQueueService,
     private readonly replyBotOrchestratorService: ReplyBotOrchestratorService,
     private readonly authorReplyLoopService: AuthorReplyLoopService,
-    private readonly replyInboundQueueService: ReplyInboundQueueService,
+    private readonly replyPostWatchService: ReplyPostWatchService,
   ) {
     super(
       loggerService,
@@ -209,7 +207,7 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() body: SchedulePostWatchDto,
   ) {
-    return this.replyInboundQueueService.schedulePostWatch({
+    return this.replyPostWatchService.schedulePostWatch({
       brandId: body.brandId,
       organizationId: user.organizationId,
       platform: body.platform,
@@ -251,27 +249,12 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     @CurrentUser() user: User,
     @Body() body: { credentialId: string },
   ): Promise<{ jobId: string }> {
-    const jobId = await this.replyBotQueueService.triggerPolling(
+    const jobId = await this.replyBotOrchestratorService.queueOrganizationBots(
       user.organizationId,
       body.credentialId,
     );
 
     return { jobId };
-  }
-
-  /**
-   * Get queue status for monitoring
-   */
-  @Get('queue-status')
-  @ApiOperation({ summary: 'Get polling queue status' })
-  @ApiResponse({ description: 'Returns queue statistics', status: 200 })
-  getQueueStatus(): Promise<{
-    waiting: number;
-    active: number;
-    completed: number;
-    failed: number;
-  }> {
-    return this.replyBotQueueService.getQueueStatus();
   }
 
   // ────────────────────────────────────────────────────────────────────────────

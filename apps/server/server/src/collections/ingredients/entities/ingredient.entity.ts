@@ -13,7 +13,7 @@ export class IngredientEntity extends BaseEntity implements Ingredient {
   declare readonly trainingId: Ingredient['trainingId'];
   declare readonly bookmarkId: Ingredient['bookmarkId'];
   declare readonly personaId: Ingredient['personaId'];
-  declare readonly agentRunId: Ingredient['agentRunId'];
+  declare readonly workflowExecutionId: Ingredient['workflowExecutionId'];
   declare readonly agentStrategyId: Ingredient['agentStrategyId'];
   declare readonly sourceActionId: Ingredient['sourceActionId'];
   declare readonly groupId: Ingredient['groupId'];

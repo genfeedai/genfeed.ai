@@ -24,9 +24,9 @@ export {
   classifyAnalyticsCollectionError,
   delayedAnalyticsCollectionFailure,
 } from './analytics/analytics-collection-state';
-export { AnalyticsSocialJobService } from './analytics/services/analytics-social-job.service';
-export { AnalyticsTwitterJobService } from './analytics/services/analytics-twitter-job.service';
-export { AnalyticsYouTubeJobService } from './analytics/services/analytics-youtube-job.service';
+export { AnalyticsSocialCollectionService } from './analytics/services/analytics-social-collection.service';
+export { AnalyticsTwitterCollectionService } from './analytics/services/analytics-twitter-collection.service';
+export { AnalyticsYouTubeCollectionService } from './analytics/services/analytics-youtube-collection.service';
 export { ActivityEntity } from './collections/activities/entities/activity.entity';
 export type {
   AdBulkUploadJobDocument,
@@ -72,7 +72,6 @@ export {
 } from './collections/ad-performance/utils/ad-performance-benchmark.util';
 export {
   type AnalyticsSyncOptions,
-  type AnalyticsSyncResult,
   AnalyticsSyncService,
 } from './collections/content-performance/services/analytics-sync.service';
 export {
@@ -104,11 +103,6 @@ export type {
 } from './collections/models/model-record.types';
 export { PostEntity } from './collections/posts/entities/post.entity';
 export type { Post, PostDocument } from './collections/posts/post.schema';
-export {
-  isSweepDrivenSystemWorkflow,
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowProvenanceService,
-} from './collections/workflows/system-workflow-provenance.service';
 export { BaseEntity } from './entities/base.entity';
 export {
   BusinessLogicException,
@@ -144,7 +138,6 @@ export {
   type IdempotentJobReservation,
   reserveIdempotentJob,
 } from './queues/idempotent-job';
-export { PostPublishQueueService } from './queues/post-publish/post-publish-queue.service';
 export {
   type IPublisher,
   type MediaInfo,

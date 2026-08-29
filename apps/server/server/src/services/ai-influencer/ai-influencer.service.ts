@@ -1,16 +1,3 @@
-import { type IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { type PersonaDocument } from '@server/collections/personas/schemas/persona.schema';
-import { PersonasService } from '@server/collections/personas/services/personas.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
-import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import {
-  type GenerationResult,
-  PersonaContentService,
-} from '@server/services/persona-content/persona-content.service';
-import { requireRelationId } from '@server/shared/utils/relation-id/relation-id.util';
 import { LLM_DEFAULTS } from '@genfeedai/constants';
 import {
   FleetReviewStatus,
@@ -20,7 +7,20 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+import { type IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { type PersonaDocument } from '@server/collections/personas/schemas/persona.schema';
+import { PersonasService } from '@server/collections/personas/services/personas.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
+import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
+import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import {
+  type GenerationResult,
+  PersonaContentService,
+} from '@server/services/persona-content/persona-content.service';
+import { requireRelationId } from '@server/shared/utils/relation-id/relation-id.util';
 
 /** Supported social platforms for AI influencer posts */
 export type AiInfluencerPlatform =
@@ -52,7 +52,7 @@ export interface GeneratePostResult {
 }
 
 /** Configuration for image generation */
-interface ImageGenerationConfig {
+export interface ImageGenerationConfig {
   prompt: string;
   loraPath?: string;
   width: number;
@@ -148,157 +148,27 @@ export class AiInfluencerService {
     return status === LoraStatus.READY || status === 'trained';
   }
 
-  /**
-   * Orchestrate the full daily post pipeline for a persona:
-   * 1. Load persona from DB
-   * 2. Generate a caption using LLM
-   * 3. Generate an image using fal.ai (with persona's LoRA)
-   * 4. Create an ingredient record
-   * 5. Publish to requested platforms
-   * 6. Return the result
-   */
-  async generateDailyPost(
-    personaSlug: string,
-    platforms: string[],
-    options?: {
-      promptOverride?: string;
-      captionOverride?: string;
-      aspectRatio?: string;
-    },
-  ): Promise<GeneratePostResult> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(caller, { personaSlug, platforms });
-
-    // 1. Load persona
-    const persona = await this.loadPersona(personaSlug);
-
-    // Validate platforms
-    const validPlatforms = this.validatePlatforms(platforms);
-
-    // 2. Generate caption
-    const caption =
-      options?.captionOverride ?? (await this.generateCaption(persona));
-
-    // 3. Build image generation config
-    const imageConfig = this.buildImageConfig(persona, options);
-
-    // 4. Generate image via fal.ai
-    const imageUrl = await this.generateImage(imageConfig);
-
-    // 5. Create ingredient record
-    const ingredient = await this.createIngredientRecord(
-      persona,
-      imageUrl,
-      caption,
-    );
-
-    const videoqueryResults = this.requiresVideoquery(validPlatforms)
-      ? await this.generateVideoquery(persona, caption, ingredient.id)
-      : undefined;
-
-    // 6. Publish to platforms
-    const publishResults = await this.publishToAllPlatforms(
-      validPlatforms,
-      imageUrl,
-      caption,
-      persona,
-      videoqueryResults,
-    );
-
-    const result: GeneratePostResult = {
-      caption,
-      imageUrl,
-      ingredientId: ingredient.id.toString(),
-      personaSlug,
-      publishResults,
-      videoResult: videoqueryResults?.videoResult,
-      voiceResult: videoqueryResults?.voiceResult,
-    };
-
-    this.loggerService.log(caller, {
-      ingredientId: result.ingredientId,
-      message: 'Daily post generated successfully',
-      platforms: publishResults.map((r) => `${r.platform}:${r.success}`),
-    });
-
-    return result;
-  }
-
-  /**
-   * Find all personas with autopilot enabled and generate daily posts for each.
-   */
-  async scheduleDailyPosts(options?: {
-    organizationId?: string;
-  }): Promise<GeneratePostResult[]> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(caller, {
-      message: 'Starting scheduled daily posts',
-      organizationId: options?.organizationId,
-    });
-
+  async discoverAutopilotPersonas(
+    organizationId: string,
+  ): Promise<PersonaDocument[]> {
     const personas = await this.personasService.findAll(
       {
         where: {
           isAutopilotEnabled: true,
           isFleetCharacter: true,
           isDeleted: false,
-          ...(options?.organizationId
-            ? { organizationId: options.organizationId }
-            : {}),
+          organizationId,
         },
       },
       { limit: 100, page: 1 },
     );
+    return personas.docs ?? [];
+  }
 
-    const results: GeneratePostResult[] = [];
-    const personaDocs = personas.docs || [];
-
-    this.loggerService.log(caller, {
-      count: personaDocs.length,
-      message: 'Found personas with autopilot enabled',
-    });
-
-    for (const persona of personaDocs) {
-      try {
-        const personaSlug = persona.slug;
-        if (!personaSlug) {
-          this.loggerService.warn(caller, {
-            message: 'Persona has no slug, skipping',
-            personaId: persona.id?.toString(),
-          });
-          continue;
-        }
-
-        // Determine platforms from persona's content strategy
-        const platforms = this.readPersonaStrategy(persona).platforms ?? [
-          'instagram',
-          'twitter',
-        ];
-
-        const result = await this.generateDailyPost(personaSlug, platforms);
-        results.push(result);
-
-        // Update last autopilot run timestamp
-        await this.personasService.patch(persona.id.toString(), {
-          lastAutopilotRunAt: new Date(),
-        } as Parameters<PersonasService['patch']>[1]);
-      } catch (error) {
-        this.loggerService.error(caller, {
-          error: error instanceof Error ? error.message : String(error),
-          message: 'Failed to generate post for persona',
-          personaId: persona.id?.toString(),
-          personaSlug: persona.slug,
-        });
-      }
-    }
-
-    this.loggerService.log(caller, {
-      message: 'Scheduled daily posts completed',
-      successCount: results.length,
-      totalPersonas: personaDocs.length,
-    });
-
-    return results;
+  async markAutopilotRun(personaId: string): Promise<void> {
+    await this.personasService.patch(personaId, {
+      lastAutopilotRunAt: new Date(),
+    } as Parameters<PersonasService['patch']>[1]);
   }
 
   /**
@@ -347,11 +217,16 @@ export class AiInfluencerService {
   /**
    * Load and validate a persona by slug.
    */
-  private async loadPersona(slug: string): Promise<PersonaDocument> {
+  async loadPersona(
+    slug: string,
+    organizationId: string,
+  ): Promise<PersonaDocument> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const persona = await this.personasService.findOne({
       isFleetCharacter: true,
+      isDeleted: false,
+      organizationId,
       slug,
     });
 
@@ -381,7 +256,7 @@ export class AiInfluencerService {
   /**
    * Validate and filter platforms to supported ones.
    */
-  private validatePlatforms(platforms: string[]): AiInfluencerPlatform[] {
+  validatePlatforms(platforms: string[]): AiInfluencerPlatform[] {
     const valid = platforms.filter((p): p is AiInfluencerPlatform =>
       SUPPORTED_PLATFORMS.includes(p as AiInfluencerPlatform),
     );
@@ -474,7 +349,7 @@ export class AiInfluencerService {
   /**
    * Build image generation configuration from persona and options.
    */
-  private buildImageConfig(
+  buildImageConfig(
     persona: PersonaDocument,
     options?: {
       promptOverride?: string;
@@ -507,13 +382,18 @@ export class AiInfluencerService {
       ? this.readString((persona as Record<string, unknown>).loraModelPath)
       : undefined;
 
-    return { height, loraPath, prompt, width };
+    return {
+      height,
+      ...(loraPath ? { loraPath } : {}),
+      prompt,
+      width,
+    };
   }
 
   /**
    * Generate an image via fal.ai.
    */
-  private async generateImage(config: ImageGenerationConfig): Promise<string> {
+  async generateImage(config: ImageGenerationConfig): Promise<string> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(caller, {
       hasLora: Boolean(config.loraPath),
@@ -551,7 +431,7 @@ export class AiInfluencerService {
   /**
    * Create an ingredient record for the generated image.
    */
-  private async createIngredientRecord(
+  async createIngredientRecord(
     persona: PersonaDocument,
     imageUrl: string,
     caption: string,
@@ -581,38 +461,9 @@ export class AiInfluencerService {
   }
 
   /**
-   * Publish to all requested platforms, collecting results.
-   */
-  private async publishToAllPlatforms(
-    platforms: AiInfluencerPlatform[],
-    imageUrl: string,
-    caption: string,
-    persona: PersonaDocument,
-    videoqueryResults?: {
-      voiceResult: GenerationResult;
-      videoResult: GenerationResult;
-    },
-  ): Promise<PlatformPublishResult[]> {
-    const results: PlatformPublishResult[] = [];
-
-    for (const platform of platforms) {
-      const result = await this.publishToPlatform(
-        platform,
-        imageUrl,
-        caption,
-        persona,
-        videoqueryResults,
-      );
-      results.push(result);
-    }
-
-    return results;
-  }
-
-  /**
    * Publish to a single platform.
    */
-  private async publishToPlatform(
+  async publishToPlatform(
     platform: AiInfluencerPlatform,
     imageUrl: string,
     caption: string,
@@ -699,8 +550,9 @@ export class AiInfluencerService {
             videoJobId: videoResult.jobId,
           });
 
+          const externalId = videoResult.jobId ?? videoResult.url;
           return {
-            externalId: videoResult.jobId ?? videoResult.url,
+            ...(externalId ? { externalId } : {}),
             platform,
             status: videoResult.status === 'completed' ? 'published' : 'queued',
             success: true,
@@ -732,40 +584,41 @@ export class AiInfluencerService {
     }
   }
 
-  private requiresVideoquery(platforms: AiInfluencerPlatform[]): boolean {
-    return platforms.includes('tiktok') || platforms.includes('youtube');
-  }
-
-  private async generateVideoquery(
+  async generateVoice(
     persona: PersonaDocument,
     script: string,
     ingredientId: string,
-  ): Promise<{
-    voiceResult: GenerationResult;
-    videoResult: GenerationResult;
-  }> {
+  ): Promise<GenerationResult> {
     const organizationId = this.readRequiredPersonaId(
       persona,
       'organizationId',
     );
     const userId = this.readRequiredPersonaId(persona, 'userId');
 
-    const voiceResult = await this.personaContentService.generateVoice({
+    return this.personaContentService.generateVoice({
       ingredientId,
       organizationId,
       personaId: persona.id,
       text: script,
       userId,
     });
+  }
 
-    const videoResult = await this.personaContentService.generateVideo({
+  async generateVideo(
+    persona: PersonaDocument,
+    script: string,
+  ): Promise<GenerationResult> {
+    const organizationId = this.readRequiredPersonaId(
+      persona,
+      'organizationId',
+    );
+    const userId = this.readRequiredPersonaId(persona, 'userId');
+    return this.personaContentService.generateVideo({
       aspectRatio: '9:16',
       organizationId,
       personaId: persona.id,
       script,
       userId,
     });
-
-    return { videoResult, voiceResult };
   }
 }

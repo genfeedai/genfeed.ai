@@ -87,7 +87,7 @@ export interface IReleaseAnalyticsComparison {
 export interface PostGroupCreateProvenance {
   agentContextSource?: string;
   agentContextVersion?: number;
-  agentRunId?: string;
+  workflowExecutionId?: string;
   agentStrategyId?: string;
   agentThreadId?: string;
   autoPublishPolicyId?: string;

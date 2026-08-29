@@ -37,7 +37,7 @@ const MOCK_TOOLS: Record<
   },
 };
 
-vi.mock('@genfeedai/tools', () => ({
+vi.mock('@genfeedai/actions', () => ({
   getToolByName: vi.fn((name: string) => MOCK_TOOLS[name]),
   getToolsForSurface: vi.fn(() => Object.values(MOCK_TOOLS)),
   toMcpTools: vi.fn((tools) => tools),

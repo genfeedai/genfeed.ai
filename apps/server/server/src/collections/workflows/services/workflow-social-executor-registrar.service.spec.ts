@@ -1,14 +1,15 @@
+import {
+  createExecutableActionNode,
+  type INodeExecutor,
+  type NodeExecutor,
+  WorkflowEngine,
+} from '@genfeedai/workflows/engine';
 import type { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
 import {
   formatReportDeliveryError,
   formatSocialReadProviderError,
   WorkflowSocialExecutorRegistrarService,
 } from '@server/collections/workflows/services/workflow-social-executor-registrar.service';
-import {
-  type INodeExecutor,
-  type NodeExecutor,
-  WorkflowEngine,
-} from '@genfeedai/workflows/engine';
 import { describe, expect, it, vi } from 'vitest';
 
 function createLogger() {
@@ -71,7 +72,25 @@ const digestContext = {
   runId: 'run-1',
   userId: 'user-1',
   workflowId: 'wf-digest',
+  workflowVersionId: 'version-1',
 };
+
+function executeAction(
+  engine: WorkflowEngine,
+  actionId: string,
+  parameters: Record<string, unknown>,
+  inputs: Map<string, unknown> = new Map(),
+) {
+  return engine.getExecutor('genfeedAction')?.(
+    createExecutableActionNode({
+      actionId,
+      id: actionId,
+      parameters,
+    }),
+    inputs,
+    digestContext,
+  );
+}
 
 describe('formatSocialReadProviderError', () => {
   it('names twitter and includes reset timing for 429s', () => {
@@ -102,7 +121,7 @@ describe('formatReportDeliveryError', () => {
 describe('WorkflowSocialExecutorRegistrarService (#2664)', () => {
   it('registers socialRead and reportDelivery even when providers are missing', () => {
     const engine = register();
-    expect(engine.getRegisteredNodeTypes()).toEqual(
+    expect(engine.getRegisteredActionIds()).toEqual(
       expect.arrayContaining(['socialRead', 'reportDelivery']),
     );
   });
@@ -110,17 +129,10 @@ describe('WorkflowSocialExecutorRegistrarService (#2664)', () => {
   it('fails closed when TwitterService is not wired', async () => {
     const engine = register();
     await expect(
-      engine.getExecutor('socialRead')?.(
-        {
-          config: { mode: 'timeline', username: 'genfeed' },
-          id: 'read',
-          inputs: [],
-          label: 'Read posts',
-          type: 'socialRead',
-        },
-        new Map(),
-        digestContext,
-      ),
+      executeAction(engine, 'socialRead', {
+        mode: 'timeline',
+        username: 'genfeed',
+      }),
     ).rejects.toThrow(/provider not configured/i);
   });
 
@@ -143,17 +155,10 @@ describe('WorkflowSocialExecutorRegistrarService (#2664)', () => {
       },
     });
 
-    const result = await engine.getExecutor('socialRead')?.(
-      {
-        config: { mode: 'timeline', username: 'genfeed' },
-        id: 'read',
-        inputs: [],
-        label: 'Read posts',
-        type: 'socialRead',
-      },
-      new Map(),
-      digestContext,
-    );
+    const result = await executeAction(engine, 'socialRead', {
+      mode: 'timeline',
+      username: 'genfeed',
+    });
 
     expect(getUserTimelineByUsername).toHaveBeenCalledWith(
       'genfeed',
@@ -191,17 +196,10 @@ describe('WorkflowSocialExecutorRegistrarService (#2664)', () => {
     });
 
     await expect(
-      engine.getExecutor('socialRead')?.(
-        {
-          config: { mode: 'timeline', username: 'genfeed' },
-          id: 'read',
-          inputs: [],
-          label: 'Read posts',
-          type: 'socialRead',
-        },
-        new Map(),
-        digestContext,
-      ),
+      executeAction(engine, 'socialRead', {
+        mode: 'timeline',
+        username: 'genfeed',
+      }),
     ).rejects.toThrow(
       'socialRead twitter rate limited; reset at 2026-08-13T08:00:00.000Z',
     );
@@ -216,16 +214,11 @@ describe('WorkflowSocialExecutorRegistrarService (#2664)', () => {
       },
     });
 
-    const result = await engine.getExecutor('reportDelivery')?.(
-      {
-        config: { channel: 'notification', subject: 'Morning X digest' },
-        id: 'report',
-        inputs: [],
-        label: 'Send report',
-        type: 'reportDelivery',
-      },
+    const result = await executeAction(
+      engine,
+      'reportDelivery',
+      { channel: 'notification', subject: 'Morning X digest' },
       new Map([['content', 'Morning digest body']]),
-      digestContext,
     );
 
     expect(sendNotification).toHaveBeenCalledWith(
@@ -251,16 +244,11 @@ describe('WorkflowSocialExecutorRegistrarService (#2664)', () => {
     });
 
     await expect(
-      engine.getExecutor('reportDelivery')?.(
-        {
-          config: { channel: 'notification' },
-          id: 'report',
-          inputs: [],
-          label: 'Send report',
-          type: 'reportDelivery',
-        },
+      executeAction(
+        engine,
+        'reportDelivery',
+        { channel: 'notification' },
         new Map([['content', 'Digest']]),
-        digestContext,
       ),
     ).rejects.toThrow('reportDelivery notification failed: bus down');
   });

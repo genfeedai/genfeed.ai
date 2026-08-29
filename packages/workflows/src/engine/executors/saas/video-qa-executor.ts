@@ -1,6 +1,7 @@
 import type {
   VideoContinuityClipFinding,
   VideoContinuityQaReport,
+  VideoContinuityQaSkipReason,
 } from '@genfeedai/interfaces';
 import {
   createNotAssessedContinuityDimension,
@@ -66,7 +67,11 @@ export type VideoQaContinuityResolver = (params: {
   productReferenceUrls: string[];
   runId: string;
   videoUrl: string;
-}) => Promise<{ finding: VideoContinuityClipFinding; modelKey: string }>;
+}) => Promise<{
+  finding?: VideoContinuityClipFinding;
+  modelKey?: string;
+  skipReason?: VideoContinuityQaSkipReason;
+}>;
 
 interface ParsedProbe {
   durationSeconds: number | null;
@@ -500,9 +505,18 @@ export class VideoQaExecutor extends BaseExecutor {
       throw new Error('Video QA processor not configured');
     }
 
+    const configuredVideoInputKey =
+      typeof node.config.inputVideoKey === 'string'
+        ? node.config.inputVideoKey
+        : undefined;
     const videoValue = inputs.has('video')
       ? inputs.get('video')
-      : inputs.get('videoUrl');
+      : (inputs.get('videoUrl') ??
+        (configuredVideoInputKey
+          ? (inputs.get(configuredVideoInputKey) ??
+            node.config[configuredVideoInputKey])
+          : undefined) ??
+        node.config.inputVideo);
     const videoUrl = resolveVideoUrl(videoValue);
 
     const loudnessTargetLufs = this.getOptionalConfig<number>(
@@ -536,10 +550,11 @@ export class VideoQaExecutor extends BaseExecutor {
       false,
     );
     const characterReferenceUrls = readStringArray(
-      node.config.characterReferenceUrls,
+      inputs.get('characterReferenceUrls') ??
+        node.config.characterReferenceUrls,
     );
     const productReferenceUrls = readStringArray(
-      node.config.productReferenceUrls,
+      inputs.get('productReferenceUrls') ?? node.config.productReferenceUrls,
     );
 
     const inspection = await this.processor({
@@ -651,6 +666,12 @@ export class VideoQaExecutor extends BaseExecutor {
         runId: params.runId,
         videoUrl: params.videoUrl,
       });
+      if (result.skipReason) {
+        return buildSkippedContinuityReport(base, result.skipReason);
+      }
+      if (!result.finding || !result.modelKey) {
+        throw new Error('Continuity resolver returned no finding');
+      }
       return {
         ...base,
         clips: [result.finding],

@@ -1,5 +1,7 @@
+import { AgentMessageRole } from '@genfeedai/enums';
+import { type AgentDashboardOperation } from '@genfeedai/interfaces';
+import { Injectable } from '@nestjs/common';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { AgentCompletionCardBuilderService } from '@server/services/agent-orchestrator/agent-completion-card-builder.service';
 import type {
@@ -14,15 +16,11 @@ import { buildResolvedModelMetadata } from '@server/services/agent-orchestrator/
 import { buildAgentScopeMetadata } from '@server/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import { normalizeUiBlocks } from '@server/services/agent-orchestrator/utils/agent-ui-blocks.util';
 import { sanitizeAgentOutputText } from '@server/services/agent-orchestrator/utils/sanitize-agent-output.util';
-import { AgentMessageRole } from '@genfeedai/enums';
-import { type AgentDashboardOperation } from '@genfeedai/interfaces';
-import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AgentOrchestratorUiActionFinalizerService {
   constructor(
     private readonly agentMessagesService: AgentMessagesService,
-    private readonly agentRunsService: AgentRunsService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly completionCardBuilder: AgentCompletionCardBuilderService,
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
@@ -43,8 +41,7 @@ export class AgentOrchestratorUiActionFinalizerService {
       params.toolCalls,
       enhancedUiActions.uiActions,
     );
-    const artifactMetadata = await captureRunArtifacts(
-      this.agentRunsService,
+    const artifactMetadata = captureRunArtifacts(
       params.context,
       params.result.data,
     );
@@ -93,14 +90,14 @@ export class AgentOrchestratorUiActionFinalizerService {
       context: params.context,
       idempotencyKey: params.eventIdempotencyKey,
       metadata: assistantMetadata,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       threadId: params.threadId,
     });
     await this.threadEventRecorder.recordRunCompleted({
       context: params.context,
       detail: 'Agent completed',
       idempotencyKey: params.eventIdempotencyKey,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       threadId: params.threadId,
     });
 
@@ -144,7 +141,7 @@ export class AgentOrchestratorUiActionFinalizerService {
       blocks: normalizedBlocks,
       context: params.context,
       operation: rawOperation,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       threadId: params.threadId,
     });
     return latestUiBlocks;

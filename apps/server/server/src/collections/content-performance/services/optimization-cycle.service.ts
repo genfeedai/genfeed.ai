@@ -1,8 +1,8 @@
-import type { ContentPerformanceDocument } from '@server/collections/content-performance/schemas/content-performance.schema';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
+import type { ContentPerformanceDocument } from '@server/collections/content-performance/schemas/content-performance.schema';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 // ─── Interfaces ──────────────────────────────────────────────────────
 
@@ -46,7 +46,7 @@ export interface CycleStats {
   topEngagementRate: number;
   bottomEngagementRate: number;
   cycleNumber: number;
-  dateRange: { start: Date; end: Date };
+  dateRange: { start: string; end: string };
 }
 
 export interface GenerationSuggestion {
@@ -266,14 +266,14 @@ export class OptimizationCycleService {
           measuredAtDates.length > 0
             ? new Date(
                 Math.max(...measuredAtDates.map((date) => date.getTime())),
-              )
-            : new Date(),
+              ).toISOString()
+            : new Date().toISOString(),
         start:
           measuredAtDates.length > 0
             ? new Date(
                 Math.min(...measuredAtDates.map((date) => date.getTime())),
-              )
-            : new Date(),
+              ).toISOString()
+            : new Date().toISOString(),
       },
       topEngagementRate:
         engagementRates.length > 0 ? Math.max(...engagementRates) : 0,

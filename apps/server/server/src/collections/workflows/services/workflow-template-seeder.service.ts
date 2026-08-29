@@ -3,8 +3,10 @@ import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+import type { CreateWorkflowDto } from '@server/collections/workflows/dto/create-workflow.dto';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { areWorkflowMetadataValuesEqual } from '@server/collections/workflows/services/workflow-template-seeder-metadata.util';
+import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import {
   buildSystemWorkflowMetadata,
   buildSystemWorkflowUpgradeMetadata,
@@ -17,7 +19,6 @@ import {
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
   type SystemWorkflowMetadata,
 } from '@server/collections/workflows/system-workflow.contract';
-import { SYSTEM_WORKFLOW_ACTION_DEFINITIONS } from '@server/collections/workflows/system-workflow-provenance.service';
 import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/ad-automation-workflows.template';
 import { AGENT_AUTOPILOT_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/agent-autopilot-workflows.template';
 import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@server/collections/workflows/templates/analytics-sync-workflows.template';
@@ -59,6 +60,7 @@ export class WorkflowTemplateSeederService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    private readonly workflowsService: WorkflowsService,
     @Optional()
     private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
   ) {}
@@ -276,46 +278,9 @@ export class WorkflowTemplateSeederService {
       return;
     }
 
-    try {
-      await this.prisma.$transaction(
-        async (tx) => {
-          const existing = await tx.workflow.findFirst({
-            select: { id: true, metadata: true },
-            where,
-          });
-
-          if (existing) {
-            const metadataPatch = this.buildSeededWorkflowMetadataPatch({
-              desiredMetadata: input.createData.metadata,
-              existingMetadata: existing.metadata,
-            });
-
-            if (metadataPatch) {
-              await tx.workflow.update({
-                data: { metadata: metadataPatch as Prisma.InputJsonValue },
-                where: scopedWhere(input.organizationId, { id: existing.id }),
-              });
-            }
-            return;
-          }
-
-          await tx.workflow.create({
-            data: input.createData as Prisma.WorkflowCreateInput,
-          });
-        },
-        { isolationLevel: 'Serializable' },
-      );
-    } catch (error) {
-      const errorCode = (error as { code?: string }).code;
-      if (errorCode === 'P2034') {
-        this.logger?.debug(
-          `${input.logContext}: serialization conflict - workflow already seeded by concurrent request`,
-          input.logMeta,
-        );
-      } else {
-        throw error;
-      }
-    }
+    await this.workflowsService.create(
+      input.createData as unknown as CreateWorkflowDto,
+    );
 
     await this.reconcileDesiredSystemWorkflowDuplicates(
       input.organizationId,
@@ -352,7 +317,6 @@ export class WorkflowTemplateSeederService {
       progress: 0,
       schedule: template.schedule,
       status: WorkflowStatus.ACTIVE,
-      steps: (template.steps ?? []) as Prisma.InputJsonValue,
       timezone: 'UTC',
       userId,
     };
@@ -560,61 +524,6 @@ export class WorkflowTemplateSeederService {
       templates: LIVESTREAM_BOT_WORKFLOW_TEMPLATES,
       userId,
     });
-  }
-
-  /**
-   * Operator helper: inspect-only system-action rows. Runtime still
-   * create-on-demand as a fail-closed backstop. Not called from deploy or signup.
-   */
-  async ensureSystemActionWorkflows(
-    userId: string,
-    organizationId: string,
-  ): Promise<void> {
-    for (const definition of SYSTEM_WORKFLOW_ACTION_DEFINITIONS) {
-      await this.ensureSeededWorkflow({
-        createData: {
-          description: definition.description,
-          edges: [],
-          executionCount: 0,
-          inputVariables: [],
-          isDeleted: false,
-          // Schedule is display metadata only: system actions fire from the
-          // workers sweep scheduler, never from the user-workflow scheduler
-          // (no engine executor exists for systemWorkflowAction nodes).
-          isScheduleEnabled: false,
-          label: definition.label,
-          metadata: this.buildSeededSystemWorkflowMetadata({
-            changeSummary: definition.changeSummary,
-            sourceIssue: 1011,
-            sourceTemplateId: definition.canonicalId,
-            sourceType: 'system-action-workflow',
-            version: definition.version,
-          }),
-          nodes: [
-            {
-              data: {
-                config: { canonicalId: definition.canonicalId },
-                label: definition.label,
-              },
-              id: 'system-action',
-              position: { x: 0, y: 120 },
-              type: 'systemWorkflowAction',
-            },
-          ],
-          organizationId,
-          progress: 0,
-          schedule: definition.schedule,
-          status: WorkflowStatus.ACTIVE,
-          steps: [],
-          timezone: 'UTC',
-          userId,
-        },
-        logContext: 'ensureSystemActionWorkflows',
-        logMeta: { definitionId: definition.canonicalId, organizationId },
-        organizationId,
-        sourceTemplateId: definition.canonicalId,
-      });
-    }
   }
 
   /**

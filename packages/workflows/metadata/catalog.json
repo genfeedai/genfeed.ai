@@ -66,19 +66,6 @@
       "version": 1
     },
     {
-      "category": "full-pipeline",
-      "defaultModel": "nano-banana-pro",
-      "description": "UGC pipeline: script → voice → motion → lip sync → download",
-      "icon": "🏭",
-      "inputTypes": ["text"],
-      "outputTypes": ["video"],
-      "slug": "ugc-factory",
-      "tags": ["ugc", "social", "automation", "marketing", "content"],
-      "tier": "free",
-      "title": "UGC Content Factory",
-      "version": 1
-    },
-    {
       "category": "image-generation",
       "defaultModel": "nano-banana-pro",
       "description": "Generate 20 varied training images from 3 reference identity photos across frontal, three-quarter, side profile, and variety shots",

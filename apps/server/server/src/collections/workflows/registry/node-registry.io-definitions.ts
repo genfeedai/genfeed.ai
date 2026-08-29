@@ -1,5 +1,4 @@
 import type { NodeDefinition } from '@server/collections/workflows/registry/node-registry';
-import { WorkflowStepCategory } from '@genfeedai/enums';
 
 export const IO_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
   // ===========================================================================
@@ -227,29 +226,6 @@ export const IO_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
     },
   },
 
-  trendSummaryNotifications: {
-    category: 'processing',
-    configSchema: {
-      cadence: {
-        default: 'daily',
-        label: 'Cadence',
-        options: ['hourly', 'daily', 'weekly'],
-        type: 'select',
-      },
-    },
-    description:
-      'Send trend summary notifications using the organization owner notification settings',
-    icon: 'TrendingUp',
-    inputs: {},
-    isPremium: true,
-    label: 'Trend Summary Notifications',
-    outputs: {
-      errors: { label: 'Errors', type: 'number' },
-      sent: { label: 'Sent', type: 'number' },
-      trends: { label: 'Trends', type: 'number' },
-    },
-  },
-
   'output-export': {
     category: 'output',
     configSchema: {
@@ -331,7 +307,6 @@ export const IO_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       schedule: { label: 'Schedule', required: false, type: 'any' },
     },
     label: 'Publish to Social',
-    maps: WorkflowStepCategory.PUBLISH,
     outputs: {},
   },
 
@@ -383,7 +358,6 @@ export const IO_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       data: { label: 'Data', type: 'any' },
     },
     label: 'Webhook',
-    maps: WorkflowStepCategory.WEBHOOK,
     outputs: {},
   },
 
@@ -516,7 +490,6 @@ export const IO_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       media: { label: 'Media', type: 'any' },
     },
     label: 'Resize',
-    maps: WorkflowStepCategory.RESIZE,
     outputs: {
       media: { label: 'Resized Media', type: 'any' },
     },
@@ -562,7 +535,6 @@ export const IO_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       media: { label: 'Media', type: 'any' },
     },
     label: 'Transform',
-    maps: WorkflowStepCategory.TRANSFORM,
     outputs: {
       media: { label: 'Transformed Media', type: 'any' },
     },
@@ -589,88 +561,8 @@ export const IO_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       video: { label: 'Video', type: 'video' },
     },
     label: 'Trim Video',
-    maps: WorkflowStepCategory.CLIP,
     outputs: {
       video: { label: 'Trimmed Video', type: 'video' },
-    },
-  },
-
-  // ===========================================================================
-  // CONTROL NODES
-  // ===========================================================================
-
-  'workflow-input': {
-    category: 'control',
-    configSchema: {
-      inputName: {
-        description: 'Name for this workflow input parameter',
-        label: 'Input Name',
-        required: true,
-        type: 'string',
-      },
-      inputType: {
-        default: 'text',
-        description: 'Data type of this input',
-        label: 'Input Type',
-        options: ['text', 'image', 'video', 'audio', 'number', 'boolean'],
-        type: 'select',
-      },
-    },
-    description:
-      'Define an input parameter for this workflow when used as a sub-workflow',
-    icon: 'Download',
-    inputs: {},
-    isEnabled: true,
-    isPremium: false,
-    label: 'Workflow Input',
-    outputs: {
-      value: { label: 'Input Value', type: 'any' },
-    },
-  },
-
-  'workflow-output': {
-    category: 'control',
-    configSchema: {
-      outputName: {
-        description: 'Name for this workflow output parameter',
-        label: 'Output Name',
-        required: true,
-        type: 'string',
-      },
-    },
-    description:
-      'Define an output parameter for this workflow when used as a sub-workflow',
-    icon: 'Upload',
-    inputs: {
-      value: { label: 'Output Value', type: 'any' },
-    },
-    isEnabled: true,
-    isPremium: false,
-    label: 'Workflow Output',
-    outputs: {},
-  },
-
-  'workflow-ref': {
-    category: 'control',
-    configSchema: {
-      workflowId: {
-        description: 'ID of the workflow to run as a sub-workflow',
-        label: 'Workflow',
-        required: true,
-        type: 'string',
-      },
-    },
-    description:
-      'Execute another workflow as a sub-workflow and use its outputs',
-    icon: 'RefreshCw',
-    inputs: {
-      inputs: { label: 'Sub-workflow Inputs', type: 'any' },
-    },
-    isEnabled: true,
-    isPremium: false,
-    label: 'Sub-workflow',
-    outputs: {
-      outputs: { label: 'Sub-workflow Outputs', type: 'any' },
     },
   },
 };

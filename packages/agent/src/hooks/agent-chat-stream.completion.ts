@@ -8,7 +8,7 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { extractLastGeneratedAssetFromMetadata } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
 import { serializeAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
-import { AgentExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
 
 export type ResolveStreamFromMessagesDeps = {
   apiService: AgentApiService;
@@ -79,17 +79,19 @@ export async function resolveStreamFromMessages(
         return;
       }
 
-      const persistedRun = pending.runId
-        ? await runAgentApiEffect(deps.apiService.getRunEffect(pending.runId))
+      const persistedExecution = pending.runId
+        ? await runAgentApiEffect(
+            deps.apiService.getWorkflowExecutionEffect(pending.runId),
+          )
         : null;
       if (
-        persistedRun?.status === AgentExecutionStatus.PENDING ||
-        persistedRun?.status === AgentExecutionStatus.RUNNING
+        persistedExecution?.status === WorkflowExecutionStatus.PENDING ||
+        persistedExecution?.status === WorkflowExecutionStatus.RUNNING
       ) {
         shouldKeepWaiting = true;
         deps.updateThreadSummary(pending.threadId, {
           runStatus:
-            persistedRun.status === AgentExecutionStatus.PENDING
+            persistedExecution.status === WorkflowExecutionStatus.PENDING
               ? 'queued'
               : 'running',
         });
@@ -98,7 +100,7 @@ export async function resolveStreamFromMessages(
       }
 
       throw new Error(
-        persistedRun?.error ||
+        persistedExecution?.error ||
           'Agent run did not finish before the recovery timeout.',
       );
     }

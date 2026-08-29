@@ -1,6 +1,10 @@
 import '@testing-library/jest-dom/vitest';
-import { AgentExecutionStatus } from '@genfeedai/enums';
-import type { IAgentRun } from '@genfeedai/interfaces';
+import {
+  WorkflowExecutionStatus,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
+import type { IWorkflowExecution } from '@genfeedai/interfaces';
+import type { WorkflowExecutionStats } from '@genfeedai/types';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -84,18 +88,38 @@ vi.mock('@ui/primitives/table', () => ({
   TableRow: ({ children }: { children: ReactNode }) => <tr>{children}</tr>,
 }));
 
-function makeRun(overrides: Partial<IAgentRun> = {}): IAgentRun {
+function makeExecution(
+  overrides: Partial<IWorkflowExecution> = {},
+): IWorkflowExecution {
   return {
+    createdAt: '2026-05-20T07:00:00.000Z',
+    creditsUsed: 0,
     id: 'run-1',
-    label: 'Writer Agent Run',
-    metadata: {
-      agentName: 'Writer',
-    },
-    objective: 'Draft launch copy',
-    status: AgentExecutionStatus.RUNNING,
-    summary: 'Done',
+    inputValues: {},
+    nodeResults: [],
+    organizationId: 'org-1',
+    progress: 0,
+    status: WorkflowExecutionStatus.RUNNING,
+    trigger: WorkflowExecutionTrigger.MANUAL,
+    updatedAt: '2026-05-20T07:30:00.000Z',
+    userId: 'user-1',
+    workflow: { id: 'workflow-1', label: 'Writer Agent Run' },
+    workflowId: 'workflow-1',
     ...overrides,
-  } as IAgentRun;
+  };
+}
+
+function makeStats(
+  overrides: Partial<WorkflowExecutionStats> = {},
+): WorkflowExecutionStats {
+  return {
+    active: 0,
+    completed: 0,
+    failed: 0,
+    total: 0,
+    totalCredits: 0,
+    ...overrides,
+  };
 }
 
 function makeTask(overrides: Record<string, unknown> = {}) {
@@ -117,30 +141,29 @@ describe('workspace dashboard sections', () => {
   it('renders agent cards with live, queued, completed, and view-all states', () => {
     const { container } = render(
       <DashboardAgentCards
-        activeRuns={[
-          makeRun(),
-          makeRun({
+        activeExecutions={[
+          makeExecution(),
+          makeExecution({
             id: 'run-2',
-            label: 'Video Agent Run',
-            metadata: {},
-            status: AgentExecutionStatus.PENDING,
+            status: WorkflowExecutionStatus.PENDING,
+            workflow: { id: 'workflow-2', label: 'Video Agent Run' },
           }),
-          makeRun({
+          makeExecution({
             id: 'run-3',
-            label: 'Image Agent Run',
-            status: AgentExecutionStatus.FAILED,
+            status: WorkflowExecutionStatus.FAILED,
+            workflow: { id: 'workflow-3', label: 'Image Agent Run' },
           }),
-          makeRun({
+          makeExecution({
             id: 'run-4',
-            label: 'Caption Agent Run',
-            status: AgentExecutionStatus.RUNNING,
+            status: WorkflowExecutionStatus.RUNNING,
+            workflow: { id: 'workflow-4', label: 'Caption Agent Run' },
           }),
         ]}
-        runs={[
-          makeRun({
+        executions={[
+          makeExecution({
             id: 'run-5',
-            label: 'Done Run',
-            status: AgentExecutionStatus.COMPLETED,
+            status: WorkflowExecutionStatus.COMPLETED,
+            workflow: { id: 'workflow-5', label: 'Done Run' },
           }),
         ]}
       />,
@@ -155,15 +178,15 @@ describe('workspace dashboard sections', () => {
       '/demo/FUDNEWS/automate/runs',
     );
 
-    // Regression (#1229): agent-run cards must use the shared Card tokens,
+    // Regression (#1229): execution cards must use the shared Card tokens,
     // never the lighter bespoke background-secondary/tertiary grays.
     expect(container.querySelector('.bg-background-secondary')).toBeNull();
     expect(container.querySelector('.bg-background-tertiary')).toBeNull();
   });
 
-  it('returns no agent cards when there are no runs', () => {
+  it('returns no agent cards when there are no executions', () => {
     const { container } = render(
-      <DashboardAgentCards activeRuns={[]} runs={[]} />,
+      <DashboardAgentCards activeExecutions={[]} executions={[]} />,
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -172,9 +195,15 @@ describe('workspace dashboard sections', () => {
   it('renders stats with trend fallbacks', () => {
     render(
       <DashboardStatsStrip
-        activeRuns={[
-          makeRun({ id: 'run-1', status: AgentExecutionStatus.RUNNING }),
-          makeRun({ id: 'run-2', status: AgentExecutionStatus.PENDING }),
+        activeExecutions={[
+          makeExecution({
+            id: 'run-1',
+            status: WorkflowExecutionStatus.RUNNING,
+          }),
+          makeExecution({
+            id: 'run-2',
+            status: WorkflowExecutionStatus.PENDING,
+          }),
         ]}
         reviewInbox={{
           approvedCount: 2,
@@ -184,20 +213,13 @@ describe('workspace dashboard sections', () => {
           recentItems: [],
           rejectedCount: 0,
         }}
-        stats={{
-          activeRuns: 5,
-          completedToday: 7,
-          failedToday: 1,
-          totalCreditsToday: 12.345,
-          trends: [
-            {
-              autoRoutedRate: 1.25,
-              bucket: '2026-05-20T00:00:00.000Z',
-              totalCreditsUsed: 2.345,
-              totalRuns: 9,
-            },
-          ],
-        }}
+        stats={makeStats({
+          active: 5,
+          completed: 7,
+          failed: 1,
+          total: 13,
+          totalCredits: 12.345,
+        })}
         workspaceTasks={[
           makeTask({ id: 'task-1', status: 'backlog' }),
           makeTask({ id: 'task-2', status: 'in_progress' }),
@@ -205,7 +227,7 @@ describe('workspace dashboard sections', () => {
       />,
     );
 
-    expect(screen.getByText('Agents Active')).toBeVisible();
+    expect(screen.getByText('Workflows Active')).toBeVisible();
     expect(screen.getByText('Tasks In Progress')).toBeVisible();
     expect(screen.getByText('Pending Approvals')).toBeVisible();
     // Credits are deliberately absent from the strip — the topbar already shows
@@ -270,7 +292,7 @@ describe('workspace dashboard sections', () => {
   it('renders the composed workspace dashboard', () => {
     render(
       <WorkspaceDashboard
-        activeRuns={[makeRun()]}
+        activeExecutions={[makeExecution()]}
         reviewInbox={{
           approvedCount: 1,
           changesRequestedCount: 0,
@@ -279,10 +301,13 @@ describe('workspace dashboard sections', () => {
           recentItems: [],
           rejectedCount: 0,
         }}
-        runs={[
-          makeRun({ id: 'run-2', status: AgentExecutionStatus.COMPLETED }),
+        executions={[
+          makeExecution({
+            id: 'run-2',
+            status: WorkflowExecutionStatus.COMPLETED,
+          }),
         ]}
-        stats={null}
+        stats={makeStats({ active: 1, completed: 1, total: 2 })}
         workspaceTasks={[makeTask() as never]}
       />,
     );
@@ -297,7 +322,7 @@ describe('workspace dashboard sections', () => {
   it('renders the trends panel with the configured viewAllHref', () => {
     render(
       <WorkspaceDashboard
-        activeRuns={[]}
+        activeExecutions={[]}
         reviewInbox={{
           approvedCount: 0,
           changesRequestedCount: 0,
@@ -306,8 +331,8 @@ describe('workspace dashboard sections', () => {
           recentItems: [],
           rejectedCount: 0,
         }}
-        runs={[]}
-        stats={null}
+        executions={[]}
+        stats={makeStats()}
         trendsHref="/org/brand/discover/overview"
         trendItems={[]}
         // One task is enough signal to get past the first-run block below.
@@ -325,7 +350,7 @@ describe('workspace dashboard sections', () => {
   it('collapses an empty brand into a single guided first-run block', () => {
     render(
       <WorkspaceDashboard
-        activeRuns={[]}
+        activeExecutions={[]}
         reviewInbox={{
           approvedCount: 0,
           changesRequestedCount: 0,
@@ -334,8 +359,8 @@ describe('workspace dashboard sections', () => {
           recentItems: [],
           rejectedCount: 0,
         }}
-        runs={[]}
-        stats={null}
+        executions={[]}
+        stats={makeStats()}
         trendsHref="/org/brand/discover/overview"
         trendItems={[]}
         workspaceTasks={[]}
@@ -352,7 +377,7 @@ describe('workspace dashboard sections', () => {
   it('keeps the composed dashboard while data is still loading', () => {
     render(
       <WorkspaceDashboard
-        activeRuns={[]}
+        activeExecutions={[]}
         isTasksLoading
         reviewInbox={{
           approvedCount: 0,
@@ -362,8 +387,8 @@ describe('workspace dashboard sections', () => {
           recentItems: [],
           rejectedCount: 0,
         }}
-        runs={[]}
-        stats={null}
+        executions={[]}
+        stats={makeStats()}
         trendItems={[]}
         workspaceTasks={[]}
       />,

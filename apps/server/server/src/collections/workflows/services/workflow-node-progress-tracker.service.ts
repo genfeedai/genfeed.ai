@@ -1,13 +1,13 @@
-import { WorkflowExecutionGraphService } from '@server/collections/workflows/services/workflow-execution-graph.service';
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import {
+  type ExecutableNode,
+  type ExecutableWorkflow,
+  getExecutableNodeOperationId,
+  type NodeExecutionResult,
+} from '@genfeedai/workflows/engine';
 import { WorkflowExecutionProgressService } from '@server/collections/workflows/services/workflow-execution-progress.service';
 import { EVENT_TYPE_TO_NODE_TYPE } from '@server/collections/workflows/services/workflow-executor.constants';
 import type { TriggerEvent } from '@server/collections/workflows/services/workflow-executor.types';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
-import type {
-  ExecutableNode,
-  ExecutableWorkflow,
-  NodeExecutionResult,
-} from '@genfeedai/workflows/engine';
 
 type ProgressTrackingOptions = {
   baselineEstimatedDurationMs?: number;
@@ -27,7 +27,6 @@ type ProgressTrackingContext = {
 export class WorkflowNodeProgressTrackerService {
   constructor(
     private readonly progressService: WorkflowExecutionProgressService,
-    private readonly graphService: WorkflowExecutionGraphService,
   ) {}
 
   async injectTriggerNode(
@@ -95,18 +94,20 @@ export class WorkflowNodeProgressTrackerService {
     const runningExecution = await this.progressService.trackNodeResult(
       input.executionId,
       input.node.id,
-      input.node.type,
+      getExecutableNodeOperationId(input.node),
       {
         startedAt: new Date(),
         status: WorkflowExecutionStatus.RUNNING,
       },
     );
 
-    await this.progressService.emitEvent(input.workflow.id, 'node-started', {
-      executionId: input.executionId,
-      nodeId: input.node.id,
-      nodeType: input.node.type,
-    });
+    if (input.workflow.emitSharedEvents !== false) {
+      await this.progressService.emitEvent(input.workflow.id, 'node-started', {
+        executionId: input.executionId,
+        nodeId: input.node.id,
+        nodeType: getExecutableNodeOperationId(input.node),
+      });
+    }
 
     await this.progressService.updateExecutionEta(
       input.executionId,
@@ -135,7 +136,7 @@ export class WorkflowNodeProgressTrackerService {
     const completedExecution = await this.progressService.trackNodeResult(
       input.executionId,
       input.nodeId,
-      input.node.type,
+      getExecutableNodeOperationId(input.node),
       {
         completedAt: new Date(),
         output: input.nodeResult.output as Record<string, unknown> | undefined,
@@ -143,11 +144,17 @@ export class WorkflowNodeProgressTrackerService {
       },
     );
 
-    await this.progressService.emitEvent(input.workflow.id, 'node-completed', {
-      executionId: input.executionId,
-      nodeId: input.nodeId,
-      nodeType: input.node.type,
-    });
+    if (input.workflow.emitSharedEvents !== false) {
+      await this.progressService.emitEvent(
+        input.workflow.id,
+        'node-completed',
+        {
+          executionId: input.executionId,
+          nodeId: input.nodeId,
+          nodeType: getExecutableNodeOperationId(input.node),
+        },
+      );
+    }
 
     await this.progressService.updateExecutionEta(
       input.executionId,
@@ -176,7 +183,7 @@ export class WorkflowNodeProgressTrackerService {
     const failedExecution = await this.progressService.trackNodeResult(
       input.executionId,
       input.nodeId,
-      input.node.type,
+      getExecutableNodeOperationId(input.node),
       {
         completedAt: new Date(),
         error: input.errorMessage,
@@ -184,19 +191,14 @@ export class WorkflowNodeProgressTrackerService {
       },
     );
 
-    await this.progressService.emitEvent(input.workflow.id, 'node-failed', {
-      error: input.errorMessage,
-      executionId: input.executionId,
-      nodeId: input.nodeId,
-      nodeType: input.node.type,
-    });
-
-    this.graphService.skipDownstreamNodes(
-      input.nodeId,
-      input.workflow.edges,
-      input.skippedNodes,
-      input.completedNodes,
-    );
+    if (input.workflow.emitSharedEvents !== false) {
+      await this.progressService.emitEvent(input.workflow.id, 'node-failed', {
+        error: input.errorMessage,
+        executionId: input.executionId,
+        nodeId: input.nodeId,
+        nodeType: getExecutableNodeOperationId(input.node),
+      });
+    }
 
     await this.progressService.updateExecutionEta(
       input.executionId,

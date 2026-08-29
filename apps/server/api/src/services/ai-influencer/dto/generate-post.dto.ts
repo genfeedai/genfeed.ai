@@ -11,6 +11,10 @@ import {
 
 export class GeneratePostDto {
   @IsString()
+  @ApiProperty({ description: 'Organization that owns the persona' })
+  readonly organizationId!: string;
+
+  @IsString()
   @ApiProperty({ description: 'Persona slug to generate content for' })
   readonly personaSlug!: string;
 
@@ -47,6 +51,12 @@ export class GeneratePostDto {
     required: false,
   })
   readonly aspectRatio?: string;
+}
+
+export class ScheduleDailyPostsDto {
+  @IsString()
+  @ApiProperty({ description: 'Organization to process' })
+  readonly organizationId!: string;
 }
 
 export class ListPostsQueryDto {

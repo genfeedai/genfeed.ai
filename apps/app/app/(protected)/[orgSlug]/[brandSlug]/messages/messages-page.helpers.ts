@@ -66,7 +66,6 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 const ACTOR_LABELS: Record<string, string> = {
-  agent: 'Agent',
   system: 'System',
   user: 'User',
   workflow: 'Workflow',
@@ -198,8 +197,6 @@ export function getMessageProvenanceItems(message: SocialMessageModel): Array<{
   const workflowRunId =
     getStringValue(provenance.workflowRunId) ??
     getStringValue(message.workflowRunId);
-  const agentRunId =
-    getStringValue(provenance.agentRunId) ?? getStringValue(message.agentRunId);
   const userId =
     getStringValue(provenance.userId) ?? getStringValue(message.userId);
   const actedAt = getStringValue(provenance.actedAt);
@@ -210,7 +207,6 @@ export function getMessageProvenanceItems(message: SocialMessageModel): Array<{
     actionLabel ||
       actorLabel ||
       workflowRunId ||
-      agentRunId ||
       actedAt ||
       approvedBy ||
       rejectedBy,
@@ -231,9 +227,6 @@ export function getMessageProvenanceItems(message: SocialMessageModel): Array<{
   }
   if (workflowRunId) {
     items.push({ label: 'Workflow', value: workflowRunId });
-  }
-  if (agentRunId) {
-    items.push({ label: 'Agent', value: agentRunId });
   }
   if (userId) {
     items.push({ label: 'User', value: userId });

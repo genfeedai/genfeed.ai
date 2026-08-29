@@ -1,55 +1,90 @@
-import { ParseMode } from '@genfeedai/enums';
 import { TrendNotificationWorkflowService } from '@server/collections/workflows/services/trend-notification-workflow.service';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-describe('TrendNotificationWorkflowService', () => {
-  const prisma = {
-    organization: { findFirst: vi.fn() },
-    setting: { findFirst: vi.fn() },
-  };
-  const trendsService = {
-    getTrendingHashtags: vi.fn(),
-    getTrendingSounds: vi.fn(),
-    getViralVideos: vi.fn(),
-  };
-  const cacheService = { acquireLock: vi.fn() };
-  const notificationsService = {
-    sendEmail: vi.fn(),
-    sendNotification: vi.fn(),
-    sendTelegramMessage: vi.fn(),
-  };
-  const logger = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  };
-  const configService = { get: vi.fn() };
+type DigestItem = Record<string, unknown>;
 
-  let service: TrendNotificationWorkflowService;
+function readTrends(result: Record<string, unknown>): DigestItem[] {
+  return result.trends as DigestItem[];
+}
 
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-06-24T09:15:00.000Z'));
-    vi.clearAllMocks();
+describe('TrendNotificationWorkflowService atomic actions', () => {
+  function buildService() {
+    const trends = {
+      getTrendingHashtags: vi.fn().mockResolvedValue([]),
+      getTrendingSounds: vi.fn().mockResolvedValue([]),
+      getViralVideos: vi
+        .fn()
+        .mockResolvedValue([
+          { platform: 'tiktok', title: 'Signal', viralScore: 90 },
+        ]),
+    };
+    const cache = { acquireLock: vi.fn().mockResolvedValue(true) };
+    const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+    return {
+      cache,
+      logger,
+      service: new TrendNotificationWorkflowService(
+        {} as never,
+        trends as never,
+        cache as never,
+        {} as never,
+        logger as never,
+        { get: vi.fn().mockReturnValue('https://app.genfeed.ai') } as never,
+      ),
+      trends,
+    };
+  }
 
-    prisma.organization.findFirst.mockResolvedValue({
-      user: { email: 'owner@example.com' },
-      userId: 'user-1',
+  it('reads each trend source through its own action', async () => {
+    const { service, trends } = buildService();
+    const state = { minViralScore: 70, status: 'prepared' };
+
+    const videos = await service.readTrendSummaryVideos({ state });
+    await service.readTrendSummaryHashtags({ state });
+    await service.readTrendSummarySounds({ state });
+
+    expect(videos.trends).toHaveLength(1);
+    expect(trends.getViralVideos).toHaveBeenCalledTimes(1);
+    expect(trends.getTrendingHashtags).toHaveBeenCalledTimes(1);
+    expect(trends.getTrendingSounds).toHaveBeenCalledTimes(1);
+  });
+
+  it('acquires the delivery-window marker only after source results exist', async () => {
+    const { cache, service } = buildService();
+    const result = await service.renderTrendSummaryNotifications({
+      hashtags: { trends: [] },
+      sounds: { trends: [] },
+      state: {
+        cadence: 'daily',
+        markerKey: 'marker-1',
+        markerTtlSeconds: 100,
+        minViralScore: 70,
+        status: 'prepared',
+      },
+      videos: {
+        trends: [
+          {
+            platform: 'tiktok',
+            topic: 'Signal',
+            type: 'video',
+            viralScore: 90,
+          },
+        ],
+      },
     });
-    prisma.setting.findFirst.mockResolvedValue({
-      isTrendNotificationsEmail: true,
-      isTrendNotificationsInApp: true,
-      isTrendNotificationsTelegram: true,
-      trendNotificationsEmailAddress: 'notify@example.com',
-      trendNotificationsFrequency: 'HOURLY',
-      trendNotificationsMinViralScore: 70,
-      trendNotificationsTelegramChatId: 'chat-1',
-      userId: 'user-1',
-    });
-    // Field names mirror what the trend ingest actually stores on
-    // `trendingVideo.data` — `viewCount` / `videoUrl`, not `views` / `url`.
-    trendsService.getViralVideos.mockResolvedValue([
+
+    expect(cache.acquireLock).toHaveBeenCalledWith('marker-1', 100);
+    expect(result.status).toBe('rendered');
+  });
+  /**
+   * The ingest stores `viewCount` / `videoUrl`; the digest used to read
+   * `views` / `url` and rendered nameless, countless, linkless rows. The
+   * mapping now lives in `buildTrendDigestItems` — assert it still reaches
+   * the digest through the read action.
+   */
+  it('maps the field names the trend ingest actually stores', async () => {
+    const { service, trends } = buildService();
+    trends.getViralVideos.mockResolvedValue([
       {
         platform: 'tiktok',
         title: 'Fast video',
@@ -58,199 +93,68 @@ describe('TrendNotificationWorkflowService', () => {
         viralScore: 91,
       },
     ]);
-    trendsService.getTrendingHashtags.mockResolvedValue([
-      {
-        hashtag: 'above',
-        platform: 'tiktok',
-        postCount: 500000,
-        viralityScore: 88,
-      },
-      {
-        hashtag: 'below',
-        platform: 'tiktok',
-        postCount: 500,
-        viralityScore: 20,
-      },
-    ]);
-    trendsService.getTrendingSounds.mockResolvedValue([
-      {
-        playUrl: 'https://example.com/sound',
-        soundName: 'Viral sound',
-        usageCount: 50000,
-        viralityScore: 80,
-      },
-    ]);
-    cacheService.acquireLock.mockResolvedValue(true);
-    notificationsService.sendEmail.mockResolvedValue(undefined);
-    notificationsService.sendNotification.mockResolvedValue(undefined);
-    notificationsService.sendTelegramMessage.mockResolvedValue(undefined);
-    configService.get.mockReturnValue('https://app.genfeed.ai');
 
-    service = new TrendNotificationWorkflowService(
-      prisma as never,
-      trendsService as never,
-      cacheService as never,
-      notificationsService as never,
-      logger as never,
-      configService as never,
-    );
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('sends configured channels for the owner setting matching the cadence', async () => {
-    const result = await service.runTrendSummaryNotifications(
-      'org-1',
-      'hourly',
-    );
-
-    expect(prisma.organization.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'org-1', isDeleted: false },
-      }),
-    );
-    expect(prisma.setting.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          trendNotificationsFrequency: 'HOURLY',
-          userId: 'user-1',
-        }),
-      }),
-    );
-    expect(cacheService.acquireLock).toHaveBeenCalledWith(
-      expect.stringContaining('workflow-trend-summary:org-1:hourly:user-1'),
-      7200,
-    );
-    expect(notificationsService.sendTelegramMessage).toHaveBeenCalledWith(
-      'chat-1',
-      expect.stringContaining('#above'),
-      { parse_mode: ParseMode.MARKDOWN },
-    );
-    expect(
-      notificationsService.sendTelegramMessage.mock.calls[0][1],
-    ).not.toContain('#below');
-    expect(notificationsService.sendEmail).toHaveBeenCalledWith(
-      'notify@example.com',
-      expect.stringContaining('Trend Summary'),
-      expect.stringContaining('<!doctype html>'),
-    );
-    expect(notificationsService.sendNotification).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: 'trend_summary',
-        userId: 'user-1',
-      }),
-    );
-    expect(result).toMatchObject({
-      action: 'trendSummaryNotifications',
-      cadence: 'hourly',
-      errors: 0,
-      organizationId: 'org-1',
-      sent: 3,
-      status: 'completed',
-      trends: 3,
+    const result = await service.readTrendSummaryVideos({
+      state: { minViralScore: 70, status: 'prepared' },
     });
-  });
 
-  it('renders each trend with its real title, count and link', async () => {
-    await service.runTrendSummaryNotifications('org-1', 'hourly');
-
-    const html = notificationsService.sendEmail.mock.calls[0][2] as string;
-    expect(html).toContain('Fast video');
-    expect(html).toContain('1.0M views');
-    expect(html).toContain('href="https://example.com/video"');
-    expect(html).not.toContain('Trending Video');
+    expect(readTrends(result)[0]).toMatchObject({
+      topic: 'Fast video',
+      url: 'https://example.com/video',
+      usageCount: 1000000,
+    });
   });
 
   it('drops trends the ingest could not name rather than shipping placeholders', async () => {
-    trendsService.getViralVideos.mockResolvedValue([
+    const { service, trends } = buildService();
+    trends.getViralVideos.mockResolvedValue([
       { platform: 'tiktok', viewCount: 1000000, viralScore: 91 },
     ]);
 
-    const result = await service.runTrendSummaryNotifications(
-      'org-1',
-      'hourly',
-    );
+    const result = await service.readTrendSummaryVideos({
+      state: { minViralScore: 70, status: 'prepared' },
+    });
 
-    const html = notificationsService.sendEmail.mock.calls[0][2] as string;
-    expect(html).not.toContain('Trending Video');
-    expect(html).not.toContain('Viral Videos');
-    expect(result.trends).toBe(2);
+    expect(readTrends(result)).toHaveLength(0);
   });
 
-  it('renders trending sounds that clear the score threshold', async () => {
-    await service.runTrendSummaryNotifications('org-1', 'hourly');
+  /**
+   * Sounds were gated on a raw `usageCount >= 10000` the ingest can never
+   * satisfy — it counts sound reuse within one scraped batch. The score gate
+   * is the only gate now.
+   */
+  it('keeps trending sounds that clear the score threshold', async () => {
+    const { service, trends } = buildService();
+    trends.getTrendingSounds.mockResolvedValue([
+      {
+        playUrl: 'https://example.com/sound',
+        soundName: 'Viral sound',
+        usageCount: 42,
+        viralityScore: 88,
+      },
+    ]);
 
-    const html = notificationsService.sendEmail.mock.calls[0][2] as string;
-    expect(html).toContain('Trending Sounds');
-    expect(html).toContain('Viral sound');
-  });
+    const result = await service.readTrendSummarySounds({
+      state: { minViralScore: 70, status: 'prepared' },
+    });
 
-  it('skips when the owner has no settings for the cadence', async () => {
-    prisma.setting.findFirst.mockResolvedValue(null);
-
-    const result = await service.runTrendSummaryNotifications(
-      'org-1',
-      'weekly',
-    );
-
-    expect(cacheService.acquireLock).not.toHaveBeenCalled();
-    expect(notificationsService.sendEmail).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
-      cadence: 'weekly',
-      reason: 'settings_missing',
-      status: 'skipped',
+    expect(readTrends(result)).toHaveLength(1);
+    expect(readTrends(result)[0]).toMatchObject({
+      topic: 'Viral sound',
+      type: 'sound',
+      url: 'https://example.com/sound',
     });
   });
 
-  it('skips duplicate cadence windows by org, cadence, recipient set, and window', async () => {
-    cacheService.acquireLock.mockResolvedValue(false);
+  it('survives a dead trend source without losing the others', async () => {
+    const { logger, service, trends } = buildService();
+    trends.getViralVideos.mockRejectedValue(new Error('trends unavailable'));
 
-    const result = await service.runTrendSummaryNotifications('org-1', 'daily');
-
-    expect(notificationsService.sendEmail).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
-      cadence: 'daily',
-      reason: 'notification_window_already_sent',
-      status: 'skipped',
+    const result = await service.readTrendSummaryVideos({
+      state: { minViralScore: 70, status: 'prepared' },
     });
-  });
 
-  it('skips without sending when no trends match threshold', async () => {
-    trendsService.getViralVideos.mockResolvedValue([]);
-    trendsService.getTrendingHashtags.mockResolvedValue([]);
-    trendsService.getTrendingSounds.mockResolvedValue([]);
-
-    const result = await service.runTrendSummaryNotifications(
-      'org-1',
-      'hourly',
-    );
-
-    expect(cacheService.acquireLock).not.toHaveBeenCalled();
-    expect(notificationsService.sendEmail).not.toHaveBeenCalled();
-    expect(result).toMatchObject({
-      reason: 'no_trends',
-      status: 'skipped',
-    });
-  });
-
-  it('reports delivery errors and continues other channels', async () => {
-    notificationsService.sendEmail.mockRejectedValueOnce(
-      new Error('email failed'),
-    );
-
-    const result = await service.runTrendSummaryNotifications(
-      'org-1',
-      'hourly',
-    );
-
-    expect(notificationsService.sendTelegramMessage).toHaveBeenCalled();
-    expect(notificationsService.sendNotification).toHaveBeenCalled();
-    expect(result).toMatchObject({
-      errors: 1,
-      sent: 2,
-      status: 'completed',
-    });
+    expect(readTrends(result)).toEqual([]);
+    expect(logger.error).toHaveBeenCalled();
   });
 });

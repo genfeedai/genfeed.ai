@@ -8,6 +8,11 @@ export interface BatchContentRequest {
   params?: Record<string, unknown>;
 }
 
+export interface QueuedBatchContentResult {
+  jobId: string;
+  status: 'queued';
+}
+
 export interface BatchContentResult {
   results: GeneratedContent[];
   summary: {
@@ -16,28 +21,4 @@ export interface BatchContentResult {
     failed: number;
   };
   duration: number;
-}
-
-export type BatchLifecycleStatus =
-  | 'queued'
-  | 'processing'
-  | 'completed'
-  | 'failed';
-
-export interface BatchStatus {
-  batchId: string;
-  organizationId: string;
-  brandId: string;
-  total: number;
-  completed: number;
-  failed: number;
-  results: GeneratedContent[];
-  status: BatchLifecycleStatus;
-}
-
-export interface BatchContentItemJobData {
-  batchId: string;
-  itemIndex: number;
-  request: BatchContentRequest;
-  userId?: string;
 }

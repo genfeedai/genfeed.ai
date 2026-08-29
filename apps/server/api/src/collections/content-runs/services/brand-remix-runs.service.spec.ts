@@ -1,3 +1,4 @@
+import { BRAND_REMIX_DOWNSTREAM_ACTION_IDS } from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
 import { assembleBrandRemixRunsGraph } from '@api/collections/content-runs/services/brand-remix-runs.factory';
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
@@ -59,6 +60,15 @@ const makeRun = (config: Record<string, unknown>) => ({
 
 type TestRun = ReturnType<typeof makeRun>;
 
+type CapturedWorkflowAction = (request: {
+  input: Record<string, unknown>;
+  provenance: {
+    executionId: string;
+    workflowId: string;
+    workflowLabel: string;
+  };
+}) => Promise<unknown> | unknown;
+
 type TestCreditsRequest = Request & {
   creditsConfig: {
     amount: number;
@@ -104,7 +114,14 @@ describe('BrandRemixRunsService', () => {
     checkOrganizationCreditsAvailable: vi.fn(),
     getOrganizationCreditsBalance: vi.fn(),
   };
-  const systemWorkflowProvenanceService = { runAction: vi.fn() };
+  const workflowActions = new Map<string, CapturedWorkflowAction>();
+  const systemWorkflowRunner = {
+    registerAction: vi.fn((id: string, action: CapturedWorkflowAction) => {
+      workflowActions.set(id, action);
+    }),
+    registerWorkflow: vi.fn(),
+    runWorkflow: vi.fn(),
+  };
   const byokService = {
     isByokActiveForProvider: vi.fn(),
     isByokBillingInGoodStanding: vi.fn(),
@@ -192,18 +209,13 @@ describe('BrandRemixRunsService', () => {
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(100);
     byokService.isByokActiveForProvider.mockResolvedValue(false);
     byokService.isByokBillingInGoodStanding.mockResolvedValue(true);
-    systemWorkflowProvenanceService.runAction.mockImplementation(
-      async (_input, action) => {
-        const provenance = {
-          executionId: 'workflow-execution-1',
-          workflowId: 'workflow-1',
-          workflowLabel: 'Brand Remix Review Handoff',
-        };
-        return { provenance, result: await action(provenance) };
+    workflowActions.clear();
+    systemWorkflowRunner.registerAction.mockImplementation(
+      (id: string, action: CapturedWorkflowAction) => {
+        workflowActions.set(id, action);
       },
     );
-
-    service = assembleBrandRemixRunsGraph({
+    const graph = assembleBrandRemixRunsGraph({
       adsResearchService: adsResearchService as never,
       avatarVideoGenerationService: avatarVideoGenerationService as never,
       batchGenerationService: batchGenerationService as never,
@@ -217,10 +229,42 @@ describe('BrandRemixRunsService', () => {
       pausedXAdsCampaignDraftService: pausedXAdsCampaignDraftService as never,
       prisma,
       runtime,
-      systemWorkflowProvenanceService: systemWorkflowProvenanceService as never,
+      systemWorkflowRunner: systemWorkflowRunner as never,
       trendReferenceCorpusService: trendReferenceCorpusService as never,
       videoGenerationService: videoGenerationService as never,
-    }).service;
+    });
+    graph.review.onModuleInit();
+    systemWorkflowRunner.runWorkflow.mockImplementation(async (request) => {
+      const provenance = {
+        executionId: 'workflow-execution-1',
+        workflowId: 'workflow-1',
+        workflowLabel: 'Brand Remix Review Handoff',
+      };
+      const execute = async (id: string, input: Record<string, unknown>) => {
+        const action = workflowActions.get(id);
+        if (!action) throw new Error(`Missing action ${id}`);
+        return action({ input, provenance } as never);
+      };
+      const ids = BRAND_REMIX_DOWNSTREAM_ACTION_IDS;
+      let state = (await execute(ids.REVIEW_PREPARE, {
+        request: request.inputValues.request,
+      })) as { needsHandoff: boolean };
+      if (state.needsHandoff) {
+        state = (await execute(ids.REVIEW_CLAIM, { state })) as typeof state;
+        state = (await execute(ids.REVIEW_CREATE_HANDOFF, {
+          state,
+        })) as typeof state;
+        if ('recordTrendLineage' in state && state.recordTrendLineage) {
+          state = (await execute(ids.REVIEW_RECORD_LINEAGE, {
+            state,
+          })) as typeof state;
+        }
+        state = (await execute(ids.REVIEW_COMPLETE, { state })) as typeof state;
+      }
+      const result = await execute(ids.REVIEW_PROJECT, { state });
+      return { provenance, result };
+    });
+    service = graph.service;
   });
 
   describe('planning and source graph', () => {
@@ -2301,11 +2345,10 @@ describe('BrandRemixRunsService', () => {
         'org-1',
         'brand-remix:run-1:review:1:variant-1',
       );
-      expect(systemWorkflowProvenanceService.runAction).toHaveBeenCalledWith(
+      expect(systemWorkflowRunner.runWorkflow).toHaveBeenCalledWith(
         expect.objectContaining({
-          canonicalId: 'brand-remix-review-handoff',
+          canonicalId: 'brand-remix.review-handoff',
         }),
-        expect.any(Function),
       );
       expect(result).toMatchObject({
         phase: 'in_review',
