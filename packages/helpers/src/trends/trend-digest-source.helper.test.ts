@@ -116,6 +116,28 @@ describe('buildTrendDigestItems', () => {
     expect(items).toEqual([]);
   });
 
+  it('drops unscored entries even when the threshold is zero', () => {
+    const items = buildTrendDigestItems(
+      {
+        hashtags: [{ ...hashtag, viralityScore: undefined }],
+        sounds: [{ ...sound, viralityScore: undefined }],
+        videos: [{ ...video, viralScore: undefined }],
+      },
+      { minViralScore: 0 },
+    );
+
+    expect(items).toEqual([]);
+  });
+
+  it('keeps a genuinely zero-scored entry when the threshold is zero', () => {
+    const items = buildTrendDigestItems(
+      { hashtags: [], sounds: [], videos: [{ ...video, viralScore: 0 }] },
+      { minViralScore: 0 },
+    );
+
+    expect(items.map((item) => item.viralScore)).toEqual([0]);
+  });
+
   it('ranks by score and honours the limit', () => {
     const items = buildTrendDigestItems(
       {

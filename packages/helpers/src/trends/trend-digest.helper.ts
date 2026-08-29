@@ -158,16 +158,26 @@ export function buildTrendDigestHtml(
   });
 }
 
+/** Row links are web sources only — narrower than the system-email allowlist. */
+function sanitizeTrendSourceUrl(value: string): string | null {
+  const safe = sanitizeSystemEmailUrl(value);
+  if (!safe) {
+    return null;
+  }
+  return /^https?:\/\//i.test(safe) ? safe : null;
+}
+
 function buildTrendRow(trend: TrendDigestItem, usageLabel: string): string {
   const usage = trend.usageCount
     ? `<span style="color:#949494;"> - ${formatTrendCount(trend.usageCount)} ${usageLabel}</span>`
     : '';
 
   // A trend the reader cannot open is a dead end, so the topic carries the
-  // link. Scraped URLs are caller-supplied, so they go through the same
-  // scheme allowlist as every other link in a system email.
+  // link. Scraped URLs are caller-supplied, so they go through the shared
+  // scheme allowlist, narrowed further here: a trend's source is a web page,
+  // never a `mailto:` target, so only http(s) survives.
   const topic = escapeTrendHtml(trend.topic);
-  const url = trend.url ? sanitizeSystemEmailUrl(trend.url) : null;
+  const url = trend.url ? sanitizeTrendSourceUrl(trend.url) : null;
   const title = url
     ? `<a href="${escapeTrendHtml(url)}" style="color:#EDEDED;text-decoration:none;">${topic}</a>`
     : topic;

@@ -107,6 +107,15 @@ describe('buildTrendDigestHtml', () => {
     expect(html).toContain('Dancing cats');
   });
 
+  it('drops a mailto row link — a trend source is a web page', () => {
+    const html = buildTrendDigestHtml(
+      [{ ...sampleTrends[0], url: 'mailto:someone@example.com' }],
+      { minViralScore: 70 },
+    );
+    expect(html).not.toContain('mailto:');
+    expect(html).toContain('Dancing cats');
+  });
+
   it('omits the footer link when appUrl is empty', () => {
     const html = buildTrendDigestHtml(
       sampleTrends.map(({ url: _url, ...trend }) => trend),

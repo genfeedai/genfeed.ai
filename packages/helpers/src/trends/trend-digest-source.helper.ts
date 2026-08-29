@@ -58,6 +58,15 @@ export interface TrendDigestSourceOptions {
 const DEFAULT_VIDEO_PLATFORM = 'tiktok';
 const SOUND_PLATFORM = 'tiktok';
 
+/**
+ * A trend the ingest never scored cannot be ranked or thresholded, and a
+ * `?? 0` fallback would smuggle it into the digest as a literal "Score: 0"
+ * row whenever the configured threshold is 0. Absent stays absent.
+ */
+function sourceScore(value: number | undefined | null): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
 /** A trend with no name is a blank row — the digest is better off without it. */
 function firstNonEmpty(
   ...values: Array<string | undefined>
@@ -76,7 +85,8 @@ function mapVideos(videos: RawTrendVideo[]): TrendDigestItem[] {
 
   for (const video of videos) {
     const topic = firstNonEmpty(video.title, video.description);
-    if (!topic) {
+    const score = sourceScore(video.viralScore);
+    if (!topic || score === null) {
       continue;
     }
 
@@ -86,7 +96,7 @@ function mapVideos(videos: RawTrendVideo[]): TrendDigestItem[] {
       type: 'video',
       url: firstNonEmpty(video.videoUrl, video.playUrl),
       usageCount: video.viewCount,
-      viralScore: video.viralScore ?? 0,
+      viralScore: score,
     });
   }
 
@@ -98,7 +108,8 @@ function mapHashtags(hashtags: RawTrendHashtag[]): TrendDigestItem[] {
 
   for (const hashtag of hashtags) {
     const tag = firstNonEmpty(hashtag.hashtag);
-    if (!tag) {
+    const score = sourceScore(hashtag.viralityScore);
+    if (!tag || score === null) {
       continue;
     }
 
@@ -107,7 +118,7 @@ function mapHashtags(hashtags: RawTrendHashtag[]): TrendDigestItem[] {
       topic: tag.startsWith('#') ? tag : `#${tag}`,
       type: 'hashtag',
       usageCount: hashtag.postCount ?? hashtag.viewCount,
-      viralScore: hashtag.viralityScore ?? 0,
+      viralScore: score,
     });
   }
 
@@ -119,7 +130,8 @@ function mapSounds(sounds: RawTrendSound[]): TrendDigestItem[] {
 
   for (const sound of sounds) {
     const topic = firstNonEmpty(sound.soundName);
-    if (!topic) {
+    const score = sourceScore(sound.viralityScore);
+    if (!topic || score === null) {
       continue;
     }
 
@@ -129,7 +141,7 @@ function mapSounds(sounds: RawTrendSound[]): TrendDigestItem[] {
       type: 'sound',
       url: firstNonEmpty(sound.playUrl),
       usageCount: sound.usageCount,
-      viralScore: sound.viralityScore ?? 0,
+      viralScore: score,
     });
   }
 
