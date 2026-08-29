@@ -102,7 +102,9 @@ export default function ProactiveContent() {
   }, []);
 
   const loadWorkspace = useCallback(
-    async (mode: 'claim' | 'refresh') => {
+    async (mode: 'claim' | 'refresh', signal?: AbortSignal) => {
+      const isStale = (): boolean =>
+        !isMountedRef.current || signal?.aborted === true;
       const token = await resolveAuthToken(getToken);
       if (!token) {
         return;
@@ -113,10 +115,10 @@ export default function ProactiveContent() {
       try {
         const result =
           mode === 'claim'
-            ? await service.claimProactiveWorkspace()
-            : await service.getProactiveWorkspace();
+            ? await service.claimProactiveWorkspace(signal)
+            : await service.getProactiveWorkspace(signal);
 
-        if (isMountedRef.current) {
+        if (!isStale()) {
           if (mode === 'claim') {
             dispatch({ type: 'LOAD_SUCCESS', payload: result });
           } else {
@@ -126,8 +128,8 @@ export default function ProactiveContent() {
       } catch (loadError) {
         if (mode === 'claim') {
           try {
-            const fallback = await service.getProactiveWorkspace();
-            if (isMountedRef.current) {
+            const fallback = await service.getProactiveWorkspace(signal);
+            if (!isStale()) {
               dispatch({ type: 'LOAD_SUCCESS', payload: fallback });
             }
             return;
@@ -136,7 +138,7 @@ export default function ProactiveContent() {
           }
         }
 
-        if (isMountedRef.current) {
+        if (!isStale()) {
           if (mode === 'claim') {
             dispatch({
               type: 'LOAD_ERROR',
@@ -151,22 +153,46 @@ export default function ProactiveContent() {
     [getToken],
   );
 
+  // `loadWorkspace` changes whenever the auth token context does, which re-runs
+  // this effect. Without an effect-scoped signal the superseded claim stays in
+  // flight and its late result overwrites the newer workspace state.
   useEffect(() => {
-    void loadWorkspace('claim')
+    const controller = new AbortController();
+
+    void loadWorkspace('claim', controller.signal)
       .catch(() => undefined)
       .finally(() => {
-        if (isMountedRef.current) {
+        if (isMountedRef.current && !controller.signal.aborted) {
           dispatch({ type: 'LOAD_DONE' });
         }
       });
+
+    return () => {
+      controller.abort();
+    };
   }, [loadWorkspace]);
 
+  // One poll at a time: a tick that fires while the previous refresh is still
+  // in flight supersedes it, and unmount cancels whatever is left.
+  const refreshControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      refreshControllerRef.current?.abort();
+    };
+  }, []);
+
   const refreshWorkspace = useCallback(() => {
+    refreshControllerRef.current?.abort();
+
+    const controller = new AbortController();
+    refreshControllerRef.current = controller;
+
     dispatch({ type: 'REFRESH_START' });
-    void loadWorkspace('refresh')
+    void loadWorkspace('refresh', controller.signal)
       .catch(() => undefined)
       .finally(() => {
-        if (isMountedRef.current) {
+        if (isMountedRef.current && !controller.signal.aborted) {
           dispatch({ type: 'REFRESH_DONE' });
         }
       });
