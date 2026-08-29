@@ -11,7 +11,7 @@ describe('HomeHow', () => {
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: /the whole content loop, in one place\./i,
+        name: /brief to published\./i,
       }),
     ).toBeInTheDocument();
   });
@@ -19,12 +19,7 @@ describe('HomeHow', () => {
   it('renders the complete brief-to-analytics lifecycle as an ordered list', () => {
     render(<HomeHow />);
 
-    for (const title of [
-      'Start from a brief',
-      'Review and refine',
-      'Schedule and publish',
-      'Measure what shipped',
-    ]) {
+    for (const title of ['Brief', 'Review', 'Publish', 'Measure']) {
       expect(
         screen.getByRole('heading', { level: 3, name: title }),
       ).toBeInTheDocument();

@@ -31,10 +31,10 @@ vi.mock('@web-components/PageLayout', () => ({
 }));
 
 describe('ProductPage', () => {
-  it('renders the agents page with tagline and agent library categories', () => {
-    const product = getProductBySlug('agents');
+  it('renders the hire-agents page with tagline and agent library categories', () => {
+    const product = getProductBySlug('hire-agents');
     if (!product) {
-      throw new Error('Expected fixture product "agents" to exist');
+      throw new Error('Expected fixture product "hire-agents" to exist');
     }
 
     render(<ProductPage product={product} />);

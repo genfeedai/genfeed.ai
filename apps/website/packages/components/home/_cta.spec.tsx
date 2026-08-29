@@ -13,20 +13,24 @@ vi.mock('@services/core/environment.service', () => ({
 }));
 
 describe('HomeCTA', () => {
-  it('repeats the Start for free primary and demo secondary actions', () => {
+  it('closes on the sign-up primary and the demo secondary', () => {
     render(<HomeCTA />);
 
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: /ship on-brand content, faster\./i,
+        name: /start with one brief\./i,
       }),
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('link').map((link) => link.textContent?.trim()),
-    ).toEqual(['Start for free', 'Book a Demo']);
+    ).toEqual(['Start creating', 'Book a demo']);
     expect(
-      screen.getByRole('link', { name: /start for free/i }),
+      screen.getByRole('link', { name: /start creating/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
+    expect(screen.getByRole('link', { name: /book a demo/i })).toHaveAttribute(
+      'href',
+      'https://calendly.com/genfeed/demo',
+    );
   });
 });

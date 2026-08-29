@@ -89,7 +89,7 @@ const HERO_VISUAL = (
   />
 );
 
-export default function AgentsContent() {
+export default function HireAgentsContent() {
   const containerRef = useMarketingEntrance();
   const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
 
@@ -101,7 +101,7 @@ export default function AgentsContent() {
             <ButtonTracked
               asChild
               size={ButtonSize.PUBLIC}
-              trackingName="agents_hero_click"
+              trackingName="hire_agents_hero_click"
               trackingData={{ action: 'create_now' }}
             >
               <a href={signUpHref} target="_blank" rel="noopener noreferrer">
@@ -112,7 +112,7 @@ export default function AgentsContent() {
               asChild
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.PUBLIC}
-              trackingName="agents_hero_click"
+              trackingName="hire_agents_hero_click"
               trackingData={{ action: 'book_demo' }}
             >
               <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
@@ -123,7 +123,7 @@ export default function AgentsContent() {
         }
         heroVisual={HERO_VISUAL}
         compact
-        title="Agents"
+        title="Hire Agents"
         description="Your autonomous content team, hired and briefed in minutes."
       >
         {/* Highlight Card */}
@@ -257,7 +257,7 @@ export default function AgentsContent() {
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
-                trackingName="agents_cta_click"
+                trackingName="hire_agents_cta_click"
                 trackingData={{ action: 'create_now' }}
               >
                 <a href={signUpHref} target="_blank" rel="noopener noreferrer">
@@ -268,7 +268,7 @@ export default function AgentsContent() {
                 asChild
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.PUBLIC}
-                trackingName="agents_cta_click"
+                trackingName="hire_agents_cta_click"
                 trackingData={{ action: 'book_demo' }}
               >
                 <a

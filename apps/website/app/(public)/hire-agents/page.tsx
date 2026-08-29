@@ -1,12 +1,12 @@
 import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
-import AgentsContent from '@public/agents/agents-content';
+import HireAgentsContent from '@public/hire-agents/hire-agents-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'AI Agents That Create and Publish',
+  'Hire AI Agents That Create and Publish',
   'Hire autonomous AI agents that research, generate, and publish content on a schedule. Set goals and guardrails, then run campaigns on autopilot.',
-  '/agents',
+  '/hire-agents',
 );
 
-export default function Agents() {
-  return <AgentsContent />;
+export default function HireAgents() {
+  return <HireAgentsContent />;
 }
