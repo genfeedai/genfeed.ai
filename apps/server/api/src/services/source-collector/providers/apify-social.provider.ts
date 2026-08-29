@@ -1,4 +1,3 @@
-import { ApifyService } from '@server/services/integrations/apify/services/apify.service';
 import type { SourceTimelineProvider } from '@api/services/source-collector/source-collector.interface';
 import type {
   CollectedSourcePost,
@@ -8,6 +7,7 @@ import type {
 import type { SocialPostUrlReference } from '@genfeedai/enums';
 import { SocialSourcePlatform } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
+import { ApifyService } from '@server/services/integrations/apify/services/apify.service';
 
 /**
  * Apify fallback for public timelines (X / IG / TikTok).
@@ -142,7 +142,7 @@ export class ApifySocialProvider implements SourceTimelineProvider {
               views: video.playCount,
             },
             platform: SocialSourcePlatform.TIKTOK,
-            text: video.desc ?? '',
+            text: video.text ?? '',
             thumbnailUrl: video.musicMeta?.coverUrl,
           }),
         ),
@@ -247,7 +247,7 @@ export class ApifySocialProvider implements SourceTimelineProvider {
               views: video.playCount,
             },
             platform: SocialSourcePlatform.TIKTOK,
-            text: video.desc ?? '',
+            text: video.text ?? '',
             thumbnailUrl: video.musicMeta?.coverUrl,
           },
         ],
