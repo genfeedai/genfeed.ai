@@ -22,6 +22,7 @@ type InputField =
   | 'brand'
   | 'brandId'
   | 'brandLabel'
+  | 'brandVoice'
   | 'caption'
   | 'channel'
   | 'clipCount'
@@ -32,6 +33,7 @@ type InputField =
   | 'credentialId'
   | 'data'
   | 'duration'
+  | 'durationSeconds'
   | 'destination'
   | 'days'
   | 'endTime'
@@ -169,9 +171,19 @@ const MEDIA_VALUE_SCHEMA = JSON_DOCUMENT_SCHEMA;
 const URL_OR_MEDIA_SCHEMA = {
   anyOf: [STRING_SCHEMA, MEDIA_VALUE_SCHEMA],
 } as const;
+/**
+ * Context fields an executor accepts either already flattened to text or as a
+ * structured object it stringifies itself.
+ */
+const TEXT_OR_OBJECT_SCHEMA = {
+  anyOf: [STRING_SCHEMA, JSON_DOCUMENT_SCHEMA],
+} as const;
 
 function inputFieldSchema(field: InputField): ActionJsonSchema {
   switch (field) {
+    case 'brandVoice':
+    case 'harnessContext':
+      return TEXT_OR_OBJECT_SCHEMA;
     case 'acceptsStructuredPrompt':
     case 'addWatermark':
     case 'autoSync':
@@ -218,6 +230,7 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
     case 'minViralScore':
     case 'pitchShift':
     case 'startTime':
+    case 'durationSeconds':
     case 'strength':
     case 'targetScore':
     case 'temperature':
@@ -384,17 +397,39 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'trackingEnabled',
         'worstN',
       ]),
-      outputSchema: objectOutput({
-        avgEngagementRate: NUMBER_SCHEMA,
-        bestPlatform: nullableSchema(STRING_SCHEMA),
-        bestPostingTimes: arraySchema(STRING_SCHEMA),
-        releaseEvidence: nullableSchema(JSON_DOCUMENT_SCHEMA),
-        topHooks: arraySchema(STRING_SCHEMA),
-        topTopics: arraySchema(STRING_SCHEMA),
-        weekOverWeekChange: NUMBER_SCHEMA,
-        weekOverWeekDirection: enumSchema(['up', 'down', 'stable']),
-        worstTopics: arraySchema(STRING_SCHEMA),
-      }),
+      outputSchema: objectOutput(
+        {
+          avgEngagementRate: NUMBER_SCHEMA,
+          bestPlatform: nullableSchema(STRING_SCHEMA),
+          bestPostingTimes: arraySchema(
+            closedObjectSchema(
+              {
+                avgEngagement: NUMBER_SCHEMA,
+                dayOfWeek: NUMBER_SCHEMA,
+                hour: NUMBER_SCHEMA,
+              },
+              ['dayOfWeek', 'hour'],
+            ),
+          ),
+          releaseEvidence: nullableSchema(JSON_DOCUMENT_SCHEMA),
+          topHooks: arraySchema(STRING_SCHEMA),
+          topTopics: arraySchema(STRING_SCHEMA),
+          weekOverWeekChange: NUMBER_SCHEMA,
+          weekOverWeekDirection: enumSchema(['up', 'down', 'stable']),
+          worstTopics: arraySchema(STRING_SCHEMA),
+        },
+        // `releaseEvidence` is emitted only when the run analyzed a release.
+        [
+          'avgEngagementRate',
+          'bestPlatform',
+          'bestPostingTimes',
+          'topHooks',
+          'topTopics',
+          'weekOverWeekChange',
+          'weekOverWeekDirection',
+          'worstTopics',
+        ],
+      ),
     },
     attachPostIngredient: {
       inputSchema: inputSchema(['brandId', 'media', 'post']),
@@ -768,11 +803,21 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
     },
     promptConstructor: {
       inputSchema: promptConstructorInputSchema(),
-      outputSchema: objectOutput({
-        output: STRING_SCHEMA,
-        prompt: STRING_SCHEMA,
-        text: STRING_SCHEMA,
-      }),
+      // Text mode emits the bare prompt string; JSON mode emits
+      // `PromptConstructorJsonPayload`.
+      outputSchema: {
+        anyOf: [
+          STRING_SCHEMA,
+          closedObjectSchema(
+            {
+              prompt: STRING_SCHEMA,
+              promptFormat: enumSchema(['json']),
+              structuredPrompt: JSON_DOCUMENT_SCHEMA,
+            },
+            ['prompt', 'promptFormat'],
+          ),
+        ],
+      },
     },
     publish: {
       inputSchema: inputSchema([
@@ -929,17 +974,20 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
     talkingHeadScript: {
       inputSchema: inputSchema([
         'brand',
+        'brandVoice',
         'clipCount',
+        'durationSeconds',
         'harnessContext',
         'language',
         'model',
         'productContext',
         'wordsPerSecond',
       ]),
+      // `language` is run metadata, not node output — `TalkingHeadScriptNodeOutput`
+      // carries only the script payload.
       outputSchema: objectOutput({
         clipCount: INTEGER_SCHEMA,
         fullText: STRING_SCHEMA,
-        language: STRING_SCHEMA,
         script: JSON_DOCUMENT_SCHEMA,
         segments: arraySchema(JSON_DOCUMENT_SCHEMA),
         totalDurationSeconds: NUMBER_SCHEMA,

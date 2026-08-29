@@ -60,9 +60,10 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       targetHandle: 'brandVoice',
     },
     {
+      // Prompt Constructor emits the prompt itself, not a keyed object, so the
+      // whole output is delivered to the llm `prompt` handle.
       id: 'e-prompt-gen',
       source: 'prompt-constructor',
-      sourceHandle: 'prompt',
       target: 'text-gen',
       targetHandle: 'prompt',
     },
@@ -76,7 +77,7 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
     {
       id: 'e-gen-publish',
       source: 'text-gen',
-      sourceHandle: 'content',
+      sourceHandle: 'text',
       target: 'publish',
       targetHandle: 'caption',
     },
@@ -165,15 +166,7 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
     createTemplateActionNode('publish', {
       data: {
         config: {
-          platforms: {
-            facebook: false,
-            instagram: false,
-            linkedin: false,
-            threads: false,
-            tiktok: true,
-            twitter: false,
-            youtube: false,
-          },
+          platforms: ['tiktok'],
           schedule: { type: 'immediate' },
         },
         label: 'Publish',

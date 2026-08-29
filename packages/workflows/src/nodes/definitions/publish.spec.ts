@@ -15,13 +15,8 @@ describe('publish node', () => {
       expect(DEFAULT_PUBLISH_DATA.type).toBe('publish');
     });
 
-    it('should default all platforms to false', () => {
-      expect(DEFAULT_PUBLISH_DATA.platforms).toEqual({
-        instagram: false,
-        linkedin: false,
-        tiktok: false,
-        twitter: false,
-      });
+    it('should default to no selected platforms', () => {
+      expect(DEFAULT_PUBLISH_DATA.platforms).toEqual([]);
     });
 
     it('should default schedule to immediate', () => {

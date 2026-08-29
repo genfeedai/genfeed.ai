@@ -17,7 +17,12 @@ export type SocialPlatform =
 export type ScheduleType = 'immediate' | 'scheduled';
 
 export interface PublishConfig {
-  platforms: Record<SocialPlatform, boolean>;
+  /**
+   * Canonical action-node shape: the enabled platform ids. Authored graphs and
+   * the `publish` action contract both carry a string array — there is no
+   * boolean-map form.
+   */
+  platforms: SocialPlatform[];
   schedule: {
     type: ScheduleType;
     datetime?: string; // ISO string for scheduled posts
@@ -39,6 +44,14 @@ export interface PublishOutput {
   platforms: SocialPlatform[];
   scheduledFor: Date | null;
   status: 'queued' | 'scheduled' | 'published';
+}
+
+/**
+ * Node output crossing the action-contract boundary. Every action serializes
+ * instants as ISO strings — a `Date` instance is not a JSON document.
+ */
+export interface PublishNodeOutput extends Omit<PublishOutput, 'scheduledFor'> {
+  scheduledFor: string | null;
 }
 
 export type PublishResolver = (params: {
@@ -183,19 +196,11 @@ export class PublishExecutor extends BaseExecutor {
     const baseValidation = super.validate(node);
     const errors = [...baseValidation.errors];
 
-    const platforms = node.config.platforms as
-      | Record<SocialPlatform, boolean>
-      | undefined;
-    if (!platforms) {
+    const platforms = node.config.platforms as SocialPlatform[] | undefined;
+    if (!Array.isArray(platforms)) {
       errors.push('Platforms configuration is required');
-    } else {
-      const enabledPlatforms = Object.entries(platforms)
-        .filter(([_, enabled]) => enabled)
-        .map(([platform]) => platform);
-
-      if (enabledPlatforms.length === 0) {
-        errors.push('At least one platform must be enabled');
-      }
+    } else if (platforms.length === 0) {
+      errors.push('At least one platform must be enabled');
     }
 
     const schedule = node.config.schedule as
@@ -243,13 +248,10 @@ export class PublishExecutor extends BaseExecutor {
       throw new Error('Missing publish media or caption input');
     }
 
-    const platforms = this.getRequiredConfig<Record<SocialPlatform, boolean>>(
+    const enabledPlatforms = this.getRequiredConfig<SocialPlatform[]>(
       node.config,
       'platforms',
     );
-    const enabledPlatforms = Object.entries(platforms)
-      .filter(([_, enabled]) => enabled)
-      .map(([platform]) => platform as SocialPlatform);
 
     const schedule = this.getOptionalConfig<PublishConfig['schedule']>(
       node.config,
@@ -287,8 +289,13 @@ export class PublishExecutor extends BaseExecutor {
       workflowId: context.workflowId,
     });
 
+    const output: PublishNodeOutput = {
+      ...result,
+      scheduledFor: result.scheduledFor?.toISOString() ?? null,
+    };
+
     return {
-      data: result,
+      data: output,
       metadata: {
         platforms: enabledPlatforms,
         postCount: result.postIds.length,

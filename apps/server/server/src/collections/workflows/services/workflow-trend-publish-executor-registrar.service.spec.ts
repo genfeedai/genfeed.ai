@@ -61,7 +61,7 @@ function runPublishNode(
       label: 'Publish',
       parameters: {
         caption: 'Launch post',
-        platforms: { twitter: true },
+        platforms: ['twitter'],
         schedule: { type: 'immediate' },
       },
     }),
