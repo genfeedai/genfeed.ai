@@ -1,13 +1,12 @@
 import { createHash } from 'node:crypto';
-import { TrendsService } from '@server/collections/trends/services/trends.service';
-import type { TrendNotificationCadence } from '@server/collections/workflows/templates/trend-notification-workflows.template';
-import { CacheService } from '@server/services/cache/cache.service';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { ParseMode, TrendNotificationFrequency } from '@genfeedai/enums';
 import {
   buildTrendDigestHtml,
+  buildTrendDigestItems,
   buildTrendDigestMessage,
+  type RawTrendHashtag,
+  type RawTrendSound,
+  type RawTrendVideo,
   type TrendDigestItem,
 } from '@genfeedai/helpers';
 import type { ITrendSummaryPayload } from '@genfeedai/interfaces';
@@ -15,6 +14,11 @@ import type { Setting } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { TrendsService } from '@server/collections/trends/services/trends.service';
+import type { TrendNotificationCadence } from '@server/collections/workflows/templates/trend-notification-workflows.template';
+import { CacheService } from '@server/services/cache/cache.service';
+import { NotificationsService } from '@server/services/notifications/notifications.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 type TrendNotificationAction = 'trendSummaryNotifications';
 
@@ -30,23 +34,6 @@ const CADENCE_TO_FREQUENCY: Record<
   daily: TrendNotificationFrequency.DAILY,
   hourly: TrendNotificationFrequency.HOURLY,
   weekly: TrendNotificationFrequency.WEEKLY,
-};
-
-type TrendRecord = {
-  description?: string;
-  hashtag?: string;
-  platform?: string;
-  playCount?: number;
-  playUrl?: string;
-  postCount?: number;
-  soundName?: string;
-  usageCount?: number;
-  url?: string;
-  viralScore?: number;
-  viralityScore?: number;
-  viewCount?: number;
-  views?: number;
-  title?: string;
 };
 
 type DeliveryChannels = {
@@ -255,84 +242,36 @@ export class TrendNotificationWorkflowService {
   }
 
   private async buildTrends(minViralScore: number): Promise<TrendDigestItem[]> {
-    const [viralVideos, trendingHashtags, trendingSounds] = await Promise.all([
-      this.getViralVideos(minViralScore),
-      this.getTrendingHashtags(minViralScore),
-      this.getTrendingSounds(),
+    const [videos, hashtags, sounds] = await Promise.all([
+      this.safeFetch<RawTrendVideo>(
+        () => this.trendsService.getViralVideos({ limit: 10, minViralScore }),
+        'viral videos',
+      ),
+      this.safeFetch<RawTrendHashtag>(
+        () => this.trendsService.getTrendingHashtags({ limit: 10 }),
+        'trending hashtags',
+      ),
+      this.safeFetch<RawTrendSound>(
+        () => this.trendsService.getTrendingSounds({ limit: 10 }),
+        'trending sounds',
+      ),
     ]);
 
-    return [...viralVideos, ...trendingHashtags, ...trendingSounds];
+    return buildTrendDigestItems(
+      { hashtags, sounds, videos },
+      { minViralScore },
+    );
   }
 
-  private async getViralVideos(
-    minViralScore: number,
-  ): Promise<TrendDigestItem[]> {
+  /** One dead source must not cost the digest the other two. */
+  private async safeFetch<T>(
+    fetcher: () => Promise<unknown>,
+    label: string,
+  ): Promise<T[]> {
     try {
-      const videos = await this.trendsService.getViralVideos({
-        limit: 10,
-        minViralScore,
-      });
-
-      return (videos as TrendRecord[]).map((video) => ({
-        platform: video.platform || 'tiktok',
-        topic: video.title || video.description || 'Trending Video',
-        type: 'video' as const,
-        url: video.url,
-        usageCount: video.views || video.playCount,
-        viralScore: video.viralScore || 0,
-      }));
+      return ((await fetcher()) as T[]) ?? [];
     } catch (error) {
-      this.logger.error(`${this.logContext} failed to get viral videos`, error);
-      return [];
-    }
-  }
-
-  private async getTrendingHashtags(
-    minViralScore: number,
-  ): Promise<TrendDigestItem[]> {
-    try {
-      const hashtags = await this.trendsService.getTrendingHashtags({
-        limit: 10,
-      });
-
-      return (hashtags as TrendRecord[])
-        .filter((hashtag) => (hashtag.viralityScore || 0) >= minViralScore)
-        .map((hashtag) => ({
-          platform: hashtag.platform || 'tiktok',
-          topic: `#${hashtag.hashtag}`,
-          type: 'hashtag' as const,
-          usageCount: hashtag.postCount || hashtag.viewCount,
-          viralScore: hashtag.viralityScore || 0,
-        }));
-    } catch (error) {
-      this.logger.error(
-        `${this.logContext} failed to get trending hashtags`,
-        error,
-      );
-      return [];
-    }
-  }
-
-  private async getTrendingSounds(): Promise<TrendDigestItem[]> {
-    try {
-      const sounds = await this.trendsService.getTrendingSounds({ limit: 10 });
-
-      return (sounds as TrendRecord[])
-        .filter((sound) => (sound.usageCount || 0) >= 10000)
-        .slice(0, 5)
-        .map((sound) => ({
-          platform: 'tiktok',
-          topic: sound.soundName || 'Trending Sound',
-          type: 'sound' as const,
-          url: sound.playUrl,
-          usageCount: sound.usageCount,
-          viralScore: sound.viralityScore || 80,
-        }));
-    } catch (error) {
-      this.logger.error(
-        `${this.logContext} failed to get trending sounds`,
-        error,
-      );
+      this.logger.error(`${this.logContext} failed to get ${label}`, error);
       return [];
     }
   }

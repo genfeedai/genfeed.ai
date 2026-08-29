@@ -119,7 +119,12 @@ export interface ApifyTikTokSound {
 
 export interface ApifyTikTokVideo {
   id: string;
-  desc?: string;
+  /**
+   * Caption, as returned by `clockworks/tiktok-scraper`. The actor emits this
+   * under `text`; the raw TikTok web API field name (`desc`) is NOT what the
+   * dataset carries, and reading it yielded an undefined caption on every item.
+   */
+  text?: string;
   createTime?: number;
   authorMeta?: {
     id?: string;
