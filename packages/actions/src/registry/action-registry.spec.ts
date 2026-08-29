@@ -127,7 +127,11 @@ describe('Genfeed action registry', () => {
           action.visibility !== 'tool' &&
           JSON.stringify(action.outputSchema) ===
             JSON.stringify(recursiveJsonDocument),
-      ).map((action) => action.id),
+      )
+        .map((action) => action.id)
+        // Catalog order is not a contract — the membership of the pass-through
+        // set is what this guard pins.
+        .sort(),
     ).toEqual(dynamicRootActions);
   });
 
