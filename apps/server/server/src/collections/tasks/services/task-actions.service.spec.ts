@@ -22,7 +22,7 @@ describe('TaskActionsService', () => {
     identifier: 'GENA-12',
     linkedApprovalIds: [],
     linkedOutputIds: [outputId],
-    linkedRunIds: [],
+    linkedExecutionIds: [],
     organizationId,
     outputType: 'post',
     platforms: ['x'],

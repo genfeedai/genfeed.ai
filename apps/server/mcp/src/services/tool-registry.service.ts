@@ -51,12 +51,7 @@ const AGENT_EXECUTOR_TOOL_NAMES: ReadonlySet<string> = new Set<string>(
 );
 
 const AGENT_CHAT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'cancel_agent_run',
   'create_chat',
-  'get_agent_run',
-  'get_agent_run_content',
-  'list_agent_runs',
-  'retry_agent_run',
   'send_chat_message',
 ]);
 

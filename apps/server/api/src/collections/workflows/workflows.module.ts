@@ -54,7 +54,10 @@ import { PaidCreativeResearchModule } from '@api/services/paid-creative-research
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { SharedModule } from '@api/shared/shared.module';
-import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
+import {
+  HEYGEN_POLL_QUEUE,
+  WORKFLOW_EXECUTION_QUEUE,
+} from '@genfeedai/queue-contracts';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
 import { forwardRef, Module } from '@nestjs/common';
@@ -79,12 +82,16 @@ import { WorkflowExecutionQueueService } from '@server/collections/workflows/ser
 import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import { WorkflowFormatConverterService } from '@server/collections/workflows/services/workflow-format-converter.service';
 import { WorkflowGenerationService } from '@server/collections/workflows/services/workflow-generation.service';
+import { WorkflowNodeClaimService } from '@server/collections/workflows/services/workflow-node-claim.service';
+import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
+import { WorkflowNodeContinuationCoordinatorService } from '@server/collections/workflows/services/workflow-node-continuation-coordinator.service';
 import { WorkflowRunControlService } from '@server/collections/workflows/services/workflow-run-control.service';
 import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowTemplateSeederService } from '@server/collections/workflows/services/workflow-template-seeder.service';
 import { WorkflowWebhookService } from '@server/collections/workflows/services/workflow-webhook.service';
 import { YoutubeLongFormWorkflowService } from '@server/collections/workflows/services/youtube-long-form-workflow.service';
 import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
 
 @Module({
   // Order matters: controllers that own literal first-segment routes
@@ -114,6 +121,8 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     WorkflowExecutorService,
     WorkflowExecutionQueueService,
     WorkflowArtifactLifecycleService,
+    WorkflowNodeContinuationCoordinatorService,
+    WorkflowNodeContinuationService,
     WorkflowFormatConverterService,
     WorkflowGenerationService,
     YoutubeLongFormWorkflowService,
@@ -173,6 +182,7 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
       },
       name: WORKFLOW_EXECUTION_QUEUE,
     }),
+    BullModule.registerQueue({ name: HEYGEN_POLL_QUEUE }),
   ],
   providers: [
     AdAutomationWorkflowService,
@@ -185,7 +195,11 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
     WorkflowExecutionAuthorizationService,
     WorkflowExecutorService,
     WorkflowExecutionQueueService,
+    HeygenPollQueueService,
     WorkflowArtifactLifecycleService,
+    WorkflowNodeClaimService,
+    WorkflowNodeContinuationCoordinatorService,
+    WorkflowNodeContinuationService,
     WorkflowFormatConverterService,
     WorkflowGenerationService,
     YoutubeLongFormWorkflowService,

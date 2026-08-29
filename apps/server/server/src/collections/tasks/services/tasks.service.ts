@@ -1,3 +1,14 @@
+import type { PopulateOption } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import type { AggregationOptions } from '@libs/interfaces/query.interface';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { CreateTaskDto } from '@server/collections/tasks/dto/create-task.dto';
 import { UpdateTaskDto } from '@server/collections/tasks/dto/update-task.dto';
 import {
@@ -18,17 +29,6 @@ import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BaseService } from '@server/shared/services/base/base.service';
 import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
 import { pickDefinedFields } from '@server/shared/utils/object/pick-defined-fields.util';
-import type { PopulateOption } from '@genfeedai/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import type { AggregationOptions } from '@libs/interfaces/query.interface';
-import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  forwardRef,
-  Inject,
-  Injectable,
-} from '@nestjs/common';
 
 const STATUS_TRANSITIONS: Record<TaskStatus, readonly TaskStatus[]> = {
   backlog: ['todo', 'in_progress', 'cancelled'],
@@ -96,14 +96,14 @@ const TASK_CONFIG_FIELDS = [
 
 const TASK_RELATION_INCLUDE = {
   approvedOutputs: { select: { id: true } },
+  linkedExecutions: { select: { id: true } },
   linkedOutputs: { select: { id: true } },
-  linkedRuns: { select: { id: true } },
 } as const;
 
 const TASK_RELATION_POPULATE: PopulateOption[] = [
   { path: 'approvedOutputs', select: ['id'] },
+  { path: 'linkedExecutions', select: ['id'] },
   { path: 'linkedOutputs', select: ['id'] },
-  { path: 'linkedRuns', select: ['id'] },
 ];
 
 type TaskWriteInput = CreateTaskDto & {
@@ -113,9 +113,9 @@ type TaskWriteInput = CreateTaskDto & {
   elevenlabsVoiceId?: string;
   identifier?: string;
   linkedApprovalIds?: string[];
+  linkedExecutionIds?: string[];
   linkedIssueId?: string;
   linkedOutputIds?: string[];
-  linkedRunIds?: string[];
   organizationId?: string;
   reviewState?: string;
   taskNumber?: number;
@@ -201,9 +201,9 @@ export class TasksService extends BaseService<
           connect: input.linkedOutputIds.map((id) => ({ id })),
         },
       }),
-      ...(input.linkedRunIds !== undefined && {
-        linkedRuns: {
-          connect: input.linkedRunIds.map((id) => ({ id })),
+      ...(input.linkedExecutionIds !== undefined && {
+        linkedExecutions: {
+          connect: input.linkedExecutionIds.map((id) => ({ id })),
         },
       }),
     };
@@ -300,9 +300,11 @@ export class TasksService extends BaseService<
           set: input.linkedOutputIds.map((outputId) => ({ id: outputId })),
         },
       }),
-      ...(input.linkedRunIds !== undefined && {
-        linkedRuns: {
-          set: input.linkedRunIds.map((runId) => ({ id: runId })),
+      ...(input.linkedExecutionIds !== undefined && {
+        linkedExecutions: {
+          set: input.linkedExecutionIds.map((executionId) => ({
+            id: executionId,
+          })),
         },
       }),
     };
@@ -320,8 +322,10 @@ export class TasksService extends BaseService<
     const normalized = { ...config, ...record, config } as TaskDocument;
 
     normalized.approvedOutputIds = this.readRelationIds(record.approvedOutputs);
+    normalized.linkedExecutionIds = this.readRelationIds(
+      record.linkedExecutions,
+    );
     normalized.linkedOutputIds = this.readRelationIds(record.linkedOutputs);
-    normalized.linkedRunIds = this.readRelationIds(record.linkedRuns);
     normalized.linkedApprovalIds = Array.isArray(config.linkedApprovalIds)
       ? config.linkedApprovalIds.map(String)
       : [];

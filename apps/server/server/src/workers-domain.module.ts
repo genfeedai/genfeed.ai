@@ -20,7 +20,6 @@ import { AdPerformanceService } from '@server/collections/ad-performance/service
 import { AgentCampaignExecutionService } from '@server/collections/agent-campaigns/services/agent-campaign-execution.service';
 import { AgentCampaignsService } from '@server/collections/agent-campaigns/services/agent-campaigns.service';
 import { AgentPublishAuditsService } from '@server/collections/agent-publish-audits/services/agent-publish-audits.service';
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { AgentStrategiesService } from '@server/collections/agent-strategies/services/agent-strategies.service';
 import { AgentStrategyAutopilotService } from '@server/collections/agent-strategies/services/agent-strategy-autopilot.service';
 import { AgentStrategyOpportunitiesService } from '@server/collections/agent-strategies/services/agent-strategy-opportunities.service';
@@ -105,7 +104,6 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
 import { ManagedInferenceClientService } from '@server/endpoints/v1/managed-inference/managed-inference-client.service';
 import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
 import { TransactionUtil } from '@server/helpers/utils/transaction/transaction.util';
-import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
 import { QueueService } from '@server/queues/core/queue.service';
 import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
 import { SERVER_TOKENS } from '@server/server.dependencies';
@@ -225,9 +223,7 @@ const WORKER_DOMAIN_SERVICES = [
   AgentCampaignExecutionService,
   AgentCampaignsService,
   AgentOrchestratorService,
-  AgentRunQueueService,
   AgentPublishAuditsService,
-  AgentRunsService,
   AgentStrategiesService,
   AgentStrategyAutopilotService,
   AgentStrategyOpportunitiesService,

@@ -1,7 +1,6 @@
 import { AgentCampaignsModule } from '@api/collections/agent-campaigns/agent-campaigns.module';
 import { AgentGoalsModule } from '@api/collections/agent-goals/agent-goals.module';
 import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memories.module';
-import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
@@ -30,7 +29,6 @@ import { TriggerEvaluatorService } from '@server/services/agent-campaign/trigger
     BrandsModule,
     AgentStrategiesModule,
     AgentGoalsModule,
-    AgentRunsModule,
     AgentMemoriesModule,
     AnalyticsModule,
     TrendsModule,

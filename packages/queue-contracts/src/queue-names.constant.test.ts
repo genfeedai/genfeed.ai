@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  AGENT_RUN_QUEUE,
   ALL_QUEUE_NAMES,
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
@@ -14,7 +13,6 @@ describe('queue-names.constant', () => {
     // These string values are wire-level contracts: changing one orphans
     // in-flight jobs in Redis. Lock them down.
     expect(DEFAULT_QUEUE).toBe('default');
-    expect(AGENT_RUN_QUEUE).toBe('agent-run');
     expect(HEYGEN_POLL_QUEUE).toBe('heygen-poll');
     expect(NOTIFICATION_DELIVERY_QUEUE).toBe('notification-delivery');
     expect(CREDIT_DEDUCTION_QUEUE).toBe('credit-deduction');

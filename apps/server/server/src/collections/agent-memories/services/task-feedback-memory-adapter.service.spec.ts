@@ -1,5 +1,5 @@
-import type { TaskDocument } from '@server/collections/tasks/schemas/task.schema';
 import { LoggerService } from '@libs/logger/logger.service';
+import type { TaskDocument } from '@server/collections/tasks/schemas/task.schema';
 
 import { AgentMemoryCaptureService } from './agent-memory-capture.service';
 import { TaskFeedbackMemoryAdapterService } from './task-feedback-memory-adapter.service';
@@ -16,7 +16,7 @@ describe('TaskFeedbackMemoryAdapterService', () => {
     identifier: 'GENA-7',
     linkedApprovalIds: [],
     linkedOutputIds: ['output-1'],
-    linkedRunIds: [],
+    linkedExecutionIds: [],
     organizationId,
     outputType: 'post',
     platforms: ['X', 'LinkedIn'],

@@ -1,3 +1,5 @@
+import { ActivitySource, AgentMessageRole } from '@genfeedai/enums';
+import { Injectable } from '@nestjs/common';
 import { type AgentMemoryDocument } from '@server/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
@@ -29,8 +31,6 @@ import type {
   OpenRouterMessage,
   OpenRouterPlugin,
 } from '@server/services/integrations/openrouter/dto/openrouter.dto';
-import { ActivitySource, AgentMessageRole } from '@genfeedai/enums';
-import { Injectable } from '@nestjs/common';
 
 /**
  * Host callbacks for plan-mode turns that still depend on orchestrator-owned
@@ -195,7 +195,7 @@ export class AgentOrchestratorPlanModeService {
       params.context.organizationId,
       {
         brandId: params.context.scope?.brandId,
-        runId: params.context.runId,
+        runId: params.context.executionId,
         threadId: params.threadId,
         userId: params.context.userId,
       },
@@ -239,7 +239,7 @@ export class AgentOrchestratorPlanModeService {
     await this.threadEventRecorder.recordPlanUpserted({
       context: params.context,
       plan,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       threadId: params.threadId,
     });
 
@@ -281,13 +281,13 @@ export class AgentOrchestratorPlanModeService {
       content,
       context: params.context,
       metadata: assistantMetadata,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       threadId: params.threadId,
     });
     await this.threadEventRecorder.recordRunCompleted({
       context: params.context,
       detail: 'Plan proposed and awaiting approval',
-      runId: params.context.runId,
+      runId: params.context.executionId,
       threadId: params.threadId,
     });
 

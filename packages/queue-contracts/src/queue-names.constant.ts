@@ -6,9 +6,6 @@
 
 export const DEFAULT_QUEUE = 'default';
 
-// ---------- Agents & campaigns ----------
-export const AGENT_RUN_QUEUE = 'agent-run';
-
 // ---------- Workflows ----------
 export const WORKFLOW_EXECUTION_QUEUE = 'workflow-execution';
 
@@ -22,7 +19,6 @@ export const CREDIT_DEDUCTION_QUEUE = 'credit-deduction';
 
 export const ALL_QUEUE_NAMES = [
   DEFAULT_QUEUE,
-  AGENT_RUN_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
   WEBHOOK_CLIENT_QUEUE,

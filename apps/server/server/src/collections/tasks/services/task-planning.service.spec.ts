@@ -1,12 +1,12 @@
 import { BadRequestException } from '@nestjs/common';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
 import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 import { TaskCountersService } from '@server/collections/task-counters/services/task-counters.service';
 import type { TaskDocument } from '@server/collections/tasks/schemas/task.schema';
 import { TaskPlanningService } from '@server/collections/tasks/services/task-planning.service';
 import { TasksService } from '@server/collections/tasks/services/tasks.service';
+import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
 import { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
 import { WorkspaceTaskWorkflowQueueService } from '@server/services/task-orchestration/workspace-task-workflow-queue.service';
 
@@ -23,7 +23,7 @@ describe('TaskPlanningService', () => {
     updateThreadMetadata: ReturnType<typeof vi.fn>;
   };
   let agentMessagesService: { getMessagesByRoom: ReturnType<typeof vi.fn> };
-  let agentRunsService: { getById: ReturnType<typeof vi.fn> };
+  let workflowExecutionsService: { findOne: ReturnType<typeof vi.fn> };
   let taskCountersService: { getNextNumber: ReturnType<typeof vi.fn> };
   let organizationsService: { findOne: ReturnType<typeof vi.fn> };
   let agentOrchestratorService: { chat: ReturnType<typeof vi.fn> };
@@ -31,7 +31,7 @@ describe('TaskPlanningService', () => {
   const baseTask = {
     brandId: 'brand-1',
     id: 'task-1',
-    linkedRunIds: [],
+    linkedExecutionIds: [],
     organizationId: 'org-1',
     outputType: 'ingredient',
     planningThreadId: 'thread-1',
@@ -53,7 +53,7 @@ describe('TaskPlanningService', () => {
       updateThreadMetadata: vi.fn(),
     };
     agentMessagesService = { getMessagesByRoom: vi.fn() };
-    agentRunsService = { getById: vi.fn() };
+    workflowExecutionsService = { findOne: vi.fn() };
     taskCountersService = { getNextNumber: vi.fn().mockResolvedValue(7) };
     organizationsService = {
       findOne: vi.fn().mockResolvedValue({ prefix: 'ACME' }),
@@ -64,7 +64,7 @@ describe('TaskPlanningService', () => {
       tasksService as unknown as TasksService,
       agentThreadsService as unknown as AgentThreadsService,
       agentMessagesService as unknown as AgentMessagesService,
-      agentRunsService as unknown as AgentRunsService,
+      workflowExecutionsService as unknown as WorkflowExecutionsService,
       taskCountersService as unknown as TaskCountersService,
       organizationsService as unknown as OrganizationsService,
       agentOrchestratorService as unknown as AgentOrchestratorService,
@@ -209,7 +209,7 @@ describe('TaskPlanningService', () => {
         tasksService as unknown as TasksService,
         agentThreadsService as unknown as AgentThreadsService,
         agentMessagesService as unknown as AgentMessagesService,
-        agentRunsService as unknown as AgentRunsService,
+        workflowExecutionsService as unknown as WorkflowExecutionsService,
         taskCountersService as unknown as TaskCountersService,
         organizationsService as unknown as OrganizationsService,
         agentOrchestratorService as unknown as AgentOrchestratorService,

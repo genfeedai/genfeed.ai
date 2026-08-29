@@ -1,8 +1,9 @@
-import { AgentExecutionStatus, AgentRunStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { TasksService } from '@server/collections/tasks/services/tasks.service';
+import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
 import {
   WorkspaceTaskQualityAssessmentResult,
   WorkspaceTaskQualityService,
@@ -13,7 +14,7 @@ export class TaskOrchestratorService {
   private readonly logContext = 'TaskOrchestratorService';
 
   constructor(
-    private readonly agentRunsService: AgentRunsService,
+    private readonly workflowExecutionsService: WorkflowExecutionsService,
     private readonly tasksService: TasksService,
     private readonly workspaceTaskQualityService: WorkspaceTaskQualityService,
     private readonly logger: LoggerService,
@@ -23,21 +24,16 @@ export class TaskOrchestratorService {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 
-  private normalizeRunStatus(value: unknown): AgentExecutionStatus {
+  private normalizeExecutionStatus(value: unknown): WorkflowExecutionStatus {
     switch (value) {
-      case AgentExecutionStatus.PENDING:
-      case AgentExecutionStatus.RUNNING:
-      case AgentExecutionStatus.COMPLETED:
-      case AgentExecutionStatus.FAILED:
-      case AgentExecutionStatus.CANCELLED:
+      case WorkflowExecutionStatus.PENDING:
+      case WorkflowExecutionStatus.RUNNING:
+      case WorkflowExecutionStatus.COMPLETED:
+      case WorkflowExecutionStatus.FAILED:
+      case WorkflowExecutionStatus.CANCELLED:
         return value;
-      case AgentRunStatus.COMPLETED:
-        return AgentExecutionStatus.COMPLETED;
-      case AgentRunStatus.FAILED:
-      case AgentRunStatus.BUDGET_EXHAUSTED:
-        return AgentExecutionStatus.FAILED;
       default:
-        return AgentExecutionStatus.RUNNING;
+        return WorkflowExecutionStatus.RUNNING;
     }
   }
 
@@ -45,13 +41,13 @@ export class TaskOrchestratorService {
    * Called when an agent run completes.
    * Checks if all runs for the workspace task are done and updates status.
    */
-  async handleRunCompletion(
-    runId: string,
+  async handleExecutionCompletion(
+    executionId: string,
     organizationId: string,
   ): Promise<void> {
     // Find the workspace task that links to this run
     const task = await this.tasksService.findOne({
-      linkedRuns: { some: { id: runId } },
+      linkedExecutions: { some: { id: executionId } },
       organizationId: organizationId,
     });
 
@@ -59,12 +55,14 @@ export class TaskOrchestratorService {
       return; // Run not linked to any workspace task
     }
 
-    const { progress, runStates } = await this.buildTaskProgress(
-      task.linkedRunIds.map((id) => id.toString()),
+    const { executionStates, progress } = await this.buildTaskProgress(
+      task.linkedExecutionIds.map((id) => id.toString()),
       organizationId,
     );
 
-    const completedRun = runStates.find((run) => run.id === runId);
+    const completedExecution = executionStates.find(
+      (execution) => execution.id === executionId,
+    );
     await this.tasksService.recordTaskEvent(
       task.id.toString(),
       organizationId,
@@ -72,21 +70,21 @@ export class TaskOrchestratorService {
       {
         payload: {
           progress,
-          runId,
-          status: completedRun?.status,
-          summary: completedRun?.summary,
+          executionId,
+          status: completedExecution?.status,
+          summary: completedExecution?.summary,
         },
         type:
-          completedRun?.status === AgentExecutionStatus.FAILED
-            ? 'run_failed'
-            : 'run_completed',
+          completedExecution?.status === WorkflowExecutionStatus.FAILED
+            ? 'execution_failed'
+            : 'execution_completed',
       },
       { progress },
     );
 
     // Check all linked runs
-    const allComplete = await this.areAllRunsFinished(
-      task.linkedRunIds.map((id) => id.toString()),
+    const allComplete = await this.areAllExecutionsFinished(
+      task.linkedExecutionIds.map((id) => id.toString()),
       organizationId,
     );
 
@@ -95,8 +93,8 @@ export class TaskOrchestratorService {
     }
 
     // Determine final status based on run outcomes
-    const { hasFailures, summaries } = await this.collectRunResults(
-      task.linkedRunIds.map((id) => id.toString()),
+    const { hasFailures, summaries } = await this.collectExecutionResults(
+      task.linkedExecutionIds.map((id) => id.toString()),
       organizationId,
     );
 
@@ -109,16 +107,16 @@ export class TaskOrchestratorService {
         task.assigneeUserId ?? '',
         {
           payload: {
-            failureReason: 'One or more agent runs failed.',
+            failureReason: 'One or more workflow executions failed.',
             resultPreview: resultPreview || undefined,
           },
           type: 'task_failed',
         },
         {
-          failureReason: 'One or more agent runs failed.',
+          failureReason: 'One or more workflow executions failed.',
           progress: {
             activeRunCount: 0,
-            message: 'One or more runs failed.',
+            message: 'One or more executions failed.',
             percent: 100,
             stage: 'failed',
           },
@@ -181,9 +179,12 @@ export class TaskOrchestratorService {
     );
   }
 
-  async handleRunStarted(runId: string, organizationId: string): Promise<void> {
+  async handleExecutionStarted(
+    executionId: string,
+    organizationId: string,
+  ): Promise<void> {
     const task = await this.tasksService.findOne({
-      linkedRuns: { some: { id: runId } },
+      linkedExecutions: { some: { id: executionId } },
       organizationId: organizationId,
     });
 
@@ -191,11 +192,13 @@ export class TaskOrchestratorService {
       return;
     }
 
-    const { progress, runStates } = await this.buildTaskProgress(
-      task.linkedRunIds.map((id) => id.toString()),
+    const { executionStates, progress } = await this.buildTaskProgress(
+      task.linkedExecutionIds.map((id) => id.toString()),
       organizationId,
     );
-    const startedRun = runStates.find((run) => run.id === runId);
+    const startedExecution = executionStates.find(
+      (execution) => execution.id === executionId,
+    );
 
     await this.tasksService.recordTaskEvent(
       task.id.toString(),
@@ -203,30 +206,35 @@ export class TaskOrchestratorService {
       task.assigneeUserId ?? '',
       {
         payload: {
-          label: startedRun?.label,
+          label: startedExecution?.label,
           progress,
-          runId,
-          status: startedRun?.status,
+          executionId,
+          status: startedExecution?.status,
         },
-        type: 'run_started',
+        type: 'execution_started',
       },
       { progress },
     );
   }
 
-  private async areAllRunsFinished(
-    runIds: string[],
+  private async areAllExecutionsFinished(
+    executionIds: string[],
     organizationId: string,
   ): Promise<boolean> {
     const terminalStatuses = new Set([
-      AgentExecutionStatus.COMPLETED,
-      AgentExecutionStatus.FAILED,
-      AgentExecutionStatus.CANCELLED,
+      WorkflowExecutionStatus.COMPLETED,
+      WorkflowExecutionStatus.FAILED,
+      WorkflowExecutionStatus.CANCELLED,
     ]);
 
-    for (const runId of runIds) {
-      const run = await this.agentRunsService.getById(runId, organizationId);
-      if (!run || !terminalStatuses.has(this.normalizeRunStatus(run.status))) {
+    for (const executionId of executionIds) {
+      const execution = await this.workflowExecutionsService.findOne(
+        scopedWhere(organizationId, { id: executionId }),
+      );
+      if (
+        !execution ||
+        !terminalStatuses.has(this.normalizeExecutionStatus(execution.status))
+      ) {
         return false;
       }
     }
@@ -234,23 +242,25 @@ export class TaskOrchestratorService {
     return true;
   }
 
-  private async collectRunResults(
-    runIds: string[],
+  private async collectExecutionResults(
+    executionIds: string[],
     organizationId: string,
   ): Promise<{ hasFailures: boolean; summaries: string[] }> {
     let hasFailures = false;
     const summaries: string[] = [];
 
-    for (const runId of runIds) {
-      const run = await this.agentRunsService.getById(runId, organizationId);
-      if (!run) continue;
-      const runStatus = this.normalizeRunStatus(run.status);
+    for (const executionId of executionIds) {
+      const execution = await this.workflowExecutionsService.findOne(
+        scopedWhere(organizationId, { id: executionId }),
+      );
+      if (!execution) continue;
+      const executionStatus = this.normalizeExecutionStatus(execution.status);
 
-      if (runStatus === AgentExecutionStatus.FAILED) {
+      if (executionStatus === WorkflowExecutionStatus.FAILED) {
         hasFailures = true;
       }
 
-      const summary = this.readString(run.summary);
+      const summary = this.readString(execution.metadata?.summary);
       if (summary) {
         summaries.push(summary);
       }
@@ -260,7 +270,7 @@ export class TaskOrchestratorService {
   }
 
   private async buildTaskProgress(
-    runIds: string[],
+    executionIds: string[],
     organizationId: string,
   ): Promise<{
     progress: {
@@ -269,75 +279,91 @@ export class TaskOrchestratorService {
       percent: number;
       stage: string;
     };
-    runStates: Array<{
+    executionStates: Array<{
       id: string;
       label: string;
       progress: number;
-      status: AgentExecutionStatus;
+      status: WorkflowExecutionStatus;
       summary?: string;
     }>;
   }> {
-    const runStates: Array<{
+    const executionStates: Array<{
       id: string;
       label: string;
       progress: number;
-      status: AgentExecutionStatus;
+      status: WorkflowExecutionStatus;
       summary?: string;
     }> = [];
 
-    for (const runId of runIds) {
-      const run = await this.agentRunsService.getById(runId, organizationId);
-      if (!run) {
+    for (const executionId of executionIds) {
+      const execution = await this.workflowExecutionsService.findOne(
+        scopedWhere(organizationId, { id: executionId }),
+      );
+      if (!execution) {
         continue;
       }
-      const runStatus = this.normalizeRunStatus(run.status);
+      const executionStatus = this.normalizeExecutionStatus(execution.status);
+      const workflow =
+        execution.workflow && typeof execution.workflow === 'object'
+          ? (execution.workflow as Record<string, unknown>)
+          : undefined;
 
-      runStates.push({
-        id: run.id.toString(),
-        label: this.readString(run.label) ?? 'Agent run',
+      executionStates.push({
+        id: execution.id.toString(),
+        label:
+          this.readString(workflow?.label) ??
+          this.readString(execution.metadata?.label) ??
+          'Workflow execution',
         progress:
-          runStatus === AgentExecutionStatus.COMPLETED ||
-          runStatus === AgentExecutionStatus.FAILED ||
-          runStatus === AgentExecutionStatus.CANCELLED
+          executionStatus === WorkflowExecutionStatus.COMPLETED ||
+          executionStatus === WorkflowExecutionStatus.FAILED ||
+          executionStatus === WorkflowExecutionStatus.CANCELLED
             ? 100
-            : runStatus === AgentExecutionStatus.PENDING
+            : executionStatus === WorkflowExecutionStatus.PENDING
               ? 5
-              : typeof run.progress === 'number'
-                ? Math.min(99, Math.max(1, run.progress))
+              : typeof execution.progress === 'number'
+                ? Math.min(99, Math.max(1, execution.progress))
                 : 50,
-        status: runStatus,
-        summary: this.readString(run.summary),
+        status: executionStatus,
+        summary: this.readString(execution.metadata?.summary),
       });
     }
 
-    const activeRunCount = runStates.filter(
-      (run) =>
-        run.status === AgentExecutionStatus.PENDING ||
-        run.status === AgentExecutionStatus.RUNNING,
+    const activeRunCount = executionStates.filter(
+      (execution) =>
+        execution.status === WorkflowExecutionStatus.PENDING ||
+        execution.status === WorkflowExecutionStatus.RUNNING,
     ).length;
     const averageProgress =
-      runStates.length > 0
+      executionStates.length > 0
         ? Math.round(
-            runStates.reduce((total, run) => total + run.progress, 0) /
-              runStates.length,
+            executionStates.reduce(
+              (total, execution) => total + execution.progress,
+              0,
+            ) / executionStates.length,
           )
         : 0;
 
-    const stage = runStates.some(
-      (run) => run.status === AgentExecutionStatus.RUNNING,
+    const stage = executionStates.some(
+      (execution) => execution.status === WorkflowExecutionStatus.RUNNING,
     )
       ? 'running'
-      : runStates.some((run) => run.status === AgentExecutionStatus.PENDING)
+      : executionStates.some(
+            (execution) => execution.status === WorkflowExecutionStatus.PENDING,
+          )
         ? 'queued'
-        : runStates.some((run) => run.status === AgentExecutionStatus.FAILED)
+        : executionStates.some(
+              (execution) =>
+                execution.status === WorkflowExecutionStatus.FAILED,
+            )
           ? 'failed'
           : 'review';
 
     const message =
       stage === 'running'
-        ? `${activeRunCount} run${activeRunCount === 1 ? '' : 's'} active.`
+        ? `${activeRunCount} execution${activeRunCount === 1 ? '' : 's'} active.`
         : stage === 'queued'
-          ? `${activeRunCount} run${activeRunCount === 1 ? '' : 's'} queued.`
+          ? `${activeRunCount} execution${activeRunCount === 1 ? '' : 's'} queued.`
           : stage === 'failed'
             ? 'Execution finished with failures.'
             : 'Execution finished.';
@@ -349,7 +375,7 @@ export class TaskOrchestratorService {
         percent: averageProgress,
         stage,
       },
-      runStates,
+      executionStates,
     };
   }
 

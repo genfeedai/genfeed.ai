@@ -13,8 +13,8 @@ import {
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useAgentRuns } from '@hooks/data/agent-runs/use-agent-runs';
 import { useAgentStrategy } from '@hooks/data/agent-strategies/use-agent-strategy';
+import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AgentDetailPageProps } from '@props/automation/agent-strategy.props';
 import type {
@@ -50,8 +50,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useMemo, useState } from 'react';
 import AgentWorkflowRunDialog from '../AgentWorkflowRunDialog';
 import AgentOpportunityPanel from './AgentOpportunityPanel';
-import AgentRunHistorySection from './AgentRunHistorySection';
 import AgentWorkflowBindCard from './AgentWorkflowBindCard';
+import WorkflowExecutionHistorySection from './WorkflowExecutionHistorySection';
 
 const AGENT_TYPE_LABELS: Record<AgentType, string> = {
   [AgentType.GENERAL]: 'General',
@@ -94,9 +94,9 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     isLoading: isStrategyLoading,
     refresh,
   } = useAgentStrategy(agentId);
-  const { runs, isLoading: isRunsLoading } = useAgentRuns({
-    strategy: agentId,
-  });
+  const { executions, isLoading: areExecutionsLoading } = useWorkflowExecutions(
+    { limit: 100, sort: '-createdAt' },
+  );
 
   const getService = useAuthedService((token: string) =>
     AgentStrategiesService.getInstance(token),
@@ -184,9 +184,17 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     [agentId, getService, href, notificationsService, refresh, router],
   );
 
-  const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
+  const [expandedExecutionId, setExpandedExecutionId] = useState<string | null>(
+    null,
+  );
 
-  const recentRuns = useMemo(() => runs.slice(0, 20), [runs]);
+  const recentExecutions = useMemo(
+    () =>
+      executions
+        .filter((execution) => execution.metadata?.strategyId === agentId)
+        .slice(0, 20),
+    [agentId, executions],
+  );
   const selectedOpportunity = useMemo(
     () =>
       requestedOpportunityId
@@ -197,8 +205,10 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     [opportunities, requestedOpportunityId],
   );
 
-  const handleToggleExpand = useCallback((runId: string) => {
-    setExpandedRunId((prev) => (prev === runId ? null : runId));
+  const handleToggleExpand = useCallback((executionId: string) => {
+    setExpandedExecutionId((previous) =>
+      previous === executionId ? null : executionId,
+    );
   }, []);
 
   const agentType = strategy?.agentType as AgentType | undefined;
@@ -352,10 +362,10 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
           />
         )}
 
-        <AgentRunHistorySection
-          isRunsLoading={isRunsLoading}
-          recentRuns={recentRuns}
-          expandedRunId={expandedRunId}
+        <WorkflowExecutionHistorySection
+          executions={recentExecutions}
+          expandedExecutionId={expandedExecutionId}
+          isLoading={areExecutionsLoading}
           onToggleExpand={handleToggleExpand}
         />
       </div>

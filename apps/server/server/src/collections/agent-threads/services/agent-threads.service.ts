@@ -1,16 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { resolveLastGeneratedAsset } from '@genfeedai/agent/utils/extract-last-generated-asset.util';
-import {
-  AgentExecutionStatus,
-  AgentThreadStatus,
-  IngredientCategory,
-} from '@genfeedai/enums';
+import { AgentThreadStatus, WorkflowExecutionStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
-import type { AgentRunDocument } from '@server/collections/agent-runs/schemas/agent-run.schema';
 import type { AgentRoomDocument } from '@server/collections/agent-threads/schemas/agent-thread.schema';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type { AgentThreadSnapshotDocument } from '@server/services/agent-threading/schemas/agent-thread-snapshot.schema';
@@ -43,12 +38,13 @@ type ThreadGeneratedAsset = {
   url: string;
 };
 
-const LIST_THUMB_INGREDIENT_CATEGORIES: IngredientCategory[] = [
-  IngredientCategory.AVATAR,
-  IngredientCategory.GIF,
-  IngredientCategory.IMAGE,
-  IngredientCategory.IMAGE_EDIT,
-];
+type WorkflowExecutionRecord = {
+  completedAt?: Date | null;
+  createdAt: Date;
+  metadata?: Prisma.JsonValue | null;
+  startedAt?: Date | null;
+  status: WorkflowExecutionStatus;
+};
 
 type AgentThreadWithSummary = AgentRoomDocument & AgentThreadSummary;
 
@@ -284,10 +280,8 @@ export class AgentThreadsService extends BaseService<
         this.normalizeSnapshot(snapshot as unknown as Record<string, unknown>),
       ]),
     );
-    const latestRunsByThreadId = await this.findLatestRunsByThreadIds(
-      organizationId,
-      threadIds,
-    );
+    const latestExecutionsByThreadId =
+      await this.findLatestExecutionsByThreadIds(organizationId, threadIds);
     const latestAssetsByThreadId =
       await this.findLatestGeneratedAssetsByThreadIds(
         organizationId,
@@ -302,7 +296,7 @@ export class AgentThreadsService extends BaseService<
 
     return threads.map((thread) => {
       const snapshot = snapshotsByThreadId.get(String(thread.id));
-      const latestRun = latestRunsByThreadId.get(String(thread.id));
+      const latestExecution = latestExecutionsByThreadId.get(String(thread.id));
       const brandLabel = thread.brandId
         ? brandLabelsById.get(thread.brandId)
         : undefined;
@@ -311,7 +305,7 @@ export class AgentThreadsService extends BaseService<
         ...(brandLabel ? { brandLabel } : {}),
         ...this.buildThreadSummary(
           snapshot,
-          latestRun,
+          latestExecution,
           latestAssetsByThreadId.get(String(thread.id)),
         ),
       };
@@ -320,7 +314,7 @@ export class AgentThreadsService extends BaseService<
 
   private buildThreadSummary(
     snapshot?: AgentThreadSnapshotDocument | null,
-    latestRun?: AgentRunDocument | null,
+    latestExecution?: WorkflowExecutionRecord | null,
     latestAsset?: ThreadGeneratedAsset,
   ): AgentThreadSummary {
     const lastGeneratedAsset = resolveLastGeneratedAsset({
@@ -352,7 +346,7 @@ export class AgentThreadsService extends BaseService<
     const rawRunStatus = this.readString(activeRun, 'status');
     const runStatus = this.reconcileRunStatus(
       this.normalizeRunStatus(rawRunStatus, pendingInputCount),
-      latestRun,
+      latestExecution,
       pendingInputCount,
     );
     const lastAssistantMessage = this.asRecord(snapshot.lastAssistantMessage);
@@ -381,30 +375,46 @@ export class AgentThreadsService extends BaseService<
     };
   }
 
-  private async findLatestRunsByThreadIds(
+  private async findLatestExecutionsByThreadIds(
     organizationId: string,
     threadIds: string[],
-  ): Promise<Map<string, AgentRunDocument>> {
-    const runs = await this.prisma.agentRun.findMany({
+  ): Promise<Map<string, WorkflowExecutionRecord>> {
+    const executions = await this.prisma.workflowExecution.findMany({
       orderBy: { createdAt: 'desc' },
-      where: scopedWhere(organizationId, { threadId: { in: threadIds } }),
+      select: {
+        completedAt: true,
+        createdAt: true,
+        metadata: true,
+        startedAt: true,
+        status: true,
+      },
+      where: scopedWhere(organizationId),
     });
 
-    const latestRunsByThreadId = new Map<string, AgentRunDocument>();
+    const threadIdSet = new Set(threadIds);
+    const latestExecutionsByThreadId = new Map<
+      string,
+      WorkflowExecutionRecord
+    >();
 
-    for (const run of runs) {
-      const threadId = (run as Record<string, unknown>).threadId as
-        | string
-        | null;
+    for (const execution of executions) {
+      const threadId = this.readString(
+        this.asRecord(execution.metadata),
+        'threadId',
+      );
 
-      if (!threadId || latestRunsByThreadId.has(threadId)) {
+      if (
+        !threadId ||
+        !threadIdSet.has(threadId) ||
+        latestExecutionsByThreadId.has(threadId)
+      ) {
         continue;
       }
 
-      latestRunsByThreadId.set(threadId, run as unknown as AgentRunDocument);
+      latestExecutionsByThreadId.set(threadId, execution);
     }
 
-    return latestRunsByThreadId;
+    return latestExecutionsByThreadId;
   }
 
   private async findLatestGeneratedAssetsByThreadIds(
@@ -415,45 +425,9 @@ export class AgentThreadsService extends BaseService<
       return new Map();
     }
 
-    const ingredients = await this.prisma.ingredient.findMany({
-      orderBy: { createdAt: 'desc' },
-      select: {
-        agentRun: {
-          select: { threadId: true },
-        },
-        cdnUrl: true,
-        createdAt: true,
-      },
-      where: scopedWhere(organizationId, {
-        agentRun: {
-          isDeleted: false,
-          organizationId,
-          threadId: { in: threadIds },
-        },
-        category: { in: LIST_THUMB_INGREDIENT_CATEGORIES },
-        cdnUrl: { not: null },
-      }),
-    });
-
-    const latestByThreadId = new Map<string, ThreadGeneratedAsset>();
-
-    for (const ingredient of ingredients) {
-      const threadId = ingredient.agentRun?.threadId;
-      const url = ingredient.cdnUrl;
-      if (!threadId || !url || latestByThreadId.has(threadId)) {
-        continue;
-      }
-
-      latestByThreadId.set(threadId, {
-        createdAt:
-          ingredient.createdAt instanceof Date
-            ? ingredient.createdAt.toISOString()
-            : String(ingredient.createdAt),
-        url,
-      });
-    }
-
-    return latestByThreadId;
+    void organizationId;
+    void threadIds;
+    return new Map();
   }
 
   private async findBrandLabelsByIds(
@@ -503,28 +477,30 @@ export class AgentThreadsService extends BaseService<
 
   private reconcileRunStatus(
     snapshotStatus: ThreadRunStatus,
-    latestRun?: AgentRunDocument | null,
+    latestExecution?: WorkflowExecutionRecord | null,
     pendingInputCount = 0,
   ): ThreadRunStatus {
     if (pendingInputCount > 0) {
       return 'waiting_input';
     }
 
-    if (!latestRun) {
+    if (!latestExecution) {
       return snapshotStatus;
     }
 
-    const latestRunStatus = this.mapAgentRunStatus(latestRun.status);
+    const latestExecutionStatus = this.mapWorkflowExecutionStatus(
+      latestExecution.status,
+    );
 
     if (
       (snapshotStatus === 'queued' || snapshotStatus === 'running') &&
-      latestRunStatus !== 'queued' &&
-      latestRunStatus !== 'running'
+      latestExecutionStatus !== 'queued' &&
+      latestExecutionStatus !== 'running'
     ) {
-      return latestRunStatus;
+      return latestExecutionStatus;
     }
 
-    return snapshotStatus === 'idle' ? latestRunStatus : snapshotStatus;
+    return snapshotStatus === 'idle' ? latestExecutionStatus : snapshotStatus;
   }
 
   private normalizeSnapshot(
@@ -542,22 +518,22 @@ export class AgentThreadsService extends BaseService<
     };
   }
 
-  private mapAgentRunStatus(
-    status?: AgentExecutionStatus | string | null,
+  private mapWorkflowExecutionStatus(
+    status?: WorkflowExecutionStatus | string | null,
   ): ThreadRunStatus {
     const normalized = String(status ?? '').toUpperCase();
     switch (normalized) {
-      case AgentExecutionStatus.PENDING:
+      case WorkflowExecutionStatus.PENDING:
       case 'QUEUED':
         return 'queued';
-      case AgentExecutionStatus.RUNNING:
+      case WorkflowExecutionStatus.RUNNING:
         return 'running';
-      case AgentExecutionStatus.COMPLETED:
+      case WorkflowExecutionStatus.COMPLETED:
         return 'completed';
-      case AgentExecutionStatus.FAILED:
+      case WorkflowExecutionStatus.FAILED:
       case 'BUDGET_EXHAUSTED':
         return 'failed';
-      case AgentExecutionStatus.CANCELLED:
+      case WorkflowExecutionStatus.CANCELLED:
         return 'cancelled';
       default:
         return 'idle';

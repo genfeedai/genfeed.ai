@@ -35,7 +35,6 @@ describe('useOverviewBootstrap', () => {
     });
     getPlaywrightAuthStateMock.mockReturnValue(null);
     mockGetOverviewBootstrap.mockResolvedValue({
-      activeRuns: [],
       analytics: {},
       reviewInbox: {
         approvedCount: 0,
@@ -45,8 +44,6 @@ describe('useOverviewBootstrap', () => {
         recentItems: [],
         rejectedCount: 0,
       },
-      runs: [],
-      stats: null,
       timeSeries: [],
     });
     mockGetAuthService.mockResolvedValue({
@@ -84,11 +81,8 @@ describe('useOverviewBootstrap', () => {
     const { result } = renderHook(
       () =>
         useOverviewBootstrap({
-          initialActiveRuns: [],
           initialAnalytics: { totalCredentialsConnected: 7 },
           initialReviewInbox,
-          initialRuns: [],
-          initialStats: null,
           initialTimeSeriesData: [],
           revalidateOnMount: false,
         }),
@@ -106,7 +100,6 @@ describe('useOverviewBootstrap', () => {
 
   it('fetches fresh data when revalidateOnMount is true and auth is ready', async () => {
     const serverData = {
-      activeRuns: [],
       analytics: { totalCredentialsConnected: 99 },
       reviewInbox: {
         approvedCount: 10,
@@ -116,8 +109,6 @@ describe('useOverviewBootstrap', () => {
         recentItems: [],
         rejectedCount: 0,
       },
-      runs: [],
-      stats: null,
       timeSeries: [],
     };
     mockGetOverviewBootstrap.mockResolvedValue(serverData);
@@ -153,10 +144,7 @@ describe('useOverviewBootstrap', () => {
       wrapper: createQueryWrapper(),
     });
 
-    expect(result.current.activeRuns).toEqual([]);
-    expect(result.current.runs).toEqual([]);
     expect(result.current.analytics).toEqual({});
-    expect(result.current.stats).toBeNull();
     expect(result.current.timeSeriesData).toEqual([]);
     expect(typeof result.current.refresh).toBe('function');
   });
@@ -176,6 +164,5 @@ describe('useOverviewBootstrap', () => {
 
     expect(result.current.error).toEqual(new Error('overview unavailable'));
     expect(result.current.reviewInbox.readyCount).toBe(0);
-    expect(result.current.runs).toEqual([]);
   });
 });

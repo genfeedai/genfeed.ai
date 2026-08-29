@@ -1,4 +1,12 @@
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
+import { AgentThreadStatus } from '@genfeedai/enums';
+import type { ValidatedAgentScope } from '@genfeedai/interfaces';
+import { AgentScopeContextService } from '@genfeedai/server';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Optional,
+} from '@nestjs/common';
 import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
 import { resolveEffectiveAgentExecutionConfig } from '@server/collections/brands/utils/brand-agent-config-resolution.util';
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
@@ -24,24 +32,12 @@ import type {
   AgentChatResult,
   AgentThreadUiActionRequest,
 } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
-import {
-  recordAgentRunScope,
-  withAgentScopeResult,
-} from '@server/services/agent-orchestrator/utils/agent-scope-metadata.util';
+import { withAgentScopeResult } from '@server/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import {
   AgentRuntimeSessionService,
   getRuntimeBindingEffect,
 } from '@server/services/agent-threading/services/agent-runtime-session.service';
 import { CacheService } from '@server/services/cache/cache.service';
-import { AgentThreadStatus } from '@genfeedai/enums';
-import type { ValidatedAgentScope } from '@genfeedai/interfaces';
-import { AgentScopeContextService } from '@genfeedai/server';
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-  Optional,
-} from '@nestjs/common';
 
 export type { AgentOrchestratorUiActionHost } from '@server/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 
@@ -53,7 +49,6 @@ export class AgentOrchestratorUiActionService {
     private readonly agentScopeContextService: AgentScopeContextService,
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
     private readonly organizationSettingsService: OrganizationSettingsService,
-    private readonly agentRunsService: AgentRunsService,
     private readonly cacheService: CacheService,
     private readonly brandIdentityActions: AgentOrchestratorUiActionBrandIdentityService,
     private readonly confirmedToolActions: AgentOrchestratorUiActionConfirmedToolService,
@@ -218,18 +213,17 @@ export class AgentOrchestratorUiActionService {
     model: string;
     threadId: string;
   }): Promise<void> {
-    await recordAgentRunScope(this.agentRunsService, params.context);
     await this.threadEventRecorder.recordThreadTurnRequested({
       content: params.actionContent,
       context: params.context,
       model: params.model,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       threadId: params.threadId,
     });
     await this.threadEventRecorder.recordThreadTurnStarted({
       context: params.context,
       model: params.model,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       threadId: params.threadId,
     });
   }

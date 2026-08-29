@@ -1,12 +1,11 @@
 'use client';
 
-import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
+import type { IAnalytics } from '@genfeedai/interfaces';
 import type { PlatformTimeSeriesDataPoint } from '@genfeedai/props/analytics/charts.props';
 import {
   AuthService,
   type OverviewBootstrapPayload,
 } from '@genfeedai/services/auth/auth.service';
-import type { AgentRunStats as CloudAgentRunStats } from '@genfeedai/types';
 import { getPlaywrightAuthState } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -14,25 +13,19 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 export interface UseOverviewBootstrapOptions {
-  initialActiveRuns?: IAgentRun[];
   initialAnalytics?: Partial<IAnalytics>;
   initialReviewInbox?: OverviewBootstrapPayload['reviewInbox'];
-  initialRuns?: IAgentRun[];
-  initialStats?: CloudAgentRunStats | null;
   initialTimeSeriesData?: PlatformTimeSeriesDataPoint[];
   revalidateOnMount?: boolean;
 }
 
 export interface UseOverviewBootstrapReturn {
-  activeRuns: IAgentRun[];
   analytics: Partial<IAnalytics>;
   error: Error | null;
   isError: boolean;
   isLoading: boolean;
   refresh: () => Promise<void>;
   reviewInbox: OverviewBootstrapPayload['reviewInbox'];
-  runs: IAgentRun[];
-  stats: CloudAgentRunStats | null;
   timeSeriesData: PlatformTimeSeriesDataPoint[];
 }
 
@@ -59,16 +52,12 @@ export function useOverviewBootstrap(
     if (
       options.initialAnalytics == null &&
       options.initialReviewInbox == null &&
-      options.initialRuns == null &&
-      options.initialStats === undefined &&
-      options.initialActiveRuns == null &&
       options.initialTimeSeriesData == null
     ) {
       return undefined;
     }
 
     return {
-      activeRuns: options.initialActiveRuns ?? [],
       analytics: options.initialAnalytics ?? {},
       reviewInbox: options.initialReviewInbox ?? {
         approvedCount: 0,
@@ -78,16 +67,11 @@ export function useOverviewBootstrap(
         recentItems: [],
         rejectedCount: 0,
       },
-      runs: options.initialRuns ?? [],
-      stats: options.initialStats ?? null,
       timeSeries: options.initialTimeSeriesData ?? [],
     };
   }, [
-    options.initialActiveRuns,
     options.initialAnalytics,
     options.initialReviewInbox,
-    options.initialRuns,
-    options.initialStats,
     options.initialTimeSeriesData,
   ]);
 
@@ -111,7 +95,6 @@ export function useOverviewBootstrap(
 
   return useMemo(
     () => ({
-      activeRuns: data?.activeRuns ?? [],
       analytics: data?.analytics ?? {},
       error,
       isError,
@@ -127,16 +110,11 @@ export function useOverviewBootstrap(
         recentItems: [],
         rejectedCount: 0,
       },
-      runs: data?.runs ?? [],
-      stats: data?.stats ?? null,
       timeSeriesData: (data?.timeSeries ?? []) as PlatformTimeSeriesDataPoint[],
     }),
     [
-      data?.activeRuns,
       data?.analytics,
       data?.reviewInbox,
-      data?.runs,
-      data?.stats,
       data?.timeSeries,
       error,
       isError,

@@ -747,21 +747,32 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('passes brandId from workflow config into avatar generation', async () => {
       const avatarVideoGenerationService = {
-        generateAvatarVideo: vi.fn().mockResolvedValue({
-          externalId: 'ext-1',
-          ingredientId: 'video-1',
-          status: 'processing',
-        }),
+        generateAvatarVideo: vi.fn(
+          async (
+            _params: unknown,
+            _context: unknown,
+            onPlaceholderCreated?: (ingredientId: string) => Promise<void>,
+          ) => {
+            await onPlaceholderCreated?.('video-1');
+            return {
+              externalId: 'ext-1',
+              ingredientId: 'video-1',
+              status: 'processing',
+            };
+          },
+        ),
       };
-
-      const avatarService = new WorkflowEngineAdapterService(
-        {
-          cdnUrl: 'https://cdn.example.com',
-        } as never,
-        loggerService as never,
-        undefined,
-        avatarVideoGenerationService as never,
-      );
+      const adapterArgs = new Array(47).fill(undefined);
+      adapterArgs[0] = { cdnUrl: 'https://cdn.example.com' };
+      adapterArgs[1] = loggerService;
+      adapterArgs[3] = avatarVideoGenerationService;
+      adapterArgs[46] = {
+        createBeforeProviderSubmission: vi
+          .fn()
+          .mockResolvedValue({ continuationId: 'continuation-1' }),
+        markProviderSubmitted: vi.fn().mockResolvedValue(undefined),
+      };
+      const avatarService = new WorkflowEngineAdapterService(...adapterArgs);
 
       const workflow = convertActionGraph(avatarService, {
         id: 'wf-1',
@@ -798,7 +809,9 @@ describe('WorkflowEngineAdapterService', () => {
         targetHandle: 'script',
       });
 
-      await avatarService.executeWorkflow(workflow);
+      await avatarService.executeWorkflow(workflow, {
+        executionId: 'execution-1',
+      });
 
       expect(
         avatarVideoGenerationService.generateAvatarVideo,

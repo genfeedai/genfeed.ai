@@ -2,8 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
-import type { AgentRunStats } from '@genfeedai/types';
+import type { IAnalytics } from '@genfeedai/interfaces';
 import { useTrends } from '@hooks/data/trends/use-trends/use-trends';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
@@ -32,7 +31,6 @@ import { workspaceInboxTableColumns } from './workspace-inbox-columns';
 import { WorkspaceOverviewSidebar } from './workspace-overview-sidebar';
 import {
   DEFAULT_REVIEW_INBOX,
-  EMPTY_AGENT_RUNS,
   INBOX_VIEW_OPTIONS,
   type InboxView,
   type ReviewInboxSummary,
@@ -52,22 +50,16 @@ const WorkspaceTaskComposer = dynamic(
 
 interface WorkspacePageContentProps {
   defaultInboxView?: InboxView;
-  initialActiveRuns?: IAgentRun[];
   initialAnalytics?: Partial<IAnalytics>;
   initialReviewInbox?: ReviewInboxSummary;
-  initialRuns?: IAgentRun[];
-  initialStats?: AgentRunStats | null;
   initialTimeSeriesData?: PlatformTimeSeriesDataPoint[];
   section?: WorkspaceSection;
 }
 
 function WorkspacePageContentContent({
   defaultInboxView = 'unread',
-  initialActiveRuns = EMPTY_AGENT_RUNS,
   initialAnalytics,
   initialReviewInbox = DEFAULT_REVIEW_INBOX,
-  initialRuns = EMPTY_AGENT_RUNS,
-  initialStats = null,
   initialTimeSeriesData,
   section = 'overview',
 }: WorkspacePageContentProps) {
@@ -76,6 +68,7 @@ function WorkspacePageContentContent({
   const surfaceSelection = useWorkspaceSurfaceSelection();
   const { trends: trendItems, isLoading: isTrendsLoading } = useTrends();
   const {
+    activeExecutions,
     activityItems,
     busyTaskId,
     historyPreviewItems,
@@ -84,15 +77,17 @@ function WorkspacePageContentContent({
     isOverviewSection,
     isTaskComposerOpen,
     isWorkspaceRefreshing,
-    isWorkspaceRunsLoading,
+    isWorkspaceExecutionsLoading,
     isWorkspaceTasksLoading,
     mutateTask,
     openPlanningConversation,
     queueTasks,
+    recentExecutions,
     recentInboxTasks,
     refreshWorkspaceTasks,
     replaceTaskSearchParam,
     reviewInboxTasks,
+    executionStats,
     selectedTask,
     setSelectedTaskId,
     setTaskComposerOpen,
@@ -107,11 +102,8 @@ function WorkspacePageContentContent({
     workspaceTasks,
   } = useWorkspacePageContent({
     defaultInboxView,
-    initialActiveRuns,
     initialAnalytics,
     initialReviewInbox,
-    initialRuns,
-    initialStats,
     initialTimeSeriesData,
     section,
   });
@@ -132,21 +124,21 @@ function WorkspacePageContentContent({
   const hasOverviewSignal = useMemo(
     () =>
       hasWorkspaceOverviewSignal({
-        activeRuns: initialActiveRuns,
-        isRunsLoading: isWorkspaceRunsLoading,
+        activeExecutions,
+        isExecutionsLoading: isWorkspaceExecutionsLoading,
         isTasksLoading: isWorkspaceTasksLoading,
         isTrendsLoading,
         reviewInbox: initialReviewInbox,
-        runs: initialRuns,
+        executions: recentExecutions,
         trendItems,
         workspaceTasks,
       }),
     [
-      initialActiveRuns,
+      activeExecutions,
       initialReviewInbox,
-      initialRuns,
+      recentExecutions,
       isTrendsLoading,
-      isWorkspaceRunsLoading,
+      isWorkspaceExecutionsLoading,
       isWorkspaceTasksLoading,
       trendItems,
       workspaceTasks,
@@ -313,13 +305,13 @@ function WorkspacePageContentContent({
 
       {isOverviewSection ? (
         <WorkspaceDashboard
-          activeRuns={initialActiveRuns}
-          isRunsLoading={isWorkspaceRunsLoading}
+          activeExecutions={activeExecutions}
+          isExecutionsLoading={isWorkspaceExecutionsLoading}
           isTasksLoading={isWorkspaceTasksLoading}
           isTrendsLoading={isTrendsLoading}
           reviewInbox={initialReviewInbox}
-          runs={initialRuns}
-          stats={initialStats}
+          executions={recentExecutions}
+          stats={executionStats}
           trendsHref={href('/discover/overview')}
           trendItems={trendItems}
           workspaceTasks={workspaceTasks}
@@ -363,7 +355,7 @@ function WorkspacePageContentContent({
           <WorkspaceOverviewSidebar
             busyTaskId={busyTaskId}
             historyPreviewItems={historyPreviewItems}
-            initialActiveRuns={initialActiveRuns}
+            activeExecutions={activeExecutions}
             initialReviewInbox={initialReviewInbox}
             inProgressTasks={inProgressTasks}
             isTasksLoading={isWorkspaceTasksLoading}

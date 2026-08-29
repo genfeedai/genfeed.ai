@@ -11,9 +11,14 @@ export class WorkspaceTaskWorkflowQueueService {
   constructor(private readonly workflowQueue: WorkflowExecutionQueueService) {}
 
   enqueue(request: WorkspaceTaskWorkflowRequest): Promise<string> {
-    const definition = findWorkspaceTaskWorkflowDefinition(
-      WORKSPACE_TASK_WORKFLOW_IDS.EXECUTE,
-    );
+    // Provider-backed facecam work must own one resumable execution. Routing it
+    // through an awaited child workflow would leave the parent waiting on an
+    // in-memory call stack after the child durably suspends.
+    const canonicalId =
+      request.outputType === 'facecam'
+        ? WORKSPACE_TASK_WORKFLOW_IDS.FACECAM
+        : WORKSPACE_TASK_WORKFLOW_IDS.EXECUTE;
+    const definition = findWorkspaceTaskWorkflowDefinition(canonicalId);
     return this.workflowQueue.queueSystemWorkflow(
       {
         actionType: definition.canonicalId,

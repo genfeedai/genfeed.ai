@@ -29,8 +29,9 @@ import { OpenRouterService } from '@server/services/integrations/openrouter/serv
 
 export const CONTENT_INTELLIGENCE_GENERATION_ACTION_ID =
   'content-intelligence.generate';
-export const LINKEDIN_CONTENT_GENERATION_ACTION_ID =
-  'generate_linkedin_content';
+export const LINKEDIN_CONTENT_GENERATION_TOOL_ID = 'generate_linkedin_content';
+const LINKEDIN_PATTERN_GENERATION_ACTION_ID =
+  'content-intelligence.generate-linkedin-pattern';
 const CONTENT_INTELLIGENCE_WORKFLOW_ID = 'content-intelligence.generation';
 const LINKEDIN_CONTENT_WORKFLOW_ID = 'linkedin-content.generation';
 const CONTENT_GENERATION_ACTION_IDS = {
@@ -335,11 +336,11 @@ export class ContentGeneratorService implements OnModuleInit {
     runner.registerWorkflow(
       contentGenerationChildDefinition(
         LINKEDIN_CONTENT_CHILD_WORKFLOW_ID,
-        LINKEDIN_CONTENT_GENERATION_ACTION_ID,
+        LINKEDIN_PATTERN_GENERATION_ACTION_ID,
         'Generate One LinkedIn Content Pattern',
       ),
     );
-    runner.registerAction(LINKEDIN_CONTENT_GENERATION_ACTION_ID, ({ input }) =>
+    runner.registerAction(LINKEDIN_PATTERN_GENERATION_ACTION_ID, ({ input }) =>
       this.generatePatternItem({
         ...(input.item as ContentGenerationItem),
         dto: {
@@ -357,7 +358,7 @@ export class ContentGeneratorService implements OnModuleInit {
   ): Promise<GeneratedContent[]> {
     const actionId =
       dto.platform === ContentIntelligencePlatform.LINKEDIN
-        ? LINKEDIN_CONTENT_GENERATION_ACTION_ID
+        ? LINKEDIN_CONTENT_GENERATION_TOOL_ID
         : CONTENT_INTELLIGENCE_GENERATION_ACTION_ID;
     const workflowId =
       dto.platform === ContentIntelligencePlatform.LINKEDIN

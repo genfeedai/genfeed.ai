@@ -1,25 +1,19 @@
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
-import { fromPromiseEffect } from '@server/helpers/utils/effect/effect.util';
-import { AgentStreamPublisherService } from '@server/services/agent-orchestrator/agent-stream-publisher.service';
-import type {
-  AgentChatContext,
-  ToolCallSummary,
-} from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import {
   type AgentDashboardOperation,
   type AgentUIBlocksEvent,
   type AgentUiAction,
 } from '@genfeedai/interfaces';
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { AgentStreamPublisherService } from '@server/services/agent-orchestrator/agent-stream-publisher.service';
+import type {
+  AgentChatContext,
+  ToolCallSummary,
+} from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { Effect } from 'effect';
 
 @Injectable()
 export class AgentStreamEffectsService {
-  constructor(
-    private readonly streamPublisher: AgentStreamPublisherService,
-    @Optional()
-    private readonly agentRunsService?: AgentRunsService,
-  ) {}
+  constructor(private readonly streamPublisher: AgentStreamPublisherService) {}
 
   publishStreamLifecycleStartedEffect(params: {
     context: AgentChatContext;
@@ -29,7 +23,7 @@ export class AgentStreamEffectsService {
   }): Effect.Effect<void, unknown> {
     return this.publishStreamStartEffect({
       model: params.model,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       startedAt: params.startedAt,
       threadId: params.threadId,
       userId: params.context.userId,
@@ -38,7 +32,7 @@ export class AgentStreamEffectsService {
         this.publishStreamWorkEventEffect({
           event: 'started',
           label: 'Agent started',
-          runId: params.context.runId,
+          runId: params.context.executionId,
           startedAt: params.startedAt,
           status: 'running',
           threadId: params.threadId,
@@ -119,7 +113,7 @@ export class AgentStreamEffectsService {
     const publishReasoningEffect = params.reasoning
       ? this.publishStreamReasoningEffect({
           content: params.reasoning,
-          runId: params.context.runId,
+          runId: params.context.executionId,
           threadId: params.threadId,
           userId: params.context.userId,
         }).pipe(Effect.catchAll(() => Effect.void))
@@ -140,7 +134,7 @@ export class AgentStreamEffectsService {
           words,
           (word) =>
             this.publishStreamTokenEffect({
-              runId: params.context.runId,
+              runId: params.context.executionId,
               threadId: params.threadId,
               token: word,
               userId: params.context.userId,
@@ -170,7 +164,7 @@ export class AgentStreamEffectsService {
       durationMs: params.durationMs,
       fullContent: params.content,
       metadata: params.completionMetadata,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       startedAt: params.runStartedAt,
       threadId: params.threadId,
       threadTitle: params.threadTitle,
@@ -182,7 +176,7 @@ export class AgentStreamEffectsService {
           detail: `${params.toolCalls.length} tool call${params.toolCalls.length === 1 ? '' : 's'} completed`,
           event: 'completed',
           label: 'Agent completed',
-          runId: params.context.runId,
+          runId: params.context.executionId,
           status: 'completed',
           threadId: params.threadId,
           userId: params.context.userId,
@@ -207,7 +201,7 @@ export class AgentStreamEffectsService {
       creditsUsed: params.creditsUsed,
       fullContent: params.content,
       metadata: params.metadata,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       startedAt: params.startedAt,
       threadId: params.threadId,
       toolCalls: params.toolCalls,
@@ -240,7 +234,7 @@ export class AgentStreamEffectsService {
       parameters: params.parameters,
       phase: 'executing',
       progress,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       startedAt: params.startedAt,
       threadId: params.threadId,
       toolCallId: params.toolCallId,
@@ -255,7 +249,7 @@ export class AgentStreamEffectsService {
           parameters: params.parameters,
           phase: 'executing',
           progress,
-          runId: params.context.runId,
+          runId: params.context.executionId,
           startedAt: params.startedAt,
           status: 'running',
           threadId: params.threadId,
@@ -280,7 +274,7 @@ export class AgentStreamEffectsService {
       blockIds: params.blockIds,
       blocks: params.blocks,
       operation: params.operation,
-      runId: params.runId ?? params.context.runId,
+      runId: params.runId ?? params.context.executionId,
       threadId: params.threadId,
       userId: params.context.userId,
     }).pipe(Effect.catchAll(() => Effect.void));
@@ -311,7 +305,7 @@ export class AgentStreamEffectsService {
       options: params.options,
       prompt: params.prompt,
       recommendedOptionId: params.recommendedOptionId,
-      runId: params.runId ?? params.context.runId,
+      runId: params.runId ?? params.context.executionId,
       threadId: params.threadId,
       title: params.title,
       userId: params.context.userId,
@@ -348,7 +342,7 @@ export class AgentStreamEffectsService {
       phase,
       progress: 100,
       resultSummary: params.resultSummary,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       status: params.status,
       threadId: params.threadId,
       toolCallId: params.toolCallId,
@@ -365,7 +359,7 @@ export class AgentStreamEffectsService {
           phase,
           progress: 100,
           resultSummary: params.resultSummary,
-          runId: params.context.runId,
+          runId: params.context.executionId,
           status: params.status,
           threadId: params.threadId,
           toolCallId: params.toolCallId,
@@ -384,23 +378,11 @@ export class AgentStreamEffectsService {
     persistedError?: string;
     threadId: string;
   }): Effect.Effect<void, unknown> {
-    const runId = params.context.runId;
-    const failRunEffect =
-      params.failRun && runId && this.agentRunsService
-        ? fromPromiseEffect(() =>
-            this.agentRunsService?.fail(
-              runId,
-              params.context.organizationId,
-              params.persistedError ?? params.error,
-            ),
-          ).pipe(Effect.asVoid)
-        : Effect.void;
-
-    return failRunEffect.pipe(
+    return Effect.void.pipe(
       Effect.zipRight(
         this.publishStreamErrorEffect({
           error: params.error,
-          runId: params.context.runId,
+          runId: params.context.executionId,
           threadId: params.threadId,
           userId: params.context.userId,
         }),
@@ -410,7 +392,7 @@ export class AgentStreamEffectsService {
           detail: params.error,
           event: 'failed',
           label: 'Agent failed',
-          runId: params.context.runId,
+          runId: params.context.executionId,
           status: 'failed',
           threadId: params.threadId,
           userId: params.context.userId,
@@ -426,7 +408,7 @@ export class AgentStreamEffectsService {
   ): Effect.Effect<void, unknown> {
     return this.publishStreamErrorEffect({
       error: 'Agent run cancelled',
-      runId: context.runId,
+      runId: context.executionId,
       threadId,
       userId: context.userId,
     }).pipe(
@@ -435,7 +417,7 @@ export class AgentStreamEffectsService {
           detail: 'The active run was stopped by the user.',
           event: 'cancelled',
           label: 'Agent cancelled',
-          runId: context.runId,
+          runId: context.executionId,
           status: 'cancelled',
           threadId,
           userId: context.userId,
@@ -452,7 +434,7 @@ export class AgentStreamEffectsService {
   ): Effect.Effect<void, unknown> {
     return this.publishStreamErrorEffect({
       error,
-      runId: context.runId,
+      runId: context.executionId,
       threadId,
       userId: context.userId,
     }).pipe(Effect.catchAll(() => Effect.void));

@@ -137,7 +137,7 @@ describe('ContentGeneratorService', () => {
           }
           const generationAction =
             request.canonicalId === 'linkedin-content.generation'
-              ? 'generate_linkedin_content'
+              ? 'content-intelligence.generate-linkedin-pattern'
               : 'content-intelligence.generate';
           const results = [];
           for (const item of plan.items) {

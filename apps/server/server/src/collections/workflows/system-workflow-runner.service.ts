@@ -262,6 +262,7 @@ export class SystemWorkflowRunnerService
       userId,
       input.organizationId,
       {
+        idempotencyKey: input.idempotencyKey,
         inputValues: input.inputValues ?? {},
         metadata: {
           ...(input.metadata ?? {}),

@@ -81,13 +81,14 @@ import {
   paginatedQueryCacheTag,
 } from '@server/shared/utils/query-cache/query-cache.util';
 
-export const ARTICLE_GENERATION_ACTION_ID = 'create_article';
+export const ARTICLE_GENERATION_TOOL_ID = 'create_article';
 export const ARTICLE_REVIEW_ACTION_ID = 'article.review';
 const ARTICLE_FINALIZE_GENERATION_ACTION_ID = 'article.generation.finalize';
 const ARTICLE_GENERATE_DRAFTS_ACTION_ID = 'article.generation.generate-drafts';
 const ARTICLE_INVALIDATE_GENERATION_ACTION_ID =
   'article.generation.invalidate-cache';
 const ARTICLE_LOAD_GENERATION_ACTION_ID = 'article.generation.load-context';
+const ARTICLE_PERSIST_DRAFT_ACTION_ID = 'article.generation.persist-draft';
 const ARTICLE_REVISE_DRAFT_ACTION_ID = 'article.generation.revise-draft';
 const ARTICLE_REVIEW_DRAFT_ACTION_ID = 'article.generation.review-draft';
 const ARTICLE_LOAD_REVIEW_ACTION_ID = 'article.review.load-context';
@@ -236,7 +237,7 @@ function articleGenerationChildWorkflow(): SystemWorkflowGraphDefinition {
           id: 'revise-draft',
         }),
         createGenfeedActionNode({
-          actionId: ARTICLE_GENERATION_ACTION_ID,
+          actionId: ARTICLE_PERSIST_DRAFT_ACTION_ID,
           id: 'persist-draft',
         }),
       ],
@@ -381,7 +382,7 @@ export class ArticlesService
         input.state as ArticleGenerationReviewState,
       ),
     );
-    runner.registerAction(ARTICLE_GENERATION_ACTION_ID, ({ input }) =>
+    runner.registerAction(ARTICLE_PERSIST_DRAFT_ACTION_ID, ({ input }) =>
       this.requireArticlesContentService().persistDraft(
         input.state as ArticleGenerationRevisionState,
         this.createArticle.bind(this),
@@ -918,7 +919,7 @@ export class ArticlesService
     const { result } =
       await this.requireWorkflowRunner().runWorkflow<ArticleGenerationActionResult>(
         {
-          actionType: ARTICLE_GENERATION_ACTION_ID,
+          actionType: ARTICLE_GENERATION_TOOL_ID,
           canonicalId: ARTICLE_GENERATION_WORKFLOW_ID,
           inputValues: { brandId, dto: generateDto },
           metadata: { brandId, origin: 'api' },
@@ -1310,19 +1311,30 @@ export class ArticlesService
             : length
               ? 4_000
               : undefined;
+    const brandId =
+      typeof source.brandId === 'string' ? source.brandId : undefined;
+    const keywords = Array.isArray(source.keywords)
+      ? source.keywords.filter(
+          (keyword): keyword is string => typeof keyword === 'string',
+        )
+      : undefined;
+    const tone = typeof source.tone === 'string' ? source.tone : undefined;
+    const normalizedSource = { ...source };
+    delete normalizedSource.brandId;
+    delete normalizedSource.count;
+    delete normalizedSource.keywords;
+    delete normalizedSource.prompt;
+    delete normalizedSource.targetWordCount;
+    delete normalizedSource.tone;
 
     return {
-      ...source,
-      brandId: typeof source.brandId === 'string' ? source.brandId : undefined,
+      ...normalizedSource,
+      ...(brandId === undefined ? {} : { brandId }),
       count: typeof source.count === 'number' ? source.count : 1,
-      keywords: Array.isArray(source.keywords)
-        ? source.keywords.filter(
-            (keyword): keyword is string => typeof keyword === 'string',
-          )
-        : undefined,
+      ...(keywords === undefined ? {} : { keywords }),
       prompt,
-      targetWordCount,
-      tone: typeof source.tone === 'string' ? source.tone : undefined,
+      ...(targetWordCount === undefined ? {} : { targetWordCount }),
+      ...(tone === undefined ? {} : { tone }),
     } as GenerateArticlesDto;
   }
 

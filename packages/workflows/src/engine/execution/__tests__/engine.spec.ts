@@ -142,6 +142,48 @@ describe('WorkflowEngine', () => {
       );
     });
 
+    it('suspends a provider-callback action and does not dispatch downstream nodes', async () => {
+      const imageExecutor = vi.fn().mockResolvedValue({
+        id: 'ingredient-1',
+        model: 'flux',
+        provider: 'replicate',
+        status: 'PROCESSING',
+      });
+      const publishExecutor = vi.fn().mockResolvedValue({ postId: 'post-1' });
+      engine.registerExecutor('imageGen', imageExecutor);
+      engine.registerExecutor('publish', publishExecutor);
+      const workflow = makeWorkflow(
+        [makeNode('generate', 'imageGen'), makeNode('publish', 'publish')],
+        [makeEdge('generate', 'publish')],
+      );
+
+      const result = await engine.execute(workflow, {
+        executionId: 'execution-1',
+      });
+
+      expect(result.status).toBe('running');
+      expect(result.completedAt).toBeUndefined();
+      expect(result.nodeResults.get('generate')?.status).toBe('running');
+      expect(publishExecutor).not.toHaveBeenCalled();
+    });
+
+    it('never transport-retries a provider-callback submission', async () => {
+      const providerError = new Error('provider submit failed');
+      const imageExecutor = vi.fn().mockRejectedValue(providerError);
+      engine.registerExecutor('imageGen', imageExecutor);
+
+      const result = await engine.execute(
+        makeWorkflow([makeNode('generate')]),
+        {
+          executionId: 'execution-1',
+          maxRetries: 3,
+        },
+      );
+
+      expect(result.status).toBe('failed');
+      expect(imageExecutor).toHaveBeenCalledOnce();
+    });
+
     it('should execute nodes in dependency order', async () => {
       const executionOrder: string[] = [];
       const trackingExecutor: NodeExecutor = vi.fn(async (node) => {

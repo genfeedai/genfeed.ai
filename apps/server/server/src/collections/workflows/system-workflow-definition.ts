@@ -18,6 +18,7 @@ export type SystemWorkflowGraphDefinition = SystemWorkflowGraphMetadata & {
 export type RunSystemWorkflowInput = {
   actionType: string;
   canonicalId: string;
+  idempotencyKey?: string;
   inputValues?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
   organizationId: string;

@@ -1,8 +1,11 @@
+import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { WebhooksModule } from '@api/endpoints/webhooks/webhooks.module';
+import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@workers/config/config.module';
-import { CronAgentTurnModule } from '@workers/crons/agent-turn/cron.agent-turn.module';
 import { CronBatchGenerationModule } from '@workers/crons/batch-generation/cron.batch-generation.module';
 import { CronEngagementModule } from '@workers/crons/engagement/cron.engagement.module';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
@@ -16,11 +19,16 @@ import { CronYoutubeModule } from '@workers/crons/youtube/cron.youtube.module';
 import { SystemSweepSchedulerService } from '@workers/scheduling/system-sweep-scheduler.service';
 import { SYSTEM_SWEEPS_QUEUE } from '@workers/scheduling/system-sweeps.constants';
 import { SystemSweepsProcessor } from '@workers/scheduling/system-sweeps.processor';
+import { WorkflowContinuationReconcileService } from '@workers/scheduling/workflow-continuation-reconcile.service';
 
 @Module({
   imports: [
     ConfigModule,
     LoggerModule,
+    WorkflowsModule,
+    IngredientsModule,
+    ReplicateModule,
+    WebhooksModule,
     BullModule.registerQueue({
       defaultJobOptions: {
         attempts: 1,
@@ -29,7 +37,6 @@ import { SystemSweepsProcessor } from '@workers/scheduling/system-sweeps.process
       },
       name: SYSTEM_SWEEPS_QUEUE,
     }),
-    CronAgentTurnModule,
     CronBatchGenerationModule,
     CronEngagementModule,
     CronPostsModule,
@@ -41,6 +48,10 @@ import { SystemSweepsProcessor } from '@workers/scheduling/system-sweeps.process
     CronWorkflowArtifactsModule,
     CronYoutubeModule,
   ],
-  providers: [SystemSweepSchedulerService, SystemSweepsProcessor],
+  providers: [
+    SystemSweepSchedulerService,
+    SystemSweepsProcessor,
+    WorkflowContinuationReconcileService,
+  ],
 })
 export class SystemSweepsModule {}

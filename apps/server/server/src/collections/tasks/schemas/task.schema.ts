@@ -87,9 +87,9 @@ export interface TaskDocument
     entityId: string;
     entityModel: TaskLinkedEntityModel;
   }>;
+  linkedExecutionIds: string[];
   linkedIssueId?: string;
   linkedOutputIds: string[];
-  linkedRunIds: string[];
   outputType: TaskOutputType;
   platforms: string[];
   planningThreadId?: string;

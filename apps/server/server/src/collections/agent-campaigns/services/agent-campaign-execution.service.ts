@@ -1,11 +1,3 @@
-import { type AgentCampaignDocument } from '@server/collections/agent-campaigns/schemas/agent-campaign.schema';
-import { AgentCampaignsService } from '@server/collections/agent-campaigns/services/agent-campaigns.service';
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
-import { AgentStrategiesService } from '@server/collections/agent-strategies/services/agent-strategies.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { isOrchestratorAgentType } from '@server/services/agent-orchestrator/constants/agent-type.constants';
-import { AgentRuntimeService } from '@server/services/agent-runtime/agent-runtime.service';
-import { AgentExecutionTrigger } from '@genfeedai/enums';
 import type { IAgentCampaignStatusResponse } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -15,6 +7,13 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
+import { type AgentCampaignDocument } from '@server/collections/agent-campaigns/schemas/agent-campaign.schema';
+import { AgentCampaignsService } from '@server/collections/agent-campaigns/services/agent-campaigns.service';
+import { AgentStrategiesService } from '@server/collections/agent-strategies/services/agent-strategies.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { isOrchestratorAgentType } from '@server/services/agent-orchestrator/constants/agent-type.constants';
+import { AgentRuntimeService } from '@server/services/agent-runtime/agent-runtime.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 @Injectable()
 export class AgentCampaignExecutionService {
@@ -24,7 +23,7 @@ export class AgentCampaignExecutionService {
     private readonly logger: LoggerService,
     private readonly agentCampaignsService: AgentCampaignsService,
     private readonly agentStrategiesService: AgentStrategiesService,
-    private readonly agentRunsService: AgentRunsService,
+    private readonly prisma: PrismaService,
     @Inject(forwardRef(() => AgentRuntimeService))
     private readonly agentRuntimeService: AgentRuntimeService,
   ) {}
@@ -133,7 +132,6 @@ export class AgentCampaignExecutionService {
           organizationId,
           strategyId,
           threadTitle: `${campaign.label ?? 'Campaign'} · ${strategy.label ?? strategyId}`,
-          trigger: AgentExecutionTrigger.CRON,
           userId,
         });
 
@@ -301,19 +299,23 @@ export class AgentCampaignExecutionService {
       }
     }
 
-    const runs = await this.agentRunsService.find(
-      scopedWhere(organizationId, { campaignId }),
-    );
+    const executions = await this.prisma.workflowExecution.findMany({
+      select: { nodeResults: { select: { status: true } } },
+      where: scopedWhere(organizationId, {
+        result: {
+          path: ['metadata', 'campaignId'],
+          equals: campaignId,
+        },
+      }),
+    });
 
-    const contentProduced = Array.isArray(runs)
-      ? runs.reduce(
-          (total, run) =>
-            total +
-            (run.toolCalls?.filter((tc) => tc.status === 'completed').length ??
-              0),
-          0,
-        )
-      : 0;
+    const contentProduced = executions.reduce(
+      (total, execution) =>
+        total +
+        execution.nodeResults.filter((node) => node.status === 'COMPLETED')
+          .length,
+      0,
+    );
     const status =
       campaign.status === 'active' ||
       campaign.status === 'completed' ||

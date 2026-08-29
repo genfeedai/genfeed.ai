@@ -2,7 +2,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
-import { CronAgentTurnReconcileService } from '@workers/crons/agent-turn/cron.agent-turn-reconcile.service';
 import { CronBatchGenerationReconcileService } from '@workers/crons/batch-generation/cron.batch-generation-reconcile.service';
 import { CronEngagementTriggersService } from '@workers/crons/engagement/cron.engagement-triggers.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
@@ -18,6 +17,7 @@ import {
   SYSTEM_SWEEP_JOBS,
   SYSTEM_SWEEPS_QUEUE,
 } from '@workers/scheduling/system-sweeps.constants';
+import { WorkflowContinuationReconcileService } from '@workers/scheduling/workflow-continuation-reconcile.service';
 import type { Job } from 'bullmq';
 
 /**
@@ -32,7 +32,6 @@ export class SystemSweepsProcessor extends WorkerHost {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly cronAgentTurnReconcileService: CronAgentTurnReconcileService,
     private readonly cronBatchGenerationReconcileService: CronBatchGenerationReconcileService,
     private readonly cronEngagementTriggersService: CronEngagementTriggersService,
     private readonly cronPostsService: CronPostsService,
@@ -44,6 +43,7 @@ export class SystemSweepsProcessor extends WorkerHost {
     private readonly cronWorkflowArtifactsService: CronWorkflowArtifactsService,
     private readonly cronYoutubeMessagesService: CronYoutubeMessagesService,
     private readonly cronYoutubeStatusService: CronYoutubeStatusService,
+    private readonly workflowContinuationReconcileService: WorkflowContinuationReconcileService,
     private readonly logger: LoggerService,
   ) {
     super();
@@ -59,10 +59,6 @@ export class SystemSweepsProcessor extends WorkerHost {
     }
 
     switch (job.name) {
-      case SYSTEM_SWEEP_JOBS.AGENT_TURN_RECONCILE:
-        await this.cronAgentTurnReconcileService.reconcileStrandedTurns();
-        return;
-
       case SYSTEM_SWEEP_JOBS.POSTS_PUBLISH:
         await this.cronPostsService.publishScheduledPosts();
         return;
@@ -109,6 +105,10 @@ export class SystemSweepsProcessor extends WorkerHost {
 
       case SYSTEM_SWEEP_JOBS.WORKFLOW_ARTIFACT_CLEANUP:
         await this.cronWorkflowArtifactsService.queueExpiredArtifactCleanup();
+        return;
+
+      case SYSTEM_SWEEP_JOBS.WORKFLOW_CONTINUATION_RECONCILE:
+        await this.workflowContinuationReconcileService.reconcile();
         return;
 
       default:

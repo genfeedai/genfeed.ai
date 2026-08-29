@@ -1,5 +1,3 @@
-import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
-import type { TrainingDocument } from '@server/collections/trainings/schemas/training.schema';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { ReplicateWebhookPayloadDto } from '@api/endpoints/webhooks/dto/replicate-webhook-payload.dto';
 import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
@@ -7,7 +5,6 @@ import { ReplicateWebhookService } from '@api/endpoints/webhooks/replicate/webho
 import { ReplicateWebhookVerificationService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.verification.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { ReplicateStatus } from '@api/services/integrations/replicate/helpers/replicate.enum';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { IngredientStatus, TrainingStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
@@ -21,8 +18,12 @@ import {
   HttpException,
   HttpStatus,
   Post,
+  Query,
   Req,
 } from '@nestjs/common';
+import { ModelRegistrationService } from '@server/collections/models/services/model-registration.service';
+import type { TrainingDocument } from '@server/collections/trainings/schemas/training.schema';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import type { Request } from 'express';
 import { validateWebhook } from 'replicate';
 
@@ -90,6 +91,7 @@ export class ReplicateWebhookController {
    */
   private async processWebhookAsync(
     signedPayload: ReplicateWebhookPayload,
+    workflowContinuationId?: string,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -117,12 +119,18 @@ export class ReplicateWebhookController {
           payload.status === (ReplicateStatus.SUCCEEDED as string)) &&
         payload.model
       ) {
-        await this.generationWebhookHandler.handleCompleted(payload);
+        await this.generationWebhookHandler.handleCompleted(
+          payload,
+          workflowContinuationId,
+        );
       } else if (
         payload.status === (ReplicateStatus.FAILED as string) ||
         payload.status === (ReplicateStatus.ERROR as string)
       ) {
-        await this.generationWebhookHandler.handleFailed(payload);
+        await this.generationWebhookHandler.handleFailed(
+          payload,
+          workflowContinuationId,
+        );
       }
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
@@ -287,6 +295,7 @@ export class ReplicateWebhookController {
   async handleCallback(
     @Req() request: Request,
     @Body() payload: ReplicateWebhookPayloadDto,
+    @Query('workflowContinuationId') workflowContinuationId?: string,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -308,13 +317,15 @@ export class ReplicateWebhookController {
       // Step 3: Return success response immediately
       // Step 4: Process webhook payload asynchronously after response is sent
       setImmediate(() => {
-        this.processWebhookAsync(payload).catch((error: unknown) => {
-          this.loggerService.error(`${url} async processing failed`, {
-            error,
-            payloadId: payload.id,
-            status: payload.status,
-          });
-        });
+        this.processWebhookAsync(payload, workflowContinuationId).catch(
+          (error: unknown) => {
+            this.loggerService.error(`${url} async processing failed`, {
+              error,
+              payloadId: payload.id,
+              status: payload.status,
+            });
+          },
+        );
       });
 
       return { detail: 'Webhook processed' };

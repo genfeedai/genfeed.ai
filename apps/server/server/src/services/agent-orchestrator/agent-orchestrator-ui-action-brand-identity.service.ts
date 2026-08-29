@@ -1,19 +1,3 @@
-import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { runIdempotent } from '@server/helpers/utils/idempotency/idempotency.util';
-import type { ThreadUiActionExecutionParams } from '@server/services/agent-orchestrator/agent-orchestrator-ui-action.types';
-import { throwFailedUiActionResult } from '@server/services/agent-orchestrator/agent-orchestrator-ui-action-error';
-import { AgentOrchestratorUiActionFinalizerService } from '@server/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
-import { AgentThreadEventRecorderService } from '@server/services/agent-orchestrator/agent-thread-event-recorder.service';
-import type {
-  AgentChatContext,
-  AgentChatResult,
-  ToolCallSummary,
-} from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
-import { AgentToolExecutorService } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { recordAgentRunScope } from '@server/services/agent-orchestrator/utils/agent-scope-metadata.util';
-import { CacheService } from '@server/services/cache/cache.service';
 import { AgentMessageRole } from '@genfeedai/enums';
 import {
   AgentToolName,
@@ -27,6 +11,20 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { runIdempotent } from '@server/helpers/utils/idempotency/idempotency.util';
+import type { ThreadUiActionExecutionParams } from '@server/services/agent-orchestrator/agent-orchestrator-ui-action.types';
+import { throwFailedUiActionResult } from '@server/services/agent-orchestrator/agent-orchestrator-ui-action-error';
+import { AgentOrchestratorUiActionFinalizerService } from '@server/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
+import { AgentThreadEventRecorderService } from '@server/services/agent-orchestrator/agent-thread-event-recorder.service';
+import type {
+  AgentChatContext,
+  AgentChatResult,
+  ToolCallSummary,
+} from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
+import { AgentToolExecutorService } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { CacheService } from '@server/services/cache/cache.service';
 
 const MESSAGE_PAGE_SIZE = 100;
 const MESSAGE_MAX_PAGES = 50;
@@ -53,7 +51,6 @@ export class AgentOrchestratorUiActionBrandIdentityService {
     private readonly toolExecutorService: AgentToolExecutorService,
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
     private readonly agentScopeContextService: AgentScopeContextService,
-    private readonly agentRunsService: AgentRunsService,
     private readonly cacheService: CacheService,
     private readonly finalizer: AgentOrchestratorUiActionFinalizerService,
   ) {}
@@ -159,7 +156,7 @@ export class AgentOrchestratorUiActionBrandIdentityService {
       await this.threadEventRecorder.recordToolStarted({
         context: input.params.context,
         parameters: toolPayload,
-        runId: input.params.context.runId,
+        runId: input.params.context.executionId,
         threadId: input.params.threadId,
         toolName,
       });
@@ -173,7 +170,7 @@ export class AgentOrchestratorUiActionBrandIdentityService {
           confirmationOrigin: 'thread-ui-action',
           generationPriority: input.params.context.generationPriority,
           organizationId: input.params.context.organizationId,
-          runId: input.params.context.runId,
+          runId: input.params.context.executionId,
           strategyId: input.params.context.strategyId,
           threadId: input.params.threadId,
           userId: input.params.context.userId,
@@ -193,7 +190,7 @@ export class AgentOrchestratorUiActionBrandIdentityService {
         context: input.params.context,
         durationMs,
         error: summary.error,
-        runId: input.params.context.runId,
+        runId: input.params.context.executionId,
         status: summary.status,
         threadId: input.params.threadId,
         toolName,
@@ -261,7 +258,6 @@ export class AgentOrchestratorUiActionBrandIdentityService {
       );
     }
     const context = { ...input.params.context, scope: refreshed.existingScope };
-    await recordAgentRunScope(this.agentRunsService, context);
     return {
       context,
       result: {
@@ -527,14 +523,14 @@ export class AgentOrchestratorUiActionBrandIdentityService {
       context: input.context,
       idempotencyKey: input.sourceActionId,
       metadata: messageMetadata,
-      runId: input.context.runId,
+      runId: input.context.executionId,
       threadId: input.threadId,
     });
     await this.threadEventRecorder.recordRunCompleted({
       context: input.context,
       detail: 'Agent completed',
       idempotencyKey: input.sourceActionId,
-      runId: input.context.runId,
+      runId: input.context.executionId,
       threadId: input.threadId,
     });
     return {

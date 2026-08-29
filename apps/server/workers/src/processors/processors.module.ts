@@ -9,7 +9,6 @@
  */
 
 import { AgentCampaignsModule } from '@api/collections/agent-campaigns/agent-campaigns.module';
-import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { ClipProjectsCoreModule } from '@api/collections/clip-projects/clip-projects-core.module';
@@ -56,7 +55,6 @@ import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 // --- collections/ processors ---
 import { WorkflowExecutionProcessor as CollectionsWorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
 // --- queues/ processors ---
-import { AgentRunProcessor } from '@workers/processors/api/queues/agent-run/agent-run.processor';
 import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-deduction/credit-deduction.processor';
 import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/heygen-poll.processor';
 import { NotificationDeliveryProcessor } from '@workers/processors/api/queues/notification-delivery/notification-delivery.processor';
@@ -80,7 +78,6 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
     AdsServicesModule,
     SocialIntegrationsModule,
     forwardRef(() => AgentCampaignsModule),
-    forwardRef(() => AgentRunsModule),
     forwardRef(() => AgentStrategiesModule),
     forwardRef(() => ArticlesModule),
     forwardRef(() => ClipProjectsCoreModule),
@@ -122,7 +119,6 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
   ],
   providers: [
     // --- queues/ processors ---
-    AgentRunProcessor,
     CreditDeductionProcessor,
     HeygenPollProcessor,
     NotificationDeliveryProcessor,

@@ -1,6 +1,6 @@
-import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { TasksModule } from '@api/collections/tasks/tasks.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
+import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
@@ -23,11 +23,11 @@ import { WorkspaceTaskWorkflowService } from '@server/services/task-orchestratio
     ConfigModule,
     LoggerModule,
     LlmDispatcherModule,
-    AgentRunsModule,
     TasksModule,
     QueuesModule,
     VideoGenerationModule,
     WorkflowsModule,
+    WorkflowExecutionsModule,
   ],
   providers: [
     TaskDecompositionService,

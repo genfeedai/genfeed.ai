@@ -1,18 +1,3 @@
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { type IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { ActivityUpdateService } from '@server/endpoints/webhooks/services/activity-update.service';
-import { AutoMergeService } from '@server/endpoints/webhooks/services/auto-merge.service';
-import { MediaUploadService } from '@server/endpoints/webhooks/services/media-upload.service';
-import { MetadataLookupService } from '@server/endpoints/webhooks/services/metadata-lookup.service';
-import { PostProcessingOrchestratorService } from '@server/endpoints/webhooks/services/post-processing-orchestrator.service';
-import { extractUserIds } from '@server/helpers/utils/user-extraction/user-extraction.util';
-import { validateRoomMatch } from '@server/helpers/utils/websocket-room/websocket-room.util';
-import { CacheService } from '@server/services/cache/cache.service';
-import { MediaGenerationCostService } from '@server/services/media-vendor-cost/media-generation-cost.service';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import {
   categoryToMediaType,
   categoryToPlural,
@@ -26,7 +11,22 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { type IngredientDocument } from '@server/collections/ingredients/schemas/ingredient.schema';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { ActivityUpdateService } from '@server/endpoints/webhooks/services/activity-update.service';
+import { AutoMergeService } from '@server/endpoints/webhooks/services/auto-merge.service';
+import { MediaUploadService } from '@server/endpoints/webhooks/services/media-upload.service';
+import { MetadataLookupService } from '@server/endpoints/webhooks/services/metadata-lookup.service';
+import { PostProcessingOrchestratorService } from '@server/endpoints/webhooks/services/post-processing-orchestrator.service';
+import { extractUserIds } from '@server/helpers/utils/user-extraction/user-extraction.util';
+import { validateRoomMatch } from '@server/helpers/utils/websocket-room/websocket-room.util';
+import { CacheService } from '@server/services/cache/cache.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { MediaGenerationCostService } from '@server/services/media-vendor-cost/media-generation-cost.service';
+import { NotificationsService } from '@server/services/notifications/notifications.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 
 @Injectable()
 export class WebhooksService {
@@ -309,66 +309,87 @@ export class WebhooksService {
         return;
       }
 
-      if (errorMessage) {
-        const metadataId = metadata.id;
-        if (metadataId) {
-          await this.metadataService.patch(metadataId, {
-            error: errorMessage,
-          });
-        }
-      }
-
-      const metadataId = metadata.id;
-      const ingredient = await this.ingredientsService.findOne({ metadataId });
-
+      const ingredient = await this.ingredientsService.findOne({
+        metadataId: metadata.id,
+      });
       if (!ingredient) {
         return;
       }
 
-      await this.ingredientsService.patch(ingredient.id.toString(), {
-        status: IngredientStatus.FAILED,
-      });
-
-      const { dbUserId, userId, userRoom } = extractUserIds(ingredient.userId);
-
-      // Activity update via decomposed service
-      if (dbUserId) {
-        await this.activityUpdateService.updateFailureActivity({
-          brandId: ingredient.brandId ?? undefined,
-          category: ingredient.category as IngredientCategory | string,
-          dbUserId,
-          errorMessage,
-          ingredientId: ingredient.id.toString(),
-          organizationId: ingredient.organizationId ?? undefined,
-          userId,
-          userRoom,
-        });
-      }
-
-      // WebSocket failure notification
-      const websocketUrl = `/${categoryToPlural(ingredient.category)}/${String(ingredient.id)}`;
-
-      if (userId) {
-        await this.websocketService.publishMediaFailed(
-          websocketUrl,
-          errorMessage || 'Generation failed',
-          userId,
-          userRoom,
-        );
-      }
-
-      this.loggerService.log(`${logContext} marked as failed`, {
-        error: errorMessage,
-        externalId,
-        ingredientId: ingredient.id,
-      });
-
-      await this.cacheService.invalidateByTags([
-        categoryToPlural(ingredient.category),
-      ]);
+      await this.handleFailedGenerationForIngredient(
+        ingredient.id.toString(),
+        errorMessage,
+      );
     } catch (error: unknown) {
       this.loggerService.error(`${logContext} error`, error);
     }
+  }
+
+  async handleFailedGenerationForIngredient(
+    ingredientId: string,
+    errorMessage?: string,
+  ): Promise<void> {
+    const logContext = `${this.constructorName} handleFailedGenerationForIngredient`;
+
+    const ingredient = await this.ingredientsService.findOne({
+      id: ingredientId,
+    });
+    if (!ingredient) {
+      this.loggerService.warn(`${logContext} ingredient not found`, {
+        ingredientId,
+      });
+      return;
+    }
+
+    if (errorMessage) {
+      const metadataId = ingredient.metadataId;
+      if (metadataId) {
+        await this.metadataService.patch(metadataId, {
+          error: errorMessage,
+        });
+      }
+    }
+
+    await this.ingredientsService.patch(ingredient.id.toString(), {
+      status: IngredientStatus.FAILED,
+    });
+
+    const { dbUserId, userId, userRoom } = extractUserIds(ingredient.userId);
+
+    // Activity update via decomposed service
+    if (dbUserId) {
+      await this.activityUpdateService.updateFailureActivity({
+        brandId: ingredient.brandId ?? undefined,
+        category: ingredient.category as IngredientCategory | string,
+        dbUserId,
+        errorMessage,
+        ingredientId: ingredient.id.toString(),
+        organizationId: ingredient.organizationId ?? undefined,
+        userId,
+        userRoom,
+      });
+    }
+
+    // WebSocket failure notification
+    const websocketUrl = `/${categoryToPlural(ingredient.category)}/${String(ingredient.id)}`;
+
+    if (userId) {
+      await this.websocketService.publishMediaFailed(
+        websocketUrl,
+        errorMessage || 'Generation failed',
+        userId,
+        userRoom,
+      );
+    }
+
+    this.loggerService.log(`${logContext} marked as failed`, {
+      error: errorMessage,
+      ingredientId: ingredient.id,
+    });
+
+    await this.cacheService.invalidateByTags([
+      categoryToPlural(ingredient.category),
+    ]);
   }
 
   private schedulePostUploadNotifications(

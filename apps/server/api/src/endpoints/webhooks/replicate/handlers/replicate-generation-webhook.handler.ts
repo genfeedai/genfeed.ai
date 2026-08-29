@@ -1,14 +1,16 @@
-import type { AssetDocument } from '@server/collections/assets/schemas/asset.schema';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
 import { isAllowedReplicateOutputUrl } from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
-import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { supportsMultipleOutputs } from '@genfeedai/constants';
 import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import type { AssetDocument } from '@server/collections/assets/schemas/asset.schema';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
+import { WorkflowNodeContinuationCoordinatorService } from '@server/collections/workflows/services/workflow-node-continuation-coordinator.service';
+import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 
 /**
  * Handles the non-training branches of the Replicate webhook: asset
@@ -23,13 +25,18 @@ export class ReplicateGenerationWebhookHandler {
     private readonly assetsService: AssetsService,
     private readonly webhooksService: WebhooksService,
     private readonly websocketService: NotificationsPublisherService,
+    private readonly continuationCoordinator: WorkflowNodeContinuationCoordinatorService,
+    private readonly continuations: WorkflowNodeContinuationService,
   ) {}
 
   /**
    * Handles a completed/succeeded webhook that isn't tied to a training —
    * either an asset generation (banner/logo) or a regular media generation.
    */
-  async handleCompleted(payload: ReplicateWebhookPayload): Promise<void> {
+  async handleCompleted(
+    payload: ReplicateWebhookPayload,
+    workflowContinuationId?: string,
+  ): Promise<void> {
     // Check if this is an asset generation first
     const asset = await this.assetsService.findOne({
       externalId: payload.id,
@@ -38,7 +45,10 @@ export class ReplicateGenerationWebhookHandler {
     if (asset) {
       await this.handleAssetGenerationCompleted(asset, payload);
     } else {
-      await this.handleMediaGenerationCompleted(payload);
+      await this.handleMediaGenerationCompleted(
+        payload,
+        workflowContinuationId,
+      );
     }
   }
 
@@ -46,7 +56,10 @@ export class ReplicateGenerationWebhookHandler {
    * Handles a failed/errored webhook — either a failed asset generation or
    * a failed ingredient generation.
    */
-  async handleFailed(payload: ReplicateWebhookPayload): Promise<void> {
+  async handleFailed(
+    payload: ReplicateWebhookPayload,
+    workflowContinuationId?: string,
+  ): Promise<void> {
     // Check if this is a failed asset generation first
     const asset = await this.assetsService.findOne({
       externalId: payload.id,
@@ -55,6 +68,41 @@ export class ReplicateGenerationWebhookHandler {
     if (asset) {
       await this.handleAssetGenerationFailed(asset, payload);
     } else {
+      if (workflowContinuationId) {
+        const target = await this.continuations.findCallbackTarget({
+          continuationId: workflowContinuationId,
+          provider: 'replicate',
+        });
+        if (!target) {
+          throw new Error(
+            `Replicate workflow continuation ${workflowContinuationId} not found`,
+          );
+        }
+        if (target.externalId && target.externalId !== payload.id) {
+          throw new Error(
+            `Replicate callback ${payload.id} does not own continuation ${workflowContinuationId}`,
+          );
+        }
+        const error =
+          typeof payload.error === 'string'
+            ? payload.error
+            : 'Replicate generation failed';
+        await this.webhooksService.handleFailedGenerationForIngredient(
+          target.ingredientId,
+          error,
+        );
+        await this.continuationCoordinator.failProviderAction({
+          error,
+          identity: {
+            continuationId: workflowContinuationId,
+            organizationId: target.organizationId,
+          },
+          provider: 'replicate',
+          providerResult: { externalId: payload.id },
+        });
+        return;
+      }
+
       // Handle failed generation with error message for ingredients
       await this.webhooksService.handleFailedGeneration(
         payload.id,
@@ -141,9 +189,54 @@ export class ReplicateGenerationWebhookHandler {
    */
   private async handleMediaGenerationCompleted(
     payload: ReplicateWebhookPayload,
+    workflowContinuationId?: string,
   ): Promise<void> {
     const ingredientCategory = await this.resolveIngredientCategory(payload);
     const output = payload.output;
+
+    if (workflowContinuationId) {
+      const target = await this.continuations.findCallbackTarget({
+        continuationId: workflowContinuationId,
+        provider: 'replicate',
+      });
+      if (!target) {
+        throw new Error(
+          `Replicate workflow continuation ${workflowContinuationId} not found`,
+        );
+      }
+      if (target.externalId && target.externalId !== payload.id) {
+        throw new Error(
+          `Replicate callback ${payload.id} does not own continuation ${workflowContinuationId}`,
+        );
+      }
+      const workflowOutputUrl = Array.isArray(output)
+        ? output.find((candidate) => isAllowedReplicateOutputUrl(candidate))
+        : isAllowedReplicateOutputUrl(output)
+          ? output
+          : undefined;
+      if (!workflowOutputUrl) {
+        this.loggerService.warn(
+          'Replicate workflow callback has no allowed output URL',
+          { continuationId: workflowContinuationId, predictionId: payload.id },
+        );
+        return;
+      }
+      await this.webhooksService.processMediaForIngredient(
+        target.ingredientId,
+        ingredientCategory,
+        workflowOutputUrl,
+        payload.id,
+      );
+      await this.continuationCoordinator.completeProviderAction({
+        identity: {
+          continuationId: workflowContinuationId,
+          organizationId: target.organizationId,
+        },
+        provider: 'replicate',
+        providerResult: { externalId: payload.id },
+      });
+      return;
+    }
 
     // Check if the model supports multiple outputs
     // Extract model key from payload (format: "owner/model-name" or ModelKey)

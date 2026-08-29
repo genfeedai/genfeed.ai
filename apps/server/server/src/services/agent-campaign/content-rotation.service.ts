@@ -1,10 +1,9 @@
-import type { AgentRunDocument } from '@server/collections/agent-runs/schemas/agent-run.schema';
-import type { AgentStrategyDocument } from '@server/collections/agent-strategies/schemas/agent-strategy.schema';
 import type {
   IAgentCampaignContentRotation,
   IAgentCampaignRotationTarget,
 } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
+import type { AgentStrategyDocument } from '@server/collections/agent-strategies/schemas/agent-strategy.schema';
 
 export interface ContentRotationSelection {
   actualShare: number;
@@ -22,6 +21,10 @@ export interface ContentRotationResult {
   selection?: ContentRotationSelection;
 }
 
+type RotationExecution = {
+  metadata?: Record<string, unknown>;
+};
+
 interface TargetScore {
   actualShare: number;
   eligibleStrategies: AgentStrategyDocument[];
@@ -37,7 +40,7 @@ const DEFAULT_ROTATION_LOOKBACK_DAYS = 14;
 export class ContentRotationService {
   selectStrategies(input: {
     config?: IAgentCampaignContentRotation | null;
-    recentRuns: AgentRunDocument[];
+    recentRuns: RotationExecution[];
     strategies: AgentStrategyDocument[];
   }): ContentRotationResult {
     const validTargets = this.normalizeTargets(input.config);
@@ -132,7 +135,7 @@ export class ContentRotationService {
   }
 
   private countRecentTargets(
-    recentRuns: AgentRunDocument[],
+    recentRuns: RotationExecution[],
   ): Map<string, number> {
     const counts = new Map<string, number>();
 
@@ -179,15 +182,8 @@ export class ContentRotationService {
     return true;
   }
 
-  private readRunMetadata(run: AgentRunDocument): Record<string, unknown> {
-    const record = run as Record<string, unknown>;
-    const metadata = this.readRecord(record.metadata);
-    if (metadata) {
-      return metadata;
-    }
-
-    const config = this.readRecord(record.config);
-    return this.readRecord(config?.metadata) ?? {};
+  private readRunMetadata(run: RotationExecution): Record<string, unknown> {
+    return this.readRecord(run.metadata) ?? {};
   }
 
   private readRecord(value: unknown): Record<string, unknown> | null {

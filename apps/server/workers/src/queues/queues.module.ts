@@ -7,7 +7,6 @@
  */
 
 import {
-  AGENT_RUN_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
@@ -26,14 +25,13 @@ import {
 } from '@libs/redis/redis-connection.utils';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
 import { QueueService } from '@server/queues/core/queue.service';
 import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
 import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
 
 @Module({
-  exports: [AgentRunQueueService, QueueService, HeygenPollQueueService],
+  exports: [QueueService, HeygenPollQueueService],
   imports: [
     LoggerModule,
     BullModule.forRootAsync({
@@ -79,15 +77,6 @@ import { ConfigService } from '@workers/config/config.service';
       {
         defaultJobOptions: {
           attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: AGENT_RUN_QUEUE,
-      },
-      {
-        defaultJobOptions: {
-          attempts: 3,
           backoff: { delay: 2000, type: 'exponential' },
           removeOnComplete: 100,
           removeOnFail: 200,
@@ -117,7 +106,6 @@ import { ConfigService } from '@workers/config/config.service';
     ),
   ],
   providers: [
-    AgentRunQueueService,
     QueueService,
     HeygenPollQueueService,
     // Schedule 24h reply post-watch series after successful X publish.

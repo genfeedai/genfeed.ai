@@ -26,6 +26,7 @@ export type ToolUiActionType =
   | 'next_steps_card';
 
 export interface ToolParameterSchema {
+  additionalProperties?: false;
   type: 'object';
   properties: Record<string, unknown>;
   required?: string[];

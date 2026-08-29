@@ -2,7 +2,7 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import type { Ingredient } from '@models/content/ingredient.model';
-import { AgentRunsService } from '@services/ai/agent-runs.service';
+import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { type Task, TasksService } from '@services/management/tasks.service';
@@ -58,8 +58,10 @@ export function useWorkspaceTaskLinkedRunSummary(
           return;
         }
 
-        const service = AgentRunsService.getInstance(token);
-        const batchResults = await service.getBatch(linkedRunIds);
+        const service = WorkflowExecutionsService.getInstance(token);
+        const batchResults = await Promise.all(
+          linkedRunIds.map((executionId) => service.getById(executionId)),
+        );
 
         if (isCancelled) {
           return;
@@ -67,18 +69,19 @@ export function useWorkspaceTaskLinkedRunSummary(
 
         const reportThreadIds = Array.from(
           batchResults.reduce<Set<string>>((threadIds, result) => {
-            if (isNonEmptyString(result.threadId)) {
-              threadIds.add(result.threadId);
+            const threadId = result.metadata?.threadId;
+            if (isNonEmptyString(threadId)) {
+              threadIds.add(threadId);
             }
             return threadIds;
           }, new Set()),
         );
 
         setSummary({
-          generatedContentCount: batchResults.reduce(
-            (total, result) => total + result.contentCount,
-            0,
-          ),
+          generatedContentCount: batchResults.reduce((total, result) => {
+            const references = result.metadata?.artifactReferences;
+            return total + (Array.isArray(references) ? references.length : 0);
+          }, 0),
           reportThreadCount: reportThreadIds.length,
           reportThreadId: reportThreadIds[0] ?? null,
         });

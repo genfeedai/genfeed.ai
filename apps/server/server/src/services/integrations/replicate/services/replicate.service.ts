@@ -91,7 +91,9 @@ export class ReplicateService {
    * Local SaaS (`GENFEED_CLOUD=true` + `api.genfeed.localhost`) must poll
    * instead — Replicate cannot POST to Portless hosts.
    */
-  private resolveCompletionWebhookUrl(): string | undefined {
+  private resolveCompletionWebhookUrl(
+    workflowContinuationId?: string,
+  ): string | undefined {
     if (!isCloudDeployment()) {
       return undefined;
     }
@@ -105,13 +107,17 @@ export class ReplicateService {
       return undefined;
     }
 
-    return `${webhooksBase}/v1/webhooks/replicate/callback`;
+    const callbackUrl = `${webhooksBase}/v1/webhooks/replicate/callback`;
+    return workflowContinuationId
+      ? `${callbackUrl}?workflowContinuationId=${encodeURIComponent(workflowContinuationId)}`
+      : callbackUrl;
   }
 
   public async runModel(
     modelIdentifier: string,
     input: Record<string, unknown>,
     apiKeyOverride?: string,
+    workflowContinuationId?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
@@ -123,7 +129,9 @@ export class ReplicateService {
       });
 
       const client = this.getClientForRequest(apiKeyOverride);
-      const webhookUrl = this.resolveCompletionWebhookUrl();
+      const webhookUrl = this.resolveCompletionWebhookUrl(
+        workflowContinuationId,
+      );
 
       const res = await client.predictions.create({
         input,

@@ -73,31 +73,66 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
       return;
     }
 
-    engine.registerExecutor('aiAvatarVideo', async (_node, inputs, context) => {
+    engine.registerExecutor('aiAvatarVideo', async (node, inputs, context) => {
       const script = this.helper.getRequiredStringInput(inputs, 'script');
-      const result = await avatarVideoGenerationService.generateAvatarVideo(
-        {
-          aspectRatio: this.helper.getAspectRatioConfig(
-            _node.config.aspectRatio,
-          ),
-          audioUrl: this.helper.getOptionalStringInput(inputs, 'audioUrl'),
-          clonedVoiceId: this.helper.getOptionalStringInput(
-            inputs,
-            'clonedVoiceId',
-          ),
-          photoUrl: this.helper.getOptionalStringInput(inputs, 'photoUrl'),
-          text: script,
-          useIdentity:
-            _node.config.useIdentityDefaults === undefined
-              ? true
-              : Boolean(_node.config.useIdentityDefaults),
-        },
-        {
-          brandId: this.helper.readConfigString(_node.config, 'brandId'),
+      let continuationId: string | undefined;
+      let result: Awaited<
+        ReturnType<AvatarVideoGenerationService['generateAvatarVideo']>
+      >;
+      try {
+        result = await avatarVideoGenerationService.generateAvatarVideo(
+          {
+            aspectRatio: this.helper.getAspectRatioConfig(
+              node.config.aspectRatio,
+            ),
+            audioUrl: this.helper.getOptionalStringInput(inputs, 'audioUrl'),
+            clonedVoiceId: this.helper.getOptionalStringInput(
+              inputs,
+              'clonedVoiceId',
+            ),
+            photoUrl: this.helper.getOptionalStringInput(inputs, 'photoUrl'),
+            text: script,
+            useIdentity:
+              node.config.useIdentityDefaults === undefined
+                ? true
+                : Boolean(node.config.useIdentityDefaults),
+          },
+          {
+            brandId: this.helper.readConfigString(node.config, 'brandId'),
+            organizationId: context.organizationId,
+            userId: context.userId,
+          },
+          async (ingredientId) => {
+            const continuation = await this.helper.createProviderContinuation({
+              actionId: 'aiAvatarVideo',
+              context,
+              ingredientId,
+              node,
+              provider: 'heygen',
+            });
+            continuationId = continuation.continuationId;
+          },
+        );
+        if (!continuationId) {
+          throw new Error(
+            'Avatar provider submitted without a durable workflow continuation',
+          );
+        }
+        await this.helper.markProviderContinuationSubmitted({
+          continuationId,
+          externalId: result.externalId,
           organizationId: context.organizationId,
-          userId: context.userId,
-        },
-      );
+        });
+      } catch (error: unknown) {
+        if (continuationId) {
+          await this.helper.failProviderContinuationSubmission({
+            continuationId,
+            error: error instanceof Error ? error.message : String(error),
+            organizationId: context.organizationId,
+          });
+        }
+        throw error;
+      }
 
       return {
         externalId: result.externalId,

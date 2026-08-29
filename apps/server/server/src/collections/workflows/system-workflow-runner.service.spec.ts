@@ -280,6 +280,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
       runner.enqueueWorkflow({
         actionType: definition.canonicalId,
         canonicalId: definition.canonicalId,
+        idempotencyKey: 'workspace-task:subtask-1',
         inputValues: { ingredientIds: ['ingredient-1'] },
         metadata: { batchExecution: { itemCount: 1 } },
         organizationId: 'tenant-org',
@@ -294,6 +295,7 @@ describe('SystemWorkflowRunnerService definitions', () => {
       'tenant-user',
       'tenant-org',
       expect.objectContaining({
+        idempotencyKey: 'workspace-task:subtask-1',
         workflowId: 'global-workflow',
         workflowVersionId: 'global-version',
       }),

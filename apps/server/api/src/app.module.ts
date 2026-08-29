@@ -14,7 +14,6 @@ import { AdWatchedAdvertisersModule } from '@api/collections/ad-watched-advertis
 import { AgentCampaignsModule } from '@api/collections/agent-campaigns/agent-campaigns.module';
 import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memories.module';
 import { AgentPublishAuditsModule } from '@api/collections/agent-publish-audits/agent-publish-audits.module';
-import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { AgentTransfersModule } from '@api/collections/agent-transfers/agent-transfers.module';
@@ -269,7 +268,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     AgentTransfersModule,
     AgentMemoriesModule,
     AgentPublishAuditsModule,
-    AgentRunsModule,
     AgentThreadingModule,
     AgentStrategiesModule,
     ActivitiesModule,

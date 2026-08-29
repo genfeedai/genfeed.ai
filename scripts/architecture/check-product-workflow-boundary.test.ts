@@ -106,23 +106,65 @@ describe('check-product-workflow-boundary', () => {
     expect(result.violations).toHaveLength(2);
   });
 
+  it('rejects the retired facecam callback orchestration actions', () => {
+    writeFixture(
+      'apps/server/server/src/services/task-orchestration/legacy-facecam.ts',
+      `runner.registerAction('workspace.task.facecam.schedule-poll', schedulePoll);`,
+    );
+
+    const result = runCheckProductWorkflowBoundary({ exceptions: [] });
+
+    expect(result.violations).toEqual([
+      expect.objectContaining({
+        detection: expect.objectContaining({
+          ruleId: 'retired-facecam-provider-orchestration-actions',
+        }),
+      }),
+    ]);
+  });
+
   it('rejects workflow-entry IDs reused as internal node actions', () => {
     writeFixture(
       'apps/server/server/src/collections/articles/articles.service.ts',
       `
-        const ARTICLE_GENERATION_ACTION_ID = 'create_article';
-        runner.registerAction(ARTICLE_GENERATION_ACTION_ID, persistDraft);
+        const ARTICLE_GENERATION_TOOL_ID = 'create_article';
+        runner.registerAction(ARTICLE_GENERATION_TOOL_ID, persistDraft);
+      `,
+    );
+    writeFixture(
+      'apps/server/server/src/collections/content-intelligence/content-generator.service.ts',
+      `
+        createGenfeedActionNode({
+          actionId: 'generate_linkedin_content',
+          id: 'persist-pattern',
+        });
       `,
     );
 
     const result = runCheckProductWorkflowBoundary({ exceptions: [] });
 
-    expect(result.detections).toEqual([
+    expect(result.detections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          ruleId: 'workflow-entry-action-used-as-internal-node',
+        }),
+        expect.objectContaining({
+          ruleId: 'workflow-entry-action-used-as-internal-node',
+        }),
+      ]),
+    );
+    expect(result.violations).toEqual([
       expect.objectContaining({
-        ruleId: 'workflow-entry-action-used-as-internal-node',
+        detection: expect.objectContaining({
+          ruleId: 'workflow-entry-action-used-as-internal-node',
+        }),
+      }),
+      expect.objectContaining({
+        detection: expect.objectContaining({
+          ruleId: 'workflow-entry-action-used-as-internal-node',
+        }),
       }),
     ]);
-    expect(result.violations).toHaveLength(1);
   });
 
   it('does not allow exceptions for dynamic single-action workflow wrappers', () => {

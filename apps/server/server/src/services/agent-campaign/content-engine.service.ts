@@ -1,4 +1,4 @@
-import { AgentExecutionTrigger, type AgentType } from '@genfeedai/enums';
+import type { AgentType } from '@genfeedai/enums';
 import type { IAgentCampaignContentRotation } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
@@ -6,8 +6,6 @@ import { type AgentCampaignDocument } from '@server/collections/agent-campaigns/
 import { AgentCampaignsService } from '@server/collections/agent-campaigns/services/agent-campaigns.service';
 import { AgentGoalsService } from '@server/collections/agent-goals/services/agent-goals.service';
 import { AgentMemoryCaptureService } from '@server/collections/agent-memories/services/agent-memory-capture.service';
-import type { AgentRunDocument } from '@server/collections/agent-runs/schemas/agent-run.schema';
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { type AgentStrategyDocument } from '@server/collections/agent-strategies/schemas/agent-strategy.schema';
 import { AgentStrategiesService } from '@server/collections/agent-strategies/services/agent-strategies.service';
 import {
@@ -25,6 +23,7 @@ import {
 } from '@server/services/agent-campaign/orchestrator.constants';
 import { isOrchestratorAgentType } from '@server/services/agent-orchestrator/constants/agent-type.constants';
 import { AgentRuntimeService } from '@server/services/agent-runtime/agent-runtime.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { requireRelationId } from '@server/shared/utils/relation-id/relation-id.util';
 
 interface AnalyticsOverview {
@@ -43,9 +42,9 @@ interface AnalyticsOverview {
 
 export interface OrchestrationDispatchPlan {
   agentType: AgentType;
+  executionId: string;
   objective: string;
   reason: string;
-  runId: string;
   strategyId: string;
 }
 
@@ -130,7 +129,7 @@ export class ContentEngineService {
     private readonly agentCampaignsService: AgentCampaignsService,
     private readonly agentStrategiesService: AgentStrategiesService,
     private readonly agentGoalsService: AgentGoalsService,
-    private readonly agentRunsService: AgentRunsService,
+    private readonly prisma: PrismaService,
     private readonly contentRotationService: ContentRotationService,
     private readonly analyticsService: AnalyticsService,
     private readonly agentMemoryCaptureService: AgentMemoryCaptureService,
@@ -374,14 +373,13 @@ export class ContentEngineService {
       organizationId: item.organizationId,
       strategyId: String(item.strategy.id),
       threadTitle: `${item.campaign.label ?? 'Campaign'} · ${item.strategy.label ?? item.strategy.id}`,
-      trigger: AgentExecutionTrigger.CRON,
       userId: item.userId,
     });
     return {
       agentType: this.requireAgentType(item.strategy.agentType),
       objective: item.objective,
       reason: item.reason,
-      runId: handle.runId,
+      executionId: handle.executionId,
       strategyId: String(item.strategy.id),
     };
   }
@@ -445,15 +443,9 @@ export class ContentEngineService {
     rotationSelection?: ContentRotationSelection;
     summary: string;
   }): Promise<OrchestrationDispatchPlan> {
-    await this.agentRunsService.mergeMetadata(
-      item.plan.runId,
-      item.organizationId,
-      {
-        ...this.buildRotationMetadata(item.rotationSelection),
-        orchestrationDispatchReason: item.plan.reason,
-        orchestrationSummary: item.summary,
-      },
-    );
+    void item.organizationId;
+    void item.rotationSelection;
+    void item.summary;
     return item.plan;
   }
 
@@ -599,14 +591,13 @@ export class ContentEngineService {
       organizationId: item.input.organizationId,
       strategyId: String(item.strategy.id),
       threadTitle: `${item.campaign.label ?? 'Campaign'} · ${item.strategy.label ?? item.strategy.id}`,
-      trigger: AgentExecutionTrigger.CRON,
       userId: item.userId,
     });
     return {
       agentType: this.requireAgentType(item.strategy.agentType),
       objective: item.objective,
       reason: item.reason,
-      runId: handle.runId,
+      executionId: handle.executionId,
       strategyId: String(item.strategy.id),
     };
   }
@@ -615,16 +606,7 @@ export class ContentEngineService {
     dispatch: OrchestrationDispatchPlan;
     trigger: TriggeredCampaignDispatchInput;
   }): Promise<OrchestrationDispatchPlan> {
-    await this.agentRunsService.mergeMetadata(
-      input.dispatch.runId,
-      input.trigger.organizationId,
-      {
-        campaignId: input.trigger.campaignId,
-        orchestrationDispatchReason: input.dispatch.reason,
-        triggerMetadata: input.trigger.triggerMetadata,
-        triggerType: input.trigger.triggerType,
-      },
-    );
+    void input.trigger;
     return input.dispatch;
   }
 
@@ -694,25 +676,24 @@ export class ContentEngineService {
     campaign: AgentCampaignDocument,
     organizationId: string,
     contentRotation: IAgentCampaignContentRotation,
-  ): Promise<AgentRunDocument[]> {
+  ): Promise<Array<{ metadata?: Record<string, unknown> }>> {
     const lookbackDays =
       this.contentRotationService.getLookbackDays(contentRotation);
     const since = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
-    // Widen the lookback window beyond the org-wide default (200) so a busy
-    // organization's run volume cannot starve a single campaign's rotation
-    // history. campaignId lives in run metadata (filtered in-memory below), so a
-    // DB-level campaign filter would require a schema migration — widening the
-    // window is the correct in-place fix.
-    const recentRuns = await this.agentRunsService.findRecentByOrganization(
-      organizationId,
-      since,
-      1000,
-    );
     const campaignId = String(campaign.id);
+    const executions = await this.prisma.workflowExecution.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: { result: true },
+      take: 1000,
+      where: scopedWhere(organizationId, {
+        createdAt: { gte: since },
+        result: { path: ['metadata', 'campaignId'], equals: campaignId },
+      }),
+    });
 
-    return recentRuns.filter((run) => {
-      const metadata = this.readRunMetadata(run);
-      return metadata?.campaignId === campaignId;
+    return executions.map((execution) => {
+      const result = this.readRecord(execution.result);
+      return { metadata: this.readRecord(result?.metadata) ?? {} };
     });
   }
 
@@ -988,17 +969,6 @@ export class ContentEngineService {
     return value !== null && typeof value === 'object' && !Array.isArray(value)
       ? (value as Record<string, unknown>)
       : null;
-  }
-
-  private readRunMetadata(run: AgentRunDocument): Record<string, unknown> {
-    const record = run as Record<string, unknown>;
-    const metadata = this.readRecord(record.metadata);
-    if (metadata) {
-      return metadata;
-    }
-
-    const config = this.readRecord(record.config);
-    return this.readRecord(config?.metadata) ?? {};
   }
 
   private computeNextRunAt(campaign: AgentCampaignDocument, from: Date): Date {

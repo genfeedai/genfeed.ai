@@ -1,5 +1,8 @@
 import '@testing-library/jest-dom/vitest';
-import { AgentExecutionStatus } from '@genfeedai/enums';
+import {
+  WorkflowExecutionStatus,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ActiveRunsPanel from './ActiveRunsPanel';
@@ -10,37 +13,43 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-vi.mock('./AgentRunCard', () => ({
+vi.mock('./WorkflowExecutionCard', () => ({
   default: ({
+    execution,
     onCancel,
-    run,
   }: {
+    execution: { id: string; workflow?: { label: string } };
     onCancel?: (id: string) => void;
-    run: { id: string; label: string };
   }) => (
     <article>
-      <h3>{run.label}</h3>
-      <button type="button" onClick={() => onCancel?.(run.id)}>
-        cancel {run.id}
+      <h3>{execution.workflow?.label}</h3>
+      <button type="button" onClick={() => onCancel?.(execution.id)}>
+        cancel {execution.id}
       </button>
     </article>
   ),
 }));
 
-const run = {
+const execution = {
   createdAt: new Date().toISOString(),
   creditsUsed: 0,
-  id: 'run-1',
-  label: 'Active run',
+  id: 'execution-1',
+  inputValues: {},
   metadata: {},
+  nodeResults: [],
+  organizationId: 'organization-1',
   progress: 50,
-  status: AgentExecutionStatus.RUNNING,
-  toolCalls: [],
+  status: WorkflowExecutionStatus.RUNNING,
+  trigger: WorkflowExecutionTrigger.MANUAL,
+  updatedAt: new Date().toISOString(),
+  userId: 'user-1',
+  workflow: { id: 'workflow-1', label: 'Active workflow' },
+  workflowId: 'workflow-1',
 };
 
 describe('ActiveRunsPanel', () => {
   it('renders nothing when no runs are active', () => {
-    const { container } = render(<ActiveRunsPanel runs={[]} />);
+    const { container } = render(<ActiveRunsPanel executions={[]} />);
 
     expect(container.firstChild).toBeNull();
   });
@@ -50,17 +59,25 @@ describe('ActiveRunsPanel', () => {
 
     render(
       <ActiveRunsPanel
-        runs={[run, { ...run, id: 'run-2', label: 'Second run' }]}
+        executions={[
+          execution,
+          {
+            ...execution,
+            id: 'execution-2',
+            workflow: { id: 'workflow-2', label: 'Second workflow' },
+            workflowId: 'workflow-2',
+          },
+        ]}
         onCancel={onCancel}
       />,
     );
 
     expect(screen.getByText('Active Runs')).toBeVisible();
     expect(screen.getByText('(2)')).toBeVisible();
-    expect(screen.getByText('Active run')).toBeVisible();
-    expect(screen.getByText('Second run')).toBeVisible();
+    expect(screen.getByText('Active workflow')).toBeVisible();
+    expect(screen.getByText('Second workflow')).toBeVisible();
 
-    fireEvent.click(screen.getByText('cancel run-2'));
-    expect(onCancel).toHaveBeenCalledWith('run-2');
+    fireEvent.click(screen.getByText('cancel execution-2'));
+    expect(onCancel).toHaveBeenCalledWith('execution-2');
   });
 });

@@ -53,6 +53,7 @@ import { WorkflowEngineExecutorHelperService } from '@server/collections/workflo
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@server/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import { WorkflowMediaProcessingExecutorRegistrarService } from '@server/collections/workflows/services/workflow-media-processing-executor-registrar.service';
+import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowSocialExecutorRegistrarService } from '@server/collections/workflows/services/workflow-social-executor-registrar.service';
 import { WorkflowTrendPublishExecutorRegistrarService } from '@server/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
 import { CacheService } from '@server/services/cache/cache.service';
@@ -155,6 +156,8 @@ export class WorkflowEngineAdapterService {
     private readonly adBulkUploadWorkflowService:
       | AdBulkUploadWorkflowService
       | undefined,
+    @Optional()
+    private readonly workflowNodeContinuationService?: WorkflowNodeContinuationService,
   ) {
     this.engine = new WorkflowEngine({ maxConcurrency: 3 });
     this.converter = new WorkflowEngineConverterService();
@@ -164,6 +167,7 @@ export class WorkflowEngineAdapterService {
       this.sharedService,
       this.metadataService,
       this.ingredientsService,
+      this.workflowNodeContinuationService,
     );
 
     const coreRegistrar = new WorkflowCoreExecutorRegistrarService(

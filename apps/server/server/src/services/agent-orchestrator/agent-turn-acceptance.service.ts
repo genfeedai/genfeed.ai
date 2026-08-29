@@ -1,27 +1,18 @@
 import { createHash } from 'node:crypto';
-import { CredentialCryptoService } from '@server/collections/credentials/services/credential-crypto.service';
-import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
+import { AgentThreadStatus } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
+import { AgentScopeContextService } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import type {
   AgentChatContext,
   AgentChatRequest,
   AgentTurnAcknowledgement,
 } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import {
-  AgentExecutionTrigger,
-  AgentRunStatus,
-  AgentThreadStatus,
-} from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
-import type { AgentRunJobData } from '@genfeedai/queue-contracts';
-import { AgentScopeContextService } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-} from '@nestjs/common';
 
+const AGENT_TURN_WORKFLOW_ID = 'agent.turn.execute';
 const ARCHIVED_THREAD_WRITE_ERROR =
   'This thread is archived. Unarchive it before sending messages or running actions.';
 
@@ -36,96 +27,26 @@ function stableUuid(...parts: string[]): string {
   ].join('-');
 }
 
-export function buildAgentTurnRunId(
-  organizationId: string,
-  userId: string,
-  clientRequestId: string,
-): string {
-  return stableUuid('agent-turn-run', organizationId, userId, clientRequestId);
-}
-
-function stableStringify(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
-  }
-  if (value && typeof value === 'object') {
-    const record = value as Record<string, unknown>;
-    return `{${Object.keys(record)
-      .sort()
-      .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
-      .join(',')}}`;
-  }
-  return JSON.stringify(value) ?? 'null';
-}
-
-function requestDigest(request: AgentChatRequest, threadId: string): string {
-  const material = { ...request, threadId };
-  return `sha256:v1:${createHash('sha256')
-    .update(stableStringify(material))
-    .digest('hex')}`;
-}
-
 @Injectable()
 export class AgentTurnAcceptanceService {
-  private readonly logContext = 'AgentTurnAcceptanceService';
-
   constructor(
     private readonly logger: LoggerService,
     private readonly prisma: PrismaService,
     private readonly scopeService: AgentScopeContextService,
-    private readonly queueService: AgentRunQueueService,
-    private readonly credentialCryptoService: CredentialCryptoService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
   ) {}
 
   async accept(
     request: AgentChatRequest & { clientRequestId: string },
     context: AgentChatContext,
   ): Promise<AgentTurnAcknowledgement> {
-    const acceptedAt = Date.now();
-    const runId = buildAgentTurnRunId(
-      context.organizationId,
-      context.userId,
-      request.clientRequestId,
-    );
-    const stageStartedAt: Record<string, number> = {};
-    const stageDurationMs: Record<string, number> = {};
-    const measure = async <T>(stage: string, operation: () => Promise<T>) => {
-      stageStartedAt[stage] = Date.now();
-      try {
-        const result = await operation();
-        stageDurationMs[stage] = Date.now() - stageStartedAt[stage];
-        this.logger.log(`${this.logContext} stage completed`, {
-          clientRequestId: request.clientRequestId,
-          durationMs: stageDurationMs[stage],
-          organizationId: context.organizationId,
-          runId,
-          stage,
-        });
-        return result;
-      } catch (error: unknown) {
-        stageDurationMs[stage] = Date.now() - stageStartedAt[stage];
-        this.logger.error(`${this.logContext} stage failed`, {
-          clientRequestId: request.clientRequestId,
-          durationMs: stageDurationMs[stage],
-          error: error instanceof Error ? error.message : String(error),
-          organizationId: context.organizationId,
-          runId,
-          stage,
-        });
-        throw error;
-      }
-    };
-
-    const preparedScope = await measure('authorize_scope', () =>
-      this.scopeService.prepareForTurn({
-        expectedContextVersion: request.expectedContextVersion,
-        organizationId: context.organizationId,
-        requestedBrandId: request.brandId,
-        threadId: request.threadId,
-        userId: context.userId,
-      }),
-    );
-
+    const preparedScope = await this.scopeService.prepareForTurn({
+      expectedContextVersion: request.expectedContextVersion,
+      organizationId: context.organizationId,
+      requestedBrandId: request.brandId,
+      threadId: request.threadId,
+      userId: context.userId,
+    });
     const threadId =
       preparedScope.existingScope?.threadId ??
       stableUuid(
@@ -134,226 +55,64 @@ export class AgentTurnAcceptanceService {
         context.userId,
         request.clientRequestId,
       );
-
-    // Hoisted so the closure below keeps the non-null narrowing: a property
-    // access is re-widened inside a callback, which is what left `thread`
-    // possibly undefined at every downstream read.
-    const existingScope = preparedScope.existingScope;
-
-    const thread = existingScope
-      ? await measure('load_thread', async () => {
-          const existing = await this.prisma.agentThread.findFirst({
-            select: {
-              brandId: true,
-              contextVersion: true,
-              id: true,
-              status: true,
-            },
-            where: {
-              id: threadId,
-              isDeleted: false,
-              organizationId: context.organizationId,
-              userId: context.userId,
-            },
-          });
-          if (
-            [AgentThreadStatus.ARCHIVED, 'archived'].includes(
-              String(existing?.status ?? '').toLowerCase(),
-            )
-          ) {
-            throw new BadRequestException(ARCHIVED_THREAD_WRITE_ERROR);
-          }
-          return existing ?? existingScope;
-        })
-      : await measure('persist_thread', () => {
-          const title = request.content.trim().slice(0, 120) || 'New thread';
-          const createData = {
-            ...preparedScope.initialScopeFields,
-            id: threadId,
-            organizationId: context.organizationId,
-            planModeEnabled: request.planModeEnabled ?? false,
-            source: request.source ?? 'agent',
-            status: AgentThreadStatus.ACTIVE,
-            title,
-            userId: context.userId,
-          } satisfies Prisma.AgentThreadUncheckedCreateInput;
-          return this.recoverUniqueCreate(
-            () =>
-              this.prisma.agentThread.upsert({
-                create: createData,
-                update: {},
-                where: {
-                  id: threadId,
-                  isDeleted: false,
-                  organizationId: context.organizationId,
-                },
-              }),
-            () =>
-              this.prisma.agentThread.findFirst({
-                where: {
-                  id: threadId,
-                  isDeleted: false,
-                  organizationId: context.organizationId,
-                  userId: context.userId,
-                },
-              }),
-            'Concurrent thread acceptance could not be recovered.',
-          );
-        });
-
+    const thread = preparedScope.existingScope
+      ? await this.loadThread(threadId, context)
+      : await this.createThread(threadId, request, context, preparedScope);
     const contextVersion = Number(thread.contextVersion ?? 1);
     const contextId = `${threadId}:v${contextVersion}`;
     const queuedAt = new Date().toISOString();
-    const requestHash = requestDigest(request, threadId);
-    const metadata = {
-      clientRequestId: request.clientRequestId,
-      contextId,
-      requestState: 'queued',
-      requestHash,
-      source: request.source ?? 'agent',
-      threadId,
-    };
-    const queuePayload = {
-      ...(context.apiKeyContext
-        ? {
-            apiKeyContext: {
-              isApiKey: context.apiKeyContext.isApiKey,
-              scopes: context.apiKeyContext.scopes,
-            },
-          }
-        : {}),
-      clientRequestId: request.clientRequestId,
-      ...(context.authToken
-        ? {
-            encryptedAuthToken: this.credentialCryptoService.encrypt(
-              context.authToken,
-            ),
-          }
-        : {}),
-      kind: 'agent-chat-turn',
-      organizationId: context.organizationId,
-      request: {
-        ...request,
+    const { executionId } = await this.workflowRunner.enqueueWorkflow({
+      actionType: AGENT_TURN_WORKFLOW_ID,
+      canonicalId: AGENT_TURN_WORKFLOW_ID,
+      idempotencyKey: [
+        AGENT_TURN_WORKFLOW_ID,
+        context.organizationId,
+        context.userId,
+        request.clientRequestId,
+      ].join(':'),
+      inputValues: {
+        request: {
+          content: request.content,
+          clientRequestId: request.clientRequestId,
+          threadId,
+          ...(request.agentType ? { agentType: request.agentType } : {}),
+          ...(request.artifactReferences?.length
+            ? { artifactReferences: request.artifactReferences }
+            : {}),
+          ...(request.attachments?.length
+            ? { attachments: request.attachments }
+            : {}),
+          ...(thread.brandId ? { brandId: thread.brandId } : {}),
+          ...(request.expectedContextVersion !== undefined
+            ? { expectedContextVersion: request.expectedContextVersion }
+            : {}),
+          ...(request.model ? { model: request.model } : {}),
+          ...(request.pageContext ? { pageContext: request.pageContext } : {}),
+          ...(request.planModeEnabled !== undefined
+            ? { planModeEnabled: request.planModeEnabled }
+            : {}),
+          ...(request.source ? { source: request.source } : {}),
+          ...(request.systemPromptOverride
+            ? { systemPromptOverride: request.systemPromptOverride }
+            : {}),
+          ...(request.transferId ? { transferId: request.transferId } : {}),
+        },
+      },
+      metadata: {
         clientRequestId: request.clientRequestId,
+        contextId,
+        source: request.source ?? 'agent',
         threadId,
       },
-      runId,
-      threadId,
-      userId: context.userId,
-    } satisfies AgentRunJobData;
-
-    const persistedRun = await measure('persist_run', () =>
-      this.recoverUniqueCreate(
-        () =>
-          this.prisma.agentRun.upsert({
-            create: {
-              brandId: thread.brandId ?? undefined,
-              config: {
-                durableQueuePayload: JSON.parse(
-                  JSON.stringify(queuePayload),
-                ) as Prisma.InputJsonValue,
-              } as Prisma.InputJsonValue,
-              id: runId,
-              label: request.content.slice(0, 120),
-              metadata: metadata as Prisma.InputJsonValue,
-              objective: request.content,
-              organizationId: context.organizationId,
-              status: AgentRunStatus.PENDING,
-              threadId,
-              trigger: AgentExecutionTrigger.MANUAL,
-              userId: context.userId,
-            },
-            update: {},
-            where: {
-              id: runId,
-              isDeleted: false,
-              organizationId: context.organizationId,
-            },
-          }),
-        () =>
-          this.prisma.agentRun.findFirst({
-            where: {
-              id: runId,
-              isDeleted: false,
-              organizationId: context.organizationId,
-              userId: context.userId,
-            },
-          }),
-        'Concurrent run acceptance could not be recovered.',
-      ),
-    );
-    const persistedMetadata = persistedRun.metadata as Record<string, unknown>;
-    if (
-      typeof persistedMetadata?.requestHash === 'string' &&
-      persistedMetadata.requestHash !== requestHash
-    ) {
-      throw new ConflictException(
-        'clientRequestId was already used for another turn.',
-      );
-    }
-
-    const persistedStatus = String(persistedRun.status);
-    const isRecoverableEnqueueFailure =
-      persistedStatus === AgentRunStatus.FAILED &&
-      persistedMetadata?.requestState === 'enqueue_failed';
-    if (isRecoverableEnqueueFailure) {
-      await this.prisma.agentRun.updateMany({
-        data: {
-          completedAt: null,
-          error: null,
-          metadata: {
-            ...persistedMetadata,
-            requestState: 'queued',
-          } as Prisma.InputJsonValue,
-          status: AgentRunStatus.PENDING,
-        },
-        where: {
-          id: runId,
-          isDeleted: false,
-          organizationId: context.organizationId,
-          status: AgentRunStatus.FAILED,
-        },
-      });
-    }
-    const isAlreadyOwnedOrTerminal = [
-      AgentRunStatus.RUNNING,
-      AgentRunStatus.COMPLETED,
-      AgentRunStatus.CANCELLED,
-    ].includes(persistedStatus as AgentRunStatus);
-    if (!isAlreadyOwnedOrTerminal) {
-      try {
-        await measure('enqueue', () =>
-          this.queueService.queueRun(queuePayload),
-        );
-      } catch (error: unknown) {
-        await this.prisma.agentRun.updateMany({
-          data: {
-            completedAt: new Date(),
-            error: 'Durable agent turn enqueue failed.',
-            metadata: {
-              ...metadata,
-              requestState: 'enqueue_failed',
-            } as Prisma.InputJsonValue,
-            status: AgentRunStatus.FAILED,
-          },
-          where: {
-            id: runId,
-            isDeleted: false,
-            organizationId: context.organizationId,
-          },
-        });
-        throw error;
-      }
-    }
-
-    this.logger.log(`${this.logContext} accepted turn`, {
-      clientRequestId: request.clientRequestId,
-      contextId,
-      durationMs: Date.now() - acceptedAt,
       organizationId: context.organizationId,
-      persistedStatus,
-      runId,
-      stageDurationMs,
+      source: 'AgentTurnAcceptanceService.accept',
+      userId: context.userId,
+    });
+
+    this.logger.log('Agent turn workflow accepted', {
+      clientRequestId: request.clientRequestId,
+      executionId,
+      organizationId: context.organizationId,
       threadId,
     });
 
@@ -362,29 +121,59 @@ export class AgentTurnAcceptanceService {
       clientRequestId: request.clientRequestId,
       contextId,
       contextVersion,
+      executionId,
       queuedAt,
-      runId,
       status: 'queued',
       threadId,
     };
   }
 
-  private async recoverUniqueCreate<T>(
-    create: () => Promise<T>,
-    readWinner: () => Promise<T | null>,
-    conflictMessage: string,
-  ): Promise<T> {
-    try {
-      return await create();
-    } catch (error: unknown) {
-      if ((error as { code?: unknown })?.code !== 'P2002') {
-        throw error;
-      }
-      const winner = await readWinner();
-      if (!winner) {
-        throw new ConflictException(conflictMessage);
-      }
-      return winner;
+  private async loadThread(
+    threadId: string,
+    context: AgentChatContext,
+  ): Promise<{ brandId: string | null; contextVersion: number }> {
+    const thread = await this.prisma.agentThread.findFirstOrThrow({
+      select: { brandId: true, contextVersion: true, status: true },
+      where: {
+        id: threadId,
+        isDeleted: false,
+        organizationId: context.organizationId,
+        userId: context.userId,
+      },
+    });
+    if (String(thread.status).toLowerCase() === 'archived') {
+      throw new BadRequestException(ARCHIVED_THREAD_WRITE_ERROR);
     }
+    return thread;
+  }
+
+  private async createThread(
+    threadId: string,
+    request: AgentChatRequest,
+    context: AgentChatContext,
+    preparedScope: Awaited<
+      ReturnType<AgentScopeContextService['prepareForTurn']>
+    >,
+  ): Promise<{ brandId: string | null; contextVersion: number }> {
+    const createData = {
+      ...preparedScope.initialScopeFields,
+      id: threadId,
+      organizationId: context.organizationId,
+      planModeEnabled: request.planModeEnabled ?? false,
+      source: request.source ?? 'agent',
+      status: AgentThreadStatus.ACTIVE,
+      title: request.content.trim().slice(0, 120) || 'New thread',
+      userId: context.userId,
+    } satisfies Prisma.AgentThreadUncheckedCreateInput;
+    return this.prisma.agentThread.upsert({
+      create: createData,
+      select: { brandId: true, contextVersion: true },
+      update: {},
+      where: {
+        id: threadId,
+        isDeleted: false,
+        organizationId: context.organizationId,
+      },
+    });
   }
 }

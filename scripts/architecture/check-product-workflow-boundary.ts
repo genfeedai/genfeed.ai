@@ -106,6 +106,29 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
   [
     {
       classification: 'workflow-adapter',
+      file: 'apps/server/api/src/endpoints/admin/announcements/announcements.service.ts',
+      id: 'admin-announcement-broadcast-actions',
+      reason:
+        'The service registers bounded Discord, X, and persistence actions used by the immutable admin announcement broadcast graph.',
+      systemWorkflowIds: ['admin.announcement.broadcast'],
+    },
+    {
+      classification: 'platform-maintenance',
+      file: 'apps/server/server/src/services/notifications/notifications.service.ts',
+      id: 'notification-redis-publisher',
+      reason:
+        'Infrastructure notification fan-out uses a Redis publisher; it does not publish customer content or orchestrate product behavior.',
+    },
+    {
+      classification: 'workflow-adapter',
+      file: 'apps/server/workers/src/services/scheduled-post-delivery.service.ts',
+      id: 'scheduled-post-delivery-action',
+      reason:
+        'Provider publishing is the bounded delivery action inside the immutable scheduled-post publish graph.',
+      systemWorkflowIds: ['scheduled-post.publish'],
+    },
+    {
+      classification: 'workflow-adapter',
       file: 'apps/server/server/src/collections/workflows/services/youtube-long-form-workflow.service.ts',
       id: 'youtube-long-form-actions',
       reason:
@@ -198,34 +221,21 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
         'Atomic engagement adapters are sequenced by the hidden sweep and per-rule workflow graphs.',
       systemWorkflowIds: ['engagement.sweep', 'engagement.rule.process'],
     },
-    {
-      classification: 'workflow-adapter',
-      file: 'apps/server/workers/src/crons/rss/cron.rss-autopost.service.ts',
-      id: 'rss-sweep-actions',
-      reason:
-        'Atomic RSS adapters are sequenced by hidden sweep, source, and item workflow graphs.',
-      systemWorkflowIds: [
-        'rss.sweep',
-        'rss.source.process',
-        'rss.item.process',
-      ],
-    },
-    {
-      classification: 'workflow-adapter',
-      file: 'apps/server/workers/src/crons/youtube/cron.youtube-messages.service.ts',
-      id: 'youtube-comment-sweep-actions',
-      reason:
-        'The hidden sweep discovers connected credentials and fans out to the existing YouTube comment-sync workflow.',
-      systemWorkflowIds: [
-        'youtube.comments.sweep',
-        'social.inbox.sync.youtube-comments',
-      ],
-    },
   ];
 
 const PRODUCT_CRON_PATH_SEGMENTS = ['/content-pipeline/', '/posts/'];
 
 const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
+  {
+    exceptionAllowed: false,
+    id: 'retired-facecam-provider-orchestration-actions',
+    matches: (_file, source) =>
+      /workspace\.task\.facecam\.(?:attach-output|record-dispatch|schedule-poll)/.test(
+        source,
+      ),
+    message:
+      'Facecam provider completion is owned by the durable workflow continuation. Attach, dispatch-recording, and poll-scheduling action planes are retired.',
+  },
   {
     exceptionAllowed: false,
     id: 'retired-api-workflow-executor-plane',
@@ -246,7 +256,7 @@ const PRODUCT_WORKFLOW_BOUNDARY_RULES: ProductWorkflowBoundaryRule[] = [
     exceptionAllowed: false,
     id: 'workflow-entry-action-used-as-internal-node',
     matches: (_file, source) =>
-      /(?:registerAction|actionId\s*:)[\s\S]{0,80}\b(?:ARTICLE_GENERATION_ACTION_ID|LINKEDIN_CONTENT_GENERATION_ACTION_ID)\b/.test(
+      /(?:registerAction\s*\(\s*|actionId\s*:\s*)(?:ARTICLE_GENERATION_(?:ACTION|TOOL)_ID|LINKEDIN_CONTENT_GENERATION_(?:ACTION|TOOL)_ID|['"](?:create_article|generate_linkedin_content)['"])/s.test(
         source,
       ),
     message:

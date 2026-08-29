@@ -111,11 +111,6 @@ export type {
   AgentInputRequestPayload,
   AgentInputResolvedPayload,
   AgentPageContext,
-  AgentRunPage,
-  AgentRunPagination,
-  AgentRunStepSummary,
-  AgentRunSummary,
-  AgentRunToolCallSummary,
   AgentStreamDonePayload,
   AgentStreamErrorPayload,
   AgentStreamReasoningPayload,
@@ -177,7 +172,6 @@ export type {
   CredentialMentionItem,
   GenerateIngredientResult,
   GenerationModel,
-  ListAgentRunsParams,
 } from '@genfeedai/agent/services';
 export {
   AgentApiAuthError,

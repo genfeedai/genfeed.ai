@@ -1,13 +1,15 @@
-import type { AssetDocument } from '@server/collections/assets/schemas/asset.schema';
-import { AssetsService } from '@server/collections/assets/services/assets.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
 import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
-import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import { ModelCategory } from '@genfeedai/enums';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { AssetDocument } from '@server/collections/assets/schemas/asset.schema';
+import { AssetsService } from '@server/collections/assets/services/assets.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
+import { WorkflowNodeContinuationCoordinatorService } from '@server/collections/workflows/services/workflow-node-continuation-coordinator.service';
+import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 
 const ALLOWED_URL = 'https://replicate.delivery/pbxt/abc/out-0.png';
 const FOREIGN_URL = 'https://evil.example.com/out-0.png';
@@ -19,7 +21,9 @@ describe('ReplicateGenerationWebhookHandler', () => {
   let webhooksService: {
     handleFailedGeneration: vi.Mock;
     processAssetFromWebhook: vi.Mock;
+    processMediaForIngredient: vi.Mock;
     processMediaFromWebhook: vi.Mock;
+    handleFailedGenerationForIngredient: vi.Mock;
   };
 
   const payloadWith = (output: unknown): ReplicateWebhookPayload =>
@@ -38,7 +42,9 @@ describe('ReplicateGenerationWebhookHandler', () => {
     loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
     webhooksService = {
       handleFailedGeneration: vi.fn(),
+      handleFailedGenerationForIngredient: vi.fn(),
       processAssetFromWebhook: vi.fn(),
+      processMediaForIngredient: vi.fn(),
       processMediaFromWebhook: vi.fn(),
     };
 
@@ -60,6 +66,17 @@ describe('ReplicateGenerationWebhookHandler', () => {
           useValue: { publishAssetStatus: vi.fn() },
         },
         { provide: WebhooksService, useValue: webhooksService },
+        {
+          provide: WorkflowNodeContinuationCoordinatorService,
+          useValue: {
+            completeProviderAction: vi.fn(),
+            failProviderAction: vi.fn(),
+          },
+        },
+        {
+          provide: WorkflowNodeContinuationService,
+          useValue: { findCallbackTarget: vi.fn() },
+        },
       ],
     }).compile();
 
@@ -76,6 +93,26 @@ describe('ReplicateGenerationWebhookHandler', () => {
         'pred_123',
         ALLOWED_URL,
       );
+    });
+
+    it('finalizes by continuation identity before the provider id metadata patch lands', async () => {
+      const continuations = (
+        handler as never as { continuations: { findCallbackTarget: vi.Mock } }
+      ).continuations;
+      continuations.findCallbackTarget.mockResolvedValue({
+        ingredientId: 'ingredient-1',
+        organizationId: 'org-1',
+      });
+
+      await handler.handleCompleted(payloadWith(ALLOWED_URL), 'continuation-1');
+
+      expect(webhooksService.processMediaForIngredient).toHaveBeenCalledWith(
+        'ingredient-1',
+        expect.anything(),
+        ALLOWED_URL,
+        'pred_123',
+      );
+      expect(webhooksService.processMediaFromWebhook).not.toHaveBeenCalled();
     });
 
     it('refuses to fetch an output URL on a foreign host', async () => {

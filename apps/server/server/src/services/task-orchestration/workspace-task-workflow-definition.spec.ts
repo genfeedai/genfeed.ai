@@ -1,5 +1,5 @@
 import {
-  buildWorkspaceAgentRunWorkflowDefinition,
+  buildWorkspaceAgentExecutionWorkflowDefinition,
   buildWorkspaceAgentTaskWorkflowDefinition,
   buildWorkspaceFacecamTaskWorkflowDefinition,
   buildWorkspaceTaskWorkflowDefinition,
@@ -26,29 +26,25 @@ describe('workspace task workflow definitions', () => {
     ]);
   });
 
-  it('fans decomposed subtasks through the durable agent-run child graph', () => {
+  it('fans decomposed subtasks through child workflow executions', () => {
     const definition = buildWorkspaceAgentTaskWorkflowDefinition();
     const fanOut = definition.definition.nodes.find(
-      (node) => node.id === 'execute-agent-runs',
+      (node) => node.id === 'execute-agent-executions',
     );
 
     expect(fanOut?.data.config.parameters).toMatchObject({
-      childWorkflowId: WORKSPACE_TASK_WORKFLOW_IDS.AGENT_RUN,
+      childWorkflowId: WORKSPACE_TASK_WORKFLOW_IDS.AGENT_EXECUTION,
       maxConcurrency: 1,
       mode: 'await',
     });
   });
 
-  it('makes create, enqueue, and task-event recording separate agent-run actions', () => {
-    const definition = buildWorkspaceAgentRunWorkflowDefinition();
+  it('enqueues each subtask through one workflow execution action', () => {
+    const definition = buildWorkspaceAgentExecutionWorkflowDefinition();
 
     expect(
       definition.definition.nodes.map((node) => node.data.config.actionId),
-    ).toEqual([
-      WORKSPACE_TASK_ACTION_IDS.AGENT_RUN_CREATE,
-      WORKSPACE_TASK_ACTION_IDS.AGENT_RUN_ENQUEUE,
-      WORKSPACE_TASK_ACTION_IDS.AGENT_RECORD_RUN,
-    ]);
+    ).toEqual([WORKSPACE_TASK_ACTION_IDS.AGENT_ENQUEUE_EXECUTION]);
   });
 
   it('makes every facecam state transition an explicit action', () => {
@@ -60,9 +56,15 @@ describe('workspace task workflow definitions', () => {
       WORKSPACE_TASK_ACTION_IDS.FACECAM_PREPARE,
       WORKSPACE_TASK_ACTION_IDS.FACECAM_RECORD_START,
       WORKSPACE_TASK_ACTION_IDS.FACECAM_GENERATE,
-      WORKSPACE_TASK_ACTION_IDS.FACECAM_ATTACH_OUTPUT,
-      WORKSPACE_TASK_ACTION_IDS.FACECAM_RECORD_DISPATCH,
-      WORKSPACE_TASK_ACTION_IDS.FACECAM_SCHEDULE_POLL,
+      WORKSPACE_TASK_ACTION_IDS.FACECAM_FINALIZE,
+      WORKSPACE_TASK_ACTION_IDS.FACECAM_FINALIZE_FAILURE,
     ]);
+    expect(definition.definition.edges).toContainEqual(
+      expect.objectContaining({
+        source: 'generate-facecam',
+        sourceHandle: 'failure',
+        target: 'finalize-facecam-failure',
+      }),
+    );
   });
 });

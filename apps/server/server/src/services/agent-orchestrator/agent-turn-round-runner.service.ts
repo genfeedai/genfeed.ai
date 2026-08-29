@@ -1,4 +1,13 @@
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
+import { ActivitySource, type RouterPriority } from '@genfeedai/enums';
+import {
+  type AgentDashboardOperation,
+  AgentToolName,
+  type AgentToolResult,
+  type AgentUIBlock,
+  type AgentUiAction,
+} from '@genfeedai/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { AGENT_CREDIT_COSTS } from '@server/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import type {
@@ -17,25 +26,12 @@ import {
   inferPrepareGenerationType,
   normalizeRequestedAgentToolName,
 } from '@server/services/agent-orchestrator/utils/agent-generation-prepare-redirect.util';
-import {
-  buildResolvedModelMetadata,
-  normalizeResponseModel,
-} from '@server/services/agent-orchestrator/utils/agent-response-model.util';
+import { normalizeResponseModel } from '@server/services/agent-orchestrator/utils/agent-response-model.util';
 import { normalizeUiBlocks } from '@server/services/agent-orchestrator/utils/agent-ui-blocks.util';
 import type {
   OpenRouterMessage,
   OpenRouterToolCallResponse,
 } from '@server/services/integrations/openrouter/dto/openrouter.dto';
-import { ActivitySource, type RouterPriority } from '@genfeedai/enums';
-import {
-  type AgentDashboardOperation,
-  AgentToolName,
-  type AgentToolResult,
-  type AgentUIBlock,
-  type AgentUiAction,
-} from '@genfeedai/interfaces';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 const RESULT_SUMMARY_MAX_LENGTH = 500;
 
@@ -185,7 +181,6 @@ export class AgentTurnRoundRunnerService {
     private readonly loggerService: LoggerService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly toolExecutorService: AgentToolExecutorService,
-    private readonly agentRunsService: AgentRunsService,
   ) {}
 
   /**
@@ -197,7 +192,7 @@ export class AgentTurnRoundRunnerService {
     context: AgentChatContext;
     requestedModel: string;
     responseModel?: string;
-    runId?: string;
+    executionId?: string;
     source?: AgentChatRequest['source'];
     threadId: string;
   }): Promise<string> {
@@ -210,22 +205,11 @@ export class AgentTurnRoundRunnerService {
       actualModel,
       organizationId: params.context.organizationId,
       requestedModel: params.requestedModel,
-      runId: params.runId,
+      executionId: params.executionId,
       source: params.source ?? 'agent',
       threadId: params.threadId,
       userId: params.context.userId,
     });
-
-    if (params.runId) {
-      await this.agentRunsService.mergeMetadata(
-        params.runId,
-        params.context.organizationId,
-        buildResolvedModelMetadata(params.requestedModel, [
-          ...(params.actualModels ?? []),
-          actualModel,
-        ]),
-      );
-    }
 
     return actualModel;
   }
@@ -521,7 +505,7 @@ export class AgentTurnRoundRunnerService {
           platform: policy.platform,
           qualityTier: policy.qualityTier,
           reviewModelOverride: policy.reviewModelOverride,
-          runId: context.runId,
+          runId: context.executionId,
           strategyId: context.strategyId,
           thinkingModel,
           threadId,

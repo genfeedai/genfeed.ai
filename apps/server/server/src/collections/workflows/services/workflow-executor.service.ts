@@ -42,6 +42,7 @@ import type {
 } from '@server/collections/workflows/services/workflow-executor.types';
 import { WorkflowExecutorDocumentService } from '@server/collections/workflows/services/workflow-executor-document.service';
 import { WorkflowNodeClaimService } from '@server/collections/workflows/services/workflow-node-claim.service';
+import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeGraphRunnerService } from '@server/collections/workflows/services/workflow-node-graph-runner.service';
 import { WorkflowNodeProgressTrackerService } from '@server/collections/workflows/services/workflow-node-progress-tracker.service';
 import { WorkflowReviewGateService } from '@server/collections/workflows/services/workflow-review-gate.service';
@@ -94,6 +95,8 @@ export class WorkflowExecutorService {
     private readonly nodeClaimService?: WorkflowNodeClaimService,
     @Optional()
     private readonly artifactLifecycleService?: WorkflowArtifactLifecycleService,
+    @Optional()
+    private readonly nodeContinuationService?: WorkflowNodeContinuationService,
   ) {
     this.documentService = new WorkflowExecutorDocumentService(this.prisma);
     this.graphService = new WorkflowExecutionGraphService();
@@ -146,6 +149,7 @@ export class WorkflowExecutorService {
       this.reviewGateService,
       this.executionsService,
       durableClaims,
+      this.nodeContinuationService,
     );
   }
 
@@ -308,6 +312,37 @@ export class WorkflowExecutorService {
       },
       executionId,
     );
+  }
+
+  async continueProviderCallbackExecution(input: {
+    executionId: string;
+    organizationId: string;
+    workflowVersionId: string;
+  }): Promise<WorkflowExecutionResult> {
+    const execution = await this.executionsService.findOne({
+      id: input.executionId,
+      isDeleted: false,
+      organizationId: input.organizationId,
+    });
+    if (!execution || execution.workflowVersionId !== input.workflowVersionId) {
+      throw new Error(
+        `Provider continuation execution ${input.executionId} does not match its immutable workflow version`,
+      );
+    }
+
+    return this.continueExistingExecution(input.executionId, {
+      data: execution.inputValues ?? {},
+      organizationId: input.organizationId,
+      platform:
+        typeof execution.metadata?.platform === 'string'
+          ? execution.metadata.platform
+          : 'provider-callback',
+      type:
+        typeof execution.metadata?.triggerType === 'string'
+          ? execution.metadata.triggerType
+          : 'manual',
+      userId: execution.userId,
+    });
   }
 
   async executeTriggeredWorkflow(

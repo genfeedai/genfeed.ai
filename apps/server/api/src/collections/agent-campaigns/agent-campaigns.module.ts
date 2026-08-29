@@ -4,21 +4,19 @@
  * Groups agent strategies under a shared campaign with budget and quota controls.
  */
 import { AgentCampaignsController } from '@api/collections/agent-campaigns/controllers/agent-campaigns.controller';
-import { AgentCampaignExecutionService } from '@server/collections/agent-campaigns/services/agent-campaign-execution.service';
-import { AgentCampaignsService } from '@server/collections/agent-campaigns/services/agent-campaigns.service';
-import { AgentRunsCoreModule } from '@api/collections/agent-runs/agent-runs-core.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentRuntimeModule } from '@api/services/agent-runtime/agent-runtime.module';
 import { Module } from '@nestjs/common';
+import { AgentCampaignExecutionService } from '@server/collections/agent-campaigns/services/agent-campaign-execution.service';
+import { AgentCampaignsService } from '@server/collections/agent-campaigns/services/agent-campaigns.service';
 
 @Module({
   controllers: [AgentCampaignsController],
   exports: [AgentCampaignsService, AgentCampaignExecutionService],
   imports: [
     AgentStrategiesModule,
-    AgentRunsCoreModule,
     QueuesModule,
     UsersModule,
     AgentRuntimeModule,

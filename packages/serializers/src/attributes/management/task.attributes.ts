@@ -35,7 +35,7 @@ export const managementTaskAttributes = createEntityAttributes([
   'linkedIssueId',
   'voiceId',
   'voiceProvider',
-  'linkedRunIds',
+  'linkedExecutionIds',
   'linkedOutputIds',
   'approvedOutputIds',
   'linkedApprovalIds',

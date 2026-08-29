@@ -1,6 +1,7 @@
 import type { ToolRequiredRole } from './tool-definition.interface.js';
 
 export type ActionApprovalPolicy = 'none' | 'required';
+export type ActionCompletionMode = 'provider-callback' | 'synchronous';
 export type ActionIdempotencyPolicy = 'none' | 'run-node';
 export type ActionVisibility = 'internal' | 'public' | 'tool' | 'workflow';
 export type ActionJsonSchema = object;
@@ -12,6 +13,7 @@ export type ActionCreditPolicy =
 export interface GenfeedActionDefinition {
   approval: ActionApprovalPolicy;
   authorization: ToolRequiredRole | 'public' | 'system';
+  completionMode: ActionCompletionMode;
   credits: ActionCreditPolicy;
   description: string;
   id: string;

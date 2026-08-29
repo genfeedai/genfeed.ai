@@ -4,7 +4,6 @@ import { AuthDesktopController } from '@api/auth/controllers/auth-desktop.contro
 import { AuthWhoamiController } from '@api/auth/controllers/auth-whoami.controller';
 import { AuthBootstrapService } from '@api/auth/services/auth-bootstrap.service';
 import { AuthDesktopService } from '@api/auth/services/auth-desktop.service';
-import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
@@ -32,7 +31,6 @@ import { PassportModule } from '@nestjs/passport';
   exports: [PassportModule],
   imports: [
     PassportModule,
-    AgentRunsModule,
     ApiKeysModule,
     BatchGenerationModule,
     BetterAuthModule,

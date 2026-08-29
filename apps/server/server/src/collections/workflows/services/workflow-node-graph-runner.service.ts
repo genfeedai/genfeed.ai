@@ -1,3 +1,4 @@
+import { getActionDefinition } from '@genfeedai/actions';
 import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import type {
   ExecutableEdge,
@@ -6,7 +7,10 @@ import type {
   ExecutionRunResult,
   NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
-import { planPartialExecution } from '@genfeedai/workflows/engine';
+import {
+  getExecutableNodeOperationId,
+  planPartialExecution,
+} from '@genfeedai/workflows/engine';
 import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionGraphService } from '@server/collections/workflows/services/workflow-execution-graph.service';
@@ -17,6 +21,7 @@ import type {
   TriggerEvent,
 } from '@server/collections/workflows/services/workflow-executor.types';
 import { WorkflowNodeClaimService } from '@server/collections/workflows/services/workflow-node-claim.service';
+import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeProgressTrackerService } from '@server/collections/workflows/services/workflow-node-progress-tracker.service';
 import { WorkflowReviewGateService } from '@server/collections/workflows/services/workflow-review-gate.service';
 import {
@@ -48,6 +53,7 @@ export class WorkflowNodeGraphRunnerService {
     private readonly reviewGateService: WorkflowReviewGateService,
     private readonly executionsService?: WorkflowExecutionsService,
     private readonly nodeClaimService?: WorkflowNodeClaimService,
+    private readonly nodeContinuationService?: WorkflowNodeContinuationService,
   ) {}
 
   async executeNodeGraph(
@@ -118,7 +124,7 @@ export class WorkflowNodeGraphRunnerService {
       });
     }
 
-    await this.hydrateCompletedNodesFromExecution(
+    totalCreditsUsed += await this.hydrateCompletedNodesFromExecution(
       executionId,
       nodeCache,
       nodeResults,
@@ -143,6 +149,19 @@ export class WorkflowNodeGraphRunnerService {
           completedNodes,
         );
       }
+    }
+    for (const [failedNodeId, failedResult] of nodeResults) {
+      if (failedResult.status !== 'failed') {
+        continue;
+      }
+      this.resolveFailedNode({
+        completedNodes,
+        edges: workflow.edges,
+        error: failedResult.error ?? `Node ${failedNodeId} failed`,
+        nodeCache,
+        nodeId: failedNodeId,
+        skippedNodes,
+      });
     }
 
     await this.nodeProgressTracker.injectTriggerNode({
@@ -276,6 +295,28 @@ export class WorkflowNodeGraphRunnerService {
         });
         if (durable.action === 'skip') {
           if (durable.status === 'running') {
+            const actionId = getExecutableNodeOperationId(node);
+            const ownsSuspension =
+              getActionDefinition(actionId)?.completionMode ===
+                'provider-callback' &&
+              this.nodeContinuationService &&
+              (await this.nodeContinuationService.ownsSuspendedNode({
+                actionId,
+                executionId,
+                nodeId,
+                organizationId: workflow.organizationId,
+                workflowVersionId: workflow.versionId,
+              }));
+            if (ownsSuspension) {
+              return {
+                nodeResults,
+                runId: executionId,
+                startedAt,
+                status: 'running',
+                totalCreditsUsed,
+                workflowId: workflow.id,
+              };
+            }
             executionError = `Node ${nodeId} is already running (durable claim busy)`;
             executionStatus = 'failed';
             break;
@@ -371,12 +412,80 @@ export class WorkflowNodeGraphRunnerService {
       });
 
       try {
-        const nodeResult = await this.executeSingleNode(
+        let nodeResult = await this.executeSingleNode(
           node,
           inputs,
           workflow,
           executionId,
         );
+
+        const actionId = getExecutableNodeOperationId(node);
+        const action = getActionDefinition(actionId);
+        let inlineContinuationId: string | undefined;
+        if (action?.completionMode === 'provider-callback') {
+          if (nodeResult.status !== 'running') {
+            throw new Error(
+              `Provider-callback action ${actionId} returned without suspending`,
+            );
+          }
+          if (!this.nodeContinuationService) {
+            throw new Error(
+              `Provider-callback action ${actionId} has no continuation service`,
+            );
+          }
+          const attached =
+            await this.nodeContinuationService.attachInitialOutput({
+              actionId,
+              creditsUsed: nodeResult.creditsUsed,
+              executionId,
+              initialOutput: nodeResult.output,
+              nodeId,
+              organizationId: workflow.organizationId,
+              workflowVersionId: workflow.versionId,
+            });
+          if (attached.kind === 'waiting') {
+            nodeResults.set(nodeId, nodeResult);
+            totalCreditsUsed += nodeResult.creditsUsed;
+            await this.progressService.trackNodeResult(
+              executionId,
+              nodeId,
+              actionId,
+              {
+                output: nodeResult.output as Record<string, unknown>,
+                startedAt: nodeResult.startedAt,
+                status: WorkflowExecutionStatus.RUNNING,
+              },
+            );
+            return {
+              nodeResults,
+              runId: executionId,
+              startedAt,
+              status: 'running',
+              totalCreditsUsed,
+              workflowId: workflow.id,
+            };
+          }
+
+          inlineContinuationId = attached.continuationId;
+          nodeResult = attached.succeeded
+            ? {
+                ...nodeResult,
+                completedAt: new Date(),
+                output: attached.finalOutput,
+                status: 'completed',
+              }
+            : {
+                ...nodeResult,
+                completedAt: new Date(),
+                error: attached.error ?? 'Provider generation failed',
+                output: attached.finalOutput,
+                status: 'failed',
+              };
+        } else if (nodeResult.status === 'running') {
+          throw new Error(
+            `Synchronous action ${actionId} returned a suspended node result`,
+          );
+        }
 
         completeNodeClaim(this.nodeClaims, claim.key, {
           error: nodeResult.error,
@@ -391,6 +500,13 @@ export class WorkflowNodeGraphRunnerService {
             organizationId: workflow.organizationId,
             output: nodeResult.output,
             status: nodeResult.status === 'failed' ? 'failed' : 'completed',
+          });
+        }
+        if (inlineContinuationId && this.nodeContinuationService) {
+          await this.nodeContinuationService.markSettlementFinished({
+            continuationId: inlineContinuationId,
+            organizationId: workflow.organizationId,
+            succeeded: nodeResult.status === 'completed',
           });
         }
 
@@ -623,9 +739,9 @@ export class WorkflowNodeGraphRunnerService {
     nodeCache: Map<string, unknown>,
     nodeResults: Map<string, NodeExecutionResult>,
     completedNodes: Set<string>,
-  ): Promise<void> {
+  ): Promise<number> {
     if (!this.executionsService) {
-      return;
+      return 0;
     }
 
     try {
@@ -633,7 +749,7 @@ export class WorkflowNodeGraphRunnerService {
         id: executionId,
       });
       if (!execution) {
-        return;
+        return 0;
       }
 
       const rawResult =
@@ -642,9 +758,16 @@ export class WorkflowNodeGraphRunnerService {
         !Array.isArray(execution.result)
           ? (execution.result as Record<string, unknown>)
           : {};
-      const prior = Array.isArray(rawResult.nodeResults)
-        ? rawResult.nodeResults
+      const relationResults = Array.isArray(execution.nodeResults)
+        ? execution.nodeResults
         : [];
+      const prior =
+        relationResults.length > 0
+          ? relationResults
+          : Array.isArray(rawResult.nodeResults)
+            ? rawResult.nodeResults
+            : [];
+      let hydratedCredits = 0;
 
       for (const entry of prior) {
         if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
@@ -656,33 +779,43 @@ export class WorkflowNodeGraphRunnerService {
         if (!nodeId) {
           continue;
         }
-        if (
-          status !== WorkflowExecutionStatus.COMPLETED &&
-          status !== 'completed'
-        ) {
+        const isCompleted =
+          status === WorkflowExecutionStatus.COMPLETED ||
+          status === 'completed';
+        const isFailed =
+          status === WorkflowExecutionStatus.FAILED || status === 'failed';
+        if (!isCompleted && !isFailed) {
           continue;
         }
 
         const output = row.output;
-        completedNodes.add(nodeId);
-        if (output !== undefined && !nodeCache.has(nodeId)) {
+        if (isCompleted) {
+          completedNodes.add(nodeId);
+        }
+        if (isCompleted && output !== undefined && !nodeCache.has(nodeId)) {
           nodeCache.set(nodeId, output);
         }
         if (!nodeResults.has(nodeId)) {
+          const creditsUsed =
+            typeof row.creditsUsed === 'number' ? row.creditsUsed : 0;
+          hydratedCredits += creditsUsed;
           nodeResults.set(nodeId, {
             completedAt: new Date(),
-            creditsUsed: 0,
+            creditsUsed,
             nodeId,
             output,
             retryCount: 0,
             startedAt: new Date(),
-            status: 'completed',
+            ...(typeof row.error === 'string' ? { error: row.error } : {}),
+            status: isFailed ? 'failed' : 'completed',
           });
         }
       }
+      return hydratedCredits;
     } catch {
       // Hydration is best-effort — missing prior progress falls through to a
       // normal run rather than blocking the workflow.
+      return 0;
     }
   }
 

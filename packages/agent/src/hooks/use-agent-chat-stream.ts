@@ -599,7 +599,7 @@ export function useAgentChatStream(
         streamRuntime.pendingCompletionRef.current = {
           initiatedAt: Date.now(),
           preAssistantIds,
-          runId: response.runId,
+          runId: response.executionId,
           startedAt: acceptedAt,
           threadId: response.threadId,
         };
@@ -617,7 +617,7 @@ export function useAgentChatStream(
         );
         scheduleCompletionWatchdog();
         flushBufferedEvents(response.threadId);
-        setActiveRun(response.runId, {
+        setActiveRun(response.executionId, {
           startedAt: acceptedAt,
           status: 'running',
         });

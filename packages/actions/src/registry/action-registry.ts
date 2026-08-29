@@ -4,17 +4,21 @@ import type {
   GenfeedActionDefinition,
   GenfeedActionNodeDefinition,
 } from '../interfaces/action-definition.interface.js';
-import type {
-  CanonicalToolDefinition,
-  ToolParameterSchema,
-} from '../interfaces/tool-definition.interface.js';
+import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface.js';
+import { getExplicitActionContract } from './contracts/explicit-action-contracts.js';
+import { closeObjectSchemas } from './contracts/schema-builders.js';
+import { TOOL_ACTION_OUTPUT_SCHEMA } from './contracts/tool-action-contract.js';
 import { ALL_TOOLS } from './tool-registry.js';
 
-const OBJECT_SCHEMA: ToolParameterSchema = {
-  properties: {},
-  type: 'object',
-};
-const ANY_SCHEMA = {};
+const PROVIDER_CALLBACK_ACTION_IDS = new Set([
+  'aiAvatarVideo',
+  'imageGen',
+  'lipSync',
+  'reframe',
+  'upscale',
+  'videoGen',
+  'workspace.task.facecam.generate',
+]);
 
 function internalAction(
   id: string,
@@ -27,16 +31,20 @@ function internalAction(
     >
   > = {},
 ): GenfeedActionDefinition {
+  const contract = getExplicitActionContract(id);
   return {
     approval: 'none',
     authorization: options.authorization ?? 'system',
+    completionMode: PROVIDER_CALLBACK_ACTION_IDS.has(id)
+      ? 'provider-callback'
+      : 'synchronous',
     credits: options.credits ?? { amount: 0, mode: 'fixed' },
     description,
     id,
     idempotency: options.idempotency ?? 'run-node',
-    inputSchema: OBJECT_SCHEMA,
+    inputSchema: contract.inputSchema,
     label,
-    outputSchema: ANY_SCHEMA,
+    outputSchema: contract.outputSchema,
     visibility: options.visibility ?? 'internal',
   };
 }
@@ -45,16 +53,17 @@ function toolAction(tool: CanonicalToolDefinition): GenfeedActionDefinition {
   return {
     approval: tool.requiresConfirmation ? 'required' : 'none',
     authorization: tool.requiredRole,
+    completionMode: 'synchronous',
     credits: { amount: tool.creditCost, mode: 'fixed' },
     description: tool.description,
     id: tool.name,
     idempotency: 'run-node',
-    inputSchema: tool.parameters,
+    inputSchema: closeObjectSchemas(tool.parameters),
     label: tool.name
       .split('_')
       .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
       .join(' '),
-    outputSchema: ANY_SCHEMA,
+    outputSchema: TOOL_ACTION_OUTPUT_SCHEMA,
     visibility: 'tool',
   };
 }
@@ -83,16 +92,6 @@ const WORKFLOW_ACTIONS = [
     'Applies cinematic color grading to media.',
   ],
   ['colorGrade', 'Apply Color Grade', 'Applies color grading to media.'],
-  [
-    'contentEngineProduction',
-    'Produce Content Engine Output',
-    'Runs one content-engine production operation.',
-  ],
-  [
-    'contentPipelineAutopilot',
-    'Run Content Pipeline Autopilot',
-    'Runs one content-pipeline autopilot operation.',
-  ],
   ['effect-captions', 'Add Captions', 'Burns captions into one video.'],
   [
     'effect-ken-burns',
@@ -112,11 +111,6 @@ const WORKFLOW_ACTIONS = [
   ['effect-text-overlay', 'Add Text Overlay', 'Adds a text overlay to media.'],
   ['effect-watermark', 'Add Watermark', 'Adds a watermark to media.'],
   ['filmGrain', 'Apply Film Grain', 'Applies film grain to media.'],
-  [
-    'harnessWinnerPromotionSweep',
-    'Promote Harness Winners',
-    'Promotes bounded content-performance winners.',
-  ],
   ['hookGenerator', 'Generate Hook', 'Generates one content hook.'],
   ['imageGen', 'Generate Image', 'Generates one image from workflow inputs.'],
   ['input-template', 'Load Prompt Template', 'Loads one prompt template.'],
@@ -127,11 +121,6 @@ const WORKFLOW_ACTIONS = [
   ],
   ['lensEffects', 'Apply Lens Effects', 'Applies selected lens effects.'],
   ['lipSync', 'Generate Lip Sync', 'Generates one lip-synced media output.'],
-  [
-    'livestreamBotSessionProcessing',
-    'Process Livestream Bot Session',
-    'Processes one livestream bot session.',
-  ],
   ['llm', 'Generate Text', 'Runs one language-model text generation.'],
   [
     'musicSource',
@@ -142,11 +131,6 @@ const WORKFLOW_ACTIONS = [
     'newsletterGen',
     'Generate Newsletter Draft',
     'Generates one newsletter draft.',
-  ],
-  [
-    'outreachCampaignDispatch',
-    'Dispatch Outreach Campaign',
-    'Dispatches one bounded outreach campaign operation.',
   ],
   [
     'output-export',
@@ -169,11 +153,6 @@ const WORKFLOW_ACTIONS = [
     'Sends workflow output to a webhook.',
   ],
   [
-    'paidCreativeResearchIngestion',
-    'Ingest Paid Creative Research',
-    'Ingests one paid-creative research batch.',
-  ],
-  [
     'postGen',
     'Generate Post Draft',
     'Generates and persists one social post draft.',
@@ -184,11 +163,6 @@ const WORKFLOW_ACTIONS = [
     'Constructs one prompt from workflow inputs.',
   ],
   ['postReply', 'Post Social Reply', 'Posts one social reply.'],
-  [
-    'proactiveAgentStrategies',
-    'Run Proactive Agent Strategies',
-    'Runs one proactive agent strategy operation.',
-  ],
   ['process-compress', 'Compress Video', 'Compresses one video.'],
   ['process-extract-audio', 'Extract Audio', 'Extracts audio from one video.'],
   ['process-merge-videos', 'Merge Videos', 'Merges workflow videos.'],
@@ -204,19 +178,9 @@ const WORKFLOW_ACTIONS = [
   ],
   ['reframe', 'Reframe Media', 'Reframes workflow media.'],
   [
-    'replyBotPolling',
-    'Poll Reply Bot',
-    'Runs one reply-bot polling operation.',
-  ],
-  [
     'reportDelivery',
     'Deliver Workflow Report',
     'Delivers one workflow report.',
-  ],
-  [
-    'restreamChatIngest',
-    'Ingest Restream Chat',
-    'Ingests one Restream chat batch.',
   ],
   ['sendDm', 'Send Direct Message', 'Sends one social direct message.'],
   ['sendEmail', 'Send Email', 'Sends one email.'],
@@ -226,11 +190,6 @@ const WORKFLOW_ACTIONS = [
     'socialRead',
     'Read Social Content',
     'Reads social content for workflow context.',
-  ],
-  [
-    'socialTriggerPolling',
-    'Poll Social Triggers',
-    'Polls social trigger state.',
   ],
   ['soundOverlay', 'Overlay Sound', 'Overlays sound on one video.'],
   [
@@ -254,11 +213,6 @@ const WORKFLOW_ACTIONS = [
     'trendSoundInspiration',
     'Find Sound Inspiration',
     'Finds trend sound inspiration.',
-  ],
-  [
-    'trendSummaryNotifications',
-    'Send Trend Notifications',
-    'Sends trend-summary notifications.',
   ],
   [
     'trendTrigger',
@@ -324,6 +278,84 @@ const WORKFLOW_ACTION_DEFINITIONS = WORKFLOW_ACTIONS.map(
       },
       visibility: 'workflow',
     }),
+);
+
+const AUTOMATION_ACTION_IDS = [
+  'agent.autopilot.begin',
+  'agent.autopilot.discover',
+  'agent.autopilot.discover-credit-resets',
+  'agent.autopilot.dispatch-strategy',
+  'agent.autopilot.fail',
+  'agent.autopilot.finalize',
+  'agent.autopilot.reset-credit-window',
+  'content.production.engine.begin',
+  'content.production.engine.discover-brands',
+  'content.production.engine.execute-plan-item',
+  'content.production.engine.fail',
+  'content.production.engine.finalize-plan',
+  'content.production.engine.finalize',
+  'content.production.engine.plan-brand',
+  'content.production.engine.prepare-plan',
+  'content.production.autopilot.begin',
+  'content.production.autopilot.discover-personas',
+  'content.production.autopilot.fail',
+  'content.production.autopilot.finalize',
+  'content.production.autopilot.prepare-persona',
+  'content.production.autopilot.schedule-persona',
+  'harness.winners.begin',
+  'harness.winners.discover-brands',
+  'harness.winners.fail',
+  'harness.winners.finalize-brand',
+  'harness.winners.finalize',
+  'harness.winners.prepare-brand',
+  'harness.winners.promote-item',
+  'livestream.sessions.begin',
+  'livestream.sessions.discover',
+  'livestream.sessions.fail',
+  'livestream.sessions.finalize',
+  'livestream.sessions.deliver-target',
+  'livestream.sessions.discover-targets',
+  'livestream.sessions.finalize-one',
+  'livestream.sessions.load-one',
+  'livestream.sessions.sync-restream',
+  'livestream.restream.finalize',
+  'livestream.restream.load-bot',
+  'livestream.restream.sync-chat',
+  'paid-creative.research.discover-advertisers',
+  'paid-creative.research.finalize',
+  'paid-creative.research.ingest-advertiser',
+  'paid-creative.research.prepare',
+  'reply.polling.bots.begin',
+  'reply.polling.bots.discover-targets',
+  'reply.polling.bots.fail',
+  'reply.polling.bots.finalize',
+  'reply.polling.bots.finalize-target',
+  'reply.polling.bots.prepare-target',
+  'reply.polling.social.begin',
+  'reply.polling.social.discover-workflows',
+  'reply.polling.social.fail',
+  'reply.polling.social.finalize',
+  'reply.polling.social.process-trigger',
+  'trends.notifications.deliver-email',
+  'trends.notifications.deliver-in-app',
+  'trends.notifications.deliver-telegram',
+  'trends.notifications.finalize',
+  'trends.notifications.prepare',
+  'trends.notifications.read-hashtags',
+  'trends.notifications.read-sounds',
+  'trends.notifications.read-videos',
+  'trends.notifications.render',
+] as const;
+
+const AUTOMATION_ACTION_DEFINITIONS = AUTOMATION_ACTION_IDS.map((id) =>
+  internalAction(
+    id,
+    id
+      .split(/[.-]/)
+      .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+      .join(' '),
+    `Executes the atomic ${id} workflow operation.`,
+  ),
 );
 
 const SYSTEM_MAINTENANCE_ACTIONS = [
@@ -687,8 +719,54 @@ const BRAND_REMIX_ACTION_DEFINITIONS = BRAND_REMIX_ACTIONS.map(
 
 const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
   ...WORKFLOW_ACTION_DEFINITIONS,
+  ...AUTOMATION_ACTION_DEFINITIONS,
   ...SYSTEM_MAINTENANCE_ACTION_DEFINITIONS,
   ...BRAND_REMIX_ACTION_DEFINITIONS,
+  internalAction(
+    'admin.announcement.persist',
+    'Persist Announcement',
+    'Persists one announcement after its workflow-backed delivery attempts.',
+  ),
+  internalAction(
+    'admin.announcement.publish-discord',
+    'Publish Announcement to Discord',
+    'Publishes one announcement to its configured Discord channel.',
+  ),
+  internalAction(
+    'admin.announcement.publish-twitter',
+    'Publish Announcement to X',
+    'Publishes one announcement to its configured X account.',
+  ),
+  internalAction(
+    'agent.turn.prepare',
+    'Prepare Agent Turn',
+    'Validates and snapshots one durable bearer-free agent turn state.',
+  ),
+  internalAction(
+    'agent.turn.infer',
+    'Infer Agent Turn',
+    'Produces one final response or a bounded set of workflow-backed tool calls.',
+  ),
+  internalAction(
+    'agent.turn.finalize',
+    'Finalize Agent Turn',
+    'Persists the final assistant message and durable thread projection.',
+  ),
+  internalAction(
+    'agent.turn.fail',
+    'Fail Agent Turn',
+    'Records one safe terminal agent-turn failure.',
+  ),
+  internalAction(
+    'agent.thread.ui-action.execute',
+    'Execute Agent Thread UI Action',
+    'Executes one authorized UI action for an agent thread inside a workflow execution.',
+  ),
+  internalAction(
+    'agent.thread.input-response.execute',
+    'Resume Agent Thread Input Request',
+    'Applies one validated human input response and resumes the paused agent thread operation.',
+  ),
   internalAction(
     'ai-influencer.caption.generate',
     'Generate AI Influencer Caption',
@@ -996,6 +1074,11 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Load Article Generation Context',
     'Loads tenant-scoped context for one article generation workflow.',
     { authorization: 'user' },
+  ),
+  internalAction(
+    'article.generation.persist-draft',
+    'Persist Article Generation Draft',
+    'Persists one reviewed and revised article draft.',
   ),
   internalAction(
     'article.generation.review-draft',
@@ -1321,6 +1404,11 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Generate Freeform Content Intelligence',
     'Generates one freeform content result from prepared tenant context.',
     { authorization: 'user', credits: { mode: 'dynamic' } },
+  ),
+  internalAction(
+    'content-intelligence.generate-linkedin-pattern',
+    'Generate LinkedIn Content Pattern',
+    'Generates one LinkedIn content variation from a selected intelligence pattern.',
   ),
   internalAction(
     'content-intelligence.load-context',
@@ -1652,6 +1740,41 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'twitter.pipeline.publish.send',
     'Send X Publication',
     'Publishes one validated X post through its connected account.',
+  ),
+  internalAction(
+    'skill.content-geo-optimizer.execute',
+    'Execute Content GEO Optimizer Skill',
+    'Executes one workflow-backed content GEO optimization skill operation.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'skill.content-writing.execute',
+    'Execute Content Writing Skill',
+    'Executes one workflow-backed content writing skill operation.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'skill.image-generation.execute',
+    'Execute Image Generation Skill',
+    'Executes one workflow-backed image generation skill operation.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'skill.trend-discovery.execute',
+    'Execute Trend Discovery Skill',
+    'Executes one workflow-backed trend discovery skill operation.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'skill.trend-remix.execute',
+    'Execute Trend Remix Skill',
+    'Executes one workflow-backed trend remix skill operation.',
+    { authorization: 'user' },
+  ),
+  internalAction(
+    'voice.generate.execute',
+    'Generate Voice',
+    'Generates and persists one text-to-speech audio ingredient.',
   ),
   internalAction(
     'youtube.clip.create-session',
@@ -2029,29 +2152,19 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Decomposes one workspace task into bounded agent subtasks.',
   ),
   internalAction(
-    'workspace.task.agent.plan-runs',
-    'Plan Workspace Agent Runs',
-    'Plans one bounded set of child agent runs for a workspace task.',
+    'workspace.task.agent.plan-executions',
+    'Plan Workspace Agent Executions',
+    'Plans one bounded set of child agent workflow executions for a workspace task.',
   ),
   internalAction(
-    'workspace.task.agent.run.create',
-    'Create Workspace Agent Run',
-    'Creates one durable agent run for a workspace task.',
+    'workspace.task.agent.enqueue-execution',
+    'Enqueue Workspace Agent Execution',
+    'Enqueues one agent-turn workflow execution for a workspace task subtask.',
   ),
   internalAction(
-    'workspace.task.agent.run.enqueue',
-    'Enqueue Workspace Agent Run',
-    'Queues one created workspace agent run through the agent-run transport.',
-  ),
-  internalAction(
-    'workspace.task.agent.record-run',
-    'Record Workspace Agent Run',
-    'Records one child agent run on its workspace task.',
-  ),
-  internalAction(
-    'workspace.task.agent.link-runs',
-    'Link Workspace Agent Runs',
-    'Links settled child agent runs to one workspace task.',
+    'workspace.task.agent.link-executions',
+    'Link Workspace Agent Executions',
+    'Links settled child workflow executions to one workspace task.',
   ),
   internalAction(
     'workspace.task.facecam.prepare',
@@ -2069,19 +2182,14 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'Dispatches one workspace facecam generation request.',
   ),
   internalAction(
-    'workspace.task.facecam.attach-output',
-    'Attach Workspace Facecam Output',
-    'Attaches one generated facecam output to its workspace task.',
+    'workspace.task.facecam.finalize',
+    'Finalize Workspace Facecam',
+    'Attaches a continued provider result and records facecam completion atomically.',
   ),
   internalAction(
-    'workspace.task.facecam.record-dispatch',
-    'Record Workspace Facecam Dispatch',
-    'Records provider dispatch metadata for one workspace facecam task.',
-  ),
-  internalAction(
-    'workspace.task.facecam.schedule-poll',
-    'Schedule Workspace Facecam Poll',
-    'Schedules provider reconciliation for one dispatched workspace facecam task.',
+    'workspace.task.facecam.finalize-failure',
+    'Finalize Failed Workspace Facecam',
+    'Records one terminal workspace facecam provider failure.',
   ),
   internalAction(
     'workflow.artifact.cleanup',
@@ -2104,6 +2212,11 @@ const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
     'workflow.for-each',
     'Run Workflow for Each Item',
     'Runs or durably schedules one registered child workflow for each item in a bounded collection.',
+  ),
+  internalAction(
+    'workflow.for-each-dynamic',
+    'Run Dynamically Selected Workflows',
+    'Runs action-selected, immutable-version child workflows with deterministic parent linkage.',
   ),
   internalAction(
     'workflow.for-each-tenant',

@@ -7,7 +7,6 @@ import {
   Optional,
 } from '@nestjs/common';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
 import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 import { TaskCountersService } from '@server/collections/task-counters/services/task-counters.service';
@@ -15,6 +14,7 @@ import { CreateTaskDto } from '@server/collections/tasks/dto/create-task.dto';
 import { type TaskDocument } from '@server/collections/tasks/schemas/task.schema';
 import type { TasksService } from '@server/collections/tasks/services/tasks.service';
 import { TASKS_SERVICE } from '@server/collections/tasks/tasks.tokens';
+import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
 import { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
 import { WorkspaceTaskWorkflowQueueService } from '@server/services/task-orchestration/workspace-task-workflow-queue.service';
 
@@ -45,7 +45,7 @@ export class TaskPlanningService {
     private readonly tasksService: TasksService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentMessagesService: AgentMessagesService,
-    private readonly agentRunsService: AgentRunsService,
+    private readonly workflowExecutionsService: WorkflowExecutionsService,
     private readonly taskCountersService: TaskCountersService,
     private readonly organizationsService: OrganizationsService,
     private readonly agentOrchestratorService: AgentOrchestratorService,
@@ -272,7 +272,10 @@ export class TaskPlanningService {
     task: TaskDocument,
     organizationId: string,
   ): Promise<string> {
-    const linkedRuns = await this.buildLinkedRunSummaries(task, organizationId);
+    const linkedExecutions = await this.buildLinkedExecutionSummaries(
+      task,
+      organizationId,
+    );
     const taskId = (task as Record<string, unknown>).id as string;
     const bundle = {
       decomposition: task.decomposition ?? null,
@@ -282,8 +285,10 @@ export class TaskPlanningService {
         id.toString(),
       ),
       linkedOutputIds: (task.linkedOutputIds ?? []).map((id) => id.toString()),
-      linkedRunIds: (task.linkedRunIds ?? []).map((id) => id.toString()),
-      linkedRuns,
+      linkedExecutionIds: (task.linkedExecutionIds ?? []).map((id) =>
+        id.toString(),
+      ),
+      linkedExecutions,
       outputType: task.outputType,
       platforms: task.platforms,
       priority: task.priority,
@@ -314,7 +319,7 @@ export class TaskPlanningService {
     ].join('\n');
   }
 
-  private async buildLinkedRunSummaries(
+  private async buildLinkedExecutionSummaries(
     task: TaskDocument,
     organizationId: string,
   ): Promise<
@@ -329,7 +334,7 @@ export class TaskPlanningService {
       threadId?: string;
     }>
   > {
-    const runSummaries: Array<{
+    const executionSummaries: Array<{
       completedAt?: string;
       error?: string;
       id: string;
@@ -340,29 +345,42 @@ export class TaskPlanningService {
       threadId?: string;
     }> = [];
 
-    for (const linkedRunId of task.linkedRunIds ?? []) {
-      const run = await this.agentRunsService.getById(
-        linkedRunId.toString(),
-        organizationId,
+    for (const linkedExecutionId of task.linkedExecutionIds ?? []) {
+      const execution = await this.workflowExecutionsService.findOne(
+        scopedWhere(organizationId, { id: linkedExecutionId.toString() }),
       );
 
-      if (!run) {
+      if (!execution) {
         continue;
       }
 
-      runSummaries.push({
-        completedAt: serializeWorkspaceTaskDate(run.completedAt),
-        error: typeof run.error === 'string' ? run.error : undefined,
-        id: (run as Record<string, unknown>).id as string,
-        label: typeof run.label === 'string' ? run.label : '',
-        startedAt: serializeWorkspaceTaskDate(run.startedAt),
-        status: typeof run.status === 'string' ? run.status : 'unknown',
-        summary: typeof run.summary === 'string' ? run.summary : undefined,
-        threadId: run.thread?.toString(),
+      const metadata = execution.metadata ?? {};
+      const workflow =
+        execution.workflow && typeof execution.workflow === 'object'
+          ? (execution.workflow as Record<string, unknown>)
+          : undefined;
+
+      executionSummaries.push({
+        completedAt: serializeWorkspaceTaskDate(execution.completedAt),
+        error:
+          typeof execution.error === 'string' ? execution.error : undefined,
+        id: execution.id,
+        label:
+          typeof workflow?.label === 'string'
+            ? workflow.label
+            : typeof metadata.label === 'string'
+              ? metadata.label
+              : 'Workflow execution',
+        startedAt: serializeWorkspaceTaskDate(execution.startedAt),
+        status: execution.status,
+        summary:
+          typeof metadata.summary === 'string' ? metadata.summary : undefined,
+        threadId:
+          typeof metadata.threadId === 'string' ? metadata.threadId : undefined,
       });
     }
 
-    return runSummaries;
+    return executionSummaries;
   }
 
   private async getLatestApprovedPlanningMessage(

@@ -1,16 +1,18 @@
-import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import { ClipLibraryLinkService } from '@server/collections/clip-projects/services/clip-library-link.service';
-import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { HeygenWebhookService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.service';
-import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { HeygenWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import { ClipLibraryLinkService } from '@server/collections/clip-projects/services/clip-library-link.service';
+import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
+import { WorkflowNodeContinuationCoordinatorService } from '@server/collections/workflows/services/workflow-node-continuation-coordinator.service';
+import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockDeps() {
@@ -54,7 +56,15 @@ function createMockDeps() {
   };
 
   const webhooksService = {
+    handleFailedGenerationForIngredient: vi.fn().mockResolvedValue(undefined),
     processMediaForIngredient: vi.fn().mockResolvedValue(undefined),
+  };
+  const continuationCoordinator = {
+    completeProviderAction: vi.fn().mockResolvedValue('queued'),
+    failProviderAction: vi.fn().mockResolvedValue('queued'),
+  };
+  const continuations = {
+    findIngredientCallbackTarget: vi.fn().mockResolvedValue(null),
   };
 
   return {
@@ -66,6 +76,8 @@ function createMockDeps() {
     metadataService,
     microservicesService,
     webhooksService,
+    continuationCoordinator,
+    continuations,
   };
 }
 
@@ -93,6 +105,14 @@ describe('HeygenWebhookService', () => {
           useValue: deps.microservicesService,
         },
         { provide: WebhooksService, useValue: deps.webhooksService },
+        {
+          provide: WorkflowNodeContinuationCoordinatorService,
+          useValue: deps.continuationCoordinator,
+        },
+        {
+          provide: WorkflowNodeContinuationService,
+          useValue: deps.continuations,
+        },
       ],
     }).compile();
 

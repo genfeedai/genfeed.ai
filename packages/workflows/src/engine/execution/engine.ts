@@ -319,6 +319,7 @@ export class WorkflowEngine {
     let currentStatus: ExecutionStatus = 'running';
     let lastError: string | undefined;
     let wasAborted = false;
+    let hasSuspendedNode = false;
 
     // Bounded ready-set scheduler. Dispatches nodes in `executionOrder`
     // priority, never running more than `maxConcurrency` at once, and only
@@ -341,7 +342,7 @@ export class WorkflowEngine {
 
     while (inFlight.size > 0 || remaining.length > 0) {
       // Dispatch phase — fill free slots while running and not aborted.
-      if (currentStatus !== 'failed' && !wasAborted) {
+      if (currentStatus !== 'failed' && !wasAborted && !hasSuspendedNode) {
         let index = 0;
         while (index < remaining.length && inFlight.size < maxConcurrency) {
           // Abort is checked before dispatching each node.
@@ -397,7 +398,7 @@ export class WorkflowEngine {
       }
 
       if (inFlight.size === 0) {
-        if (currentStatus === 'failed' || wasAborted) {
+        if (currentStatus === 'failed' || wasAborted || hasSuspendedNode) {
           break;
         }
         if (remaining.length === 0) {
@@ -474,6 +475,17 @@ export class WorkflowEngine {
           timestamp: new Date(),
           workflowId: workflow.id,
         });
+      } else if (result.status === 'running') {
+        hasSuspendedNode = true;
+        this.emitNodeStatusChange(options, {
+          newStatus: 'running',
+          nodeId,
+          output: result.output,
+          previousStatus: 'running',
+          runId,
+          timestamp: new Date(),
+          workflowId: workflow.id,
+        });
       }
     }
 
@@ -482,6 +494,8 @@ export class WorkflowEngine {
     // the already-dispatched work was being drained.
     if (wasAborted) {
       currentStatus = 'cancelled';
+    } else if (hasSuspendedNode) {
+      currentStatus = 'running';
     } else if (currentStatus !== 'failed') {
       // Count only nodes that were in the execution list (not pre-skipped locked nodes)
       const executedOrSkipped = nodesToExecute.every((id) =>
@@ -491,7 +505,7 @@ export class WorkflowEngine {
     }
 
     return {
-      completedAt: new Date(),
+      completedAt: currentStatus === 'running' ? undefined : new Date(),
       error: lastError,
       nodeResults,
       runId,
@@ -563,7 +577,8 @@ export class WorkflowEngine {
   ): Promise<NodeExecutionResult> {
     const startedAt = new Date();
     let retryCount = 0;
-    const maxRetries = options.maxRetries ?? this.config.retryConfig.maxRetries;
+    const configuredMaxRetries =
+      options.maxRetries ?? this.config.retryConfig.maxRetries;
 
     let resolved: ReturnType<WorkflowEngine['resolveNodeExecutor']>;
     try {
@@ -597,6 +612,14 @@ export class WorkflowEngine {
 
     const executionNode = resolved.node;
     const executionType = executionNode.type;
+    // A provider-callback action acquires durable submission ownership before
+    // crossing the provider boundary. Retrying the executor cannot distinguish
+    // "request never left" from "provider accepted, process crashed", so it
+    // must never submit a second external job for the same execution node.
+    const maxRetries =
+      getActionDefinition(executionType)?.completionMode === 'provider-callback'
+        ? 0
+        : configuredMaxRetries;
     const runWithTransportRetry = (
       gatedNode: ExecutableNode,
       gatedInputs: Map<string, unknown>,
@@ -609,7 +632,14 @@ export class WorkflowEngine {
         },
       );
 
-    if (isVideoGenerationNodeType(executionType)) {
+    if (
+      isVideoGenerationNodeType(executionType) &&
+      !(
+        context.executionId &&
+        getActionDefinition(executionType)?.completionMode ===
+          'provider-callback'
+      )
+    ) {
       const gateConfig =
         this.config.videoGenerationGate ?? DEFAULT_VIDEO_GENERATION_GATE_CONFIG;
       const gated = await this.videoGenerationGate.execute({
@@ -633,10 +663,14 @@ export class WorkflowEngine {
       });
 
       if (gated.kind === 'result') {
-        return {
-          ...gated.result,
-          retryCount,
-        };
+        return this.applyActionCompletionMode(
+          executionType,
+          context.executionId,
+          {
+            ...gated.result,
+            retryCount,
+          },
+        );
       }
     }
 
@@ -645,15 +679,19 @@ export class WorkflowEngine {
 
       const creditsUsed = this.config.creditCosts[executionType] ?? 0;
 
-      return {
-        completedAt: new Date(),
-        creditsUsed,
-        nodeId: node.id,
-        output,
-        retryCount,
-        startedAt,
-        status: 'completed',
-      };
+      return this.applyActionCompletionMode(
+        executionType,
+        context.executionId,
+        {
+          completedAt: new Date(),
+          creditsUsed,
+          nodeId: node.id,
+          output,
+          retryCount,
+          startedAt,
+          status: 'completed',
+        },
+      );
     } catch (error) {
       return {
         completedAt: new Date(),
@@ -665,6 +703,27 @@ export class WorkflowEngine {
         status: 'failed',
       };
     }
+  }
+
+  private applyActionCompletionMode(
+    actionId: string,
+    executionId: string | undefined,
+    result: NodeExecutionResult,
+  ): NodeExecutionResult {
+    const action = getActionDefinition(actionId);
+    if (
+      !executionId ||
+      action?.completionMode !== 'provider-callback' ||
+      result.status !== 'completed'
+    ) {
+      return result;
+    }
+
+    return {
+      ...result,
+      completedAt: undefined,
+      status: 'running',
+    };
   }
 
   private gatherInputs(

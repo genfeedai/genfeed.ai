@@ -9,7 +9,6 @@
 
 import { QueueDiagnosticsController } from '@api/queues/core/queue-diagnostics.controller';
 import {
-  AGENT_RUN_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
@@ -27,14 +26,12 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ScheduledPostWorkflowQueueService } from '@server/collections/posts/services/scheduled-post-workflow-queue.service';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
 import { QueueService } from '@server/queues/core/queue.service';
 import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
 import { WorkspaceTaskWorkflowQueueService } from '@server/services/task-orchestration/workspace-task-workflow-queue.service';
 
 @Module({
   exports: [
-    AgentRunQueueService,
     HeygenPollQueueService,
     ScheduledPostWorkflowQueueService,
     QueueService,
@@ -65,15 +62,6 @@ import { WorkspaceTaskWorkflowQueueService } from '@server/services/task-orchest
       },
       {
         defaultJobOptions: {
-          attempts: 3,
-          backoff: { delay: 5000, type: 'exponential' },
-          removeOnComplete: 100,
-          removeOnFail: 50,
-        },
-        name: AGENT_RUN_QUEUE,
-      },
-      {
-        defaultJobOptions: {
           attempts: 1,
           removeOnComplete: 100,
           removeOnFail: 50,
@@ -94,7 +82,6 @@ import { WorkspaceTaskWorkflowQueueService } from '@server/services/task-orchest
   controllers: [QueueDiagnosticsController],
   providers: [
     QueueService,
-    AgentRunQueueService,
     WorkspaceTaskWorkflowQueueService,
     HeygenPollQueueService,
     ScheduledPostWorkflowQueueService,

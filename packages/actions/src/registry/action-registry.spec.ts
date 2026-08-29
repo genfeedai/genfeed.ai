@@ -4,12 +4,201 @@ import {
   createGenfeedActionNode,
   getActionDefinition,
 } from './action-registry.js';
+import { countExplicitActionContracts } from './contracts/explicit-action-contracts.js';
+import {
+  JSON_DOCUMENT_SCHEMA,
+  materializeJsonDocumentSchema,
+} from './contracts/schema-builders.js';
+
+function expectConcreteClosedSchema(
+  schema: unknown,
+  path: string,
+  seen = new Set<object>(),
+): void {
+  expect(schema, `${path} must be a schema object`).toBeTypeOf('object');
+  expect(schema, `${path} must not be null`).not.toBeNull();
+  expect(Array.isArray(schema), `${path} must not be an array`).toBe(false);
+  const record = schema as Record<string, unknown>;
+  if (seen.has(record)) return;
+  seen.add(record);
+  expect(
+    Object.keys(record).length,
+    `${path} must not be empty`,
+  ).toBeGreaterThan(0);
+
+  const type = record.type;
+  if (type === 'object' || (Array.isArray(type) && type.includes('object'))) {
+    expect(
+      record.additionalProperties,
+      `${path} must close additional properties`,
+    ).not.toBe(true);
+    expect(
+      record.additionalProperties,
+      `${path} must declare additional properties behavior`,
+    ).not.toBeUndefined();
+  }
+  if (type === 'array' || (Array.isArray(type) && type.includes('array'))) {
+    expect(record.items, `${path} arrays must declare items`).toBeDefined();
+  }
+
+  for (const keyword of [
+    'additionalProperties',
+    'contains',
+    'else',
+    'if',
+    'items',
+    'not',
+    'then',
+  ]) {
+    const nested = record[keyword];
+    if (nested && typeof nested === 'object') {
+      expectConcreteClosedSchema(nested, `${path}.${keyword}`, seen);
+    }
+  }
+  for (const keyword of ['allOf', 'anyOf', 'oneOf', 'prefixItems']) {
+    const nested = record[keyword];
+    if (Array.isArray(nested)) {
+      nested.forEach((candidate, index) => {
+        expectConcreteClosedSchema(
+          candidate,
+          `${path}.${keyword}[${index}]`,
+          seen,
+        );
+      });
+    }
+  }
+  for (const keyword of ['properties', 'patternProperties', '$defs']) {
+    const nested = record[keyword];
+    if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+      for (const [key, candidate] of Object.entries(nested)) {
+        expectConcreteClosedSchema(
+          candidate,
+          `${path}.${keyword}.${key}`,
+          seen,
+        );
+      }
+    }
+  }
+}
 
 describe('Genfeed action registry', () => {
   it('contains exactly one definition for every action ID', () => {
     const ids = ALL_ACTIONS.map((action) => action.id);
 
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('has no placeholder or open action contracts', () => {
+    for (const action of ALL_ACTIONS) {
+      expectConcreteClosedSchema(
+        action.inputSchema,
+        `${action.id}.inputSchema`,
+      );
+      expectConcreteClosedSchema(
+        action.outputSchema,
+        `${action.id}.outputSchema`,
+      );
+    }
+  });
+
+  it('maps every non-tool catalog action to exactly one explicit contract shard', () => {
+    for (const action of ALL_ACTIONS.filter(
+      (definition) => definition.visibility !== 'tool',
+    )) {
+      expect(countExplicitActionContracts(action.id), action.id).toBe(1);
+    }
+  });
+
+  it('limits dynamic root pass-through contracts to engine control boundaries', () => {
+    const dynamicRootActions = [
+      'workflow.collect-output',
+      'workflow.run-child',
+    ];
+    const recursiveJsonDocument =
+      materializeJsonDocumentSchema(JSON_DOCUMENT_SCHEMA);
+    for (const actionId of dynamicRootActions) {
+      expect(getActionDefinition(actionId)?.outputSchema).toEqual(
+        recursiveJsonDocument,
+      );
+    }
+    expect(
+      ALL_ACTIONS.filter(
+        (action) =>
+          action.visibility !== 'tool' &&
+          JSON.stringify(action.outputSchema) ===
+            JSON.stringify(recursiveJsonDocument),
+      ).map((action) => action.id),
+    ).toEqual(dynamicRootActions);
+  });
+
+  it('publishes exact YouTube long-form and artifact contracts', () => {
+    expect(getActionDefinition('youtube.resolve-source')?.inputSchema).toEqual({
+      additionalProperties: false,
+      properties: {
+        youtubeUrl: { minLength: 1, type: 'string' },
+      },
+      required: ['youtubeUrl'],
+      type: 'object',
+    });
+    expect(
+      getActionDefinition('long-form.transform-text')?.outputSchema,
+    ).toMatchObject({
+      additionalProperties: false,
+      properties: {
+        content: { minLength: 1, type: 'string' },
+        outputType: {
+          enum: ['article', 'linkedin-article', 'newsletter', 'x-article'],
+          type: 'string',
+        },
+        summary: { minLength: 1, type: 'string' },
+        title: { minLength: 1, type: 'string' },
+      },
+      required: [
+        'content',
+        'outputType',
+        'summary',
+        'title',
+        'videoId',
+        'youtubeUrl',
+      ],
+      type: 'object',
+    });
+    expect(
+      getActionDefinition('workflow.artifact.register')?.outputSchema,
+    ).toEqual({
+      additionalProperties: false,
+      properties: {
+        artifactId: { minLength: 1, type: 'string' },
+        expiresAt: { format: 'date-time', type: 'string' },
+        state: { minLength: 1, type: 'string' },
+      },
+      required: ['artifactId', 'expiresAt', 'state'],
+      type: 'object',
+    });
+  });
+
+  it('publishes closed contracts for every decomposed automation action', () => {
+    for (const actionId of [
+      'agent.autopilot.discover',
+      'content.production.engine.execute-plan-item',
+      'content.production.autopilot.prepare-persona',
+      'harness.winners.promote-item',
+      'livestream.sessions.deliver-target',
+      'paid-creative.research.ingest-advertiser',
+      'reply.polling.social.process-trigger',
+      'trends.notifications.render',
+    ]) {
+      const action = getActionDefinition(actionId);
+      expect(action).toBeDefined();
+      expect(action?.inputSchema).toMatchObject({
+        additionalProperties: false,
+        type: 'object',
+      });
+      expect(action?.outputSchema).toMatchObject({
+        additionalProperties: false,
+        type: 'object',
+      });
+    }
   });
 
   it('does not register visual aliases as duplicate actions', () => {
@@ -104,6 +293,95 @@ describe('Genfeed action registry', () => {
     expect(getActionDefinition('clip.continuity.persist-report')).toBeDefined();
   });
 
+  it('publishes exact public YouTube clip session boundaries', () => {
+    expect(
+      getActionDefinition('youtube.clip.create-session')?.inputSchema,
+    ).toMatchObject({
+      additionalProperties: false,
+      properties: {
+        idempotencyKey: { type: 'string' },
+        source: {
+          additionalProperties: false,
+          required: ['title', 'videoId', 'youtubeUrl'],
+          type: 'object',
+        },
+      },
+      required: ['source'],
+      type: 'object',
+    });
+    expect(
+      getActionDefinition('youtube.clip.read-session')?.outputSchema,
+    ).toMatchObject({
+      additionalProperties: false,
+      required: [
+        'expiresAt',
+        'id',
+        'preview',
+        'previewToken',
+        'progress',
+        'recommendations',
+        'status',
+        'transcript',
+      ],
+      type: 'object',
+    });
+    expect(
+      getActionDefinition('clip.analysis.prepare-source')?.inputSchema,
+    ).toMatchObject({
+      additionalProperties: false,
+      required: ['job'],
+      type: 'object',
+    });
+  });
+
+  it('hard-cuts workspace agent tasks to workflow executions', () => {
+    for (const retiredId of [
+      'workspace.task.agent.link-runs',
+      'workspace.task.agent.plan-runs',
+      'workspace.task.agent.record-run',
+      'workspace.task.agent.run.create',
+      'workspace.task.agent.run.enqueue',
+    ]) {
+      expect(getActionDefinition(retiredId)).toBeUndefined();
+    }
+    expect(
+      getActionDefinition('workspace.task.agent.plan-executions')?.outputSchema,
+    ).toMatchObject({
+      additionalProperties: false,
+      required: ['items'],
+      type: 'object',
+    });
+    expect(
+      getActionDefinition('workspace.task.agent.link-executions')?.outputSchema,
+    ).toMatchObject({
+      additionalProperties: false,
+      required: ['executionIds', 'taskId'],
+      type: 'object',
+    });
+  });
+
+  it('owns exact workflow-backed built-in skill boundaries', () => {
+    for (const actionId of [
+      'skill.content-geo-optimizer.execute',
+      'skill.content-writing.execute',
+      'skill.image-generation.execute',
+      'skill.trend-discovery.execute',
+      'skill.trend-remix.execute',
+    ]) {
+      const action = getActionDefinition(actionId);
+      expect(action?.inputSchema).toMatchObject({
+        additionalProperties: false,
+        required: ['context', 'params'],
+        type: 'object',
+      });
+      expect(action?.outputSchema).toMatchObject({
+        additionalProperties: false,
+        required: ['content', 'metadata', 'platforms', 'skillSlug', 'type'],
+        type: 'object',
+      });
+    }
+  });
+
   it('owns atomic recurring-product actions launched by system sweeps', () => {
     expect(
       [
@@ -161,6 +439,41 @@ describe('Genfeed action registry', () => {
     }
   });
 
+  it('pins batch child versions and collects exact failure results', () => {
+    const definition = getActionDefinition('workflow.for-each');
+    const inputSchema = definition?.inputSchema as {
+      properties?: Record<string, unknown>;
+      required?: string[];
+    };
+    const outputSchema = definition?.outputSchema as {
+      properties?: {
+        results?: { items?: { oneOf?: unknown[] } };
+      };
+    };
+
+    expect(inputSchema.required).toContain('childWorkflowId');
+    expect(inputSchema.required).not.toContain('childWorkflowVersionId');
+    expect(inputSchema.properties?.childWorkflowVersionId).toEqual({
+      minLength: 1,
+      type: 'string',
+    });
+    expect(inputSchema.properties?.failureMode).toEqual({
+      enum: ['fail-fast', 'collect'],
+      type: 'string',
+    });
+    expect(outputSchema.properties?.results?.items?.oneOf).toContainEqual({
+      additionalProperties: false,
+      properties: {
+        error: { minLength: 1, type: 'string' },
+        executionId: { minLength: 1, type: 'string' },
+        index: { type: 'integer' },
+        status: { enum: ['failed'], type: 'string' },
+      },
+      required: ['error', 'index', 'status'],
+      type: 'object',
+    });
+  });
+
   it('hard-cuts YouTube transcription into atomic workflow actions', () => {
     expect(getActionDefinition('youtube.obtain-transcript')).toBeUndefined();
     expect(
@@ -192,6 +505,59 @@ describe('Genfeed action registry', () => {
     expect(getActionDefinition('long-form.transform-text')?.credits).toEqual({
       mode: 'dynamic',
     });
+  });
+
+  it('declares provider-callback completion without inferring from status', () => {
+    const providerCallbackIds = [
+      'aiAvatarVideo',
+      'imageGen',
+      'lipSync',
+      'reframe',
+      'upscale',
+      'videoGen',
+      'workspace.task.facecam.generate',
+    ];
+
+    expect(
+      ALL_ACTIONS.filter(
+        (action) => action.completionMode === 'provider-callback',
+      ).map((action) => action.id),
+    ).toEqual(providerCallbackIds);
+    expect(getActionDefinition('effect-captions')?.completionMode).toBe(
+      'synchronous',
+    );
+    expect(getActionDefinition('videoStitch')?.completionMode).toBe(
+      'synchronous',
+    );
+  });
+
+  it('keeps voice generation on its projected ingredient boundary', () => {
+    expect(getActionDefinition('voice.generate.execute')?.outputSchema).toEqual(
+      {
+        additionalProperties: false,
+        properties: {
+          cdnUrl: { type: 'string' },
+          duration: { type: 'number' },
+          id: { type: 'string' },
+          s3Key: { type: 'string' },
+          status: {
+            enum: [
+              'ARCHIVED',
+              'DRAFT',
+              'FAILED',
+              'GENERATED',
+              'PROCESSING',
+              'REJECTED',
+              'UPLOADED',
+              'VALIDATED',
+            ],
+            type: 'string',
+          },
+        },
+        required: ['id', 'status'],
+        type: 'object',
+      },
+    );
   });
 
   it('marks editor-installable workflow actions explicitly', () => {

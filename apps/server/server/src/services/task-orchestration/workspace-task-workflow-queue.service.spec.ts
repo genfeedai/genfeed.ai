@@ -24,4 +24,27 @@ describe('WorkspaceTaskWorkflowQueueService', () => {
       { attempts: 2 },
     );
   });
+
+  it('queues facecam directly onto its resumable provider workflow', async () => {
+    const queueSystemWorkflow = vi.fn().mockResolvedValue('job-facecam');
+    const service = new WorkspaceTaskWorkflowQueueService({
+      queueSystemWorkflow,
+    } as never);
+
+    await service.enqueue({
+      organizationId: 'org-1',
+      outputType: 'facecam',
+      request: 'Create a presenter video',
+      taskId: 'task-facecam',
+      userId: 'user-1',
+    });
+
+    expect(queueSystemWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalId: WORKSPACE_TASK_WORKFLOW_IDS.FACECAM,
+      }),
+      'workspace-task-task-facecam',
+      { attempts: 2 },
+    );
+  });
 });

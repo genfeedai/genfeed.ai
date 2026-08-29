@@ -1,15 +1,10 @@
-import { AgentExecutionTrigger } from '@genfeedai/enums';
-import type { AgentRunJobData } from '@genfeedai/queue-contracts';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, Injectable, type OnModuleInit } from '@nestjs/common';
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { TasksService } from '@server/collections/tasks/services/tasks.service';
 import { AvatarVideoGenerationService } from '@server/collections/videos/services/avatar-video-generation.service';
+import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
 import type { SystemWorkflowActionRequest } from '@server/collections/workflows/system-workflow-runner.service';
 import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
-import { AgentRunQueueService } from '@server/queues/agent-run/agent-run-queue.service';
-import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
 import type {
   DecomposedSubtask,
   TaskDecompositionResult,
@@ -21,12 +16,14 @@ import {
   type WorkspaceTaskWorkflowRequest,
 } from '@server/services/task-orchestration/workspace-task-workflow-definition';
 
-type AgentRunItem = WorkspaceTaskWorkflowRequest & {
+const AGENT_TURN_WORKFLOW_ID = 'agent.turn.execute';
+
+type AgentExecutionItem = WorkspaceTaskWorkflowRequest & {
   subtask: DecomposedSubtask;
 };
 
-type AgentRunState = AgentRunItem & {
-  runId: string;
+type AgentExecutionState = AgentExecutionItem & {
+  executionId: string;
 };
 
 type FacecamState = WorkspaceTaskWorkflowRequest & {
@@ -54,12 +51,9 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
 
   constructor(
     private readonly decompositionService: TaskDecompositionService,
-    private readonly agentRunsService: AgentRunsService,
-    private readonly agentRunQueueService: AgentRunQueueService,
     private readonly tasksService: TasksService,
     private readonly avatarVideoGenerationService: AvatarVideoGenerationService,
-    private readonly heygenPollQueueService: HeygenPollQueueService,
-    private readonly configService: ConfigService,
+    private readonly nodeContinuations: WorkflowNodeContinuationService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
     private readonly logger: LoggerService,
   ) {}
@@ -73,24 +67,16 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
         this.decomposeTask.bind(this),
       ],
       [
-        WORKSPACE_TASK_ACTION_IDS.AGENT_PLAN_RUNS,
-        this.planAgentRuns.bind(this),
+        WORKSPACE_TASK_ACTION_IDS.AGENT_PLAN_EXECUTIONS,
+        this.planAgentExecutions.bind(this),
       ],
       [
-        WORKSPACE_TASK_ACTION_IDS.AGENT_RUN_CREATE,
-        this.createAgentRun.bind(this),
+        WORKSPACE_TASK_ACTION_IDS.AGENT_ENQUEUE_EXECUTION,
+        this.enqueueAgentExecution.bind(this),
       ],
       [
-        WORKSPACE_TASK_ACTION_IDS.AGENT_RUN_ENQUEUE,
-        this.enqueueAgentRun.bind(this),
-      ],
-      [
-        WORKSPACE_TASK_ACTION_IDS.AGENT_RECORD_RUN,
-        this.recordAgentRun.bind(this),
-      ],
-      [
-        WORKSPACE_TASK_ACTION_IDS.AGENT_LINK_RUNS,
-        this.linkAgentRuns.bind(this),
+        WORKSPACE_TASK_ACTION_IDS.AGENT_LINK_EXECUTIONS,
+        this.linkAgentExecutions.bind(this),
       ],
       [
         WORKSPACE_TASK_ACTION_IDS.FACECAM_PREPARE,
@@ -105,16 +91,12 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
         this.generateFacecam.bind(this),
       ],
       [
-        WORKSPACE_TASK_ACTION_IDS.FACECAM_ATTACH_OUTPUT,
-        this.attachFacecamOutput.bind(this),
+        WORKSPACE_TASK_ACTION_IDS.FACECAM_FINALIZE,
+        this.finalizeFacecam.bind(this),
       ],
       [
-        WORKSPACE_TASK_ACTION_IDS.FACECAM_RECORD_DISPATCH,
-        this.recordFacecamDispatch.bind(this),
-      ],
-      [
-        WORKSPACE_TASK_ACTION_IDS.FACECAM_SCHEDULE_POLL,
-        this.scheduleFacecamPoll.bind(this),
+        WORKSPACE_TASK_ACTION_IDS.FACECAM_FINALIZE_FAILURE,
+        this.finalizeFacecamFailure.bind(this),
       ],
     ] as const;
 
@@ -174,9 +156,9 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
     });
   }
 
-  private async planAgentRuns(
+  private async planAgentExecutions(
     request: SystemWorkflowActionRequest,
-  ): Promise<{ items: AgentRunItem[] }> {
+  ): Promise<{ items: AgentExecutionItem[] }> {
     const input = this.readRequest(request);
     const state = this.readRecord(request.input.state, 'agent state');
     const decomposition = this.readDecomposition(state.decomposition);
@@ -207,7 +189,7 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
           executionPathUsed: 'agent_orchestrator',
           progress: {
             activeRunCount: decomposition.subtasks.length,
-            message: 'Preparing agent runs for execution.',
+            message: 'Preparing agent workflow executions.',
             percent: 5,
             stage: 'orchestrating',
           },
@@ -224,96 +206,66 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
     });
   }
 
-  private async createAgentRun(
+  private async enqueueAgentExecution(
     request: SystemWorkflowActionRequest,
-  ): Promise<AgentRunState> {
-    const item = this.readAgentRunItem(request.input.request);
+  ): Promise<AgentExecutionState> {
+    const item = this.readAgentExecutionItem(request.input.request);
     return this.withTaskFailure(item, async () => {
-      const run = await this.agentRunsService.create({
-        label: item.subtask.label,
-        metadata: {
-          workspaceTaskId: item.taskId,
-          workflowHandoff: {
-            workflowExecutionId: request.provenance.executionId,
-            workflowId: request.provenance.workflowId,
-            workflowNodeId: request.provenance.nodeId,
+      const { executionId } = await this.workflowRunner.enqueueWorkflow({
+        actionType: AGENT_TURN_WORKFLOW_ID,
+        canonicalId: AGENT_TURN_WORKFLOW_ID,
+        idempotencyKey: `${this.requiredString(request.provenance.idempotencyKey, 'workflow action idempotency key')}:agent-turn`,
+        inputValues: {
+          request: {
+            agentType: item.subtask.agentType,
+            content: item.subtask.brief,
           },
         },
-        objective: item.subtask.brief,
+        metadata: {
+          label: item.subtask.label,
+          parentExecutionId: request.provenance.executionId,
+          parentNodeId: request.provenance.nodeId,
+          source: 'workspace-task',
+          workspaceTaskId: item.taskId,
+        },
         organizationId: item.organizationId,
-        trigger: AgentExecutionTrigger.EVENT,
+        source: 'WorkspaceTaskWorkflowService.enqueueAgentExecution',
         userId: item.userId,
       });
-      return { ...item, runId: run.id.toString() };
+      return { ...item, executionId };
     });
   }
 
-  private async enqueueAgentRun(
+  private async linkAgentExecutions(
     request: SystemWorkflowActionRequest,
-  ): Promise<AgentRunState> {
-    const state = this.readAgentRunState(request.input.state);
-    return this.withTaskFailure(state, async () => {
-      const jobData: AgentRunJobData = {
-        agentType: state.subtask.agentType,
-        objective: state.subtask.brief,
-        organizationId: state.organizationId,
-        runId: state.runId,
-        userId: state.userId,
-      };
-      await this.agentRunQueueService.queueRun(jobData);
-      return state;
-    });
-  }
-
-  private async recordAgentRun(
-    request: SystemWorkflowActionRequest,
-  ): Promise<AgentRunState> {
-    const state = this.readAgentRunState(request.input.state);
-    return this.withTaskFailure(state, async () => {
-      await this.tasksService.recordTaskEvent(
-        state.taskId,
-        state.organizationId,
-        state.userId,
-        {
-          payload: {
-            agentType: state.subtask.agentType,
-            label: state.subtask.label,
-            runId: state.runId,
-          },
-          type: 'run_queued',
-        },
-      );
-      return state;
-    });
-  }
-
-  private async linkAgentRuns(
-    request: SystemWorkflowActionRequest,
-  ): Promise<{ runIds: string[]; taskId: string }> {
+  ): Promise<{ executionIds: string[]; taskId: string }> {
     const input = this.readRequest(request);
     const batch = this.readForEachResult(request.input.batch);
-    const runIds = batch.results
+    const executionIds = batch.results
       .toSorted((left, right) => left.index - right.index)
-      .map((entry) => this.readAgentRunState(entry.result).runId);
+      .map((entry) => this.readAgentExecutionState(entry.result).executionId);
 
     return this.withTaskFailure(input, async () => {
       await this.tasksService.recordTaskEvent(
         input.taskId,
         input.organizationId,
         input.userId,
-        { payload: { runIds }, type: 'runs_linked' },
         {
-          linkedRunIds: runIds,
+          payload: { executionIds },
+          type: 'execution_started',
+        },
+        {
+          linkedExecutionIds: executionIds,
           progress: {
-            activeRunCount: runIds.length,
-            message: `Queued ${runIds.length} run${runIds.length === 1 ? '' : 's'} for execution.`,
+            activeRunCount: executionIds.length,
+            message: `Queued ${executionIds.length} execution${executionIds.length === 1 ? '' : 's'}.`,
             percent: 10,
             stage: 'queued',
           },
           status: 'in_progress',
         },
       );
-      return { runIds, taskId: input.taskId };
+      return { executionIds, taskId: input.taskId };
     });
   }
 
@@ -382,29 +334,70 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
   ): Promise<FacecamState> {
     const state = this.readFacecamState(request.input.state);
     return this.withTaskFailure(state, async () => {
-      const result =
-        await this.avatarVideoGenerationService.generateAvatarVideo(
-          { aspectRatio: '9:16', ...state.generation },
-          {
-            brandId: state.brandId,
+      let continuationId: string | undefined;
+      try {
+        const result =
+          await this.avatarVideoGenerationService.generateAvatarVideo(
+            { aspectRatio: '9:16', ...state.generation },
+            {
+              brandId: state.brandId,
+              organizationId: state.organizationId,
+              userId: state.userId,
+            },
+            async (ingredientId) => {
+              const continuation =
+                await this.nodeContinuations.createBeforeProviderSubmission({
+                  actionId: WORKSPACE_TASK_ACTION_IDS.FACECAM_GENERATE,
+                  executionId: request.provenance.executionId,
+                  ingredientId,
+                  nodeId: this.requiredString(
+                    request.provenance.nodeId,
+                    'workflow node id',
+                  ),
+                  organizationId: state.organizationId,
+                  provider: 'heygen',
+                  workflowVersionId: request.context.workflowVersionId,
+                });
+              continuationId = continuation.continuationId;
+            },
+          );
+        if (!continuationId) {
+          throw new Error(
+            'Facecam provider submitted without a durable workflow continuation',
+          );
+        }
+        await this.nodeContinuations.markProviderSubmitted({
+          continuationId,
+          externalId: result.externalId,
+          organizationId: state.organizationId,
+        });
+        return {
+          ...state,
+          externalId: this.requiredString(
+            result.externalId,
+            'provider externalId',
+          ),
+          ingredientId: this.requiredString(
+            result.ingredientId,
+            'ingredientId',
+          ),
+        };
+      } catch (error: unknown) {
+        if (continuationId) {
+          await this.nodeContinuations.failProviderSubmission({
+            continuationId,
+            error: error instanceof Error ? error.message : String(error),
             organizationId: state.organizationId,
-            userId: state.userId,
-          },
-        );
-      return {
-        ...state,
-        externalId: this.requiredString(
-          result.externalId,
-          'provider externalId',
-        ),
-        ingredientId: this.requiredString(result.ingredientId, 'ingredientId'),
-      };
+          });
+        }
+        throw error;
+      }
     });
   }
 
-  private async attachFacecamOutput(
+  private async finalizeFacecam(
     request: SystemWorkflowActionRequest,
-  ): Promise<FacecamState> {
+  ): Promise<FacecamState & { tracking: 'continuation' }> {
     const state = this.readCompletedFacecamState(request.input.state);
     return this.withTaskFailure(state, async () => {
       await this.tasksService.attachOutput(
@@ -413,58 +406,57 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
         state.organizationId,
         state.userId,
       );
-      return state;
-    });
-  }
-
-  private async recordFacecamDispatch(
-    request: SystemWorkflowActionRequest,
-  ): Promise<FacecamState> {
-    const state = this.readCompletedFacecamState(request.input.state);
-    return this.withTaskFailure(state, async () => {
       await this.tasksService.recordTaskEvent(
         state.taskId,
         state.organizationId,
         state.userId,
         {
           payload: {
-            externalId: state.externalId,
             ingredientId: state.ingredientId,
+            videoUrl: `/videos/${state.ingredientId}`,
           },
-          type: 'facecam_dispatched',
+          type: 'facecam_completed',
         },
         {
           progress: {
-            activeRunCount: 1,
-            message: 'Facecam video generation in progress.',
-            percent: 35,
-            stage: 'waiting_for_provider',
+            activeRunCount: 0,
+            message: 'Facecam video ready.',
+            percent: 100,
+            stage: 'completed',
           },
+          status: 'done',
         },
       );
-      return state;
+      return { ...state, tracking: 'continuation' };
     });
   }
 
-  private async scheduleFacecamPoll(
+  private async finalizeFacecamFailure(
     request: SystemWorkflowActionRequest,
-  ): Promise<FacecamState & { tracking: 'poll' | 'webhook' }> {
-    const state = this.readCompletedFacecamState(request.input.state);
-    return this.withTaskFailure(state, async () => {
-      const webhooksUrl = this.configService.get('GENFEEDAI_WEBHOOKS_URL');
-      if (typeof webhooksUrl === 'string' && webhooksUrl.length > 0) {
-        return { ...state, tracking: 'webhook' };
-      }
-
-      await this.heygenPollQueueService.schedule({
-        externalId: state.externalId,
-        ingredientId: state.ingredientId,
-        organizationId: state.organizationId,
-        taskId: state.taskId,
-        userId: state.userId,
-      });
-      return { ...state, tracking: 'poll' };
-    });
+  ): Promise<{ error: string; failed: true; taskId: string }> {
+    const taskRequest = this.readRequest(request);
+    const failure = this.readRecord(request.input.failure, 'facecam failure');
+    const error = this.requiredString(failure.error, 'facecam failure error');
+    await this.tasksService.recordTaskEvent(
+      taskRequest.taskId,
+      taskRequest.organizationId,
+      taskRequest.userId,
+      {
+        payload: { error },
+        type: 'facecam_failed',
+      },
+      {
+        failureReason: error,
+        progress: {
+          activeRunCount: 0,
+          message: error,
+          percent: 100,
+          stage: 'failed',
+        },
+        status: 'failed',
+      },
+    );
+    return { error, failed: true, taskId: taskRequest.taskId };
   }
 
   private async withTaskFailure<T>(
@@ -523,19 +515,19 @@ export class WorkspaceTaskWorkflowService implements OnModuleInit {
     return parsed;
   }
 
-  private readAgentRunItem(value: unknown): AgentRunItem {
-    const record = this.readRecord(value, 'agent run item');
+  private readAgentExecutionItem(value: unknown): AgentExecutionItem {
+    const record = this.readRecord(value, 'agent execution item');
     return {
       ...this.readRequestValue(record),
       subtask: this.readSubtask(record.subtask),
     };
   }
 
-  private readAgentRunState(value: unknown): AgentRunState {
-    const record = this.readRecord(value, 'agent run state');
+  private readAgentExecutionState(value: unknown): AgentExecutionState {
+    const record = this.readRecord(value, 'agent execution state');
     return {
-      ...this.readAgentRunItem(record),
-      runId: this.requiredString(record.runId, 'runId'),
+      ...this.readAgentExecutionItem(record),
+      executionId: this.requiredString(record.executionId, 'executionId'),
     };
   }
 

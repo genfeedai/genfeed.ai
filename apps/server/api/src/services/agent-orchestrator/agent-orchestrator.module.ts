@@ -3,16 +3,12 @@ import { AgentGoalsModule } from '@api/collections/agent-goals/agent-goals.modul
 import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memories.module';
 import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messages.module';
 import { AgentPublishAuditsModule } from '@api/collections/agent-publish-audits/agent-publish-audits.module';
-import { AgentRunsCoreModule } from '@api/collections/agent-runs/agent-runs-core.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { BotsModule } from '@api/collections/bots/bots.module';
-import { BotsService } from '@server/collections/bots/services/bots.service';
-import { BotsLivestreamService } from '@server/collections/bots/services/bots-livestream.service';
 import { BrandInterviewModule } from '@api/collections/brands/brand-interview/brand-interview.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
@@ -41,8 +37,25 @@ import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentMessageBusModule } from '@api/services/agent-campaign/agent-message-bus.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
-import { AgentCompletionCardBuilderService } from '@server/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
+import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
+import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
+import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
+import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
+import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
+import { ContentQualityModule } from '@api/services/content-quality/content-quality.module';
+import { InstagramInspirationModule } from '@api/services/instagram-inspiration/instagram-inspiration.module';
+import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
+import { SeoModule } from '@api/services/seo/seo.module';
+import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
+import { ConfigModule } from '@libs/config/config.module';
+import { LoggerModule } from '@libs/logger/logger.module';
+import { HttpModule } from '@nestjs/axios';
+import { Module } from '@nestjs/common';
+import { BotsService } from '@server/collections/bots/services/bots.service';
+import { BotsLivestreamService } from '@server/collections/bots/services/bots-livestream.service';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { AgentCompletionCardBuilderService } from '@server/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentOrchestratorBatchService } from '@server/services/agent-orchestrator/agent-orchestrator-batch.service';
 import { AgentOrchestratorContextService } from '@server/services/agent-orchestrator/agent-orchestrator-context.service';
@@ -56,9 +69,7 @@ import { AgentOrchestratorUiActionConfirmedToolService } from '@server/services/
 import { AgentOrchestratorUiActionFinalizerService } from '@server/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
 import { AgentOrchestratorUiActionPlanService } from '@server/services/agent-orchestrator/agent-orchestrator-ui-action-plan.service';
 import { AgentStreamEffectsService } from '@server/services/agent-orchestrator/agent-stream-effects.service';
-import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { AgentThreadEventRecorderService } from '@server/services/agent-orchestrator/agent-thread-event-recorder.service';
-import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
 import { AgentTurnAcceptanceService } from '@server/services/agent-orchestrator/agent-turn-acceptance.service';
 import { AgentTurnRoundRunnerService } from '@server/services/agent-orchestrator/agent-turn-round-runner.service';
 import { AgentAdsResearchToolHandler } from '@server/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
@@ -94,18 +105,6 @@ import { AgentWorkflowToolHandler } from '@server/services/agent-orchestrator/to
 import { AgentWorkflowToolInstallService } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-install.service';
 import { AgentWorkspaceToolHandler } from '@server/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@server/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
-import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
-import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
-import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
-import { ContentQualityModule } from '@api/services/content-quality/content-quality.module';
-import { InstagramInspirationModule } from '@api/services/instagram-inspiration/instagram-inspiration.module';
-import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
-import { SeoModule } from '@api/services/seo/seo.module';
-import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
-import { ConfigModule } from '@libs/config/config.module';
-import { LoggerModule } from '@libs/logger/logger.module';
-import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [AgentOrchestratorController, AgentToolsController],
@@ -121,7 +120,6 @@ import { Module } from '@nestjs/common';
     AgentMessageBusModule,
     AgentMessagesModule,
     AgentThreadingCoreModule,
-    AgentRunsCoreModule,
     AiActionsModule,
     AdsResearchModule,
     AgentStreamPublisherModule,
