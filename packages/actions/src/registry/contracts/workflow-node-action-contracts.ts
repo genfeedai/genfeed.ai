@@ -14,6 +14,7 @@ import {
 
 type InputField =
   | 'acceptsStructuredPrompt'
+  | 'actionVerb'
   | 'addWatermark'
   | 'aspectRatio'
   | 'assetType'
@@ -102,6 +103,7 @@ type InputField =
   | 'niche'
   | 'orientation'
   | 'outputFormat'
+  | 'parentIngredientId'
   | 'photoUrl'
   | 'pitchShift'
   | 'platform'
@@ -1211,6 +1213,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
     },
     videoGen: {
       inputSchema: inputSchema([
+        'actionVerb',
         'aspectRatio',
         'brandId',
         'duration',
@@ -1220,6 +1223,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'lastFrame',
         'model',
         'negativePrompt',
+        'parentIngredientId',
         'prompt',
         'references',
         'resolution',

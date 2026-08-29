@@ -121,6 +121,8 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         duration: -1,
         reference_videos: ['https://s3.example.com/source-video-1?sig=signed'],
       }),
+      undefined,
+      'continuation-extended',
     );
     expect(filesClientService.getPresignedDownloadUrl).toHaveBeenCalledWith(
       'source-video-1',
@@ -203,6 +205,8 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
     expect(replicateService.runModel).toHaveBeenCalledWith(
       QWEN_IMAGE_MODEL_KEY,
       expect.objectContaining({ negative_prompt: 'watermark, blurry text' }),
+      undefined,
+      'continuation-1',
     );
     expect(createAndLinkProcessingOutput).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -360,6 +364,8 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         end_image: 'last-frame-1',
         start_image: 'first-frame-1',
       }),
+      undefined,
+      'continuation-1',
     );
   });
 });
