@@ -1,13 +1,11 @@
 /**
  * ClipProjectsCoreModule
  *
- * Clip project persistence plus generation, dispatch, identity, rewrite,
- * hook-approval, and raw-cut services. Intentionally has NO dependency on
- * ClipAnalyzeModule or ClipFactoryModule, allowing queue modules to import
- * it without creating circular references.
+ * Core clip services, immutable workflow definitions, and their action
+ * executors, plus clip project persistence, generation dispatch, identity,
+ * rewrite, hook-approval, and raw-cut services.
  *
- * ClipProjectsModule re-exports everything from here and adds the queue
- * modules and HTTP controllers.
+ * ClipProjectsModule adds only the HTTP controllers.
  */
 
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
@@ -16,16 +14,25 @@ import { ClipResultsModule } from '@api/collections/clip-results/clip-results.mo
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { AvatarVideoModule } from '@api/services/avatar-video/avatar-video.module';
-import { ClipOrchestratorModule } from '@api/services/clip-orchestrator/clip-orchestrator.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
+import { PublicClipToolStoreModule } from '@api/services/public-clip-tool/public-clip-tool-store.module';
+import { WhisperModule } from '@api/services/whisper/whisper.module';
+import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import { ClipAnalysisWorkflowService } from '@server/collections/clip-projects/services/clip-analysis-workflow.service';
+import { ClipAnalysisWorkflowQueueService } from '@server/collections/clip-projects/services/clip-analysis-workflow-queue.service';
+import { ClipContinuityWorkflowService } from '@server/collections/clip-projects/services/clip-continuity-workflow.service';
+import { ClipFactoryWorkflowService } from '@server/collections/clip-projects/services/clip-factory-workflow.service';
+import { ClipFactoryWorkflowQueueService } from '@server/collections/clip-projects/services/clip-factory-workflow-queue.service';
 import { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
 import { ClipGenerationDispatchService } from '@server/collections/clip-projects/services/clip-generation-dispatch.service';
 import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
+import { ClipHighlightDetector } from '@server/collections/clip-projects/services/clip-highlight-detector.service';
 import { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
 import { ClipLibraryLinkService } from '@server/collections/clip-projects/services/clip-library-link.service';
 import { HighlightRewriteService } from '@server/collections/clip-projects/services/highlight-rewrite.service';
@@ -35,10 +42,16 @@ import { RawCutClipCompletionService } from '@server/collections/clip-projects/s
 
 @Module({
   exports: [
+    ClipAnalysisWorkflowQueueService,
+    ClipAnalysisWorkflowService,
     ClipProjectsService,
+    ClipContinuityWorkflowService,
+    ClipFactoryWorkflowQueueService,
+    ClipFactoryWorkflowService,
     ClipGenerationService,
     ClipGenerationDispatchService,
     ClipGenerationRequestService,
+    ClipHighlightDetector,
     ClipIdentityResolutionService,
     ClipLibraryLinkService,
     HighlightRewriteService,
@@ -50,20 +63,29 @@ import { RawCutClipCompletionService } from '@server/collections/clip-projects/s
     BrandsCoreModule,
     CaptionsModule,
     ClipResultsModule,
-    ClipOrchestratorModule,
     CreditsModule,
     IngredientsModule,
+    HttpModule,
     MetadataModule,
     AvatarVideoModule,
     OpenRouterModule,
+    PublicClipToolStoreModule,
     FileQueueModule,
     FilesClientModule,
+    WorkflowsModule,
+    WhisperModule,
   ],
   providers: [
+    ClipAnalysisWorkflowQueueService,
+    ClipAnalysisWorkflowService,
     ClipProjectsService,
+    ClipContinuityWorkflowService,
+    ClipFactoryWorkflowQueueService,
+    ClipFactoryWorkflowService,
     ClipGenerationService,
     ClipGenerationDispatchService,
     ClipGenerationRequestService,
+    ClipHighlightDetector,
     ClipIdentityResolutionService,
     ClipLibraryLinkService,
     HighlightRewriteService,

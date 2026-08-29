@@ -1,3 +1,6 @@
+import { ArticleCategory } from '@genfeedai/enums';
+import type { ContentHarnessBrief } from '@genfeedai/harness';
+import { Injectable } from '@nestjs/common';
 import { ArticleGenerationType } from '@server/collections/articles/dto/generate-articles.dto';
 import type { ArticleDocument } from '@server/collections/articles/schemas/article.schema';
 import { ArticleTextGenerationService } from '@server/collections/articles/services/article-text-generation.service';
@@ -9,9 +12,6 @@ import type {
 } from '@server/collections/articles/services/articles-content.types';
 import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
 import { appendHarnessBriefToPrompt } from '@server/services/harness/harness-brief.util';
-import { ArticleCategory } from '@genfeedai/enums';
-import type { ContentHarnessBrief } from '@genfeedai/harness';
-import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ArticleReviewService {
@@ -54,24 +54,16 @@ export class ArticleReviewService {
     return this.parseReviewRubric(reviewRaw);
   }
 
-  async runReviewUpdateCycle(params: {
+  async reviewDraft(params: {
     draft: { label: string; summary: string; content: string };
     harnessContext?: ArticleHarnessContext;
-    prompt: string;
     organizationId: string;
     modelConfig: ArticleCycleModelConfig;
     type: ArticleGenerationType;
-    onBilling?: (charge: TextGenerationCharge) => void;
-  }): Promise<{
-    review: ArticleReviewRubric;
-    updated: { label: string; summary: string; content: string };
-  }> {
+  }): Promise<{ charge: TextGenerationCharge; review: ArticleReviewRubric }> {
     const reviewModel =
       params.modelConfig.reviewModel || DEFAULT_MINI_TEXT_MODEL;
-    const updateModel =
-      params.modelConfig.updateModel || DEFAULT_MINI_TEXT_MODEL;
-
-    const { output: reviewRaw, charge: reviewCharge } =
+    const { output, charge } =
       await this.articleTextGenerationService.generateTextWithModel(
         reviewModel,
         this.buildReviewPrompt({
@@ -84,26 +76,40 @@ export class ArticleReviewService {
         params.organizationId,
         params.harnessContext?.promptBuilder,
       );
-    params.onBilling?.(reviewCharge);
-    const review = this.parseReviewRubric(reviewRaw);
+    return { charge, review: this.parseReviewRubric(output) };
+  }
 
-    const { output: revisionRaw, charge: revisionCharge } =
+  async reviseDraft(params: {
+    draft: { label: string; summary: string; content: string };
+    harnessContext?: ArticleHarnessContext;
+    organizationId: string;
+    modelConfig: ArticleCycleModelConfig;
+    prompt: string;
+    review: ArticleReviewRubric;
+    type: ArticleGenerationType;
+  }): Promise<{
+    charge: TextGenerationCharge;
+    updated: { label: string; summary: string; content: string };
+  }> {
+    const updateModel =
+      params.modelConfig.updateModel || DEFAULT_MINI_TEXT_MODEL;
+    const { output, charge } =
       await this.articleTextGenerationService.generateTextWithModel(
         updateModel,
         this.buildRevisionPrompt(
           params.draft,
           params.prompt,
-          review,
+          params.review,
           params.type,
           params.harnessContext?.brief,
         ),
         params.organizationId,
         params.harnessContext?.promptBuilder,
       );
-    params.onBilling?.(revisionCharge);
-    const updated = this.parseUpdatedArticle(revisionRaw, params.draft);
-
-    return { review, updated };
+    return {
+      charge,
+      updated: this.parseUpdatedArticle(output, params.draft),
+    };
   }
 
   private getArticleLabel(article: Pick<ArticleDocument, 'label'>): string {

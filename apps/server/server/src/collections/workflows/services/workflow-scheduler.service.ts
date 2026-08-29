@@ -1,17 +1,3 @@
-import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
-import type { WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
-import { isSweepDrivenSystemWorkflow } from '@server/collections/workflows/system-workflow-provenance.service';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import {
-  EXECUTABLE_WORKFLOW_SELECT,
-  WorkflowExecutorService,
-} from '@server/collections/workflows/services/workflow-executor.service';
-import { WorkflowStepRunnerService } from '@server/collections/workflows/services/workflow-step-runner.service';
-import {
-  computeNextRunAtOrThrow,
-  isSchedulableTimezone,
-} from '@server/collections/workflows/utils/cron-schedule.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
@@ -22,10 +8,27 @@ import {
   Injectable,
   type OnModuleInit,
 } from '@nestjs/common';
+import type { WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import {
+  EXECUTABLE_WORKFLOW_SELECT,
+  WorkflowExecutorService,
+} from '@server/collections/workflows/services/workflow-executor.service';
+import {
+  computeNextRunAtOrThrow,
+  isSchedulableTimezone,
+} from '@server/collections/workflows/utils/cron-schedule.util';
+import { hydrateWorkflowDefinition } from '@server/collections/workflows/workflow-version-definition';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 function toWorkflowDocument(workflow: unknown): WorkflowDocument {
-  return workflow as WorkflowDocument;
+  return hydrateWorkflowDefinition(workflow as Record<string, unknown>);
 }
+
+type SchedulableWorkflow = Pick<
+  WorkflowDocument,
+  'id' | 'isScheduleEnabled' | 'schedule' | 'timezone'
+>;
 
 /**
  * Owns the producer side of workflow cron scheduling.
@@ -45,8 +48,6 @@ export class WorkflowSchedulerService implements OnModuleInit {
     @Inject(LoggerService)
     private readonly logger: LoggerService,
     private readonly configService: ConfigService,
-    private readonly workflowStepRunner: WorkflowStepRunnerService,
-    private readonly workflowExecutionsService: WorkflowExecutionsService,
     private readonly workflowExecutorService: WorkflowExecutorService,
     private readonly workflowExecutionQueueService: WorkflowExecutionQueueService,
   ) {}
@@ -77,7 +78,6 @@ export class WorkflowSchedulerService implements OnModuleInit {
         select: {
           id: true,
           isScheduleEnabled: true,
-          metadata: true,
           schedule: true,
           timezone: true,
         },
@@ -98,7 +98,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
       );
 
       for (const workflow of workflows) {
-        await this.scheduleWorkflow(toWorkflowDocument(workflow));
+        await this.scheduleWorkflow(workflow as SchedulableWorkflow);
       }
     } catch (error) {
       this.logger.error(
@@ -112,30 +112,13 @@ export class WorkflowSchedulerService implements OnModuleInit {
   /**
    * Upsert the BullMQ job scheduler for a workflow's cron schedule.
    */
-  async scheduleWorkflow(workflow: WorkflowDocument): Promise<void> {
+  async scheduleWorkflow(workflow: SchedulableWorkflow): Promise<void> {
     const workflowId = String(
       (workflow as unknown as Record<string, unknown>).id ??
         (workflow as unknown as { id: string }).id,
     );
 
     if (!workflow.schedule || !workflow.isScheduleEnabled) {
-      await this.unscheduleWorkflow(workflowId);
-      return;
-    }
-
-    // Sweep-driven provenance actions fire from the workers sweep scheduler —
-    // the engine has no executor for systemWorkflowAction nodes. Catalog
-    // system workflows with real nodes (content-loop-autopilot, …) still
-    // register here so tenants can pause or change cadence.
-    if (
-      isSweepDrivenSystemWorkflow(
-        (workflow as unknown as Record<string, unknown>).metadata,
-      )
-    ) {
-      this.logger.log(
-        `Skipping user-workflow scheduling for sweep-driven system workflow ${workflowId}`,
-        'WorkflowSchedulerService',
-      );
       await this.unscheduleWorkflow(workflowId);
       return;
     }
@@ -245,19 +228,6 @@ export class WorkflowSchedulerService implements OnModuleInit {
         return;
       }
 
-      const nodes = workflowDocument.nodes as unknown[] | undefined;
-      const usesNodeExecutor = Boolean(nodes?.length);
-
-      // Legacy step-based workflows still need an explicit execution record here.
-      // Node-based workflows create their own execution record via WorkflowExecutorService.
-      if (!usesNodeExecutor) {
-        await this.workflowExecutionsService.createExecution(wUserId, wOrgId, {
-          inputValues: defaultInputValues,
-          trigger: WorkflowExecutionTrigger.SCHEDULED,
-          workflowId,
-        });
-      }
-
       // Update workflow last executed timestamp
       await this.prisma.workflow.update({
         data: {
@@ -267,19 +237,15 @@ export class WorkflowSchedulerService implements OnModuleInit {
         where: scopedWhere(wOrgId, { id: workflowId }),
       });
 
-      // Start execution (fire and forget).
-      // Node-based workflows run through the newer workflow engine executor;
-      // legacy step-based workflows keep the existing execution path.
-      const executePromise = usesNodeExecutor
-        ? this.workflowExecutorService.executeManualWorkflowDocument(
-            workflowDocument,
-            wUserId,
-            wOrgId,
-            defaultInputValues,
-            { triggeredBy: 'schedule' },
-            WorkflowExecutionTrigger.SCHEDULED,
-          )
-        : this.workflowStepRunner.executeWorkflow(workflowId);
+      const executePromise =
+        this.workflowExecutorService.executeManualWorkflowDocument(
+          workflowDocument,
+          wUserId,
+          wOrgId,
+          defaultInputValues,
+          { triggeredBy: 'schedule' },
+          WorkflowExecutionTrigger.SCHEDULED,
+        );
 
       executePromise.catch((error) => {
         this.logger.error(
@@ -349,9 +315,8 @@ export class WorkflowSchedulerService implements OnModuleInit {
    *
    * The single shared schedule-mutation contract (UI PATCH, agent tool, MCP,
    * brand publishing defaults all converge here): the cadence and timezone are
-   * validated before persistence, sweep-driven system workflows are rejected,
-   * catalog system workflows remain tenant-pausable, and scheduler
-   * registration failures surface to the caller instead of logging silently.
+   * validated before persistence and scheduler registration failures surface
+   * to the caller instead of logging silently.
    */
   async updateSchedule(
     workflowId: string,
@@ -360,21 +325,12 @@ export class WorkflowSchedulerService implements OnModuleInit {
     isEnabled: boolean = true,
   ): Promise<WorkflowDocument | null> {
     const existing = await this.prisma.workflow.findFirst({
-      select: { id: true, metadata: true },
+      select: { id: true },
       where: { id: workflowId, isDeleted: false },
     });
 
     if (!existing) {
       return null;
-    }
-
-    // Sweep-driven provenance actions still cannot take a tenant cron — that
-    // write would persist a cadence that never registers. Catalog system
-    // workflows with executable graphs are tenant-pausable.
-    if (isSweepDrivenSystemWorkflow(existing.metadata)) {
-      throw new BadRequestException(
-        'This system workflow is driven by the platform sweep scheduler and cannot be edited. Duplicate the workflow to schedule your own copy.',
-      );
     }
 
     if (schedule) {
@@ -402,6 +358,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
         schedule,
         timezone,
       },
+      include: { currentVersion: true },
       where: { id: workflowId },
     });
 

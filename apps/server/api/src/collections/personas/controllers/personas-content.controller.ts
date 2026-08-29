@@ -121,25 +121,6 @@ export class PersonasContentController {
     }
   }
 
-  @Post(':id/generate/caption')
-  @HttpCode(HttpStatus.OK)
-  generateCaption(
-    @Param('id') _personaId: string,
-    @Body() body: { topic?: string; platform?: string },
-    @CurrentUser() _user: User,
-  ) {
-    try {
-      return {
-        data: {
-          caption: `Generated caption for topic: ${body.topic ?? 'general'}`,
-          platform: body.platform ?? 'default',
-        },
-      };
-    } catch (error) {
-      return ErrorResponse.handle(error, this.loggerService, 'generateCaption');
-    }
-  }
-
   @Post(':id/content-plan')
   @HttpCode(HttpStatus.OK)
   async generateContentPlan(

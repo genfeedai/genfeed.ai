@@ -2,7 +2,7 @@
  * Telegram command-argument helper.
  *
  * Extracts the free-text argument that follows a slash command, e.g.
- * `/generate a cat` → `a cat`.
+ * `/connect gf_example` → `gf_example`.
  */
 
 import type { Context } from 'grammy';

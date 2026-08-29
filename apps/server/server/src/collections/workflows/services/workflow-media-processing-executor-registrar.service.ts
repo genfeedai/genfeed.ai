@@ -22,6 +22,7 @@ import { MetadataService } from '@server/collections/metadata/services/metadata.
 import { MusicsService } from '@server/collections/musics/services/musics.service';
 import { AvatarVideoGenerationService } from '@server/collections/videos/services/avatar-video-generation.service';
 import { VideoMusicOrchestrationService } from '@server/collections/videos/services/video-music-orchestration.service';
+import { VideoQaContinuityResolverService } from '@server/collections/workflows/services/video-qa-continuity-resolver.service';
 import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
@@ -42,6 +43,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     private readonly sharedService?: SharedService,
     private readonly videoMusicOrchestrationService?: VideoMusicOrchestrationService,
     private readonly whisperService?: WhisperService,
+    private readonly continuityResolver?: VideoQaContinuityResolverService,
   ) {}
 
   register(engine: WorkflowEngine): void {
@@ -71,31 +73,66 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
       return;
     }
 
-    engine.registerExecutor('aiAvatarVideo', async (_node, inputs, context) => {
+    engine.registerExecutor('aiAvatarVideo', async (node, inputs, context) => {
       const script = this.helper.getRequiredStringInput(inputs, 'script');
-      const result = await avatarVideoGenerationService.generateAvatarVideo(
-        {
-          aspectRatio: this.helper.getAspectRatioConfig(
-            _node.config.aspectRatio,
-          ),
-          audioUrl: this.helper.getOptionalStringInput(inputs, 'audioUrl'),
-          clonedVoiceId: this.helper.getOptionalStringInput(
-            inputs,
-            'clonedVoiceId',
-          ),
-          photoUrl: this.helper.getOptionalStringInput(inputs, 'photoUrl'),
-          text: script,
-          useIdentity:
-            _node.config.useIdentityDefaults === undefined
-              ? true
-              : Boolean(_node.config.useIdentityDefaults),
-        },
-        {
-          brandId: this.helper.readConfigString(_node.config, 'brandId'),
+      let continuationId: string | undefined;
+      let result: Awaited<
+        ReturnType<AvatarVideoGenerationService['generateAvatarVideo']>
+      >;
+      try {
+        result = await avatarVideoGenerationService.generateAvatarVideo(
+          {
+            aspectRatio: this.helper.getAspectRatioConfig(
+              node.config.aspectRatio,
+            ),
+            audioUrl: this.helper.getOptionalStringInput(inputs, 'audioUrl'),
+            clonedVoiceId: this.helper.getOptionalStringInput(
+              inputs,
+              'clonedVoiceId',
+            ),
+            photoUrl: this.helper.getOptionalStringInput(inputs, 'photoUrl'),
+            text: script,
+            useIdentity:
+              node.config.useIdentityDefaults === undefined
+                ? true
+                : Boolean(node.config.useIdentityDefaults),
+          },
+          {
+            brandId: this.helper.readConfigString(node.config, 'brandId'),
+            organizationId: context.organizationId,
+            userId: context.userId,
+          },
+          async (ingredientId) => {
+            const continuation = await this.helper.createProviderContinuation({
+              actionId: 'aiAvatarVideo',
+              context,
+              ingredientId,
+              node,
+              provider: 'heygen',
+            });
+            continuationId = continuation.continuationId;
+          },
+        );
+        if (!continuationId) {
+          throw new Error(
+            'Avatar provider submitted without a durable workflow continuation',
+          );
+        }
+        await this.helper.markProviderContinuationSubmitted({
+          continuationId,
+          externalId: result.externalId,
           organizationId: context.organizationId,
-          userId: context.userId,
-        },
-      );
+        });
+      } catch (error: unknown) {
+        if (continuationId) {
+          await this.helper.failProviderContinuationSubmission({
+            continuationId,
+            error: error instanceof Error ? error.message : String(error),
+            organizationId: context.organizationId,
+          });
+        }
+        throw error;
+      }
 
       return {
         externalId: result.externalId,
@@ -320,14 +357,19 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     if (!filesClientService) {
       return;
     }
+    const continuityResolver = this.continuityResolver;
 
-    const executor = createVideoQaExecutor(async (params) =>
-      filesClientService.inspectVideoQa({
-        blackDurationSeconds: params.blackDurationSeconds,
-        freezeDurationSeconds: params.freezeDurationSeconds,
-        isContactSheetEnabled: params.isContactSheetEnabled,
-        videoUrl: params.videoUrl,
-      }),
+    const executor = createVideoQaExecutor(
+      async (params) =>
+        filesClientService.inspectVideoQa({
+          blackDurationSeconds: params.blackDurationSeconds,
+          freezeDurationSeconds: params.freezeDurationSeconds,
+          isContactSheetEnabled: params.isContactSheetEnabled,
+          videoUrl: params.videoUrl,
+        }),
+      continuityResolver
+        ? (params) => continuityResolver.resolve(params)
+        : undefined,
     );
 
     engine.registerExecutor(

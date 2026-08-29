@@ -5,18 +5,10 @@ import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness
 import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { BatchGenerationController } from '@api/services/batch-generation/batch-generation.controller';
-import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
-import { BatchGenerationCreationService } from '@server/services/batch-generation/batch-generation-creation.service';
-import { BatchGenerationCreditsService } from '@server/services/batch-generation/batch-generation-credits.service';
-import { BatchGenerationProcessingService } from '@server/services/batch-generation/batch-generation-processing.service';
-import { BatchGenerationReconcileService } from '@server/services/batch-generation/batch-generation-reconcile.service';
-import { BatchGenerationReviewService } from '@server/services/batch-generation/batch-generation-review.service';
-import { BatchGenerationStreamService } from '@server/services/batch-generation/batch-generation-stream.service';
-import { BatchGenerationSummaryService } from '@server/services/batch-generation/batch-generation-summary.service';
 import { ContentHarnessModule } from '@api/services/harness/harness.module';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   AgentArtifactReferenceService,
   SERVER_TOKENS,
@@ -25,6 +17,16 @@ import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';
+import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
+import { BatchGenerationCreationService } from '@server/services/batch-generation/batch-generation-creation.service';
+import { BatchGenerationCreditsService } from '@server/services/batch-generation/batch-generation-credits.service';
+import { BatchGenerationProcessingService } from '@server/services/batch-generation/batch-generation-processing.service';
+import { BatchGenerationReconcileService } from '@server/services/batch-generation/batch-generation-reconcile.service';
+import { BatchGenerationReviewService } from '@server/services/batch-generation/batch-generation-review.service';
+import { BatchGenerationStreamService } from '@server/services/batch-generation/batch-generation-stream.service';
+import { BatchGenerationSummaryService } from '@server/services/batch-generation/batch-generation-summary.service';
+import { BatchGenerationWorkflowService } from '@server/services/batch-generation/batch-generation-workflow.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 @Module({
   controllers: [BatchGenerationController],
@@ -33,6 +35,7 @@ import { Module } from '@nestjs/common';
     BatchGenerationReconcileService,
     BatchGenerationService,
     BatchGenerationStreamService,
+    BatchGenerationWorkflowService,
   ],
   imports: [
     AgentStreamPublisherModule,
@@ -46,6 +49,7 @@ import { Module } from '@nestjs/common';
     PostLifecycleModule,
     PostsCoreModule,
     PublishApprovalsModule,
+    WorkflowsCoreModule,
   ],
   providers: [
     AgentArtifactReferenceService,
@@ -57,6 +61,7 @@ import { Module } from '@nestjs/common';
     BatchGenerationService,
     BatchGenerationStreamService,
     BatchGenerationSummaryService,
+    BatchGenerationWorkflowService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
   ],

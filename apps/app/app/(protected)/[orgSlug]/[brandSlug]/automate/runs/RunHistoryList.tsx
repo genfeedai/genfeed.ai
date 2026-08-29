@@ -1,15 +1,15 @@
 'use client';
 
-import type { IAgentRun } from '@genfeedai/interfaces';
-import AgentRunCard from './AgentRunCard';
+import type { IWorkflowExecution } from '@genfeedai/interfaces';
+import WorkflowExecutionCard from './WorkflowExecutionCard';
 
 interface RunHistoryListProps {
-  runs: IAgentRun[];
+  executions: IWorkflowExecution[];
   isLoading: boolean;
 }
 
 export default function RunHistoryList({
-  runs,
+  executions,
   isLoading,
 }: RunHistoryListProps) {
   return (
@@ -18,7 +18,7 @@ export default function RunHistoryList({
         Recent Runs
       </h2>
 
-      {isLoading && runs.length === 0 ? (
+      {isLoading && executions.length === 0 ? (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 3 }, (_, index) => index + 1).map((slot) => (
             <div
@@ -27,14 +27,14 @@ export default function RunHistoryList({
             />
           ))}
         </div>
-      ) : runs.length === 0 ? (
+      ) : executions.length === 0 ? (
         <div className="gen-card flex items-center justify-center p-8 text-sm text-muted-foreground">
-          No runs yet. Trigger a proactive agent or start a manual run.
+          No workflow executions yet.
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {runs.map((run) => (
-            <AgentRunCard key={run.id} run={run} />
+          {executions.map((execution) => (
+            <WorkflowExecutionCard execution={execution} key={execution.id} />
           ))}
         </div>
       )}

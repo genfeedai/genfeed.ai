@@ -1,7 +1,7 @@
+import { BadRequestException } from '@nestjs/common';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentWorkflowToolExecuteService } from '@server/services/agent-orchestrator/tools/agent-workflow-tool-execute.service';
-import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentWorkflowToolExecuteService setWorkflowSchedule', () => {
@@ -178,6 +178,9 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
   const workflowExecutorService = {
     executeManualWorkflow: vi.fn(),
   };
+  const internalApi = {
+    callInternalApi: vi.fn(),
+  };
   const ctx = {
     organizationId: 'org-1',
     userId: 'user-1',
@@ -191,7 +194,7 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
       workflowsService as never,
       workflowExecutorService as never,
       {} as never,
-      {} as never,
+      internalApi as never,
     );
   });
 
@@ -306,6 +309,67 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
     });
   });
 
+  it('executes the code-owned YouTube workflow by canonical ID for Agent and MCP', async () => {
+    internalApi.callInternalApi.mockResolvedValue({
+      data: {
+        attributes: {
+          content: 'Long-form result',
+          contentId: 'article-1',
+          executionId: 'execution-1',
+          outputType: 'x-article',
+          sourceArtifactId: 'artifact-1',
+        },
+        id: 'article-1',
+        type: 'public-youtube-long-form-tool',
+      },
+    });
+    const agentContext = {
+      ...ctx,
+      authToken: 'agent-or-mcp-token',
+    } as ToolExecutionContext;
+
+    const result = await handler.executeWorkflow(
+      {
+        variables: {
+          outputType: 'x-article',
+          youtubeUrl: 'https://youtu.be/video-1',
+        },
+        workflowId: 'youtube-to-long-form-text',
+      },
+      agentContext,
+    );
+
+    expect(internalApi.callInternalApi).toHaveBeenCalledWith(
+      'POST',
+      '/v1/youtube-long-form',
+      {
+        outputType: 'x-article',
+        youtubeUrl: 'https://youtu.be/video-1',
+      },
+      agentContext,
+    );
+    expect(workflowsService.findOne).not.toHaveBeenCalled();
+    expect(
+      workflowExecutorService.executeManualWorkflow,
+    ).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      creditsUsed: 0,
+      data: {
+        id: 'execution-1',
+        result: {
+          content: 'Long-form result',
+          contentId: 'article-1',
+          executionId: 'execution-1',
+          id: 'article-1',
+          outputType: 'x-article',
+          sourceArtifactId: 'artifact-1',
+        },
+        status: 'COMPLETED',
+      },
+      success: true,
+    });
+  });
+
   it('returns workflow inputs for the org-scoped workflow only', async () => {
     workflowsService.findOne.mockResolvedValue({
       id: 'wf-1',
@@ -341,6 +405,49 @@ describe('AgentWorkflowToolExecuteService list / execute / inputs (tenant + cont
       ],
       workflowId: 'wf-1',
       workflowName: 'Launch pack',
+    });
+  });
+
+  it('describes the code-owned YouTube workflow without a customer Workflow row', async () => {
+    const result = await handler.getWorkflowInputs(
+      { workflowId: 'youtube-to-long-form-text' },
+      ctx,
+    );
+
+    expect(workflowsService.findOne).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      creditsUsed: 0,
+      data: {
+        inputs: [
+          {
+            defaultValue: null,
+            description: 'Public YouTube video URL with spoken audio.',
+            key: 'youtubeUrl',
+            label: 'YouTube URL',
+            required: true,
+            type: 'url',
+          },
+          {
+            defaultValue: 'article',
+            description: 'Long-form output format to persist.',
+            key: 'outputType',
+            label: 'Output format',
+            required: true,
+            type: 'enum',
+            validation: {
+              options: [
+                'article',
+                'linkedin-article',
+                'x-article',
+                'newsletter',
+              ],
+            },
+          },
+        ],
+        workflowId: 'youtube-to-long-form-text',
+        workflowName: 'YouTube to long-form text',
+      },
+      success: true,
     });
   });
 });

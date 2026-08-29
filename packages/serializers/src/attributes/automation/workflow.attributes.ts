@@ -18,6 +18,8 @@ export const workflowAttributes = createEntityAttributes([
   'nodes',
   'edges',
   'inputVariables',
+  'version',
+  'versionId',
   'thumbnail',
   'thumbnailNodeId',
   'lifecycle',

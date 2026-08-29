@@ -1,4 +1,19 @@
 import { randomUUID } from 'node:crypto';
+import { LLM_DEFAULTS } from '@genfeedai/constants';
+import {
+  fromPrismaCredentialPlatform,
+  PostCategory,
+  TargetExecutionState,
+} from '@genfeedai/enums';
+import {
+  buildActionExecutionInput,
+  CastPromptExecutor,
+  HookGeneratorExecutor,
+  PromptConstructorExecutor,
+  TalkingHeadScriptExecutor,
+  type TalkingHeadScriptGenerationRequest,
+  type WorkflowEngine,
+} from '@genfeedai/workflows/engine';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { NewslettersService } from '@server/collections/newsletters/services/newsletters.service';
 import type { PostAccountTarget } from '@server/collections/posts/services/post-account-fanout.service';
@@ -8,20 +23,6 @@ import { SourcePostsService } from '@server/collections/source-posts/services/so
 import { SOURCE_CORPUS_CONFIG_LIMITS } from '@server/collections/workflows/registry/node-registry';
 import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
 import { OpenRouterService } from '@server/services/integrations/openrouter/services/openrouter.service';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import {
-  fromPrismaCredentialPlatform,
-  PostCategory,
-  TargetExecutionState,
-} from '@genfeedai/enums';
-import {
-  CastPromptExecutor,
-  HookGeneratorExecutor,
-  PromptConstructorExecutor,
-  TalkingHeadScriptExecutor,
-  type TalkingHeadScriptGenerationRequest,
-  type WorkflowEngine,
-} from '@genfeedai/workflows/engine';
 
 const POST_GEN_MODEL = LLM_DEFAULTS.fastText;
 const POST_GEN_TEMPERATURE = 0.6;
@@ -59,7 +60,6 @@ export class WorkflowContentExecutorRegistrarService {
   ) {}
 
   register(engine: WorkflowEngine): void {
-    this.registerPromptExecutor(engine);
     this.registerPromptConstructorExecutor(engine);
     this.registerCastPromptExecutor(engine);
     this.registerHookGeneratorExecutor(engine);
@@ -69,25 +69,13 @@ export class WorkflowContentExecutorRegistrarService {
     this.registerPostExecutor(engine);
     this.registerNewsletterExecutor(engine);
     this.registerAttachPostIngredientExecutor(engine);
+    this.registerWorkflowOutputCollector(engine);
   }
 
-  private registerPromptExecutor(engine: WorkflowEngine): void {
-    const executePrompt = async (node: { config: Record<string, unknown> }) => {
-      const prompt =
-        this.helper.readConfigString(node.config, 'prompt') ??
-        this.helper.readConfigString(node.config, 'template') ??
-        this.helper.readConfigString(node.config, 'text');
-
-      if (!prompt || prompt.trim().length === 0) {
-        throw new Error('Prompt text is required');
-      }
-
-      // Node results persist as jsonb objects (`WorkflowNodeResult.output`).
-      return { prompt, text: prompt };
-    };
-
-    engine.registerExecutor('prompt', executePrompt);
-    engine.registerExecutor('input-prompt', executePrompt);
+  private registerWorkflowOutputCollector(engine: WorkflowEngine): void {
+    engine.registerExecutor('workflow.collect-output', async (node, inputs) =>
+      buildActionExecutionInput(node.config, inputs),
+    );
   }
 
   private registerPromptConstructorExecutor(engine: WorkflowEngine): void {
@@ -100,9 +88,10 @@ export class WorkflowContentExecutorRegistrarService {
 
   private registerCastPromptExecutor(engine: WorkflowEngine): void {
     const castPromptExecutor = new CastPromptExecutor();
-    const wrapped = this.helper.wrapEngineExecutor(castPromptExecutor);
-    engine.registerExecutor('castPrompt', wrapped);
-    engine.registerExecutor('cast-prompt-generator', wrapped);
+    engine.registerExecutor(
+      'castPrompt',
+      this.helper.wrapEngineExecutor(castPromptExecutor),
+    );
   }
 
   private registerHookGeneratorExecutor(engine: WorkflowEngine): void {
@@ -280,15 +269,8 @@ export class WorkflowContentExecutorRegistrarService {
       const timezone =
         this.helper.readConfigString(node.config, 'timezone') ?? 'UTC';
 
-      // A node that names neither an account nor a platform has no target. It
-      // used to fall back to whichever credential the brand happened to have
-      // first, which stops being a single answer the moment a brand runs more
-      // than one account — so it skips instead of guessing.
       if (!credentialId && !platform) {
-        return {
-          reason: 'no_target_account',
-          status: 'skipped',
-        };
+        throw new Error('postGen requires credentialId or platform');
       }
 
       const completion = await openRouterService.chatCompletion({
@@ -320,10 +302,7 @@ export class WorkflowContentExecutorRegistrarService {
           });
 
       if (targets.length === 0) {
-        return {
-          reason: 'missing_connected_credential',
-          status: 'skipped',
-        };
+        throw new Error('postGen found no connected target credential');
       }
 
       const groupId = randomUUID();
@@ -388,6 +367,8 @@ export class WorkflowContentExecutorRegistrarService {
         node.config,
         'instructions',
       );
+      // `generateDraft` is the single entry: it runs the immutable
+      // `newsletter.draft-generation` child workflow and returns the document.
       const newsletter = await newslettersService.generateDraft(
         {
           instructions,

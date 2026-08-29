@@ -6,7 +6,7 @@ import { ToolRegistryService } from '@mcp/services/tool-registry.service';
  * guard rejects any MCP-surfaced tool it cannot route (this is the check that
  * would have caught the ~25 dead-wired tools at boot instead of at call time).
  *
- * `@genfeedai/tools` is mocked so the guard sees a controllable registry;
+ * `@genfeedai/actions` is mocked so the guard sees a controllable registry;
  * `AgentToolName` (used by classify for the agent-executor branch) resolves
  * from the real `@genfeedai/interfaces` alias.
  */
@@ -15,7 +15,7 @@ const mockState = vi.hoisted(() => ({
   tools: [] as { name: string }[],
 }));
 
-vi.mock('@genfeedai/tools', () => ({
+vi.mock('@genfeedai/actions', () => ({
   getToolByName: vi.fn(),
   getToolsForSurface: vi.fn(() => mockState.tools),
   toMcpTools: vi.fn((tools) => tools),

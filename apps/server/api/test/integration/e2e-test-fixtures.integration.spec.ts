@@ -39,7 +39,7 @@ import { AccessBootstrapCacheService } from '@server/common/services/access-boot
 import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
 import { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
 import { BrandScraperService } from '@server/services/brand-scraper/brand-scraper.service';
-import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/workspace-task-queue.service';
+import { WorkspaceTaskWorkflowQueueService } from '@server/services/task-orchestration/workspace-task-workflow-queue.service';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -140,7 +140,7 @@ describe('E2E fixture contracts', () => {
       TaskRoutingService,
       TaskActionsService,
       TaskPlanningService,
-      WorkspaceTaskQueueService,
+      WorkspaceTaskWorkflowQueueService,
     ]);
   });
 });

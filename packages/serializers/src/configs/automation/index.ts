@@ -1,5 +1,4 @@
 export * from '@serializers/configs/automation/agent-campaign.config';
-export * from '@serializers/configs/automation/agent-run.config';
 export * from '@serializers/configs/automation/agent-strategy.config';
 export * from '@serializers/configs/automation/agent-transfer.config';
 export * from '@serializers/configs/automation/bot.config';

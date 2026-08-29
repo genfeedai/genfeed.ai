@@ -181,7 +181,7 @@ export class AgentMediaAssetGenerationService {
       width: dimensions.width,
       ...(requestedOutputs ? { outputs: requestedOutputs } : {}),
       ...(ctx.brandId ? { brandId: ctx.brandId } : {}),
-      ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
+      ...(ctx.runId ? { workflowExecutionId: ctx.runId } : {}),
       ...(ctx.sourceActionId ? { sourceActionId: ctx.sourceActionId } : {}),
       ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
       ...(resolvedReferences.references.length > 0
@@ -473,7 +473,7 @@ export class AgentMediaAssetGenerationService {
         duration: (params.duration as number) || 10,
         text: params.text as string,
         waitForCompletion: true,
-        ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
+        ...(ctx.runId ? { workflowExecutionId: ctx.runId } : {}),
         ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
       },
       ctx,
@@ -629,7 +629,7 @@ export class AgentMediaAssetGenerationService {
       waitForCompletion: false,
       width: params.dimensions.width,
       ...(params.ctx.brandId ? { brandId: params.ctx.brandId } : {}),
-      ...(params.ctx.runId ? { agentRunId: params.ctx.runId } : {}),
+      ...(params.ctx.runId ? { workflowExecutionId: params.ctx.runId } : {}),
       ...(params.ctx.sourceActionId
         ? { sourceActionId: params.ctx.sourceActionId }
         : {}),

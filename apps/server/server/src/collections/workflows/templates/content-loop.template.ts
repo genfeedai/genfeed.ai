@@ -1,6 +1,6 @@
-import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { WorkflowStepCategory } from '@genfeedai/enums';
+import { createTemplateActionNode } from '@server/collections/workflows/templates/template-action-node';
+import type { WorkflowTemplate } from '@server/collections/workflows/templates/workflow-templates';
 
 export const CONTENT_LOOP_PROMPT_TEMPLATE =
   'Write a {{tone}} social caption about {{topic}}.\n\nBrand voice:\n{{brandVoice}}\n\nKeep it under {{maxLength}} characters.';
@@ -60,9 +60,10 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       targetHandle: 'brandVoice',
     },
     {
+      // Prompt Constructor emits the prompt itself, not a keyed object, so the
+      // whole output is delivered to the llm `prompt` handle.
       id: 'e-prompt-gen',
       source: 'prompt-constructor',
-      sourceHandle: 'prompt',
       target: 'text-gen',
       targetHandle: 'prompt',
     },
@@ -76,7 +77,7 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
     {
       id: 'e-gen-publish',
       source: 'text-gen',
-      sourceHandle: 'content',
+      sourceHandle: 'text',
       target: 'publish',
       targetHandle: 'caption',
     },
@@ -113,19 +114,17 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
   ],
   name: 'Content Loop',
   nodes: [
-    {
+    createTemplateActionNode('analyticsFeedback', {
       data: { config: { topN: 5, worstN: 3 }, label: 'Analytics Feedback' },
       id: 'analytics-feedback',
       position: { x: 0, y: 0 },
-      type: 'analytics-feedback',
-    },
-    {
+    }),
+    createTemplateActionNode('brandContext', {
       data: { config: {}, label: 'Brand Context' },
       id: 'brand-context',
       position: { x: 0, y: 200 },
-      type: 'brandContext',
-    },
-    {
+    }),
+    createTemplateActionNode('trendTrigger', {
       data: {
         config: {
           checkFrequency: '6hr',
@@ -138,9 +137,8 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       },
       id: 'trend-trigger',
       position: { x: 400, y: 0 },
-      type: 'trendTrigger',
-    },
-    {
+    }),
+    createTemplateActionNode('promptConstructor', {
       data: {
         config: {
           includeHashtags: true,
@@ -152,9 +150,8 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       },
       id: 'prompt-constructor',
       position: { x: 800, y: 100 },
-      type: 'ai-prompt-constructor',
-    },
-    {
+    }),
+    createTemplateActionNode('llm', {
       data: {
         config: {
           maxTokens: 1024,
@@ -165,82 +162,17 @@ export const CONTENT_LOOP_TEMPLATE: WorkflowTemplate = {
       },
       id: 'text-gen',
       position: { x: 1200, y: 100 },
-      type: 'ai-llm',
-    },
-    {
+    }),
+    createTemplateActionNode('publish', {
       data: {
         config: {
-          platforms: {
-            facebook: false,
-            instagram: false,
-            linkedin: false,
-            threads: false,
-            tiktok: true,
-            twitter: false,
-            youtube: false,
-          },
+          platforms: ['tiktok'],
           schedule: { type: 'immediate' },
         },
         label: 'Publish',
       },
       id: 'publish',
       position: { x: 1600, y: 100 },
-      type: 'output-publish',
-    },
-  ],
-  steps: [
-    {
-      category: WorkflowStepCategory.PERFORMANCE_TRACK,
-      config: { topN: 5, worstN: 3 },
-      id: 'step-analytics-feedback',
-      name: 'Read Analytics',
-    },
-    {
-      category: WorkflowStepCategory.WEBHOOK,
-      config: {
-        checkFrequency: '6hr',
-        minViralScore: 70,
-        trendType: 'hashtag',
-      },
-      dependsOn: ['step-analytics-feedback'],
-      id: 'step-trend-trigger',
-      name: 'Find Matching Trend',
-    },
-    {
-      category: WorkflowStepCategory.GENERATE_HOOK,
-      config: {
-        includeHashtags: true,
-        template: CONTENT_LOOP_PROMPT_TEMPLATE,
-        tone: 'brand-voice',
-      },
-      dependsOn: ['step-analytics-feedback', 'step-trend-trigger'],
-      id: 'step-prompt',
-      name: 'Build Prompt',
-    },
-    {
-      category: WorkflowStepCategory.GENERATE_ARTICLE,
-      config: { model: LLM_DEFAULTS.fastText, temperature: 0.8 },
-      dependsOn: ['step-prompt'],
-      id: 'step-generate',
-      name: 'Generate Content',
-    },
-    {
-      category: WorkflowStepCategory.PUBLISH,
-      config: {
-        platforms: {
-          facebook: false,
-          instagram: false,
-          linkedin: false,
-          threads: false,
-          tiktok: true,
-          twitter: false,
-          youtube: false,
-        },
-        schedule: { type: 'immediate' },
-      },
-      dependsOn: ['step-analytics-feedback', 'step-generate'],
-      id: 'step-publish',
-      name: 'Publish',
-    },
+    }),
   ],
 };

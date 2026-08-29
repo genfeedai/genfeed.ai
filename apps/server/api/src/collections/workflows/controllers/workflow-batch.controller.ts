@@ -1,182 +1,50 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { BatchWorkflowService } from '@server/collections/workflows/services/batch-workflow.service';
-import { BatchWorkflowQueueService } from '@server/collections/workflows/services/batch-workflow-queue.service';
-import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { ExecuteWorkflowBatchDto } from '@api/collections/workflows/dto/execute-workflow.dto';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import type {
-  BatchWorkflowStatusResponse,
-  BatchWorkflowSummary,
-} from '@genfeedai/interfaces';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { MemberRole } from '@genfeedai/enums';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  Body,
-  Controller,
-  Get,
-  HttpException,
-  HttpStatus,
-  Param,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
+import { BatchWorkflowExecutionService } from '@server/collections/workflows/services/batch-workflow-execution.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import type { Request } from 'express';
 
-/**
- * Batch workflow status + execution endpoints. Declared (and module-registered)
- * before the CRUD controller so the literal `batch` / `batch/:batchJobId`
- * routes win over `:workflowId`. Split out of the former monolithic
- * `WorkflowsController`.
- */
 @AutoSwagger()
 @Controller('workflows')
+@UseGuards(RolesGuard)
 export class WorkflowBatchController {
   constructor(
-    private readonly workflowsService: WorkflowsService,
-    private readonly batchWorkflowService: BatchWorkflowService,
-    private readonly batchWorkflowQueueService: BatchWorkflowQueueService,
+    private readonly batchWorkflowExecutionService: BatchWorkflowExecutionService,
+    private readonly workflowExecutionsService: WorkflowExecutionsService,
     readonly _loggerService: LoggerService,
   ) {}
 
-  private normalizeCount(value: number | null | undefined): number {
-    return typeof value === 'number' ? value : 0;
-  }
-
-  private getBatchItemId(item: {
-    id?: string | { toString(): string };
-    ingredientId: string | { toString(): string };
-  }): string {
-    if (typeof item.id === 'string') {
-      return item.id;
-    }
-
-    if (item.id && typeof item.id.toString === 'function') {
-      return item.id.toString();
-    }
-
-    return item.ingredientId.toString();
-  }
-
-  @Get('batch/:batchJobId')
+  @Post(':workflowId/executions/batch')
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getBatchStatus(
-    @Param('batchJobId') batchJobId: string,
-    @CurrentUser() user: User,
-  ): Promise<{ data: BatchWorkflowStatusResponse }> {
-    const job = await this.batchWorkflowService.getBatchJobForOrg(
-      batchJobId,
-      user.organizationId,
-    );
-
-    return {
-      data: {
-        id: job.id.toString(),
-        completedCount: this.normalizeCount(job.completedCount),
-        createdAt: job.createdAt?.toISOString(),
-        failedCount: this.normalizeCount(job.failedCount),
-        items: job.items.map((item) => ({
-          id: this.getBatchItemId(item),
-          completedAt: item.completedAt?.toISOString(),
-          error: item.error,
-          executionId: item.executionId,
-          ingredientId: item.ingredientId.toString(),
-          outputCategory: item.outputCategory,
-          outputIngredientId: item.outputIngredientId?.toString(),
-          outputSummary:
-            item.outputSummary &&
-            typeof item.outputSummary.id === 'string' &&
-            typeof item.outputSummary.category === 'string'
-              ? {
-                  category: item.outputSummary.category,
-                  id: item.outputSummary.id,
-                  ingredientUrl: item.outputSummary.ingredientUrl,
-                  status: item.outputSummary.status,
-                  thumbnailUrl: item.outputSummary.thumbnailUrl,
-                }
-              : undefined,
-          startedAt: item.startedAt?.toISOString(),
-          status: item.status,
-        })),
-        status: job.status,
-        totalCount: this.normalizeCount(job.totalCount),
-        updatedAt: job.updatedAt?.toISOString(),
-        workflowId: job.workflowId.toString(),
-      },
-    };
-  }
-
-  @Get('batch')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async listBatchJobs(
-    @CurrentUser() user: User,
-    @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
-  ): Promise<{ data: BatchWorkflowSummary[] }> {
-    const jobs = await this.batchWorkflowService.listBatchJobs(
-      user.organizationId,
-      limit ? Number.parseInt(limit, 10) : 20,
-      offset ? Number.parseInt(offset, 10) : 0,
-    );
-
-    return {
-      data: jobs.map((job) => ({
-        id: job.id.toString(),
-        completedCount: this.normalizeCount(job.completedCount),
-        createdAt: job.createdAt?.toISOString(),
-        failedCount: this.normalizeCount(job.failedCount),
-        status: job.status,
-        totalCount: this.normalizeCount(job.totalCount),
-        workflowId: job.workflowId.toString(),
-      })),
-    };
-  }
-
-  @Post(':workflowId/batch')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async runBatch(
+  async startBatchExecution(
+    @Req() request: Request,
     @Param('workflowId') workflowId: string,
-    @Body() body: { ingredientIds: string[] },
+    @Body() body: ExecuteWorkflowBatchDto,
     @CurrentUser() user: User,
-  ): Promise<{ data: { batchJobId: string; totalCount: number } }> {
-    // Validate workflow exists and belongs to org
-    await this.workflowsService.findOwnedOrThrow(workflowId, {
+  ): Promise<JsonApiSingleResponse> {
+    const executionId =
+      await this.batchWorkflowExecutionService.startBatchExecution({
+        ingredientIds: body.ingredientIds,
+        organizationId: user.organizationId,
+        userId: user.userId ?? user.id,
+        workflowId,
+      });
+    const execution = await this.workflowExecutionsService.findOne({
+      id: executionId,
       organizationId: user.organizationId,
     });
-
-    if (!body.ingredientIds?.length) {
-      throw new HttpException(
-        'At least one ingredientId is required',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    // Create the batch job
-    const batchJob = await this.batchWorkflowService.createBatchJob({
-      ingredientIds: body.ingredientIds,
-      organizationId: user.organizationId,
-      userId: user.userId ?? user.id,
-      workflowId,
-    });
-
-    // Mark as processing
-    await this.batchWorkflowService.markProcessing(batchJob.id.toString());
-
-    // Enqueue all items
-    const itemJobs = batchJob.items.map((item) => ({
-      batchJobId: batchJob.id.toString(),
-      ingredientId: item.ingredientId.toString(),
-      itemId: this.getBatchItemId(item),
-      organizationId: user.organizationId,
-      userId: user.userId ?? user.id,
-      workflowId,
-    }));
-
-    await this.batchWorkflowQueueService.enqueueBatchItems(itemJobs);
-
-    return {
-      data: {
-        batchJobId: batchJob.id.toString(),
-        totalCount: this.normalizeCount(batchJob.totalCount),
-      },
-    };
+    return serializeSingle(request, WorkflowExecutionSerializer, execution);
   }
 }

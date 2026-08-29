@@ -57,93 +57,144 @@
   "nodes": [
     {
       "data": {
-        "label": "Concept",
-        "prompt": "Create 3 variations of a futuristic city at sunset. Each should show different architectural styles but maintain a cohesive color palette.",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "Create 3 variations of a futuristic city at sunset. Each should show different architectural styles but maintain a cohesive color palette.",
+          "inputName": "prompt-1",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Concept"
       },
       "id": "prompt-1",
-      "position": { "x": 50, "y": 200 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 200
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Prompt Expander",
-        "maxTokens": 1024,
-        "outputText": null,
-        "status": "idle",
-        "systemPrompt": "You are a creative prompt engineer. Take the user's concept and expand it into 3 detailed, specific image generation prompts. Format each prompt on a new line starting with '1.', '2.', '3.'",
-        "temperature": 0.8,
-        "topP": 0.9
+        "config": {
+          "actionId": "llm",
+          "parameters": {
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Prompt Expander",
+            "maxTokens": 1024,
+            "outputText": null,
+            "status": "idle",
+            "systemPrompt": "You are a creative prompt engineer. Take the user's concept and expand it into 3 detailed, specific image generation prompts. Format each prompt on a new line starting with '1.', '2.', '3.'",
+            "temperature": 0.8,
+            "topP": 0.9
+          }
+        },
+        "label": "Prompt Expander"
       },
       "id": "llm-1",
-      "position": { "x": 350, "y": 200 },
-      "type": "llm"
+      "position": {
+        "x": 350,
+        "y": 200
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "16:9",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Image 1",
-        "model": "nano-banana-pro",
-        "outputFormat": "jpg",
-        "outputImage": null,
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "16:9",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Image 1",
+            "model": "nano-banana-pro",
+            "outputFormat": "jpg",
+            "outputImage": null,
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Image 1"
       },
       "id": "imageGen-1",
-      "position": { "x": 700, "y": 50 },
-      "type": "imageGen"
+      "position": {
+        "x": 700,
+        "y": 50
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "16:9",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Image 2",
-        "model": "nano-banana-pro",
-        "outputFormat": "jpg",
-        "outputImage": null,
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "16:9",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Image 2",
+            "model": "nano-banana-pro",
+            "outputFormat": "jpg",
+            "outputImage": null,
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Image 2"
       },
       "id": "imageGen-2",
-      "position": { "x": 700, "y": 250 },
-      "type": "imageGen"
+      "position": {
+        "x": 700,
+        "y": 250
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "16:9",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Image 3",
-        "model": "nano-banana-pro",
-        "outputFormat": "jpg",
-        "outputImage": null,
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "16:9",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Image 3",
+            "model": "nano-banana-pro",
+            "outputFormat": "jpg",
+            "outputImage": null,
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Image 3"
       },
       "id": "imageGen-3",
-      "position": { "x": 700, "y": 450 },
-      "type": "imageGen"
+      "position": {
+        "x": 700,
+        "y": 450
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "inputMedia": null,
-        "inputType": null,
-        "label": "Final Output",
-        "outputName": "image-series",
-        "status": "idle"
+        "config": {
+          "actionId": "workflow.collect-output",
+          "parameters": {
+            "inputMedia": null,
+            "inputType": null,
+            "label": "Final Output",
+            "outputName": "image-series",
+            "status": "idle"
+          }
+        },
+        "label": "Final Output"
       },
       "id": "output-1",
-      "position": { "x": 1050, "y": 250 },
-      "type": "output"
+      "position": {
+        "x": 1050,
+        "y": 250
+      },
+      "type": "genfeedAction"
     }
   ],
   "updatedAt": "2025-01-19T00:00:00.000Z",

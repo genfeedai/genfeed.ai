@@ -13,7 +13,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeRow(overrides: Record<string, unknown> = {}) {
   return {
-    agentRunId: 'run-1',
+    workflowExecutionId: 'run-1',
     agentStrategyId: 'strategy-1',
     agentThreadId: 'thread-1',
     autonomyMode: 'SUPERVISED',
@@ -77,7 +77,7 @@ describe('AgentPublishAuditsService', () => {
     await service.findAllScoped(
       { organizationId: 'org-1', userId: 'user-1' },
       {
-        agentRunId: 'run-1',
+        workflowExecutionId: 'run-1',
         isDeleted: false,
         limit: 10,
         page: 1,
@@ -89,7 +89,7 @@ describe('AgentPublishAuditsService', () => {
     expect(agentPublishAudit.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: scopedWhere('org-1', {
-          agentRunId: 'run-1',
+          workflowExecutionId: 'run-1',
           postGroupId: 'group-1',
         }),
       }),

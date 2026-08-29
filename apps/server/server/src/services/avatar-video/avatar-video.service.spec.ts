@@ -1,3 +1,7 @@
+import type { AvatarVideoProviderName } from '@genfeedai/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { AvatarVideoService } from '@server/services/avatar-video/avatar-video.service';
 import type { AvatarVideoProvider } from '@server/services/avatar-video/avatar-video-provider.interface';
 import { ArgilAvatarProvider } from '@server/services/avatar-video/providers/argil-avatar.provider';
@@ -6,10 +10,6 @@ import { GenfeedaiAvatarProvider } from '@server/services/avatar-video/providers
 import { HeygenAvatarProvider } from '@server/services/avatar-video/providers/heygen-avatar.provider';
 import { MusetalkAvatarProvider } from '@server/services/avatar-video/providers/musetalk-avatar.provider';
 import { TavusAvatarProvider } from '@server/services/avatar-video/providers/tavus-avatar.provider';
-import type { AvatarVideoProviderName } from '@genfeedai/queue-contracts';
-import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
 
 const makeProvider = (
   providerName: AvatarVideoProviderName = 'heygen',

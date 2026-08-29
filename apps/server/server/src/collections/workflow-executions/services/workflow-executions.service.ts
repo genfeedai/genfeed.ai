@@ -1,21 +1,4 @@
 import {
-  CreateWorkflowExecutionDto,
-  UpdateWorkflowExecutionDto,
-} from '@server/collections/workflow-executions/dto/create-workflow-execution.dto';
-import type {
-  WorkflowExecutionDocument,
-  WorkflowNodeResult,
-} from '@server/collections/workflow-executions/schemas/workflow-execution.schema';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
-import { WorkflowNotificationOutboxService } from '@server/services/notifications/workflow-notifications/workflow-notification-outbox.service';
-import { WorkflowEventWebhookService } from '@server/services/webhook-client/workflow-event-webhook.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import {
-  BaseService,
-  type PrismaFindAllInput,
-} from '@server/shared/services/base/base.service';
-import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
-import {
   type ActionOriginContext,
   WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
 } from '@genfeedai/enums';
@@ -32,6 +15,25 @@ import {
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import {
+  CreateWorkflowExecutionDto,
+  UpdateWorkflowExecutionDto,
+} from '@server/collections/workflow-executions/dto/create-workflow-execution.dto';
+import type {
+  WorkflowExecutionDocument,
+  WorkflowNodeResult,
+} from '@server/collections/workflow-executions/schemas/workflow-execution.schema';
+import { isHiddenSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
+import { parseWorkflowExecutionRetention } from '@server/collections/workflows/workflow-execution-retention.contract';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
+import { WorkflowNotificationOutboxService } from '@server/services/notifications/workflow-notifications/workflow-notification-outbox.service';
+import { WorkflowEventWebhookService } from '@server/services/webhook-client/workflow-event-webhook.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import {
+  BaseService,
+  type PrismaFindAllInput,
+} from '@server/shared/services/base/base.service';
+import type { AggregatePaginateResult } from '@server/types/aggregate-paginate-result';
 
 function readRecord(raw: unknown): Record<string, unknown> {
   return raw !== null && typeof raw === 'object' && !Array.isArray(raw)
@@ -83,6 +85,7 @@ type WorkflowExecutionCompletionRow = {
   userId: string;
   workflow: {
     label: string | null;
+    metadata: unknown;
     userId: string;
   };
 };
@@ -91,8 +94,10 @@ type WorkflowExecutionCreateInput = CreateWorkflowExecutionDto & {
   estimatedDurationMs?: number;
   etaConfidence?: string;
   etaCurrentPhase?: string;
+  idempotencyKey?: string;
   remainingDurationMs?: number;
   totalNodes?: number;
+  workflowVersionId: string;
 };
 
 type WorkflowExecutionCompletionFields = {
@@ -111,6 +116,8 @@ type WorkflowExecutionProgressUpdate = {
   };
   progress?: number;
 };
+
+const REVIEW_GATE_RESOLUTION_LEASE_MS = 5 * 60 * 1000;
 
 type WorkflowExecutionScalarRow = {
   creditsUsed?: number | null;
@@ -411,6 +418,7 @@ export class WorkflowExecutionsService extends BaseService<
     dto: WorkflowExecutionCreateInput,
   ): Promise<WorkflowExecutionDocument> {
     const metadata = withActionOriginMetadata(dto.metadata);
+    const retention = parseWorkflowExecutionRetention(metadata);
     const executionResult = {
       inputValues: dto.inputValues ?? {},
       metadata,
@@ -423,20 +431,34 @@ export class WorkflowExecutionsService extends BaseService<
       etaConfidence: dto.etaConfidence ?? null,
       etaCurrentPhase: dto.etaCurrentPhase ?? null,
       etaUpdatedAt: dto.etaCurrentPhase ? new Date() : null,
+      idempotencyKey: dto.idempotencyKey ?? null,
       organizationId,
       progress: 0,
+      purgeAfterHours: retention.purgeAfterHours,
       remainingDurationMs: dto.remainingDurationMs ?? null,
       result: executionResult,
       status: PrismaWorkflowExecutionStatus.PENDING,
+      scrubAllNodePayloads: retention.scrubAllNodePayloads,
+      scrubNodeIds: retention.scrubNodeIds,
       totalNodes: dto.totalNodes ?? null,
       trigger: dto.trigger ?? null,
       userId,
       workflowId: dto.workflowId,
+      workflowVersionId: dto.workflowVersionId,
     } satisfies Prisma.WorkflowExecutionUncheckedCreateInput;
 
-    const result = await this.prisma.workflowExecution.create({
-      data,
-    });
+    const result = dto.idempotencyKey
+      ? await this.prisma.workflowExecution.upsert({
+          create: data,
+          update: {},
+          where: {
+            organizationId_idempotencyKey: {
+              idempotencyKey: dto.idempotencyKey,
+              organizationId,
+            },
+          },
+        })
+      : await this.prisma.workflowExecution.create({ data });
 
     return this.normalizeDocument(result);
   }
@@ -448,6 +470,10 @@ export class WorkflowExecutionsService extends BaseService<
     // tenant-scope-ignore: the internal workflow runner starts an execution by its opaque globally unique id and has no request-level tenant boundary
     const result = await this.prisma.workflowExecution.update({
       data: {
+        completedAt: null,
+        durationMs: null,
+        error: null,
+        failedNodeId: null,
         startedAt: new Date(),
         status: PrismaWorkflowExecutionStatus.RUNNING,
       },
@@ -473,7 +499,7 @@ export class WorkflowExecutionsService extends BaseService<
         trigger: true,
         userId: true,
         workflowId: true,
-        workflow: { select: { label: true, userId: true } },
+        workflow: { select: { label: true, metadata: true, userId: true } },
       },
       where: { id: executionId },
     })) as WorkflowExecutionCompletionRow | null;
@@ -561,7 +587,11 @@ export class WorkflowExecutionsService extends BaseService<
               trigger: execution.trigger,
               workflowId: execution.workflowId,
               workflowLabel: execution.workflow.label ?? 'Untitled workflow',
-              workflowOwnerUserId: execution.workflow.userId,
+              workflowOwnerUserId: isHiddenSystemWorkflowMetadata(
+                execution.workflow.metadata,
+              )
+                ? execution.userId
+                : execution.workflow.userId,
             },
           );
 
@@ -808,23 +838,73 @@ export class WorkflowExecutionsService extends BaseService<
   /**
    * Atomically claim the pending review gate for `nodeId`. Both the human
    * approval endpoint and the timeout sweep resolve gates through this claim:
-   * the jsonb predicate stops matching once `pendingApproval` is cleared, so
-   * exactly one caller wins and the loser sees `false`.
+   * the unexpired lease stops matching after one caller wins. Failed resolvers
+   * release the lease, and an abandoned lease becomes retryable after expiry.
    */
   @HandleErrors('claim pending review gate', 'workflow-executions')
   async claimPendingReviewGate(
     executionId: string,
     nodeId: string,
+    claimToken: string,
   ): Promise<boolean> {
+    const nowMs = Date.now();
+    const expiresAtMs = nowMs + REVIEW_GATE_RESOLUTION_LEASE_MS;
+    const resolutionClaim = JSON.stringify({ claimToken, expiresAtMs });
     const claimed = await this.prisma.$executeRaw`
       UPDATE workflow_executions
-      SET result = jsonb_set(result, '{metadata,pendingApproval}', 'null'::jsonb)
+      SET result = jsonb_set(
+        result,
+        '{metadata,pendingApproval,resolutionClaim}',
+        ${resolutionClaim}::jsonb,
+        true
+      )
       WHERE id = ${executionId}
         AND status = 'RUNNING'::"WorkflowExecutionStatus"
         AND "completedAt" IS NULL
         AND result -> 'metadata' -> 'pendingApproval' ->> 'nodeId' = ${nodeId}
+        AND COALESCE(
+          (result -> 'metadata' -> 'pendingApproval' -> 'resolutionClaim' ->> 'expiresAtMs')::bigint,
+          0
+        ) <= ${nowMs}
     `;
     return claimed === 1;
+  }
+
+  @HandleErrors('complete pending review gate claim', 'workflow-executions')
+  async completePendingReviewGateClaim(
+    executionId: string,
+    nodeId: string,
+    claimToken: string,
+  ): Promise<boolean> {
+    const completed = await this.prisma.$executeRaw`
+      UPDATE workflow_executions
+      SET result = jsonb_set(result, '{metadata,pendingApproval}', 'null'::jsonb)
+      WHERE id = ${executionId}
+        AND result -> 'metadata' -> 'pendingApproval' ->> 'nodeId' = ${nodeId}
+        AND result -> 'metadata' -> 'pendingApproval' -> 'resolutionClaim' ->> 'claimToken' = ${claimToken}
+    `;
+    return completed === 1;
+  }
+
+  @HandleErrors('release pending review gate claim', 'workflow-executions')
+  async releasePendingReviewGateClaim(
+    executionId: string,
+    nodeId: string,
+    claimToken: string,
+  ): Promise<boolean> {
+    const released = await this.prisma.$executeRaw`
+      UPDATE workflow_executions
+      SET result = jsonb_set(
+        result,
+        '{metadata,pendingApproval}',
+        (result -> 'metadata' -> 'pendingApproval') - 'resolutionClaim',
+        true
+      )
+      WHERE id = ${executionId}
+        AND result -> 'metadata' -> 'pendingApproval' ->> 'nodeId' = ${nodeId}
+        AND result -> 'metadata' -> 'pendingApproval' -> 'resolutionClaim' ->> 'claimToken' = ${claimToken}
+    `;
+    return released === 1;
   }
 
   @HandleErrors('update execution metadata', 'workflow-executions')

@@ -2,7 +2,7 @@ import {
   CURATED_ACTION_CATALOG,
   getToolsForSurface,
   isActionOnSurface,
-} from '@genfeedai/tools';
+} from '@genfeedai/actions';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { describe, expect, it } from 'vitest';
 

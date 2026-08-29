@@ -243,14 +243,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       processWithAutoModel(request, sendResponse);
       return true; // Keep message channel open for async response
 
-    case 'PROCESS_YOUTUBE_TRANSCRIPT':
-      handleYoutubeTranscript(request.payload, sendResponse);
-      return true; // Keep message channel open for async response
-
-    case 'GET_TRANSCRIPT_STATUS':
-      getTranscriptStatus(request.payload, sendResponse);
-      return true; // Keep message channel open for async response
-
     case 'logout':
       logout();
       break;
@@ -685,71 +677,6 @@ async function saveBookmark(
     sendResponse,
     (result) => sendResponse({ data: result, success: true }),
     'save bookmark',
-  );
-}
-
-async function handleYoutubeTranscript(
-  payload: { youtubeUrl: string },
-  sendResponse: SendResponse,
-): Promise<void> {
-  interface TranscriptResponse {
-    data?: { id?: string; status?: string };
-    message?: string;
-  }
-
-  await executeAuthenticatedRequest<TranscriptResponse>(
-    '/transcripts',
-    {
-      body: JSON.stringify({ youtubeUrl: payload.youtubeUrl }),
-      method: 'POST',
-    },
-    sendResponse,
-    (data) => {
-      if (data.data) {
-        sendResponse({
-          status: data.data.status,
-          success: true,
-          transcriptId: data.data.id,
-        });
-      } else {
-        sendResponse({
-          error: data.message || 'Failed to process YouTube video',
-          success: false,
-        });
-      }
-    },
-    'process YouTube video',
-  );
-}
-
-interface TranscriptStatusResponse {
-  data?: { status?: string };
-  message?: string;
-}
-
-async function getTranscriptStatus(
-  payload: { transcriptId: string },
-  sendResponse: SendResponse,
-): Promise<void> {
-  await executeAuthenticatedRequest<TranscriptStatusResponse>(
-    `/transcripts/${payload.transcriptId}`,
-    { method: 'GET' },
-    sendResponse,
-    (data) => {
-      if (data.data) {
-        sendResponse({
-          status: data.data.status,
-          success: true,
-          transcript: data.data,
-        });
-      } else {
-        sendResponse({
-          error: data.message || 'Failed to get transcript status',
-          success: false,
-        });
-      }
-    },
-    'get transcript status',
   );
 }
 

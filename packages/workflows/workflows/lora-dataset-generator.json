@@ -143,7 +143,6 @@
       "target": "imageGen-20",
       "targetHandle": "images"
     },
-
     {
       "id": "e21",
       "source": "imageInput-2",
@@ -284,7 +283,6 @@
       "target": "imageGen-20",
       "targetHandle": "images"
     },
-
     {
       "id": "e41",
       "source": "imageInput-3",
@@ -425,7 +423,6 @@
       "target": "imageGen-20",
       "targetHandle": "images"
     },
-
     {
       "id": "e61",
       "source": "prompt-1",
@@ -566,787 +563,1097 @@
       "target": "imageGen-20",
       "targetHandle": "prompt"
     },
-
     {
       "id": "e81",
       "source": "imageGen-1",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e82",
       "source": "imageGen-2",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e83",
       "source": "imageGen-3",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e84",
       "source": "imageGen-4",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e85",
       "source": "imageGen-5",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e86",
       "source": "imageGen-6",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e87",
       "source": "imageGen-7",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e88",
       "source": "imageGen-8",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e89",
       "source": "imageGen-9",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e90",
       "source": "imageGen-10",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e91",
       "source": "imageGen-11",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e92",
       "source": "imageGen-12",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e93",
       "source": "imageGen-13",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e94",
       "source": "imageGen-14",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e95",
       "source": "imageGen-15",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e96",
       "source": "imageGen-16",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e97",
       "source": "imageGen-17",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e98",
       "source": "imageGen-18",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e99",
       "source": "imageGen-19",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     },
     {
       "id": "e100",
       "source": "imageGen-20",
       "sourceHandle": "image",
       "target": "outputGallery-1",
-      "targetHandle": "image"
+      "targetHandle": "media"
     }
   ],
   "name": "LoRA Dataset Generator",
   "nodes": [
     {
       "data": {
-        "dimensions": null,
-        "filename": null,
-        "image": null,
-        "label": "Reference Photo 1",
-        "source": "upload",
-        "status": "idle"
+        "config": {
+          "inputName": "imageInput-1",
+          "inputType": "image",
+          "required": true
+        },
+        "label": "Reference Photo 1"
       },
       "id": "imageInput-1",
-      "position": { "x": 50, "y": 50 },
-      "type": "imageInput"
+      "position": {
+        "x": 50,
+        "y": 50
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "dimensions": null,
-        "filename": null,
-        "image": null,
-        "label": "Reference Photo 2",
-        "source": "upload",
-        "status": "idle"
+        "config": {
+          "inputName": "imageInput-2",
+          "inputType": "image",
+          "required": true
+        },
+        "label": "Reference Photo 2"
       },
       "id": "imageInput-2",
-      "position": { "x": 50, "y": 200 },
-      "type": "imageInput"
+      "position": {
+        "x": 50,
+        "y": 200
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "dimensions": null,
-        "filename": null,
-        "image": null,
-        "label": "Reference Photo 3",
-        "source": "upload",
-        "status": "idle"
+        "config": {
+          "inputName": "imageInput-3",
+          "inputType": "image",
+          "required": true
+        },
+        "label": "Reference Photo 3"
       },
       "id": "imageInput-3",
-      "position": { "x": 50, "y": 350 },
-      "type": "imageInput"
+      "position": {
+        "x": 50,
+        "y": 350
+      },
+      "type": "workflowInput"
     },
-
     {
       "data": {
-        "label": "Frontal 1",
-        "prompt": "close-up portrait from shoulders up, neutral expression, soft natural window light, direct eye contact, natural skin texture with visible pores",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "close-up portrait from shoulders up, neutral expression, soft natural window light, direct eye contact, natural skin texture with visible pores",
+          "inputName": "prompt-1",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Frontal 1"
       },
       "id": "prompt-1",
-      "position": { "x": 50, "y": 550 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 550
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "Frontal 2",
-        "prompt": "three-quarter view turned slightly right, warm natural smile, golden hour outdoor light, head and shoulders, natural skin texture",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "three-quarter view turned slightly right, warm natural smile, golden hour outdoor light, head and shoulders, natural skin texture",
+          "inputName": "prompt-2",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Frontal 2"
       },
       "id": "prompt-2",
-      "position": { "x": 50, "y": 700 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 700
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "Frontal 3",
-        "prompt": "side profile facing left, dramatic rim lighting, defined jawline, dark moody background, natural skin imperfections visible",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "side profile facing left, dramatic rim lighting, defined jawline, dark moody background, natural skin imperfections visible",
+          "inputName": "prompt-3",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Frontal 3"
       },
       "id": "prompt-3",
-      "position": { "x": 50, "y": 850 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 850
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "Frontal 4",
-        "prompt": "sitting at outdoor cafe, laughing naturally, bright daylight, casual outfit, candid feel, authentic human skin texture",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "sitting at outdoor cafe, laughing naturally, bright daylight, casual outfit, candid feel, authentic human skin texture",
+          "inputName": "prompt-4",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Frontal 4"
       },
       "id": "prompt-4",
-      "position": { "x": 50, "y": 1000 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 1000
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "Frontal 5",
-        "prompt": "studio headshot, serious confident expression, soft even lighting, grey background, sharp focus on facial features",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "studio headshot, serious confident expression, soft even lighting, grey background, sharp focus on facial features",
+          "inputName": "prompt-5",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Frontal 5"
       },
       "id": "prompt-5",
-      "position": { "x": 50, "y": 1150 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 1150
+      },
+      "type": "workflowInput"
     },
-
     {
       "data": {
-        "label": "3/4 View 1",
-        "prompt": "three-quarter view turned left, relaxed neutral face, soft diffused light, clean background",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "three-quarter view turned left, relaxed neutral face, soft diffused light, clean background",
+          "inputName": "prompt-6",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "3/4 View 1"
       },
       "id": "prompt-6",
-      "position": { "x": 50, "y": 1450 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 1450
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "3/4 View 2",
-        "prompt": "three-quarter angle right, confident smirk, dramatic side light, dark background",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "three-quarter angle right, confident smirk, dramatic side light, dark background",
+          "inputName": "prompt-7",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "3/4 View 2"
       },
       "id": "prompt-7",
-      "position": { "x": 50, "y": 1600 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 1600
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "3/4 View 3",
-        "prompt": "three-quarter view, gentle smile, golden hour warm glow, shallow depth of field",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "three-quarter view, gentle smile, golden hour warm glow, shallow depth of field",
+          "inputName": "prompt-8",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "3/4 View 3"
       },
       "id": "prompt-8",
-      "position": { "x": 50, "y": 1750 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 1750
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "3/4 View 4",
-        "prompt": "three-quarter angle left, serious expression, moody atmosphere, low key lighting",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "three-quarter angle left, serious expression, moody atmosphere, low key lighting",
+          "inputName": "prompt-9",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "3/4 View 4"
       },
       "id": "prompt-9",
-      "position": { "x": 50, "y": 1900 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 1900
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "3/4 View 5",
-        "prompt": "three-quarter view right, head tilted slightly, bright overcast light, outdoor setting",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "three-quarter view right, head tilted slightly, bright overcast light, outdoor setting",
+          "inputName": "prompt-10",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "3/4 View 5"
       },
       "id": "prompt-10",
-      "position": { "x": 50, "y": 2050 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 2050
+      },
+      "type": "workflowInput"
     },
-
     {
       "data": {
-        "label": "Profile 1",
-        "prompt": "side profile facing right, backlit golden hour, hair catching light, silhouette edges",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "side profile facing right, backlit golden hour, hair catching light, silhouette edges",
+          "inputName": "prompt-11",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Profile 1"
       },
       "id": "prompt-11",
-      "position": { "x": 50, "y": 2350 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 2350
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "Profile 2",
-        "prompt": "side profile left, studio key light from front, neutral expression, grey background",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "side profile left, studio key light from front, neutral expression, grey background",
+          "inputName": "prompt-12",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Profile 2"
       },
       "id": "prompt-12",
-      "position": { "x": 50, "y": 2500 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 2500
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "Profile 3",
-        "prompt": "head tilted down looking up through lashes, soft overhead light, intimate close-up",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "head tilted down looking up through lashes, soft overhead light, intimate close-up",
+          "inputName": "prompt-13",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Profile 3"
       },
       "id": "prompt-13",
-      "position": { "x": 50, "y": 2650 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 2650
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "Profile 4",
-        "prompt": "chin raised looking slightly upward, confident, low angle, dramatic light",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "chin raised looking slightly upward, confident, low angle, dramatic light",
+          "inputName": "prompt-14",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Profile 4"
       },
       "id": "prompt-14",
-      "position": { "x": 50, "y": 2800 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 2800
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "Profile 5",
-        "prompt": "side profile right, natural outdoor light, relaxed expression, blurred background",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "side profile right, natural outdoor light, relaxed expression, blurred background",
+          "inputName": "prompt-15",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Profile 5"
       },
       "id": "prompt-15",
-      "position": { "x": 50, "y": 2950 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 2950
+      },
+      "type": "workflowInput"
     },
-
     {
       "data": {
-        "label": "Variety 1",
-        "prompt": "full body standing pose, casual streetwear, urban setting, bright daylight",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "full body standing pose, casual streetwear, urban setting, bright daylight",
+          "inputName": "prompt-16",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Variety 1"
       },
       "id": "prompt-16",
-      "position": { "x": 50, "y": 3250 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 3250
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "Variety 2",
-        "prompt": "sitting on stool, formal outfit, studio lighting, clean white background",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "sitting on stool, formal outfit, studio lighting, clean white background",
+          "inputName": "prompt-17",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Variety 2"
       },
       "id": "prompt-17",
-      "position": { "x": 50, "y": 3400 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 3400
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "Variety 3",
-        "prompt": "leaning against wall, casual, golden hour, warm tones, natural skin",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "leaning against wall, casual, golden hour, warm tones, natural skin",
+          "inputName": "prompt-18",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Variety 3"
       },
       "id": "prompt-18",
-      "position": { "x": 50, "y": 3550 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 3550
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "Variety 4",
-        "prompt": "close-up beauty shot, minimal makeup, ring light, visible skin pores and texture",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "close-up beauty shot, minimal makeup, ring light, visible skin pores and texture",
+          "inputName": "prompt-19",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Variety 4"
       },
       "id": "prompt-19",
-      "position": { "x": 50, "y": 3700 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 3700
+      },
+      "type": "workflowInput"
     },
     {
       "data": {
-        "label": "Variety 5",
-        "prompt": "outdoor portrait, wind in hair, overcast sky, soft even lighting, waist up",
-        "status": "idle",
-        "variables": {}
+        "config": {
+          "defaultValue": "outdoor portrait, wind in hair, overcast sky, soft even lighting, waist up",
+          "inputName": "prompt-20",
+          "inputType": "text",
+          "required": false
+        },
+        "label": "Variety 5"
       },
       "id": "prompt-20",
-      "position": { "x": 50, "y": 3850 },
-      "type": "prompt"
+      "position": {
+        "x": 50,
+        "y": 3850
+      },
+      "type": "workflowInput"
     },
-
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Frontal Gen 1",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Frontal Gen 1",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Frontal Gen 1"
       },
       "id": "imageGen-1",
-      "position": { "x": 450, "y": 550 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 550
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Frontal Gen 2",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Frontal Gen 2",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Frontal Gen 2"
       },
       "id": "imageGen-2",
-      "position": { "x": 450, "y": 700 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 700
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Frontal Gen 3",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Frontal Gen 3",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Frontal Gen 3"
       },
       "id": "imageGen-3",
-      "position": { "x": 450, "y": 850 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 850
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Frontal Gen 4",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Frontal Gen 4",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Frontal Gen 4"
       },
       "id": "imageGen-4",
-      "position": { "x": 450, "y": 1000 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 1000
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Frontal Gen 5",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Frontal Gen 5",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Frontal Gen 5"
       },
       "id": "imageGen-5",
-      "position": { "x": 450, "y": 1150 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 1150
+      },
+      "type": "genfeedAction"
     },
-
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "3/4 Gen 1",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "3/4 Gen 1",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "3/4 Gen 1"
       },
       "id": "imageGen-6",
-      "position": { "x": 450, "y": 1450 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 1450
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "3/4 Gen 2",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "3/4 Gen 2",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "3/4 Gen 2"
       },
       "id": "imageGen-7",
-      "position": { "x": 450, "y": 1600 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 1600
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "3/4 Gen 3",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "3/4 Gen 3",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "3/4 Gen 3"
       },
       "id": "imageGen-8",
-      "position": { "x": 450, "y": 1750 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 1750
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "3/4 Gen 4",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "3/4 Gen 4",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "3/4 Gen 4"
       },
       "id": "imageGen-9",
-      "position": { "x": 450, "y": 1900 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 1900
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "3/4 Gen 5",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "3/4 Gen 5",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "3/4 Gen 5"
       },
       "id": "imageGen-10",
-      "position": { "x": 450, "y": 2050 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 2050
+      },
+      "type": "genfeedAction"
     },
-
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Profile Gen 1",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Profile Gen 1",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Profile Gen 1"
       },
       "id": "imageGen-11",
-      "position": { "x": 450, "y": 2350 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 2350
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Profile Gen 2",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Profile Gen 2",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Profile Gen 2"
       },
       "id": "imageGen-12",
-      "position": { "x": 450, "y": 2500 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 2500
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Profile Gen 3",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Profile Gen 3",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Profile Gen 3"
       },
       "id": "imageGen-13",
-      "position": { "x": 450, "y": 2650 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 2650
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Profile Gen 4",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Profile Gen 4",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Profile Gen 4"
       },
       "id": "imageGen-14",
-      "position": { "x": 450, "y": 2800 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 2800
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Profile Gen 5",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Profile Gen 5",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Profile Gen 5"
       },
       "id": "imageGen-15",
-      "position": { "x": 450, "y": 2950 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 2950
+      },
+      "type": "genfeedAction"
     },
-
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Variety Gen 1",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Variety Gen 1",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Variety Gen 1"
       },
       "id": "imageGen-16",
-      "position": { "x": 450, "y": 3250 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 3250
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Variety Gen 2",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Variety Gen 2",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Variety Gen 2"
       },
       "id": "imageGen-17",
-      "position": { "x": 450, "y": 3400 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 3400
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Variety Gen 3",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Variety Gen 3",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Variety Gen 3"
       },
       "id": "imageGen-18",
-      "position": { "x": 450, "y": 3550 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 3550
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Variety Gen 4",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Variety Gen 4",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Variety Gen 4"
       },
       "id": "imageGen-19",
-      "position": { "x": 450, "y": 3700 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 3700
+      },
+      "type": "genfeedAction"
     },
     {
       "data": {
-        "aspectRatio": "4:5",
-        "inputImages": [],
-        "inputPrompt": null,
-        "jobId": null,
-        "label": "Variety Gen 5",
-        "model": "nano-banana-pro",
-        "outputFormat": "png",
-        "outputImage": null,
-        "outputImages": [],
-        "resolution": "2K",
-        "status": "idle"
+        "config": {
+          "actionId": "imageGen",
+          "parameters": {
+            "aspectRatio": "4:5",
+            "inputImages": [],
+            "inputPrompt": null,
+            "jobId": null,
+            "label": "Variety Gen 5",
+            "model": "nano-banana-pro",
+            "outputFormat": "png",
+            "outputImage": null,
+            "outputImages": [],
+            "resolution": "2K",
+            "status": "idle"
+          }
+        },
+        "label": "Variety Gen 5"
       },
       "id": "imageGen-20",
-      "position": { "x": 450, "y": 3850 },
-      "type": "imageGen"
+      "position": {
+        "x": 450,
+        "y": 3850
+      },
+      "type": "genfeedAction"
     },
-
     {
       "data": {
-        "images": [],
-        "label": "Output Gallery",
-        "status": "idle"
+        "config": {
+          "actionId": "workflow.collect-output",
+          "parameters": {
+            "images": [],
+            "label": "Output Gallery",
+            "status": "idle",
+            "inputType": "image",
+            "outputName": "lora-dataset"
+          }
+        },
+        "label": "Output Gallery"
       },
       "id": "outputGallery-1",
-      "position": { "x": 850, "y": 2000 },
-      "type": "outputGallery"
+      "position": {
+        "x": 850,
+        "y": 2000
+      },
+      "type": "genfeedAction"
     }
   ],
   "updatedAt": "2025-01-19T00:00:00.000Z",

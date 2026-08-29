@@ -69,7 +69,7 @@ const OVERLAY_MENU_SOURCES = [
 const ICONIC_STATUS_SOURCES = [
   'app/(protected)/[orgSlug]/[brandSlug]/automate/agents/AgentHubPage.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/automate/runs/ActiveRunsPanel.tsx',
-  'app/(protected)/[orgSlug]/[brandSlug]/automate/runs/AgentRunCard.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/automate/runs/WorkflowExecutionCard.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-dashboard.tsx',
   'app/(protected)/[orgSlug]/~/settings/(pages)/organization/api-keys/byok-provider-card.tsx',
   'src/features/workflows/components/editor/CloudCreditsIndicator.tsx',

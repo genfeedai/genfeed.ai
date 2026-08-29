@@ -184,6 +184,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/studio',
     '/tools',
     '/tools/youtube-clips',
+    '/tools/youtube-long-form',
     '/use-cases',
     '/use-cases/:slug',
     '/vs',

@@ -1,23 +1,20 @@
-import { AgentRunsCoreModule } from '@api/collections/agent-runs/agent-runs-core.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
-import { QueuesModule } from '@api/queues/core/queues.module';
-import { AgentRuntimeService } from '@server/services/agent-runtime/agent-runtime.service';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
+import { AgentRuntimeService } from '@server/services/agent-runtime/agent-runtime.service';
 
 /**
- * Facade over run create + queue + thread provenance for automation callers
- * (campaigns). Chat continues through AgentOrchestratorModule.
+ * Facade over the hidden agent-turn workflow for automation callers.
  */
 @Module({
   exports: [AgentRuntimeService],
   imports: [
-    AgentRunsCoreModule,
     AgentThreadsModule,
-    QueuesModule,
     AgentThreadingCoreModule,
     LoggerModule,
+    WorkflowsModule,
   ],
   providers: [AgentRuntimeService],
 })

@@ -7,6 +7,10 @@ import {
 } from '../base-executor';
 
 export interface VideoGenOutput {
+  // `id` and `status` mirror the pending ingredient the resolver creates before
+  // handing off to the provider; the `videoGen` action contract requires both.
+  id: string;
+  status: string;
   filename?: string;
   generationBriefEvidence?: Record<string, unknown>;
   generationSource?: string;

@@ -1,11 +1,11 @@
-import { WorkflowActionContextDto } from '@server/collections/workflows/dto/workflow-action-context.dto';
-import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
-import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
+import { WorkflowActionContextDto } from '@server/collections/workflows/dto/workflow-action-context.dto';
+import { BaseQueryDto } from '@server/helpers/dto/base-query.dto';
+import { IsEntityId } from '@server/helpers/validation/entity-id.validator';
 import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
 
 export class CreateWorkflowExecutionDto extends WorkflowActionContextDto {

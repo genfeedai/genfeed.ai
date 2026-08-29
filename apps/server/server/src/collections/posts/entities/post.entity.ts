@@ -98,6 +98,7 @@ export class PostEntity extends BaseEntity {
     artifactVersionPinId: string;
     id: string;
     operationId: string;
+    status?: string;
   };
   declare readonly reviewedAt?: Date;
   declare readonly reviewEvents?: Array<{

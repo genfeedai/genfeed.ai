@@ -48,7 +48,7 @@ export class ConfigService extends createServiceConfig<WorkersEnvConfig>({
     // validated. Kept optional (no required/conditionalRequired) so a service
     // that runs without them does not crash at boot, and AWS_REGION carries no
     // default so the llm-idle cron's own `|| 'us-east-1'` fallback is preserved.
-    // - OPENROUTER_API_KEY: clip-factory/clip-analyze processors
+    // - OPENROUTER_API_KEY: clip analysis/factory workflow actions
     // - REPLICATE_KEY: model-watcher cron + model-discovery service (soft-fails)
     // - FAL_API_KEY: fal-model-watcher cron (soft-fails when absent, #2422)
     // - AWS_*: llm-idle cron's EC2Client credentials/region

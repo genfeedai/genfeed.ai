@@ -1,3 +1,4 @@
+import { createTemplateActionNode } from '@server/collections/workflows/templates/template-action-node';
 export const AVATAR_UGC_WORKFLOW_TEMPLATE = {
   category: 'generation',
   description:
@@ -121,7 +122,7 @@ export const AVATAR_UGC_WORKFLOW_TEMPLATE = {
       position: { x: 0, y: 450 },
       type: 'workflowInput',
     },
-    {
+    createTemplateActionNode('aiAvatarVideo', {
       data: {
         config: {
           aspectRatio: '9:16',
@@ -132,9 +133,8 @@ export const AVATAR_UGC_WORKFLOW_TEMPLATE = {
       },
       id: 'ai-avatar-video',
       position: { x: 320, y: 180 },
-      type: 'ai-avatar-video',
-    },
-    {
+    }),
+    createTemplateActionNode('workflow.collect-output', {
       data: {
         config: {
           outputName: 'video',
@@ -143,8 +143,6 @@ export const AVATAR_UGC_WORKFLOW_TEMPLATE = {
       },
       id: 'workflow-output-video',
       position: { x: 620, y: 180 },
-      type: 'workflowOutput',
-    },
+    }),
   ],
-  steps: [],
 } as const;

@@ -4,10 +4,36 @@
  * Implements the X Heavy Ranker lesson: author engages reader replies.
  * Uses COMMENT_RESPONDER path + harness-aware draft generation.
  */
+
+import {
+  ReplyBotActionType,
+  ReplyBotPlatform,
+  ReplyBotType,
+  ReplyLength,
+  ReplyTone,
+  toPrismaCredentialPlatform,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
+import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
+import {
+  BadRequestException,
+  Injectable,
+  type OnModuleInit,
+  Optional,
+} from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { ProcessedTweetsService } from '@server/collections/processed-tweets/services/processed-tweets.service';
 import type { ReplyBotConfigDocument } from '@server/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
+import {
+  type SystemWorkflowActionRequest,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   readReplyBotCredentialId,
@@ -22,6 +48,11 @@ import type {
   EnsureAuthorResponderResult,
   RecordAuthorClosedLoopParams,
 } from '@server/services/reply-bot/author-reply-loop.types';
+import {
+  AUTHOR_REPLY_ACTION_IDS,
+  buildAuthorReplyDraftWorkflowDefinition,
+  buildAuthorReplySendWorkflowDefinition,
+} from '@server/services/reply-bot/author-reply-workflow-definition';
 import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@server/services/reply-bot/reply-generation.service';
 import {
@@ -41,27 +72,43 @@ import {
   toYouTubeVideoUrl,
 } from '@server/services/reply-bot/youtube-reply-url.util';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import {
-  ReplyBotActionType,
-  ReplyBotPlatform,
-  ReplyBotType,
-  ReplyLength,
-  ReplyTone,
-  toPrismaCredentialPlatform,
-} from '@genfeedai/enums';
-import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
-import { BadRequestException, Injectable, Optional } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 
 const MAX_PARENT_POSTS = 12;
 const MAX_COMMENTS_PER_POST = 40;
 
+type AuthorReplyWorkflowRequest = {
+  brandId: string;
+  commentAuthor: string;
+  commentAuthorId?: string;
+  commentId: string;
+  commentText: string;
+  intent?: ReplyIntent;
+  organizationId: string;
+  parentPostId?: string;
+  parentPostPreview?: string;
+  platform?: ReplyBotPlatform | 'twitter' | 'youtube';
+  replyText?: string;
+  userId: string;
+};
+
+type AuthorReplyWorkflowState = {
+  credentialId?: string;
+  draftResult?: AuthorReplyDraftResult;
+  intent: ReplyIntent;
+  intentLabel: string;
+  platform: ReplyBotPlatform;
+  replyText?: string;
+  request: AuthorReplyWorkflowRequest;
+  sendResult?: {
+    error?: string;
+    replyContentId?: string;
+    replyContentUrl?: string;
+    replySent: boolean;
+  };
+};
+
 @Injectable()
-export class AuthorReplyLoopService {
+export class AuthorReplyLoopService implements OnModuleInit {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
@@ -69,14 +116,52 @@ export class AuthorReplyLoopService {
     private readonly logger: LoggerService,
     private readonly socialMonitorService: SocialMonitorService,
     private readonly replyGenerationService: ReplyGenerationService,
-    private readonly botActionExecutorService: BotActionExecutorService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     private readonly replyBotConfigsService: ReplyBotConfigsService,
     @Optional()
     private readonly credentialsService: CredentialsService | undefined,
     private readonly processedTweetsService: ProcessedTweetsService,
     private readonly xActivitySubscriptionService: XActivitySubscriptionService,
     @Optional() private readonly moduleRef?: ModuleRef,
+    @Optional()
+    private readonly botActionExecutorService?: BotActionExecutorService,
   ) {}
+
+  onModuleInit(): void {
+    // The inbound ingestion graph runs `author-reply.send-reply` as a child, and
+    // the runner's boot guard requires every child graph to be registered — so
+    // both author-reply definitions register here rather than at call time.
+    this.systemWorkflowRunner.registerWorkflow(
+      buildAuthorReplyDraftWorkflowDefinition(),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildAuthorReplySendWorkflowDefinition(),
+    );
+    this.systemWorkflowRunner.registerAction(
+      AUTHOR_REPLY_ACTION_IDS.RESOLVE_INTENT,
+      (request) => this.resolveIntentAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      AUTHOR_REPLY_ACTION_IDS.RESOLVE_CREDENTIAL,
+      (request) => this.resolveCredentialAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      AUTHOR_REPLY_ACTION_IDS.GENERATE_DRAFT,
+      (request) => this.generateDraftAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      AUTHOR_REPLY_ACTION_IDS.FINALIZE_DRAFT,
+      (request) => this.finalizeDraftAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      AUTHOR_REPLY_ACTION_IDS.SEND,
+      (request) => this.sendProviderReplyAction(request),
+    );
+    this.systemWorkflowRunner.registerAction(
+      AUTHOR_REPLY_ACTION_IDS.FINALIZE_SEND,
+      (request) => this.finalizeSendAction(request),
+    );
+  }
 
   async ensureAuthorResponder(params: {
     brandId: string;
@@ -445,58 +530,18 @@ export class AuthorReplyLoopService {
     platform?: ReplyBotPlatform | 'twitter' | 'youtube';
     userId: string;
   }): Promise<AuthorReplyDraftResult> {
-    const intent = resolveReplyIntent(params.commentText, params.intent);
-    const persona = getReplyIntentPersona(intent);
-    const platform = toAuthorReplyPlatform(params.platform);
-
-    if (persona.shouldSkipAuto && !params.intent) {
-      return {
-        commentId: params.commentId,
-        draft: '',
-        harnessApplied: false,
-        intent,
-        intentLabel: persona.label,
-      };
-    }
-
-    const draft = await this.replyGenerationService.generateReply({
-      brandId: params.brandId,
-      context: params.parentPostPreview
-        ? `Parent post: ${params.parentPostPreview}`
-        : undefined,
-      customInstructions: [
-        platform === ReplyBotPlatform.YOUTUBE
-          ? 'You are the channel owner replying to a YouTube comment on your video.'
-          : 'You are the author of the parent post replying on your own thread.',
-        persona.instructions,
-        `Tone: ${persona.toneHint}.`,
-      ].join(' '),
-      length:
-        intent === 'thanks' || intent === 'troll'
-          ? ReplyLength.SHORT
-          : ReplyLength.MEDIUM,
-      organizationId: params.organizationId,
-      platform: platform,
-      tone:
-        intent === 'troll'
-          ? ReplyTone.HUMOROUS
-          : intent === 'thanks'
-            ? ReplyTone.FRIENDLY
-            : intent === 'question'
-              ? ReplyTone.INFORMATIVE
-              : ReplyTone.ENGAGING,
-      tweetAuthor: params.commentAuthor,
-      tweetContent: params.commentText,
-      userId: params.userId,
-    });
-
-    return {
-      commentId: params.commentId,
-      draft,
-      harnessApplied: true,
-      intent,
-      intentLabel: persona.label,
-    };
+    const definition = buildAuthorReplyDraftWorkflowDefinition();
+    const { result } =
+      await this.systemWorkflowRunner.runWorkflow<AuthorReplyDraftResult>({
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request: params },
+        organizationId: params.organizationId,
+        source: 'AuthorReplyLoopService.draftReply',
+        trigger: WorkflowExecutionTrigger.API,
+        userId: params.userId,
+      });
+    return result;
   }
 
   async sendReply(params: {
@@ -513,100 +558,275 @@ export class AuthorReplyLoopService {
     replyText?: string;
     userId: string;
   }): Promise<AuthorReplySendResult> {
-    const replyPlatform = toAuthorReplyPlatform(params.platform);
-    const platformLabel =
-      replyPlatform === ReplyBotPlatform.YOUTUBE ? 'YouTube' : 'X';
+    const definition = buildAuthorReplySendWorkflowDefinition();
+    const { result } =
+      await this.systemWorkflowRunner.runWorkflow<AuthorReplySendResult>({
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        inputValues: { request: params },
+        metadata: {
+          brandId: params.brandId,
+          parentPostId: params.parentPostId,
+        },
+        organizationId: params.organizationId,
+        source: 'AuthorReplyLoopService.sendReply',
+        trigger: WorkflowExecutionTrigger.API,
+        userId: params.userId,
+      });
+    return result;
+  }
 
+  private async resolveIntentAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<AuthorReplyWorkflowState> {
+    const request = this.readWorkflowRequest(action.input);
+    const intent = resolveReplyIntent(request.commentText, request.intent);
+    const persona = getReplyIntentPersona(intent);
+    return {
+      intent,
+      intentLabel: persona.label,
+      platform: toAuthorReplyPlatform(request.platform),
+      request,
+    };
+  }
+
+  private async resolveCredentialAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<AuthorReplyWorkflowState> {
+    const state = this.readWorkflowState(action.input);
+    const { request } = state;
+    const platformLabel =
+      state.platform === ReplyBotPlatform.YOUTUBE ? 'YouTube' : 'X';
     const credential =
-      replyPlatform === ReplyBotPlatform.YOUTUBE
+      state.platform === ReplyBotPlatform.YOUTUBE
         ? await this.loadYouTubeCredential(
-            params.organizationId,
-            params.brandId,
+            request.organizationId,
+            request.brandId,
           )
         : await this.loadTwitterCredential(
-            params.organizationId,
-            params.brandId,
+            request.organizationId,
+            request.brandId,
           );
     if (!credential) {
       throw new BadRequestException(
         `No ${platformLabel} credential for this brand`,
       );
     }
+    if (!credential.id) {
+      throw new BadRequestException(
+        `No ${platformLabel} credential id for this brand`,
+      );
+    }
+    return { ...state, credentialId: credential.id };
+  }
 
-    // X OAuth2 send + YouTube reply both refresh via org/brand.
-    credential.organizationId = params.organizationId;
-    credential.brandId = params.brandId;
-
-    const intent = resolveReplyIntent(params.commentText, params.intent);
-    if (intent === 'spam' && !params.replyText?.trim()) {
+  private async generateDraftAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<AuthorReplyWorkflowState> {
+    const state = this.readWorkflowState(action.input);
+    const { request } = state;
+    const persona = getReplyIntentPersona(state.intent);
+    const explicitReply = request.replyText?.trim();
+    if (state.intent === 'spam' && !explicitReply && request.parentPostId) {
       throw new BadRequestException(
         'Spam comments are skipped by default — provide replyText to force-send',
       );
     }
-
-    const drafted =
-      params.replyText?.trim() ||
-      (
-        await this.draftReply({
-          brandId: params.brandId,
-          commentAuthor: params.commentAuthor,
-          commentId: params.commentId,
-          commentText: params.commentText,
-          intent,
-          organizationId: params.organizationId,
-          parentPostPreview: params.parentPostPreview,
-          platform: replyPlatform,
-          userId: params.userId,
-        })
-      ).draft;
-
-    const replyText = drafted.trim();
-    if (!replyText) {
-      throw new BadRequestException('Reply text is empty');
+    if (persona.shouldSkipAuto && !request.intent && !explicitReply) {
+      return {
+        ...state,
+        draftResult: {
+          commentId: request.commentId,
+          draft: '',
+          harnessApplied: false,
+          intent: state.intent,
+          intentLabel: state.intentLabel,
+        },
+        replyText: '',
+      };
     }
+    const replyText =
+      explicitReply ??
+      (await this.replyGenerationService.generateReply({
+        brandId: request.brandId,
+        context: request.parentPostPreview
+          ? `Parent post: ${request.parentPostPreview}`
+          : undefined,
+        customInstructions: [
+          state.platform === ReplyBotPlatform.YOUTUBE
+            ? 'You are the channel owner replying to a YouTube comment on your video.'
+            : 'You are the author of the parent post replying on your own thread.',
+          persona.instructions,
+          `Tone: ${persona.toneHint}.`,
+        ].join(' '),
+        length:
+          state.intent === 'thanks' || state.intent === 'troll'
+            ? ReplyLength.SHORT
+            : ReplyLength.MEDIUM,
+        organizationId: request.organizationId,
+        platform: state.platform,
+        tone:
+          state.intent === 'troll'
+            ? ReplyTone.HUMOROUS
+            : state.intent === 'thanks'
+              ? ReplyTone.FRIENDLY
+              : state.intent === 'question'
+                ? ReplyTone.INFORMATIVE
+                : ReplyTone.ENGAGING,
+        tweetAuthor: request.commentAuthor,
+        tweetContent: request.commentText,
+        userId: request.userId,
+      }));
+    return {
+      ...state,
+      draftResult: {
+        commentId: request.commentId,
+        draft: replyText,
+        harnessApplied: !explicitReply,
+        intent: state.intent,
+        intentLabel: state.intentLabel,
+      },
+      replyText,
+    };
+  }
 
-    const result = await this.botActionExecutorService.postReply(
+  private async finalizeDraftAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<AuthorReplyDraftResult> {
+    const state = this.readWorkflowState(action.input);
+    if (!state.draftResult) {
+      throw new Error('Author reply workflow did not produce a draft');
+    }
+    return state.draftResult;
+  }
+
+  private async sendProviderReplyAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<AuthorReplyWorkflowState> {
+    const state = this.readWorkflowState(action.input);
+    const replyText = state.replyText?.trim();
+    if (!replyText) throw new BadRequestException('Reply text is empty');
+    const credentialId = this.requiredString(
+      state.credentialId,
+      'credentialId',
+    );
+    const credential =
+      state.platform === ReplyBotPlatform.YOUTUBE
+        ? await this.loadYouTubeCredential(
+            state.request.organizationId,
+            state.request.brandId,
+          )
+        : await this.loadTwitterCredential(
+            state.request.organizationId,
+            state.request.brandId,
+          );
+    if (!credential || credential.id !== credentialId) {
+      throw new BadRequestException('Author reply credential changed');
+    }
+    credential.organizationId = state.request.organizationId;
+    credential.brandId = state.request.brandId;
+    const result = await this.requireBotActionExecutor().postReply(
       credential,
       {
-        authorId: params.commentAuthorId ?? '',
-        authorUsername: params.commentAuthor,
+        authorId: state.request.commentAuthorId ?? '',
+        authorUsername: state.request.commentAuthor,
         createdAt: new Date(),
-        id: params.commentId,
-        text: params.commentText,
+        id: state.request.commentId,
+        text: state.request.commentText,
       },
       replyText,
     );
+    const error = result.error;
+    const replyContentId = result.contentId;
+    const replyContentUrl = result.contentUrl;
+    return {
+      ...state,
+      sendResult: {
+        ...(error === undefined ? {} : { error }),
+        ...(replyContentId === undefined ? {} : { replyContentId }),
+        ...(replyContentUrl === undefined ? {} : { replyContentUrl }),
+        replySent: result.success,
+      },
+    };
+  }
 
-    if (result.success) {
+  private async finalizeSendAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<AuthorReplySendResult> {
+    const state = this.readWorkflowState(action.input);
+    const result = state.sendResult;
+    if (!result) throw new Error('Author reply workflow did not send a reply');
+    const parentPostId = this.requiredString(
+      state.request.parentPostId,
+      'parentPostId',
+    );
+    if (result.replySent) {
       await this.recordAuthorClosedLoop({
-        brandId: params.brandId,
-        commentId: params.commentId,
-        organizationId: params.organizationId,
-        parentPostId: params.parentPostId,
-        platform: replyPlatform,
-        replyContentId: result.contentId,
+        brandId: state.request.brandId,
+        commentId: state.request.commentId,
+        organizationId: state.request.organizationId,
+        parentPostId,
+        platform: state.platform,
+        replyContentId: result.replyContentId,
       });
-
       try {
         await this.processedTweetsService.markAsProcessed(
-          params.commentId,
-          params.organizationId,
+          state.request.commentId,
+          state.request.organizationId,
           ReplyBotType.COMMENT_RESPONDER,
         );
       } catch {
-        // Idempotent best-effort; do not fail the send path.
+        // The provider send is authoritative; duplicate processed markers are benign.
       }
     }
-
+    const contentId = result.replyContentId;
+    const contentUrl = result.replyContentUrl;
+    const error = result.error;
     return {
-      commentId: params.commentId,
-      contentId: result.contentId,
-      contentUrl: result.contentUrl,
-      error: result.error,
-      intent,
-      replyText,
-      success: result.success,
+      commentId: state.request.commentId,
+      ...(contentId === undefined ? {} : { contentId }),
+      ...(contentUrl === undefined ? {} : { contentUrl }),
+      ...(error === undefined ? {} : { error }),
+      intent: state.intent,
+      replyText: this.requiredString(state.replyText, 'replyText'),
+      success: result.replySent,
     };
+  }
+
+  private readWorkflowRequest(
+    input: Record<string, unknown>,
+  ): AuthorReplyWorkflowRequest {
+    const request = this.readRecord(input.request);
+    return request as AuthorReplyWorkflowRequest;
+  }
+
+  private readWorkflowState(
+    input: Record<string, unknown>,
+  ): AuthorReplyWorkflowState {
+    const state = this.readRecord(input.state);
+    return (
+      Object.keys(state).length > 0 ? state : input
+    ) as AuthorReplyWorkflowState;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new Error(`Author reply action requires ${field}`);
+    }
+    return value;
+  }
+
+  private requireBotActionExecutor(): BotActionExecutorService {
+    if (!this.botActionExecutorService) {
+      throw new Error('Author reply bot action executor is unavailable');
+    }
+    return this.botActionExecutorService;
   }
 
   async recordAuthorClosedLoop(

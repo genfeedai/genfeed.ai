@@ -4,8 +4,6 @@ import type {
   SystemWorkflowCatalogListParams,
   SystemWorkflowInstallParams,
   WorkflowCreateParams,
-  WorkflowExecuteParams,
-  WorkflowExecutionResult,
   WorkflowListParams,
   WorkflowResponse,
   WorkflowRunListParams,
@@ -52,7 +50,6 @@ function mapWorkflowResource(
 
   return {
     createdAt: asString(attrs.createdAt) ?? new Date().toISOString(),
-    currentStepIndex: asNumber(attrs.currentStepIndex),
     description: asString(attrs.description),
     edgeCount: edges.length,
     id: resourceId(resource),
@@ -71,9 +68,10 @@ function mapWorkflowResource(
     nodeCount: nodes.length,
     schedule: asString(attrs.schedule),
     status: status as WorkflowResponse['status'],
-    steps: asArray(attrs.steps) as WorkflowResponse['steps'],
     timezone: asString(attrs.timezone),
     updatedAt: asString(attrs.updatedAt),
+    version: asNumber(attrs.version),
+    versionId: asString(attrs.versionId),
   };
 }
 
@@ -135,9 +133,11 @@ export class WorkflowClient {
           data: {
             attributes: {
               description: params.description,
+              edges: params.edges,
+              inputVariables: params.inputVariables,
               name: params.name,
+              nodes: params.nodes,
               schedule: params.schedule,
-              steps: params.steps,
               templateId: params.templateId,
             },
             type: 'workflows',
@@ -153,41 +153,16 @@ export class WorkflowClient {
           lastRunAt: workflow?.attributes?.lastRunAt,
           name: workflow?.attributes?.name || params.name,
           nextRunAt: workflow?.attributes?.nextRunAt,
+          nodeCount: Array.isArray(workflow?.attributes?.nodes)
+            ? workflow.attributes.nodes.length
+            : 0,
           status: workflow?.attributes?.status || CONTENT_STATUS.DRAFT,
-          steps: workflow?.attributes?.steps || params.steps || [],
           updatedAt: workflow?.attributes?.updatedAt,
+          version: workflow?.attributes?.version,
+          versionId: workflow?.attributes?.versionId,
         };
       },
       this.base.failWithDetail('Failed to create workflow'),
-    );
-  }
-
-  executeWorkflow(
-    params: WorkflowExecuteParams,
-  ): Promise<WorkflowExecutionResult> {
-    this.base.logger.debug('Executing workflow', { params });
-
-    return this.base.request(
-      'executing workflow',
-      async (http) => {
-        const response = await http.post('/workflow-executions', {
-          inputValues: params.variables,
-          workflowId: params.workflowId,
-        });
-
-        const execution = response.data?.data;
-        return {
-          completedAt: execution?.attributes?.completedAt,
-          error: execution?.attributes?.error,
-          executionId: execution?.id || execution?.attributes?.id,
-          results: execution?.attributes?.results,
-          startedAt:
-            execution?.attributes?.startedAt || new Date().toISOString(),
-          status: execution?.attributes?.status || CONTENT_STATUS.STARTED,
-          workflowId: params.workflowId,
-        };
-      },
-      this.base.failWithDetail('Failed to execute workflow'),
     );
   }
 
@@ -428,7 +403,9 @@ export class WorkflowClient {
             estimatedDuration: template.attributes?.estimatedDuration,
             id: template.id,
             name: template.attributes?.name,
-            steps: template.attributes?.steps || [],
+            nodeCount: Array.isArray(template.attributes?.nodes)
+              ? template.attributes.nodes.length
+              : 0,
           })) || []
         );
       },

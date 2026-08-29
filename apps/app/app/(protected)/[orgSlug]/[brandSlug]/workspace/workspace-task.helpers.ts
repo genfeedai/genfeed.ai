@@ -1,10 +1,8 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { ReviewDecision } from '@genfeedai/enums';
-import type { IAgentRun, VideoContinuityQaReport } from '@genfeedai/interfaces';
+import type { VideoContinuityQaReport } from '@genfeedai/interfaces';
 import { Task, type TaskEvent } from '@services/management/tasks.service';
 import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
-
-export const EMPTY_AGENT_RUNS: IAgentRun[] = [];
 
 export type WorkspaceSection = 'inbox' | 'overview';
 export type InboxView = 'all' | 'recent' | 'unread';

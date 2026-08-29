@@ -16,7 +16,7 @@ function makeAction(overrides: Record<string, unknown> = {}): AgentUiAction {
         content: 'Use the approved analytics snapshot and draft three hooks.',
         createdAt: '2026-08-26T12:00:00.000Z',
         deliveryMode: AgentTransferDeliveryMode.SEND_AND_RUN,
-        destinationRunId: 'run-1',
+        destinationExecutionId: 'run-1',
         destinationThreadId: 'destination-1',
         destinationThreadTitle: 'Hook specialist',
         direction: 'outbound',

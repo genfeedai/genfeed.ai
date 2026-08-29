@@ -50,13 +50,9 @@ export interface PublishNodeData extends BaseNodeData {
   inputCaption: string | null;
   inputSchedule: string | null;
 
-  // Platform configuration
-  platforms: {
-    twitter: boolean;
-    instagram: boolean;
-    tiktok: boolean;
-    linkedin: boolean;
-  };
+  // Platform configuration — enabled platform ids, matching the canonical
+  // `publish` action contract and every authored graph.
+  platforms: string[];
 
   // Schedule configuration
   schedule: PublishSchedule;
@@ -82,12 +78,7 @@ export const DEFAULT_PUBLISH_DATA: Partial<PublishNodeData> = {
   inputMediaId: null,
   inputSchedule: null,
   label: 'Publish',
-  platforms: {
-    instagram: false,
-    linkedin: false,
-    tiktok: false,
-    twitter: false,
-  },
+  platforms: [],
   publishedUrls: [],
   schedule: {
     type: 'immediate',

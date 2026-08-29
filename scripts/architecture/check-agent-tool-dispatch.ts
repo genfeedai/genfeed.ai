@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
 import ts from 'typescript';
-import { parseCatalogSource } from '../../packages/tools/scripts/report-curated-action-catalog';
+import { parseCatalogSource } from '../../packages/actions/scripts/report-curated-action-catalog';
 
 /**
  * Guard: keep the in-app agent's executable surface equal to the curated
@@ -37,7 +37,7 @@ import { parseCatalogSource } from '../../packages/tools/scripts/report-curated-
  */
 
 const DEFAULT_CATALOG_PATH =
-  'packages/tools/src/registry/curated-action-catalog.ts';
+  'packages/actions/src/registry/curated-action-catalog.ts';
 const DEFAULT_ENUM_PATH = 'packages/interfaces/src/ai/agent-tool.interface.ts';
 const DEFAULT_DISPATCH_GLOBS = [
   'apps/server/api/src/services/agent-orchestrator/tools/**/*.ts',
@@ -250,7 +250,7 @@ if (isMainModule()) {
     }
 
     console.error(
-      '\nThe curated action catalog is the only source of truth for agent tool surfaces: packages/tools/src/registry/curated-action-catalog.ts',
+      '\nThe curated action catalog is the only source of truth for agent tool surfaces: packages/actions/src/registry/curated-action-catalog.ts',
     );
     process.exit(1);
   }

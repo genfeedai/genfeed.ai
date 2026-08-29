@@ -10,19 +10,36 @@ describe('CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES', () => {
       category: 'analytics',
       id: 'content-loop-autopilot',
       schedule: '0 8 * * *',
-      steps: [],
     });
 
     const nodeTypes = (template?.nodes ?? []).map((node) => node.type);
     expect(nodeTypes).toEqual([
-      'analyticsGenericSync',
-      'harnessWinnerPromotionSweep',
+      'genfeedAction',
+      'genfeedAction',
+      'genfeedAction',
+      'genfeedAction',
+    ]);
+    expect(
+      (template?.nodes ?? []).map((node) => node.data.config.actionId),
+    ).toEqual([
+      'analytics.generic.resolve-window',
+      'analytics.generic.discover',
+      'workflow.for-each',
+      'workflow.run-child',
     ]);
 
     expect(template?.edges).toEqual([
       expect.objectContaining({
-        source: 'analyticsGenericSync',
-        target: 'harnessWinnerPromotionSweep',
+        source: 'resolveAnalyticsWindow',
+        target: 'discoverAnalytics',
+      }),
+      expect.objectContaining({
+        source: 'discoverAnalytics',
+        target: 'syncEachAnalyticsItem',
+      }),
+      expect.objectContaining({
+        source: 'syncEachAnalyticsItem',
+        target: 'promoteHarnessWinners',
       }),
     ]);
   });
@@ -33,8 +50,10 @@ describe('CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES', () => {
 
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toEqual([
-      'analyticsGenericSync',
-      'harnessWinnerPromotionSweep',
+      'resolveAnalyticsWindow',
+      'discoverAnalytics',
+      'syncEachAnalyticsItem',
+      'promoteHarnessWinners',
     ]);
   });
 });

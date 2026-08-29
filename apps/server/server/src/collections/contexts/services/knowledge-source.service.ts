@@ -1,9 +1,12 @@
 import { randomUUID } from 'node:crypto';
+import { KnowledgeBaseStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
+import { Injectable } from '@nestjs/common';
 import { AddSourceDto } from '@server/collections/contexts/dto/add-source.dto';
 import { UpdateSourceDto } from '@server/collections/contexts/dto/update-source.dto';
 import type { ContextBase } from '@server/collections/contexts/schemas/context-base.schema';
 import { ContextsService } from '@server/collections/contexts/services/contexts.service';
-import { KnowledgeSourceIngestService } from '@server/collections/contexts/services/knowledge-source-ingest.service';
+import { KnowledgeSourceIngestWorkflowService } from '@server/collections/contexts/services/knowledge-source-ingest-workflow.service';
 import {
   findKnowledgeSource,
   type PersistedKnowledgeSource,
@@ -12,12 +15,7 @@ import {
   writeKnowledgeSources,
 } from '@server/collections/contexts/utils/knowledge-source.util';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { KnowledgeSourceIngestQueueService } from '@server/queues/knowledge-source-ingest/knowledge-source-ingest-queue.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { KnowledgeBaseStatus } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
 
 export interface KnowledgeSourceMutationResult {
   contextBase: ContextBase;
@@ -35,10 +33,7 @@ export class KnowledgeSourceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly contextsService: ContextsService,
-    private readonly ingestService: KnowledgeSourceIngestService,
-    private readonly logger: LoggerService,
-    @Optional()
-    private readonly ingestQueue?: KnowledgeSourceIngestQueueService,
+    private readonly ingestWorkflow: KnowledgeSourceIngestWorkflowService,
   ) {}
 
   async addSource(
@@ -167,27 +162,8 @@ export class KnowledgeSourceService {
   async backfill(
     organizationId: string,
   ): Promise<KnowledgeSourceBackfillResult> {
-    const jobId = this.ingestQueue
-      ? await this.ingestQueue.enqueueBackfill({ organizationId })
-      : null;
-
-    if (jobId) {
-      return { jobId, queued: 1 };
-    }
-
-    const scan = await this.ingestService.scanForBackfill({ organizationId });
-    let queued = 0;
-    for (const item of scan.queued) {
-      await this.ingestService.ingest(item);
-      queued += 1;
-    }
-
-    this.logger.log('Ran knowledge source backfill inline', {
-      organizationId,
-      queued,
-    });
-
-    return { jobId: null, queued };
+    const jobId = await this.ingestWorkflow.enqueueBackfill({ organizationId });
+    return { jobId, queued: 1 };
   }
 
   private requireLiveSource(
@@ -219,46 +195,11 @@ export class KnowledgeSourceService {
     organizationId: string,
     contextBaseId: string,
     sourceId: string,
-  ): Promise<string | null> {
-    if (!this.ingestQueue) {
-      this.logger.warn(
-        'Knowledge source ingest queue unavailable; ingesting inline',
-        {
-          contextBaseId,
-          organizationId,
-          sourceId,
-        },
-      );
-      await this.ingestService.ingest({
-        contextBaseId,
-        organizationId,
-        sourceId,
-      });
-      return null;
-    }
-
-    const jobId = await this.ingestQueue.enqueueIngest({
+  ): Promise<string> {
+    return this.ingestWorkflow.enqueueIngest({
       contextBaseId,
       organizationId,
       sourceId,
     });
-    if (jobId) {
-      return jobId;
-    }
-
-    this.logger.warn(
-      'Knowledge source ingest queue unavailable; ingesting inline',
-      {
-        contextBaseId,
-        organizationId,
-        sourceId,
-      },
-    );
-    await this.ingestService.ingest({
-      contextBaseId,
-      organizationId,
-      sourceId,
-    });
-    return null;
   }
 }

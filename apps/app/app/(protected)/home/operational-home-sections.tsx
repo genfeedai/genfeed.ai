@@ -7,15 +7,20 @@ import {
   createOrganizationAppRoute,
 } from '@genfeedai/constants';
 import {
-  AgentExecutionStatus,
   ButtonVariant,
   PageScope,
   TargetExecutionState,
+  WorkflowExecutionStatus,
 } from '@genfeedai/enums';
-import type { IActivity, IAgentRun, ICredential } from '@genfeedai/interfaces';
+import type {
+  IActivity,
+  ICredential,
+  IWorkflowExecution,
+} from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
+import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import { getActivityDescription } from '@pages/activities/activities-list.utils';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
@@ -47,15 +52,15 @@ interface OperationalHomeSectionsProps {
 type ReviewInboxItem =
   OverviewBootstrapPayload['reviewInbox']['recentItems'][number];
 
-const RUN_STATUS_VARIANTS: Record<
-  AgentExecutionStatus,
+const EXECUTION_STATUS_VARIANTS: Record<
+  WorkflowExecutionStatus,
   'destructive' | 'info' | 'secondary' | 'success' | 'warning'
 > = {
-  [AgentExecutionStatus.CANCELLED]: 'secondary',
-  [AgentExecutionStatus.COMPLETED]: 'success',
-  [AgentExecutionStatus.FAILED]: 'destructive',
-  [AgentExecutionStatus.PENDING]: 'warning',
-  [AgentExecutionStatus.RUNNING]: 'info',
+  [WorkflowExecutionStatus.CANCELLED]: 'secondary',
+  [WorkflowExecutionStatus.COMPLETED]: 'success',
+  [WorkflowExecutionStatus.FAILED]: 'destructive',
+  [WorkflowExecutionStatus.PENDING]: 'warning',
+  [WorkflowExecutionStatus.RUNNING]: 'info',
 };
 
 function LoadingPanel({ label }: { label: string }) {
@@ -241,12 +246,17 @@ function ApprovalsSurface({
   );
 }
 
-function getRunTimestamp(run: IAgentRun): string {
-  return run.updatedAt ?? run.completedAt ?? run.startedAt ?? run.createdAt;
+function getExecutionTimestamp(execution: IWorkflowExecution): string {
+  return (
+    execution.updatedAt ??
+    execution.completedAt ??
+    execution.startedAt ??
+    execution.createdAt
+  );
 }
 
 function PublishingSurface({
-  activeRuns,
+  activeExecutions,
   analyticsPendingPosts,
   brandSlug,
   failedToday,
@@ -254,9 +264,9 @@ function PublishingSurface({
   isLoading,
   onRetry,
   orgSlug,
-  runs,
+  executions,
 }: {
-  activeRuns: IAgentRun[];
+  activeExecutions: IWorkflowExecution[];
   analyticsPendingPosts: number;
   brandSlug?: string;
   failedToday: number;
@@ -264,7 +274,7 @@ function PublishingSurface({
   isLoading: boolean;
   onRetry: () => Promise<void>;
   orgSlug: string;
-  runs: IAgentRun[];
+  executions: IWorkflowExecution[];
 }) {
   const translate = useTranslations('common');
   const brandSetupHref = createOrganizationAppRoute(
@@ -274,15 +284,17 @@ function PublishingSurface({
   const postsHref = brandSlug
     ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISH.OVERVIEW)
     : brandSetupHref;
-  const recentRuns = [...activeRuns, ...runs]
+  const recentExecutions = [...activeExecutions, ...executions]
     .filter(
-      (run, index, allRuns) =>
-        allRuns.findIndex((candidate) => candidate.id === run.id) === index,
+      (execution, index, allExecutions) =>
+        allExecutions.findIndex(
+          (candidate) => candidate.id === execution.id,
+        ) === index,
     )
     .toSorted(
       (left, right) =>
-        new Date(getRunTimestamp(right)).getTime() -
-        new Date(getRunTimestamp(left)).getTime(),
+        new Date(getExecutionTimestamp(right)).getTime() -
+        new Date(getExecutionTimestamp(left)).getTime(),
     )
     .slice(0, 3);
 
@@ -319,7 +331,7 @@ function PublishingSurface({
         <>
           <MetricSummary
             items={[
-              { label: 'active', value: String(activeRuns.length) },
+              { label: 'active', value: String(activeExecutions.length) },
               {
                 label: 'pending posts',
                 value: String(analyticsPendingPosts),
@@ -329,35 +341,33 @@ function PublishingSurface({
           />
 
           <div className="space-y-2">
-            {recentRuns.length === 0 ? (
+            {recentExecutions.length === 0 ? (
               <p className="rounded-card bg-background p-4 text-sm text-foreground/55 shadow-border">
                 {translate('home.publishing.empty')}
               </p>
             ) : (
-              recentRuns.map((run) => (
+              recentExecutions.map((execution) => (
                 <div
                   className="flex items-center justify-between gap-3 rounded-card bg-background px-4 py-3 shadow-border"
-                  key={run.id}
+                  key={execution.id}
                 >
                   <div className="min-w-0">
                     <p className="line-clamp-1 text-sm font-medium text-foreground">
-                      {run.label}
+                      {execution.workflow?.label ?? execution.workflowId}
                     </p>
                     <ClientFormattedDate
                       className="mt-1 block text-xs text-foreground/45"
                       fallback="Time unavailable"
                       format="relative"
-                      value={getRunTimestamp(run)}
+                      value={getExecutionTimestamp(execution)}
                     />
                   </div>
                   <Badge
                     variant={
-                      RUN_STATUS_VARIANTS[
-                        String(run.status).toUpperCase() as AgentExecutionStatus
-                      ] ?? 'info'
+                      EXECUTION_STATUS_VARIANTS[execution.status] ?? 'info'
                     }
                   >
-                    {String(run.status).toLowerCase()}
+                    {execution.status.toLowerCase()}
                   </Badge>
                 </div>
               ))
@@ -727,16 +737,27 @@ export default function OperationalHomeSections({
     credentialsLoading,
     refreshBrands,
   } = useBrand();
+  const { analytics, isError, isLoading, refresh, reviewInbox } =
+    useOverviewBootstrap();
   const {
-    activeRuns,
-    analytics,
-    isError,
-    isLoading,
-    refresh,
-    reviewInbox,
-    runs,
-    stats,
-  } = useOverviewBootstrap();
+    executions,
+    isLoading: areExecutionsLoading,
+    refresh: refreshExecutions,
+    stats: executionStats,
+  } = useWorkflowExecutions({ limit: 20, sort: '-createdAt' });
+  const activeExecutions = executions.filter(
+    (execution) =>
+      execution.status === WorkflowExecutionStatus.PENDING ||
+      execution.status === WorkflowExecutionStatus.RUNNING,
+  );
+  const completedExecutions = executions.filter(
+    (execution) =>
+      execution.status !== WorkflowExecutionStatus.PENDING &&
+      execution.status !== WorkflowExecutionStatus.RUNNING,
+  );
+  const refreshOperationalState = useCallback(async () => {
+    await Promise.all([refresh(), refreshExecutions()]);
+  }, [refresh, refreshExecutions]);
   const brandSetupHref = createOrganizationAppRoute(
     orgSlug,
     APP_ROUTES.SETTINGS.BRANDS,
@@ -761,15 +782,15 @@ export default function OperationalHomeSections({
         reviewInbox={reviewInbox}
       />
       <PublishingSurface
-        activeRuns={activeRuns}
+        activeExecutions={activeExecutions}
         analyticsPendingPosts={analytics.pendingPosts ?? 0}
         brandSlug={brandSlug}
-        failedToday={stats?.failedToday ?? 0}
+        failedToday={executionStats.failed}
         isError={isError}
-        isLoading={isLoading}
-        onRetry={refresh}
+        isLoading={isLoading || areExecutionsLoading}
+        onRetry={refreshOperationalState}
         orgSlug={orgSlug}
-        runs={runs}
+        executions={completedExecutions}
       />
       <UpcomingScheduleSurface
         brandId={brandId}

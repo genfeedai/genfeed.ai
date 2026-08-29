@@ -26,16 +26,7 @@ export interface AgentArtifactCompletionMetadata
 interface AgentArtifactCompletionContext {
   brandId?: string;
   organizationId: string;
-  runId?: string;
   scope?: { brandId?: string };
-}
-
-interface AgentArtifactRunMetadataWriter {
-  mergeMetadata(
-    id: string,
-    organizationId: string,
-    metadata: Record<string, unknown>,
-  ): Promise<void>;
 }
 
 export function mergeAgentArtifactCompletionMetadata(
@@ -156,28 +147,9 @@ export function buildAgentArtifactCompletionMetadata(
   };
 }
 
-export async function persistRunArtifacts(
-  writer: AgentArtifactRunMetadataWriter,
-  context: AgentArtifactCompletionContext,
-  metadata: AgentArtifactCompletionMetadata,
-): Promise<void> {
-  if (
-    !context.runId ||
-    (!metadata.artifactReferences?.length &&
-      !metadata.artifactVersionPinIds?.length)
-  ) {
-    return;
-  }
-
-  await writer.mergeMetadata(context.runId, context.organizationId, metadata);
-}
-
-export async function captureRunArtifacts(
-  writer: AgentArtifactRunMetadataWriter,
+export function captureRunArtifacts(
   context: AgentArtifactCompletionContext,
   data: Record<string, unknown> | undefined,
-): Promise<AgentArtifactCompletionMetadata> {
-  const metadata = buildAgentArtifactCompletionMetadata(data, context);
-  await persistRunArtifacts(writer, context, metadata);
-  return metadata;
+): AgentArtifactCompletionMetadata {
+  return buildAgentArtifactCompletionMetadata(data, context);
 }

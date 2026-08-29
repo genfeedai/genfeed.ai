@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { AgentRunStatus, BotStatus } from '@genfeedai/enums';
+import { BotStatus } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -47,48 +47,5 @@ describe('Prisma-enum status badge source contracts', () => {
     for (const member of Object.keys(BotStatus)) {
       expect(source).toContain(`case BotStatus.${member}:`);
     }
-  });
-
-  it('keys the agent run badge off AgentRunStatus, not lowercase literals', () => {
-    const source = readAppSource(
-      'app/(protected)/[orgSlug]/[brandSlug]/automate/agents/[agentId]/AgentRunRow.tsx',
-    );
-
-    expect(source).toContain('[AgentRunStatus.COMPLETED]:');
-    expect(source).toContain('[AgentRunStatus.FAILED]:');
-    expect(source).toContain('[AgentRunStatus.BUDGET_EXHAUSTED]:');
-    // CANCELLED is a persisted Prisma label with its own neutral variant.
-    // Dropping it leaves cancelled runs on the map's default, which reads as a
-    // styling nit but loses the distinction between cancelled and failed.
-    expect(source).toContain('[AgentRunStatus.CANCELLED]:');
-    expect(source).not.toContain('completed:');
-    expect(source).not.toContain('budget_exhausted:');
-    expect(source).not.toContain('cancelled:');
-  });
-
-  it('maps every AgentRunStatus member off the enum', () => {
-    const source = readAppSource(
-      'app/(protected)/[orgSlug]/[brandSlug]/automate/agents/[agentId]/AgentRunRow.tsx',
-    );
-
-    for (const member of Object.keys(AgentRunStatus)) {
-      expect(source).toContain(`[AgentRunStatus.${member}]:`);
-    }
-  });
-
-  it('normalizes run content statuses across both vocabularies', () => {
-    const source = readAppSource(
-      'app/(protected)/[orgSlug]/[brandSlug]/automate/agents/[agentId]/AgentRunContentGrid.tsx',
-    );
-
-    // A run mixes posts (lowercase String column) with ingredients (SCREAMING
-    // Prisma enum). The landed design keys one lowercase map and normalizes
-    // the lookup — without the toLowerCase() every ingredient status silently
-    // falls through to the default variant.
-    expect(source).toContain('status.toLowerCase()');
-    expect(source).toContain("failed: 'error'");
-    expect(source).toContain("generated: 'success'");
-    expect(source).toContain("published: 'success'");
-    expect(source).toContain("scheduled: 'warning'");
   });
 });

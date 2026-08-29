@@ -1,3 +1,16 @@
+import { getActionDefinition } from '@genfeedai/actions';
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import type {
+  ExecutableEdge,
+  ExecutableNode,
+  ExecutableWorkflow,
+  ExecutionRunResult,
+  NodeExecutionResult,
+} from '@genfeedai/workflows/engine';
+import {
+  getExecutableNodeOperationId,
+  planPartialExecution,
+} from '@genfeedai/workflows/engine';
 import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionGraphService } from '@server/collections/workflows/services/workflow-execution-graph.service';
@@ -8,28 +21,19 @@ import type {
   TriggerEvent,
 } from '@server/collections/workflows/services/workflow-executor.types';
 import { WorkflowNodeClaimService } from '@server/collections/workflows/services/workflow-node-claim.service';
+import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeProgressTrackerService } from '@server/collections/workflows/services/workflow-node-progress-tracker.service';
 import { WorkflowReviewGateService } from '@server/collections/workflows/services/workflow-review-gate.service';
 import {
   claimNodeOnce,
   completeNodeClaim,
 } from '@server/collections/workflows/utils/workflow-node-idempotency.util';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
-import type {
-  ExecutableEdge,
-  ExecutableNode,
-  ExecutableWorkflow,
-  ExecutionRunResult,
-  NodeExecutionResult,
-} from '@genfeedai/workflows/engine';
 
 export class WorkflowNodeGraphRunnerService {
   /**
-   * Process-local claim map for nodes that have already side-effected in
-   * this execution. Durable progress still lives in
-   * `workflow_executions.result.nodeResults`; this map blocks in-process
-   * re-entry and is re-hydrated from durable results at the start of a run
-   * so BullMQ retries of the *same* executionId cannot re-fire (#2359).
+   * Process-local claim map for nodes currently executing in this process.
+   * Claims are released when the graph pass settles; durable node claims and
+   * persisted node results own retry/resume idempotency across graph passes.
    */
   private readonly nodeClaims = new Map<
     string,
@@ -49,6 +53,7 @@ export class WorkflowNodeGraphRunnerService {
     private readonly reviewGateService: WorkflowReviewGateService,
     private readonly executionsService?: WorkflowExecutionsService,
     private readonly nodeClaimService?: WorkflowNodeClaimService,
+    private readonly nodeContinuationService?: WorkflowNodeContinuationService,
   ) {}
 
   async executeNodeGraph(
@@ -57,11 +62,42 @@ export class WorkflowNodeGraphRunnerService {
     executionId: string,
     options: {
       baselineEstimatedDurationMs?: number;
+      nodeOutputCache?: Record<string, unknown>;
+      respectLocks?: boolean;
+      selectedNodeIds?: string[];
       startedAt: Date;
       workflowLabel: string;
     },
   ): Promise<ExecutionRunResult> {
-    const executionOrder = this.graphService.topologicalSort(
+    const ownedClaimKeys = new Set<string>();
+    try {
+      return await this.executeNodeGraphInternal(
+        workflow,
+        triggerEvent,
+        executionId,
+        options,
+        ownedClaimKeys,
+      );
+    } finally {
+      this.releaseOwnedClaims(ownedClaimKeys);
+    }
+  }
+
+  private async executeNodeGraphInternal(
+    workflow: ExecutableWorkflow,
+    triggerEvent: TriggerEvent,
+    executionId: string,
+    options: {
+      baselineEstimatedDurationMs?: number;
+      nodeOutputCache?: Record<string, unknown>;
+      respectLocks?: boolean;
+      selectedNodeIds?: string[];
+      startedAt: Date;
+      workflowLabel: string;
+    },
+    ownedClaimKeys: Set<string>,
+  ): Promise<ExecutionRunResult> {
+    let executionOrder = this.graphService.topologicalSort(
       workflow.nodes,
       workflow.edges,
     );
@@ -72,12 +108,61 @@ export class WorkflowNodeGraphRunnerService {
     let totalCreditsUsed = 0;
     const startedAt = options.startedAt;
 
-    await this.hydrateCompletedNodesFromExecution(
+    for (const [nodeId, output] of Object.entries(
+      options.nodeOutputCache ?? {},
+    )) {
+      completedNodes.add(nodeId);
+      nodeCache.set(nodeId, output);
+      nodeResults.set(nodeId, {
+        completedAt: startedAt,
+        creditsUsed: 0,
+        nodeId,
+        output,
+        retryCount: 0,
+        startedAt,
+        status: 'completed',
+      });
+    }
+
+    totalCreditsUsed += await this.hydrateCompletedNodesFromExecution(
       executionId,
       nodeCache,
       nodeResults,
       completedNodes,
     );
+    for (const completedNodeId of completedNodes) {
+      this.graphService.pruneFailurePathAfterSuccess(
+        completedNodeId,
+        workflow.edges,
+        skippedNodes,
+        completedNodes,
+      );
+      const completedNode = workflow.nodes.find(
+        (node) => node.id === completedNodeId,
+      );
+      if (completedNode?.type === 'condition') {
+        this.graphService.pruneUnreachablePaths(
+          completedNodeId,
+          this.graphService.extractBranch(nodeCache.get(completedNodeId)),
+          workflow.edges,
+          skippedNodes,
+          completedNodes,
+        );
+      }
+    }
+    for (const [failedNodeId, failedResult] of nodeResults) {
+      if (failedResult.status !== 'failed') {
+        continue;
+      }
+      this.resolveFailedNode({
+        completedNodes,
+        edges: workflow.edges,
+        error: failedResult.error ?? `Node ${failedNodeId} failed`,
+        nodeCache,
+        nodeId: failedNodeId,
+        skippedNodes,
+      });
+    }
 
     await this.nodeProgressTracker.injectTriggerNode({
       completedNodes,
@@ -90,7 +175,31 @@ export class WorkflowNodeGraphRunnerService {
       triggerEvent,
       workflow,
     });
-    this.prepopulateLockedNodes(workflow, nodeCache, completedNodes);
+    if (options.respectLocks !== false) {
+      this.prepopulateLockedNodes(workflow, nodeCache, completedNodes);
+    }
+
+    if (options.selectedNodeIds && options.selectedNodeIds.length > 0) {
+      const partialPlan = planPartialExecution(
+        options.selectedNodeIds,
+        workflow.nodes,
+        workflow.edges,
+        nodeCache,
+      );
+      if (!partialPlan.isValid) {
+        return {
+          completedAt: new Date(),
+          error: partialPlan.errors.join('; '),
+          nodeResults,
+          runId: executionId,
+          startedAt,
+          status: 'failed',
+          totalCreditsUsed,
+          workflowId: workflow.id,
+        };
+      }
+      executionOrder = partialPlan.executionOrder;
+    }
 
     let executionError: string | undefined;
     let executionStatus: 'completed' | 'failed' = 'completed';
@@ -125,6 +234,7 @@ export class WorkflowNodeGraphRunnerService {
           workflow.edges,
           completedNodes,
           nodeCache,
+          skippedNodes,
         )
       ) {
         const deps = this.graphService.getNodeDependencies(
@@ -135,14 +245,11 @@ export class WorkflowNodeGraphRunnerService {
           (depId) => completedNodes.has(depId) || skippedNodes.has(depId),
         );
 
-        if (allDepsResolved && deps.some((depId) => skippedNodes.has(depId))) {
-          skippedNodes.add(nodeId);
-          continue;
+        if (!allDepsResolved) {
+          executionError = `Dependencies not satisfied for node ${nodeId}`;
+          executionStatus = 'failed';
+          break;
         }
-
-        executionError = `Dependencies not satisfied for node ${nodeId}`;
-        executionStatus = 'failed';
-        break;
       }
 
       if (completedNodes.size + skippedNodes.size > MAX_EXECUTION_NODES) {
@@ -188,6 +295,28 @@ export class WorkflowNodeGraphRunnerService {
         });
         if (durable.action === 'skip') {
           if (durable.status === 'running') {
+            const actionId = getExecutableNodeOperationId(node);
+            const ownsSuspension =
+              getActionDefinition(actionId)?.completionMode ===
+                'provider-callback' &&
+              this.nodeContinuationService &&
+              (await this.nodeContinuationService.ownsSuspendedNode({
+                actionId,
+                executionId,
+                nodeId,
+                organizationId: workflow.organizationId,
+                workflowVersionId: workflow.versionId,
+              }));
+            if (ownsSuspension) {
+              return {
+                nodeResults,
+                runId: executionId,
+                startedAt,
+                status: 'running',
+                totalCreditsUsed,
+                workflowId: workflow.id,
+              };
+            }
             executionError = `Node ${nodeId} is already running (durable claim busy)`;
             executionStatus = 'failed';
             break;
@@ -208,6 +337,21 @@ export class WorkflowNodeGraphRunnerService {
             if (skippedResult.output !== undefined) {
               nodeCache.set(nodeId, skippedResult.output);
             }
+            this.graphService.pruneFailurePathAfterSuccess(
+              nodeId,
+              workflow.edges,
+              skippedNodes,
+              completedNodes,
+            );
+          } else {
+            this.resolveFailedNode({
+              completedNodes,
+              edges: workflow.edges,
+              error: skippedResult.error ?? `Node ${nodeId} failed`,
+              nodeCache,
+              nodeId,
+              skippedNodes,
+            });
           }
           continue;
         }
@@ -231,6 +375,21 @@ export class WorkflowNodeGraphRunnerService {
           if (skippedResult.output !== undefined) {
             nodeCache.set(nodeId, skippedResult.output);
           }
+          this.graphService.pruneFailurePathAfterSuccess(
+            nodeId,
+            workflow.edges,
+            skippedNodes,
+            completedNodes,
+          );
+        } else {
+          this.resolveFailedNode({
+            completedNodes,
+            edges: workflow.edges,
+            error: skippedResult.error ?? `Node ${nodeId} failed`,
+            nodeCache,
+            nodeId,
+            skippedNodes,
+          });
         }
         continue;
       }
@@ -239,6 +398,7 @@ export class WorkflowNodeGraphRunnerService {
         executionStatus = 'failed';
         break;
       }
+      ownedClaimKeys.add(claim.key);
 
       await this.nodeProgressTracker.trackNodeStarted({
         completedNodes,
@@ -252,12 +412,80 @@ export class WorkflowNodeGraphRunnerService {
       });
 
       try {
-        const nodeResult = await this.executeSingleNode(
+        let nodeResult = await this.executeSingleNode(
           node,
           inputs,
           workflow,
           executionId,
         );
+
+        const actionId = getExecutableNodeOperationId(node);
+        const action = getActionDefinition(actionId);
+        let inlineContinuationId: string | undefined;
+        if (action?.completionMode === 'provider-callback') {
+          if (nodeResult.status !== 'running') {
+            throw new Error(
+              `Provider-callback action ${actionId} returned without suspending`,
+            );
+          }
+          if (!this.nodeContinuationService) {
+            throw new Error(
+              `Provider-callback action ${actionId} has no continuation service`,
+            );
+          }
+          const attached =
+            await this.nodeContinuationService.attachInitialOutput({
+              actionId,
+              creditsUsed: nodeResult.creditsUsed,
+              executionId,
+              initialOutput: nodeResult.output,
+              nodeId,
+              organizationId: workflow.organizationId,
+              workflowVersionId: workflow.versionId,
+            });
+          if (attached.kind === 'waiting') {
+            nodeResults.set(nodeId, nodeResult);
+            totalCreditsUsed += nodeResult.creditsUsed;
+            await this.progressService.trackNodeResult(
+              executionId,
+              nodeId,
+              actionId,
+              {
+                output: nodeResult.output as Record<string, unknown>,
+                startedAt: nodeResult.startedAt,
+                status: WorkflowExecutionStatus.RUNNING,
+              },
+            );
+            return {
+              nodeResults,
+              runId: executionId,
+              startedAt,
+              status: 'running',
+              totalCreditsUsed,
+              workflowId: workflow.id,
+            };
+          }
+
+          inlineContinuationId = attached.continuationId;
+          nodeResult = attached.succeeded
+            ? {
+                ...nodeResult,
+                completedAt: new Date(),
+                output: attached.finalOutput,
+                status: 'completed',
+              }
+            : {
+                ...nodeResult,
+                completedAt: new Date(),
+                error: attached.error ?? 'Provider generation failed',
+                output: attached.finalOutput,
+                status: 'failed',
+              };
+        } else if (nodeResult.status === 'running') {
+          throw new Error(
+            `Synchronous action ${actionId} returned a suspended node result`,
+          );
+        }
 
         completeNodeClaim(this.nodeClaims, claim.key, {
           error: nodeResult.error,
@@ -274,6 +502,13 @@ export class WorkflowNodeGraphRunnerService {
             status: nodeResult.status === 'failed' ? 'failed' : 'completed',
           });
         }
+        if (inlineContinuationId && this.nodeContinuationService) {
+          await this.nodeContinuationService.markSettlementFinished({
+            continuationId: inlineContinuationId,
+            organizationId: workflow.organizationId,
+            succeeded: nodeResult.status === 'completed',
+          });
+        }
 
         nodeResults.set(nodeId, nodeResult);
         totalCreditsUsed += nodeResult.creditsUsed;
@@ -284,6 +519,13 @@ export class WorkflowNodeGraphRunnerService {
           if (nodeResult.output !== undefined) {
             nodeCache.set(nodeId, nodeResult.output);
           }
+
+          this.graphService.pruneFailurePathAfterSuccess(
+            nodeId,
+            workflow.edges,
+            skippedNodes,
+            completedNodes,
+          );
 
           if (node.type === 'condition') {
             this.graphService.pruneUnreachablePaths(
@@ -330,6 +572,14 @@ export class WorkflowNodeGraphRunnerService {
             workflow,
           });
         } else {
+          this.resolveFailedNode({
+            completedNodes,
+            edges: workflow.edges,
+            error: nodeResult.error ?? `Node ${nodeId} failed`,
+            nodeCache,
+            nodeId,
+            skippedNodes,
+          });
           await this.nodeProgressTracker.trackNodeFailed({
             completedNodes,
             errorMessage: nodeResult.error,
@@ -371,6 +621,15 @@ export class WorkflowNodeGraphRunnerService {
           status: 'failed',
         });
 
+        this.resolveFailedNode({
+          completedNodes,
+          edges: workflow.edges,
+          error: errorMessage,
+          nodeCache,
+          nodeId,
+          skippedNodes,
+        });
+
         await this.nodeProgressTracker.trackNodeFailed({
           completedNodes,
           errorMessage,
@@ -393,10 +652,12 @@ export class WorkflowNodeGraphRunnerService {
     if (hasFailedNodes || executionStatus === 'failed') {
       executionStatus = 'failed';
       if (!executionError) {
-        const failedNodeIds = Array.from(nodeResults.entries())
+        const failedNodes = Array.from(nodeResults.entries())
           .filter(([, result]) => result.status === 'failed')
-          .map(([id]) => id);
-        executionError = `Nodes failed: ${failedNodeIds.join(', ')}`;
+          .map(([id, result]) =>
+            result.error ? `${id}: ${result.error}` : id,
+          );
+        executionError = `Nodes failed: ${failedNodes.join(', ')}`;
       }
     }
 
@@ -410,6 +671,12 @@ export class WorkflowNodeGraphRunnerService {
       totalCreditsUsed,
       workflowId: workflow.id,
     };
+  }
+
+  private releaseOwnedClaims(ownedClaimKeys: Set<string>): void {
+    for (const key of ownedClaimKeys) {
+      this.nodeClaims.delete(key);
+    }
   }
 
   private prepopulateLockedNodes(
@@ -429,6 +696,40 @@ export class WorkflowNodeGraphRunnerService {
     }
   }
 
+  private resolveFailedNode(input: {
+    completedNodes: Set<string>;
+    edges: ExecutableEdge[];
+    error: string;
+    nodeCache: Map<string, unknown>;
+    nodeId: string;
+    skippedNodes: Set<string>;
+  }): void {
+    const nodeOutputs = Object.fromEntries(input.nodeCache);
+    input.completedNodes.add(input.nodeId);
+    input.nodeCache.set(input.nodeId, {
+      failure: {
+        error: input.error,
+        failedNodeId: input.nodeId,
+        nodeOutputs,
+      },
+    });
+    if (this.graphService.hasFailureEdge(input.nodeId, input.edges)) {
+      this.graphService.pruneSuccessPathsAfterFailure(
+        input.nodeId,
+        input.edges,
+        input.skippedNodes,
+        input.completedNodes,
+      );
+      return;
+    }
+    this.graphService.skipDownstreamNodes(
+      input.nodeId,
+      input.edges,
+      input.skippedNodes,
+      input.completedNodes,
+    );
+  }
+
   /**
    * Re-load durable completed node outputs so a job retry of the same
    * executionId skips side-effect nodes that already landed (#2359).
@@ -438,9 +739,9 @@ export class WorkflowNodeGraphRunnerService {
     nodeCache: Map<string, unknown>,
     nodeResults: Map<string, NodeExecutionResult>,
     completedNodes: Set<string>,
-  ): Promise<void> {
+  ): Promise<number> {
     if (!this.executionsService) {
-      return;
+      return 0;
     }
 
     try {
@@ -448,7 +749,7 @@ export class WorkflowNodeGraphRunnerService {
         id: executionId,
       });
       if (!execution) {
-        return;
+        return 0;
       }
 
       const rawResult =
@@ -457,9 +758,16 @@ export class WorkflowNodeGraphRunnerService {
         !Array.isArray(execution.result)
           ? (execution.result as Record<string, unknown>)
           : {};
-      const prior = Array.isArray(rawResult.nodeResults)
-        ? rawResult.nodeResults
+      const relationResults = Array.isArray(execution.nodeResults)
+        ? execution.nodeResults
         : [];
+      const prior =
+        relationResults.length > 0
+          ? relationResults
+          : Array.isArray(rawResult.nodeResults)
+            ? rawResult.nodeResults
+            : [];
+      let hydratedCredits = 0;
 
       for (const entry of prior) {
         if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
@@ -471,37 +779,43 @@ export class WorkflowNodeGraphRunnerService {
         if (!nodeId) {
           continue;
         }
-        if (
-          status !== WorkflowExecutionStatus.COMPLETED &&
-          status !== 'completed'
-        ) {
+        const isCompleted =
+          status === WorkflowExecutionStatus.COMPLETED ||
+          status === 'completed';
+        const isFailed =
+          status === WorkflowExecutionStatus.FAILED || status === 'failed';
+        if (!isCompleted && !isFailed) {
           continue;
         }
 
         const output = row.output;
-        completedNodes.add(nodeId);
-        if (output !== undefined) {
+        if (isCompleted) {
+          completedNodes.add(nodeId);
+        }
+        if (isCompleted && output !== undefined && !nodeCache.has(nodeId)) {
           nodeCache.set(nodeId, output);
         }
-        nodeResults.set(nodeId, {
-          completedAt: new Date(),
-          creditsUsed: 0,
-          nodeId,
-          output,
-          retryCount: 0,
-          startedAt: new Date(),
-          status: 'completed',
-        });
-        const claimKey = `${executionId}:${nodeId}`;
-        this.nodeClaims.set(claimKey, {
-          nodeId,
-          output,
-          status: 'completed',
-        });
+        if (!nodeResults.has(nodeId)) {
+          const creditsUsed =
+            typeof row.creditsUsed === 'number' ? row.creditsUsed : 0;
+          hydratedCredits += creditsUsed;
+          nodeResults.set(nodeId, {
+            completedAt: new Date(),
+            creditsUsed,
+            nodeId,
+            output,
+            retryCount: 0,
+            startedAt: new Date(),
+            ...(typeof row.error === 'string' ? { error: row.error } : {}),
+            status: isFailed ? 'failed' : 'completed',
+          });
+        }
       }
+      return hydratedCredits;
     } catch {
       // Hydration is best-effort — missing prior progress falls through to a
       // normal run rather than blocking the workflow.
+      return 0;
     }
   }
 
@@ -571,12 +885,14 @@ export class WorkflowNodeGraphRunnerService {
       },
     );
 
-    await this.progressService.emitEvent(input.workflow.id, 'delayed', {
-      delayMs: delayMeta.delayMs,
-      delayNodeId: input.nodeId,
-      executionId: input.executionId,
-      resumeAt: delayMeta.resumeAt,
-    });
+    if (input.workflow.emitSharedEvents !== false) {
+      await this.progressService.emitEvent(input.workflow.id, 'delayed', {
+        delayMs: delayMeta.delayMs,
+        delayNodeId: input.nodeId,
+        executionId: input.executionId,
+        resumeAt: delayMeta.resumeAt,
+      });
+    }
 
     await this.progressService.updateExecutionEta(
       input.executionId,
@@ -621,6 +937,7 @@ export class WorkflowNodeGraphRunnerService {
       nodes: [{ ...node, cachedOutput: undefined, isLocked: false }],
       organizationId: workflow.organizationId,
       userId: workflow.userId,
+      versionId: workflow.versionId,
     };
 
     const virtualEdges: ExecutableEdge[] = [];
@@ -628,12 +945,12 @@ export class WorkflowNodeGraphRunnerService {
       const virtualNodeId = `__input_${key}`;
       singleNodeWorkflow.nodes.unshift({
         cachedOutput: value,
-        config: {},
+        config: { inputKey: key, inputType: 'json' },
         id: virtualNodeId,
         inputs: [],
         isLocked: true,
         label: `Input: ${key}`,
-        type: 'noop',
+        type: 'workflowInput',
       });
       singleNodeWorkflow.lockedNodeIds.push(virtualNodeId);
       virtualEdges.push({

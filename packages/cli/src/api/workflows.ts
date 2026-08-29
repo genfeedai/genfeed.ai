@@ -7,11 +7,10 @@ import {
   type JsonApiSingleResponse,
 } from './json-api';
 
-export interface WorkflowStep {
+export interface WorkflowNode {
   id: string;
-  label?: string;
-  order?: number;
-  type?: string;
+  data?: { label?: string };
+  type: string;
 }
 
 export interface Workflow {
@@ -20,9 +19,11 @@ export interface Workflow {
   description?: string;
   key?: string;
   label?: string;
+  nodes?: WorkflowNode[];
   status?: string;
-  steps?: WorkflowStep[];
   updatedAt?: string;
+  version?: number;
+  versionId?: string;
 }
 
 export interface WorkflowExecution {

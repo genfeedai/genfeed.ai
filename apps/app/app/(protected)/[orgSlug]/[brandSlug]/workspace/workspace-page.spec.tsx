@@ -2,7 +2,7 @@
 'use client';
 
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
-import { AgentRunsService } from '@services/ai/agent-runs.service';
+import { WorkflowExecutionsService } from '@services/automation/workflow-executions.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { TasksService } from '@services/management/tasks.service';
 import {
@@ -23,12 +23,9 @@ vi.mock('next-intl', async () => {
 
 const getTokenMock = vi.fn();
 const listMock = vi.fn();
-const listAgentRunsMock = vi.fn();
 const createTaskMock = vi.fn();
 const ensurePlanningThreadMock = vi.fn();
-const getActiveRunsMock = vi.fn();
-const getBatchMock = vi.fn();
-const getRunStatsMock = vi.fn();
+const getExecutionByIdMock = vi.fn();
 const findIngredientsByIdsMock = vi.fn();
 const findIssueMock = vi.fn();
 const routerPushMock = vi.fn();
@@ -85,6 +82,22 @@ vi.mock('@hooks/utils/use-websocket-prompt/use-websocket-prompt', () => ({
   useWebsocketPrompt: () => vi.fn(),
 }));
 
+vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
+  useWorkflowExecutions: () => ({
+    cancelExecution: vi.fn(),
+    executions: [],
+    isLoading: false,
+    refresh: vi.fn(),
+    stats: {
+      active: 0,
+      completed: 0,
+      failed: 0,
+      total: 0,
+      totalCredits: 0,
+    },
+  }),
+}));
+
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'acme-creator', orgSlug: 'acme-org' }),
   usePathname: () => '/workspace/inbox/unread',
@@ -95,14 +108,14 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-vi.mock('@services/ai/agent-runs.service', async () => {
+vi.mock('@services/automation/workflow-executions.service', async () => {
   const actual = await vi.importActual<
-    typeof import('@services/ai/agent-runs.service')
-  >('@services/ai/agent-runs.service');
+    typeof import('@services/automation/workflow-executions.service')
+  >('@services/automation/workflow-executions.service');
 
   return {
     ...actual,
-    AgentRunsService: {
+    WorkflowExecutionsService: {
       getInstance: vi.fn(),
     },
   };
@@ -186,7 +199,7 @@ function buildTask(overrides: Record<string, unknown> = {}) {
     id: 'task-1',
     linkedApprovalIds: [],
     linkedOutputIds: [],
-    linkedRunIds: [],
+    linkedExecutionIds: [],
     organizationId: 'org-1',
     outputType: 'ingredient',
     platforms: [],
@@ -231,13 +244,13 @@ describe('WorkspacePageContent', () => {
       seeded: true,
       threadId: 'thread-plan-123',
     });
-    getBatchMock.mockResolvedValue([
-      {
-        contentCount: 1,
-        id: 'run-1',
+    getExecutionByIdMock.mockResolvedValue({
+      id: 'execution-1',
+      metadata: {
+        artifactReferences: ['ingredient-1'],
         threadId: 'thread-report-123',
       },
-    ]);
+    });
     getClonedVoicesMock.mockResolvedValue([]);
     findIngredientsByIdsMock.mockResolvedValue([
       {
@@ -252,9 +265,6 @@ describe('WorkspacePageContent', () => {
       id: 'issue-1',
       identifier: 'GEN-42',
     });
-    listAgentRunsMock.mockResolvedValue([]);
-    getActiveRunsMock.mockResolvedValue([]);
-    getRunStatsMock.mockResolvedValue(null);
     vi.mocked(TasksService.getInstance).mockReturnValue({
       approve: vi.fn(),
       createChildTasks: vi.fn(),
@@ -265,12 +275,9 @@ describe('WorkspacePageContent', () => {
       list: listMock,
       requestChanges: vi.fn(),
     } as unknown as ReturnType<typeof TasksService.getInstance>);
-    vi.mocked(AgentRunsService.getInstance).mockReturnValue({
-      getActive: getActiveRunsMock,
-      getBatch: getBatchMock,
-      getStats: getRunStatsMock,
-      list: listAgentRunsMock,
-    } as unknown as ReturnType<typeof AgentRunsService.getInstance>);
+    vi.mocked(WorkflowExecutionsService.getInstance).mockReturnValue({
+      getById: getExecutionByIdMock,
+    } as unknown as ReturnType<typeof WorkflowExecutionsService.getInstance>);
     vi.mocked(IngredientsService.getInstance).mockReturnValue({
       findByIds: findIngredientsByIdsMock,
     } as unknown as ReturnType<typeof IngredientsService.getInstance>);
@@ -596,7 +603,7 @@ describe('WorkspacePageContent', () => {
     listMock.mockResolvedValue([
       buildTask({
         id: 'task-report-1',
-        linkedRunIds: ['run-1'],
+        linkedExecutionIds: ['execution-1'],
         reviewState: 'approved',
         status: 'completed',
         title: 'TikTok trend report',
@@ -618,7 +625,7 @@ describe('WorkspacePageContent', () => {
     });
 
     await waitFor(() => {
-      expect(getBatchMock).toHaveBeenCalledWith(['run-1']);
+      expect(getExecutionByIdMock).toHaveBeenCalledWith('execution-1');
     });
 
     await waitFor(() => {

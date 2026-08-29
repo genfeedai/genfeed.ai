@@ -15,9 +15,9 @@ import {
   getTaskContinuityQa,
 } from './workspace-task.helpers';
 import type {
+  WorkspaceTaskLinkedExecutionSummary,
   WorkspaceTaskLinkedIssueSummary,
   WorkspaceTaskLinkedOutputSummary,
-  WorkspaceTaskLinkedRunSummary,
   WorkspaceTaskOutputGroup,
 } from './workspace-task-inspector-helpers';
 import { WorkspaceTaskOutputsCard } from './workspace-task-outputs-card';
@@ -28,7 +28,9 @@ interface WorkspaceTaskInspectorBodyProps {
   linkedIssueSummary: WorkspaceTaskLinkedIssueSummary;
   linkedOutputGroups: WorkspaceTaskOutputGroup[];
   linkedOutputSummary: WorkspaceTaskLinkedOutputSummary;
-  linkedRunSummary: WorkspaceTaskLinkedRunSummary & { isLoading: boolean };
+  linkedExecutionSummary: WorkspaceTaskLinkedExecutionSummary & {
+    isLoading: boolean;
+  };
   onKeepOutput: (taskId: string, outputId: string) => Promise<void>;
   onTrashOutput: (taskId: string, outputId: string) => Promise<void>;
   onUnkeepOutput: (taskId: string, outputId: string) => Promise<void>;
@@ -40,7 +42,7 @@ export function WorkspaceTaskInspectorBody({
   linkedIssueSummary,
   linkedOutputGroups,
   linkedOutputSummary,
-  linkedRunSummary,
+  linkedExecutionSummary,
   onKeepOutput,
   onTrashOutput,
   onUnkeepOutput,
@@ -198,7 +200,7 @@ export function WorkspaceTaskInspectorBody({
         />
       ) : null}
 
-      {linkedRunSummary.reportThreadId ? (
+      {linkedExecutionSummary.reportThreadId ? (
         <Card
           label="Report location"
           bodyClassName="space-y-3 border-l border-border p-4 text-sm text-foreground/75"
@@ -211,7 +213,7 @@ export function WorkspaceTaskInspectorBody({
             className="font-semibold"
           >
             <Link
-              href={`${APP_ROUTES.AGENT.ROOT}/${linkedRunSummary.reportThreadId}`}
+              href={`${APP_ROUTES.AGENT.ROOT}/${linkedExecutionSummary.reportThreadId}`}
             >
               {translate('inspector.openReportThread')}
             </Link>
@@ -264,7 +266,7 @@ export function WorkspaceTaskInspectorBody({
         >
           <p>
             {translate('inspector.runs', {
-              count: task.linkedRunIds?.length ?? 0,
+              count: task.linkedExecutionIds?.length ?? 0,
             })}
           </p>
           {task.linkedIssueId ? (
@@ -283,16 +285,16 @@ export function WorkspaceTaskInspectorBody({
           </p>
           <p>
             {translate('inspector.reportThreads', {
-              count: linkedRunSummary.isLoading
+              count: linkedExecutionSummary.isLoading
                 ? 'Loading…'
-                : linkedRunSummary.reportThreadCount,
+                : linkedExecutionSummary.reportThreadCount,
             })}
           </p>
           <p>
             {translate('inspector.generatedContent', {
-              count: linkedRunSummary.isLoading
+              count: linkedExecutionSummary.isLoading
                 ? 'Loading…'
-                : linkedRunSummary.generatedContentCount,
+                : linkedExecutionSummary.generatedContentCount,
             })}
           </p>
           <p>

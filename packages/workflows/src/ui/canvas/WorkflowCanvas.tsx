@@ -512,13 +512,22 @@ function useWorkflowCanvasHandlers({
 
       const nodeType = event.dataTransfer.getData('nodeType') as NodeType;
       if (!nodeType) return;
+      const actionId = event.dataTransfer.getData('actionId');
+      const actionLabel = event.dataTransfer.getData('actionLabel');
 
       const position = reactFlow.screenToFlowPosition({
         x: event.clientX,
         y: event.clientY,
       });
 
-      addNode(nodeType, position);
+      const nodeId = addNode(nodeType, position);
+      if (nodeId && actionId) {
+        useWorkflowStore.getState().updateNodeData(nodeId, {
+          actionId,
+          label: actionLabel || actionId,
+          parameters: {},
+        });
+      }
     },
     [addNode, reactFlow],
   );

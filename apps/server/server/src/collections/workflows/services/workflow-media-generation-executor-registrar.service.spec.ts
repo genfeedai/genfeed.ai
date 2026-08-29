@@ -1,6 +1,7 @@
 import { QWEN_IMAGE_MODEL_KEY } from '@api-types/contracts/generation-capability-profile.contract';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
+  createExecutableActionNode,
   type INodeExecutor,
   type NodeExecutor,
   WorkflowEngine,
@@ -22,6 +23,26 @@ const wrapEngineExecutor =
       })
     ).data;
 
+function getActionExecutor(
+  engine: WorkflowEngine,
+  actionId: string,
+): NodeExecutor | undefined {
+  const executor = engine.getExecutor('genfeedAction');
+  return executor
+    ? (node, inputs, context) =>
+        executor(
+          createExecutableActionNode({
+            actionId,
+            id: node.id,
+            label: node.label,
+            parameters: node.config,
+          }),
+          inputs,
+          context,
+        )
+    : undefined;
+}
+
 describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
   it('persists native video extension lineage and dispatches the Seedance extension contract', async () => {
     const createAndLinkProcessingOutput = vi.fn(
@@ -30,7 +51,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
           WorkflowEngineExecutorHelperService['createAndLinkProcessingOutput']
         >[0],
       ) => {
-        await args.runProvider('ingredient-extended');
+        await args.runProvider('ingredient-extended', 'continuation-extended');
         return {
           ingredientId: 'ingredient-extended',
           metadataId: 'metadata-extended',
@@ -68,7 +89,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       filesClientService as never,
     ).register(engine);
 
-    await engine.getExecutor('videoGen')?.(
+    await getActionExecutor(engine, 'videoGen')?.(
       {
         config: {
           actionVerb: 'extend',
@@ -89,6 +110,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         runId: 'run-1',
         userId: 'user-1',
         workflowId: 'workflow-1',
+        workflowVersionId: 'version-1',
       },
     );
 
@@ -99,6 +121,8 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         duration: -1,
         reference_videos: ['https://s3.example.com/source-video-1?sig=signed'],
       }),
+      undefined,
+      'continuation-extended',
     );
     expect(filesClientService.getPresignedDownloadUrl).toHaveBeenCalledWith(
       'source-video-1',
@@ -126,7 +150,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
           WorkflowEngineExecutorHelperService['createAndLinkProcessingOutput']
         >[0],
       ) => {
-        await args.runProvider('ingredient-1');
+        await args.runProvider('ingredient-1', 'continuation-1');
         return { ingredientId: 'ingredient-1', metadataId: 'metadata-1' };
       },
     );
@@ -152,7 +176,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       replicateService as never,
     ).register(engine);
 
-    const result = await engine.getExecutor('imageGen')?.(
+    const result = await getActionExecutor(engine, 'imageGen')?.(
       {
         config: {
           brandId: 'brand-1',
@@ -173,6 +197,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         runId: 'run-1',
         userId: 'user-1',
         workflowId: 'workflow-1',
+        workflowVersionId: 'version-1',
       },
     );
 
@@ -180,6 +205,8 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
     expect(replicateService.runModel).toHaveBeenCalledWith(
       QWEN_IMAGE_MODEL_KEY,
       expect.objectContaining({ negative_prompt: 'watermark, blurry text' }),
+      undefined,
+      'continuation-1',
     );
     expect(createAndLinkProcessingOutput).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -241,7 +268,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
 
     try {
       await expect(
-        engine.getExecutor('imageGen')?.(
+        getActionExecutor(engine, 'imageGen')?.(
           {
             config: {
               brandId: 'brand-1',
@@ -259,6 +286,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
             runId: 'run-1',
             userId: 'user-1',
             workflowId: 'workflow-1',
+            workflowVersionId: 'version-1',
           },
         ),
       ).rejects.toBeInstanceOf(ServiceUnavailableException);
@@ -277,7 +305,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
           WorkflowEngineExecutorHelperService['createAndLinkProcessingOutput']
         >[0],
       ) => {
-        await args.runProvider('ingredient-1');
+        await args.runProvider('ingredient-1', 'continuation-1');
         return { ingredientId: 'ingredient-1', metadataId: 'metadata-1' };
       },
     );
@@ -306,7 +334,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       replicateService as never,
     ).register(engine);
 
-    await engine.getExecutor('videoGen')?.(
+    await getActionExecutor(engine, 'videoGen')?.(
       {
         config: {
           brandId: 'brand-1',
@@ -326,6 +354,7 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         runId: 'run-1',
         userId: 'user-1',
         workflowId: 'workflow-1',
+        workflowVersionId: 'version-1',
       },
     );
 
@@ -335,6 +364,8 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
         end_image: 'last-frame-1',
         start_image: 'first-frame-1',
       }),
+      undefined,
+      'continuation-1',
     );
   });
 });

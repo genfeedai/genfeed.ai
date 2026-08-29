@@ -123,8 +123,9 @@ const CATEGORY_COLORS: Record<
   },
 };
 
-/** Optional extra node definition (e.g. SaaS socialRead / reportDelivery). */
+/** Optional engine primitive or registered-action palette entry. */
 export interface PaletteNodeDefinition {
+  actionId?: string;
   category: string;
   description: string;
   icon: string;
@@ -135,6 +136,7 @@ export interface PaletteNodeDefinition {
 export type PaletteCategory = NodeCategory;
 
 interface NodeCardProps {
+  actionId?: string;
   type: string;
   label: string;
   description: string;
@@ -142,15 +144,26 @@ interface NodeCardProps {
   category: NodeCategory;
 }
 
-function NodeCard({ type, label, description, icon, category }: NodeCardProps) {
+function NodeCard({
+  actionId,
+  type,
+  label,
+  description,
+  icon,
+  category,
+}: NodeCardProps) {
   const Icon = ICONS[icon] ?? Sparkles;
 
   const handleDragStart = useCallback(
     (event: React.DragEvent) => {
       event.dataTransfer.setData('nodeType', type);
+      if (actionId) {
+        event.dataTransfer.setData('actionId', actionId);
+        event.dataTransfer.setData('actionLabel', label);
+      }
       event.dataTransfer.effectAllowed = 'move';
     },
-    [type],
+    [actionId, label, type],
   );
 
   const colors = CATEGORY_COLORS[category] ?? CATEGORY_COLORS.processing;
@@ -200,22 +213,39 @@ function mapToPaletteCategory(category: string): NodeCategory {
 
 function mergeNodesByCategory(
   additionalNodes: readonly PaletteNodeDefinition[] = [],
+  baseNodeTypes?: ReadonlySet<string>,
 ): Record<NodeCategory, PaletteNodeDefinition[]> {
   const base = getNodesByCategory();
   const merged: Record<NodeCategory, PaletteNodeDefinition[]> = {
-    ai: [...base.ai],
-    composition: [...base.composition],
-    input: [...base.input],
-    output: [...base.output],
-    processing: [...base.processing],
+    ai: base.ai.filter(
+      (node) => !baseNodeTypes || baseNodeTypes.has(node.type),
+    ),
+    composition: base.composition.filter(
+      (node) => !baseNodeTypes || baseNodeTypes.has(node.type),
+    ),
+    input: base.input.filter(
+      (node) => !baseNodeTypes || baseNodeTypes.has(node.type),
+    ),
+    output: base.output.filter(
+      (node) => !baseNodeTypes || baseNodeTypes.has(node.type),
+    ),
+    processing: base.processing.filter(
+      (node) => !baseNodeTypes || baseNodeTypes.has(node.type),
+    ),
   };
 
   for (const node of additionalNodes) {
     const category = mapToPaletteCategory(node.category);
-    if (merged[category].some((entry) => entry.type === node.type)) {
+    if (
+      merged[category].some(
+        (entry) =>
+          (entry.actionId ?? entry.type) === (node.actionId ?? node.type),
+      )
+    ) {
       continue;
     }
     merged[category].push({
+      actionId: node.actionId,
       category,
       description: node.description,
       icon: node.icon,
@@ -264,7 +294,8 @@ function CategorySection({
         <div className="px-4 pb-4 space-y-2">
           {nodes.map((node) => (
             <NodeCard
-              key={node.type}
+              key={node.actionId ?? node.type}
+              actionId={node.actionId}
               type={node.type}
               label={node.label}
               description={node.description}
@@ -279,11 +310,16 @@ function CategorySection({
 }
 
 export interface NodePaletteProps {
-  /** Extra palette entries (SaaS/cloud nodes) merged into core categories. */
+  /** Extra palette entries merged into the visible categories. */
   additionalNodes?: readonly PaletteNodeDefinition[];
+  /** Optional hard-cut filter for which core engine primitives are visible. */
+  baseNodeTypes?: readonly string[];
 }
 
-export function NodePalette({ additionalNodes = [] }: NodePaletteProps = {}) {
+export function NodePalette({
+  additionalNodes = [],
+  baseNodeTypes,
+}: NodePaletteProps = {}) {
   const { togglePalette } = useUIStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<
@@ -291,8 +327,12 @@ export function NodePalette({ additionalNodes = [] }: NodePaletteProps = {}) {
   >(new Set(['input']));
 
   const nodesByCategory = useMemo(
-    () => mergeNodesByCategory(additionalNodes),
-    [additionalNodes],
+    () =>
+      mergeNodesByCategory(
+        additionalNodes,
+        baseNodeTypes ? new Set(baseNodeTypes) : undefined,
+      ),
+    [additionalNodes, baseNodeTypes],
   );
 
   // Filter nodes across all categories when searching

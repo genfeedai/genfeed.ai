@@ -15,10 +15,6 @@ vi.mock('twitter-api-v2', () => ({
   TwitterApi: MockTwitterApi,
 }));
 
-import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
-import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
-import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
 import { ReplyBotPlatform } from '@genfeedai/enums';
 import type {
   IReplyBotContentData,
@@ -27,6 +23,10 @@ import type {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { InstagramService } from '@server/services/integrations/instagram/services/instagram.service';
+import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
+import { YoutubeService } from '@server/services/integrations/youtube/services/youtube.service';
+import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
 
 type BotActionExecutorRouting = {
   postTwitterReply: BotActionExecutorService['postReply'];
@@ -490,89 +490,6 @@ describe('BotActionExecutorService', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('organizationId and brandId required');
-    });
-  });
-
-  describe('executeActions', () => {
-    it('should return only reply result when no dmText provided', async () => {
-      const credential: IReplyBotCredentialData = {
-        accessToken: 'token',
-        brandId: 'brand-1',
-        organizationId: 'org-1',
-        platform: ReplyBotPlatform.INSTAGRAM,
-      };
-      const targetContent: IReplyBotContentData = {
-        authorId: 'author-1',
-        authorUsername: 'user1',
-        createdAt: new Date('2026-01-01T00:00:00.000Z'),
-        id: 'media-1',
-        text: 'Original content',
-      };
-      mockInstagramService.postComment.mockResolvedValue({ commentId: 'c-1' });
-
-      const result = await service.executeActions(
-        credential,
-        targetContent,
-        'reply text',
-      );
-
-      expect(result.reply.success).toBe(true);
-      expect(result.dm).toBeUndefined();
-    });
-
-    it('should not send DM when reply fails', async () => {
-      const credential: IReplyBotCredentialData = {
-        accessToken: 'token',
-        platform: ReplyBotPlatform.INSTAGRAM,
-      };
-      const targetContent: IReplyBotContentData = {
-        authorId: 'author-1',
-        authorUsername: 'user1',
-        createdAt: new Date('2026-01-01T00:00:00.000Z'),
-        id: 'media-1',
-        text: 'Original content',
-      };
-
-      const result = await service.executeActions(
-        credential,
-        targetContent,
-        'reply',
-        'dm text',
-        0,
-      );
-
-      expect(result.reply.success).toBe(false);
-      expect(result.dm).toBeUndefined();
-    });
-
-    it('should send DM after successful reply with no delay', async () => {
-      const credential: IReplyBotCredentialData = {
-        accessToken: 'token',
-        brandId: 'brand-1',
-        organizationId: 'org-1',
-        platform: ReplyBotPlatform.INSTAGRAM,
-      };
-      const targetContent: IReplyBotContentData = {
-        authorId: 'author-1',
-        authorUsername: 'user1',
-        createdAt: new Date('2026-01-01T00:00:00.000Z'),
-        id: 'media-1',
-        text: 'Original content',
-      };
-      mockInstagramService.postComment.mockResolvedValue({ commentId: 'c-1' });
-      mockInstagramService.sendCommentReplyDm.mockResolvedValue(undefined);
-
-      const result = await service.executeActions(
-        credential,
-        targetContent,
-        'reply',
-        'dm text',
-        0,
-      );
-
-      expect(result.reply.success).toBe(true);
-      expect(result.dm).toBeDefined();
-      expect(result.dm?.success).toBe(true);
     });
   });
 

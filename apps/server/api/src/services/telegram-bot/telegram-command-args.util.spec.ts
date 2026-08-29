@@ -5,9 +5,9 @@ describe('extractCommandArgs', () => {
   it('returns the trimmed text after the slash command', () => {
     expect(
       extractCommandArgs({
-        message: { text: '/generate   a ginger cat' },
+        message: { text: '/connect   gf_example' },
       } as never),
-    ).toBe('a ginger cat');
+    ).toBe('gf_example');
   });
 
   it('returns an empty string when there is no argument or message', () => {

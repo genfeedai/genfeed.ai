@@ -471,6 +471,7 @@ export class TalkingHeadScriptExecutor extends BaseExecutor {
           runId: '',
           userId: '',
           workflowId: '',
+          workflowVersionId: '',
         },
         inputs: new Map(),
         node,

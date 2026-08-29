@@ -4,11 +4,9 @@ import { OrganizationsModule } from '@api/collections/organizations/organization
 import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
-import { CacheModule } from '@server/services/cache/cache.module';
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
-import { SignupPrefillQueueModule } from '@api/services/signup-prefill/signup-prefill-queue.module';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
+import { SignupPrefillModule } from '@api/services/signup-prefill/signup-prefill.module';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { ConfigService } from '@libs/config/config.service';
 // Value import: consumed through the `inject` array below, not just as a type.
@@ -16,6 +14,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PassportModule } from '@nestjs/passport';
+import { CacheModule } from '@server/services/cache/cache.module';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 import { resolveBetterAuthRuntimeConfig } from './better-auth.config';
 import {
@@ -56,7 +56,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
     CommonModule,
     LifecycleEmailsModule,
     NotificationsModule,
-    SignupPrefillQueueModule,
+    SignupPrefillModule,
   ],
   providers: [
     BetterAuthMailerService,

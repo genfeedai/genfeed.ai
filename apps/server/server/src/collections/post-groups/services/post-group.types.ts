@@ -63,7 +63,6 @@ export type SchedulerPostTag = {
 export type SchedulerPostTarget = {
   agentContextSource: string | null;
   agentContextVersion: number | null;
-  agentRunId: string | null;
   agentStrategyId: string | null;
   agentThreadId: string | null;
   analyticsCollectedAt: Date | null;

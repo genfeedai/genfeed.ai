@@ -19,18 +19,18 @@ function BatchWorkflowPageContent() {
     handleBackToComposer,
     handleDownload,
     handleOpenInLibrary,
-    handleOpenRecentJob,
+    handleOpenRecentExecution,
     handlePublish,
     handleRunBatch,
     hasPendingUploads,
     isDragActive,
     isBootstrapping,
-    isLoadingJob,
+    isLoadingExecution,
     isRunningBulkAction,
     isStartingBatch,
     openPostBatchModal,
     push,
-    recentJobs,
+    recentExecutions,
     removeFile,
     selectedOutputIds,
     selectedOutputs,
@@ -56,11 +56,11 @@ function BatchWorkflowPageContent() {
           </div>
         )}
 
-        {(isBootstrapping || isLoadingJob) && (
+        {(isBootstrapping || isLoadingExecution) && (
           <div className="mb-6 rounded-md bg-secondary px-4 py-3 text-sm text-muted-foreground shadow-border">
-            {isLoadingJob
-              ? 'Loading batch job…'
-              : 'Loading workflows and recent jobs…'}
+            {isLoadingExecution
+              ? 'Loading batch execution…'
+              : 'Loading workflows and recent executions…'}
           </div>
         )}
 
@@ -99,9 +99,9 @@ function BatchWorkflowPageContent() {
             dropzoneState={{ hasPendingUploads, isDragActive }}
             onClearFiles={clearFiles}
             onRemoveFile={removeFile}
-            recentJobs={recentJobs}
+            recentExecutions={recentExecutions}
             workflowsById={workflowsById}
-            onOpenRecentJob={handleOpenRecentJob}
+            onOpenRecentExecution={handleOpenRecentExecution}
           />
         )}
       </main>

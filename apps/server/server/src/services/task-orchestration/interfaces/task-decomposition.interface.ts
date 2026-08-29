@@ -2,7 +2,7 @@ import type { AgentType } from '@genfeedai/enums';
 
 /**
  * A single subtask produced by the decomposition LLM.
- * Each maps to one agent run.
+ * Each maps to one agent-turn workflow execution.
  */
 export interface DecomposedSubtask {
   /** Agent type to handle this subtask */

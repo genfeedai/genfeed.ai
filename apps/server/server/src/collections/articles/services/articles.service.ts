@@ -1,3 +1,21 @@
+import { createGenfeedActionNode } from '@genfeedai/actions';
+import {
+  ArticleScope,
+  PromptTemplateKey,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  type OnModuleInit,
+  Optional,
+} from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { ViralityAnalysisResponse } from '@server/collections/articles/dto/analyze-virality.dto';
 import { TwitterThreadResponse } from '@server/collections/articles/dto/article-to-thread.dto';
 import { ArticlesQueryDto } from '@server/collections/articles/dto/articles-query.dto';
@@ -12,12 +30,21 @@ import {
   type Article,
   type ArticleDocument,
 } from '@server/collections/articles/schemas/article.schema';
+import {
+  ARTICLE_HEADER_PROMPT_ACTION_IDS,
+  ARTICLE_HEADER_PROMPT_WORKFLOW_DEFINITION,
+  ARTICLE_HEADER_PROMPT_WORKFLOW_ID,
+} from '@server/collections/articles/services/article-header-prompt-workflow-definition';
 import { ArticleInsightsService } from '@server/collections/articles/services/article-insights.service';
 import { ArticleRemixService } from '@server/collections/articles/services/article-remix.service';
-import { ArticleTranscriptService } from '@server/collections/articles/services/article-transcript.service';
 import { ArticleVersionService } from '@server/collections/articles/services/article-version.service';
 import type {
   ArticleCycleModelConfig,
+  ArticleExistingReviewContext,
+  ArticleGenerationContext,
+  ArticleGenerationReviewState,
+  ArticleGenerationRevisionState,
+  ArticleGenerationWorkItem,
   ArticleReviewRubric,
 } from '@server/collections/articles/services/articles-content.service';
 import { ArticlesContentService } from '@server/collections/articles/services/articles-content.service';
@@ -29,14 +56,18 @@ import { OrganizationSettingsService } from '@server/collections/organization-se
 import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
 import { UsersService } from '@server/collections/users/services/users.service';
 import {
+  type SystemWorkflowGraphDefinition,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
+import {
   CACHE_PATTERNS,
   CACHE_TAGS,
 } from '@server/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@server/constants/default-mini-text-model.constant';
 import { DEFAULT_TEXT_MODEL } from '@server/constants/default-text-model.constant';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 import { ArticleFilterUtil } from '@server/helpers/utils/article-filter/article-filter.util';
 import { resolveGenerationDefaultModel } from '@server/helpers/utils/generation-defaults/generation-defaults.util';
 import { CacheService } from '@server/services/cache/cache.service';
@@ -49,20 +80,247 @@ import {
   invalidateCollectionQueryCache,
   paginatedQueryCacheTag,
 } from '@server/shared/utils/query-cache/query-cache.util';
-import { ArticleScope, PromptTemplateKey } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
+
+export const ARTICLE_GENERATION_TOOL_ID = 'create_article';
+export const ARTICLE_REVIEW_ACTION_ID = 'article.review';
+const ARTICLE_FINALIZE_GENERATION_ACTION_ID = 'article.generation.finalize';
+const ARTICLE_GENERATE_DRAFTS_ACTION_ID = 'article.generation.generate-drafts';
+const ARTICLE_INVALIDATE_GENERATION_ACTION_ID =
+  'article.generation.invalidate-cache';
+const ARTICLE_LOAD_GENERATION_ACTION_ID = 'article.generation.load-context';
+const ARTICLE_PERSIST_DRAFT_ACTION_ID = 'article.generation.persist-draft';
+const ARTICLE_REVISE_DRAFT_ACTION_ID = 'article.generation.revise-draft';
+const ARTICLE_REVIEW_DRAFT_ACTION_ID = 'article.generation.review-draft';
+const ARTICLE_LOAD_REVIEW_ACTION_ID = 'article.review.load-context';
+const ARTICLE_GENERATION_WORKFLOW_ID = 'article.generation';
+const ARTICLE_GENERATION_CHILD_WORKFLOW_ID = 'article.generation.one';
+const ARTICLE_REVIEW_WORKFLOW_ID = 'article.review.workflow';
+
+export function buildArticleGenerationWorkflowDefinition(): SystemWorkflowGraphDefinition {
+  return {
+    canonicalId: ARTICLE_GENERATION_WORKFLOW_ID,
+    definition: {
+      edges: [
+        {
+          id: 'load-generate',
+          source: 'load-context',
+          target: 'generate-drafts',
+          targetHandle: 'state',
+        },
+        {
+          id: 'generate-items',
+          source: 'generate-drafts',
+          sourceHandle: 'items',
+          target: 'process-drafts',
+          targetHandle: 'items',
+        },
+        {
+          id: 'generate-finalize',
+          source: 'generate-drafts',
+          target: 'finalize-generation',
+          targetHandle: 'generation',
+        },
+        {
+          id: 'drafts-finalize',
+          source: 'process-drafts',
+          target: 'finalize-generation',
+          targetHandle: 'drafts',
+        },
+        {
+          id: 'finalize-header',
+          source: 'finalize-generation',
+          sourceHandle: 'headerPromptItems',
+          target: 'generate-header-prompts',
+          targetHandle: 'items',
+        },
+        {
+          id: 'finalize-invalidate',
+          source: 'finalize-generation',
+          target: 'invalidate-cache',
+          targetHandle: 'state',
+        },
+        {
+          id: 'header-invalidate',
+          source: 'generate-header-prompts',
+          target: 'invalidate-cache',
+          targetHandle: 'headerPrompts',
+        },
+        {
+          id: 'header-failure-invalidate',
+          source: 'generate-header-prompts',
+          sourceHandle: 'failure',
+          target: 'invalidate-cache',
+          targetHandle: 'headerFailure',
+        },
+      ],
+      inputVariables: [
+        { key: 'dto', label: 'Article request', required: true, type: 'json' },
+        { key: 'brandId', label: 'Brand', required: true, type: 'string' },
+      ],
+      nodes: [
+        createGenfeedActionNode({
+          actionId: ARTICLE_LOAD_GENERATION_ACTION_ID,
+          id: 'load-context',
+          inputVariableKeys: ['dto', 'brandId'],
+        }),
+        createGenfeedActionNode({
+          actionId: ARTICLE_GENERATE_DRAFTS_ACTION_ID,
+          id: 'generate-drafts',
+        }),
+        createGenfeedActionNode({
+          actionId: 'workflow.for-each',
+          id: 'process-drafts',
+          parameters: {
+            childWorkflowId: ARTICLE_GENERATION_CHILD_WORKFLOW_ID,
+            itemInputKey: 'item',
+            maxConcurrency: 3,
+            mode: 'await',
+          },
+        }),
+        createGenfeedActionNode({
+          actionId: ARTICLE_FINALIZE_GENERATION_ACTION_ID,
+          id: 'finalize-generation',
+        }),
+        createGenfeedActionNode({
+          actionId: 'workflow.for-each',
+          id: 'generate-header-prompts',
+          parameters: {
+            childWorkflowId: ARTICLE_HEADER_PROMPT_WORKFLOW_ID,
+            itemInputKey: 'request',
+            maxConcurrency: 1,
+            mode: 'await',
+          },
+        }),
+        createGenfeedActionNode({
+          actionId: ARTICLE_INVALIDATE_GENERATION_ACTION_ID,
+          id: 'invalidate-cache',
+        }),
+      ],
+    },
+    description:
+      'Loads generation context, generates drafts, and processes each article through review, revision, and persistence.',
+    label: 'Article Generation',
+    resultNodeId: 'invalidate-cache',
+    version: 1,
+  };
+}
+
+function articleGenerationChildWorkflow(): SystemWorkflowGraphDefinition {
+  return {
+    canonicalId: ARTICLE_GENERATION_CHILD_WORKFLOW_ID,
+    definition: {
+      edges: [
+        {
+          id: 'review-revise',
+          source: 'review-draft',
+          target: 'revise-draft',
+          targetHandle: 'state',
+        },
+        {
+          id: 'revise-persist',
+          source: 'revise-draft',
+          target: 'persist-draft',
+          targetHandle: 'state',
+        },
+      ],
+      inputVariables: [
+        { key: 'item', label: 'Article draft', required: true, type: 'json' },
+      ],
+      nodes: [
+        createGenfeedActionNode({
+          actionId: ARTICLE_REVIEW_DRAFT_ACTION_ID,
+          id: 'review-draft',
+          inputVariableKeys: ['item'],
+        }),
+        createGenfeedActionNode({
+          actionId: ARTICLE_REVISE_DRAFT_ACTION_ID,
+          id: 'revise-draft',
+        }),
+        createGenfeedActionNode({
+          actionId: ARTICLE_PERSIST_DRAFT_ACTION_ID,
+          id: 'persist-draft',
+        }),
+      ],
+    },
+    description: 'Reviews, revises, and persists one generated article draft.',
+    label: 'Generate One Article',
+    resultNodeId: 'persist-draft',
+    version: 1,
+  };
+}
+
+function articleReviewWorkflow(): SystemWorkflowGraphDefinition {
+  return {
+    canonicalId: ARTICLE_REVIEW_WORKFLOW_ID,
+    definition: {
+      edges: [
+        {
+          id: 'load-review',
+          source: 'load-context',
+          target: 'review-article',
+          targetHandle: 'state',
+        },
+      ],
+      inputVariables: [
+        { key: 'articleId', label: 'Article', required: true, type: 'string' },
+        {
+          key: 'focus',
+          label: 'Review focus',
+          required: false,
+          type: 'string',
+        },
+      ],
+      nodes: [
+        createGenfeedActionNode({
+          actionId: ARTICLE_LOAD_REVIEW_ACTION_ID,
+          id: 'load-context',
+          inputVariableKeys: ['articleId', 'focus'],
+        }),
+        createGenfeedActionNode({
+          actionId: ARTICLE_REVIEW_ACTION_ID,
+          id: 'review-article',
+        }),
+      ],
+    },
+    description: 'Loads article context and generates a structured review.',
+    label: 'Article Review',
+    resultNodeId: 'review-article',
+    version: 1,
+  };
+}
+
+export type ArticleGenerationActionResult = {
+  articles: ArticleDocument[];
+  billedCredits: number;
+};
+
+type ArticleGenerationFinalState = ArticleGenerationActionResult & {
+  context: ArticleGenerationContext;
+  headerPromptItems: Array<{ articleId: string }>;
+};
+
+type ArticleHeaderPromptState = {
+  article: ArticleDocument;
+  articleId: string;
+  organizationId: string;
+  prompt?: string;
+};
+
+export type ArticleReviewActionResult = {
+  billedCredits: number;
+  review: ArticleReviewRubric;
+};
 
 @Injectable()
-export class ArticlesService extends BaseService<
-  ArticleDocument,
-  CreateArticleDto,
-  UpdateArticleDto,
-  Prisma.ArticleWhereInput
-> {
+export class ArticlesService
+  extends BaseService<
+    ArticleDocument,
+    CreateArticleDto,
+    UpdateArticleDto,
+    Prisma.ArticleWhereInput
+  >
+  implements OnModuleInit
+{
   private readonly constructorName = this.constructor.name;
 
   constructor(
@@ -70,7 +328,6 @@ export class ArticlesService extends BaseService<
     public readonly logger: LoggerService,
     private readonly configService: ConfigService,
     private readonly articleVersionService: ArticleVersionService,
-    private readonly articleTranscriptService: ArticleTranscriptService,
     private readonly articleInsightsService: ArticleInsightsService,
     private readonly articleRemixService: ArticleRemixService,
     @Optional()
@@ -85,8 +342,101 @@ export class ArticlesService extends BaseService<
     @Optional() private readonly organizationsService?: OrganizationsService,
     @Optional()
     private readonly cacheInvalidationService?: CacheInvalidationService,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {
     super(prisma, 'article', logger, undefined, cacheService);
+  }
+
+  onModuleInit(): void {
+    const runner = this.requireWorkflowRunner();
+    runner.registerAction(
+      ARTICLE_LOAD_GENERATION_ACTION_ID,
+      async ({ context, input }) => {
+        const dto = this.readArticleGenerationInput(input.dto);
+        const brandId = this.requiredString(input.brandId, 'brandId');
+        const modelConfig = await this.resolveArticleCycleModelConfig(
+          context.organizationId,
+          dto.model,
+        );
+        return this.requireArticlesContentService().prepareGeneration(
+          dto,
+          context.userId,
+          context.organizationId,
+          brandId,
+          modelConfig,
+        );
+      },
+    );
+    runner.registerAction(ARTICLE_GENERATE_DRAFTS_ACTION_ID, ({ input }) =>
+      this.requireArticlesContentService().generateDrafts(
+        input.state as ArticleGenerationContext,
+      ),
+    );
+    runner.registerAction(ARTICLE_REVIEW_DRAFT_ACTION_ID, ({ input }) =>
+      this.requireArticlesContentService().reviewDraft(
+        input.item as ArticleGenerationWorkItem,
+      ),
+    );
+    runner.registerAction(ARTICLE_REVISE_DRAFT_ACTION_ID, ({ input }) =>
+      this.requireArticlesContentService().reviseDraft(
+        input.state as ArticleGenerationReviewState,
+      ),
+    );
+    runner.registerAction(ARTICLE_PERSIST_DRAFT_ACTION_ID, ({ input }) =>
+      this.requireArticlesContentService().persistDraft(
+        input.state as ArticleGenerationRevisionState,
+        this.createArticle.bind(this),
+      ),
+    );
+    runner.registerAction(ARTICLE_FINALIZE_GENERATION_ACTION_ID, ({ input }) =>
+      this.finalizeArticleGeneration(input),
+    );
+    runner.registerAction(
+      ARTICLE_HEADER_PROMPT_ACTION_IDS.LOAD,
+      ({ context, input }) =>
+        this.loadArticleHeaderPrompt(
+          input.request as { articleId: string },
+          context.organizationId,
+        ),
+    );
+    runner.registerAction(
+      ARTICLE_HEADER_PROMPT_ACTION_IDS.GENERATE,
+      ({ input }) =>
+        this.generateArticleHeaderPrompt(
+          input.state as ArticleHeaderPromptState,
+        ),
+    );
+    runner.registerAction(
+      ARTICLE_HEADER_PROMPT_ACTION_IDS.PERSIST,
+      ({ input }) =>
+        this.persistArticleHeaderPrompt(
+          input.state as ArticleHeaderPromptState,
+        ),
+    );
+    runner.registerAction(
+      ARTICLE_INVALIDATE_GENERATION_ACTION_ID,
+      ({ input }) =>
+        this.invalidateGeneratedArticleCaches(
+          input.state as ArticleGenerationFinalState,
+        ),
+    );
+    runner.registerWorkflow(buildArticleGenerationWorkflowDefinition());
+    runner.registerWorkflow(articleGenerationChildWorkflow());
+    runner.registerWorkflow(articleReviewWorkflow());
+    runner.registerWorkflow(ARTICLE_HEADER_PROMPT_WORKFLOW_DEFINITION);
+    runner.registerAction(ARTICLE_LOAD_REVIEW_ACTION_ID, ({ context, input }) =>
+      this.loadArticleReviewContext(
+        this.requiredString(input.articleId, 'articleId'),
+        context.userId,
+        context.organizationId,
+        typeof input.focus === 'string' ? input.focus : undefined,
+      ),
+    );
+    runner.registerAction(ARTICLE_REVIEW_ACTION_ID, ({ input }) =>
+      this.requireArticlesContentService().reviewExistingPrepared(
+        input.state as ArticleExistingReviewContext,
+      ),
+    );
   }
 
   /**
@@ -157,26 +507,6 @@ export class ArticlesService extends BaseService<
     this.logger.debug(
       `${this.constructorName} invalidated ${invalidated} cache keys after ${context}`,
       { tags: tagsToInvalidate },
-    );
-  }
-
-  /**
-   * Generate article from YouTube transcript
-   */
-  @HandleErrors('generate article from transcript', 'articles')
-  generateFromTranscript(
-    transcriptId: string,
-    userId: string,
-    organizationId: string,
-    brandId: string,
-  ): Promise<ArticleDocument> {
-    return this.articleTranscriptService.generateFromTranscript(
-      transcriptId,
-      userId,
-      organizationId,
-      brandId,
-      (dto, ownerUserId, ownerOrganizationId, ownerBrandId) =>
-        this.createArticle(dto, ownerUserId, ownerOrganizationId, ownerBrandId),
     );
   }
 
@@ -585,72 +915,96 @@ export class ArticlesService extends BaseService<
     userId: string,
     organizationId: string,
     brandId: string,
-    onBilling?: (amount: number) => void,
-  ): Promise<ArticleDocument[]> {
-    if (!this.articlesContentService) {
-      throw new Error('ArticlesContentService not available');
-    }
-
-    const modelConfig = await this.resolveArticleCycleModelConfig(
-      organizationId,
-      generateDto.model,
-    );
-    const generationType = generateDto.type || ArticleGenerationType.STANDARD;
-
-    const articles =
-      generationType === ArticleGenerationType.X_ARTICLE
-        ? [
-            await this.articlesContentService.generateLongFormArticle(
-              generateDto,
-              userId,
-              organizationId,
-              brandId,
-              modelConfig,
-              this.createArticle.bind(this),
-              (charge) => onBilling?.(charge.amount),
-            ),
-          ]
-        : await this.articlesContentService.generateArticles(
-            generateDto,
-            userId,
-            organizationId,
-            brandId,
-            modelConfig,
-            this.createArticle.bind(this),
-            (charge) => onBilling?.(charge.amount),
-          );
-
-    if (
-      generationType === ArticleGenerationType.X_ARTICLE &&
-      generateDto.generateHeaderImage !== false &&
-      articles[0]
-    ) {
-      try {
-        await this.generatePromptFromArticle(
-          articles[0].id,
-          userId,
+  ): Promise<ArticleGenerationActionResult> {
+    const { result } =
+      await this.requireWorkflowRunner().runWorkflow<ArticleGenerationActionResult>(
+        {
+          actionType: ARTICLE_GENERATION_TOOL_ID,
+          canonicalId: ARTICLE_GENERATION_WORKFLOW_ID,
+          inputValues: { brandId, dto: generateDto },
+          metadata: { brandId, origin: 'api' },
           organizationId,
-          brandId,
-        );
-      } catch (error: unknown) {
-        this.logger.error(
-          `${this.constructorName} failed to generate header image prompt for X Article`,
-          { articleId: articles[0].id, error },
-        );
-      }
-    }
+          source: 'ArticlesService.generateArticles',
+          trigger: WorkflowExecutionTrigger.API,
+          userId,
+        },
+      );
+    return result;
+  }
 
-    // Invalidate cache after generating articles (invalidate ALL cache tags for articles).
-    // This deliberately also flushes the global paginated-query cache tag via
-    // invalidateAllPaginatedQueryCaches — batch article generation can affect
-    // cross-collection surfaces (e.g. feeds/dashboards) that read articles
-    // alongside other collections, so this is the one intentional system-wide
-    // eviction path. Every other write path scopes to its own collection via
-    // paginatedQueryCacheTag() — see
-    // .agents/memory/context/api-cache-invalidation.md.
+  private finalizeArticleGeneration(
+    input: Record<string, unknown>,
+  ): ArticleGenerationFinalState {
+    const generation = input.generation as {
+      billedCredits: number;
+      context: ArticleGenerationContext;
+    };
+    const drafts = input.drafts as {
+      results?: Array<{
+        result?: { article?: ArticleDocument; billedCredits?: number };
+      }>;
+    };
+    const completed = drafts.results ?? [];
+    const articles = completed.flatMap(({ result }) =>
+      result?.article ? [result.article] : [],
+    );
+    return {
+      articles,
+      billedCredits:
+        generation.billedCredits +
+        completed.reduce(
+          (total, { result }) => total + (result?.billedCredits ?? 0),
+          0,
+        ),
+      context: generation.context,
+      headerPromptItems:
+        generation.context.generationType === ArticleGenerationType.X_ARTICLE &&
+        generation.context.generateDto.generateHeaderImage !== false &&
+        articles[0]
+          ? [{ articleId: articles[0].id }]
+          : [],
+    };
+  }
+
+  private async loadArticleHeaderPrompt(
+    request: { articleId: string },
+    organizationId: string,
+  ): Promise<ArticleHeaderPromptState> {
+    const articleId = this.requiredString(request.articleId, 'articleId');
+    const article = await this.findOne({
+      id: articleId,
+      isDeleted: false,
+      organizationId,
+    });
+    if (!article) throw new NotFoundException('Article', articleId);
+    return { article, articleId, organizationId };
+  }
+
+  private async generateArticleHeaderPrompt(
+    state: ArticleHeaderPromptState,
+  ): Promise<ArticleHeaderPromptState> {
+    return {
+      ...state,
+      prompt: await this.articleInsightsService.generateHeaderPrompt(
+        state.article,
+        state.organizationId,
+      ),
+    };
+  }
+
+  private async persistArticleHeaderPrompt(
+    state: ArticleHeaderPromptState,
+  ): Promise<string> {
+    const prompt = this.requiredString(state.prompt, 'prompt');
+    await this.patch(state.articleId, { generationPrompt: prompt });
+    return prompt;
+  }
+
+  private async invalidateGeneratedArticleCaches(
+    state: ArticleGenerationFinalState,
+  ): Promise<ArticleGenerationActionResult> {
     if (this.cacheService) {
       const collectionName = this.collectionName;
-      // Invalidate all possible cache tags
       await invalidateCollectionQueryCache(this.cacheService, collectionName);
       await invalidateAllPaginatedQueryCaches(this.cacheService);
       await this.cacheService.invalidateByTags([
@@ -660,8 +1014,7 @@ export class ArticlesService extends BaseService<
         paginatedQueryCacheTag(collectionName),
       ]);
     }
-
-    return articles;
+    return { articles: state.articles, billedCredits: state.billedCredits };
   }
 
   async reviewArticle(
@@ -669,12 +1022,29 @@ export class ArticlesService extends BaseService<
     userId: string,
     organizationId: string,
     focus?: string,
-    onBilling?: (amount: number) => void,
-  ): Promise<ArticleReviewRubric> {
-    if (!this.articlesContentService) {
-      throw new Error('ArticlesContentService not available');
-    }
+  ): Promise<ArticleReviewActionResult> {
+    const { result } =
+      await this.requireWorkflowRunner().runWorkflow<ArticleReviewActionResult>(
+        {
+          actionType: ARTICLE_REVIEW_ACTION_ID,
+          canonicalId: ARTICLE_REVIEW_WORKFLOW_ID,
+          inputValues: { articleId, focus },
+          metadata: { origin: 'api' },
+          organizationId,
+          source: 'ArticlesService.reviewArticle',
+          trigger: WorkflowExecutionTrigger.API,
+          userId,
+        },
+      );
+    return result;
+  }
 
+  private async loadArticleReviewContext(
+    articleId: string,
+    userId: string,
+    organizationId: string,
+    focus?: string,
+  ): Promise<ArticleExistingReviewContext> {
     const article = await this.findOne({
       id: articleId,
       OR: [{ userId }, { organizationId }],
@@ -686,12 +1056,11 @@ export class ArticlesService extends BaseService<
 
     const modelConfig =
       await this.resolveArticleCycleModelConfig(organizationId);
-    return this.articlesContentService.reviewExistingArticle(
+    return this.requireArticlesContentService().prepareExistingReview(
       article,
       organizationId,
       modelConfig,
       focus,
-      (charge) => onBilling?.(charge.amount),
     );
   }
 
@@ -884,23 +1253,22 @@ export class ArticlesService extends BaseService<
     );
   }
 
-  /**
-   * Generate a media prompt from article content
-   */
-  @HandleErrors('generate prompt from article', 'articles')
-  generatePromptFromArticle(
+  @HandleErrors('generate article header prompt', 'articles')
+  async generateHeaderPrompt(
     articleId: string,
     userId: string,
     organizationId: string,
-    _brandId: string,
   ): Promise<string> {
-    return this.articleInsightsService.generatePromptFromArticle(
-      articleId,
-      userId,
+    const { result } = await this.requireWorkflowRunner().runWorkflow<string>({
+      actionType: ARTICLE_HEADER_PROMPT_WORKFLOW_ID,
+      canonicalId: ARTICLE_HEADER_PROMPT_WORKFLOW_ID,
+      inputValues: { request: { articleId } },
       organizationId,
-      (criteria) => this.findOne(criteria),
-      (id, updates) => this.patch(id, updates),
-    );
+      source: 'ArticlesService.generateHeaderPrompt',
+      trigger: WorkflowExecutionTrigger.API,
+      userId,
+    });
+    return result;
   }
 
   /**
@@ -924,6 +1292,77 @@ export class ArticlesService extends BaseService<
       (dto, ownerUserId, ownerOrganizationId, ownerBrandId) =>
         this.createArticle(dto, ownerUserId, ownerOrganizationId, ownerBrandId),
     );
+  }
+
+  private readArticleGenerationInput(value: unknown): GenerateArticlesDto {
+    const input = this.readRecord(value);
+    const nested = this.readRecord(input.dto);
+    const source = Object.keys(nested).length > 0 ? nested : input;
+    const prompt = this.requiredString(source.prompt ?? source.topic, 'prompt');
+    const length =
+      typeof source.length === 'string' ? source.length : undefined;
+    const targetWordCount =
+      typeof source.targetWordCount === 'number'
+        ? source.targetWordCount
+        : length === 'long'
+          ? 7_000
+          : length === 'short'
+            ? 2_500
+            : length
+              ? 4_000
+              : undefined;
+    const brandId =
+      typeof source.brandId === 'string' ? source.brandId : undefined;
+    const keywords = Array.isArray(source.keywords)
+      ? source.keywords.filter(
+          (keyword): keyword is string => typeof keyword === 'string',
+        )
+      : undefined;
+    const tone = typeof source.tone === 'string' ? source.tone : undefined;
+    const normalizedSource = { ...source };
+    delete normalizedSource.brandId;
+    delete normalizedSource.count;
+    delete normalizedSource.keywords;
+    delete normalizedSource.prompt;
+    delete normalizedSource.targetWordCount;
+    delete normalizedSource.tone;
+
+    return {
+      ...normalizedSource,
+      ...(brandId === undefined ? {} : { brandId }),
+      count: typeof source.count === 'number' ? source.count : 1,
+      ...(keywords === undefined ? {} : { keywords }),
+      prompt,
+      ...(targetWordCount === undefined ? {} : { targetWordCount }),
+      ...(tone === undefined ? {} : { tone }),
+    } as GenerateArticlesDto;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new Error(`Missing required article action input: ${field}`);
+    }
+    return value.trim();
+  }
+
+  private requireWorkflowRunner(): SystemWorkflowRunnerService {
+    if (!this.moduleRef) {
+      throw new Error('Workflow action runner is unavailable');
+    }
+    return this.moduleRef.get(SystemWorkflowRunnerService, { strict: false });
+  }
+
+  private requireArticlesContentService(): ArticlesContentService {
+    if (!this.articlesContentService) {
+      throw new Error('ArticlesContentService not available');
+    }
+    return this.articlesContentService;
   }
 
   /**

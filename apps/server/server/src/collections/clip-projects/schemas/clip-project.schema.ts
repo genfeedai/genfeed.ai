@@ -1,3 +1,4 @@
+import type { SupportedAvatarVideoProviderName } from '@genfeedai/interfaces';
 import {
   CLIP_PROJECT_STATUSES,
   type ClipProcessingFlow,
@@ -8,7 +9,6 @@ import {
   type ClipProjectStatus as SharedClipProjectStatus,
 } from '@genfeedai/interfaces';
 import type { ClipProject as PrismaClipProject } from '@genfeedai/prisma';
-import type { SupportedAvatarVideoProviderName } from '@genfeedai/queue-contracts';
 
 export type ClipProject = PrismaClipProject;
 
@@ -50,6 +50,7 @@ export interface ClipProjectSettings {
 
 type ClipProjectRecord = Omit<
   PrismaClipProject,
+  | 'continuityWorkflowExecutionId'
   | 'error'
   | 'failedClipCount'
   | 'pendingClipCount'
@@ -58,9 +59,12 @@ type ClipProjectRecord = Omit<
   | 'readyClipCount'
   | 'status'
   | 'terminalAt'
+  | 'workflowExecutionId'
 >;
 
 export interface ClipProjectDocument extends ClipProjectRecord {
+  continuityQaStatus: string;
+  continuityWorkflowExecutionId?: string | null;
   error?: string | null;
   failedClipCount: number;
   highlights?: ClipProjectHighlight[];
@@ -78,5 +82,6 @@ export interface ClipProjectDocument extends ClipProjectRecord {
   status: SharedClipProjectStatus | string;
   terminalAt?: Date | null;
   transcriptText?: string;
+  workflowExecutionId?: string | null;
   [key: string]: unknown;
 }

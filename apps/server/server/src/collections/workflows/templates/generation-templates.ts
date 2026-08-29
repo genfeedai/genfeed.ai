@@ -1,7 +1,7 @@
+import { LLM_DEFAULTS } from '@genfeedai/constants';
 import { AVATAR_UGC_WORKFLOW_TEMPLATE } from '@server/collections/workflows/templates/avatar-ugc-workflow.template';
 import { AVATAR_UGC_X_LANDSCAPE_WORKFLOW_TEMPLATE } from '@server/collections/workflows/templates/avatar-ugc-x-landscape-workflow.template';
-import { LLM_DEFAULTS } from '@genfeedai/constants';
-import { WorkflowStepCategory } from '@genfeedai/enums';
+import { createTemplateActionNode } from '@server/collections/workflows/templates/template-action-node';
 
 export interface WorkflowTemplate {
   id: string;
@@ -34,13 +34,6 @@ export interface WorkflowTemplate {
     target: string;
     sourceHandle?: string;
     targetHandle?: string;
-  }>;
-  steps: Array<{
-    id: string;
-    name: string;
-    category: WorkflowStepCategory;
-    config: Record<string, unknown>;
-    dependsOn?: string[];
   }>;
 }
 
@@ -209,7 +202,7 @@ const VIRTUAL_STAGING_RESCUE_TEMPLATE: WorkflowTemplate = {
       position: { x: 0, y: 460 },
       type: 'workflowInput',
     },
-    {
+    createTemplateActionNode('promptConstructor', {
       data: {
         config: {
           template:
@@ -220,9 +213,8 @@ const VIRTUAL_STAGING_RESCUE_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-prompt-constructor-virtual-staging',
       position: { x: 320, y: 250 },
-      type: 'promptConstructor',
-    },
-    {
+    }),
+    createTemplateActionNode('imageGen', {
       data: {
         config: {
           model: 'qwen/qwen-image',
@@ -235,9 +227,8 @@ const VIRTUAL_STAGING_RESCUE_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-generate-image-cleanup',
       position: { x: 680, y: 140 },
-      type: 'imageGen',
-    },
-    {
+    }),
+    createTemplateActionNode('imageGen', {
       data: {
         config: {
           model: 'qwen/qwen-image',
@@ -250,9 +241,8 @@ const VIRTUAL_STAGING_RESCUE_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-generate-image-premium',
       position: { x: 680, y: 360 },
-      type: 'imageGen',
-    },
-    {
+    }),
+    createTemplateActionNode('workflow.collect-output', {
       data: {
         config: {
           outputName: 'listingReady',
@@ -261,9 +251,8 @@ const VIRTUAL_STAGING_RESCUE_TEMPLATE: WorkflowTemplate = {
       },
       id: 'workflow-output-listing-ready',
       position: { x: 1020, y: 140 },
-      type: 'workflowOutput',
-    },
-    {
+    }),
+    createTemplateActionNode('workflow.collect-output', {
       data: {
         config: {
           outputName: 'premiumStaged',
@@ -272,10 +261,8 @@ const VIRTUAL_STAGING_RESCUE_TEMPLATE: WorkflowTemplate = {
       },
       id: 'workflow-output-premium-staged',
       position: { x: 1020, y: 360 },
-      type: 'workflowOutput',
-    },
+    }),
   ],
-  steps: [],
 };
 
 const FLOOR_PLAN_INTERIOR_PREVIEW_TEMPLATE: WorkflowTemplate = {
@@ -464,7 +451,7 @@ const FLOOR_PLAN_INTERIOR_PREVIEW_TEMPLATE: WorkflowTemplate = {
       position: { x: 0, y: 460 },
       type: 'workflowInput',
     },
-    {
+    createTemplateActionNode('promptConstructor', {
       data: {
         config: {
           template:
@@ -475,9 +462,8 @@ const FLOOR_PLAN_INTERIOR_PREVIEW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-prompt-constructor-floor-plan',
       position: { x: 320, y: 250 },
-      type: 'promptConstructor',
-    },
-    {
+    }),
+    createTemplateActionNode('imageGen', {
       data: {
         config: {
           model: 'black-forest-labs/flux-2-pro',
@@ -489,9 +475,8 @@ const FLOOR_PLAN_INTERIOR_PREVIEW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-generate-image-hero-wide',
       position: { x: 700, y: 80 },
-      type: 'imageGen',
-    },
-    {
+    }),
+    createTemplateActionNode('imageGen', {
       data: {
         config: {
           model: 'black-forest-labs/flux-2-pro',
@@ -503,9 +488,8 @@ const FLOOR_PLAN_INTERIOR_PREVIEW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-generate-image-alt-angle',
       position: { x: 700, y: 280 },
-      type: 'imageGen',
-    },
-    {
+    }),
+    createTemplateActionNode('imageGen', {
       data: {
         config: {
           model: 'black-forest-labs/flux-2-pro',
@@ -518,9 +502,8 @@ const FLOOR_PLAN_INTERIOR_PREVIEW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-generate-image-detail-angle',
       position: { x: 700, y: 480 },
-      type: 'imageGen',
-    },
-    {
+    }),
+    createTemplateActionNode('workflow.collect-output', {
       data: {
         config: {
           outputName: 'heroWide',
@@ -529,9 +512,8 @@ const FLOOR_PLAN_INTERIOR_PREVIEW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'workflow-output-hero-wide',
       position: { x: 1040, y: 80 },
-      type: 'workflowOutput',
-    },
-    {
+    }),
+    createTemplateActionNode('workflow.collect-output', {
       data: {
         config: {
           outputName: 'alternateAngle',
@@ -540,9 +522,8 @@ const FLOOR_PLAN_INTERIOR_PREVIEW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'workflow-output-alt-angle',
       position: { x: 1040, y: 280 },
-      type: 'workflowOutput',
-    },
-    {
+    }),
+    createTemplateActionNode('workflow.collect-output', {
       data: {
         config: {
           outputName: 'detailAngle',
@@ -551,10 +532,8 @@ const FLOOR_PLAN_INTERIOR_PREVIEW_TEMPLATE: WorkflowTemplate = {
       },
       id: 'workflow-output-detail-angle',
       position: { x: 1040, y: 480 },
-      type: 'workflowOutput',
-    },
+    }),
   ],
-  steps: [],
 };
 
 const FOUNDER_X_POST_TEMPLATE: WorkflowTemplate = {
@@ -687,7 +666,7 @@ const FOUNDER_X_POST_TEMPLATE: WorkflowTemplate = {
       position: { x: 0, y: 460 },
       type: 'workflowInput',
     },
-    {
+    createTemplateActionNode('promptConstructor', {
       data: {
         config: {
           template:
@@ -698,9 +677,8 @@ const FOUNDER_X_POST_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-prompt-constructor-founder-x-post',
       position: { x: 340, y: 250 },
-      type: 'promptConstructor',
-    },
-    {
+    }),
+    createTemplateActionNode('llm', {
       data: {
         config: {
           model: LLM_DEFAULTS.fastText,
@@ -711,9 +689,8 @@ const FOUNDER_X_POST_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-generate-founder-x-post',
       position: { x: 720, y: 250 },
-      type: 'llm',
-    },
-    {
+    }),
+    createTemplateActionNode('workflow.collect-output', {
       data: {
         config: {
           outputName: 'postDraft',
@@ -722,10 +699,8 @@ const FOUNDER_X_POST_TEMPLATE: WorkflowTemplate = {
       },
       id: 'workflow-output-founder-x-post',
       position: { x: 1060, y: 250 },
-      type: 'workflowOutput',
-    },
+    }),
   ],
-  steps: [],
 };
 
 const FOUNDER_X_THREAD_TEMPLATE: WorkflowTemplate = {
@@ -858,7 +833,7 @@ const FOUNDER_X_THREAD_TEMPLATE: WorkflowTemplate = {
       position: { x: 0, y: 460 },
       type: 'workflowInput',
     },
-    {
+    createTemplateActionNode('promptConstructor', {
       data: {
         config: {
           template:
@@ -869,9 +844,8 @@ const FOUNDER_X_THREAD_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-prompt-constructor-founder-x-thread',
       position: { x: 340, y: 250 },
-      type: 'promptConstructor',
-    },
-    {
+    }),
+    createTemplateActionNode('llm', {
       data: {
         config: {
           model: LLM_DEFAULTS.fastText,
@@ -882,9 +856,8 @@ const FOUNDER_X_THREAD_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-generate-founder-x-thread',
       position: { x: 720, y: 250 },
-      type: 'llm',
-    },
-    {
+    }),
+    createTemplateActionNode('workflow.collect-output', {
       data: {
         config: {
           outputName: 'threadDraft',
@@ -893,10 +866,8 @@ const FOUNDER_X_THREAD_TEMPLATE: WorkflowTemplate = {
       },
       id: 'workflow-output-founder-x-thread',
       position: { x: 1060, y: 250 },
-      type: 'workflowOutput',
-    },
+    }),
   ],
-  steps: [],
 };
 
 const FOUNDER_NEWSLETTER_TEMPLATE: WorkflowTemplate = {
@@ -1029,7 +1000,7 @@ const FOUNDER_NEWSLETTER_TEMPLATE: WorkflowTemplate = {
       position: { x: 0, y: 460 },
       type: 'workflowInput',
     },
-    {
+    createTemplateActionNode('promptConstructor', {
       data: {
         config: {
           template:
@@ -1040,9 +1011,8 @@ const FOUNDER_NEWSLETTER_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-prompt-constructor-founder-newsletter',
       position: { x: 340, y: 250 },
-      type: 'promptConstructor',
-    },
-    {
+    }),
+    createTemplateActionNode('llm', {
       data: {
         config: {
           model: LLM_DEFAULTS.fastText,
@@ -1053,9 +1023,8 @@ const FOUNDER_NEWSLETTER_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-generate-founder-newsletter',
       position: { x: 720, y: 250 },
-      type: 'llm',
-    },
-    {
+    }),
+    createTemplateActionNode('workflow.collect-output', {
       data: {
         config: {
           outputName: 'newsletterDraft',
@@ -1064,10 +1033,8 @@ const FOUNDER_NEWSLETTER_TEMPLATE: WorkflowTemplate = {
       },
       id: 'workflow-output-founder-newsletter',
       position: { x: 1060, y: 250 },
-      type: 'workflowOutput',
-    },
+    }),
   ],
-  steps: [],
 };
 
 const FOUNDER_EDITORIAL_ILLUSTRATION_TEMPLATE: WorkflowTemplate = {
@@ -1200,7 +1167,7 @@ const FOUNDER_EDITORIAL_ILLUSTRATION_TEMPLATE: WorkflowTemplate = {
       position: { x: 0, y: 460 },
       type: 'workflowInput',
     },
-    {
+    createTemplateActionNode('promptConstructor', {
       data: {
         config: {
           template:
@@ -1211,9 +1178,8 @@ const FOUNDER_EDITORIAL_ILLUSTRATION_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-prompt-constructor-founder-illustration',
       position: { x: 340, y: 250 },
-      type: 'promptConstructor',
-    },
-    {
+    }),
+    createTemplateActionNode('imageGen', {
       data: {
         config: {
           model: 'black-forest-labs/flux-2-pro',
@@ -1225,9 +1191,8 @@ const FOUNDER_EDITORIAL_ILLUSTRATION_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-generate-founder-illustration',
       position: { x: 720, y: 250 },
-      type: 'imageGen',
-    },
-    {
+    }),
+    createTemplateActionNode('workflow.collect-output', {
       data: {
         config: {
           outputName: 'illustrationDraft',
@@ -1236,10 +1201,8 @@ const FOUNDER_EDITORIAL_ILLUSTRATION_TEMPLATE: WorkflowTemplate = {
       },
       id: 'workflow-output-founder-illustration',
       position: { x: 1060, y: 250 },
-      type: 'workflowOutput',
-    },
+    }),
   ],
-  steps: [],
 };
 
 const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
@@ -1500,7 +1463,7 @@ const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
       position: { x: 0, y: 740 },
       type: 'workflowInput',
     },
-    {
+    createTemplateActionNode('promptConstructor', {
       data: {
         config: {
           template:
@@ -1511,9 +1474,8 @@ const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-prompt-constructor-youtube-thumbnail',
       position: { x: 340, y: 240 },
-      type: 'promptConstructor',
-    },
-    {
+    }),
+    createTemplateActionNode('imageGen', {
       data: {
         config: {
           model: 'qwen/qwen-image',
@@ -1526,9 +1488,8 @@ const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-generate-youtube-thumbnail-v1',
       position: { x: 720, y: 80 },
-      type: 'imageGen',
-    },
-    {
+    }),
+    createTemplateActionNode('imageGen', {
       data: {
         config: {
           model: 'qwen/qwen-image',
@@ -1542,9 +1503,8 @@ const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-generate-youtube-thumbnail-v2',
       position: { x: 720, y: 280 },
-      type: 'imageGen',
-    },
-    {
+    }),
+    createTemplateActionNode('imageGen', {
       data: {
         config: {
           model: 'qwen/qwen-image',
@@ -1558,9 +1518,8 @@ const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-generate-youtube-thumbnail-v3',
       position: { x: 720, y: 480 },
-      type: 'imageGen',
-    },
-    {
+    }),
+    createTemplateActionNode('promptConstructor', {
       data: {
         config: {
           template:
@@ -1571,9 +1530,8 @@ const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
       },
       id: 'ai-prompt-constructor-youtube-script',
       position: { x: 340, y: 760 },
-      type: 'promptConstructor',
-    },
-    {
+    }),
+    createTemplateActionNode('llm', {
       data: {
         config: {
           maxTokens: 1600,
@@ -1584,9 +1542,8 @@ const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
       },
       id: 'llm-youtube-script',
       position: { x: 720, y: 760 },
-      type: 'llm',
-    },
-    {
+    }),
+    createTemplateActionNode('workflow.collect-output', {
       data: {
         config: {
           outputName: 'thumbnailV1',
@@ -1595,9 +1552,8 @@ const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
       },
       id: 'workflow-output-youtube-thumbnail-v1',
       position: { x: 1080, y: 80 },
-      type: 'workflowOutput',
-    },
-    {
+    }),
+    createTemplateActionNode('workflow.collect-output', {
       data: {
         config: {
           outputName: 'thumbnailV2',
@@ -1606,9 +1562,8 @@ const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
       },
       id: 'workflow-output-youtube-thumbnail-v2',
       position: { x: 1080, y: 280 },
-      type: 'workflowOutput',
-    },
-    {
+    }),
+    createTemplateActionNode('workflow.collect-output', {
       data: {
         config: {
           outputName: 'thumbnailV3',
@@ -1617,9 +1572,8 @@ const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
       },
       id: 'workflow-output-youtube-thumbnail-v3',
       position: { x: 1080, y: 480 },
-      type: 'workflowOutput',
-    },
-    {
+    }),
+    createTemplateActionNode('workflow.collect-output', {
       data: {
         config: {
           outputName: 'scriptBrief',
@@ -1628,10 +1582,8 @@ const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
       },
       id: 'workflow-output-youtube-script',
       position: { x: 1080, y: 760 },
-      type: 'workflowOutput',
-    },
+    }),
   ],
-  steps: [],
 };
 
 export const GENERATION_WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
@@ -1639,87 +1591,35 @@ export const GENERATION_WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
     AVATAR_UGC_WORKFLOW_TEMPLATE as unknown as WorkflowTemplate,
   'avatar-ugc-x-landscape-heygen':
     AVATAR_UGC_X_LANDSCAPE_WORKFLOW_TEMPLATE as unknown as WorkflowTemplate,
-  'complete-content-suite': {
-    category: 'generation',
-    description: 'Generate image, video, music, and article together',
-    icon: 'suite',
-    id: 'complete-content-suite',
-    name: 'Complete Content Suite',
-    steps: [
-      {
-        category: WorkflowStepCategory.GENERATE_IMAGE,
-        config: {
-          height: 1080,
-          model: 'imagen4',
-          // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-          prompt: '${imagePrompt}',
-          quality: 'high',
-          width: 1920,
-        },
-        id: 'generate-image-1',
-        name: 'Generate Cover Image',
-      },
-      {
-        category: WorkflowStepCategory.GENERATE_VIDEO,
-        config: {
-          duration: 10,
-          model: 'klingai',
-          // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-          prompt: '${videoPrompt}',
-          resolution: '1080p',
-        },
-        dependsOn: ['generate-image-1'],
-        id: 'generate-video-1',
-        name: 'Generate Promo Video',
-      },
-      {
-        category: WorkflowStepCategory.GENERATE_MUSIC,
-        config: {
-          duration: 60,
-          genre: 'cinematic',
-          model: 'musicgen',
-          // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-          prompt: '${musicPrompt}',
-        },
-        id: 'generate-music-1',
-        name: 'Generate Background Music',
-      },
-      {
-        category: WorkflowStepCategory.GENERATE_ARTICLE,
-        config: {
-          includeImages: true,
-          length: 'long',
-          model: 'gpt-4-turbo-preview',
-          // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-          topic: '${articleTopic}',
-        },
-        id: 'generate-article-1',
-        name: 'Generate Article',
-      },
-    ],
-  },
   'daily-image-generation': {
     category: 'generation',
     description: 'Generate AI images on a daily schedule',
     icon: 'image',
     id: 'daily-image-generation',
     name: 'Daily Image Generation',
-    steps: [
+    nodes: [
       {
-        category: WorkflowStepCategory.GENERATE_IMAGE,
-        config: {
-          height: 1024,
-          model: 'imagen4', // Default model, user can override
-          // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-          prompt: '${prompt}', // Template variable
-          quality: 'high',
-          style: 'photorealistic',
-          width: 1024,
-        },
         id: 'generate-image',
-        name: 'Generate AI Image',
+        type: 'genfeedAction',
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Generate AI Image',
+          config: {
+            actionId: 'imageGen',
+            parameters: {
+              height: 1024,
+              model: 'imagen4', // Default model, user can override
+              // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
+              prompt: '${prompt}', // Template variable
+              quality: 'high',
+              style: 'photorealistic',
+              width: 1024,
+            },
+          },
+        },
       },
     ],
+    edges: [],
   },
   'floor-plan-interior-preview': FLOOR_PLAN_INTERIOR_PREVIEW_TEMPLATE,
   'founder-editorial-illustration': FOUNDER_EDITORIAL_ILLUSTRATION_TEMPLATE,
@@ -1732,56 +1632,54 @@ export const GENERATION_WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
     icon: 'quote',
     id: 'motivational-quote-image',
     name: 'Daily Motivational Quote Image',
-    steps: [
+    nodes: [
       {
-        category: WorkflowStepCategory.GENERATE_ARTICLE,
-        config: {
-          length: 'short',
-          model: 'gpt-4-turbo-preview',
-          tone: 'inspirational',
-          topic: 'motivational quote',
-        },
         id: 'generate-quote-article',
-        name: 'Generate Quote',
+        type: 'genfeedAction',
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Generate Quote',
+          inputVariableKeys: ['brandId'],
+          config: {
+            actionId: 'workflow.run-child',
+            parameters: {
+              childWorkflowId: 'article.generation',
+              dto: {
+                count: 1,
+                prompt: 'Write one original motivational quote',
+                targetWordCount: 2500,
+                tone: 'inspirational',
+              },
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.GENERATE_IMAGE,
-        config: {
-          height: 1080,
-          model: 'leonardo',
-          prompt:
-            // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-            'Beautiful inspirational background with text overlay: ${quote}',
-          style: 'artistic',
-          width: 1080,
-        },
-        dependsOn: ['generate-quote-article'],
         id: 'generate-quote-image',
-        name: 'Generate Quote Image',
+        type: 'genfeedAction',
+        position: { x: 280, y: 0 },
+        data: {
+          label: 'Generate Quote Image',
+          config: {
+            actionId: 'imageGen',
+            parameters: {
+              height: 1080,
+              model: 'leonardo',
+              prompt:
+                // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
+                'Beautiful inspirational background with text overlay: ${quote}',
+              style: 'artistic',
+              width: 1080,
+            },
+          },
+        },
       },
     ],
-  },
-  'music-library-builder': {
-    category: 'generation',
-    description: 'Build a music library with scheduled generation',
-    icon: 'music',
-    id: 'music-library-builder',
-    name: 'Music Library Builder',
-    steps: [
+    edges: [
       {
-        category: WorkflowStepCategory.GENERATE_MUSIC,
-        config: {
-          duration: 60, // seconds
-          genre: 'ambient',
-          instruments: [],
-          model: 'musicgen', // Default model
-          mood: 'calm',
-          // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-          prompt: '${prompt}',
-          tempo: 'medium',
-        },
-        id: 'generate-music',
-        name: 'Generate AI Music',
+        id: 'generate-quote-article' + '-' + 'generate-quote-image',
+        source: 'generate-quote-article',
+        target: 'generate-quote-image',
       },
     ],
   },
@@ -1791,22 +1689,29 @@ export const GENERATION_WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
     icon: 'video',
     id: 'scheduled-video-creation',
     name: 'Scheduled Video Creation',
-    steps: [
+    nodes: [
       {
-        category: WorkflowStepCategory.GENERATE_VIDEO,
-        config: {
-          duration: 5, // seconds
-          fps: 30,
-          model: 'klingai', // Default model
-          // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-          prompt: '${prompt}',
-          resolution: '1080p',
-          style: 'cinematic',
-        },
         id: 'generate-video',
-        name: 'Generate AI Video',
+        type: 'genfeedAction',
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Generate AI Video',
+          config: {
+            actionId: 'videoGen',
+            parameters: {
+              duration: 5, // seconds
+              fps: 30,
+              model: 'klingai', // Default model
+              // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
+              prompt: '${prompt}',
+              resolution: '1080p',
+              style: 'cinematic',
+            },
+          },
+        },
       },
     ],
+    edges: [],
   },
   'social-media-video-series': {
     category: 'generation',
@@ -1814,30 +1719,48 @@ export const GENERATION_WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
     icon: 'social',
     id: 'social-media-video-series',
     name: 'Social Media Video Series',
-    steps: [
+    nodes: [
       {
-        category: WorkflowStepCategory.GENERATE_VIDEO,
-        config: {
-          aspectRatio: '9:16', // Portrait for stories/reels
-          duration: 15, // Perfect for social media
-          model: 'klingai',
-          // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-          prompt: '${prompt}',
-          resolution: '1080p',
-        },
         id: 'generate-video-content',
-        name: 'Generate Short Video',
+        type: 'genfeedAction',
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Generate Short Video',
+          config: {
+            actionId: 'videoGen',
+            parameters: {
+              aspectRatio: '9:16', // Portrait for stories/reels
+              duration: 15, // Perfect for social media
+              model: 'klingai',
+              // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
+              prompt: '${prompt}',
+              resolution: '1080p',
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.CAPTION,
-        config: {
-          fontSize: 'large',
-          position: 'center',
-          style: 'dynamic',
-        },
-        dependsOn: ['generate-video-content'],
         id: 'add-captions',
-        name: 'Add Captions',
+        type: 'genfeedAction',
+        position: { x: 280, y: 0 },
+        data: {
+          label: 'Add Captions',
+          config: {
+            actionId: 'effect-captions',
+            parameters: {
+              fontSize: 'large',
+              position: 'center',
+              style: 'dynamic',
+            },
+          },
+        },
+      },
+    ],
+    edges: [
+      {
+        id: 'generate-video-content' + '-' + 'add-captions',
+        source: 'generate-video-content',
+        target: 'add-captions',
       },
     ],
   },
@@ -1848,79 +1771,147 @@ export const GENERATION_WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
     icon: 'tiktok',
     id: 'tiktok-slideshow-automation',
     name: 'TikTok Slideshow Automation',
-    steps: [
+    nodes: [
       {
-        category: WorkflowStepCategory.GENERATE_HOOK,
-        config: {
-          hookFormula: 'person_conflict_resolution',
-          // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-          niche: '${niche}',
-          // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-          product: '${product}',
-          toneStyle: 'storytelling',
-        },
         id: 'generate-hook',
-        name: 'Generate Viral Hook',
+        type: 'genfeedAction',
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Generate Viral Hook',
+          config: {
+            actionId: 'hookGenerator',
+            parameters: {
+              hookFormula: 'person_conflict_resolution',
+              // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
+              niche: '${niche}',
+              // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
+              product: '${product}',
+              toneStyle: 'storytelling',
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.IMAGE_BATCH,
-        config: {
-          aspectRatio: 'tiktok_portrait',
-          model: 'gpt-image-1',
-          slideCount: 6,
-        },
-        dependsOn: ['generate-hook'],
         id: 'generate-slides',
-        name: 'Generate Slideshow Images',
+        type: 'genfeedAction',
+        position: { x: 280, y: 0 },
+        data: {
+          label: 'Generate Slideshow Images',
+          config: {
+            actionId: 'generate_content_batch',
+            parameters: {
+              count: 6,
+              platforms: ['tiktok'],
+              style: 'slideshow',
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.TEXT_OVERLAY,
-        config: {
-          fontSize: 72,
-          fontWeight: 'black',
-          position: 'center',
-          slideIndex: 0,
-          strokeColor: '#000000',
-          strokeWidth: 3,
-          textColor: '#FFFFFF',
-        },
-        dependsOn: ['generate-hook', 'generate-slides'],
         id: 'overlay-hook-text',
-        name: 'Add Hook Text to Slide 1',
+        type: 'genfeedAction',
+        position: { x: 560, y: 0 },
+        data: {
+          label: 'Add Hook Text to Slide 1',
+          config: {
+            actionId: 'effect-text-overlay',
+            parameters: {
+              fontSize: 72,
+              fontWeight: 'black',
+              position: 'center',
+              slideIndex: 0,
+              strokeColor: '#000000',
+              strokeWidth: 3,
+              textColor: '#FFFFFF',
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.CAPTION,
-        config: {
-          hashtagCount: 5,
-          includeCTA: true,
-          includeEmojis: true,
-          includeHashtags: true,
-          platform: 'tiktok',
-          tone: 'storytelling',
-        },
-        dependsOn: ['generate-hook'],
         id: 'generate-caption',
-        name: 'Write TikTok Caption',
+        type: 'genfeedAction',
+        position: { x: 840, y: 0 },
+        data: {
+          label: 'Write TikTok Caption',
+          config: {
+            actionId: 'effect-captions',
+            parameters: {
+              hashtagCount: 5,
+              includeCTA: true,
+              includeEmojis: true,
+              includeHashtags: true,
+              platform: 'tiktok',
+              tone: 'storytelling',
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.PUBLISH,
-        config: {
-          platforms: ['tiktok'],
-          schedule: 'immediate',
-        },
-        dependsOn: ['overlay-hook-text', 'generate-caption'],
         id: 'publish-tiktok',
-        name: 'Publish to TikTok',
+        type: 'genfeedAction',
+        position: { x: 1120, y: 0 },
+        data: {
+          label: 'Publish to TikTok',
+          config: {
+            actionId: 'publish',
+            parameters: {
+              platforms: ['tiktok'],
+              schedule: 'immediate',
+            },
+          },
+        },
       },
       {
-        category: WorkflowStepCategory.PERFORMANCE_TRACK,
-        config: {
-          autoAnalyzeAfterHours: 24,
-          trackingEnabled: true,
-        },
-        dependsOn: ['publish-tiktok'],
         id: 'track-performance',
-        name: 'Track Hook Performance',
+        type: 'genfeedAction',
+        position: { x: 1400, y: 0 },
+        data: {
+          label: 'Track Hook Performance',
+          config: {
+            actionId: 'analyticsFeedback',
+            parameters: {
+              autoAnalyzeAfterHours: 24,
+              trackingEnabled: true,
+            },
+          },
+        },
+      },
+    ],
+    edges: [
+      {
+        id: 'generate-hook' + '-' + 'generate-slides',
+        source: 'generate-hook',
+        target: 'generate-slides',
+      },
+      {
+        id: 'generate-hook' + '-' + 'overlay-hook-text',
+        source: 'generate-hook',
+        target: 'overlay-hook-text',
+      },
+      {
+        id: 'generate-slides' + '-' + 'overlay-hook-text',
+        source: 'generate-slides',
+        target: 'overlay-hook-text',
+      },
+      {
+        id: 'generate-hook' + '-' + 'generate-caption',
+        source: 'generate-hook',
+        target: 'generate-caption',
+      },
+      {
+        id: 'overlay-hook-text' + '-' + 'publish-tiktok',
+        source: 'overlay-hook-text',
+        target: 'publish-tiktok',
+      },
+      {
+        id: 'generate-caption' + '-' + 'publish-tiktok',
+        source: 'generate-caption',
+        target: 'publish-tiktok',
+      },
+      {
+        id: 'publish-tiktok' + '-' + 'track-performance',
+        source: 'publish-tiktok',
+        target: 'track-performance',
       },
     ],
   },
@@ -1931,23 +1922,33 @@ export const GENERATION_WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
     icon: 'article',
     id: 'weekly-article-batch',
     name: 'Weekly Article Generation',
-    steps: [
+    nodes: [
       {
-        category: WorkflowStepCategory.GENERATE_ARTICLE,
-        config: {
-          includeImages: true,
-          keywords: [],
-          length: 'medium', // short, medium, long
-          model: 'gpt-4-turbo-preview',
-          seoOptimized: true,
-          tone: 'professional',
-          // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-          topic: '${topic}',
-        },
         id: 'generate-article',
-        name: 'Generate AI Article',
+        type: 'genfeedAction',
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Generate AI Article',
+          inputVariableKeys: ['brandId'],
+          config: {
+            actionId: 'workflow.run-child',
+            parameters: {
+              childWorkflowId: 'article.generation',
+              dto: {
+                count: 1,
+                generateHeaderImage: true,
+                keywords: [],
+                // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
+                prompt: '${topic}',
+                targetWordCount: 4000,
+                tone: 'professional',
+              },
+            },
+          },
+        },
       },
     ],
+    edges: [],
   },
   'youtube-thumbnail-script': YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE,
 };

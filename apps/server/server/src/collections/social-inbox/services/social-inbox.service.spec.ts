@@ -1,12 +1,13 @@
+import { Platform, SocialConversationType } from '@genfeedai/enums';
+import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { SocialInboxService } from '@server/collections/social-inbox/services/social-inbox.service';
 import { SocialInboxProviderError } from '@server/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxActionService } from '@server/collections/social-inbox/services/social-inbox-action.service';
 import { SocialInboxIngestionService } from '@server/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@server/collections/social-inbox/services/social-inbox-query.service';
 import { SocialInboxRealtimeService } from '@server/collections/social-inbox/services/social-inbox-realtime.service';
-import { Platform, SocialConversationType } from '@genfeedai/enums';
-import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import { createSystemWorkflowRunnerMock } from '@server/shared/testing/system-workflow-runner-mock';
 
 type StoreConversation = {
   id: string;
@@ -72,7 +73,6 @@ type StoreMessage = {
   sourceUrl: string | null;
   idempotencyKey: string | null;
   workflowRunId: string | null;
-  agentRunId: string | null;
   workflowTriggerStatus: string | null;
   workflowTriggerJobId: string | null;
   workflowTriggerError: string | null;
@@ -333,7 +333,6 @@ function createContext(): TestContext {
         const now = new Date();
         const message: StoreMessage = {
           actionProvenance: data.actionProvenance ?? {},
-          agentRunId: data.agentRunId ?? null,
           authorRole: data.authorRole ?? null,
           body: data.body,
           brandId: data.brandId ?? null,
@@ -439,6 +438,7 @@ function createContext(): TestContext {
   const realtimeService = new SocialInboxRealtimeService(
     notificationsPublisher as never,
   );
+  const systemWorkflowRunner = createSystemWorkflowRunnerMock();
   const ingestionService = new SocialInboxIngestionService(
     prisma as never,
     youtubeService as never,
@@ -457,7 +457,9 @@ function createContext(): TestContext {
     instagramService as never,
     queryService,
     realtimeService,
+    systemWorkflowRunner as never,
   );
+  actionService.onModuleInit();
 
   return {
     conversations,
@@ -1157,7 +1159,6 @@ describe('SocialInboxService', () => {
     });
 
     const draft = await service.createDraft(scope, inbound.conversationId, {
-      agentRunId: 'agent-run-1',
       messageType: 'reply',
       text: '<strong>Try this answer</strong>',
       workflowRunId: 'workflow-run-1',
@@ -1166,8 +1167,7 @@ describe('SocialInboxService', () => {
       actionProvenance: {
         action: 'draft',
         actedAt: expect.any(String),
-        actorType: 'agent',
-        agentRunId: 'agent-run-1',
+        actorType: 'workflow',
         platform: 'youtube',
         status: 'draft',
         userId: 'user-1',
@@ -1203,8 +1203,7 @@ describe('SocialInboxService', () => {
       actionProvenance: {
         action: 'post_reply',
         actedAt: expect.any(String),
-        actorType: 'agent',
-        agentRunId: 'agent-run-1',
+        actorType: 'workflow',
         platform: 'youtube',
         status: 'sent',
         userId: 'user-1',

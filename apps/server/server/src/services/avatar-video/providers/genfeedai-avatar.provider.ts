@@ -1,3 +1,7 @@
+import type { AvatarVideoProviderName } from '@genfeedai/interfaces';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { ManagedInferenceProvider } from '@server/endpoints/v1/managed-inference/dto/managed-inference-request.dto';
 import { ManagedInferenceClientService } from '@server/endpoints/v1/managed-inference/managed-inference-client.service';
 import type {
@@ -5,10 +9,6 @@ import type {
   AvatarVideoJobResult,
   AvatarVideoProvider,
 } from '@server/services/avatar-video/avatar-video-provider.interface';
-import type { AvatarVideoProviderName } from '@genfeedai/queue-contracts';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 const GENFEEDAI_CLIP_VIDEO_MODEL = 'genfeedai/clip-video';
 

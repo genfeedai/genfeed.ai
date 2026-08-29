@@ -1,7 +1,7 @@
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 export type DurableNodeClaimOutcome =
   | { action: 'claimed' }
@@ -46,7 +46,7 @@ export class WorkflowNodeClaimService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
       ) {
-        const existing = await this.prisma.workflowNodeClaim.findFirst({
+        let existing = await this.prisma.workflowNodeClaim.findFirst({
           where: {
             executionId: params.executionId,
             nodeId: params.nodeId,
@@ -59,6 +59,34 @@ export class WorkflowNodeClaimService {
             params,
           );
           return { action: 'claimed' };
+        }
+        if (existing.status === 'failed') {
+          const reclaimed = await this.prisma.workflowNodeClaim.updateMany({
+            data: {
+              error: null,
+              output: Prisma.DbNull,
+              status: 'running',
+            },
+            where: {
+              executionId: params.executionId,
+              nodeId: params.nodeId,
+              organizationId: params.organizationId,
+              status: 'failed',
+            },
+          });
+          if (reclaimed.count === 1) {
+            return { action: 'claimed' };
+          }
+          existing = await this.prisma.workflowNodeClaim.findFirst({
+            where: {
+              executionId: params.executionId,
+              nodeId: params.nodeId,
+              organizationId: params.organizationId,
+            },
+          });
+          if (!existing) {
+            return { action: 'claimed' };
+          }
         }
         return {
           action: 'skip',

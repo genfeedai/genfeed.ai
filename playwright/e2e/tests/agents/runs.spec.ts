@@ -7,7 +7,7 @@ import { expect, test } from '../../fixtures/auth.fixture';
 import { brandPath } from '../../utils/app-chrome';
 import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
-test.describe('Agents Runs', () => {
+test.describe('Workflow Execution Runs', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
       credits: 1000,
@@ -16,27 +16,36 @@ test.describe('Agents Runs', () => {
     await mockAutomationData(authenticatedPage);
   });
 
-  test('loads the runs page with routing analytics and query-backed history', async ({
+  test('loads the runs page with execution stats and history', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(
-      `${brandPath(APP_ROUTES.AUTOMATE.RUNS)}?q=trend&sort=credits&range=30d`,
-    );
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.RUNS));
 
-    await expect(authenticatedPage).toHaveURL(
-      /automate\/runs\?q=trend&sort=credits&range=30d/,
-    );
+    await expect(authenticatedPage).toHaveURL(/automate\/runs/);
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Agent Runs' }),
-    ).toBeVisible();
-    await expect(authenticatedPage.getByText('Routing Paths')).toBeVisible();
-    await expect(authenticatedPage.getByText('Routing Trends')).toBeVisible();
+      authenticatedPage.getByRole('heading', { name: 'Workflow Executions' }),
+    ).toBeAttached();
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Routing Anomalies' }),
+      authenticatedPage.getByRole('heading', { name: 'Recent Runs' }),
     ).toBeVisible();
-    await expect(
-      authenticatedPage.getByText(/time window/i).first(),
-    ).toBeVisible();
+    await expect(authenticatedPage.getByText('Trend scan')).toBeVisible();
+    await expect(authenticatedPage.getByText('Caption draft')).toBeVisible();
+    await expect(authenticatedPage.getByText('trends.scan')).toBeVisible();
+  });
+
+  test('filters execution history from the search box', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.AUTOMATE.RUNS));
+
+    await expect(authenticatedPage.getByText('Caption draft')).toBeVisible();
+
+    await authenticatedPage
+      .getByPlaceholder('Search workflow executions')
+      .fill('trend');
+
+    await expect(authenticatedPage.getByText('Trend scan')).toBeVisible();
+    await expect(authenticatedPage.getByText('Caption draft')).toBeHidden();
   });
 
   test('redirects unauthenticated users from the runs page', async ({

@@ -62,7 +62,7 @@ describe('CreativePatternsService.findAll', () => {
     });
   });
 
-  it('scopes top patterns to the requested brand', async () => {
+  it('reads brand patterns alongside the org-wide ones', async () => {
     const service = new CreativePatternsService(prisma as never);
 
     await service.findTopForBrand('org-1', 'brand-1', {
@@ -82,7 +82,9 @@ describe('CreativePatternsService.findAll', () => {
             OR: [{ data: { equals: 'hook_formula', path: ['patternType'] } }],
           },
         ],
-        brandId: 'brand-1',
+        // Patterns learned without a brand belong to the whole organization,
+        // so brand guidance reads them next to the brand's own patterns.
+        OR: [{ brandId: 'brand-1' }, { brandId: null }],
         isDeleted: false,
         organizationId: 'org-1',
       },

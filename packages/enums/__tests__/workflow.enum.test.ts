@@ -5,8 +5,6 @@ import {
   WorkflowLifecycle,
   WorkflowRecurrenceType,
   WorkflowStatus,
-  WorkflowStepCategory,
-  WorkflowStepStatus,
   WorkflowTrigger,
 } from '../src/workflow.enum';
 
@@ -36,46 +34,6 @@ describe('workflow.enum', () => {
       expect(WorkflowStatus.COMPLETED).toBe('completed');
       expect(WorkflowStatus.FAILED).toBe('failed');
       expect(WorkflowStatus.RUNNING).toBe('running');
-    });
-  });
-
-  describe('WorkflowStepCategory', () => {
-    it('should have 17 members', () => {
-      expect(Object.values(WorkflowStepCategory)).toHaveLength(17);
-    });
-
-    it('should have correct values', () => {
-      expect(WorkflowStepCategory.TRANSFORM).toBe('transform');
-      expect(WorkflowStepCategory.UPSCALE).toBe('upscale');
-      expect(WorkflowStepCategory.RESIZE).toBe('resize');
-      expect(WorkflowStepCategory.CAPTION).toBe('caption');
-      expect(WorkflowStepCategory.CLIP).toBe('clip');
-      expect(WorkflowStepCategory.PUBLISH).toBe('publish');
-      expect(WorkflowStepCategory.WEBHOOK).toBe('webhook');
-      expect(WorkflowStepCategory.DELAY).toBe('delay');
-      expect(WorkflowStepCategory.GENERATE_IMAGE).toBe('generate-image');
-      expect(WorkflowStepCategory.GENERATE_VIDEO).toBe('generate-video');
-      expect(WorkflowStepCategory.GENERATE_MUSIC).toBe('generate-music');
-      expect(WorkflowStepCategory.GENERATE_ARTICLE).toBe('generate-article');
-      expect(WorkflowStepCategory.COLOR_GRADE).toBe('color-grade');
-      expect(WorkflowStepCategory.GENERATE_HOOK).toBe('generate-hook');
-      expect(WorkflowStepCategory.TEXT_OVERLAY).toBe('text-overlay');
-      expect(WorkflowStepCategory.IMAGE_BATCH).toBe('image-batch');
-      expect(WorkflowStepCategory.PERFORMANCE_TRACK).toBe('performance-track');
-    });
-  });
-
-  describe('WorkflowStepStatus', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(WorkflowStepStatus)).toHaveLength(5);
-    });
-
-    it('should have correct values', () => {
-      expect(WorkflowStepStatus.PENDING).toBe('pending');
-      expect(WorkflowStepStatus.PROCESSING).toBe('processing');
-      expect(WorkflowStepStatus.COMPLETED).toBe('completed');
-      expect(WorkflowStepStatus.FAILED).toBe('failed');
-      expect(WorkflowStepStatus.SKIPPED).toBe('skipped');
     });
   });
 
@@ -121,8 +79,8 @@ describe('workflow.enum', () => {
   });
 
   describe('WorkflowExecutionTrigger', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(WorkflowExecutionTrigger)).toHaveLength(5);
+    it('should have 4 members', () => {
+      expect(Object.values(WorkflowExecutionTrigger)).toHaveLength(4);
     });
 
     it('should have correct values', () => {
@@ -130,7 +88,6 @@ describe('workflow.enum', () => {
       expect(WorkflowExecutionTrigger.SCHEDULED).toBe('scheduled');
       expect(WorkflowExecutionTrigger.EVENT).toBe('event');
       expect(WorkflowExecutionTrigger.API).toBe('api');
-      expect(WorkflowExecutionTrigger.LEGACY_STEPS).toBe('legacy-steps');
     });
   });
 });

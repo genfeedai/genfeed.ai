@@ -1,3 +1,4 @@
+export * from './action-node-persistence';
 export * from './definitions';
 export * from './registry';
 

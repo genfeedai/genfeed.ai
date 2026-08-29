@@ -1,5 +1,12 @@
+import { WorkflowStatus } from '@genfeedai/enums';
+import { toPrismaJson } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import type { CreateWorkflowDto } from '@server/collections/workflows/dto/create-workflow.dto';
 import type { WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import {
   buildSystemWorkflowDuplicateMetadata,
   buildSystemWorkflowMetadata,
@@ -12,11 +19,6 @@ import {
 } from '@server/collections/workflows/system-workflow-catalog';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { WorkflowStatus } from '@genfeedai/enums';
-import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 export type SystemWorkflowCatalogListItem = SystemWorkflowCatalogEntry & {
   installed: boolean;
@@ -35,6 +37,7 @@ export class SystemWorkflowCatalogService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    private readonly workflowsService: WorkflowsService,
     @Optional()
     private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
   ) {}
@@ -96,37 +99,23 @@ export class SystemWorkflowCatalogService {
       // Re-sync on the existing path so a prior post-commit scheduler failure
       // cannot permanently strand an installed workflow as unscheduled (#2259).
       await this.syncInstallScheduler(existing);
-      return existing as unknown as WorkflowDocument;
+      const hydrated = await this.workflowsService.findOne({ id: existing.id });
+      if (!hydrated) {
+        throw new NotFoundException('Installed workflow');
+      }
+      return hydrated;
     }
 
     const createData = this.buildInstallCreateData(input, entry);
 
     try {
-      const created = await this.prisma.$transaction(
-        async (tx) => {
-          const concurrent = await tx.workflow.findFirst({
-            where: scopedWhere(input.organizationId, {
-              metadata: {
-                equals: entry.canonicalId,
-                path: ['sourceTemplateId'],
-              },
-            }),
-          });
-
-          if (concurrent) {
-            return concurrent;
-          }
-
-          return tx.workflow.create({
-            data: createData,
-          });
-        },
-        { isolationLevel: 'Serializable' },
+      const created = await this.workflowsService.create(
+        createData as unknown as CreateWorkflowDto,
       );
 
       await this.syncInstallScheduler(created);
 
-      return created as unknown as WorkflowDocument;
+      return created;
     } catch (error) {
       const errorCode = (error as { code?: string }).code;
       if (errorCode === 'P2034') {
@@ -136,7 +125,13 @@ export class SystemWorkflowCatalogService {
         );
         if (raced) {
           await this.syncInstallScheduler(raced);
-          return raced as unknown as WorkflowDocument;
+          const hydrated = await this.workflowsService.findOne({
+            id: raced.id,
+          });
+          if (!hydrated) {
+            throw new NotFoundException('Installed workflow');
+          }
+          return hydrated;
         }
       }
       throw error;
@@ -241,7 +236,7 @@ export class SystemWorkflowCatalogService {
       userId: string;
     },
     entry: SystemWorkflowCatalogEntry,
-  ): Prisma.WorkflowUncheckedCreateInput {
+  ): Record<string, unknown> {
     const catalogSourceId = `catalog:${entry.canonicalId}`;
     const systemWorkflowMetadata = buildSystemWorkflowMetadata({
       canonicalId: entry.canonicalId,
@@ -287,7 +282,6 @@ export class SystemWorkflowCatalogService {
       progress: 0,
       schedule: entry.schedule,
       status: WorkflowStatus.ACTIVE,
-      steps: toPrismaJson(entry.steps),
       timezone: entry.timezone,
       userId: input.userId,
     };

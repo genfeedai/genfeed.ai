@@ -1,3 +1,5 @@
+import { AgentAutonomyMode, RouterPriority } from '@genfeedai/enums';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { runEffectPromise } from '@server/helpers/utils/effect/effect.util';
 import { AgentChatModelRegistryService } from '@server/services/agent-orchestrator/agent-chat-model-registry.service';
 import type {
@@ -11,8 +13,6 @@ import type {
 } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@server/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { AgentThreadEngineService } from '@server/services/agent-threading/services/agent-thread-engine.service';
-import { AgentAutonomyMode, RouterPriority } from '@genfeedai/enums';
-import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
 
 type PlanAction = 'approve_plan' | 'revise_plan';
@@ -71,7 +71,7 @@ export class AgentOrchestratorUiActionPlanService {
           ? (latestPlan.steps as Record<string, unknown>[])
           : undefined,
       },
-      runId: params.context.runId,
+      runId: params.context.executionId,
       threadId: params.threadId,
     });
     const request: AgentChatRequest = {

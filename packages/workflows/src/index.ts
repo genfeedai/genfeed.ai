@@ -127,19 +127,6 @@ export const WORKFLOW_REGISTRY: Record<string, WorkflowMetadata> = {
     title: 'Single Video Generation',
     version: 1,
   },
-  'ugc-factory': {
-    category: 'full-pipeline',
-    defaultModel: 'nano-banana-pro',
-    description: 'UGC pipeline: script → voice → motion → lip sync → download',
-    icon: '🏭',
-    inputTypes: ['text'],
-    outputTypes: ['video'],
-    slug: 'ugc-factory',
-    tags: ['ugc', 'social', 'automation', 'marketing', 'content'],
-    tier: 'free',
-    title: 'UGC Content Factory',
-    version: 1,
-  },
 };
 
 /**
@@ -172,20 +159,6 @@ export function getWorkflowJson(slug: string): WorkflowJson | undefined {
   } catch (_error) {
     return undefined;
   }
-}
-
-/**
- * Get all workflow IDs (legacy compatibility)
- */
-export function getWorkflowIds(): string[] {
-  return Object.keys(WORKFLOW_REGISTRY);
-}
-
-/**
- * Get workflow metadata by ID (legacy compatibility)
- */
-export function getWorkflowMetadata(id: string): WorkflowMetadata | undefined {
-  return WORKFLOW_REGISTRY[id];
 }
 
 /**

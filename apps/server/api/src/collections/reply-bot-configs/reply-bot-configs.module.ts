@@ -12,7 +12,6 @@ import { QueuesModule } from '@api/queues/core/queues.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { Module } from '@nestjs/common';
 
-/** QueuesModule provides ReplyInboundQueueService for schedule-post-watch. */
 @Module({
   controllers: [ReplyBotConfigsController],
   exports: [ReplyBotConfigsCoreModule],

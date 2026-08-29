@@ -1,11 +1,3 @@
-import { CreditsUtilsService as CreditsUtilsServiceToken } from '@server/collections/credits/services/credits.utils.service';
-import type {
-  StreakDocument,
-  StreakMilestoneHistoryEntry,
-} from '@server/collections/streaks/schemas/streak.schema';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { ActivityKey } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
@@ -23,6 +15,14 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
+import { CreditsUtilsService as CreditsUtilsServiceToken } from '@server/collections/credits/services/credits.utils.service';
+import type {
+  StreakDocument,
+  StreakMilestoneHistoryEntry,
+} from '@server/collections/streaks/schemas/streak.schema';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { NotificationsService } from '@server/services/notifications/notifications.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const QUALIFYING_ACTIVITY_KEYS = new Set<ActivityKey>([
   ActivityKey.ARTICLE_GENERATED,
@@ -32,6 +32,25 @@ const QUALIFYING_ACTIVITY_KEYS = new Set<ActivityKey>([
 ]);
 
 const BONUS_EXPIRATION_DAYS = 90;
+
+export type StreakMaintenanceRequest = {
+  organizationId: string;
+  referenceDate: string;
+};
+
+export type StreakRecordMaintenanceRequest = StreakMaintenanceRequest & {
+  currentStreak: number;
+  lastActivityDate: string | null;
+  streakFreezes: number;
+  streakId: string;
+  userId: string;
+};
+
+export type StreakMaintenanceEvaluation = StreakRecordMaintenanceRequest & {
+  isAtRisk: boolean;
+  shouldBreak: boolean;
+  shouldUseFreeze: boolean;
+};
 
 type CreditsUtilsServiceContract = Pick<
   CreditsUtilsServiceToken,
@@ -286,6 +305,105 @@ export class StreaksService {
       );
   }
 
+  async discoverMaintenanceRecords(
+    request: StreakMaintenanceRequest,
+  ): Promise<{ items: StreakRecordMaintenanceRequest[] }> {
+    const streaks = await this.listStreaks(request.organizationId);
+    return {
+      items: streaks.map((streak) => ({
+        currentStreak: streak.currentStreak,
+        lastActivityDate: serializeDate(streak.lastActivityDate),
+        organizationId: request.organizationId,
+        referenceDate: request.referenceDate,
+        streakFreezes: streak.streakFreezes,
+        streakId: streak.id,
+        userId: streak.userId,
+      })),
+    };
+  }
+
+  evaluateMaintenanceRecord(
+    request: StreakRecordMaintenanceRequest,
+  ): StreakMaintenanceEvaluation {
+    const today = startOfUtcDay(new Date(request.referenceDate));
+    const yesterday = addUtcDays(today, -1);
+    const lastActivityDate = request.lastActivityDate
+      ? startOfUtcDay(new Date(request.lastActivityDate))
+      : null;
+    const isStale =
+      request.currentStreak > 0 &&
+      (!lastActivityDate || lastActivityDate.getTime() < yesterday.getTime());
+    return {
+      ...request,
+      isAtRisk:
+        request.currentStreak >= 3 &&
+        lastActivityDate?.getTime() === yesterday.getTime(),
+      shouldBreak: isStale && request.streakFreezes <= 0,
+      shouldUseFreeze: isStale && request.streakFreezes > 0,
+    };
+  }
+
+  async applyMaintenanceFreeze(
+    evaluation: StreakMaintenanceEvaluation,
+  ): Promise<StreakMaintenanceEvaluation> {
+    const streak = await this.requireMaintenanceStreak(evaluation);
+    const today = startOfUtcDay(new Date(evaluation.referenceDate));
+    streak.lastActivityDate = addUtcDays(today, -1);
+    streak.lastFreezeUsedAt = today;
+    streak.streakFreezes -= 1;
+    await this.persistStreak(streak);
+    return evaluation;
+  }
+
+  async breakMaintenanceStreak(
+    evaluation: StreakMaintenanceEvaluation,
+  ): Promise<StreakMaintenanceEvaluation> {
+    const streak = await this.requireMaintenanceStreak(evaluation);
+    const today = startOfUtcDay(new Date(evaluation.referenceDate));
+    streak.currentStreak = 0;
+    streak.lastBrokenAt = today;
+    streak.lastBrokenStreak = evaluation.currentStreak;
+    streak.streakStartDate = null;
+    await this.persistStreak(streak);
+    return evaluation;
+  }
+
+  async notifyMaintenanceAtRisk(
+    evaluation: StreakMaintenanceEvaluation,
+  ): Promise<StreakMaintenanceEvaluation> {
+    await this.sendDiscordNotification(
+      'streak_at_risk',
+      `Your ${evaluation.currentStreak}-day streak is at risk. Create content today to keep it alive.`,
+      evaluation.organizationId,
+      evaluation.userId,
+    );
+    return evaluation;
+  }
+
+  async notifyMaintenanceFreeze(
+    evaluation: StreakMaintenanceEvaluation,
+  ): Promise<StreakMaintenanceEvaluation> {
+    await this.sendDiscordNotification(
+      'streak_freeze_used',
+      `A streak freeze protected a ${evaluation.currentStreak}-day streak.`,
+      evaluation.organizationId,
+      evaluation.userId,
+    );
+    return evaluation;
+  }
+
+  async notifyMaintenanceBroken(
+    evaluation: StreakMaintenanceEvaluation,
+  ): Promise<StreakMaintenanceEvaluation> {
+    await this.sendDiscordNotification(
+      'streak_broken',
+      `A ${evaluation.currentStreak}-day streak was broken. Start a new one today.`,
+      evaluation.organizationId,
+      evaluation.userId,
+    );
+    return evaluation;
+  }
+
   isQualifyingActivityKey(key?: string | null): key is ActivityKey {
     return QUALIFYING_ACTIVITY_KEYS.has(key as ActivityKey);
   }
@@ -510,97 +628,17 @@ export class StreaksService {
     return streak;
   }
 
-  async processStaleStreaks(
-    referenceDate: Date = new Date(),
-    organizationId?: string,
-  ): Promise<{
-    broken: number;
-    frozen: number;
-    atRisk: number;
-  }> {
-    const today = startOfUtcDay(referenceDate);
-    const yesterday = addUtcDays(today, -1);
-
-    const allStreaks = await this.listStreaks(organizationId);
-    const atRiskStreaks = allStreaks.filter((streak) => {
-      const lastActivityDate = streak.lastActivityDate
-        ? startOfUtcDay(new Date(streak.lastActivityDate))
-        : null;
-
-      return (
-        streak.currentStreak >= 3 &&
-        lastActivityDate?.getTime() === yesterday.getTime()
-      );
+  private async requireMaintenanceStreak(
+    request: StreakRecordMaintenanceRequest,
+  ): Promise<StreakDocument> {
+    const streak = await this.prisma.streak.findFirst({
+      where: scopedWhere(request.organizationId, {
+        id: request.streakId,
+        userId: request.userId,
+      }),
     });
-
-    for (const streak of atRiskStreaks) {
-      await this.sendDiscordNotification(
-        'streak_at_risk',
-        `Your ${streak.currentStreak}-day streak is at risk. Create content today to keep it alive.`,
-        streak.organizationId,
-        streak.userId,
-      );
-    }
-
-    const staleStreaks = allStreaks.filter((streak) => {
-      if (streak.currentStreak <= 0) {
-        return false;
-      }
-
-      const lastActivityDate = streak.lastActivityDate
-        ? startOfUtcDay(new Date(streak.lastActivityDate))
-        : null;
-
-      return (
-        !lastActivityDate || lastActivityDate.getTime() < yesterday.getTime()
-      );
-    });
-
-    let broken = 0;
-    let frozen = 0;
-
-    for (const streak of staleStreaks) {
-      const streakOrg = String(streak.organizationId ?? '');
-      const streakUser = String(streak.userId ?? '');
-      const streakCurrentStreak = streak.currentStreak;
-
-      if (streak.streakFreezes > 0) {
-        streak.lastActivityDate = yesterday;
-        streak.lastFreezeUsedAt = today;
-        streak.streakFreezes -= 1;
-        await this.persistStreak(streak);
-        frozen += 1;
-
-        await this.sendDiscordNotification(
-          'streak_freeze_used',
-          `A streak freeze protected a ${streakCurrentStreak}-day streak.`,
-          streakOrg,
-          streakUser,
-        );
-        continue;
-      }
-
-      const brokenStreakLength = streakCurrentStreak;
-      streak.currentStreak = 0;
-      streak.lastBrokenAt = today;
-      streak.lastBrokenStreak = brokenStreakLength;
-      streak.streakStartDate = null;
-      await this.persistStreak(streak);
-      broken += 1;
-
-      await this.sendDiscordNotification(
-        'streak_broken',
-        `A ${brokenStreakLength}-day streak was broken. Start a new one today.`,
-        streakOrg,
-        streakUser,
-      );
-    }
-
-    return {
-      atRisk: atRiskStreaks.length,
-      broken,
-      frozen,
-    };
+    if (!streak) throw new NotFoundException('Streak not found');
+    return this.normalizeStreakRecord(streak as Record<string, unknown>);
   }
 
   async getCalendar(

@@ -7,13 +7,12 @@ import { TRANSCRIPT_PURGE_SCHEDULE } from '@workers/crons/transcript-purge/trans
  * this queue instead of static @Cron decorators (issue #1092). BullMQ
  * guarantees exactly-one fire per scheduler id across worker replicas, and
  * each sweep records tenant-visible provenance through
- * SystemWorkflowProvenanceService.
+ * hidden system workflows.
  */
 
 export const SYSTEM_SWEEPS_QUEUE = 'system-sweeps';
 
 export const SYSTEM_SWEEP_JOBS = {
-  AGENT_TURN_RECONCILE: 'agent-turn-reconcile-sweep',
   BATCH_CREDIT_SETTLEMENT_RECONCILE: 'batch-credit-settlement-reconcile-sweep',
   BATCH_GENERATION_RECONCILE: 'batch-generation-reconcile-sweep',
   ENGAGEMENT_TRIGGERS: 'engagement-triggers-sweep',
@@ -23,6 +22,9 @@ export const SYSTEM_SWEEP_JOBS = {
   STREAK_MAINTENANCE: 'streak-maintenance-sweep',
   TIKTOK_STATUS: 'tiktok-status-sweep',
   TRANSCRIPT_PURGE: 'transcript-purge-sweep',
+  WORKFLOW_ARTIFACT_CLEANUP: 'workflow-artifact-cleanup-sweep',
+  WORKFLOW_CONTINUATION_RECONCILE: 'workflow-continuation-reconcile-sweep',
+  YOUTUBE_MESSAGES: 'youtube-messages-sweep',
   YOUTUBE_STATUS: 'youtube-status-sweep',
 } as const;
 
@@ -36,13 +38,6 @@ export type SystemSweepDefinition = {
 };
 
 export const SYSTEM_SWEEP_DEFINITIONS: SystemSweepDefinition[] = [
-  {
-    // Accepted turns carry an encrypted durable queue payload. A deterministic
-    // BullMQ job id makes this safe beside a live or already queued job.
-    jobName: SYSTEM_SWEEP_JOBS.AGENT_TURN_RECONCILE,
-    pattern: '*/5 * * * *',
-    timezone: 'UTC',
-  },
   {
     jobName: SYSTEM_SWEEP_JOBS.POSTS_PUBLISH,
     pattern: '*/15 * * * *',
@@ -69,6 +64,11 @@ export const SYSTEM_SWEEP_DEFINITIONS: SystemSweepDefinition[] = [
     timezone: 'UTC',
   },
   {
+    jobName: SYSTEM_SWEEP_JOBS.YOUTUBE_MESSAGES,
+    pattern: '*/30 * * * *',
+    timezone: 'UTC',
+  },
+  {
     jobName: SYSTEM_SWEEP_JOBS.STREAK_MAINTENANCE,
     pattern: '30 0 * * *',
     timezone: 'UTC',
@@ -91,6 +91,20 @@ export const SYSTEM_SWEEP_DEFINITIONS: SystemSweepDefinition[] = [
     // instead of forever.
     jobName: SYSTEM_SWEEP_JOBS.BATCH_GENERATION_RECONCILE,
     pattern: '*/5 * * * *',
+    timezone: 'UTC',
+  },
+  {
+    // Provider callbacks and poll dispatches are database-owned outbox work.
+    // This closes process crashes between callback receipt and graph resume.
+    jobName: SYSTEM_SWEEP_JOBS.WORKFLOW_CONTINUATION_RECONCILE,
+    pattern: '* * * * *',
+    timezone: 'UTC',
+  },
+  {
+    // Terminal cleanup handles short-lived intermediates; this hourly pass is
+    // the 24-hour source-media and ephemeral-execution backstop.
+    jobName: SYSTEM_SWEEP_JOBS.WORKFLOW_ARTIFACT_CLEANUP,
+    pattern: '17 * * * *',
     timezone: 'UTC',
   },
   {

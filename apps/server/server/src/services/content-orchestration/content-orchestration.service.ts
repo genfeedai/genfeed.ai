@@ -1,23 +1,3 @@
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { toBrandGenerationReferences } from '@server/collections/brands/utils/brand-kit-generation-references.util';
-import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@server/collections/metadata/services/metadata.service';
-import { type PersonaDocument } from '@server/collections/personas/schemas/persona.schema';
-import { PersonasService } from '@server/collections/personas/services/personas.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import type {
-  PipelineConfigV2,
-  PipelineError,
-  PipelineResultV2,
-  PipelineRunStatus,
-  PipelineStep,
-  PublishMode,
-  StepOutcome,
-  StepResult,
-} from '@server/services/content-orchestration/pipeline.interfaces';
-import { StepExecutorService } from '@server/services/content-orchestration/step-executor.service';
-import { PersonaPublisherService } from '@server/services/persona-content/persona-publisher.service';
-import { SharedService } from '@server/shared/services/shared/shared.service';
 import {
   FileInputType,
   IngredientCategory,
@@ -26,33 +6,42 @@ import {
   PostCategory,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { toBrandGenerationReferences } from '@server/collections/brands/utils/brand-kit-generation-references.util';
+import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { type PersonaDocument } from '@server/collections/personas/schemas/persona.schema';
+import { PersonasService } from '@server/collections/personas/services/personas.service';
+import type {
+  SystemWorkflowActionRequest,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
+import { SYSTEM_WORKFLOW_RUNNER } from '@server/collections/workflows/workflows.tokens';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { buildContentPipelineWorkflowDefinition } from '@server/services/content-orchestration/content-pipeline-workflow-definition';
+import type {
+  PipelineConfigV2,
+  PipelineResultV2,
+  PipelineStep,
+  PublishMode,
+  StepOutcome,
+  StepResult,
+} from '@server/services/content-orchestration/pipeline.interfaces';
+import { StepExecutorService } from '@server/services/content-orchestration/step-executor.service';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { PersonaPublisherService } from '@server/services/persona-content/persona-publisher.service';
+import { SharedService } from '@server/shared/services/shared/shared.service';
 
-/** Config passed to the queue / processor. Exported as the canonical alias type. */
+/** Input compiled into an immutable workflow graph. */
 export type PipelineConfig = PipelineConfigV2;
 
-export interface BatchPipelineConfig {
-  personaId: string;
-  organizationId: string;
-  userId: string;
-  brandId: string;
-  count: number;
-  items: Array<{
-    steps: PipelineStep[];
-    prompt?: string;
-    publishMode?: PublishMode;
-    scheduledDate?: Date;
-  }>;
-  platforms?: string[];
-  runReferences?: PipelineConfig['runReferences'];
-}
+type WorkflowStepOutcome = StepOutcome & { timingMs: number };
 
 @Injectable()
-export class ContentOrchestrationService {
+export class ContentOrchestrationService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
@@ -65,24 +54,18 @@ export class ContentOrchestrationService {
     private readonly ingredientsService: IngredientsService,
     private readonly metadataService: MetadataService,
     private readonly stepExecutorService: StepExecutorService,
+    @Inject(SYSTEM_WORKFLOW_RUNNER)
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
   ) {}
 
   /**
-   * Convert contentStrategy.frequency string to milliseconds.
+   * Register this service's workflow actions once the engine adapter exists.
+   * Registration cannot run in the constructor: the runner resolves the
+   * engine adapter lazily through `ModuleRef`, and during the provider
+   * instantiation phase that lookup still returns `null`.
    */
-  static parseFrequencyToMs(frequency?: string): number {
-    switch (frequency?.toLowerCase()) {
-      case 'hourly':
-        return 3_600_000;
-      case 'twice-daily':
-        return 43_200_000;
-      case 'daily':
-        return 86_400_000;
-      case 'weekly':
-        return 604_800_000;
-      default:
-        return 86_400_000; // default daily
-    }
+  onModuleInit(): void {
+    this.registerWorkflowActions();
   }
 
   /**
@@ -120,289 +103,345 @@ export class ContentOrchestrationService {
   }
 
   /**
-   * Execute a multi-step content generation pipeline.
-   * Each step's output feeds into the next. All generated assets become ingredients.
+   * Compile and execute a persisted workflow graph. This service no longer
+   * traverses product steps itself; each step resolves through one registered
+   * action node in the shared workflow engine.
    */
   @SentryTraced()
   async generateAndPublish(config: PipelineConfig): Promise<PipelineResultV2> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const startTime = Date.now();
-    const publishMode: PublishMode = config.publishMode ?? 'final';
-
-    this.loggerService.log(`${caller} starting`, {
+    this.loggerService.log(`${this.constructorName} starting workflow`, {
       personaId: config.personaId,
-      publishMode,
+      publishMode: config.publishMode ?? 'final',
       stepCount: config.steps.length,
     });
 
     this.validateSteps(config.steps);
+    const definition = buildContentPipelineWorkflowDefinition(config);
+    const { result } =
+      await this.systemWorkflowRunner.runDefinition<PipelineResultV2>(
+        definition,
+        {
+          actionType: 'content-pipeline',
+          canonicalId: definition.canonicalId,
+          organizationId: config.organizationId,
+          source: 'content-pipeline',
+          userId: config.userId,
+        },
+      );
+    return result;
+  }
 
-    const persona = await this.getPersonaOrFail(
-      config.personaId,
-      config.organizationId,
+  private registerWorkflowActions(): void {
+    const generationActions = [
+      ['content.pipeline.generate-image', 'text-to-image'],
+      ['content.pipeline.generate-music', 'text-to-music'],
+      ['content.pipeline.generate-speech', 'text-to-speech'],
+      ['content.pipeline.generate-video', 'image-to-video'],
+    ] as const;
+
+    for (const [actionId, stepType] of generationActions) {
+      this.systemWorkflowRunner.registerAction(actionId, (request) =>
+        this.executeGenerationAction(request, stepType),
+      );
+    }
+    this.systemWorkflowRunner.registerAction(
+      'content.pipeline.publish',
+      (request) => this.executePublishAction(request),
     );
-    const runReferences =
-      config.runReferences ??
-      (await this.resolveRunReferences(config.brandId, config.organizationId));
+    this.systemWorkflowRunner.registerAction(
+      'content.pipeline.resolve-context',
+      (request) => this.executeContextAction(request),
+    );
+  }
 
-    let status: PipelineRunStatus = 'running';
-    const stepOutcomes: StepOutcome[] = [];
-    const stepTimingsMs: number[] = [];
-    let previousResult: StepResult | undefined;
-    const allIngredientIds: string[] = [];
+  private async executeContextAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<{
+    hasCredentials: boolean;
+    runReferences: PipelineConfig['runReferences'];
+  }> {
+    const input = this.normalizeActionInput(request.input);
+    const personaId = this.requireString(input.personaId, 'personaId');
+    const brandId = this.requireString(input.brandId, 'brandId');
+    const publishMode = this.readPublishMode(input.publishMode);
+    const persona =
+      publishMode === 'none'
+        ? undefined
+        : await this.getPersonaOrFail(
+            personaId,
+            request.context.organizationId,
+          );
+    const configuredReferences = Array.isArray(input.runReferences)
+      ? (input.runReferences as PipelineConfig['runReferences'])
+      : undefined;
+    return {
+      hasCredentials:
+        Array.isArray(persona?.credentials) && persona.credentials.length > 0,
+      runReferences:
+        configuredReferences ??
+        (await this.resolveRunReferences(
+          brandId,
+          request.context.organizationId,
+        )),
+    };
+  }
 
-    for (let i = 0; i < config.steps.length; i++) {
-      const step = config.steps[i];
-      const stepStart = Date.now();
+  private async executeGenerationAction(
+    request: SystemWorkflowActionRequest,
+    expectedType: PipelineStep['type'],
+  ): Promise<WorkflowStepOutcome> {
+    const input = this.normalizeActionInput(request.input);
+    const step = this.requirePipelineStep(input.step, expectedType);
+    const stepIndex = this.requireNumber(input.stepIndex, 'stepIndex');
+    const brandId = this.requireString(input.brandId, 'brandId');
+    const startedAt = Date.now();
+    const previousResult = this.readPreviousStepResult(input.previousOutcome);
+    const pipelineContext = this.readRecord(input.pipelineContext);
+    const runReferences = Array.isArray(pipelineContext.runReferences)
+      ? (pipelineContext.runReferences as PipelineConfig['runReferences'])
+      : undefined;
+    const globalPrompt = this.optionalString(input.prompt);
 
-      try {
-        const result = await Sentry.startSpan(
-          {
-            attributes: {
-              'pipeline.persona_id': config.personaId,
-              'pipeline.step.index': i,
-              'pipeline.step.model': step.model ?? 'unknown',
-              'pipeline.step.type': step.type,
-            },
-            name: `content.pipeline.step.${step.type}`,
-          },
-          () =>
-            this.stepExecutorService.execute(step, {
-              globalPrompt: config.prompt,
-              organizationId: config.organizationId,
-              previousResult,
-              runReferences,
-            }),
-        );
+    const result = await Sentry.startSpan(
+      {
+        attributes: {
+          'pipeline.persona_id': this.requireString(
+            input.personaId,
+            'personaId',
+          ),
+          'pipeline.step.index': stepIndex,
+          'pipeline.step.model': step.model,
+          'pipeline.step.type': step.type,
+        },
+        name: `content.pipeline.step.${step.type}`,
+      },
+      () =>
+        this.stepExecutorService.execute(step, {
+          globalPrompt,
+          organizationId: request.context.organizationId,
+          previousResult,
+          runReferences,
+        }),
+    );
+    const ingredientId = await this.persistGeneratedResult(
+      result,
+      brandId,
+      request.context.organizationId,
+      request.context.userId,
+    );
 
-        stepTimingsMs.push(Date.now() - stepStart);
+    return {
+      ingredientId,
+      result,
+      step,
+      stepIndex,
+      timingMs: Date.now() - startedAt,
+    };
+  }
 
-        const category = this.contentTypeToCategory(result.contentType);
-        const extension = this.contentTypeToExtension(result.contentType);
+  private async persistGeneratedResult(
+    result: StepResult,
+    brandId: string,
+    organizationId: string,
+    userId: string,
+  ): Promise<string> {
+    const category = this.contentTypeToCategory(result.contentType);
+    const extension = this.contentTypeToExtension(result.contentType);
+    const { ingredientData, metadataData } =
+      await this.sharedService.createMediaDocumentsInternal({
+        brandId,
+        category,
+        extension,
+        organizationId,
+        status: IngredientStatus.PROCESSING,
+        userId,
+      });
+    const s3Meta = await this.filesClientService.uploadToS3(
+      ingredientData.id,
+      category === IngredientCategory.VIDEO
+        ? 'videos'
+        : category === IngredientCategory.IMAGE
+          ? 'images'
+          : 'audio',
+      { type: FileInputType.URL, url: result.url },
+    );
 
-        const { ingredientData, metadataData } =
-          await this.sharedService.createMediaDocumentsInternal({
-            brandId: config.brandId,
-            category,
-            extension,
-            organizationId: config.organizationId,
-            status: IngredientStatus.PROCESSING,
-            userId: config.userId,
-          });
+    await this.metadataService.patch(metadataData.id, {
+      ...(s3Meta.duration != null ? { duration: s3Meta.duration } : {}),
+      ...(s3Meta.height != null ? { height: s3Meta.height } : {}),
+      ...(s3Meta.size != null ? { size: s3Meta.size } : {}),
+      ...(s3Meta.width != null ? { width: s3Meta.width } : {}),
+    });
+    await this.ingredientsService.patch(ingredientData.id, {
+      status: IngredientStatus.UPLOADED,
+    });
+    return ingredientData.id.toString();
+  }
 
-        const s3Meta = await this.filesClientService.uploadToS3(
-          ingredientData.id,
-          category === IngredientCategory.VIDEO
-            ? 'videos'
-            : category === IngredientCategory.IMAGE
-              ? 'images'
-              : 'audio',
-          {
-            type: FileInputType.URL,
-            url: result.url,
-          },
-        );
-
-        await this.metadataService.patch(metadataData.id, {
-          ...(s3Meta.duration != null ? { duration: s3Meta.duration } : {}),
-          ...(s3Meta.height != null ? { height: s3Meta.height } : {}),
-          ...(s3Meta.size != null ? { size: s3Meta.size } : {}),
-          ...(s3Meta.width != null ? { width: s3Meta.width } : {}),
-        });
-
-        await this.ingredientsService.patch(ingredientData.id, {
-          status: IngredientStatus.UPLOADED,
-        });
-
-        allIngredientIds.push(ingredientData.id);
-
-        stepOutcomes.push({
-          ingredientId: ingredientData.id.toString(),
-          result,
-          step,
-          stepIndex: i,
-        });
-
-        previousResult = result;
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Step execution failed';
-
-        stepTimingsMs.push(Date.now() - stepStart);
-
-        const pipelineError: PipelineError = {
-          code: 'STEP_EXECUTION_FAILED',
-          message: errorMessage,
-          provider: step.model,
-          retryable: true,
-          stage: `step-${i}-${step.type}`,
-        };
-
-        stepOutcomes.push({
-          error: pipelineError,
-          step,
-          stepIndex: i,
-        });
-
-        status = i > 0 ? 'partial' : 'failed';
-
-        this.loggerService.error(`${caller} step ${i} failed`, {
-          error: errorMessage,
-          personaId: config.personaId,
-          stepType: step.type,
-        });
-
-        break;
-      }
+  private async executePublishAction(
+    request: SystemWorkflowActionRequest,
+  ): Promise<PipelineResultV2> {
+    const startedAt = Date.now();
+    const input = this.normalizeActionInput(request.input);
+    const outcomes = Object.entries(input)
+      .filter(([key]) => key.startsWith('stepOutcome'))
+      .sort(([left], [right]) =>
+        left.localeCompare(right, undefined, {
+          numeric: true,
+        }),
+      )
+      .map(([, value]) => this.requireStepOutcome(value));
+    if (outcomes.length === 0) {
+      throw new Error('Content pipeline publish action requires step outcomes');
     }
 
-    if (status === 'running') {
-      status = 'completed';
-    }
-
+    const publishMode = this.readPublishMode(input.publishMode);
     let postIds: string[] = [];
-    if (
-      publishMode !== 'none' &&
-      allIngredientIds.length > 0 &&
-      Array.isArray(persona.credentials) &&
-      persona.credentials.length > 0
-    ) {
-      try {
-        const ingredientIdsToPublish =
+    if (publishMode !== 'none') {
+      const personaId = this.requireString(input.personaId, 'personaId');
+      const pipelineContext = this.readRecord(input.pipelineContext);
+      if (pipelineContext.hasCredentials === true) {
+        const allIngredientIds = outcomes.map((outcome) =>
+          this.requireString(outcome.ingredientId, 'ingredientId'),
+        );
+        const ingredientIds =
           publishMode === 'final'
-            ? [allIngredientIds[allIngredientIds.length - 1]]
+            ? [
+                this.requireString(
+                  allIngredientIds.at(-1),
+                  'final ingredientId',
+                ),
+              ]
             : allIngredientIds;
-
+        const scheduledDate = this.optionalString(input.scheduledDate);
         const publishResult = await Sentry.startSpan(
           {
             attributes: {
-              'pipeline.ingredient_count': ingredientIdsToPublish.length,
-              'pipeline.persona_id': config.personaId,
+              'pipeline.ingredient_count': ingredientIds.length,
+              'pipeline.persona_id': personaId,
               'pipeline.publish_mode': publishMode,
             },
             name: 'content.pipeline.publish',
           },
           () =>
             this.personaPublisherService.publishToAll({
-              brandId: config.brandId,
+              brandId: this.requireString(input.brandId, 'brandId'),
               category: PostCategory.POST,
-              description: config.prompt ?? '',
-              ingredientIds: ingredientIdsToPublish,
-              organizationId: config.organizationId,
-              personaId: config.personaId,
-              platforms: config.platforms,
-              scheduledDate: config.scheduledDate,
-              userId: config.userId,
+              description: this.optionalString(input.prompt) ?? '',
+              ingredientIds,
+              organizationId: request.context.organizationId,
+              personaId,
+              platforms: this.readStringArray(input.platforms),
+              scheduledDate: scheduledDate
+                ? new Date(scheduledDate)
+                : undefined,
+              userId: request.context.userId,
             }),
         );
         postIds = publishResult.postIds;
-      } catch (error: unknown) {
-        this.loggerService.error(`${caller} publishing failed`, { error });
       }
     }
-
-    const totalMs = Date.now() - startTime;
-
-    this.loggerService.log(`${caller} completed`, {
-      personaId: config.personaId,
-      postCount: postIds.length,
-      status,
-      totalMs,
-    });
 
     return {
       postIds,
-      status,
-      steps: stepOutcomes,
-      timings: { stepTimingsMs, totalMs },
+      status: 'completed',
+      steps: outcomes.map(({ timingMs: _timingMs, ...outcome }) => outcome),
+      timings: {
+        stepTimingsMs: outcomes.map((outcome) => outcome.timingMs),
+        totalMs:
+          outcomes.reduce((total, outcome) => total + outcome.timingMs, 0) +
+          (Date.now() - startedAt),
+      },
     };
   }
 
-  /**
-   * Run batch pipeline for a persona — generates N content pieces.
-   */
-  @SentryTraced()
-  async runBatchForPersona(config: BatchPipelineConfig): Promise<{
-    results: PipelineResultV2[];
-    summary: { total: number; completed: number; failed: number };
-  }> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    this.loggerService.log(`${caller} starting batch of ${config.count}`, {
-      personaId: config.personaId,
-    });
-
-    const results: PipelineResultV2[] = [];
-    const runReferences =
-      config.runReferences ??
-      (await this.resolveRunReferences(config.brandId, config.organizationId));
-    let completed = 0;
-    let failed = 0;
-
-    for (const item of config.items) {
-      try {
-        const result = await this.generateAndPublish({
-          brandId: config.brandId,
-          organizationId: config.organizationId,
-          personaId: config.personaId,
-          platforms: config.platforms,
-          prompt: item.prompt,
-          publishMode: item.publishMode,
-          runReferences,
-          scheduledDate: item.scheduledDate,
-          steps: item.steps,
-          userId: config.userId,
-        });
-
-        results.push(result);
-
-        if (result.status === 'completed') {
-          completed++;
-        } else {
-          failed++;
-        }
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'query execution failed';
-
-        this.loggerService.error(
-          `${caller} batch item failed: ${errorMessage}`,
-          { personaId: config.personaId },
-        );
-
-        results.push({
-          postIds: [],
-          status: 'failed',
-          steps: [
-            {
-              error: {
-                code: 'PIPELINE_EXECUTION_FAILED',
-                message: errorMessage,
-                retryable: true,
-                stage: 'pipeline',
-              },
-              step: item.steps[0],
-              stepIndex: 0,
-            },
-          ],
-          timings: { stepTimingsMs: [], totalMs: 0 },
-        });
-
-        failed++;
-      }
+  private requirePipelineStep(
+    value: unknown,
+    expectedType: PipelineStep['type'],
+  ): PipelineStep {
+    const step = this.readRecord(value);
+    if (step.type !== expectedType || typeof step.model !== 'string') {
+      throw new Error(
+        `Content pipeline action requires a ${expectedType} step`,
+      );
     }
+    return step as unknown as PipelineStep;
+  }
 
-    this.loggerService.log(`${caller} batch completed`, {
-      completed,
-      failed,
-      personaId: config.personaId,
-      total: config.count,
-    });
+  private requireStepOutcome(value: unknown): WorkflowStepOutcome {
+    const outcome = this.readRecord(value);
+    const result = this.readRecord(outcome.result);
+    if (
+      typeof outcome.ingredientId !== 'string' ||
+      typeof outcome.stepIndex !== 'number' ||
+      typeof outcome.timingMs !== 'number' ||
+      typeof result.contentType !== 'string' ||
+      typeof result.url !== 'string'
+    ) {
+      throw new Error(
+        'Content pipeline publish action received invalid output',
+      );
+    }
+    return outcome as unknown as WorkflowStepOutcome;
+  }
 
-    return {
-      results,
-      summary: { completed, failed, total: config.count },
-    };
+  private readPreviousStepResult(value: unknown): StepResult | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+    return this.requireStepOutcome(value).result;
+  }
+
+  private readPublishMode(value: unknown): PublishMode {
+    if (value === undefined || value === 'final') {
+      return 'final';
+    }
+    if (value === 'all' || value === 'none') {
+      return value;
+    }
+    throw new Error('Content pipeline publishMode must be all, final, or none');
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private normalizeActionInput(
+    value: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const request = this.readRecord(value.request);
+    const { request: _request, ...direct } = value;
+    return { ...request, ...direct };
+  }
+
+  private readStringArray(value: unknown): string[] | undefined {
+    if (!Array.isArray(value)) {
+      return undefined;
+    }
+    const values = value.filter(
+      (entry): entry is string => typeof entry === 'string',
+    );
+    return values.length > 0 ? values : undefined;
+  }
+
+  private requireNumber(value: unknown, field: string): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new Error(`Content pipeline action requires ${field}`);
+    }
+    return value;
+  }
+
+  private requireString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new Error(`Content pipeline action requires ${field}`);
+    }
+    return value;
+  }
+
+  private optionalString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 
   private contentTypeToCategory(contentType: string): IngredientCategory {

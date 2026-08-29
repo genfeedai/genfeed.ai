@@ -389,8 +389,8 @@ test('reports curated action catalog changes on catalog pull requests', () => {
 
   assert.match(workflow, /^ {2}pull_request:\n/m);
   for (const pathFilter of [
-    'packages/tools/src/registry/curated-action-catalog.ts',
-    'packages/tools/scripts/report-curated-action-catalog.ts',
+    'packages/actions/src/registry/curated-action-catalog.ts',
+    'packages/actions/scripts/report-curated-action-catalog.ts',
   ]) {
     assert.ok(
       workflow.includes(`      - "${pathFilter}"\n`),
@@ -403,7 +403,7 @@ test('reports curated action catalog changes on catalog pull requests', () => {
   assert.match(workflow, /^ {10}fetch-depth: 0$/m);
   assert.match(
     workflow,
-    /run: \|\n {10}bun run --filter=@genfeedai\/tools catalog:changes \\/m,
+    /run: \|\n {10}bun run --filter=@genfeedai\/actions catalog:changes \\/m,
     'the report job must invoke the reporter through its package script',
   );
   // Without --summary the report exists only in raw job logs.

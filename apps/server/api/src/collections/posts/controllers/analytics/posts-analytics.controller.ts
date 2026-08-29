@@ -1,15 +1,8 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CredentialEntity } from '@server/collections/credentials/entities/credential.entity';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
-import { PostAnalyticsService } from '@server/collections/posts/services/post-analytics.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
-import { MemberRole } from '@genfeedai/enums';
+import { CredentialPlatform, MemberRole } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -25,6 +18,12 @@ import {
   SetMetadata,
   UseGuards,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { PostAnalyticsService } from '@server/collections/posts/services/post-analytics.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 
 type PostAnalyticsSummary = Awaited<
   ReturnType<PostAnalyticsService['getPostAnalyticsSummary']>
@@ -42,6 +41,8 @@ interface PostAnalyticsWithRangeAttributes {
 interface PostAnalyticsRefreshAttributes {
   summary: PostAnalyticsSummary;
   lastRefreshed: Date;
+  workflowJobId: string;
+  workflowId: string;
 }
 
 interface OrganizationAnalyticsRefreshAttributes {
@@ -49,6 +50,8 @@ interface OrganizationAnalyticsRefreshAttributes {
   successCount: number;
   errorCount: number;
   lastRefreshed: Date;
+  workflowJobId: string;
+  workflowId: string;
 }
 
 @AutoSwagger()
@@ -133,8 +136,6 @@ export class PostsAnalyticsController {
     @CurrentUser() user: User,
     @Param('postId') postId: string,
   ): Promise<JsonApiSingleResponse<PostAnalyticsRefreshAttributes>> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
     // Verify publication ownership
     const post = await this.postsService.findOne({
       id: postId,
@@ -203,13 +204,12 @@ export class PostsAnalyticsController {
       );
     }
 
-    // Track analytics for this specific publication
-    const trackUrl = `${url} trackPostAnalytics`;
-    await this.postAnalyticsService.trackPostAnalytics(
-      post,
-      credential as unknown as CredentialEntity,
-      trackUrl,
-    );
+    const refresh = await this.analyticsSyncWorkflowService.queuePostRefresh({
+      organizationId,
+      platform: credential.platform as CredentialPlatform,
+      postId,
+      userId: user.userId ?? user.id,
+    });
 
     // Set rate limit cache
     await this.postsService.setCachedData(
@@ -227,6 +227,8 @@ export class PostsAnalyticsController {
         attributes: {
           lastRefreshed: new Date(),
           summary,
+          workflowJobId: refresh.jobId,
+          workflowId: refresh.workflowId,
         },
         id: postId,
         type: 'post-analytics',
@@ -264,9 +266,10 @@ export class PostsAnalyticsController {
       }
 
       const refresh =
-        await this.analyticsSyncWorkflowService.runOrganizationRefresh(
-          user.organizationId,
-        );
+        await this.analyticsSyncWorkflowService.queueOrganizationRefresh({
+          organizationId: user.organizationId,
+          userId: user.userId ?? user.id,
+        });
 
       // Set rate limit cache
       await this.postsService.setCachedData(
@@ -278,10 +281,12 @@ export class PostsAnalyticsController {
       return {
         data: {
           attributes: {
-            errorCount: refresh.skipped,
+            errorCount: 0,
             lastRefreshed: new Date(),
-            successCount: refresh.enqueued,
-            totalPosts: refresh.posts,
+            successCount: 0,
+            totalPosts: 0,
+            workflowJobId: refresh.jobId,
+            workflowId: refresh.workflowId,
           },
           id: user.organizationId,
           type: 'analytics-refresh',

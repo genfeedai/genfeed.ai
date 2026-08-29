@@ -1,4 +1,3 @@
-import type { AgentRunDocument } from '@server/collections/agent-runs/schemas/agent-run.schema';
 import type { AgentStrategyDocument } from '@server/collections/agent-strategies/schemas/agent-strategy.schema';
 import { describe, expect, it } from 'vitest';
 
@@ -30,16 +29,10 @@ describe('ContentRotationService', () => {
     } as AgentStrategyDocument;
   }
 
-  function run(targetKey: string): AgentRunDocument {
+  function run(targetKey: string): { metadata: Record<string, unknown> } {
     return {
-      id: `run-${targetKey}`,
-      isDeleted: false,
       metadata: { contentRotationTargetKey: targetKey },
-      organization: 'org-1',
-      organizationId: 'org-1',
-      user: 'user-1',
-      userId: 'user-1',
-    } as AgentRunDocument;
+    };
   }
 
   it('selects the most underrepresented configured topic bucket', () => {

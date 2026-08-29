@@ -2,9 +2,9 @@
 
 ## Tool Registry Architecture
 
-### Layer 1: Canonical Definitions (`@genfeedai/tools`)
+### Layer 1: Canonical Definitions (`@genfeedai/actions`)
 
-**Directory:** `packages/tools/src/registry/`
+**Directory:** `packages/actions/src/registry/`
 - `curated-action-catalog.ts` -- reviewed action names + explicit Agent/MCP surface intent (single source of truth)
 - `source/**/*.tools.ts` -- hand-authored schemas and metadata; historical shard names do not control surfaces
 - `source/index.ts` -- concatenates every definition shard
@@ -24,7 +24,7 @@ getToolsForRole(surface, role): CanonicalToolDefinition[]
 toAgentTools(tools): AgentToolDefinition[]  // adapter to agent format
 ```
 
-`packages/tools/src/registry/curated-action-catalog.spec.ts` verifies unique,
+`packages/actions/src/registry/curated-action-catalog.spec.ts` verifies unique,
 sorted catalog entries, a complete definition bijection, and exact runtime
 surface derivation. Agent and MCP suites separately verify real executor paths.
 `.github/workflows/curated-action-catalog.yml` runs on pull requests that touch
@@ -44,14 +44,14 @@ transitions as warning annotations plus a step-summary table.
 }
 ```
 
-**Operator catalog tool:** `list_genfeed_tools` is available on the agent/CLI-agent surfaces and executes in the API orchestrator by reading the live `@genfeedai/tools` catalog. Use it for questions like "what tools are available?", "what can MCP do?", or "which Genfeed capabilities exist?" It supports `surface`, `role`, `category`, `query`, `limit`, and `includeParameters`.
+**Operator catalog tool:** `list_genfeed_tools` is available on the agent/CLI-agent surfaces and executes in the API orchestrator by reading the live `@genfeedai/actions` catalog. Use it for questions like "what tools are available?", "what can MCP do?", or "which Genfeed capabilities exist?" It supports `surface`, `role`, `category`, `query`, `limit`, and `includeParameters`.
 
 ### Layer 2: Server Registry
 
 **File:** `apps/server/api/src/services/agent-orchestrator/tools/agent-tool-registry.ts`
 
 Merges:
-1. `BASE_AGENT_TOOLS` = `toAgentTools(getToolsForSurface('agent'))` -- from `@genfeedai/tools`
+1. `BASE_AGENT_TOOLS` = `toAgentTools(getToolsForSurface('agent'))` -- from `@genfeedai/actions`
 2. `EXTRA_AGENT_TOOLS` -- additional tools (all cost 0):
    - `capture_memory`, `create_recurring_task`, `rate_content`, `rate_ingredient`, `get_top_ingredients`, `replicate_top_ingredient`
 3. `AGENT_TOOLS` = union (base takes precedence on name collision)
@@ -146,7 +146,7 @@ interface AgentTypeConfig {
 
 **File:** `apps/server/api/src/services/agent-orchestrator/constants/agent-credit-costs.constant.ts`
 
-- `AGENT_CREDIT_COSTS` -- union of base (from `@genfeedai/tools`) + extra (all 0)
+- `AGENT_CREDIT_COSTS` -- union of base (from `@genfeedai/actions`) + extra (all 0)
 - `AGENT_BASE_TURN_COST` = 1
 - `AGENT_MAX_TOOL_ROUNDS` = 5
 - `getAgentTurnCost(model)` -- returns model-specific cost or AGENT_BASE_TURN_COST (1) default

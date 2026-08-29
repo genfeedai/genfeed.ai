@@ -1,27 +1,18 @@
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { type WorkflowExecutionDocument } from '@server/collections/workflow-executions/schemas/workflow-execution.schema';
-import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
-import { type WorkflowVisualNode } from '@server/collections/workflows/schemas/workflow.schema';
-import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
-import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
-import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import {
-  WorkflowExecutionStatus,
-  WorkflowExecutionTrigger,
-  WorkflowStatus,
-} from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import type { CreditEstimate } from '@genfeedai/workflows/engine';
 import {
   calculateCreditEstimate,
   DEFAULT_CREDIT_COSTS,
-  type ExecutableWorkflow,
-  type ExecutionRunResult,
-  type NodeStatusChangeEvent,
 } from '@genfeedai/workflows/engine';
-import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { type WorkflowExecutionDocument } from '@server/collections/workflow-executions/schemas/workflow-execution.schema';
+import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
+import { type WorkflowVisualNode } from '@server/collections/workflows/schemas/workflow.schema';
+import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
+import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 
 /**
  * Run-control surface for node-based workflow executions: partial (subset of
@@ -31,16 +22,11 @@ import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 @Injectable()
 export class WorkflowRunControlService {
   constructor(
-    private readonly logger: LoggerService,
     private readonly workflowsService: WorkflowsService,
+    private readonly workflowExecutorService: WorkflowExecutorService,
+    private readonly workflowExecutionsService: WorkflowExecutionsService,
     @Optional()
     private readonly creditsUtilsService?: CreditsUtilsService,
-    @Optional()
-    private readonly websocketService?: NotificationsPublisherService,
-    @Optional()
-    private readonly workflowEngineAdapter?: WorkflowEngineAdapterService,
-    @Optional()
-    private readonly workflowExecutionsService?: WorkflowExecutionsService,
   ) {}
 
   /**
@@ -83,186 +69,28 @@ export class WorkflowRunControlService {
       };
     }
 
-    if (!this.workflowExecutionsService) {
-      throw new Error(
-        'Workflow executions service is not available - cannot track partial workflow execution',
+    const result =
+      await this.workflowExecutorService.executePartialWorkflowDocument(
+        workflow,
+        userId,
+        organizationId,
+        nodeIds,
+        options.respectLocks,
       );
-    }
-
-    const execution = await this.workflowExecutionsService.createExecution(
-      userId,
+    const execution = await this.workflowExecutionsService.findOne({
+      id: result.executionId,
       organizationId,
-      {
-        inputValues: {},
-        metadata: {
-          executionMode: 'partial',
-          selectedNodeIds: nodeIds,
-        },
-        trigger: WorkflowExecutionTrigger.MANUAL,
-        workflowId,
-      },
-    );
-    const startedExecution =
-      await this.workflowExecutionsService.startExecution(execution.id);
-    const runId = execution.id;
-
-    await this.workflowsService.patch(workflowId, {
-      status: WorkflowStatus.RUNNING,
+      workflowId,
     });
+    if (!execution) {
+      throw new NotFoundException('Execution run', result.executionId);
+    }
 
-    // Start async execution
-    this.executePartialAsync(workflowId, runId, nodeIds, options).catch(
-      (error) => {
-        if (this.logger) {
-          this.logger.error('Partial workflow execution failed', error);
-        }
-      },
-    );
-
-    return startedExecution ?? execution;
+    return execution;
   }
 
   /**
-   * Internal async execution for partial workflow. Delegates topological
-   * execution to `WorkflowEngineAdapterService` and records node/run results
-   * on the tracked execution.
-   */
-  private async executePartialAsync(
-    workflowId: string,
-    runId: string,
-    nodeIds: string[],
-    options: { respectLocks?: boolean } = {},
-  ): Promise<void> {
-    try {
-      const workflow = await this.workflowsService.findOne({
-        id: workflowId,
-      });
-      if (!workflow) {
-        return;
-      }
-
-      if (!this.workflowEngineAdapter || !this.workflowExecutionsService) {
-        throw new Error(
-          'Workflow engine adapter is not available - cannot execute workflow nodes',
-        );
-      }
-
-      const executableWorkflow =
-        this.workflowEngineAdapter.convertToExecutableWorkflow(workflow);
-      const totalNodes = nodeIds.length;
-
-      const result = await this.workflowEngineAdapter.executeWorkflow(
-        executableWorkflow,
-        {
-          executionId: runId,
-          nodeIds,
-          onNodeStatusChange: (event: NodeStatusChangeEvent) =>
-            this.recordNodeStatusChange(
-              workflowId,
-              runId,
-              executableWorkflow,
-              totalNodes,
-              event,
-            ),
-          onProgress: async (event: { progress: number }) => {
-            await this.workflowsService.patch(workflowId, {
-              progress: event.progress,
-            });
-          },
-          respectLocks: options.respectLocks,
-        },
-      );
-
-      await this.recordRunResult(runId, result);
-
-      await this.workflowsService.patch(workflowId, {
-        completedAt: new Date(),
-        progress: 100,
-        status: WorkflowStatus.COMPLETED,
-      });
-    } catch (error) {
-      if (this.workflowExecutionsService) {
-        await this.workflowExecutionsService.completeExecution(
-          runId,
-          (error as Error)?.message ?? 'Unknown error',
-        );
-      }
-
-      await this.workflowsService.patch(workflowId, {
-        completedAt: new Date(),
-        status: WorkflowStatus.FAILED,
-      });
-    }
-  }
-
-  private async recordNodeStatusChange(
-    workflowId: string,
-    runId: string,
-    executableWorkflow: ExecutableWorkflow,
-    totalNodes: number,
-    event: NodeStatusChangeEvent,
-  ): Promise<void> {
-    const node = executableWorkflow.nodes.find(
-      (candidate) => candidate.id === event.nodeId,
-    );
-    const isTerminalStatus =
-      event.newStatus === 'completed' ||
-      event.newStatus === 'failed' ||
-      event.newStatus === 'skipped';
-
-    await this.workflowExecutionsService?.updateNodeResult(
-      runId,
-      {
-        completedAt: isTerminalStatus ? new Date() : undefined,
-        error: event.error,
-        nodeId: event.nodeId,
-        nodeType: node?.type ?? 'unknown',
-        output:
-          event.output && typeof event.output === 'object'
-            ? (event.output as Record<string, unknown>)
-            : undefined,
-        progress: this.deriveNodeProgress(event.newStatus),
-        startedAt: event.newStatus === 'running' ? new Date() : undefined,
-        status: this.mapExecutionNodeStatus(event.newStatus),
-      },
-      totalNodes,
-    );
-
-    await this.emitWorkflowEvent(workflowId, `node-${event.newStatus}`, {
-      nodeId: event.nodeId,
-      runId,
-    });
-  }
-
-  private deriveNodeProgress(status: string): number | undefined {
-    if (status === 'completed' || status === 'skipped') {
-      return 100;
-    }
-    if (status === 'running') {
-      return 0;
-    }
-    return undefined;
-  }
-
-  private async recordRunResult(
-    runId: string,
-    result: ExecutionRunResult,
-  ): Promise<void> {
-    const failedNodeId = this.findFirstFailedNodeId(result);
-    await this.workflowExecutionsService?.completeExecution(
-      runId,
-      result.status === 'failed' ? result.error : undefined,
-      {
-        ...(result.totalCreditsUsed > 0
-          ? { creditsUsed: result.totalCreditsUsed }
-          : {}),
-        ...(failedNodeId ? { failedNodeId } : {}),
-      },
-    );
-  }
-
-  /**
-   * Resume execution from a failed run
+   * Resume the same immutable workflow execution from durable node results.
    */
   @HandleErrors('resume workflow execution', 'workflows')
   async resumeFromFailed(
@@ -273,18 +101,17 @@ export class WorkflowRunControlService {
   ): Promise<{ runId: string; status: string; message: string }> {
     const workflow = await this.workflowsService.findOne({
       id: workflowId,
-      organizationId: organizationId,
+      organizationId,
     });
 
     if (!workflow) {
       throw new NotFoundException('Workflow');
     }
 
-    // Find the failed execution from the workflow-executions collection
-    const failedRun = await this.workflowExecutionsService?.findOne({
+    const failedRun = await this.workflowExecutionsService.findOne({
       id: runId,
-      organizationId: organizationId,
-      workflowId: workflowId,
+      organizationId,
+      workflowId,
     });
 
     if (!failedRun) {
@@ -299,25 +126,21 @@ export class WorkflowRunControlService {
       throw new BadRequestException('No failed node ID recorded');
     }
 
-    const resumedExecution = await this.executePartial(
-      workflowId,
-      [failedRun.failedNodeId],
-      userId,
-      organizationId,
+    const result = await this.workflowExecutorService.continueExistingExecution(
+      runId,
+      {
+        data: failedRun.inputValues ?? {},
+        organizationId,
+        platform: 'manual',
+        type: 'resume',
+        userId,
+      },
     );
 
-    if ('runId' in resumedExecution) {
-      return {
-        message: String(resumedExecution.message),
-        runId: String(resumedExecution.runId),
-        status: String(resumedExecution.status),
-      };
-    }
-
     return {
-      message: 'Partial execution started',
-      runId: resumedExecution.id,
-      status: resumedExecution.status,
+      message: 'Workflow execution resumed',
+      runId,
+      status: result.status,
     };
   }
 
@@ -377,7 +200,7 @@ export class WorkflowRunControlService {
     runId: string,
     organizationId: string,
   ): Promise<Record<string, unknown>> {
-    const execution = await this.workflowExecutionsService?.findOne({
+    const execution = await this.workflowExecutionsService.findOne({
       id: runId,
       organizationId: organizationId,
       workflowId: workflowId,
@@ -397,48 +220,5 @@ export class WorkflowRunControlService {
       totalCreditsUsed: execution.creditsUsed,
       workflowId,
     };
-  }
-
-  private mapExecutionNodeStatus(status: string): WorkflowExecutionStatus {
-    switch (status) {
-      case 'pending':
-        return WorkflowExecutionStatus.PENDING;
-      case 'running':
-        return WorkflowExecutionStatus.RUNNING;
-      case 'completed':
-      case 'skipped':
-        return WorkflowExecutionStatus.COMPLETED;
-      case 'failed':
-        return WorkflowExecutionStatus.FAILED;
-      default:
-        return WorkflowExecutionStatus.PENDING;
-    }
-  }
-
-  private findFirstFailedNodeId(
-    result: ExecutionRunResult,
-  ): string | undefined {
-    for (const [nodeId, nodeResult] of result.nodeResults) {
-      if (nodeResult.status === 'failed') {
-        return nodeId;
-      }
-    }
-
-    return undefined;
-  }
-
-  private async emitWorkflowEvent(
-    workflowId: string,
-    event: string,
-    data: Record<string, unknown>,
-  ): Promise<void> {
-    if (!this.websocketService || !workflowId) {
-      return;
-    }
-
-    await this.websocketService.emit(`workflow:${workflowId}:${event}`, {
-      workflowId,
-      ...data,
-    });
   }
 }

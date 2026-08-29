@@ -1,5 +1,5 @@
-import type { CanonicalToolDefinition, ToolCategory } from '@genfeedai/tools';
-import { getToolsForRole } from '@genfeedai/tools';
+import type { CanonicalToolDefinition, ToolCategory } from '@genfeedai/actions';
+import { getToolsForRole } from '@genfeedai/actions';
 import * as appMetadata from '@mcp/config/app-metadata.json';
 import { MCP_RESOURCES } from '@mcp/mcp/resource-catalog';
 import { getPublicMcpUrl } from '@mcp/mcp/setup-page';
@@ -39,7 +39,7 @@ export class MCPService {
    * Public setup example for `GET /v1/example`. Everything factual about the
    * server — description, version, resources, tool surface — is derived from a
    * canonical source (`app-metadata.json`, {@link MCP_RESOURCES},
-   * `@genfeedai/tools`) rather than transcribed, so the endpoint cannot drift
+   * `@genfeedai/actions`) rather than transcribed, so the endpoint cannot drift
    * into advertising tools the server does not serve.
    */
   getMcpExample(): McpExample {

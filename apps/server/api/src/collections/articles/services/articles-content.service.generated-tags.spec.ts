@@ -1,13 +1,18 @@
-import { ArticleContentPersistenceService } from '@server/collections/articles/services/article-content-persistence.service';
-import type { ArticleReviewService } from '@server/collections/articles/services/article-review.service';
-import type { ArticleTextGenerationService } from '@server/collections/articles/services/article-text-generation.service';
-import { ArticlesContentService } from '@server/collections/articles/services/articles-content.service';
-import type { TagsService } from '@server/collections/tags/services/tags.service';
-import type { TemplatesService } from '@server/collections/templates/services/templates.service';
 import { ArticleCategory, TagCategory } from '@genfeedai/enums';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
+import {
+  ArticleGenerationType,
+  type GenerateArticlesDto,
+} from '@server/collections/articles/dto/generate-articles.dto';
+import { ArticleContentPersistenceService } from '@server/collections/articles/services/article-content-persistence.service';
+import type { ArticleReviewService } from '@server/collections/articles/services/article-review.service';
+import type { ArticleTextGenerationService } from '@server/collections/articles/services/article-text-generation.service';
+import { ArticlesContentService } from '@server/collections/articles/services/articles-content.service';
+import type { ArticleCreateFn } from '@server/collections/articles/services/articles-content.types';
+import type { TagsService } from '@server/collections/tags/services/tags.service';
+import type { TemplatesService } from '@server/collections/templates/services/templates.service';
 import type { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -56,8 +61,13 @@ describe('ArticlesContentService generated tags', () => {
     } as unknown as ArticleTextGenerationService;
 
     const articleReviewService = {
-      runReviewUpdateCycle: vi.fn().mockImplementation(({ draft }) =>
+      reviewDraft: vi.fn().mockResolvedValue({
+        charge: { amount: 0 },
+        review: { issues: [], score: 10 },
+      }),
+      reviseDraft: vi.fn().mockImplementation(({ draft }) =>
         Promise.resolve({
+          charge: { amount: 0 },
           updated: {
             content: draft.content,
             label: draft.label,
@@ -116,6 +126,32 @@ describe('ArticlesContentService generated tags', () => {
     return { createArticleFn, service, tagsService };
   }
 
+  /**
+   * Drives the action-backed generation pipeline end to end. Article generation
+   * is no longer a single service method — each stage is its own workflow
+   * action, so the tag-resolution contract is exercised by running the stages
+   * in the order the workflow graph wires them.
+   */
+  async function runGenerationPipeline(
+    service: ArticlesContentService,
+    generateDto: GenerateArticlesDto,
+    createArticleFn: ArticleCreateFn,
+  ): Promise<void> {
+    const context = await service.prepareGeneration(
+      generateDto,
+      userId,
+      organizationId,
+      brandId,
+      modelConfig,
+    );
+    const { items } = await service.generateDrafts(context);
+    for (const item of items) {
+      const reviewed = await service.reviewDraft(item);
+      const revised = await service.reviseDraft(reviewed);
+      await service.persistDraft(revised, createArticleFn);
+    }
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -136,12 +172,9 @@ describe('ArticlesContentService generated tags', () => {
       },
     });
 
-    await service.generateArticles(
-      { count: 1, prompt: 'write about growth' },
-      userId,
-      organizationId,
-      brandId,
-      modelConfig,
+    await runGenerationPipeline(
+      service,
+      { count: 1, prompt: 'write about growth' } as GenerateArticlesDto,
       createArticleFn,
     );
 
@@ -183,12 +216,9 @@ describe('ArticlesContentService generated tags', () => {
       },
     });
 
-    await service.generateArticles(
-      { count: 1, prompt: 'write about growth' },
-      userId,
-      organizationId,
-      brandId,
-      modelConfig,
+    await runGenerationPipeline(
+      service,
+      { count: 1, prompt: 'write about growth' } as GenerateArticlesDto,
       createArticleFn,
     );
 
@@ -213,12 +243,9 @@ describe('ArticlesContentService generated tags', () => {
     });
     vi.mocked(tagsService.findOne).mockRejectedValue(new Error('db down'));
 
-    await service.generateArticles(
-      { count: 1, prompt: 'write about growth' },
-      userId,
-      organizationId,
-      brandId,
-      modelConfig,
+    await runGenerationPipeline(
+      service,
+      { count: 1, prompt: 'write about growth' } as GenerateArticlesDto,
       createArticleFn,
     );
 
@@ -239,12 +266,12 @@ describe('ArticlesContentService generated tags', () => {
       },
     });
 
-    await service.generateLongFormArticle(
-      { prompt: 'write a long brief' },
-      userId,
-      organizationId,
-      brandId,
-      modelConfig,
+    await runGenerationPipeline(
+      service,
+      {
+        prompt: 'write a long brief',
+        type: ArticleGenerationType.X_ARTICLE,
+      } as GenerateArticlesDto,
       createArticleFn,
     );
 

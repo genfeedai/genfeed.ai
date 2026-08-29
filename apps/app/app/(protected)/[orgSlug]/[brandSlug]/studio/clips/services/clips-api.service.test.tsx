@@ -20,7 +20,7 @@ describe('ClipsApiService', () => {
     fetchMock.mockResolvedValue(
       new Response(
         JSON.stringify({
-          batchJobId: 'clip-factory-job-1',
+          batchJobId: 'clip-factory-project-1',
           estimatedClips: 4,
           projectId: 'clip-project-1',
           status: 'processing',
@@ -101,7 +101,7 @@ describe('ClipsApiService', () => {
         youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
       }),
     ).resolves.toEqual({
-      batchJobId: 'clip-factory-job-1',
+      batchJobId: 'clip-factory-project-1',
       estimatedClips: 4,
       projectId: 'clip-project-1',
       status: 'processing',
@@ -203,7 +203,7 @@ describe('ClipsApiService', () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            batchJobId: 'clip-analyze-clip-project-upload',
+            batchJobId: 'clip-analysis-clip-project-upload',
             estimatedClips: 6,
             projectId: 'clip-project-upload',
             status: 'analyzing',
@@ -251,7 +251,7 @@ describe('ClipsApiService', () => {
     fetchMock.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
-          batchJobId: 'clip-analyze-clip-project-upload',
+          batchJobId: 'clip-analysis-clip-project-upload',
           estimatedClips: 6,
           projectId: 'clip-project-upload',
           status: 'queued',

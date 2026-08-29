@@ -71,6 +71,7 @@ class MockFFmpegService {
 }
 
 class MockS3Service {
+  deleteFile = vi.fn().mockResolvedValue(undefined);
   uploadFile = vi.fn().mockResolvedValue(undefined);
   downloadFile = vi.fn().mockResolvedValue(undefined);
   downloadFromUrl = vi.fn().mockResolvedValue(undefined);
@@ -1299,6 +1300,56 @@ describe('VideoProcessor', () => {
       );
       expect(s3Service.uploadFile).not.toHaveBeenCalled();
       expect(ffmpegService.convertVideoToAudio).not.toHaveBeenCalled();
+    });
+
+    it('deletes uploaded source and local files when audio extraction fails', async () => {
+      ffmpegService.convertVideoToAudio.mockRejectedValueOnce(
+        new Error('Audio extraction failed'),
+      );
+      const job = createMockJob(
+        JOB_TYPES.VIDEO_TO_AUDIO,
+        createMockJobData({
+          params: {
+            inputPath: 'https://youtu.be/extraction-failure',
+            s3Key: undefined,
+          },
+        }),
+      );
+
+      await expect(processor.handleVideoToAudio(job)).rejects.toThrow(
+        'Audio extraction failed',
+      );
+
+      expect(s3Service.deleteFile).toHaveBeenCalledWith(
+        'videos/test-ingredient-123.mp4',
+      );
+      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
+        expect.stringContaining('input.mp4'),
+        expect.stringContaining('output.mp3'),
+      );
+    });
+
+    it('preserves the extraction failure when orphan cleanup also fails', async () => {
+      ffmpegService.convertVideoToAudio.mockRejectedValueOnce(
+        new Error('Audio extraction failed'),
+      );
+      s3Service.deleteFile.mockRejectedValueOnce(new Error('S3 unavailable'));
+      const job = createMockJob(
+        JOB_TYPES.VIDEO_TO_AUDIO,
+        createMockJobData({
+          params: {
+            inputPath: 'https://youtu.be/cleanup-failure',
+            s3Key: undefined,
+          },
+        }),
+      );
+
+      await expect(processor.handleVideoToAudio(job)).rejects.toThrow(
+        'Audio extraction failed',
+      );
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to delete orphaned YouTube source'),
+      );
     });
 
     it('should use custom audio options when provided', async () => {

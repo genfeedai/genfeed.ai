@@ -1,12 +1,13 @@
-import type { PostAccountTarget } from '@server/collections/posts/services/post-account-fanout.service';
-import { WorkflowContentExecutorRegistrarService } from '@server/collections/workflows/services/workflow-content-executor-registrar.service';
-import type { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
 import { CredentialPlatform, Platform } from '@genfeedai/enums';
 import {
+  createExecutableActionNode,
   type INodeExecutor,
   type NodeExecutor,
   WorkflowEngine,
 } from '@genfeedai/workflows/engine';
+import type { PostAccountTarget } from '@server/collections/posts/services/post-account-fanout.service';
+import { WorkflowContentExecutorRegistrarService } from '@server/collections/workflows/services/workflow-content-executor-registrar.service';
+import type { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
 import { describe, expect, it, vi } from 'vitest';
 
 function createHelper(): WorkflowEngineExecutorHelperService {
@@ -65,20 +66,24 @@ function runPostGenNode(
     services.fanoutService as never,
   ).register(engine);
 
-  return engine.getExecutor('postGen')?.(
-    {
-      config: { brandId: 'brand-1', prompt: 'Write a launch post', ...config },
+  return engine.getExecutor('genfeedAction')?.(
+    createExecutableActionNode({
+      actionId: 'postGen',
       id: 'post-gen',
-      inputs: [],
       label: 'Generate post',
-      type: 'postGen',
-    },
+      parameters: {
+        brandId: 'brand-1',
+        prompt: 'Write a launch post',
+        ...config,
+      },
+    }),
     new Map(),
     {
       organizationId: 'org-1',
       runId: 'run-1',
       userId: 'user-1',
       workflowId: 'wf-1',
+      workflowVersionId: 'version-1',
     },
   );
 }
@@ -96,20 +101,19 @@ function runTalkingHeadScriptNode(openRouterService: {
     openRouterService as never,
   ).register(engine);
 
-  return engine.getExecutor('talkingHeadScript')?.(
-    {
-      config: {
+  return engine.getExecutor('genfeedAction')?.(
+    createExecutableActionNode({
+      actionId: 'talkingHeadScript',
+      id: 'script-1',
+      label: 'Talking-head Script',
+      parameters: {
         clipCount: 5,
         durationSeconds: 30,
         language: 'en',
         productContext: 'A content operating system for founder-led brands',
         wordsPerSecond: 3.5,
       },
-      id: 'script-1',
-      inputs: [],
-      label: 'Talking-head Script',
-      type: 'talkingHeadScript',
-    },
+    }),
     new Map<string, unknown>([
       ['brandVoice', 'Direct and practical'],
       ['harnessContext', { bannedPhrases: ['game-changing'] }],
@@ -119,6 +123,7 @@ function runTalkingHeadScriptNode(openRouterService: {
       runId: 'run-1',
       userId: 'user-1',
       workflowId: 'wf-1',
+      workflowVersionId: 'version-1',
     },
   );
 }
@@ -221,7 +226,7 @@ describe('WorkflowContentExecutorRegistrarService', () => {
       engine,
     );
 
-    expect(engine.getRegisteredNodeTypes()).toContain('talkingHeadScript');
+    expect(engine.getRegisteredActionIds()).toContain('talkingHeadScript');
   });
 
   it('persists a domain platform from a Prisma SCREAMING credential', async () => {
@@ -329,17 +334,14 @@ describe('WorkflowContentExecutorRegistrarService', () => {
     expect(second.groupId).toBe(result.groupId);
   });
 
-  it('skips when the node names neither an account nor a platform', async () => {
+  it('fails when the node names neither an account nor a platform', async () => {
     const postsService = { create: vi.fn() };
     const credentialsService = { findOne: vi.fn() };
     const fanoutService = { resolveTargets: vi.fn() };
 
-    const result = (await runPostGenNode(
-      {},
-      { credentialsService, fanoutService, postsService },
-    )) as { reason: string; status: string };
-
-    expect(result).toEqual({ reason: 'no_target_account', status: 'skipped' });
+    await expect(
+      runPostGenNode({}, { credentialsService, fanoutService, postsService }),
+    ).rejects.toThrow('postGen requires credentialId or platform');
     expect(credentialsService.findOne).not.toHaveBeenCalled();
     expect(fanoutService.resolveTargets).not.toHaveBeenCalled();
     expect(postsService.create).not.toHaveBeenCalled();

@@ -28,14 +28,14 @@ bound it: the scopes on the API key, and the MCP approval gate below.
 
 ## The curated action catalog
 
-`packages/tools/src/registry/curated-action-catalog.ts` is the single source of
+`packages/actions/src/registry/curated-action-catalog.ts` is the single source of
 truth for which actions exist and which surfaces they appear on. Each entry is
 a name plus a `surfaces` array of `'agent'`, `'mcp'`, or both.
 
 Current shape: **162 curated actions — 105 on MCP, 93 on the agent, 36 on both.**
 
 Schemas and metadata live separately, in the definition shards under
-`packages/tools/src/registry/source/`. The catalog decides surface intent; the
+`packages/actions/src/registry/source/`. The catalog decides surface intent; the
 shards describe the tool.
 
 ### Curated catalog, not OpenAPI parity
@@ -60,7 +60,7 @@ Consequences for contributors:
 
 Drift is caught in three places, all fatal rather than advisory:
 
-- **Module load** — `packages/tools/src/registry/tool-registry.ts` throws when a
+- **Module load** — `packages/actions/src/registry/tool-registry.ts` throws when a
   catalog entry has no definition, a definition has no catalog entry, or either
   side holds duplicates.
 - **MCP boot** — `ToolRegistryService.validateDispatchCoverage` (`OnModuleInit`)
@@ -196,7 +196,7 @@ are three different grants. Do not treat them as one "approve" permission.
 | ---- | --------------- | ------------------ |
 | REST / MCP **`approve_social_draft`**, `POST /publish-approvals`, and other approval-scoped product APIs | API key with **`posts:approve`**. Social-inbox REST also requires organization owner or admin. | Approve a social reply/DM draft or a publish-approval. This is **not** `resolve_approval`. |
 | REST **`POST /mcp-approvals/:id/resolve`** | Organization **owners** and **admins** (`RolesDecorator(OWNER, ADMIN)` on `McpApprovalsController.resolve`). Session callers use membership. API-key callers that approve a publishing MCP tool also need `posts:approve` (`assertApiKeyPublishingScope(..., 'approve')`). | Approve or decline a pending MCP write. This is the path for organization reviewers. |
-| MCP tool **`resolve_approval`** | MCP role **`superadmin`** (`requiredRole` in `packages/tools/src/registry/source/mcp-only/admin.tools.ts`). Org `owner`/`admin` map to MCP `admin` and **do not** satisfy this gate. | The same resolve, exposed as an MCP tool. A `posts:approve` key does not grant it. |
+| MCP tool **`resolve_approval`** | MCP role **`superadmin`** (`requiredRole` in `packages/actions/src/registry/source/mcp-only/admin.tools.ts`). Org `owner`/`admin` map to MCP `admin` and **do not** satisfy this gate. | The same resolve, exposed as an MCP tool. A `posts:approve` key does not grant it. |
 
 An MCP client holding the `mcp` preset can therefore draft, schedule, and call
 approval-scoped REST actions. It cannot discover or invoke `resolve_approval`
@@ -263,7 +263,7 @@ second general-purpose agent surface, and the MCP catalog is unrelated to it.
 ## Adding an action
 
 1. Add the definition (schema, description, credit cost, `requiredRole`) to the
-   right shard in `packages/tools/src/registry/source/`.
+   right shard in `packages/actions/src/registry/source/`.
 2. Add a catalog entry in `curated-action-catalog.ts`, sorted by name, in the
    canonical single-line form, with the surfaces you intend.
 3. Wire an executor: an MCP dispatch group plus a `classify()` entry, or the

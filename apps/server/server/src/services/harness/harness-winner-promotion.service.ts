@@ -1,15 +1,14 @@
-import { ContextsService } from '@server/collections/contexts/services/contexts.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { isXPlatform, scoreXPublicMetricsPer1k } from '@genfeedai/harness';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional, type Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import {
   type PerformanceContentItem,
   PerformanceSummaryService,
 } from '@server/collections/content-performance/services/performance-summary.service';
+import { ContextsService } from '@server/collections/contexts/services/contexts.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 export type PromoteWinnersParams = {
   brandId: string;
@@ -25,6 +24,11 @@ export type PromoteWinnersResult = {
   skipped: number;
 };
 
+export type WinnerPromotionCandidate = {
+  content: string;
+  item: PerformanceContentItem;
+};
+
 /**
  * Promotes high-engagement posts into the brand performance-winners context
  * base. Entries are embedded on write (Postgres pgvector) so generation can
@@ -32,11 +36,8 @@ export type PromoteWinnersResult = {
  */
 @Injectable()
 export class HarnessWinnerPromotionService {
-  private readonly constructorName = String(this.constructor.name);
-
   constructor(
     private readonly prisma: PrismaService,
-    private readonly logger: LoggerService,
     @Optional()
     private readonly performanceSummaryService?: PerformanceSummaryService,
     @Optional()
@@ -45,9 +46,11 @@ export class HarnessWinnerPromotionService {
     private readonly moduleRef?: ModuleRef,
   ) {}
 
-  async promoteTopPerformers(
-    params: PromoteWinnersParams,
-  ): Promise<PromoteWinnersResult> {
+  async discoverTopPerformers(params: PromoteWinnersParams): Promise<{
+    contextBaseId: string;
+    items: WinnerPromotionCandidate[];
+    skipped: number;
+  }> {
     const limit = params.limit ?? 5;
     const performanceSummaryService = this.resolveProvider(
       this.performanceSummaryService,
@@ -81,102 +84,86 @@ export class HarnessWinnerPromotionService {
       params.brandId,
     );
 
-    let promoted = 0;
-    let skipped = 0;
     const seenContent = new Set<string>();
     const seenPostIds = new Set<string>();
-
-    for (const item of performers.slice(0, limit)) {
+    const boundedPerformers = performers.slice(0, limit);
+    const items = boundedPerformers.flatMap((item) => {
       const content = this.describePerformer(item);
-      if (!content) {
-        skipped += 1;
-        continue;
-      }
-
+      if (!content) return [];
       const postId = item.postId;
       if (
         seenContent.has(content) ||
         (postId !== undefined && seenPostIds.has(postId))
       ) {
-        skipped += 1;
-        continue;
+        return [];
       }
       seenContent.add(content);
-      if (postId !== undefined) {
-        seenPostIds.add(postId);
-      }
+      if (postId !== undefined) seenPostIds.add(postId);
+      return [{ content, item }];
+    });
+    return {
+      contextBaseId: contextBase.id,
+      items,
+      skipped: boundedPerformers.length - items.length,
+    };
+  }
 
-      const already = await this.findExistingWinnerEntry(
-        contextBase.id,
-        params.organizationId,
-        postId,
-        content,
+  async promoteTopPerformer(
+    organizationId: string,
+    contextBaseId: string,
+    candidate: WinnerPromotionCandidate,
+  ): Promise<{ promoted: number; skipped: number }> {
+    const postId = candidate.item.postId;
+    const already = await this.findExistingWinnerEntry(
+      contextBaseId,
+      organizationId,
+      postId,
+      candidate.content,
+    );
+    if (already) return { promoted: 0, skipped: 1 };
+    const contextsService = this.resolveProvider(
+      this.contextsService,
+      ContextsService,
+    );
+    if (contextsService) {
+      await contextsService.addEntry(
+        contextBaseId,
+        {
+          content: candidate.content,
+          metadata: {
+            engagementRate: candidate.item.engagementRate,
+            kind: 'performance_winner',
+            platform: candidate.item.platform,
+            postId,
+            promotedAt: new Date().toISOString(),
+            source: 'harness-winner-promotion',
+          },
+          relevanceWeight: 1,
+        },
+        organizationId,
       );
-      if (already) {
-        skipped += 1;
-        continue;
-      }
-
-      const contextsService = this.resolveProvider(
-        this.contextsService,
-        ContextsService,
-      );
-      if (contextsService) {
-        // Preferred path: addEntry embeds into pgvector immediately.
-        await contextsService.addEntry(
-          contextBase.id,
-          {
-            content,
+    } else {
+      await this.prisma.contextEntry.create({
+        data: {
+          contextBaseId,
+          data: {
+            content: candidate.content,
+            kind: 'performance_winner',
             metadata: {
-              engagementRate: item.engagementRate,
+              engagementRate: candidate.item.engagementRate,
               kind: 'performance_winner',
-              platform: item.platform,
+              platform: candidate.item.platform,
               postId,
               promotedAt: new Date().toISOString(),
               source: 'harness-winner-promotion',
             },
             relevanceWeight: 1,
-          },
-          params.organizationId,
-        );
-      } else {
-        // Fallback without embeddings (retrieval will lazy-rebuild later).
-        await this.prisma.contextEntry.create({
-          data: {
-            contextBaseId: contextBase.id,
-            data: {
-              content,
-              kind: 'performance_winner',
-              metadata: {
-                engagementRate: item.engagementRate,
-                kind: 'performance_winner',
-                platform: item.platform,
-                postId,
-                promotedAt: new Date().toISOString(),
-                source: 'harness-winner-promotion',
-              },
-              relevanceWeight: 1,
-            } as Prisma.InputJsonValue,
-            organizationId: params.organizationId,
-          },
-        });
-      }
-      promoted += 1;
+          } as Prisma.InputJsonValue,
+          organizationId,
+        },
+      });
     }
-
-    this.logger.log(`${this.constructorName} promoted winners`, {
-      brandId: params.brandId,
-      contextBaseId: contextBase.id,
-      organizationId: params.organizationId,
-      promoted,
-      skipped,
-    });
-
-    return {
-      contextBaseId: contextBase.id,
-      promoted,
-      skipped,
-    };
+    return { promoted: 1, skipped: 0 };
   }
 
   private async ensureWinnersContextBase(

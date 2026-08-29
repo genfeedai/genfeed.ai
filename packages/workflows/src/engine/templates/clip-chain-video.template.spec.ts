@@ -24,7 +24,26 @@ function toExecutableWorkflow(
     nodes: template.nodes,
     organizationId: 'org-1',
     userId: 'user-1',
+    versionId: 'version-1',
   };
+}
+
+function isActionNode(
+  node: (typeof CLIP_CHAIN_VIDEO_TEMPLATE.nodes)[number],
+  actionId: string,
+): boolean {
+  return node.type === 'genfeedAction' && node.config.actionId === actionId;
+}
+
+function actionParameters(
+  node: (typeof CLIP_CHAIN_VIDEO_TEMPLATE.nodes)[number] | undefined,
+): Record<string, unknown> {
+  const parameters = node?.config.parameters;
+  return parameters !== null &&
+    typeof parameters === 'object' &&
+    !Array.isArray(parameters)
+    ? (parameters as Record<string, unknown>)
+    : {};
 }
 
 describe('ClipChainVideoTemplate', () => {
@@ -48,8 +67,8 @@ describe('ClipChainVideoTemplate', () => {
 
     it('defaults to 3 segments', () => {
       expect(DEFAULT_CLIP_CHAIN_SEGMENT_COUNT).toBe(3);
-      const videoGenNodes = CLIP_CHAIN_VIDEO_TEMPLATE.nodes.filter(
-        (node) => node.type === 'videoGen',
+      const videoGenNodes = CLIP_CHAIN_VIDEO_TEMPLATE.nodes.filter((node) =>
+        isActionNode(node, 'videoGen'),
       );
       expect(videoGenNodes).toHaveLength(3);
     });
@@ -73,7 +92,7 @@ describe('ClipChainVideoTemplate', () => {
           (edge) =>
             edge.source === `video-gen-${index}` &&
             edge.target === `frame-extract-${index}` &&
-            edge.sourceHandle === 'video' &&
+            edge.sourceHandle === 'videoUrl' &&
             edge.targetHandle === 'video',
         );
         const extractToNext = CLIP_CHAIN_VIDEO_TEMPLATE.edges.find(
@@ -90,12 +109,12 @@ describe('ClipChainVideoTemplate', () => {
     });
 
     it('extracts the last frame of every segment including the last', () => {
-      const extractNodes = CLIP_CHAIN_VIDEO_TEMPLATE.nodes.filter(
-        (node) => node.type === 'videoFrameExtract',
+      const extractNodes = CLIP_CHAIN_VIDEO_TEMPLATE.nodes.filter((node) =>
+        isActionNode(node, 'videoFrameExtract'),
       );
       expect(extractNodes).toHaveLength(DEFAULT_CLIP_CHAIN_SEGMENT_COUNT);
       for (const extractNode of extractNodes) {
-        expect(extractNode.config.selectionMode).toBe('last');
+        expect(actionParameters(extractNode).selectionMode).toBe('last');
       }
     });
 
@@ -103,8 +122,9 @@ describe('ClipChainVideoTemplate', () => {
       const stitchNode = CLIP_CHAIN_VIDEO_TEMPLATE.nodes.find(
         (node) => node.id === 'video-stitch-1',
       );
-      expect(stitchNode?.type).toBe('videoStitch');
-      expect(stitchNode?.config.transitionType).toBe('cut');
+      expect(stitchNode?.type).toBe('genfeedAction');
+      expect(stitchNode?.config.actionId).toBe('videoStitch');
+      expect(actionParameters(stitchNode).transitionType).toBe('cut');
 
       for (
         let index = 1;
@@ -115,8 +135,11 @@ describe('ClipChainVideoTemplate', () => {
           (edge) =>
             edge.source === `video-gen-${index}` &&
             edge.target === 'video-stitch-1' &&
-            edge.sourceHandle === 'video' &&
-            edge.targetHandle === `video-${index}`,
+            edge.sourceHandle === 'videoUrl' &&
+            // videoStitch's closed input contract has one `videos` array
+            // field, not dynamic video-N keys — every segment shares that
+            // handle and the engine merges them into an ordered array.
+            edge.targetHandle === 'videos',
         );
         expect(stitchEdge).toBeDefined();
       }
@@ -141,17 +164,19 @@ describe('ClipChainVideoTemplate', () => {
         workflowId: 'wf-clip-1',
       });
 
-      for (const node of instance.nodes.filter(
-        (item) => item.type === 'videoGen',
+      for (const node of instance.nodes.filter((item) =>
+        isActionNode(item, 'videoGen'),
       )) {
-        expect(String(node.config.prompt).startsWith(identity)).toBe(true);
+        expect(String(actionParameters(node).prompt).startsWith(identity)).toBe(
+          true,
+        );
       }
     });
 
     it('does not mutate the catalog original when creating an instance', () => {
       const originalPrompt = CLIP_CHAIN_VIDEO_TEMPLATE.nodes.find(
         (node) => node.id === 'video-gen-1',
-      )?.config.prompt;
+      );
 
       createClipChainWorkflowInstance({
         identityDirective: 'A mutated identity',
@@ -162,10 +187,12 @@ describe('ClipChainVideoTemplate', () => {
       });
 
       expect(
-        CLIP_CHAIN_VIDEO_TEMPLATE.nodes.find(
-          (node) => node.id === 'video-gen-1',
-        )?.config.prompt,
-      ).toBe(originalPrompt);
+        actionParameters(
+          CLIP_CHAIN_VIDEO_TEMPLATE.nodes.find(
+            (node) => node.id === 'video-gen-1',
+          ),
+        ).prompt,
+      ).toBe(actionParameters(originalPrompt).prompt);
     });
   });
 
@@ -188,7 +215,8 @@ describe('ClipChainVideoTemplate', () => {
       );
       expect(expectedCredits).toBe(
         DEFAULT_CLIP_CHAIN_SEGMENT_COUNT * DEFAULT_CREDIT_COSTS.videoGen +
-          DEFAULT_CLIP_CHAIN_SEGMENT_COUNT * DEFAULT_CREDIT_COSTS.clip +
+          DEFAULT_CLIP_CHAIN_SEGMENT_COUNT *
+            DEFAULT_CREDIT_COSTS.videoFrameExtract +
           DEFAULT_CREDIT_COSTS.videoStitch,
       );
     });
@@ -204,13 +232,15 @@ describe('ClipChainVideoTemplate', () => {
       });
 
       expect(
-        instance.nodes.filter((node) => node.type === 'videoGen'),
+        instance.nodes.filter((node) => isActionNode(node, 'videoGen')),
       ).toHaveLength(4);
       expect(
-        instance.nodes.filter((node) => node.type === 'videoFrameExtract'),
+        instance.nodes.filter((node) =>
+          isActionNode(node, 'videoFrameExtract'),
+        ),
       ).toHaveLength(4);
       expect(
-        instance.nodes.filter((node) => node.type === 'videoStitch'),
+        instance.nodes.filter((node) => isActionNode(node, 'videoStitch')),
       ).toHaveLength(1);
     });
   });
@@ -230,10 +260,20 @@ describe('ClipChainVideoTemplate', () => {
 
       engine.registerExecutor('videoGen', async (node, inputs) => {
         startFrames.set(node.id, inputs.get('image'));
-        return { video: `https://cdn.example/${node.id}.mp4` };
+        return {
+          id: node.id,
+          model: 'stub-model',
+          provider: 'stub',
+          status: 'completed',
+          videoUrl: `https://cdn.example/${node.id}.mp4`,
+        };
       });
       engine.registerExecutor('videoFrameExtract', async (node, inputs) => {
-        const sourceVideo = inputs.get('video');
+        const source = inputs.get('video');
+        const sourceVideo =
+          typeof source === 'string'
+            ? source
+            : ((source as { videoUrl?: string } | undefined)?.videoUrl ?? '');
         const lastFrame = `https://cdn.example/last-from-${node.id}.jpg`;
         return {
           image: lastFrame,
@@ -300,11 +340,21 @@ describe('ClipChainVideoTemplate', () => {
         if (node.id === 'video-gen-2') {
           throw new Error('segment 2 generation failed');
         }
-        return { video: `https://cdn.example/${node.id}.mp4` };
+        return {
+          id: node.id,
+          model: 'stub-model',
+          provider: 'stub',
+          status: 'completed',
+          videoUrl: `https://cdn.example/${node.id}.mp4`,
+        };
       });
       engine.registerExecutor('videoFrameExtract', async (node) => {
         const lastFrame = `https://cdn.example/last-from-${node.id}.jpg`;
-        return { image: lastFrame, last_frame: lastFrame };
+        return {
+          image: lastFrame,
+          last_frame: lastFrame,
+          sourceVideo: `https://cdn.example/${node.id}-source.mp4`,
+        };
       });
       engine.registerExecutor('videoStitch', async () => {
         throw new Error('stitch should not run after a failed segment');
@@ -318,7 +368,11 @@ describe('ClipChainVideoTemplate', () => {
       expect(result.error).toContain('segment 2 generation failed');
       expect(result.nodeResults.get('video-gen-1')?.status).toBe('completed');
       expect(result.nodeResults.get('video-gen-1')?.output).toEqual({
-        video: 'https://cdn.example/video-gen-1.mp4',
+        id: 'video-gen-1',
+        model: 'stub-model',
+        provider: 'stub',
+        status: 'completed',
+        videoUrl: 'https://cdn.example/video-gen-1.mp4',
       });
       expect(result.nodeResults.get('video-gen-2')?.status).toBe('failed');
       expect(result.nodeResults.get('video-gen-2')?.retryCount).toBe(0);
@@ -343,7 +397,9 @@ describe('ClipChainVideoTemplate', () => {
         sourceVideoId: 'video-source-1',
       });
 
-      expect(template.nodes.map((node) => node.type)).toEqual([
+      expect(
+        template.nodes.map((node) => node.config.actionId ?? node.type),
+      ).toEqual([
         'input-video',
         'videoFrameExtract',
         'videoGen',
@@ -353,7 +409,9 @@ describe('ClipChainVideoTemplate', () => {
         template.nodes.find((node) => node.id === 'source-video')?.config,
       ).toMatchObject({ itemId: 'video-source-1' });
       expect(
-        template.nodes.find((node) => node.id === 'extended-video')?.config,
+        actionParameters(
+          template.nodes.find((node) => node.id === 'extended-video'),
+        ),
       ).toMatchObject({
         dispatchMode: 'fabricated',
         parentId: 'video-source-1',
@@ -377,10 +435,9 @@ describe('ClipChainVideoTemplate', () => {
         sourceVideoId: 'video-source-1',
       });
 
-      expect(template.nodes.map((node) => node.type)).toEqual([
-        'input-video',
-        'videoGen',
-      ]);
+      expect(
+        template.nodes.map((node) => node.config.actionId ?? node.type),
+      ).toEqual(['input-video', 'videoGen']);
       expect(template.edges).toContainEqual(
         expect.objectContaining({
           source: 'source-video',
@@ -389,7 +446,9 @@ describe('ClipChainVideoTemplate', () => {
         }),
       );
       expect(
-        template.nodes.find((node) => node.id === 'extension-video')?.config,
+        actionParameters(
+          template.nodes.find((node) => node.id === 'extension-video'),
+        ),
       ).toMatchObject({
         actionVerb: 'extend',
         parentIngredientId: 'video-source-1',

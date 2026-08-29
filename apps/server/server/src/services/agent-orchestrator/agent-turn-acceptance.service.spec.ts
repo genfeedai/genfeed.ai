@@ -1,6 +1,8 @@
-import { AgentRunStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AgentTurnAcceptanceService } from './agent-turn-acceptance.service';
+import {
+  AgentTurnAcceptanceService,
+  buildAgentTurnIdempotencyKey,
+} from './agent-turn-acceptance.service';
 
 describe('AgentTurnAcceptanceService', () => {
   const logger = {
@@ -9,13 +11,8 @@ describe('AgentTurnAcceptanceService', () => {
     warn: vi.fn(),
   };
   const prisma = {
-    agentRun: {
-      findFirst: vi.fn(),
-      updateMany: vi.fn(),
-      upsert: vi.fn(),
-    },
     agentThread: {
-      findFirst: vi.fn(),
+      findFirstOrThrow: vi.fn(),
       upsert: vi.fn(),
     },
   };
@@ -23,11 +20,8 @@ describe('AgentTurnAcceptanceService', () => {
     prepareForTurn: vi.fn(),
     resolveCreatedThreadScope: vi.fn(),
   };
-  const queueService = {
-    queueRun: vi.fn(),
-  };
-  const credentialCryptoService = {
-    encrypt: vi.fn(() => 'encrypted-token'),
+  const workflowRunner = {
+    enqueueWorkflow: vi.fn(),
   };
   const agentMessagesService = {
     addMessage: vi.fn(),
@@ -41,8 +35,7 @@ describe('AgentTurnAcceptanceService', () => {
       logger as never,
       prisma as never,
       scopeService as never,
-      queueService as never,
-      credentialCryptoService as never,
+      workflowRunner as never,
       agentMessagesService as never,
     );
     scopeService.prepareForTurn.mockResolvedValue({
@@ -56,9 +49,11 @@ describe('AgentTurnAcceptanceService', () => {
       Promise.resolve({
         brandId: create.brandId,
         contextVersion: create.contextVersion,
-        id: create.id,
       }),
     );
+    workflowRunner.enqueueWorkflow.mockResolvedValue({
+      executionId: 'execution-1',
+    });
     scopeService.resolveCreatedThreadScope.mockImplementation(
       ({ brandId, organizationId, threadId, userId }) =>
         Promise.resolve({
@@ -72,15 +67,10 @@ describe('AgentTurnAcceptanceService', () => {
           userId,
         }),
     );
-    prisma.agentRun.upsert.mockImplementation(({ create }) =>
-      Promise.resolve(create),
-    );
     agentMessagesService.addMessage.mockResolvedValue({});
-    queueService.queueRun.mockResolvedValue('agent-run-job');
-    prisma.agentRun.updateMany.mockResolvedValue({ count: 1 });
   });
 
-  it('durably acknowledges a new turn with stable request, run, thread, and context identity', async () => {
+  it('durably acknowledges a new turn with stable request, execution, thread, and context identity', async () => {
     const acknowledgement = await service.accept(
       {
         brandId: 'brand-1',
@@ -101,51 +91,44 @@ describe('AgentTurnAcceptanceService', () => {
       clientRequestId: '018f6f76-b821-7a51-82af-93d0ecac2101',
       contextId: `${acknowledgement.threadId}:v1`,
       contextVersion: 1,
+      executionId: 'execution-1',
       queuedAt: expect.any(String),
-      runId: expect.any(String),
       status: 'queued',
       threadId: expect.any(String),
     });
-    expect(prisma.agentRun.upsert).toHaveBeenCalledWith(
+    expect(workflowRunner.enqueueWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
-        create: expect.objectContaining({
-          config: {
-            durableQueuePayload: expect.objectContaining({
-              clientRequestId: acknowledgement.clientRequestId,
-              encryptedAuthToken: 'encrypted-token',
-              kind: 'agent-chat-turn',
-              runId: acknowledgement.runId,
-            }),
-          },
-          id: acknowledgement.runId,
-          metadata: expect.objectContaining({
+        actionType: 'agent.turn.execute',
+        canonicalId: 'agent.turn.execute',
+        idempotencyKey: buildAgentTurnIdempotencyKey(
+          'org-1',
+          'user-1',
+          '018f6f76-b821-7a51-82af-93d0ecac2101',
+        ),
+        inputValues: {
+          request: expect.objectContaining({
+            brandId: 'brand-1',
             clientRequestId: acknowledgement.clientRequestId,
-            contextId: acknowledgement.contextId,
-            requestState: 'queued',
+            content: 'Generate an image of a lighthouse',
+            source: 'agent',
+            threadId: acknowledgement.threadId,
           }),
-          status: AgentRunStatus.PENDING,
+        },
+        metadata: expect.objectContaining({
+          clientRequestId: acknowledgement.clientRequestId,
+          contextId: acknowledgement.contextId,
+          source: 'agent',
           threadId: acknowledgement.threadId,
         }),
-        update: {},
-      }),
-    );
-    expect(queueService.queueRun).toHaveBeenCalledWith(
-      expect.objectContaining({
-        clientRequestId: acknowledgement.clientRequestId,
-        encryptedAuthToken: 'encrypted-token',
-        kind: 'agent-chat-turn',
-        request: expect.objectContaining({
-          content: 'Generate an image of a lighthouse',
-        }),
-        runId: acknowledgement.runId,
-        threadId: acknowledgement.threadId,
+        organizationId: 'org-1',
+        userId: 'user-1',
       }),
     );
     expect(agentMessagesService.addMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand-1',
         content: 'Generate an image of a lighthouse',
-        id: acknowledgement.runId,
+        id: acknowledgement.executionId,
         organizationId: 'org-1',
         room: acknowledgement.threadId,
         userId: 'user-1',
@@ -153,7 +136,7 @@ describe('AgentTurnAcceptanceService', () => {
     );
   });
 
-  it('returns the same durable identities and re-reserves the same queue job when an acknowledgement is retried', async () => {
+  it('returns the same durable identities and idempotency key when an acknowledgement is retried', async () => {
     const request = {
       clientRequestId: '018f6f76-b821-7a51-82af-93d0ecac2101',
       content: 'Generate an image of a lighthouse',
@@ -170,53 +153,39 @@ describe('AgentTurnAcceptanceService', () => {
       expect.objectContaining({
         clientRequestId: first.clientRequestId,
         contextId: first.contextId,
-        runId: first.runId,
+        executionId: first.executionId,
         threadId: first.threadId,
       }),
     );
-    expect(prisma.agentRun.upsert).toHaveBeenCalledTimes(2);
-    expect(queueService.queueRun).toHaveBeenNthCalledWith(
+    expect(workflowRunner.enqueueWorkflow).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({ runId: first.runId }),
+      expect.objectContaining({
+        idempotencyKey: buildAgentTurnIdempotencyKey(
+          'org-1',
+          'user-1',
+          request.clientRequestId,
+        ),
+      }),
     );
   });
 
-  it('recovers the active thread created by a concurrent acknowledgement', async () => {
-    prisma.agentThread.upsert.mockRejectedValueOnce({ code: 'P2002' });
-    prisma.agentThread.findFirst.mockResolvedValueOnce({
-      brandId: 'brand-1',
-      contextVersion: 1,
-      id: 'winning-thread',
-      status: 'ACTIVE',
-    });
-
-    await expect(
-      service.accept(
-        { clientRequestId: 'concurrent-thread', content: 'Continue safely' },
-        { organizationId: 'org-1', userId: 'user-1' },
-      ),
-    ).resolves.toEqual(
-      expect.objectContaining({ contextVersion: 1, status: 'queued' }),
+  it('derives the thread id deterministically from the client request identity', async () => {
+    const first = await service.accept(
+      { clientRequestId: 'stable-identity', content: 'Generate safely' },
+      { organizationId: 'org-1', userId: 'user-1' },
     );
+    const second = await service.accept(
+      { clientRequestId: 'stable-identity', content: 'Generate safely' },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+
+    expect(second.threadId).toBe(first.threadId);
   });
 
-  it('recovers the active run created by a concurrent acknowledgement', async () => {
-    prisma.agentRun.upsert.mockRejectedValueOnce({ code: 'P2002' });
-    prisma.agentRun.findFirst.mockResolvedValueOnce({
-      metadata: {},
-      status: AgentRunStatus.PENDING,
-    });
-
-    await expect(
-      service.accept(
-        { clientRequestId: 'concurrent-run', content: 'Continue safely' },
-        { organizationId: 'org-1', userId: 'user-1' },
-      ),
-    ).resolves.toEqual(expect.objectContaining({ status: 'queued' }));
-  });
-
-  it('marks the accepted run failed when the durable queue reservation cannot be persisted', async () => {
-    queueService.queueRun.mockRejectedValueOnce(new Error('redis unavailable'));
+  it('propagates an enqueue failure instead of acknowledging the turn', async () => {
+    workflowRunner.enqueueWorkflow.mockRejectedValueOnce(
+      new Error('redis unavailable'),
+    );
 
     await expect(
       service.accept(
@@ -224,78 +193,6 @@ describe('AgentTurnAcceptanceService', () => {
         { organizationId: 'org-1', userId: 'user-1' },
       ),
     ).rejects.toThrow('redis unavailable');
-
-    expect(prisma.agentRun.updateMany).toHaveBeenCalledWith({
-      data: expect.objectContaining({ status: AgentRunStatus.FAILED }),
-      where: expect.objectContaining({
-        isDeleted: false,
-        organizationId: 'org-1',
-      }),
-    });
-    expect(agentMessagesService.addMessage).toHaveBeenCalledOnce();
-  });
-
-  it('restores an enqueue-failed run before an idempotent acknowledgement retry', async () => {
-    prisma.agentRun.upsert.mockImplementationOnce(({ create }) =>
-      Promise.resolve({
-        ...create,
-        metadata: { ...create.metadata, requestState: 'enqueue_failed' },
-        status: AgentRunStatus.FAILED,
-      }),
-    );
-
-    await service.accept(
-      { clientRequestId: 'enqueue-retry', content: 'Generate safely' },
-      { organizationId: 'org-1', userId: 'user-1' },
-    );
-
-    expect(prisma.agentRun.updateMany).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        completedAt: null,
-        error: null,
-        status: AgentRunStatus.PENDING,
-      }),
-      where: expect.objectContaining({
-        isDeleted: false,
-        organizationId: 'org-1',
-        status: AgentRunStatus.FAILED,
-      }),
-    });
-    expect(queueService.queueRun).toHaveBeenCalledOnce();
-  });
-
-  it('rejects a reused client request identity when the accepted payload changed', async () => {
-    prisma.agentRun.upsert.mockResolvedValueOnce({
-      metadata: { requestHash: 'sha256:v1:accepted-request' },
-    });
-
-    await expect(
-      service.accept(
-        {
-          clientRequestId: '018f6f76-b821-7a51-82af-93d0ecac2101',
-          content: 'A different request using the same identity',
-        },
-        { organizationId: 'org-1', userId: 'user-1' },
-      ),
-    ).rejects.toThrow('clientRequestId was already used for another turn');
-    expect(queueService.queueRun).not.toHaveBeenCalled();
-  });
-
-  it('does not re-execute a terminal run when a late acknowledgement retry arrives', async () => {
-    prisma.agentRun.upsert.mockImplementationOnce(({ create }) =>
-      Promise.resolve({ ...create, status: AgentRunStatus.COMPLETED }),
-    );
-
-    const acknowledgement = await service.accept(
-      {
-        clientRequestId: '018f6f76-b821-7a51-82af-93d0ecac2103',
-        content: 'Generate the already completed turn',
-      },
-      { organizationId: 'org-1', userId: 'user-1' },
-    );
-
-    expect(acknowledgement.runId).toEqual(expect.any(String));
-    expect(queueService.queueRun).not.toHaveBeenCalled();
   });
 
   it('keeps the authorized existing thread and context version on retries', async () => {
@@ -306,6 +203,11 @@ describe('AgentTurnAcceptanceService', () => {
         threadId: 'thread-existing',
       },
       initialScopeFields: {},
+    });
+    prisma.agentThread.findFirstOrThrow.mockResolvedValue({
+      brandId: 'brand-2',
+      contextVersion: 7,
+      status: 'ACTIVE',
     });
 
     const acknowledgement = await service.accept(
@@ -329,39 +231,31 @@ describe('AgentTurnAcceptanceService', () => {
     expect(prisma.agentThread.upsert).not.toHaveBeenCalled();
   });
 
-  it('pins the server-authorized context version into the durable worker request', async () => {
+  it('refuses to accept a turn on an archived thread', async () => {
     scopeService.prepareForTurn.mockResolvedValue({
       existingScope: {
         brandId: 'brand-2',
-        contextVersion: 7,
-        isLegacyFallback: false,
-        isVersionExplicit: false,
-        organizationId: 'org-1',
-        source: 'explicit',
-        threadId: 'thread-existing',
-        userId: 'user-1',
+        contextVersion: 3,
+        threadId: 'thread-archived',
       },
       initialScopeFields: {},
     });
+    prisma.agentThread.findFirstOrThrow.mockResolvedValue({
+      brandId: 'brand-2',
+      contextVersion: 3,
+      status: 'ARCHIVED',
+    });
 
-    await service.accept(
-      {
-        clientRequestId: '018f6f76-b821-7a51-82af-93d0ecac2104',
-        content: 'Prepare an image from this conversation',
-        generationMode: 'image',
-        threadId: 'thread-existing',
-      },
-      { organizationId: 'org-1', userId: 'user-1' },
-    );
-
-    expect(queueService.queueRun).toHaveBeenCalledWith(
-      expect.objectContaining({
-        request: expect.objectContaining({
-          expectedContextVersion: 7,
-          generationMode: 'image',
-          threadId: 'thread-existing',
-        }),
-      }),
-    );
+    await expect(
+      service.accept(
+        {
+          clientRequestId: 'archived-thread',
+          content: 'Continue',
+          threadId: 'thread-archived',
+        },
+        { organizationId: 'org-1', userId: 'user-1' },
+      ),
+    ).rejects.toThrow('This thread is archived');
+    expect(workflowRunner.enqueueWorkflow).not.toHaveBeenCalled();
   });
 });

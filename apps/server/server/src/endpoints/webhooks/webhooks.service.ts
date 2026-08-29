@@ -309,71 +309,102 @@ export class WebhooksService {
         return;
       }
 
-      if (errorMessage) {
-        const metadataId = metadata.id;
-        if (metadataId) {
-          await this.metadataService.patch(metadataId, {
+      const ingredient = await this.ingredientsService.findOne({
+        metadataId: metadata.id,
+      });
+      if (!ingredient) {
+        // The failure reason still belongs on the metadata record when the
+        // provider gave up before any ingredient row existed for it.
+        if (errorMessage) {
+          await this.metadataService.patch(metadata.id, {
             error: errorMessage,
           });
         }
-      }
-
-      const metadataId = metadata.id;
-      const ingredient = await this.ingredientsService.findOne({ metadataId });
-
-      if (!ingredient) {
+        this.loggerService.warn(`${logContext} ingredient not found`, {
+          externalId,
+        });
         return;
       }
 
-      await this.ingredientsService.patch(ingredient.id.toString(), {
-        status: IngredientStatus.FAILED,
-      });
-
-      this.postProcessingOrchestrator.notifyBotGatewayFailureIfNeeded(
+      await this.handleFailedGenerationForIngredient(
         ingredient.id.toString(),
-        errorMessage || 'Generation failed',
+        errorMessage,
       );
-
-      const { dbUserId, userId, userRoom } = extractUserIds(ingredient.userId);
-
-      // Activity update via decomposed service
-      if (dbUserId) {
-        await this.activityUpdateService.updateFailureActivity({
-          brandId: ingredient.brandId ?? undefined,
-          category: ingredient.category as IngredientCategory | string,
-          dbUserId,
-          errorMessage,
-          ingredientId: ingredient.id.toString(),
-          organizationId: ingredient.organizationId ?? undefined,
-          userId,
-          userRoom,
-        });
-      }
-
-      // WebSocket failure notification
-      const websocketUrl = `/${categoryToPlural(ingredient.category)}/${String(ingredient.id)}`;
-
-      if (userId) {
-        await this.websocketService.publishMediaFailed(
-          websocketUrl,
-          errorMessage || 'Generation failed',
-          userId,
-          userRoom,
-        );
-      }
-
-      this.loggerService.log(`${logContext} marked as failed`, {
-        error: errorMessage,
-        externalId,
-        ingredientId: ingredient.id,
-      });
-
-      await this.cacheService.invalidateByTags([
-        categoryToPlural(ingredient.category),
-      ]);
     } catch (error: unknown) {
       this.loggerService.error(`${logContext} error`, error);
     }
+  }
+
+  async handleFailedGenerationForIngredient(
+    ingredientId: string,
+    errorMessage?: string,
+  ): Promise<void> {
+    const logContext = `${this.constructorName} handleFailedGenerationForIngredient`;
+
+    const ingredient = await this.ingredientsService.findOne({
+      id: ingredientId,
+    });
+    if (!ingredient) {
+      this.loggerService.warn(`${logContext} ingredient not found`, {
+        ingredientId,
+      });
+      return;
+    }
+
+    if (errorMessage) {
+      const metadataId = ingredient.metadataId;
+      if (metadataId) {
+        await this.metadataService.patch(metadataId, {
+          error: errorMessage,
+        });
+      }
+    }
+
+    await this.ingredientsService.patch(ingredient.id.toString(), {
+      status: IngredientStatus.FAILED,
+    });
+
+    this.postProcessingOrchestrator.notifyBotGatewayFailureIfNeeded(
+      ingredient.id.toString(),
+      errorMessage || 'Generation failed',
+    );
+
+    const { dbUserId, userId, userRoom } = extractUserIds(ingredient.userId);
+
+    // Activity update via decomposed service
+    if (dbUserId) {
+      await this.activityUpdateService.updateFailureActivity({
+        brandId: ingredient.brandId ?? undefined,
+        category: ingredient.category as IngredientCategory | string,
+        dbUserId,
+        errorMessage,
+        ingredientId: ingredient.id.toString(),
+        organizationId: ingredient.organizationId ?? undefined,
+        userId,
+        userRoom,
+      });
+    }
+
+    // WebSocket failure notification
+    const websocketUrl = `/${categoryToPlural(ingredient.category)}/${String(ingredient.id)}`;
+
+    if (userId) {
+      await this.websocketService.publishMediaFailed(
+        websocketUrl,
+        errorMessage || 'Generation failed',
+        userId,
+        userRoom,
+      );
+    }
+
+    this.loggerService.log(`${logContext} marked as failed`, {
+      error: errorMessage,
+      ingredientId: ingredient.id,
+    });
+
+    await this.cacheService.invalidateByTags([
+      categoryToPlural(ingredient.category),
+    ]);
   }
 
   private schedulePostUploadNotifications(

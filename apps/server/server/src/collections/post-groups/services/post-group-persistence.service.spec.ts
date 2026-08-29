@@ -467,7 +467,11 @@ describe('PostGroupPersistenceService', () => {
       makeGroup({ id: 'group-workflow' }),
     ]);
     prisma.post.findMany.mockResolvedValue([
-      makeTarget({ agentRunId: 'run-1', groupId: 'group-agent', id: 'agent' }),
+      makeTarget({
+        agentThreadId: 'thread-1',
+        groupId: 'group-agent',
+        id: 'agent',
+      }),
       makeTarget({ groupId: 'group-manual', id: 'manual' }),
       makeTarget({
         groupId: 'group-workflow',
@@ -495,7 +499,6 @@ describe('PostGroupPersistenceService', () => {
     ]);
     prisma.post.findMany.mockResolvedValue([
       makeTarget({
-        agentRunId: 'run-1',
         groupId: 'group-target',
         workflowExecutionId: 'execution-1',
       }),
@@ -752,7 +755,6 @@ function makeTarget(
   return {
     agentContextSource: null,
     agentContextVersion: null,
-    agentRunId: null,
     agentStrategyId: null,
     agentThreadId: null,
     analyticsCollectedAt: null,

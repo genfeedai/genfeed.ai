@@ -4,20 +4,18 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { ReplyBotConfigsController } from '@api/collections/reply-bot-configs/controllers/reply-bot-configs.controller';
-import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { FeatureFlagGuard } from '@api/feature-flag/feature-flag.guard';
 import { FeatureFlagService } from '@api/feature-flag/feature-flag.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
-import { ReplyInboundQueueService } from '@server/queues/reply-bot/reply-inbound-queue.service';
-import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
-import { ReplyBotOrchestratorService } from '@server/services/reply-bot/reply-bot-orchestrator.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ReplyBotConfigsService } from '@server/collections/reply-bot-configs/services/reply-bot-configs.service';
+import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
+import { ReplyBotOrchestratorService } from '@server/services/reply-bot/reply-bot-orchestrator.service';
+import { ReplyPostWatchService } from '@server/services/reply-bot/reply-post-watch.service';
 
 describe('ReplyBotConfigsController', () => {
   let controller: ReplyBotConfigsController;
-  let replyBotQueueService: ReplyBotQueueService;
   let replyBotOrchestratorService: ReplyBotOrchestratorService;
 
   const mockUser = {
@@ -43,14 +41,9 @@ describe('ReplyBotConfigsController', () => {
     warn: vi.fn(),
   };
 
-  const mockReplyBotQueueService = {
-    addJob: vi.fn(),
-    getQueueStatus: vi.fn(),
-    triggerPolling: vi.fn(),
-  };
-
   const mockReplyBotOrchestratorService = {
     orchestrate: vi.fn(),
+    queueOrganizationBots: vi.fn(),
     testReplyGeneration: vi.fn(),
   };
 
@@ -71,10 +64,6 @@ describe('ReplyBotConfigsController', () => {
           useValue: mockLoggerService,
         },
         {
-          provide: ReplyBotQueueService,
-          useValue: mockReplyBotQueueService,
-        },
-        {
           provide: ReplyBotOrchestratorService,
           useValue: mockReplyBotOrchestratorService,
         },
@@ -83,7 +72,7 @@ describe('ReplyBotConfigsController', () => {
           useValue: {},
         },
         {
-          provide: ReplyInboundQueueService,
+          provide: ReplyPostWatchService,
           useValue: {},
         },
         {
@@ -101,8 +90,6 @@ describe('ReplyBotConfigsController', () => {
     controller = module.get<ReplyBotConfigsController>(
       ReplyBotConfigsController,
     );
-    replyBotQueueService =
-      module.get<ReplyBotQueueService>(ReplyBotQueueService);
     replyBotOrchestratorService = module.get<ReplyBotOrchestratorService>(
       ReplyBotOrchestratorService,
     );
@@ -143,34 +130,18 @@ describe('ReplyBotConfigsController', () => {
 
   describe('triggerPolling', () => {
     it('should trigger polling and return job id', async () => {
-      mockReplyBotQueueService.triggerPolling.mockResolvedValue('job-abc-123');
+      mockReplyBotOrchestratorService.queueOrganizationBots.mockResolvedValue(
+        'job-abc-123',
+      );
 
       const result = await controller.triggerPolling(mockUser, {
         credentialId: 'cred-1',
       });
 
-      expect(replyBotQueueService.triggerPolling).toHaveBeenCalledWith(
-        'org-123',
-        'cred-1',
-      );
+      expect(
+        replyBotOrchestratorService.queueOrganizationBots,
+      ).toHaveBeenCalledWith('org-123', 'cred-1');
       expect(result).toEqual({ jobId: 'job-abc-123' });
-    });
-  });
-
-  describe('getQueueStatus', () => {
-    it('should return queue statistics', async () => {
-      const mockStatus = {
-        active: 2,
-        completed: 50,
-        failed: 1,
-        waiting: 5,
-      };
-      mockReplyBotQueueService.getQueueStatus.mockResolvedValue(mockStatus);
-
-      const result = await controller.getQueueStatus();
-
-      expect(replyBotQueueService.getQueueStatus).toHaveBeenCalled();
-      expect(result).toEqual(mockStatus);
     });
   });
 });

@@ -10,9 +10,9 @@ import { WorkspaceTaskInspectorFooter } from './workspace-task-inspector-footer'
 import { WorkspaceTaskInspectorHeader } from './workspace-task-inspector-header';
 import { groupWorkspaceLinkedOutputs } from './workspace-task-inspector-helpers';
 import {
+  useWorkspaceTaskLinkedExecutionSummary,
   useWorkspaceTaskLinkedIssue,
   useWorkspaceTaskLinkedOutputs,
-  useWorkspaceTaskLinkedRunSummary,
 } from './workspace-task-inspector-hooks';
 
 type WorkspaceTaskInspectorProps = {
@@ -43,15 +43,15 @@ export function WorkspaceTaskInspector({
   const isBusy = busyTaskId === task?.id;
   const showReviewActions = task?.reviewState === 'pending_approval';
   const linkedIssueSummary = useWorkspaceTaskLinkedIssue(task);
-  const linkedRunSummary = useWorkspaceTaskLinkedRunSummary(task);
+  const linkedExecutionSummary = useWorkspaceTaskLinkedExecutionSummary(task);
   const linkedOutputSummary = useWorkspaceTaskLinkedOutputs(task);
   const taskToolHref =
-    task && linkedRunSummary.reportThreadId
-      ? `${APP_ROUTES.AGENT.ROOT}/${linkedRunSummary.reportThreadId}`
+    task && linkedExecutionSummary.reportThreadId
+      ? `${APP_ROUTES.AGENT.ROOT}/${linkedExecutionSummary.reportThreadId}`
       : task
         ? getAdvancedToolHref(task)
         : '/automate/runs';
-  const taskToolLabel = linkedRunSummary.reportThreadId
+  const taskToolLabel = linkedExecutionSummary.reportThreadId
     ? 'Open Report'
     : 'Open Tool';
   const linkedOutputGroups = useMemo(
@@ -76,7 +76,7 @@ export function WorkspaceTaskInspector({
               linkedIssueSummary={linkedIssueSummary}
               linkedOutputGroups={linkedOutputGroups}
               linkedOutputSummary={linkedOutputSummary}
-              linkedRunSummary={linkedRunSummary}
+              linkedExecutionSummary={linkedExecutionSummary}
               onKeepOutput={onKeepOutput}
               onTrashOutput={onTrashOutput}
               onUnkeepOutput={onUnkeepOutput}

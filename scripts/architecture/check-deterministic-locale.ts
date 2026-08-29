@@ -128,11 +128,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/runs/RunRoutingInsights.tsx',
-    'to-locale-string',
-    1,
-  ),
-  legacyUiAllowance(
     'apps/app/app/(protected)/[orgSlug]/[brandSlug]/automate/runs/RunStatsStrip.tsx',
     'to-locale-string',
     1,
@@ -252,11 +247,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     'packages/agent/src/components/blocks/DynamicBlockGrid.tsx',
     'to-locale-string',
     2,
-  ),
-  legacyUiAllowance(
-    'packages/agent/src/components/agent-workspace-run.helpers.ts',
-    'intl-date-time-format',
-    1,
   ),
   allowance(
     'packages/helpers/src/formatting/timezone/timezone.helper.ts',

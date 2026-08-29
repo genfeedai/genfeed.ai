@@ -7,6 +7,8 @@ import {
   TransformationCategory,
 } from '@genfeedai/enums';
 import {
+  type ExecutableNode,
+  type ExecutionContext,
   ImageGenExecutor,
   LipSyncExecutor,
   ReframeExecutor,
@@ -80,7 +82,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     const promptBuilderService = this.promptBuilderService;
     const replicateService = this.replicateService;
 
-    imageGenExecutor.setResolver(async (model, params, context) => {
+    imageGenExecutor.setResolver(async (model, params, context, node) => {
       const references = Array.isArray(params.references)
         ? params.references.filter(
             (reference): reference is string => typeof reference === 'string',
@@ -137,6 +139,12 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
           );
       const brandId = this.helper.requireBrandId(params.brandId, 'imageGen');
       const pendingOutput = await this.helper.createAndLinkProcessingOutput({
+        continuation: {
+          actionId: 'imageGen',
+          context,
+          node,
+          provider: 'replicate',
+        },
         output: {
           brandId,
           category: IngredientCategory.IMAGE,
@@ -154,7 +162,8 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
         },
         resultUrl: (ingredientId) =>
           this.helper.buildImageIngredientUrl(ingredientId),
-        runProvider: () => replicateService.runModel(model, input),
+        runProvider: (_ingredientId, continuationId) =>
+          replicateService.runModel(model, input, undefined, continuationId),
       });
 
       return {
@@ -184,7 +193,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     const videoGenExecutor = new VideoGenExecutor();
     const replicateService = this.replicateService;
 
-    videoGenExecutor.setResolver(async (model, params, context) => {
+    videoGenExecutor.setResolver(async (model, params, context, node) => {
       const references = Array.isArray(params.references)
         ? params.references.filter(
             (reference): reference is string => typeof reference === 'string',
@@ -264,6 +273,12 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
         : { prompt };
       const brandId = this.helper.requireBrandId(params.brandId, 'videoGen');
       const pendingOutput = await this.helper.createAndLinkProcessingOutput({
+        continuation: {
+          actionId: 'videoGen',
+          context,
+          node,
+          provider: 'replicate',
+        },
         output: {
           brandId,
           category: IngredientCategory.VIDEO,
@@ -288,14 +303,17 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
         },
         resultUrl: (ingredientId) =>
           this.helper.buildVideoIngredientUrl(ingredientId),
-        runProvider: () => replicateService.runModel(model, input),
+        runProvider: (_ingredientId, continuationId) =>
+          replicateService.runModel(model, input, undefined, continuationId),
       });
 
       return {
         generationBriefEvidence: compiled.evidence,
         generationSource: compiled.generationSource,
+        id: pendingOutput.ingredientId,
         model,
         provider: 'replicate',
+        status: IngredientStatus.PROCESSING,
         videoUrl: this.helper.buildVideoIngredientUrl(
           pendingOutput.ingredientId,
         ),
@@ -304,14 +322,6 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
 
     engine.registerExecutor(
       'videoGen',
-      this.helper.wrapEngineExecutor(videoGenExecutor),
-    );
-    engine.registerExecutor(
-      'generateVideo',
-      this.helper.wrapEngineExecutor(videoGenExecutor),
-    );
-    engine.registerExecutor(
-      'ai-generate-video',
       this.helper.wrapEngineExecutor(videoGenExecutor),
     );
   }
@@ -344,6 +354,12 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
                 references: [parentIngredientId, audioIngredientId],
                 transformations: [TransformationCategory.LIP_SYNCED],
                 userId: context.userId,
+              },
+              continuation: {
+                actionId: 'lipSync',
+                context,
+                node,
+                provider: 'heygen',
               },
               resultUrl: (ingredientId) =>
                 this.helper.buildVideoIngredientUrl(ingredientId),
@@ -522,8 +538,8 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
 
   private async runReplicateMediaTransform<TOutput>(params: {
     mediaUrl: string;
-    context: { organizationId: string; userId: string };
-    node: { config: Record<string, unknown> };
+    context: ExecutionContext;
+    node: ExecutableNode;
     nodeType: string;
     modelVideo: string;
     modelImage: string;
@@ -553,6 +569,12 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
       params.context.organizationId,
     );
     const pendingOutput = await this.helper.createAndLinkProcessingOutput({
+      continuation: {
+        actionId: params.nodeType,
+        context: params.context,
+        node: params.node,
+        provider: 'replicate',
+      },
       output: {
         brandId,
         category: outputCategory,
@@ -565,8 +587,13 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
       },
       resultUrl: (ingredientId) =>
         this.helper.buildMediaIngredientUrl(ingredientId, outputCategory),
-      runProvider: () =>
-        replicateService.runModel(model, params.buildInput(isVideo, inputKey)),
+      runProvider: (_ingredientId, continuationId) =>
+        replicateService.runModel(
+          model,
+          params.buildInput(isVideo, inputKey),
+          undefined,
+          continuationId,
+        ),
     });
 
     return params.buildReturn(pendingOutput.ingredientId, outputCategory);

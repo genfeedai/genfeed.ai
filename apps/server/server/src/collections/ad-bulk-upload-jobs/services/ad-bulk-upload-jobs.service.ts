@@ -134,6 +134,7 @@ export class AdBulkUploadJobsService {
     try {
       const doc = await this.prisma.adBulkUploadJob.create({
         data: {
+          ...(typeof data.id === 'string' ? { id: data.id } : {}),
           brandId: typeof brandId === 'string' ? brandId : undefined,
           credentialId:
             typeof credentialId === 'string' ? credentialId : undefined,
@@ -142,7 +143,9 @@ export class AdBulkUploadJobsService {
               Object.entries(data).filter(
                 ([key, value]) =>
                   value !== undefined &&
-                  !['brandId', 'credentialId', 'organizationId'].includes(key),
+                  !['brandId', 'credentialId', 'id', 'organizationId'].includes(
+                    key,
+                  ),
               ),
             ),
           ),

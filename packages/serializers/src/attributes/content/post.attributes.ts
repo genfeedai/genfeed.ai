@@ -25,7 +25,6 @@ export const publicPostAttributes = [
 ];
 
 export const postAttributes = createEntityAttributes([
-  'agentRunId',
   'agentStrategyId',
   'brandId',
   'credentialId',

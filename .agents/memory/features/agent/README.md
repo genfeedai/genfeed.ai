@@ -31,7 +31,7 @@ The agent system is a multi-turn LLM chat orchestrator with tool execution, even
 - `apps/server/api/src/collections/agent-memories/` -- persistent memory
 
 ### Shared
-- `packages/tools/src/registry/` -- canonical tool definitions (`source.agent.ts`, `source.mcp.ts`, `tool-registry.ts`)
+- `packages/actions/src/registry/` -- canonical tool definitions (`source.agent.ts`, `source.mcp.ts`, `tool-registry.ts`)
 - `packages/interfaces/src/ai/agent-tool.interface.ts` -- AgentToolName, AgentToolDefinition, AgentToolResult
 - `packages/enums/src/agent-*.enum.ts` -- AgentType, AgentThreadStatus, AgentMessageRole, etc.
 

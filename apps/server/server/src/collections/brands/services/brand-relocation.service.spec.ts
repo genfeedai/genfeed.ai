@@ -149,7 +149,6 @@ describe('BrandRelocationService', () => {
     getDelegate('workflow').count.mockResolvedValue(1);
     getDelegate('post').count.mockResolvedValue(4);
     getDelegate('workflowExecution').count.mockResolvedValue(2);
-    getDelegate('batchWorkflowJob').count.mockResolvedValue(1);
 
     const preview = await service.previewRelocation(BRAND_ID, DEST_ORG, {
       isSuperAdmin: true,
@@ -168,11 +167,6 @@ describe('BrandRelocationService', () => {
           count: 2,
           label: 'workflow executions',
           resource: 'workflowExecution',
-        },
-        {
-          count: 1,
-          label: 'batch workflow job',
-          resource: 'batchWorkflowJob',
         },
       ],
     });
@@ -358,7 +352,7 @@ describe('BrandRelocationService', () => {
     });
   });
 
-  it('moves a sole-brand workflow (with its execution + batch history) with the brand', async () => {
+  it('moves a sole-brand workflow and its execution history with the brand', async () => {
     primeRelocatableBrand();
     mockBrandWorkflows([{ id: 'wf_sole' }]);
 
@@ -377,15 +371,8 @@ describe('BrandRelocationService', () => {
       data: { organizationId: DEST_ORG },
       where: { id: { in: ['wf_sole'] }, organizationId: { not: DEST_ORG } },
     });
-    // Org-keyed execution + batch history followed the workflow.
+    // Org-keyed execution history followed the workflow.
     expect(getDelegate('workflowExecution').updateMany).toHaveBeenCalledWith({
-      data: { organizationId: DEST_ORG },
-      where: {
-        organizationId: { not: DEST_ORG },
-        workflowId: { in: ['wf_sole'] },
-      },
-    });
-    expect(getDelegate('batchWorkflowJob').updateMany).toHaveBeenCalledWith({
       data: { organizationId: DEST_ORG },
       where: {
         organizationId: { not: DEST_ORG },

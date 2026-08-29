@@ -3,7 +3,6 @@ export * from '@serializers/attributes/collections/model-catalog.attributes';
 export * from '@serializers/attributes/collections/platform-setting.attributes';
 export * from '@serializers/attributes/collections/prompt.attributes';
 export * from '@serializers/attributes/collections/role.attributes';
-export * from '@serializers/attributes/collections/run.attributes';
 export * from '@serializers/attributes/collections/training.attributes';
 export * from '@serializers/attributes/collections/trend.attributes';
 export * from '@serializers/attributes/collections/vote.attributes';

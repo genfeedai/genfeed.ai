@@ -1,13 +1,12 @@
 import type { ReviewDecision } from '@genfeedai/enums';
 import type {
-  IAgentRun,
   IAnalytics,
   IBrand,
   IFleetCapabilities,
   IOrganizationSetting,
   IUser,
 } from '@genfeedai/interfaces';
-import type { AgentRunStats, IStreakSummary } from '@genfeedai/types';
+import type { IStreakSummary } from '@genfeedai/types';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 
@@ -36,7 +35,6 @@ export interface ProtectedAppBootstrapPayload {
 }
 
 export interface OverviewBootstrapPayload {
-  activeRuns: IAgentRun[];
   analytics: Partial<IAnalytics>;
   reviewInbox: {
     approvedCount: number;
@@ -57,8 +55,6 @@ export interface OverviewBootstrapPayload {
     }>;
     rejectedCount: number;
   };
-  runs: IAgentRun[];
-  stats: AgentRunStats | null;
   timeSeries: unknown[];
 }
 

@@ -10,28 +10,19 @@ import {
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
 } from '@server/collections/workflows/system-workflow.contract';
-import {
-  SYSTEM_WORKFLOW_ACTION_DEFINITIONS,
-  SYSTEM_WORKFLOW_ACTION_IDS,
-} from '@server/collections/workflows/system-workflow-provenance.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => {
-  const tx = {
-    workflow: {
-      create: vi.fn(),
-      findFirst: vi.fn(),
-      update: vi.fn(),
-    },
-  };
   const prisma = {
-    $transaction: vi.fn(),
     workflow: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
     },
+  };
+  const workflowsService = {
+    create: vi.fn(),
   };
   const workflowExecutionQueueService = {
     syncWorkflowScheduler: vi.fn(),
@@ -54,18 +45,12 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
     workflowExecutionQueueService.syncWorkflowScheduler.mockResolvedValue(
       undefined,
     );
-    tx.workflow.findFirst.mockResolvedValue(null);
-    tx.workflow.create.mockResolvedValue({});
-    tx.workflow.update.mockResolvedValue({});
-    prisma.$transaction.mockImplementation(
-      async (
-        callback: (transactionClient: typeof tx) => Promise<void>,
-      ): Promise<void> => callback(tx),
-    );
+    workflowsService.create.mockResolvedValue({});
 
     service = new WorkflowTemplateSeederService(
       prisma as never,
       logger as never,
+      workflowsService as never,
       workflowExecutionQueueService as never,
     );
   });
@@ -73,8 +58,8 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
   it('seeds the livestream bot workflow default-on for an organization', async () => {
     await service.ensureLivestreamBotWorkflows('user-1', 'org-1');
 
-    expect(tx.workflow.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(workflowsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
         isScheduleEnabled: true,
         label: 'Livestream Bot Session Processing',
         metadata: expect.objectContaining({
@@ -103,20 +88,20 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
         timezone: 'UTC',
         userId: 'user-1',
       }),
-    });
-    expect(tx.workflow.create.mock.calls[0][0].data.nodes).toEqual([
-      expect.objectContaining({
-        id: 'livestreamBotSessionProcessing',
-        type: 'livestreamBotSessionProcessing',
-      }),
-    ]);
+    );
+    expect(workflowsService.create.mock.calls[0][0].nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'begin', type: 'genfeedAction' }),
+        expect.objectContaining({ id: 'process-items', type: 'genfeedAction' }),
+      ]),
+    );
   });
 
   it('seeds the content loop autopilot workflow default-on for an organization (#3018)', async () => {
     await service.ensureContentLoopAutopilotWorkflows('user-1', 'org-1');
 
-    expect(tx.workflow.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(workflowsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
         isScheduleEnabled: true,
         label: 'Content Loop Autopilot',
         metadata: expect.objectContaining({
@@ -134,26 +119,28 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
         status: WorkflowStatus.ACTIVE,
         userId: 'user-1',
       }),
-    });
-    expect(tx.workflow.create.mock.calls[0][0].data.nodes).toEqual([
-      expect.objectContaining({
-        id: 'analyticsGenericSync',
-        type: 'analyticsGenericSync',
-      }),
-      expect.objectContaining({
-        id: 'harnessWinnerPromotionSweep',
-        type: 'harnessWinnerPromotionSweep',
-      }),
-    ]);
+    );
+    expect(workflowsService.create.mock.calls[0][0].nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'resolveAnalyticsWindow',
+          type: 'genfeedAction',
+        }),
+        expect.objectContaining({
+          id: 'promoteHarnessWinners',
+          type: 'genfeedAction',
+        }),
+      ]),
+    );
   });
 
   it('seeds the outreach campaign dispatch workflow default-on for an organization (#3407)', async () => {
     await service.ensureOutreachCampaignDispatchWorkflows('user-1', 'org-1');
 
-    expect(tx.workflow.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(workflowsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
         isScheduleEnabled: true,
-        label: 'Outreach Campaign Dispatch',
+        label: 'Dispatch Active Campaigns',
         metadata: expect.objectContaining({
           sourceIssue: 3407,
           sourceTemplateId: 'outreach-campaign-dispatch',
@@ -168,13 +155,19 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
         status: WorkflowStatus.ACTIVE,
         userId: 'user-1',
       }),
-    });
-    expect(tx.workflow.create.mock.calls[0][0].data.nodes).toEqual([
-      expect.objectContaining({
-        id: 'outreachCampaignDispatch',
-        type: 'outreachCampaignDispatch',
-      }),
-    ]);
+    );
+    expect(workflowsService.create.mock.calls[0][0].nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'discover-campaigns',
+          type: 'genfeedAction',
+        }),
+        expect.objectContaining({
+          id: 'finalize-dispatch',
+          type: 'genfeedAction',
+        }),
+      ]),
+    );
   });
 
   it('does not seed a duplicate livestream bot workflow', async () => {
@@ -198,9 +191,8 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
 
     await service.ensureLivestreamBotWorkflows('user-1', 'org-1');
 
-    expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(prisma.workflow.update).not.toHaveBeenCalled();
-    expect(tx.workflow.create).not.toHaveBeenCalled();
+    expect(workflowsService.create).not.toHaveBeenCalled();
   });
 
   it('repairs legacy seeded workflow metadata without creating a duplicate', async () => {
@@ -214,7 +206,6 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
 
     await service.ensureLivestreamBotWorkflows('user-1', 'org-1');
 
-    expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(prisma.workflow.update).toHaveBeenCalledWith({
       data: {
         metadata: expect.objectContaining({
@@ -235,7 +226,7 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
       },
       where: { id: 'workflow-1', isDeleted: false, organizationId: 'org-1' },
     });
-    expect(tx.workflow.create).not.toHaveBeenCalled();
+    expect(workflowsService.create).not.toHaveBeenCalled();
   });
 
   it('does not auto-provision or unpause Daily Trends Digest clones', () => {
@@ -463,54 +454,6 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
         workflowId: 'foreign-duplicate',
       },
     );
-  });
-
-  it('seeds action-level system workflows for hardcoded product action replacements', async () => {
-    await service.ensureSystemActionWorkflows('user-1', 'org-1');
-
-    expect(tx.workflow.create).toHaveBeenCalledTimes(
-      SYSTEM_WORKFLOW_ACTION_DEFINITIONS.length,
-    );
-    expect(tx.workflow.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        // System action schedules are display metadata; firing happens in the
-        // workers sweep scheduler (issue #1092).
-        isScheduleEnabled: false,
-        label: 'Scheduled Post Publishing',
-        metadata: expect.objectContaining({
-          sourceIssue: 1011,
-          sourceTemplateChangeSummary:
-            'Initial scheduled publish system workflow action wrapper.',
-          sourceTemplateId:
-            SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
-          sourceTemplateVersion: SYSTEM_WORKFLOW_TEMPLATE_VERSION,
-          sourceType: 'system-action-workflow',
-          systemWorkflow: expect.objectContaining({
-            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
-            changeSummary:
-              'Initial scheduled publish system workflow action wrapper.',
-            immutable: true,
-            kind: 'system-workflow',
-            version: SYSTEM_WORKFLOW_TEMPLATE_VERSION,
-          }),
-        }),
-        organizationId: 'org-1',
-        schedule: '*/15 * * * *',
-        status: WorkflowStatus.ACTIVE,
-        userId: 'user-1',
-      }),
-    });
-    expect(tx.workflow.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        isScheduleEnabled: false,
-        label: 'Reply and DM Automation',
-        metadata: expect.objectContaining({
-          sourceTemplateId: SYSTEM_WORKFLOW_ACTION_IDS.REPLY_DM_AUTOMATION,
-          sourceType: 'system-action-workflow',
-        }),
-        schedule: undefined,
-      }),
-    });
   });
 
   it('loads workflow metadata when syncing organization schedulers', async () => {

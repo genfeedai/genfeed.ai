@@ -1,13 +1,13 @@
 # Reviewer-facing diff report for the curated Agent/MCP action catalog.
 #
-# packages/tools/src/registry/curated-action-catalog.ts is the single source of
+# packages/actions/src/registry/curated-action-catalog.ts is the single source of
 # truth for whether a product action is exposed on the in-app Agent surface, the
 # MCP surface, or both (.agents/memory/curated_agent_mcp_actions.md). Additions,
 # removals, and surface transitions must be intentional, but a sorted 200-line
 # array reviews poorly by eye — a one-word `surfaces` edit buried mid-file looks
 # identical to a rename.
 #
-# packages/tools/scripts/report-curated-action-catalog.ts parses the catalog on
+# packages/actions/scripts/report-curated-action-catalog.ts parses the catalog on
 # both sides of the pull request and emits `::warning` annotations (inline, on
 # the changed lines) plus a step-summary table. It shipped with unit coverage and
 # a `catalog:changes` package script, but nothing ever invoked it, so every
@@ -22,8 +22,8 @@ on:
     branches: [master]
     types: [opened, synchronize, reopened]
     paths:
-      - "packages/tools/src/registry/curated-action-catalog.ts"
-      - "packages/tools/scripts/report-curated-action-catalog.ts"
+      - "packages/actions/src/registry/curated-action-catalog.ts"
+      - "packages/actions/scripts/report-curated-action-catalog.ts"
       - ".github/workflows/curated-action-catalog.yml"
 
 permissions:
@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      CATALOG_PATH: packages/tools/src/registry/curated-action-catalog.ts
+      CATALOG_PATH: packages/actions/src/registry/curated-action-catalog.ts
     steps:
       # Full history: the base commit has to be present locally for `git show`
       # to read the pre-change catalog out of it.
@@ -76,7 +76,7 @@ jobs:
       # cannot read is a shape reviewers cannot skim either.
       - name: Report curated action catalog changes
         run: |
-          bun run --filter=@genfeedai/tools catalog:changes \
+          bun run --filter=@genfeedai/actions catalog:changes \
             --before="$RUNNER_TEMP/base-catalog.ts" \
             --after="$RUNNER_TEMP/head-catalog.ts" \
             --summary="$GITHUB_STEP_SUMMARY"

@@ -1,3 +1,7 @@
+import { Timeframe } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { TrendIdea } from '@server/collections/trends/dto/trend-ideas.dto';
@@ -31,10 +35,6 @@ import { TrendSourcePreviewService } from '@server/collections/trends/services/m
 import { TrendVideoService } from '@server/collections/trends/services/modules/trend-video.service';
 import { TrendPreferencesService } from '@server/collections/trends/services/trend-preferences.service';
 import { TrendReferenceCorpusService } from '@server/collections/trends/services/trend-reference-corpus.service';
-import { Timeframe } from '@genfeedai/enums';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 /**
  * Orchestrates trend retrieval, access control, and discovery, delegating the
@@ -612,7 +612,7 @@ export class TrendsService {
   /**
    * Fetch and store viral videos from Apify
    */
-  fetchAndCacheViralVideos(platform: string): Promise<void> {
+  fetchAndCacheViralVideos(platform: string): Promise<number> {
     return this.trendVideoService.fetchAndCacheViralVideos(platform);
   }
 
@@ -629,7 +629,7 @@ export class TrendsService {
   /**
    * Fetch and store trending hashtags
    */
-  fetchAndCacheHashtags(platform: string): Promise<void> {
+  fetchAndCacheHashtags(platform: string): Promise<number> {
     return this.trendVideoService.fetchAndCacheHashtags(platform);
   }
 
@@ -645,7 +645,7 @@ export class TrendsService {
   /**
    * Fetch and store trending sounds
    */
-  fetchAndCacheSounds(): Promise<void> {
+  fetchAndCacheSounds(): Promise<number> {
     return this.trendVideoService.fetchAndCacheSounds();
   }
 

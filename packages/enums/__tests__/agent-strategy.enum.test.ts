@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { AgentExecutionStatus } from '../src/agent-run.enum';
-import { AgentRunFrequency, AgentRunStatus } from '../src/agent-strategy.enum';
+import {
+  AgentRunFrequency,
+  AgentStrategyRunStatus,
+} from '../src/agent-strategy.enum';
+import { WorkflowExecutionStatus } from '../src/workflow.enum';
 
 describe('agent-strategy.enum', () => {
   describe('AgentRunFrequency', () => {
@@ -15,9 +18,9 @@ describe('agent-strategy.enum', () => {
     });
   });
 
-  describe('AgentRunStatus', () => {
-    it('matches Prisma AgentRunStatus labels plus domain BUDGET_EXHAUSTED', () => {
-      expect(Object.values(AgentRunStatus)).toEqual([
+  describe('AgentStrategyRunStatus', () => {
+    it('matches the execution-plane labels plus domain BUDGET_EXHAUSTED', () => {
+      expect(Object.values(AgentStrategyRunStatus)).toEqual([
         'PENDING',
         'RUNNING',
         'COMPLETED',
@@ -27,9 +30,9 @@ describe('agent-strategy.enum', () => {
       ]);
     });
 
-    it('overlaps AgentExecutionStatus 1:1 for Prisma-backed labels', () => {
-      for (const status of Object.values(AgentExecutionStatus)) {
-        expect(Object.values(AgentRunStatus)).toContain(status);
+    it('is a strict superset of WorkflowExecutionStatus', () => {
+      for (const status of Object.values(WorkflowExecutionStatus)) {
+        expect(Object.values(AgentStrategyRunStatus)).toContain(status);
       }
     });
   });

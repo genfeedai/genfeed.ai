@@ -1,5 +1,5 @@
 import { AnnouncementsService as AnnouncementsCollectionService } from '@api/collections/announcements/services/announcements.service';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { ANNOUNCEMENT_BROADCAST_ACTION_IDS } from '@api/endpoints/admin/announcements/announcement-broadcast-workflow-definition';
 import { AdminAnnouncementsService } from '@api/endpoints/admin/announcements/announcements.service';
 import type { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
 import { CredentialPlatform } from '@genfeedai/enums';
@@ -10,6 +10,8 @@ import { RedisService } from '@libs/redis/redis.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 
 vi.mock('@libs/utils/encryption/encryption.util');
 
@@ -20,23 +22,57 @@ vi.mock('twitter-api-v2', () => ({
   }),
 }));
 
+type WorkflowActionHandler = (context: {
+  input: Record<string, unknown>;
+}) => Promise<unknown> | unknown;
+
 describe('AdminAnnouncementsService', () => {
   let service: AdminAnnouncementsService;
   let announcementsCollectionService: vi.Mocked<AnnouncementsCollectionService>;
   let credentialsService: vi.Mocked<CredentialsService>;
   let loggerService: vi.Mocked<LoggerService>;
   let redisService: vi.Mocked<RedisService>;
+  let workflowActions: Map<string, WorkflowActionHandler>;
+  let workflowRunner: {
+    registerAction: ReturnType<typeof vi.fn>;
+    registerWorkflow: ReturnType<typeof vi.fn>;
+    runWorkflow: ReturnType<typeof vi.fn>;
+  };
 
   const authorId = testId('user');
   const organizationId = testId('org');
 
   const mockAnnouncement = {
-    _id: testId('announcement'),
+    id: testId('announcement'),
     body: 'Test announcement',
     channels: ['discord'],
   };
 
   beforeEach(async () => {
+    workflowActions = new Map();
+    workflowRunner = {
+      registerAction: vi.fn(
+        (actionId: string, handler: WorkflowActionHandler) => {
+          workflowActions.set(actionId, handler);
+        },
+      ),
+      registerWorkflow: vi.fn(),
+      runWorkflow: vi.fn(
+        async ({ inputValues }: { inputValues: Record<string, unknown> }) => {
+          const input = inputValues as Record<string, unknown>;
+          const discord = await workflowActions.get(
+            ANNOUNCEMENT_BROADCAST_ACTION_IDS.PUBLISH_DISCORD,
+          )?.({ input });
+          const twitter = await workflowActions.get(
+            ANNOUNCEMENT_BROADCAST_ACTION_IDS.PUBLISH_TWITTER,
+          )?.({ input });
+          const result = await workflowActions.get(
+            ANNOUNCEMENT_BROADCAST_ACTION_IDS.PERSIST,
+          )?.({ input: { ...input, discord, twitter } });
+          return { provenance: {}, result };
+        },
+      ),
+    };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AdminAnnouncementsService,
@@ -44,6 +80,7 @@ describe('AdminAnnouncementsService', () => {
           provide: AnnouncementsCollectionService,
           useValue: {
             createAnnouncement: vi.fn(),
+            findOne: vi.fn(),
             getAll: vi.fn(),
           },
         },
@@ -59,6 +96,10 @@ describe('AdminAnnouncementsService', () => {
           provide: RedisService,
           useValue: { publish: vi.fn() },
         },
+        {
+          provide: SystemWorkflowRunnerService,
+          useValue: workflowRunner,
+        },
       ],
     }).compile();
 
@@ -67,6 +108,10 @@ describe('AdminAnnouncementsService', () => {
     credentialsService = module.get(CredentialsService);
     loggerService = module.get(LoggerService);
     redisService = module.get(RedisService);
+    service.onModuleInit();
+    announcementsCollectionService.findOne.mockResolvedValue(
+      mockAnnouncement as never,
+    );
   });
 
   afterEach(() => {
@@ -192,13 +237,9 @@ describe('AdminAnnouncementsService', () => {
       const result = await service.broadcast(authorId, organizationId, dto);
 
       expect(result).toBe(mockAnnouncement);
-      expect(
-        announcementsCollectionService.createAnnouncement,
-      ).toHaveBeenCalledWith(
-        expect.objectContaining({
-          config: expect.objectContaining({ tweetId: undefined }),
-        }),
-      );
+      const createInput =
+        announcementsCollectionService.createAnnouncement.mock.calls[0]?.[0];
+      expect(createInput?.config).not.toHaveProperty('tweetId');
     });
 
     it('should continue and persist if discord publish fails', async () => {

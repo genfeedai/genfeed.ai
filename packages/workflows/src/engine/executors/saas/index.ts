@@ -11,6 +11,7 @@ export * from './comment-trigger-executor';
 // Social trigger executors
 export * from './engagement-trigger-executor';
 export * from './film-grain-executor';
+export * from './genfeed-action-executor';
 // AI generation executors
 export * from './hook-generator-executor';
 export * from './image-gen-executor';

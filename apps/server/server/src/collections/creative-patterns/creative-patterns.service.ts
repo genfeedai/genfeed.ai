@@ -77,10 +77,12 @@ export class CreativePatternsService {
 
   async upsertPattern(
     data: Record<string, unknown>,
+    client: Pick<Prisma.TransactionClient, 'creativePattern'> = this.prisma,
   ): Promise<CreativePatternDocument> {
     const payload = this.toPersistencePayload(data);
     const identityFilters: Prisma.CreativePatternWhereInput[] = [];
     for (const key of [
+      'formula',
       'industry',
       'patternType',
       'platform',
@@ -92,7 +94,7 @@ export class CreativePatternsService {
       }
     }
     const existing = (
-      await this.prisma.creativePattern.findMany({
+      await client.creativePattern.findMany({
         where: scopedWhere(payload.organizationId, {
           ...(identityFilters.length > 0 ? { AND: identityFilters } : {}),
           brandId: payload.brandId,
@@ -111,7 +113,7 @@ export class CreativePatternsService {
       );
 
     if (existing) {
-      const updated = await this.prisma.creativePattern.update({
+      const updated = await client.creativePattern.update({
         data: {
           brandId: payload.brandId,
           data: toPrismaJson(payload.data),
@@ -123,7 +125,7 @@ export class CreativePatternsService {
       return this.normalizeRecord(updated);
     }
 
-    const created = await this.prisma.creativePattern.create({
+    const created = await client.creativePattern.create({
       data: {
         brandId: payload.brandId,
         data: toPrismaJson(payload.data),
@@ -159,7 +161,7 @@ export class CreativePatternsService {
     const patterns = await this.prisma.creativePattern.findMany({
       where: scopedWhere(orgId, {
         AND: dataFilters,
-        brandId,
+        OR: [{ brandId }, { brandId: null }],
       }),
     });
 

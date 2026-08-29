@@ -5,28 +5,13 @@ export type WorkflowStatus =
   | 'completed'
   | 'failed';
 
-export type WorkflowStepType =
-  | 'generate_article'
-  | 'generate_image'
-  | 'generate_video'
-  | 'generate_music'
-  | 'generate_avatar'
-  | 'create_post'
-  | 'wait'
-  | 'condition';
-
-export interface WorkflowStep {
-  id: string;
-  type: WorkflowStepType;
-  config: Record<string, unknown>;
-  order: number;
-}
-
 export interface WorkflowCreateParams {
   name: string;
   description?: string;
   templateId?: string;
-  steps?: WorkflowStep[];
+  edges?: Array<Record<string, unknown>>;
+  inputVariables?: Array<Record<string, unknown>>;
+  nodes?: Array<Record<string, unknown>>;
   schedule?: {
     type: 'once' | 'daily' | 'weekly' | 'monthly';
     startAt?: string;
@@ -39,8 +24,6 @@ export interface WorkflowResponse {
   name: string;
   description?: string;
   status: WorkflowStatus;
-  steps: WorkflowStep[];
-  currentStepIndex?: number;
   createdAt: string;
   updatedAt?: string;
   lastRunAt?: string;
@@ -53,21 +36,8 @@ export interface WorkflowResponse {
   nodeCount?: number;
   schedule?: string;
   timezone?: string;
-}
-
-export interface WorkflowExecuteParams {
-  workflowId: string;
-  variables?: Record<string, unknown>;
-}
-
-export interface WorkflowExecutionResult {
-  executionId: string;
-  workflowId: string;
-  status: 'started' | 'running' | 'completed' | 'failed';
-  startedAt: string;
-  completedAt?: string;
-  results?: Record<string, unknown>;
-  error?: string;
+  version?: number;
+  versionId?: string;
 }
 
 export interface WorkflowListParams {
@@ -119,7 +89,7 @@ export interface WorkflowTemplate {
   name: string;
   description: string;
   category: string;
-  steps: WorkflowStep[];
+  nodeCount?: number;
   estimatedDuration?: string;
   creditsRequired?: number;
 }

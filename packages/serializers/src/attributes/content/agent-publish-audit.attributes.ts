@@ -8,7 +8,7 @@ export const agentPublishAuditAttributes = createEntityAttributes([
   'userId',
   'user',
   'postGroupId',
-  'agentRunId',
+  'workflowExecutionId',
   'agentThreadId',
   'agentStrategyId',
   'autonomyMode',

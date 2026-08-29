@@ -1,37 +1,32 @@
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
-import { StreaksService } from '@server/collections/streaks/services/streaks.service';
-import { UsersService } from '@server/collections/users/services/users.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
-import {
-  type AccessBootstrapCachePayload,
-  AccessBootstrapCacheService,
-} from '@server/common/services/access-bootstrap-cache.service';
 import {
   getIsSuperAdmin,
   getStripeSubscriptionStatus,
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
+import type { IAnalytics, IBrand } from '@genfeedai/interfaces';
+import { Injectable } from '@nestjs/common';
+import { toPlainJson } from '@serializers/helpers/plain-json.helper';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { StreaksService } from '@server/collections/streaks/services/streaks.service';
+import { UsersService } from '@server/collections/users/services/users.service';
+import {
+  type AccessBootstrapCachePayload,
+  AccessBootstrapCacheService,
+} from '@server/common/services/access-bootstrap-cache.service';
 import {
   BatchGenerationService,
   ReviewInboxSummary,
 } from '@server/services/batch-generation/batch-generation.service';
-import type { IAnalytics, IBrand } from '@genfeedai/interfaces';
-import type { AgentRunStats } from '@genfeedai/types';
-import { Injectable } from '@nestjs/common';
-import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 
 export interface AuthBootstrapRequest extends RequestWithContext {}
 
 export interface OverviewBootstrapPayload {
-  activeRuns: unknown[];
   analytics: Partial<IAnalytics>;
   reviewInbox: ReviewInboxSummary;
-  runs: unknown[];
-  stats: AgentRunStats | null;
   timeSeries: unknown[];
 }
 
@@ -63,7 +58,6 @@ export class AuthBootstrapService {
 
   constructor(
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
-    private readonly agentRunsService: AgentRunsService,
     private readonly brandsService: BrandsService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly batchGenerationService: BatchGenerationService,
@@ -332,7 +326,6 @@ export class AuthBootstrapService {
 
     if (!organizationId || typeof organizationId !== 'string') {
       return {
-        activeRuns: [],
         analytics: {},
         reviewInbox: {
           approvedCount: 0,
@@ -342,8 +335,6 @@ export class AuthBootstrapService {
           recentItems: [],
           rejectedCount: 0,
         },
-        runs: [],
-        stats: null,
         timeSeries: [],
       };
     }
@@ -355,23 +346,15 @@ export class AuthBootstrapService {
       return cached;
     }
 
-    const [reviewInbox, runs, activeRuns, stats] = await Promise.all([
-      this.batchGenerationService.getReviewInboxSummary(
-        organizationId,
-        brandId || undefined,
-        5,
-      ),
-      this.agentRunsService.listRecentRuns(organizationId, 20),
-      this.agentRunsService.getActiveRuns(organizationId),
-      this.agentRunsService.getStats(organizationId),
-    ]);
+    const reviewInbox = await this.batchGenerationService.getReviewInboxSummary(
+      organizationId,
+      brandId || undefined,
+      5,
+    );
 
     const payload: OverviewBootstrapPayload = {
-      activeRuns: toPlainJson(activeRuns),
       analytics: {},
       reviewInbox: toPlainJson(reviewInbox),
-      runs: toPlainJson(runs),
-      stats,
       timeSeries: [],
     };
 

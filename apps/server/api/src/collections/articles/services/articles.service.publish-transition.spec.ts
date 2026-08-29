@@ -11,10 +11,12 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import { ArticleScope, ArticleStatus } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import type { UpdateArticleDto } from '@server/collections/articles/dto/update-article.dto';
 import { ArticleInsightsService } from '@server/collections/articles/services/article-insights.service';
 import { ArticleRemixService } from '@server/collections/articles/services/article-remix.service';
-import { ArticleTranscriptService } from '@server/collections/articles/services/article-transcript.service';
 import { ArticleVersionService } from '@server/collections/articles/services/article-version.service';
 import { ArticlesService } from '@server/collections/articles/services/articles.service';
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
@@ -22,9 +24,6 @@ import { CacheInvalidationService } from '@server/common/services/cache-invalida
 import { CacheService } from '@server/services/cache/cache.service';
 import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { ArticleScope, ArticleStatus } from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
 
 /**
  * Regression coverage for the #2485 review finding: `ArticleFilterUtil`
@@ -121,7 +120,6 @@ describe('ArticlesService publish-state transition', () => {
       logger,
       configService,
       new ArticleVersionService(logger),
-      new ArticleTranscriptService(configService, logger),
       new ArticleInsightsService(logger, configService),
       new ArticleRemixService(logger),
       notificationsService,

@@ -1,6 +1,17 @@
+import {
+  WorkflowExecutionStatus,
+  WorkflowExecutionTrigger,
+} from '@genfeedai/enums';
+import type { AgentToolResult } from '@genfeedai/interfaces';
+import { toAgentScopeMetadata } from '@genfeedai/interfaces';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import { WorkflowSchedulerService } from '@server/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
+import {
+  YOUTUBE_LONG_FORM_OUTPUT_TYPES,
+  YOUTUBE_LONG_FORM_WORKFLOW_ID,
+} from '@server/collections/workflows/services/youtube-long-form-workflow.service';
 import { computeNextRunAtOrThrow } from '@server/collections/workflows/utils/cron-schedule.util';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -9,10 +20,6 @@ import {
   readOptionalNumber,
   readOptionalString,
 } from '@server/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import { WorkflowExecutionTrigger } from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
-import { toAgentScopeMetadata } from '@genfeedai/interfaces';
-import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
  * List / inspect / duplicate / schedule / run / execute workflow tools.
@@ -276,7 +283,30 @@ export class AgentWorkflowToolExecuteService {
     const inputValues =
       (params.inputs as Record<string, unknown> | undefined) ??
       (params.inputValues as Record<string, unknown> | undefined) ??
+      (params.variables as Record<string, unknown> | undefined) ??
       {};
+
+    if (workflowId === YOUTUBE_LONG_FORM_WORKFLOW_ID) {
+      const response = await this.internalApi.callInternalApi(
+        'POST',
+        '/v1/youtube-long-form',
+        inputValues,
+        ctx,
+      );
+      const resource = this.readRecord(response.data);
+      const attributes = this.readRecord(resource.attributes);
+      const executionId = readOptionalString(attributes.executionId);
+
+      return {
+        creditsUsed: 0,
+        data: {
+          id: executionId ?? readOptionalString(resource.id),
+          result: { ...attributes, id: readOptionalString(resource.id) },
+          status: WorkflowExecutionStatus.COMPLETED,
+        },
+        success: true,
+      };
+    }
 
     const workflow = await this.workflowsService.findOne({
       id: workflowId,
@@ -339,6 +369,36 @@ export class AgentWorkflowToolExecuteService {
   ): Promise<AgentToolResult> {
     const workflowId = params.workflowId as string;
 
+    if (workflowId === YOUTUBE_LONG_FORM_WORKFLOW_ID) {
+      return {
+        creditsUsed: 0,
+        data: {
+          inputs: [
+            {
+              defaultValue: null,
+              description: 'Public YouTube video URL with spoken audio.',
+              key: 'youtubeUrl',
+              label: 'YouTube URL',
+              required: true,
+              type: 'url',
+            },
+            {
+              defaultValue: 'article',
+              description: 'Long-form output format to persist.',
+              key: 'outputType',
+              label: 'Output format',
+              required: true,
+              type: 'enum',
+              validation: { options: [...YOUTUBE_LONG_FORM_OUTPUT_TYPES] },
+            },
+          ],
+          workflowId: YOUTUBE_LONG_FORM_WORKFLOW_ID,
+          workflowName: 'YouTube to long-form text',
+        },
+        success: true,
+      };
+    }
+
     const workflow = await this.workflowsService.findOne({
       id: workflowId,
       organizationId: ctx.organizationId,
@@ -398,5 +458,11 @@ export class AgentWorkflowToolExecuteService {
       timezone: workflow.timezone,
       updatedAt: workflow.updatedAt,
     };
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
   }
 }

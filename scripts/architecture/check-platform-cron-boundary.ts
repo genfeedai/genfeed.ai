@@ -124,14 +124,7 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform recovery for deterministic raw-cut clip jobs after missed Redis pub/sub events or API restarts.',
   },
   {
-    file: 'apps/server/api/src/services/clip-orchestrator/clip-continuity-finalization.service.ts',
-    id: 'clip-continuity-finalization-recovery',
-    methodName: 'processPendingRuns',
-    reason:
-      'Platform recovery for durable continuity QA requests retained in the shared state store after missed events or API restarts.',
-  },
-  {
-    file: 'apps/server/api/src/collections/trends/services/trends-warmup.service.ts',
+    file: 'apps/server/workers/src/crons/trends/cron.trends.service.ts',
     id: 'trends-warmup',
     methodName: 'warmGlobalTrendDatasets',
     reason: 'Platform global trend corpus warmup.',
@@ -183,13 +176,6 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
     reason: 'Platform model catalog maintenance.',
   },
   {
-    file: 'apps/server/workers/src/crons/youtube/cron.youtube-messages.service.ts',
-    id: 'youtube-messages-ingestion',
-    methodName: 'syncYoutubeMessages',
-    reason:
-      'Platform social-inbox message ingestion across connected credentials.',
-  },
-  {
     file: 'apps/server/workers/src/crons/llm-idle/cron.llm-idle.service.ts',
     id: 'llm-idle-stop',
     methodName: 'shutdownIfIdle',
@@ -233,13 +219,6 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
  */
 export const SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST: CronBoundaryEntry[] = [
   {
-    file: 'apps/server/workers/src/crons/agent-turn/cron.agent-turn-reconcile.service.ts',
-    id: 'agent-turn-reconcile-sweep',
-    methodName: 'reconcileStrandedTurns',
-    reason:
-      'System sweep invoked by SystemSweepsProcessor; re-enqueues accepted agent turns stranded before BullMQ reservation.',
-  },
-  {
     file: 'apps/server/workers/src/crons/batch-generation/cron.batch-generation-reconcile.service.ts',
     id: 'batch-generation-reconcile-sweep',
     methodName: 'reconcileSettlementShortfalls',
@@ -251,7 +230,7 @@ export const SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST: CronBoundaryEntry[] = [
     id: 'engagement-triggers-sweep',
     methodName: 'processArmedRules',
     reason:
-      'System sweep invoked by SystemSweepsProcessor; engagement-trigger follow-ups.',
+      'System sweep discovery adapter invoked by SystemSweepsProcessor; every tenant rule runs through engagement-rule-evaluation.',
   },
   {
     file: 'apps/server/workers/src/crons/posts/cron.posts.service.ts',
@@ -265,7 +244,7 @@ export const SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST: CronBoundaryEntry[] = [
     id: 'rss-autopost-sweep',
     methodName: 'pollEnabledSources',
     reason:
-      'System sweep invoked by SystemSweepsProcessor; RSS feed import into drafts/releases.',
+      'System sweep discovery adapter invoked by SystemSweepsProcessor; every tenant source runs through rss-source-poll.',
   },
   {
     file: 'apps/server/workers/src/crons/review-gate/cron.review-gate-timeout.service.ts',
@@ -302,18 +281,23 @@ export const SYSTEM_SWEEP_CRON_SERVICE_ALLOWLIST: CronBoundaryEntry[] = [
     reason:
       'System sweep invoked by SystemSweepsProcessor; decorator removed in #1092.',
   },
-];
-
-export const PENDING_TENANT_CRON_MIGRATIONS: PendingCronMigrationEntry[] = [
   {
-    file: 'apps/server/workers/src/crons/workflows/cron.workflows.service.ts',
-    id: 'legacy-step-workflow-executor',
-    issue: 1091,
-    methodName: 'checkScheduledWorkflows',
+    file: 'apps/server/workers/src/crons/workflow-artifacts/cron.workflow-artifacts.service.ts',
+    id: 'workflow-artifacts-cleanup-sweep',
+    methodName: 'queueExpiredArtifactCleanup',
     reason:
-      'Legacy step-workflow executor. Deletion blocked on #1091 (BullMQ Job Schedulers); config.trigger=SCHEDULED rows and ads-research drafts still depend on it.',
+      'System sweep invoked by SystemSweepsProcessor; enqueues expired workflow-artifact cleanup for every tenant scope past its retention backstop.',
+  },
+  {
+    file: 'apps/server/workers/src/crons/youtube/cron.youtube-messages.service.ts',
+    id: 'youtube-messages-sweep',
+    methodName: 'syncYoutubeMessages',
+    reason:
+      'System sweep adapter; each connected credential fans out to the existing YouTube comment-sync workflow.',
   },
 ];
+
+export const PENDING_TENANT_CRON_MIGRATIONS: PendingCronMigrationEntry[] = [];
 
 function normalizePath(filePath: string): string {
   return filePath.replaceAll('\\', '/');

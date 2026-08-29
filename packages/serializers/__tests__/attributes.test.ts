@@ -53,7 +53,6 @@ import { postAttributes } from '@serializers/attributes/content/post.attributes'
 import { presignedUploadAttributes } from '@serializers/attributes/content/presigned-upload.attributes';
 import { templateAttributes } from '@serializers/attributes/content/template.attributes';
 import { templateMetadataAttributes } from '@serializers/attributes/content/template-metadata.attributes';
-import { transcriptAttributes } from '@serializers/attributes/content/transcript.attributes';
 import { elementBlacklistAttributes } from '@serializers/attributes/elements/blacklist.attributes';
 import { elementCameraAttributes } from '@serializers/attributes/elements/camera.attributes';
 import { elementCameraMovementAttributes } from '@serializers/attributes/elements/camera-movement.attributes';
@@ -1149,21 +1148,6 @@ describe('Serializer Attributes', () => {
     it('should not contain duplicates', () => {
       const unique = new Set(personaAttributes);
       expect(unique.size).toBe(personaAttributes.length);
-    });
-  });
-
-  describe('transcriptAttributes', () => {
-    it('should be a non-empty array of strings', () => {
-      expect(Array.isArray(transcriptAttributes)).toBe(true);
-      expect(transcriptAttributes.length).toBeGreaterThan(0);
-      for (const attr of transcriptAttributes) {
-        expect(typeof attr).toBe('string');
-      }
-    });
-
-    it('should not contain duplicates', () => {
-      const unique = new Set(transcriptAttributes);
-      expect(unique.size).toBe(transcriptAttributes.length);
     });
   });
 

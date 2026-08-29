@@ -1,4 +1,9 @@
 import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
+import {
+  buildAuthorReplyDraftWorkflowDefinition,
+  buildAuthorReplySendWorkflowDefinition,
+} from '@server/services/reply-bot/author-reply-workflow-definition';
+import { createSystemWorkflowRunnerMock } from '@server/shared/testing/system-workflow-runner-mock';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AuthorReplyLoopService', () => {
@@ -19,13 +24,14 @@ describe('AuthorReplyLoopService', () => {
   const replyGenerationService = {
     generateReply: vi.fn().mockResolvedValue('Solid take — here is why.'),
   };
-  const botActionExecutorService = {
-    postReply: vi.fn().mockResolvedValue({
-      contentId: 'reply-1',
-      contentUrl: 'https://x.com/i/status/reply-1',
-      success: true,
-    }),
-  };
+  const systemWorkflowRunner = createSystemWorkflowRunnerMock({
+    definitions: [
+      buildAuthorReplyDraftWorkflowDefinition(),
+      buildAuthorReplySendWorkflowDefinition(),
+    ],
+  });
+  const executeWorkflowDefinition =
+    systemWorkflowRunner.runWorkflow.getMockImplementation();
   const replyBotConfigsService = {
     create: vi.fn(),
     find: vi.fn(),
@@ -48,17 +54,23 @@ describe('AuthorReplyLoopService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    if (executeWorkflowDefinition) {
+      systemWorkflowRunner.runWorkflow.mockImplementation(
+        executeWorkflowDefinition,
+      );
+    }
     service = new AuthorReplyLoopService(
       prisma as never,
       logger as never,
       socialMonitorService as never,
       replyGenerationService as never,
-      botActionExecutorService as never,
+      systemWorkflowRunner as never,
       replyBotConfigsService as never,
       credentialsService as never,
       processedTweetsService as never,
       xActivitySubscriptionService as never,
     );
+    service.onModuleInit();
   });
 
   it('creates a comment_responder config when none exists', async () => {
@@ -223,10 +235,21 @@ describe('AuthorReplyLoopService', () => {
       id: 'x-cred',
       username: 'brandx',
     });
-    botActionExecutorService.postReply.mockResolvedValue({
-      contentId: 'x-reply-1',
-      contentUrl: 'https://x.com/brandx/status/x-reply-1',
-      success: true,
+    // `sendReply` returns the workflow result verbatim, so the stub carries the
+    // public `AuthorReplySendResult` contract, not the internal send state.
+    systemWorkflowRunner.runWorkflow.mockResolvedValue({
+      provenance: {
+        executionId: 'execution-1',
+        workflowId: 'workflow-1',
+        workflowLabel: 'Author Reply Loop',
+      },
+      result: {
+        commentId: 'c1',
+        contentId: 'x-reply-1',
+        contentUrl: 'https://x.com/brandx/status/x-reply-1',
+        replyText: 'Thanks!',
+        success: true,
+      },
     });
 
     const result = await service.sendReply({
@@ -241,14 +264,17 @@ describe('AuthorReplyLoopService', () => {
       userId: 'user-1',
     });
 
-    expect(botActionExecutorService.postReply).toHaveBeenCalledWith(
+    expect(systemWorkflowRunner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
-        brandId: 'brand-1',
+        canonicalId: 'author-reply.send-reply',
+        inputValues: {
+          request: expect.objectContaining({
+            replyText: 'Thanks!',
+          }),
+        },
         organizationId: 'org-1',
-        platform: 'twitter',
+        userId: 'user-1',
       }),
-      expect.objectContaining({ id: 'c1' }),
-      'Thanks!',
     );
     expect(result.success).toBe(true);
     expect(result.contentId).toBe('x-reply-1');
@@ -269,9 +295,18 @@ describe('AuthorReplyLoopService', () => {
       id: 'yt-cred',
       username: 'channel',
     });
-    botActionExecutorService.postReply.mockResolvedValue({
-      contentId: 'yt-reply-1',
-      success: true,
+    systemWorkflowRunner.runWorkflow.mockResolvedValue({
+      provenance: {
+        executionId: 'execution-1',
+        workflowId: 'workflow-1',
+        workflowLabel: 'Author Reply Loop',
+      },
+      result: {
+        commentId: 'c1',
+        contentId: 'yt-reply-1',
+        replyText: 'Thanks for watching!',
+        success: true,
+      },
     });
 
     const result = await service.sendReply({
@@ -287,14 +322,15 @@ describe('AuthorReplyLoopService', () => {
       userId: 'user-1',
     });
 
-    expect(botActionExecutorService.postReply).toHaveBeenCalledWith(
+    expect(systemWorkflowRunner.runWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
-        brandId: 'brand-1',
-        organizationId: 'org-1',
-        platform: 'youtube',
+        canonicalId: 'author-reply.send-reply',
+        inputValues: {
+          request: expect.objectContaining({
+            replyText: 'Thanks for watching!',
+          }),
+        },
       }),
-      expect.objectContaining({ id: 'c1' }),
-      'Thanks for watching!',
     );
     expect(result.success).toBe(true);
     expect(result.contentId).toBe('yt-reply-1');
@@ -343,7 +379,7 @@ describe('AuthorReplyLoopService', () => {
     );
   });
 
-  it('sends replies from the account the bot config names, not the first row', async () => {
+  it('keeps credential material out of the send workflow input', async () => {
     replyBotConfigsService.find.mockResolvedValue([
       {
         brandId: 'brand-1',
@@ -359,10 +395,17 @@ describe('AuthorReplyLoopService', () => {
       platform: 'twitter',
       username: 'brandx_labs',
     });
-    botActionExecutorService.postReply.mockResolvedValue({
-      contentId: 'x-reply-2',
-      contentUrl: 'https://x.com/brandx_labs/status/x-reply-2',
-      success: true,
+    systemWorkflowRunner.runWorkflow.mockResolvedValue({
+      provenance: {
+        executionId: 'execution-1',
+        workflowId: 'workflow-1',
+        workflowLabel: 'Author Reply Loop',
+      },
+      result: {
+        replyContentId: 'x-reply-2',
+        replyContentUrl: 'https://x.com/brandx_labs/status/x-reply-2',
+        replySent: true,
+      },
     });
 
     await service.sendReply({
@@ -377,10 +420,15 @@ describe('AuthorReplyLoopService', () => {
       userId: 'user-1',
     });
 
-    // Named account wins outright — the ambiguous multi-account fallback is
-    // never consulted.
-    expect(credentialsService.findOne).toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'x-cred-2' }),
+    expect(systemWorkflowRunner.runWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        canonicalId: 'author-reply.send-reply',
+        inputValues: {
+          request: expect.not.objectContaining({
+            accessToken: expect.anything(),
+          }),
+        },
+      }),
     );
     expect(prisma.credential.findMany).not.toHaveBeenCalled();
   });

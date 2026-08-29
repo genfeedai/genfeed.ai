@@ -8,11 +8,10 @@ import type {
   IAutoPostingRule,
   IBulkScheduleRequest,
   IBulkScheduleResult,
-  IMultiPlatformWorkflow,
   IScheduleOptimizationRequest,
   ISmartSchedule,
-  IWorkflowExecution,
 } from '@genfeedai/interfaces/automation/smart-scheduler.interface';
+import type { IWorkflowExecution } from '@genfeedai/interfaces/automation/workflow-execution.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
   deserializeResource,
@@ -147,28 +146,6 @@ class SmartSchedulerServiceClass {
       scheduled: result.scheduled,
     });
     return result;
-  }
-
-  async createWorkflow(
-    data: Partial<IMultiPlatformWorkflow>,
-  ): Promise<IMultiPlatformWorkflow> {
-    const workflow = await this.request<IMultiPlatformWorkflow>(
-      '/automation/workflows',
-      'POST',
-      data,
-      'Failed to create workflow',
-    );
-    logger.info('Workflow created', { id: workflow.id, name: workflow.name });
-    return workflow;
-  }
-
-  async getWorkflows(): Promise<IMultiPlatformWorkflow[]> {
-    return this.request(
-      '/automation/workflows',
-      'GET',
-      undefined,
-      'Failed to get workflows',
-    );
   }
 
   async executeWorkflow(

@@ -1,3 +1,7 @@
+import {
+  GENFEED_ACTION_NODE_TYPE,
+  getActionDefinition,
+} from '@genfeedai/actions';
 import { v4 as uuidv4 } from 'uuid';
 import {
   createVideoGenerationLineage,
@@ -16,6 +20,15 @@ import type {
   RetryConfig,
 } from '../types';
 import { DEFAULT_RETRY_CONFIG } from '../types';
+import { buildActionExecutionInput } from '../utils/action-input';
+import {
+  getExecutableNodeOperationId,
+  isEngineNativeNodeType,
+} from '../utils/action-node';
+import {
+  type ActionContractJsonSchema,
+  compileActionContract,
+} from '../validation/action-contract';
 import {
   DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
   type EngineExecutionOptions,
@@ -36,6 +49,7 @@ export type NodeExecutor = (
 
 export interface ExecutionContext {
   workflowId: string;
+  workflowVersionId: string;
   runId: string;
   organizationId: string;
   userId: string;
@@ -50,7 +64,6 @@ export interface EngineConfig {
   maxConcurrency: number;
   retryConfig: RetryConfig;
   creditCosts: CreditCostConfig;
-  defaultExecutor?: NodeExecutor;
   videoGenerationGate?: VideoGenerationGateConfig;
 }
 
@@ -61,8 +74,15 @@ const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   videoGenerationGate: DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
 };
 
+function readRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
 export class WorkflowEngine {
-  private executors = new Map<string, NodeExecutor>();
+  private readonly actionExecutors = new Map<string, NodeExecutor>();
+  private readonly nativeExecutors = new Map<string, NodeExecutor>();
   private config: EngineConfig;
   private readonly videoGenerationGate = new VideoGenerationGateService();
 
@@ -78,11 +98,55 @@ export class WorkflowEngine {
   }
 
   registerExecutor(nodeType: string, executor: NodeExecutor): void {
-    this.executors.set(nodeType, executor);
+    const isNative = isEngineNativeNodeType(nodeType);
+    const action = isNative ? undefined : getActionDefinition(nodeType);
+    if (!isNative && !action) {
+      throw new Error(`Cannot register unknown Genfeed action: ${nodeType}`);
+    }
+    const registry = isNative ? this.nativeExecutors : this.actionExecutors;
+    if (registry.has(nodeType)) {
+      throw new Error(`Duplicate workflow node executor: ${nodeType}`);
+    }
+    if (isNative) {
+      registry.set(nodeType, executor);
+      return;
+    }
+
+    if (!action) {
+      throw new Error(`Cannot register unknown Genfeed action: ${nodeType}`);
+    }
+    const contract = compileActionContract(nodeType, {
+      inputSchema: action.inputSchema as ActionContractJsonSchema,
+      outputSchema: action.outputSchema as ActionContractJsonSchema,
+    });
+    registry.set(nodeType, async (node, inputs, context) => {
+      const provenance = {
+        nodeId: node.id,
+        runId: context.runId,
+        workflowId: context.workflowId,
+        workflowVersionId: context.workflowVersionId,
+      };
+      contract.validateInput(
+        buildActionExecutionInput(node.config, inputs),
+        provenance,
+      );
+      const output = await executor(node, inputs, context);
+      contract.validateOutput(output, provenance);
+      return output;
+    });
   }
 
   getExecutor(nodeType: string): NodeExecutor | undefined {
-    return this.executors.get(nodeType) ?? this.config.defaultExecutor;
+    if (nodeType === GENFEED_ACTION_NODE_TYPE) {
+      return (node, inputs, context) => {
+        const resolved = this.resolveActionExecutor(node);
+        return resolved.executor(resolved.node, inputs, context);
+      };
+    }
+    if (!isEngineNativeNodeType(nodeType)) {
+      return undefined;
+    }
+    return this.nativeExecutors.get(nodeType);
   }
 
   /**
@@ -91,7 +155,16 @@ export class WorkflowEngine {
    * canonical node type has a real executor registered.
    */
   getRegisteredNodeTypes(): string[] {
-    return Array.from(this.executors.keys());
+    return [
+      ...this.nativeExecutors.keys(),
+      ...(this.actionExecutors.size > 0 ? [GENFEED_ACTION_NODE_TYPE] : []),
+    ];
+  }
+
+  getRegisteredActionIds(): string[] {
+    return [...this.actionExecutors.keys()].sort((left, right) =>
+      left.localeCompare(right),
+    );
   }
 
   async execute(
@@ -121,6 +194,7 @@ export class WorkflowEngine {
       videoGenerationLineage: options.videoGenerationLineage,
       videoPilotAcceptance: options.videoPilotAcceptance,
       workflowId: workflow.id,
+      workflowVersionId: workflow.versionId,
     };
 
     let nodesToExecute: string[];
@@ -187,6 +261,23 @@ export class WorkflowEngine {
       );
     }
 
+    const missingExecutorError = this.validateExecutorCoverage(
+      workflow,
+      nodesToExecute,
+    );
+    if (missingExecutorError) {
+      return {
+        completedAt: new Date(),
+        error: missingExecutorError,
+        nodeResults,
+        runId,
+        startedAt,
+        status: 'failed',
+        totalCreditsUsed: 0,
+        workflowId: workflow.id,
+      };
+    }
+
     if (options.availableCredits !== undefined) {
       const estimatedCredits = this.estimateCredits(
         nodesToExecute
@@ -228,6 +319,7 @@ export class WorkflowEngine {
     let currentStatus: ExecutionStatus = 'running';
     let lastError: string | undefined;
     let wasAborted = false;
+    let hasSuspendedNode = false;
 
     // Bounded ready-set scheduler. Dispatches nodes in `executionOrder`
     // priority, never running more than `maxConcurrency` at once, and only
@@ -250,7 +342,7 @@ export class WorkflowEngine {
 
     while (inFlight.size > 0 || remaining.length > 0) {
       // Dispatch phase — fill free slots while running and not aborted.
-      if (currentStatus !== 'failed' && !wasAborted) {
+      if (currentStatus !== 'failed' && !wasAborted && !hasSuspendedNode) {
         let index = 0;
         while (index < remaining.length && inFlight.size < maxConcurrency) {
           // Abort is checked before dispatching each node.
@@ -306,7 +398,7 @@ export class WorkflowEngine {
       }
 
       if (inFlight.size === 0) {
-        if (currentStatus === 'failed' || wasAborted) {
+        if (currentStatus === 'failed' || wasAborted || hasSuspendedNode) {
           break;
         }
         if (remaining.length === 0) {
@@ -383,6 +475,17 @@ export class WorkflowEngine {
           timestamp: new Date(),
           workflowId: workflow.id,
         });
+      } else if (result.status === 'running') {
+        hasSuspendedNode = true;
+        this.emitNodeStatusChange(options, {
+          newStatus: 'running',
+          nodeId,
+          output: result.output,
+          previousStatus: 'running',
+          runId,
+          timestamp: new Date(),
+          workflowId: workflow.id,
+        });
       }
     }
 
@@ -391,6 +494,8 @@ export class WorkflowEngine {
     // the already-dispatched work was being drained.
     if (wasAborted) {
       currentStatus = 'cancelled';
+    } else if (hasSuspendedNode) {
+      currentStatus = 'running';
     } else if (currentStatus !== 'failed') {
       // Count only nodes that were in the execution list (not pre-skipped locked nodes)
       const executedOrSkipped = nodesToExecute.every((id) =>
@@ -400,7 +505,7 @@ export class WorkflowEngine {
     }
 
     return {
-      completedAt: new Date(),
+      completedAt: currentStatus === 'running' ? undefined : new Date(),
       error: lastError,
       nodeResults,
       runId,
@@ -472,21 +577,49 @@ export class WorkflowEngine {
   ): Promise<NodeExecutionResult> {
     const startedAt = new Date();
     let retryCount = 0;
-    const maxRetries = options.maxRetries ?? this.config.retryConfig.maxRetries;
+    const configuredMaxRetries =
+      options.maxRetries ?? this.config.retryConfig.maxRetries;
 
-    const executor = this.getExecutor(node.type);
-    if (!executor) {
+    let resolved: ReturnType<WorkflowEngine['resolveNodeExecutor']>;
+    try {
+      resolved = this.resolveNodeExecutor(node);
+    } catch (error) {
       return {
         completedAt: new Date(),
         creditsUsed: 0,
-        error: `No executor registered for node type: ${node.type}`,
+        error: error instanceof Error ? error.message : String(error),
         nodeId: node.id,
         retryCount: 0,
         startedAt,
         status: 'failed',
       };
     }
+    if (!resolved) {
+      return {
+        completedAt: new Date(),
+        creditsUsed: 0,
+        error:
+          node.type === GENFEED_ACTION_NODE_TYPE
+            ? `No executor registered for Genfeed action: ${String(node.config.actionId)}`
+            : `No executor registered for node type: ${node.type}`,
+        nodeId: node.id,
+        retryCount: 0,
+        startedAt,
+        status: 'failed',
+      };
+    }
+    const executor = resolved.executor;
 
+    const executionNode = resolved.node;
+    const executionType = executionNode.type;
+    // A provider-callback action acquires durable submission ownership before
+    // crossing the provider boundary. Retrying the executor cannot distinguish
+    // "request never left" from "provider accepted, process crashed", so it
+    // must never submit a second external job for the same execution node.
+    const maxRetries =
+      getActionDefinition(executionType)?.completionMode === 'provider-callback'
+        ? 0
+        : configuredMaxRetries;
     const runWithTransportRetry = (
       gatedNode: ExecutableNode,
       gatedInputs: Map<string, unknown>,
@@ -499,11 +632,18 @@ export class WorkflowEngine {
         },
       );
 
-    if (isVideoGenerationNodeType(node.type)) {
+    if (
+      isVideoGenerationNodeType(executionType) &&
+      !(
+        context.executionId &&
+        getActionDefinition(executionType)?.completionMode ===
+          'provider-callback'
+      )
+    ) {
       const gateConfig =
         this.config.videoGenerationGate ?? DEFAULT_VIDEO_GENERATION_GATE_CONFIG;
       const gated = await this.videoGenerationGate.execute({
-        baseCreditCost: this.config.creditCosts[node.type] ?? 0,
+        baseCreditCost: this.config.creditCosts[executionType] ?? 0,
         evaluateVideoPilot: context.evaluateVideoPilot,
         executor: runWithTransportRetry,
         gateConfig,
@@ -515,7 +655,7 @@ export class WorkflowEngine {
             nodeId: node.id,
             workflowId: context.workflowId,
           }),
-        node,
+        node: executionNode,
         nodeId: node.id,
         startedAt,
         videoPilotAcceptance: context.videoPilotAcceptance,
@@ -523,27 +663,35 @@ export class WorkflowEngine {
       });
 
       if (gated.kind === 'result') {
-        return {
-          ...gated.result,
-          retryCount,
-        };
+        return this.applyActionCompletionMode(
+          executionType,
+          context.executionId,
+          {
+            ...gated.result,
+            retryCount,
+          },
+        );
       }
     }
 
     try {
-      const output = await runWithTransportRetry(node, inputs);
+      const output = await runWithTransportRetry(executionNode, inputs);
 
-      const creditsUsed = this.config.creditCosts[node.type] ?? 0;
+      const creditsUsed = this.config.creditCosts[executionType] ?? 0;
 
-      return {
-        completedAt: new Date(),
-        creditsUsed,
-        nodeId: node.id,
-        output,
-        retryCount,
-        startedAt,
-        status: 'completed',
-      };
+      return this.applyActionCompletionMode(
+        executionType,
+        context.executionId,
+        {
+          completedAt: new Date(),
+          creditsUsed,
+          nodeId: node.id,
+          output,
+          retryCount,
+          startedAt,
+          status: 'completed',
+        },
+      );
     } catch (error) {
       return {
         completedAt: new Date(),
@@ -555,6 +703,27 @@ export class WorkflowEngine {
         status: 'failed',
       };
     }
+  }
+
+  private applyActionCompletionMode(
+    actionId: string,
+    executionId: string | undefined,
+    result: NodeExecutionResult,
+  ): NodeExecutionResult {
+    const action = getActionDefinition(actionId);
+    if (
+      !executionId ||
+      action?.completionMode !== 'provider-callback' ||
+      result.status !== 'completed'
+    ) {
+      return result;
+    }
+
+    return {
+      ...result,
+      completedAt: undefined,
+      status: 'running',
+    };
   }
 
   private gatherInputs(
@@ -570,24 +739,54 @@ export class WorkflowEngine {
         if (sourceOutput !== undefined) {
           const handleKey = edge.targetHandle ?? edge.source;
           const sourceKey = edge.sourceHandle ?? edge.targetHandle;
+          // A named source handle that an object output does not carry is a
+          // mis-wired multi-output node, so the edge stays closed. A scalar
+          // output has no keys to name at all — the editor still stamps a
+          // handle id on it, so the whole value is delivered instead.
+          if (
+            edge.sourceHandle !== undefined &&
+            sourceOutput &&
+            typeof sourceOutput === 'object' &&
+            !(edge.sourceHandle in (sourceOutput as Record<string, unknown>))
+          ) {
+            continue;
+          }
           if (
             sourceKey &&
             sourceOutput &&
             typeof sourceOutput === 'object' &&
             sourceKey in (sourceOutput as Record<string, unknown>)
           ) {
-            inputs.set(
+            this.addInput(
+              inputs,
               handleKey,
               (sourceOutput as Record<string, unknown>)[sourceKey],
             );
           } else {
-            inputs.set(handleKey, sourceOutput);
+            this.addInput(inputs, handleKey, sourceOutput);
           }
         }
       }
     }
 
     return inputs;
+  }
+
+  private addInput(
+    inputs: Map<string, unknown>,
+    handle: string,
+    value: unknown,
+  ): void {
+    if (!inputs.has(handle)) {
+      inputs.set(handle, value);
+      return;
+    }
+
+    const existing = inputs.get(handle);
+    inputs.set(
+      handle,
+      Array.isArray(existing) ? [...existing, value] : [existing, value],
+    );
   }
 
   private topologicalSort(workflow: ExecutableWorkflow): string[] {
@@ -636,9 +835,78 @@ export class WorkflowEngine {
   }
 
   estimateCredits(nodes: ExecutableNode[]): number {
-    return nodes.reduce((total, node) => {
-      return total + (this.config.creditCosts[node.type] ?? 0);
-    }, 0);
+    return nodes.reduce(
+      (total, node) =>
+        total +
+        (this.config.creditCosts[getExecutableNodeOperationId(node)] ?? 0),
+      0,
+    );
+  }
+
+  private validateExecutorCoverage(
+    workflow: ExecutableWorkflow,
+    nodeIds: string[],
+  ): string | undefined {
+    const missing = nodeIds.flatMap((nodeId) => {
+      const node = workflow.nodes.find((candidate) => candidate.id === nodeId);
+      if (!node) {
+        return [`node ${nodeId} is missing from the workflow graph`];
+      }
+
+      try {
+        return this.resolveNodeExecutor(node)
+          ? []
+          : [`node ${node.id} has no executor for ${node.type}`];
+      } catch (error) {
+        return [error instanceof Error ? error.message : String(error)];
+      }
+    });
+
+    return missing.length > 0
+      ? `Workflow executor coverage failed: ${missing.join('; ')}`
+      : undefined;
+  }
+
+  private resolveNodeExecutor(
+    node: ExecutableNode,
+  ): { executor: NodeExecutor; node: ExecutableNode } | null {
+    if (node.type === GENFEED_ACTION_NODE_TYPE) {
+      return this.resolveActionExecutor(node);
+    }
+    if (!isEngineNativeNodeType(node.type)) {
+      return null;
+    }
+
+    const executor = this.nativeExecutors.get(node.type);
+    return executor ? { executor, node } : null;
+  }
+
+  private resolveActionExecutor(node: ExecutableNode): {
+    executor: NodeExecutor;
+    node: ExecutableNode;
+  } {
+    const actionId = node.config.actionId;
+    if (typeof actionId !== 'string' || actionId.length === 0) {
+      throw new Error('A Genfeed action node requires a non-empty actionId');
+    }
+    if (!getActionDefinition(actionId)) {
+      throw new Error(`Unknown Genfeed action: ${actionId}`);
+    }
+
+    const executor = this.actionExecutors.get(actionId);
+    if (!executor) {
+      throw new Error(`No executor registered for Genfeed action: ${actionId}`);
+    }
+
+    const { actionId: _actionId, parameters, ...runtimeConfig } = node.config;
+    return {
+      executor,
+      node: {
+        ...node,
+        config: { ...readRecord(parameters), ...runtimeConfig },
+        type: actionId,
+      },
+    };
   }
 
   private emitProgress(

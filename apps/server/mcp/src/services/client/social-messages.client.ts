@@ -23,7 +23,6 @@ export interface SocialMessageListParams {
 }
 
 export interface SocialActionParams {
-  agentRunId?: string;
   idempotencyKey?: string;
   messageType?: 'dm' | 'reply';
   recipientId?: string;

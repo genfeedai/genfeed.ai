@@ -312,6 +312,23 @@ export class FilesClientService {
     }
   }
 
+  /** Delete one full storage key through the configured storage provider. */
+  async deleteStoredObject(storageKey: string): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.httpService.post(`${this.filesServiceUrl}/v1/files/delete`, {
+          storageKey,
+        }),
+      );
+    } catch (error: unknown) {
+      this.loggerService.error('Failed to delete stored object', {
+        error: (error as Error)?.message || 'Unknown error',
+        storageKey,
+      });
+      throw error;
+    }
+  }
+
   private async postMultipartUpload(
     key: string,
     type: string,

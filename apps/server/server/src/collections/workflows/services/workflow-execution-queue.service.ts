@@ -1,11 +1,8 @@
-import type {
-  DelayResumeJobData,
-  TriggerEvent,
-} from '@server/collections/workflows/services/workflow-executor.service';
-import { isProtectedSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
+import { createHash } from 'node:crypto';
 import {
   ActionOrigin,
   type ActionOriginContext,
+  type WorkflowExecutionStatus,
   WorkflowStatus,
 } from '@genfeedai/enums';
 import type { WorkflowTriggerQueueOptions } from '@genfeedai/interfaces';
@@ -17,6 +14,13 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
+import type {
+  DelayResumeJobData,
+  TriggerEvent,
+} from '@server/collections/workflows/services/workflow-executor.service';
+import { isProtectedSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
+import type { RunSystemWorkflowInput } from '@server/collections/workflows/system-workflow-definition';
+import { reserveIdempotentJob } from '@server/queues/idempotent-job';
 import { Queue } from 'bullmq';
 
 // =============================================================================
@@ -25,7 +29,7 @@ import { Queue } from 'bullmq';
 
 export interface WorkflowExecutionJobData {
   actionContext?: ActionOriginContext;
-  type: 'trigger' | 'delay-resume' | 'scheduled-fire';
+  type: 'trigger' | 'delay-resume' | 'scheduled-fire' | 'system-run';
   triggerEvent?: TriggerEvent;
   delayResumeData?: DelayResumeJobData;
   workflowId?: string;
@@ -36,6 +40,33 @@ export interface WorkflowExecutionJobData {
    * already terminal, or continues from their persisted nodeResults.
    */
   priorExecutionIds?: string[];
+  systemRun?: {
+    failureWorkflow?: SystemWorkflowFailureReference;
+    input: Omit<RunSystemWorkflowInput, 'runtimeContext'>;
+    priorExecution?: {
+      delayResumeData?: DelayResumeJobData;
+      executionId: string;
+      status: WorkflowExecutionStatus;
+      userId: string;
+      workflowId: string;
+      workflowLabel: string;
+    };
+  };
+}
+
+export interface SystemWorkflowFailureReference {
+  canonicalId: string;
+  inputValues?: Record<string, unknown>;
+}
+
+export interface QueueSystemWorkflowOptions {
+  attempts?: number;
+  delayMs?: number;
+  failureWorkflow?: SystemWorkflowFailureReference;
+  priorExecution?: NonNullable<
+    NonNullable<WorkflowExecutionJobData['systemRun']>['priorExecution']
+  >;
+  replaceTerminalJob?: boolean;
 }
 
 export interface WorkflowSchedulerUpsertInput {
@@ -92,9 +123,11 @@ function requireQueueJobId(
 /**
  * Queue service for workflow execution jobs.
  *
- * Handles two job types:
+ * Handles workflow entry jobs:
  * 1. `trigger` — Execute workflows in response to a trigger event
  * 2. `delay-resume` — Resume a paused workflow after a delay
+ * 3. `scheduled-fire` — Execute one persisted scheduled workflow
+ * 4. `system-run` — Resolve and execute one registered code-owned graph
  */
 @Injectable()
 export class WorkflowExecutionQueueService {
@@ -138,6 +171,60 @@ export class WorkflowExecutionQueueService {
     return requireQueueJobId(job.id, 'queueing a workflow trigger');
   }
 
+  async queueSystemWorkflow(
+    input: Omit<RunSystemWorkflowInput, 'runtimeContext'>,
+    jobId: string,
+    options: QueueSystemWorkflowOptions = {},
+  ): Promise<string> {
+    if (options.replaceTerminalJob) {
+      const reservation = await reserveIdempotentJob(
+        this.executionQueue,
+        jobId,
+      );
+      if (reservation.alreadyQueued) {
+        this.logger.log(`${this.logContext} system workflow already queued`, {
+          canonicalId: input.canonicalId,
+          jobId,
+          organizationId: input.organizationId,
+          state: reservation.state,
+        });
+        return jobId;
+      }
+    }
+    const job = await this.executionQueue.add(
+      'system-run',
+      {
+        actionContext: sanitizeActionOriginContext(getActionOriginContext()),
+        systemRun: {
+          ...(options.failureWorkflow
+            ? { failureWorkflow: options.failureWorkflow }
+            : {}),
+          input,
+          ...(options.priorExecution
+            ? { priorExecution: options.priorExecution }
+            : {}),
+        },
+        type: 'system-run',
+      },
+      {
+        attempts: options.attempts ?? 3,
+        backoff: { delay: 5000, type: 'exponential' },
+        ...(options.delayMs !== undefined ? { delay: options.delayMs } : {}),
+        jobId,
+        removeOnComplete: 200,
+        removeOnFail: 100,
+      },
+    );
+
+    this.logger.log(`${this.logContext} queued system workflow`, {
+      canonicalId: input.canonicalId,
+      jobId: job.id,
+      organizationId: input.organizationId,
+    });
+
+    return requireQueueJobId(job.id, 'queueing a system workflow');
+  }
+
   /**
    * Queue a delayed resume job.
    * The processor will resume workflow execution after the delay.
@@ -146,6 +233,10 @@ export class WorkflowExecutionQueueService {
     data: DelayResumeJobData,
     delayMs: number,
   ): Promise<string> {
+    const identity = createHash('sha256')
+      .update(`${data.executionId}:${data.delayNodeId}`)
+      .digest('hex')
+      .slice(0, 32);
     const job = await this.executionQueue.add(
       'delay-resume',
       {
@@ -157,6 +248,7 @@ export class WorkflowExecutionQueueService {
         attempts: 3,
         backoff: { delay: 5000, type: 'exponential' },
         delay: delayMs,
+        jobId: `workflow-delay-${identity}`,
         removeOnComplete: 200,
         removeOnFail: 100,
       },

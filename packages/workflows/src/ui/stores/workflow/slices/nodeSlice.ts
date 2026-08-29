@@ -18,7 +18,7 @@ import {
 import type { ImageHistoryItem, WorkflowStore } from '../types';
 
 export interface NodeSlice {
-  /** Core or SaaS node type string (SaaS e.g. socialRead, reportDelivery). */
+  /** Registered workflow node type. Product operations use genfeedAction. */
   addNode: (type: NodeType | string, position: XYPosition) => string;
   addNodesAndEdges: (nodes: WorkflowNode[], edges: WorkflowEdge[]) => void;
   updateNodeData: <T extends WorkflowNodeData>(

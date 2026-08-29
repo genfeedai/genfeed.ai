@@ -1,12 +1,11 @@
-import type { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
-import type {
-  AgentChatContext,
-  AgentChatResult,
-} from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import {
   toAgentScopeMetadata,
   type ValidatedAgentScope,
 } from '@genfeedai/interfaces';
+import type {
+  AgentChatContext,
+  AgentChatResult,
+} from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 
 export function withAgentScopeResult(
   result: AgentChatResult,
@@ -25,19 +24,4 @@ export function buildAgentScopeMetadata(
   return context.scope
     ? { agentScope: toAgentScopeMetadata(context.scope) }
     : {};
-}
-
-export async function recordAgentRunScope(
-  agentRunsService: Pick<AgentRunsService, 'mergeMetadata'>,
-  context: AgentChatContext,
-): Promise<void> {
-  if (!context.runId || !context.scope) {
-    return;
-  }
-
-  await agentRunsService.mergeMetadata(
-    context.runId,
-    context.organizationId,
-    buildAgentScopeMetadata(context),
-  );
 }

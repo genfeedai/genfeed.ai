@@ -45,15 +45,12 @@ vi.mock('@ui/primitives/sheet', () => ({
 }));
 
 const mocks = vi.hoisted(() => ({
-  agentRunsList: vi.fn(),
   approve: vi.fn(),
   dismiss: vi.fn(),
   ensurePlanningThread: vi.fn(),
   findByIds: vi.fn(),
   findOne: vi.fn(),
-  getActiveRuns: vi.fn(),
-  getBatch: vi.fn(),
-  getRunStats: vi.fn(),
+  getExecutionById: vi.fn(),
   getToken: vi.fn(),
   keepOutput: vi.fn(),
   list: vi.fn(),
@@ -68,6 +65,11 @@ const mocks = vi.hoisted(() => ({
   subscribe: vi.fn(),
   trashOutput: vi.fn(),
   unkeepOutput: vi.fn(),
+  workflowExecutions: [] as {
+    creditsUsed: number;
+    id: string;
+    status: string;
+  }[],
 }));
 
 vi.mock('@genfeedai/auth-client/react', () => ({
@@ -115,14 +117,39 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   }),
 }));
 
-vi.mock('@services/ai/agent-runs.service', () => ({
-  AgentRunsService: {
+vi.mock('@services/automation/workflow-executions.service', () => ({
+  WorkflowExecutionsService: {
     getInstance: () => ({
-      getActive: mocks.getActiveRuns,
-      getBatch: mocks.getBatch,
-      getStats: mocks.getRunStats,
-      list: mocks.agentRunsList,
+      getById: mocks.getExecutionById,
     }),
+  },
+}));
+
+vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
+  useWorkflowExecutions: () => {
+    const executions = mocks.workflowExecutions;
+    return {
+      cancelExecution: vi.fn(),
+      executions,
+      isLoading: false,
+      refresh: vi.fn(),
+      stats: {
+        active: executions.filter(
+          (execution) =>
+            execution.status === 'PENDING' || execution.status === 'RUNNING',
+        ).length,
+        completed: executions.filter(
+          (execution) => execution.status === 'COMPLETED',
+        ).length,
+        failed: executions.filter((execution) => execution.status === 'FAILED')
+          .length,
+        total: executions.length,
+        totalCredits: executions.reduce(
+          (total, execution) => total + execution.creditsUsed,
+          0,
+        ),
+      },
+    };
   },
 }));
 
@@ -196,7 +223,7 @@ function makeTask(overrides: Record<string, unknown> = {}) {
     linkedApprovalIds: [],
     linkedEntities: [],
     linkedOutputIds: [],
-    linkedRunIds: [],
+    linkedExecutionIds: [],
     organizationId: 'org-1',
     outputType: 'image',
     priority: 'high',
@@ -275,7 +302,7 @@ function makeInspectorTask(overrides: Record<string, unknown> = {}) {
     ],
     linkedIssueId: 'issue-1',
     linkedOutputIds: ['output-1', 'output-2'],
-    linkedRunIds: ['run-1'],
+    linkedExecutionIds: ['execution-1'],
     resultPreview: 'Generated image preview',
     ...overrides,
   });
@@ -291,9 +318,7 @@ describe('WorkspacePageContent', () => {
     mocks.studioEnabled = true;
     mocks.resolveAuthToken.mockResolvedValue('token-1');
     mocks.subscribe.mockReturnValue(vi.fn());
-    mocks.agentRunsList.mockResolvedValue([]);
-    mocks.getActiveRuns.mockResolvedValue([]);
-    mocks.getRunStats.mockResolvedValue(null);
+    mocks.workflowExecutions = [];
     mocks.list.mockResolvedValue([
       makeInspectorTask(),
       makeTask({
@@ -353,12 +378,13 @@ describe('WorkspacePageContent', () => {
     mocks.findOne.mockResolvedValue({
       identifier: 'TASK-99',
     });
-    mocks.getBatch.mockResolvedValue([
-      {
-        contentCount: 3,
+    mocks.getExecutionById.mockResolvedValue({
+      id: 'execution-1',
+      metadata: {
+        artifactReferences: ['output-1', 'output-2', 'output-3'],
         threadId: 'report-thread-1',
       },
-    ]);
+    });
     mocks.findByIds.mockResolvedValue([
       {
         category: 'image',
@@ -386,7 +412,6 @@ describe('WorkspacePageContent', () => {
     render(<WorkspacePageContent section="inbox" defaultInboxView="unread" />);
 
     expect(await screen.findByText('Campaign image')).toBeVisible();
-    expect(mocks.agentRunsList).not.toHaveBeenCalled();
     // Inbox chrome is Container header (tabs + refresh), not the snapshot strip.
     expect(screen.queryByTestId('workspace-snapshot')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /unread/i })).toBeVisible();
@@ -494,15 +519,13 @@ describe('WorkspacePageContent', () => {
   });
 
   it('renders the overview surface with task streams, recent outputs, and operator links', async () => {
+    mocks.workflowExecutions = [
+      { creditsUsed: 4, id: 'execution-1', status: 'RUNNING' },
+    ];
+
     render(
       <WorkspacePageContent
         section="overview"
-        initialActiveRuns={[
-          {
-            id: 'run-1',
-            status: 'running',
-          },
-        ]}
         initialReviewInbox={{
           approvedCount: 1,
           changesRequestedCount: 1,
@@ -574,8 +597,6 @@ describe('WorkspacePageContent', () => {
           ],
           rejectedCount: 0,
         }}
-        initialRuns={[]}
-        initialStats={null}
       />,
     );
 
@@ -585,9 +606,6 @@ describe('WorkspacePageContent', () => {
         name: 'Overview',
       }),
     ).toHaveClass('sr-only');
-    await waitFor(() =>
-      expect(mocks.agentRunsList).toHaveBeenCalledWith({ page: 1 }),
-    );
     expect(screen.getByTestId('workspace-in-progress')).toBeVisible();
     expect(screen.getAllByText('Campaign image').length).toBeGreaterThan(0);
     expect(screen.getByText('Live runs')).toBeVisible();

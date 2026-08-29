@@ -1,21 +1,12 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
-import { TaskCountersService } from '@server/collections/task-counters/services/task-counters.service';
-import { CreateTaskDto } from '@server/collections/tasks/dto/create-task.dto';
 import { TaskQueryDto } from '@api/collections/tasks/dto/task-query.dto';
-import { UpdateTaskDto } from '@server/collections/tasks/dto/update-task.dto';
 import { UpdateTaskOutputDto } from '@api/collections/tasks/dto/update-task-output.dto';
-import { type TaskDocument } from '@server/collections/tasks/schemas/task.schema';
-import { TasksService } from '@server/collections/tasks/services/tasks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { WorkspaceTaskQueueService } from '@server/services/task-orchestration/workspace-task-queue.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type {
   JsonApiCollectionResponse,
@@ -41,6 +32,15 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { OrganizationsService } from '@server/collections/organizations/services/organizations.service';
+import { TaskCountersService } from '@server/collections/task-counters/services/task-counters.service';
+import { CreateTaskDto } from '@server/collections/tasks/dto/create-task.dto';
+import { UpdateTaskDto } from '@server/collections/tasks/dto/update-task.dto';
+import { type TaskDocument } from '@server/collections/tasks/schemas/task.schema';
+import { TasksService } from '@server/collections/tasks/services/tasks.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { WorkspaceTaskWorkflowQueueService } from '@server/services/task-orchestration/workspace-task-workflow-queue.service';
 import type { Request } from 'express';
 
 @ApiTags('Tasks')
@@ -58,7 +58,7 @@ export class TasksController extends BaseCRUDController<
     private readonly taskCountersService: TaskCountersService,
     private readonly organizationsService: OrganizationsService,
     @Optional()
-    private readonly workspaceTaskQueueService?: WorkspaceTaskQueueService,
+    private readonly workspaceTaskWorkflowQueue?: WorkspaceTaskWorkflowQueueService,
   ) {
     super(loggerService, tasksService, TaskSerializer, 'Task');
   }
@@ -113,7 +113,7 @@ export class TasksController extends BaseCRUDController<
     const response = serializeSingle(request, TaskSerializer, doc);
 
     // Fire-and-forget: enqueue AI tasks for orchestration
-    if (this.workspaceTaskQueueService && extended.request) {
+    if (this.workspaceTaskWorkflowQueue && extended.request) {
       const taskId = (response.data as { id?: string })?.id;
 
       if (taskId) {
@@ -133,7 +133,7 @@ export class TasksController extends BaseCRUDController<
             );
           });
 
-        this.workspaceTaskQueueService
+        this.workspaceTaskWorkflowQueue
           .enqueue({
             brandId,
             elevenlabsVoiceId: extended.elevenlabsVoiceId,

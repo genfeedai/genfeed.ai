@@ -59,7 +59,6 @@ export interface SocialActionInput {
   text: string;
   idempotencyKey?: string;
   workflowRunId?: string;
-  agentRunId?: string;
   recipientId?: string;
   messageType?: 'dm' | 'reply';
 }

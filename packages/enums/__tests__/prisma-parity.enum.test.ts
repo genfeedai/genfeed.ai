@@ -13,7 +13,6 @@ import {
   AgentAutonomyMode,
   AgentPublishDecision,
   AgentReplyStyle,
-  AgentRunStatus,
   ApiKeyCategory,
   AppSource,
   ArticleStatus,
@@ -83,7 +82,6 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
   AgentAutonomyMode: ['SUPERVISED', 'AUTO_PUBLISH'],
   AgentPublishDecision: ['PERMITTED', 'DENIED'],
   AgentReplyStyle: ['CONCISE', 'DETAILED', 'FRIENDLY', 'PROFESSIONAL'],
-  AgentRunStatus: ['PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'],
   ApiKeyCategory: ['GENFEEDAI', 'ELEVENLABS', 'HEDRA', 'HEYGEN', 'OPUS_PRO'],
   AppSource: ['GENFEED', 'GETSHAREABLE'],
   ArticleStatus: ['DRAFT', 'PUBLISHED', 'ARCHIVED'],
@@ -304,7 +302,6 @@ const DOMAIN_ENUMS: Record<string, Record<string, string>> = {
   AgentAutonomyMode,
   AgentPublishDecision,
   AgentReplyStyle,
-  AgentRunStatus,
   ApiKeyCategory,
   AppSource,
   ArticleStatus,
@@ -391,8 +388,8 @@ describe('prisma-parity (domain enum values === Prisma labels)', () => {
   });
 
   /**
-   * The membership check above allows domain-only extras (`BUDGET_EXHAUSTED`,
-   * Stripe-only subscription states). It does NOT catch a *lowercase* value
+   * The membership check above allows domain-only extras (Stripe-only
+   * subscription states). It does NOT catch a *lowercase* value
    * sitting alongside the correct labels — which is exactly how `LinkCategory`
    * and `BookmarkCategory` aliased `Platform` ids into Prisma enum columns and
    * silently killed every read-side comparison.

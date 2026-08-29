@@ -1,5 +1,6 @@
 import { AnnouncementsCollectionModule } from '@api/collections/announcements/announcements.collection.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
+import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { AnnouncementsController } from '@api/endpoints/admin/announcements/announcements.controller';
 import { AdminAnnouncementsService } from '@api/endpoints/admin/announcements/announcements.service';
@@ -8,7 +9,11 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [AnnouncementsController],
-  imports: [AnnouncementsCollectionModule, CredentialsCoreModule],
+  imports: [
+    AnnouncementsCollectionModule,
+    CredentialsCoreModule,
+    WorkflowsModule,
+  ],
   providers: [AdminAnnouncementsService, IpWhitelistGuard, SuperAdminGuard],
 })
 export class AdminAnnouncementsModule {}

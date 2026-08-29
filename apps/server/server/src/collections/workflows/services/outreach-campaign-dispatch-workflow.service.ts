@@ -1,13 +1,36 @@
-import { CampaignQueueService } from '@server/queues/campaign/campaign-queue.service';
-import { CacheService } from '@server/services/cache/cache.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional, type Type } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
+import { CampaignType } from '@genfeedai/enums';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
+import {
+  type SystemWorkflowActionRequest,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
+import { CAMPAIGN_DISPATCH_ACTION_IDS } from '@server/services/campaign/campaign-dispatch-workflow-definition';
+import { isCampaignOutreachPairExecutable } from '@server/services/campaign/outreach-capability.util';
 
-const LOCK_TTL_SECONDS = 60;
+const MAX_ACTIVE_CAMPAIGNS_PER_DISPATCH = 20;
+
+type CampaignBatchRequest = {
+  campaignId: string;
+  limit: number;
+  organizationId: string;
+};
+
+type CampaignDispatchDiscovery = {
+  dmItems: CampaignBatchRequest[];
+  organizationId: string;
+  replyItems: CampaignBatchRequest[];
+  skipped: number;
+  total: number;
+};
+
+type ScheduledBatch = {
+  count: number;
+  results: Array<{ index: number; jobId: string }>;
+};
 
 export interface OutreachCampaignDispatchWorkflowResult {
-  action: 'outreachCampaignDispatch';
+  action: 'campaign.dispatch.active';
   alreadyQueued: number;
   enqueued: number;
   failed: number;
@@ -18,97 +41,127 @@ export interface OutreachCampaignDispatchWorkflowResult {
 }
 
 @Injectable()
-export class OutreachCampaignDispatchWorkflowService {
-  private readonly logContext = 'OutreachCampaignDispatchWorkflowService';
-
+export class OutreachCampaignDispatchWorkflowService implements OnModuleInit {
   constructor(
-    private readonly cacheService: CacheService,
-    private readonly logger: LoggerService,
-    @Optional() private readonly campaignQueueService?: CampaignQueueService,
-    @Optional() private readonly moduleRef?: ModuleRef,
+    private readonly campaignsService: OutreachCampaignsService,
+    private readonly workflowRunner: SystemWorkflowRunnerService,
   ) {}
 
-  async runActiveCampaignDispatch(
-    organizationId: string,
-  ): Promise<OutreachCampaignDispatchWorkflowResult> {
-    const action = 'outreachCampaignDispatch' as const;
-    const lockKey = this.lockKey(organizationId);
-    const acquired = await this.cacheService.acquireLock(
-      lockKey,
-      LOCK_TTL_SECONDS,
+  onModuleInit(): void {
+    this.workflowRunner.registerAction(
+      CAMPAIGN_DISPATCH_ACTION_IDS.DISCOVER,
+      (request) => this.discoverAction(request),
     );
+    this.workflowRunner.registerAction(
+      CAMPAIGN_DISPATCH_ACTION_IDS.FINALIZE,
+      (request) => this.finalizeAction(request),
+    );
+  }
 
-    if (!acquired) {
-      return this.skipped(
-        organizationId,
-        'outreach_campaign_dispatch_already_running',
-      );
-    }
-
-    try {
-      const campaignQueueService = this.resolveCampaignQueueService();
-      if (!campaignQueueService) {
-        this.logger.error(`${this.logContext} queue service unavailable`, {
+  private async discoverAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<CampaignDispatchDiscovery> {
+    const request = this.readRecord(action.input.request);
+    const organizationId = this.requiredString(
+      request.organizationId ?? action.context.organizationId,
+      'organizationId',
+    );
+    const campaigns =
+      await this.campaignsService.findActiveForDispatch(organizationId);
+    const bounded = campaigns.slice(0, MAX_ACTIVE_CAMPAIGNS_PER_DISPATCH);
+    return bounded.reduce<CampaignDispatchDiscovery>(
+      (discovery, campaign) => {
+        if (
+          campaign.organizationId !== organizationId ||
+          campaign.isDeleted ||
+          !isCampaignOutreachPairExecutable({
+            campaignType: campaign.campaignType,
+            platform: campaign.platform,
+          })
+        ) {
+          discovery.skipped += 1;
+          return discovery;
+        }
+        const item = {
+          campaignId: campaign.id.toString(),
+          limit: 10,
           organizationId,
-          reason: 'campaign_queue_service_unavailable',
-        });
-        return this.skipped(
-          organizationId,
-          'campaign_queue_service_unavailable',
-        );
-      }
-
-      const result =
-        await campaignQueueService.dispatchActiveCampaigns(organizationId);
-
-      return {
-        action,
-        alreadyQueued: result.alreadyQueued,
-        enqueued: result.enqueued,
-        failed: result.failed,
+        };
+        if (campaign.campaignType === CampaignType.DM_OUTREACH) {
+          discovery.dmItems.push(item);
+        } else {
+          discovery.replyItems.push(item);
+        }
+        return discovery;
+      },
+      {
+        dmItems: [],
         organizationId,
-        reason: result.reason,
-        skipped: result.skipped,
-        status: result.status,
-      };
-    } finally {
-      await this.cacheService.releaseLock(lockKey);
-    }
+        replyItems: [],
+        skipped: campaigns.length - bounded.length,
+        total: campaigns.length,
+      },
+    );
   }
 
-  private resolveCampaignQueueService(): CampaignQueueService | undefined {
-    if (this.campaignQueueService) {
-      return this.campaignQueueService;
-    }
-
-    return this.resolveProvider(CampaignQueueService);
-  }
-
-  private resolveProvider<T>(token: Type<T>): T | undefined {
-    try {
-      return this.moduleRef?.get(token, { strict: false });
-    } catch {
-      return undefined;
-    }
-  }
-
-  private skipped(
-    organizationId: string,
-    reason: string,
-  ): OutreachCampaignDispatchWorkflowResult {
+  private async finalizeAction(
+    action: SystemWorkflowActionRequest,
+  ): Promise<OutreachCampaignDispatchWorkflowResult> {
+    const discovery = this.readDiscovery(action.input.state);
+    const replyBatch = this.readBatch(action.input.replyBatch);
+    const dmBatch = this.readBatch(action.input.dmBatch);
+    const enqueued = replyBatch.count + dmBatch.count;
+    const hasCampaigns = discovery.total > 0;
     return {
-      action: 'outreachCampaignDispatch',
+      action: 'campaign.dispatch.active',
       alreadyQueued: 0,
-      enqueued: 0,
+      enqueued,
       failed: 0,
-      organizationId,
-      reason,
-      skipped: 1,
-      status: 'skipped',
+      organizationId: discovery.organizationId,
+      ...(!hasCampaigns ? { reason: 'no_active_campaigns' } : {}),
+      skipped: discovery.skipped,
+      status: hasCampaigns ? 'completed' : 'skipped',
     };
   }
 
-  private lockKey(organizationId: string): string {
-    return ['workflow-outreach-campaign-dispatch', organizationId].join(':');
+  private readDiscovery(value: unknown): CampaignDispatchDiscovery {
+    const state = this.readRecord(value);
+    return {
+      dmItems: Array.isArray(state.dmItems)
+        ? (state.dmItems as CampaignBatchRequest[])
+        : [],
+      organizationId: this.requiredString(
+        state.organizationId,
+        'organizationId',
+      ),
+      replyItems: Array.isArray(state.replyItems)
+        ? (state.replyItems as CampaignBatchRequest[])
+        : [],
+      skipped: typeof state.skipped === 'number' ? state.skipped : 0,
+      total: typeof state.total === 'number' ? state.total : 0,
+    };
+  }
+
+  private readBatch(value: unknown): ScheduledBatch {
+    const batch = this.readRecord(value);
+    return {
+      count: typeof batch.count === 'number' ? batch.count : 0,
+      results: Array.isArray(batch.results)
+        ? (batch.results as ScheduledBatch['results'])
+        : [],
+    };
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new Error(`${field} is required`);
+    }
+    return value.trim();
   }
 }

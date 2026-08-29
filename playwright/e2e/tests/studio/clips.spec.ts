@@ -348,7 +348,7 @@ test.describe('Clip Factory', () => {
       expect(uploadCompleted).toBe(true);
       await route.fulfill({
         body: JSON.stringify({
-          batchJobId: 'clip-analyze-upload-1',
+          batchJobId: 'clip-analysis-upload-1',
           estimatedClips: 3,
           projectId: MOCK_PROJECT_ID,
           status: 'analyzing',

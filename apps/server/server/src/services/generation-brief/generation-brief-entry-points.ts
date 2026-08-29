@@ -58,20 +58,6 @@ export const GENERATION_BRIEF_GENERATIVE_ENTRY_POINTS: readonly GenerationBriefG
         'apps/server/server/src/services/skill-executor/handlers/image-generation.handler.ts',
       surface: 'agent_skill',
     },
-    {
-      id: 'schedule-image',
-      marker: 'runImageGenerationBrief',
-      source:
-        'apps/server/workers/src/crons/workflows/task-types/generate-image.task.ts',
-      surface: 'schedule',
-    },
-    {
-      id: 'schedule-video',
-      marker: 'runVideoGenerationBrief',
-      source:
-        'apps/server/workers/src/crons/workflows/task-types/generate-video.task.ts',
-      surface: 'schedule',
-    },
   ];
 
 /**

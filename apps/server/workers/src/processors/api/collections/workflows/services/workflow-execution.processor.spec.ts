@@ -1,6 +1,6 @@
-import type { WorkflowExecutionJobData } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { ActionOrigin, WorkflowExecutionStatus } from '@genfeedai/enums';
 import { getActionOriginContext } from '@genfeedai/server';
+import type { WorkflowExecutionJobData } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -57,6 +57,35 @@ function createMockSchedulerService() {
   };
 }
 
+function createMockSystemWorkflowRunner() {
+  return {
+    runWorkflow: vi.fn().mockResolvedValue({
+      provenance: {
+        executionId: 'exec-failure',
+        workflowId: 'wf-failure',
+        workflowLabel: 'Failure workflow',
+      },
+      result: { status: 'failed' },
+    }),
+    startWorkflow: vi.fn().mockResolvedValue({
+      execution: {
+        executionId: 'exec-system',
+        nodeResults: [],
+        startedAt: new Date(),
+        status: WorkflowExecutionStatus.COMPLETED,
+        totalCreditsUsed: 0,
+        workflowId: 'wf-system',
+      },
+      provenance: {
+        executionId: 'exec-system',
+        workflowId: 'wf-system',
+        workflowLabel: 'System workflow',
+      },
+      userId: 'user-1',
+    }),
+  };
+}
+
 function createMockJob(
   data: WorkflowExecutionJobData,
   overrides: Record<string, unknown> = {},
@@ -66,6 +95,7 @@ function createMockJob(
     data,
     id: 'job-1',
     name: data.type,
+    opts: { attempts: 1 },
     updateData: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
@@ -77,18 +107,220 @@ describe('WorkflowExecutionProcessor', () => {
   let mockExecutor: ReturnType<typeof createMockExecutorService>;
   let mockQueue: ReturnType<typeof createMockQueueService>;
   let mockScheduler: ReturnType<typeof createMockSchedulerService>;
+  let mockSystemWorkflowRunner: ReturnType<
+    typeof createMockSystemWorkflowRunner
+  >;
 
   beforeEach(() => {
     mockLogger = createMockLogger();
     mockExecutor = createMockExecutorService();
     mockQueue = createMockQueueService();
     mockScheduler = createMockSchedulerService();
+    mockSystemWorkflowRunner = createMockSystemWorkflowRunner();
 
     processor = new (
       WorkflowExecutionProcessor as unknown as new (
         ...args: unknown[]
       ) => WorkflowExecutionProcessor
-    )(mockLogger, mockExecutor, mockQueue, mockScheduler);
+    )(
+      mockLogger,
+      mockExecutor,
+      mockQueue,
+      mockScheduler,
+      mockSystemWorkflowRunner,
+    );
+  });
+
+  describe('process - system workflow jobs', () => {
+    it('resolves the queued canonical identity through the system workflow runner', async () => {
+      const input = {
+        actionType: 'clip-continuity',
+        canonicalId: 'clip-continuity:v1:1',
+        organizationId: 'org-1',
+        source: 'clip-generation-completion',
+      };
+
+      await expect(
+        processor.process(
+          createMockJob({
+            systemRun: { input },
+            type: 'system-run',
+          }) as never,
+        ),
+      ).resolves.toEqual({
+        executionId: 'exec-system',
+        status: WorkflowExecutionStatus.COMPLETED,
+        workflowId: 'wf-system',
+      });
+      expect(mockSystemWorkflowRunner.startWorkflow).toHaveBeenCalledWith(
+        input,
+      );
+    });
+
+    it('accepts a durable review-gate pause without projecting failure', async () => {
+      mockSystemWorkflowRunner.startWorkflow.mockResolvedValueOnce({
+        execution: {
+          executionId: 'exec-paused',
+          nodeResults: [],
+          startedAt: new Date(),
+          status: WorkflowExecutionStatus.RUNNING,
+          totalCreditsUsed: 0,
+          workflowId: 'wf-system',
+        },
+        provenance: {
+          executionId: 'exec-paused',
+          workflowId: 'wf-system',
+          workflowLabel: 'Clip factory',
+        },
+        userId: 'user-1',
+      });
+      const input = {
+        actionType: 'clip.factory',
+        canonicalId: 'clip.factory',
+        organizationId: 'org-1',
+        source: 'clip-analysis-completion',
+      };
+
+      await expect(
+        processor.process(
+          createMockJob({
+            systemRun: {
+              input,
+            },
+            type: 'system-run',
+          }) as never,
+        ),
+      ).resolves.toEqual({
+        executionId: 'exec-paused',
+        status: WorkflowExecutionStatus.RUNNING,
+        workflowId: 'wf-system',
+      });
+    });
+
+    it('runs a precreated parent execution on the first queue attempt', async () => {
+      const input = {
+        actionType: 'campaign.reply.execute-target',
+        canonicalId: 'campaign.reply.execute-target',
+        organizationId: 'org-1',
+        source: 'workflow.for-each',
+        userId: 'user-1',
+      };
+      mockExecutor.continueExistingExecution.mockResolvedValueOnce({
+        executionId: 'exec-prior',
+        nodeResults: [],
+        startedAt: new Date(),
+        status: WorkflowExecutionStatus.COMPLETED,
+        totalCreditsUsed: 0,
+        workflowId: 'wf-system',
+      });
+
+      await expect(
+        processor.process(
+          createMockJob(
+            {
+              systemRun: {
+                input,
+                priorExecution: {
+                  executionId: 'exec-prior',
+                  status: WorkflowExecutionStatus.PENDING,
+                  userId: 'user-1',
+                  workflowId: 'wf-system',
+                  workflowLabel: 'Campaign reply',
+                },
+              },
+              type: 'system-run',
+            },
+            { attemptsMade: 0 },
+          ) as never,
+        ),
+      ).resolves.toMatchObject({
+        executionId: 'exec-prior',
+        status: WorkflowExecutionStatus.COMPLETED,
+      });
+      expect(mockSystemWorkflowRunner.startWorkflow).not.toHaveBeenCalled();
+      expect(mockExecutor.continueExistingExecution).toHaveBeenCalledWith(
+        'exec-prior',
+        expect.objectContaining({
+          organizationId: 'org-1',
+          userId: 'user-1',
+        }),
+      );
+    });
+
+    it('does not compensate a failed workflow before its terminal queue attempt', async () => {
+      mockSystemWorkflowRunner.startWorkflow.mockRejectedValueOnce(
+        new Error('Transient QA failure'),
+      );
+      const input = {
+        actionType: 'clip-continuity',
+        canonicalId: 'clip.continuity',
+        organizationId: 'org-1',
+        source: 'clip-generation-completion',
+        userId: 'user-1',
+      };
+
+      await expect(
+        processor.process(
+          createMockJob(
+            {
+              systemRun: {
+                failureWorkflow: {
+                  canonicalId: 'clip.continuity.failure',
+                  inputValues: { projectId: 'project-1' },
+                },
+                input,
+              },
+              type: 'system-run',
+            },
+            { opts: { attempts: 2 } },
+          ) as never,
+        ),
+      ).rejects.toThrow('Transient QA failure');
+      expect(mockSystemWorkflowRunner.runWorkflow).not.toHaveBeenCalled();
+    });
+
+    it('runs registered failure compensation on the terminal queue attempt', async () => {
+      mockSystemWorkflowRunner.startWorkflow.mockRejectedValueOnce(
+        new Error('QA failed'),
+      );
+      const input = {
+        actionType: 'clip-continuity',
+        canonicalId: 'clip.continuity',
+        organizationId: 'org-1',
+        source: 'clip-generation-completion',
+        userId: 'user-1',
+      };
+
+      await expect(
+        processor.process(
+          createMockJob(
+            {
+              systemRun: {
+                failureWorkflow: {
+                  canonicalId: 'clip.continuity.failure',
+                  inputValues: { projectId: 'project-1' },
+                },
+                input,
+              },
+              type: 'system-run',
+            },
+            { attemptsMade: 1, opts: { attempts: 2 } },
+          ) as never,
+        ),
+      ).rejects.toThrow('QA failed');
+      expect(mockSystemWorkflowRunner.runWorkflow).toHaveBeenCalledWith({
+        actionType: 'clip.continuity.failure',
+        canonicalId: 'clip.continuity.failure',
+        inputValues: { projectId: 'project-1' },
+        metadata: {
+          failedCanonicalId: 'clip.continuity',
+          failedJobId: 'job-1',
+        },
+        organizationId: 'org-1',
+        source: 'workflow-failure:clip.continuity',
+        userId: 'user-1',
+      });
+    });
   });
 
   describe('process - trigger jobs', () => {
@@ -360,6 +592,53 @@ describe('WorkflowExecutionProcessor', () => {
       expect(mockQueue.queueDelayedResume).toHaveBeenCalledWith(
         delayJobData,
         60000,
+      );
+    });
+  });
+
+  describe('process - delay resume jobs', () => {
+    it('schedules the next durable delay when a resumed graph pauses again', async () => {
+      const nextDelay = {
+        delayNodeId: 'delay-2',
+        executionId: 'exec-1',
+        nodeOutputCache: {
+          'delay-2': { delayMs: 45_000 },
+        },
+        organizationId: 'org-1',
+        remainingNodeIds: ['publish'],
+        triggerEvent: {
+          data: {},
+          organizationId: 'org-1',
+          platform: 'manual',
+          type: 'manual',
+          userId: 'user-1',
+        },
+        userId: 'user-1',
+        workflowId: 'wf-1',
+      };
+      mockExecutor.resumeAfterDelay.mockResolvedValueOnce({
+        _delayJobData: nextDelay,
+        executionId: 'exec-1',
+        nodeResults: [],
+        startedAt: new Date(),
+        status: WorkflowExecutionStatus.RUNNING,
+        totalCreditsUsed: 0,
+        workflowId: 'wf-1',
+      });
+
+      await processor.process(
+        createMockJob({
+          delayResumeData: {
+            ...nextDelay,
+            delayNodeId: 'delay-1',
+          },
+          type: 'delay-resume',
+        }) as never,
+      );
+
+      expect(mockQueue.queueDelayedResume).toHaveBeenCalledWith(
+        nextDelay,
+        45_000,
       );
     });
   });

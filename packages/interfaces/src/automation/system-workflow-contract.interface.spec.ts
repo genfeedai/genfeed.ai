@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  buildHiddenSystemWorkflowMetadata,
   buildSystemWorkflowDuplicateMetadata,
   buildSystemWorkflowMetadata,
   buildSystemWorkflowUpgradeMetadata,
   getSystemWorkflowDuplicateMetadata,
   getSystemWorkflowMetadata,
+  HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+  isHiddenSystemWorkflowMetadata,
   isProtectedSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
@@ -34,6 +37,44 @@ describe('system workflow metadata contract', () => {
       getSystemWorkflowMetadata({ systemWorkflow: canonicalMetadata }),
     ).toEqual(canonicalMetadata);
     expect(duplicateMetadata).not.toBeNull();
+  });
+
+  it('marks code-owned runtime workflows internal and non-duplicable', () => {
+    const metadata = buildHiddenSystemWorkflowMetadata({
+      canonicalId: 'youtube-to-long-form-text',
+    });
+
+    expect(metadata).toMatchObject({
+      canonicalId: 'youtube-to-long-form-text',
+      duplicable: false,
+      immutable: true,
+      visibility: 'internal',
+    });
+    expect(getSystemWorkflowMetadata({ systemWorkflow: metadata })).toEqual(
+      metadata,
+    );
+    expect(
+      isHiddenSystemWorkflowMetadata({
+        sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+        systemWorkflow: metadata,
+      }),
+    ).toBe(true);
+  });
+
+  it('does not treat installable or partially marked workflows as hidden runtime graphs', () => {
+    expect(
+      isHiddenSystemWorkflowMetadata({
+        sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+        systemWorkflow: canonicalMetadata,
+      }),
+    ).toBe(false);
+    expect(
+      isHiddenSystemWorkflowMetadata({
+        systemWorkflow: buildHiddenSystemWorkflowMetadata({
+          canonicalId: 'youtube-to-long-form-text',
+        }),
+      }),
+    ).toBe(false);
   });
 
   it('normalizes canonical metadata stored before template versioning', () => {

@@ -14,17 +14,16 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import type { CreateArticleDto } from '@server/collections/articles/dto/create-article.dto';
 import { ArticleInsightsService } from '@server/collections/articles/services/article-insights.service';
 import { ArticleRemixService } from '@server/collections/articles/services/article-remix.service';
-import { ArticleTranscriptService } from '@server/collections/articles/services/article-transcript.service';
 import { ArticleVersionService } from '@server/collections/articles/services/article-version.service';
 import { ArticlesService } from '@server/collections/articles/services/articles.service';
 import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
 import { CacheService } from '@server/services/cache/cache.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
 
 /**
  * Focused coverage for the canonical article cache-key invalidation added in
@@ -90,7 +89,6 @@ describe('ArticlesService cache invalidation', () => {
       logger,
       configService,
       new ArticleVersionService(logger),
-      new ArticleTranscriptService(configService, logger),
       new ArticleInsightsService(logger, configService),
       new ArticleRemixService(logger),
       undefined, // notificationsService

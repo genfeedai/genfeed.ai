@@ -362,6 +362,24 @@ enum WorkflowExecutionStatus {
   CANCELLED
 }
 
+enum WorkflowArtifactState {
+  ACTIVE
+  DELETING
+  DELETED
+  CLEANUP_FAILED
+  PROMOTED
+}
+
+enum WorkflowNodeContinuationStatus {
+  PENDING_SUBMISSION
+  WAITING_PROVIDER
+  PROVIDER_SUCCEEDED
+  PROVIDER_FAILED
+  RESUMING
+  COMPLETED
+  FAILED
+}
+
 enum ArticleStatus {
   DRAFT
   PUBLISHED
@@ -372,14 +390,6 @@ enum PersonaStatus {
   ACTIVE
   INACTIVE
   ARCHIVED
-}
-
-enum AgentRunStatus {
-  PENDING
-  RUNNING
-  COMPLETED
-  FAILED
-  CANCELLED
 }
 
 enum AgentTransferDeliveryMode {
@@ -585,10 +595,8 @@ model User {
   newsletters              Newsletter[]              @relation("newsletter_user")
   newsletterApprovals      Newsletter[]              @relation("newsletter_approved_by")
   newsletterPublishes      Newsletter[]              @relation("newsletter_published_by")
-  transcripts              Transcript[]
   trainings                Training[]
   personas                 Persona[]
-  agentRuns                AgentRun[]
   agentStrategies          AgentStrategy[]
   agentCampaigns           AgentCampaign[]
   agentGoals               AgentGoal[]
@@ -600,7 +608,9 @@ model User {
   socialMessages           SocialMessage[]
   agentWorkflows           AgentWorkflow[]
   workflows                Workflow[]
+  workflowVersions         WorkflowVersion[]
   workflowExecutions       WorkflowExecution[]
+  promotedWorkflowArtifacts WorkflowArtifact[]       @relation("workflow_artifact_promoted_by")
   bots                     Bot[]
   livestreamBotSessions    LivestreamBotSession[]
   botActivities            BotActivity[]
@@ -703,11 +713,9 @@ model Organization {
   articles                      Article[]
   articleAnalytics              ArticleAnalytics[]
   newsletters                   Newsletter[]
-  transcripts                   Transcript[]
   trainings                     Training[]
   models                        Model[]
   personas                      Persona[]
-  agentRuns                     AgentRun[]
   agentStrategies               AgentStrategy[]
   agentCampaigns                AgentCampaign[]
   agentGoals                    AgentGoal[]
@@ -724,10 +732,12 @@ model Organization {
   agentStrategyOpportunities    AgentStrategyOpportunity[]
   agentStrategyReports          AgentStrategyReport[]
   workflows                     Workflow[]
+  workflowVersions              WorkflowVersion[]
   workflowExecutions            WorkflowExecution[]
+  workflowArtifacts             WorkflowArtifact[]
+  workflowNodeContinuations     WorkflowNodeContinuation[]
   notificationEvents            NotificationEvent[]
   notificationDeliveries        NotificationDelivery[]
-  batchWorkflowJobs             BatchWorkflowJob[]
   contentRuns                   ContentRun[]
   bots                          Bot[]
   livestreamBotSessions         LivestreamBotSession[]
@@ -838,7 +848,7 @@ enum McpApprovalStatus {
 
 /// A deferred, human-approvable MCP write action. Mutating MCP tools persist a
 /// PENDING row instead of executing; a human resolves it (APPROVED/DECLINED) and
-/// only an approved action runs. Mirrors the AgentRun org/user/status/json shape.
+/// only an approved action runs. Mirrors the workflow execution org/user/status/json shape.
 model McpApproval {
   id             String            @id @default(cuid())
   organizationId String
@@ -914,7 +924,6 @@ model Brand {
   agentStrategies            AgentStrategy[]
   agentCampaigns             AgentCampaign[]
   agentGoals                 AgentGoal[]
-  agentRuns                  AgentRun[]
   agentMemories              AgentMemory[]
   agentMessages              AgentMessage[]
   agentThreads               AgentThread[]
@@ -1796,8 +1805,8 @@ model Ingredient {
   bookmark        Bookmark?      @relation(fields: [bookmarkId], references: [id])
   personaId       String?
   persona         Persona?       @relation(fields: [personaId], references: [id])
-  agentRunId      String?
-  agentRun        AgentRun?      @relation("ingredient_agent_run", fields: [agentRunId], references: [id])
+  workflowExecutionId String?
+  workflowExecution   WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id], onDelete: SetNull)
   agentStrategyId String?
   agentStrategy   AgentStrategy? @relation("ingredient_agent_strategy", fields: [agentStrategyId], references: [id])
   sourceActionId  String?
@@ -1894,11 +1903,12 @@ model Ingredient {
   taskLinkedOutputs        Task[]          @relation("task_linked_outputs")
   taskApprovedOutputs      Task[]          @relation("task_approved_outputs")
   clipResults              ClipResult[]    @relation("clip_result_ingredient")
+  workflowNodeContinuations WorkflowNodeContinuation[]
 
   @@index([groupId])
   @@index([scope])
   @@index([isPublic])
-  @@index([agentRunId])
+  @@index([workflowExecutionId])
   @@index([organizationId, sourceActionId], map: "ingredients_org_source_action_idx")
   @@index([agentStrategyId])
   @@index([personaSlug])
@@ -2288,8 +2298,6 @@ model Post {
   contentRun          ContentRun?        @relation(fields: [contentRunId], references: [id])
   workflowExecutionId String?
   workflowExecution   WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id])
-  agentRunId          String?
-  agentRun            AgentRun?          @relation("post_agent_run", fields: [agentRunId], references: [id])
   agentThreadId       String?
   agentThread         AgentThread?       @relation("post_agent_thread_scope", fields: [agentThreadId], references: [id])
   agentContextVersion Int?
@@ -2400,7 +2408,6 @@ model Post {
   @@index([contentRunId])
   @@index([variantId])
   @@index([generationId])
-  @@index([agentRunId])
   @@index([agentThreadId])
   @@index([agentStrategyId])
   @@index([reviewVersionPinId], map: "posts_reviewVersionPinId_idx")
@@ -3073,7 +3080,6 @@ model Article {
   prompts          Prompt[]
   postEntities     Post[]             @relation("post_entity_article")
   articleAnalytics ArticleAnalytics[]
-  transcripts      Transcript[]
   newsletters      Newsletter[]       @relation("newsletter_articles")
 
   category String?
@@ -3123,8 +3129,8 @@ model Newsletter {
   organization         Organization       @relation(fields: [organizationId], references: [id])
   brandId              String?
   brand                Brand?             @relation(fields: [brandId], references: [id])
-  agentRunId           String?
-  agentRun             AgentRun?          @relation(fields: [agentRunId], references: [id])
+  workflowExecutionId  String?
+  workflowExecution    WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id], onDelete: SetNull)
   approvedByUserId     String?
   approvedByUser       User?              @relation("newsletter_approved_by", fields: [approvedByUserId], references: [id])
   approvedVersionPinId String?
@@ -3154,24 +3160,6 @@ model Newsletter {
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([approvedVersionPinId], map: "newsletters_approvedVersionPinId_idx")
   @@map("newsletters")
-}
-
-model Transcript {
-  id             String       @id @default(cuid())
-  userId         String
-  user           User         @relation(fields: [userId], references: [id])
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  articleId      String?
-  article        Article?     @relation(fields: [articleId], references: [id])
-  content        String?
-  language       String?
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-
-  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
-  @@map("transcripts")
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3429,7 +3417,6 @@ model AgentThread {
   updatedAt                      DateTime     @updatedAt
 
   messages      AgentMessage[]
-  runs          AgentRun[]
   outboundTransfers AgentTransfer[] @relation("agent_transfer_source_thread")
   inboundTransfers  AgentTransfer[] @relation("agent_transfer_destination_thread")
   posts         Post[]                @relation("post_agent_thread_scope")
@@ -3493,8 +3480,8 @@ model AgentTransfer {
   destinationThread           AgentThread               @relation("agent_transfer_destination_thread", fields: [destinationThreadId], references: [id])
   sourceMessageId             String?
   destinationMessageId        String?
-  destinationRunId            String?                   @unique
-  destinationRun              AgentRun?                  @relation(fields: [destinationRunId], references: [id])
+  destinationExecutionId      String?                   @unique
+  destinationExecution        WorkflowExecution?        @relation(fields: [destinationExecutionId], references: [id], onDelete: SetNull)
   deliveryMode                AgentTransferDeliveryMode
   status                      AgentTransferStatus        @default(PENDING)
   idempotencyKey              String
@@ -3524,7 +3511,7 @@ model AgentTransfer {
   @@unique([organizationId, userId, idempotencyKey], map: "agent_transfers_org_user_idempotency_key")
   @@index([organizationId, userId, sourceThreadId, isDeleted, createdAt(sort: Desc)], map: "agent_transfers_source_thread_idx")
   @@index([organizationId, userId, destinationThreadId, isDeleted, createdAt(sort: Desc)], map: "agent_transfers_destination_thread_idx")
-  @@index([organizationId, destinationRunId, isDeleted], map: "agent_transfers_destination_run_idx")
+  @@index([organizationId, destinationExecutionId, isDeleted], map: "agent_transfers_destination_execution_idx")
   @@map("agent_transfers")
 }
 
@@ -3612,7 +3599,6 @@ model SocialMessage {
   sourceUrl                  String?
   idempotencyKey             String?
   workflowRunId              String?
-  agentRunId                 String?
   workflowTriggerStatus      String?
   workflowTriggerJobId       String?
   workflowTriggerError       String?
@@ -3714,62 +3700,6 @@ model SocialReplyCampaignRecipient {
   @@map("social_reply_campaign_recipients")
 }
 
-model AgentRun {
-  id             String         @id @default(cuid())
-  organizationId String
-  organization   Organization   @relation(fields: [organizationId], references: [id])
-  userId         String
-  user           User           @relation(fields: [userId], references: [id])
-  brandId        String?
-  brand          Brand?         @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
-  strategyId     String?
-  strategy       AgentStrategy? @relation(fields: [strategyId], references: [id])
-  threadId       String?
-  thread         AgentThread?   @relation(fields: [threadId], references: [id])
-  parentRunId    String?
-  parentRun      AgentRun?      @relation("agent_run_parent", fields: [parentRunId], references: [id])
-  childRuns      AgentRun[]     @relation("agent_run_parent")
-  status         AgentRunStatus @default(PENDING)
-  type           String?
-  config         Json           @default("{}")
-  result         Json?
-  error          String?
-  startedAt      DateTime?
-  completedAt    DateTime?
-  isDeleted      Boolean        @default(false)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-
-  ingredients Ingredient[] @relation("ingredient_agent_run")
-  posts       Post[]       @relation("post_agent_run")
-  newsletters Newsletter[]
-  captions    Caption[]
-  tasks       Task[]       @relation("task_linked_runs")
-  destinationTransfer AgentTransfer?
-
-  metadata              Json     @default("{}")
-  label                 String?
-  objective             String?
-  trigger               String?
-  steps                 Json     @default("[]")
-  toolCalls             Json     @default("[]")
-  summary               String?
-  progress              Int      @default(0)
-  retryCount            Int      @default(0)
-  creditBudget          Int?
-  creditsUsed           Int      @default(0)
-  durationMs            Int?
-  artifactReferences    Json     @default("[]")
-  artifactVersionPinIds String[] @default([])
-
-  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
-  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "agent_runs_org_brand_deleted_created_at_idx")
-  @@index([organizationId, isDeleted, status, createdAt(sort: Desc)])
-  @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc)])
-  @@index([organizationId, isDeleted, status, completedAt(sort: Desc)], map: "agent_runs_org_deleted_status_completed_at_idx")
-  @@map("agent_runs")
-}
-
 model AgentStrategy {
   id             String       @id @default(cuid())
   organizationId String
@@ -3797,7 +3727,6 @@ model AgentStrategy {
   // Typed list only: [{ "key": string, "value": string | number | boolean }]
   workflowInputOverrides      Json    @default("[]")
 
-  runs          AgentRun[]
   ingredients   Ingredient[]               @relation("ingredient_agent_strategy")
   posts         Post[]                     @relation("post_agent_strategy")
   opportunities AgentStrategyOpportunity[]
@@ -4022,14 +3951,11 @@ model Workflow {
   brand             Brand?       @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   label             String?
   description       String?
-  steps             Json         @default("[]")
-  nodes             Json         @default("[]")
-  edges             Json         @default("[]")
-  inputVariables    Json         @default("[]")
+  currentVersionId  String          @unique
+  currentVersion    WorkflowVersion @relation("workflow_current_version", fields: [currentVersionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   config            Json         @default("{}")
   metadata          Json?
   recurrence        Json?
-  lockedNodeIds     Json?
   // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
   status            String       @default("draft")
   lifecycle         String?
@@ -4058,8 +3984,8 @@ model Workflow {
   defaultRecurringBrandId String?
 
   tags       Tag[]               @relation("workflow_tags")
+  versions   WorkflowVersion[]   @relation("workflow_versions")
   executions WorkflowExecution[]
-  batchJobs  BatchWorkflowJob[]
 
   // Narrows predicate locks on the default-recurring-workflow re-check from a
   // relation-level SIReadLock to a page-level lock, preventing unrelated
@@ -4072,10 +3998,38 @@ model Workflow {
   @@map("workflows")
 }
 
+/// Immutable executable workflow definition. A version is append-only: edits
+/// create a new row and atomically move Workflow.currentVersionId.
+model WorkflowVersion {
+  id             String       @id @default(cuid())
+  workflowId     String
+  workflow       Workflow     @relation("workflow_versions", fields: [workflowId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  version        Int
+  graph          Json
+  inputSchema    Json         @default("[]")
+  contentHash    String
+  createdAt      DateTime     @default(now())
+
+  currentFor Workflow?           @relation("workflow_current_version")
+  executions WorkflowExecution[]
+  nodeContinuations WorkflowNodeContinuation[]
+
+  @@unique([workflowId, version])
+  @@index([organizationId, workflowId, version(sort: Desc)])
+  @@map("workflow_versions")
+}
+
 model WorkflowExecution {
   id             String                  @id @default(cuid())
+  idempotencyKey String?
   workflowId     String
   workflow       Workflow                @relation(fields: [workflowId], references: [id])
+  workflowVersionId String
+  workflowVersion   WorkflowVersion      @relation(fields: [workflowVersionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   userId         String
   user           User                    @relation(fields: [userId], references: [id])
   organizationId String
@@ -4100,13 +4054,31 @@ model WorkflowExecution {
   etaConfidence       String?
   etaCurrentPhase     String?
   etaUpdatedAt        DateTime?
+  scrubAllNodePayloads Boolean    @default(false)
+  scrubNodeIds         String[]   @default([])
+  payloadScrubbedAt    DateTime?
+  purgeAfterHours      Int?
+  purgeAt              DateTime?
 
-  posts       Post[]
-  nodeResults WorkflowExecutionNodeResult[]
+  posts        Post[]
+  nodeResults  WorkflowExecutionNodeResult[]
+  artifacts    WorkflowArtifact[]
+  nodeContinuations WorkflowNodeContinuation[]
+  workspaceTasks Task[] @relation("task_linked_executions")
+  ingredients Ingredient[]
+  newsletters Newsletter[]
+  captions Caption[]
+  destinationAgentTransfer AgentTransfer?
+  agentPublishAudits AgentPublishAudit[]
+  clipGenerationProject ClipProject? @relation("clip_generation_workflow_execution")
+  clipContinuityProject ClipProject? @relation("clip_continuity_workflow_execution")
 
   trigger String?
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, workflowVersionId, createdAt(sort: Desc)])
+  @@unique([organizationId, idempotencyKey], map: "workflow_executions_org_idempotency_key")
+  @@index([purgeAt, payloadScrubbedAt, isDeleted], map: "workflow_executions_purgeAt_idx")
   @@map("workflow_executions")
 }
 
@@ -4136,6 +4108,43 @@ model WorkflowExecutionNodeResult {
   @@map("workflow_execution_node_results")
 }
 
+/// Internal lifecycle metadata for temporary objects produced by workflow
+/// nodes. Durable Library assets remain in Asset/Ingredient; this row only
+/// owns deletion or an explicit promotion handoff for temporary storage.
+model WorkflowArtifact {
+  id               String                @id @default(cuid())
+  organizationId   String
+  organization     Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  executionId      String
+  execution        WorkflowExecution     @relation(fields: [executionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  nodeId           String
+  storageProvider  String                @default("primary")
+  storageKey       String
+  kind             String
+  retentionPolicy  String                @default("terminal")
+  metadata         Json                  @default("{}")
+  state            WorkflowArtifactState @default(ACTIVE)
+  expiresAt        DateTime
+  cleanupClaimedAt DateTime?
+  cleanupAttempts  Int                   @default(0)
+  deletedAt        DateTime?
+  lastError        String?
+  promotedAt       DateTime?
+  promotedByUserId String?
+  promotedByUser   User?                 @relation("workflow_artifact_promoted_by", fields: [promotedByUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  promotionTargetType String?
+  promotionTargetId   String?
+  isDeleted        Boolean               @default(false)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@unique([executionId, nodeId, storageProvider, storageKey], map: "workflow_artifacts_storage_identity_key")
+  @@index([organizationId, executionId, state, isDeleted], map: "workflow_artifacts_execution_state_idx")
+  @@index([state, retentionPolicy, expiresAt], map: "workflow_artifacts_expiry_idx")
+  @@index([state, cleanupClaimedAt], map: "workflow_artifacts_cleanup_lease_idx")
+  @@map("workflow_artifacts")
+}
+
 /// Durable per-node idempotency claims for workflow execution (#2359).
 /// Unique on (executionId, nodeId): a second insert loses (P2002) and the
 /// runner re-emits the stored output instead of re-firing side effects.
@@ -4156,22 +4165,43 @@ model WorkflowNodeClaim {
   @@map("workflow_node_claims")
 }
 
-model BatchWorkflowJob {
-  id             String       @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  userId         String
-  workflowId     String
-  workflow       Workflow     @relation(fields: [workflowId], references: [id])
-  items          Json         @default("[]")
-  status         BatchStatus  @default(PENDING)
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+/// Durable ownership of an action node whose provider finishes outside the
+/// process that submitted it. A continuation is created before provider
+/// submission and remains bound to the exact immutable workflow version.
+model WorkflowNodeContinuation {
+  id                String            @id @default(cuid())
+  organizationId    String
+  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  executionId       String
+  execution         WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  workflowVersionId String
+  workflowVersion   WorkflowVersion   @relation(fields: [workflowVersionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  nodeId            String
+  actionId          String
+  ingredientId      String
+  ingredient        Ingredient        @relation(fields: [ingredientId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  provider          String
+  externalId        String?
+  status            WorkflowNodeContinuationStatus @default(PENDING_SUBMISSION)
+  initialOutput     Json?
+  providerResult    Json?
+  error             String?
+  creditsUsed       Int               @default(0)
+  resumeClaimedAt   DateTime?
+  pollAttempt       Int?
+  pollDispatchClaimedAt DateTime?
+  pollDispatchedAt  DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
-  @@index([organizationId, status])
-  @@index([workflowId])
-  @@map("batch_workflow_jobs")
+  @@unique([executionId, nodeId], map: "workflow_node_continuations_execution_node_key")
+  @@unique([organizationId, ingredientId], map: "workflow_node_continuations_org_ingredient_key")
+  @@unique([organizationId, provider, externalId], map: "workflow_node_continuations_org_provider_external_key")
+  @@index([organizationId, executionId, status], map: "workflow_node_continuations_org_execution_status_idx")
+  @@index([status, resumeClaimedAt], map: "workflow_node_continuations_resume_lease_idx")
+  @@index([provider, status, pollDispatchedAt], map: "workflow_node_continuations_poll_outbox_idx")
+  @@map("workflow_node_continuations")
 }
 
 model ContentRun {
@@ -4229,7 +4259,7 @@ model Task {
   updatedAt              DateTime     @updatedAt
 
   comments        TaskComment[]
-  linkedRuns      AgentRun[]    @relation("task_linked_runs")
+  linkedExecutions WorkflowExecution[] @relation("task_linked_executions")
   linkedOutputs   Ingredient[]  @relation("task_linked_outputs")
   approvedOutputs Ingredient[]  @relation("task_approved_outputs")
 
@@ -5502,8 +5532,8 @@ model Caption {
   user           User         @relation(fields: [userId], references: [id])
   ingredientId   String?
   ingredient     Ingredient?  @relation(fields: [ingredientId], references: [id])
-  agentRunId     String?
-  agentRun       AgentRun?    @relation(fields: [agentRunId], references: [id])
+  workflowExecutionId String?
+  workflowExecution   WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id], onDelete: SetNull)
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
   content        String?
@@ -5519,26 +5549,31 @@ model Caption {
 }
 
 model ClipProject {
-  id               String       @id @default(cuid())
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id])
-  brandId          String?
-  brand            Brand?       @relation(fields: [brandId], references: [id])
-  userId           String?
-  user             User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  results          ClipResult[]
-  status           String       @default("pending")
-  progress         Int          @default(0)
-  error            String?
-  readyClipCount   Int          @default(0)
-  failedClipCount  Int          @default(0)
-  pendingClipCount Int          @default(0)
-  readiness        Json         @default("{\"state\":\"pending\",\"terminal\":false,\"readyActions\":[],\"blockingReasons\":[]}")
-  terminalAt       DateTime?
-  config           Json         @default("{}")
-  isDeleted        Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  id                  String             @id @default(cuid())
+  organizationId      String
+  organization        Organization       @relation(fields: [organizationId], references: [id])
+  brandId             String?
+  brand               Brand?             @relation(fields: [brandId], references: [id])
+  userId              String?
+  user                User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  workflowExecutionId           String?            @unique
+  workflowExecution             WorkflowExecution? @relation("clip_generation_workflow_execution", fields: [workflowExecutionId], references: [id], onDelete: SetNull)
+  continuityWorkflowExecutionId String?            @unique
+  continuityWorkflowExecution   WorkflowExecution? @relation("clip_continuity_workflow_execution", fields: [continuityWorkflowExecutionId], references: [id], onDelete: SetNull)
+  continuityQaStatus            String              @default("not-required")
+  results             ClipResult[]
+  status              String             @default("pending")
+  progress            Int                @default(0)
+  error               String?
+  readyClipCount      Int                @default(0)
+  failedClipCount     Int                @default(0)
+  pendingClipCount    Int                @default(0)
+  readiness           Json               @default("{\"state\":\"pending\",\"terminal\":false,\"readyActions\":[],\"blockingReasons\":[]}")
+  terminalAt          DateTime?
+  config              Json               @default("{}")
+  isDeleted           Boolean            @default(false)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
   @@index([organizationId, status, isDeleted])
   @@index([userId])
@@ -6029,37 +6064,6 @@ model LivestreamBotSession {
   @@map("livestream_bot_sessions")
 }
 
-model Run {
-  id             String    @id @default(cuid())
-  organizationId String
-  brandId        String?
-  userId         String?
-  actionType     String?
-  authType       String?
-  surface        String?
-  trigger        String?
-  status         String?
-  idempotencyKey String?
-  traceId        String?
-  correlationId  String?
-  progress       Int?
-  durationMs     Int?
-  error          String?
-  startedAt      DateTime?
-  completedAt    DateTime?
-  input          Json?
-  output         Json?
-  metadata       Json?
-  events         Json?
-  data           Json      @default("{}")
-  isDeleted      Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
-  @@map("runs")
-}
-
 model Analytic {
   id        String   @id @default(cuid())
   data      Json     @default("{}")
@@ -6260,7 +6264,8 @@ model AgentPublishAudit {
   brand          Brand?               @relation(fields: [brandId], references: [id])
   postGroupId    String?
   postGroup      PostGroup?           @relation(fields: [postGroupId], references: [id])
-  agentRunId     String?
+  workflowExecutionId String?
+  workflowExecution   WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id], onDelete: SetNull)
   agentThreadId  String?
   agentStrategyId String?
   autonomyMode   String
@@ -6274,6 +6279,6 @@ model AgentPublishAudit {
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([postGroupId, isDeleted, createdAt(sort: Desc)])
-  @@index([agentRunId, isDeleted])
+  @@index([workflowExecutionId, isDeleted])
   @@map("agent_publish_audits")
 }

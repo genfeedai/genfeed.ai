@@ -1,13 +1,16 @@
+import type { NormalizedPaidCreativeRecord } from '@genfeedai/integrations/ads';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
 import type { AdWatchedAdvertisersService } from '@server/collections/ad-watched-advertisers/services/ad-watched-advertisers.service';
 import type {
   PaidCreativeProviderAdapter,
   PaidCreativeReadiness,
 } from '@server/services/paid-creative-research/interfaces/paid-creative-research.interface';
 import type { PaidCreativeProviderRegistry } from '@server/services/paid-creative-research/providers/paid-creative-provider.registry';
-import { PaidCreativeResearchIngestionService } from '@server/services/paid-creative-research/services/paid-creative-research-ingestion.service';
-import type { NormalizedPaidCreativeRecord } from '@genfeedai/integrations/ads';
-import type { LoggerService } from '@libs/logger/logger.service';
-import type { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
+import {
+  type PaidCreativeIngestionOptions,
+  PaidCreativeResearchIngestionService,
+} from '@server/services/paid-creative-research/services/paid-creative-research-ingestion.service';
 
 const READY: PaidCreativeReadiness = {
   available: true,
@@ -101,6 +104,24 @@ function buildHarness(
   };
 }
 
+async function executeAtomicIngestionBatch(
+  harness: Harness,
+  organizationId: string,
+  options: PaidCreativeIngestionOptions = {},
+) {
+  const advertisers = await harness.service.discoverAdvertisers(
+    organizationId,
+    options,
+  );
+  const results = [];
+  for (const advertiser of advertisers) {
+    results.push(
+      await harness.service.ingestOne(organizationId, advertiser, options),
+    );
+  }
+  return results;
+}
+
 const META_ADVERTISER = {
   advertiserHandle: 'nike',
   brandId: 'brand-1',
@@ -118,7 +139,7 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
   it('writes one tenant-scoped snapshot per watched advertiser', async () => {
     const harness = buildHarness([META_ADVERTISER]);
 
-    const results = await harness.service.ingestForAccount('org-1');
+    const results = await executeAtomicIngestionBatch(harness, 'org-1');
 
     expect(results).toEqual([
       {
@@ -157,7 +178,7 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
       }),
     ]);
 
-    await harness.service.ingestForAccount('org-1');
+    await executeAtomicIngestionBatch(harness, 'org-1');
 
     const record =
       harness.adPerformanceService.replaceResearchSnapshot.mock.calls[0][0]
@@ -183,7 +204,7 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
   it('advances the watched row bookkeeping on a successful run', async () => {
     const harness = buildHarness([META_ADVERTISER]);
 
-    await harness.service.ingestForAccount('org-1');
+    await executeAtomicIngestionBatch(harness, 'org-1');
 
     expect(
       harness.adWatchedAdvertisersService.recordIngestionResult,
@@ -203,7 +224,7 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
       recordCount: 0,
     });
 
-    const [result] = await harness.service.ingestForAccount('org-1');
+    const [result] = await executeAtomicIngestionBatch(harness, 'org-1');
 
     expect(result).toMatchObject({ recordCount: 0, status: 'success' });
     expect(
@@ -218,7 +239,7 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
   it('stales the previous snapshot instead of writing an empty one when the archive is unreachable', async () => {
     const harness = buildHarness([META_ADVERTISER], BLOCKED);
 
-    const [result] = await harness.service.ingestForAccount('org-1');
+    const [result] = await executeAtomicIngestionBatch(harness, 'org-1');
 
     expect(result).toEqual({
       advertiserId: 'watch-1',
@@ -248,7 +269,7 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
       new Error('Apify actor run failed: token abc123 rejected'),
     );
 
-    const [result] = await harness.service.ingestForAccount('org-1');
+    const [result] = await executeAtomicIngestionBatch(harness, 'org-1');
 
     expect(result).toMatchObject({
       errorCode: 'paid_creative_source_unavailable',
@@ -265,7 +286,7 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
       new Error('serialization failure'),
     );
 
-    const [result] = await harness.service.ingestForAccount('org-1');
+    const [result] = await executeAtomicIngestionBatch(harness, 'org-1');
 
     expect(result).toMatchObject({
       errorCode: 'paid_creative_snapshot_write_failed',
@@ -278,7 +299,7 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
       { ...META_ADVERTISER, platform: 'linkedin' },
     ]);
 
-    const [result] = await harness.service.ingestForAccount('org-1');
+    const [result] = await executeAtomicIngestionBatch(harness, 'org-1');
 
     expect(result).toEqual({
       advertiserId: 'watch-1',
@@ -301,7 +322,7 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
       .mockRejectedValueOnce(new Error('archive down'))
       .mockResolvedValueOnce([buildCreative()]);
 
-    const results = await harness.service.ingestForAccount('org-1');
+    const results = await executeAtomicIngestionBatch(harness, 'org-1');
 
     expect(results.map((result) => result.status)).toEqual([
       'unavailable',
@@ -312,7 +333,7 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
   it('narrows the watchlist query to the requested brand and platform', async () => {
     const harness = buildHarness([]);
 
-    await harness.service.ingestForAccount('org-1', {
+    await executeAtomicIngestionBatch(harness, 'org-1', {
       brandId: 'brand-1',
       platform: 'tiktok',
     });
@@ -328,7 +349,7 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
       new Error('write conflict'),
     );
 
-    const [result] = await harness.service.ingestForAccount('org-1');
+    const [result] = await executeAtomicIngestionBatch(harness, 'org-1');
 
     expect(result).toMatchObject({ status: 'success' });
   });

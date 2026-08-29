@@ -36,7 +36,6 @@ export class SocialMessageModel implements SocialMessage {
   sourceUrl?: string | null;
   idempotencyKey?: string | null;
   workflowRunId?: string | null;
-  agentRunId?: string | null;
   workflowTriggerStatus?: SocialMessageWorkflowTriggerStatus | null;
   workflowTriggerJobId?: string | null;
   workflowTriggerError?: string | null;

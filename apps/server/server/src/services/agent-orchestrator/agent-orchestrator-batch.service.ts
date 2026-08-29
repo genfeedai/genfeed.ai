@@ -1,5 +1,7 @@
+import { AgentMessageRole } from '@genfeedai/enums';
+import { AgentToolName } from '@genfeedai/interfaces';
+import { Injectable } from '@nestjs/common';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
-import { AgentRunsService } from '@server/collections/agent-runs/services/agent-runs.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { runEffectPromise } from '@server/helpers/utils/effect/effect.util';
 import { AgentCompletionCardBuilderService } from '@server/services/agent-orchestrator/agent-completion-card-builder.service';
@@ -16,9 +18,6 @@ import { extractBatchTopic } from '@server/services/agent-orchestrator/utils/age
 import { buildResolvedModelMetadata } from '@server/services/agent-orchestrator/utils/agent-response-model.util';
 import { buildAgentScopeMetadata } from '@server/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import { buildFallbackThreadTitle } from '@server/services/agent-orchestrator/utils/agent-thread-title.util';
-import { AgentMessageRole } from '@genfeedai/enums';
-import { AgentToolName } from '@genfeedai/interfaces';
-import { Injectable } from '@nestjs/common';
 
 interface BatchGenerationDraft {
   brandId?: string;
@@ -60,7 +59,6 @@ export class AgentOrchestratorBatchService {
     private readonly completionCardBuilder: AgentCompletionCardBuilderService,
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
     private readonly streamEffects: AgentStreamEffectsService,
-    private readonly agentRunsService: AgentRunsService,
   ) {}
 
   async tryHandleBatchGenerationTurnStream(
@@ -85,7 +83,7 @@ export class AgentOrchestratorBatchService {
     }
 
     const toolName = AgentToolName.GENERATE_CONTENT_BATCH;
-    const toolCallId = `${params.context.runId ?? params.threadId}:batch`;
+    const toolCallId = `${params.context.executionId ?? params.threadId}:batch`;
     const toolParams: Record<string, unknown> = {
       count: draft.count,
       dateRange: draft.dateRange,
@@ -100,7 +98,7 @@ export class AgentOrchestratorBatchService {
     await this.threadEventRecorder.recordToolStarted({
       context: params.context,
       parameters: toolParams,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       threadId: params.threadId,
       toolName,
     });
@@ -134,7 +132,7 @@ export class AgentOrchestratorBatchService {
         platform: params.policy.platform,
         qualityTier: params.policy.qualityTier,
         reviewModelOverride: params.policy.reviewModelOverride,
-        runId: params.context.runId,
+        runId: params.context.executionId,
         strategyId: params.context.strategyId,
         streamBatchToUser: true,
         thinkingModel: params.policy.thinkingModelOverride ?? undefined,
@@ -162,7 +160,7 @@ export class AgentOrchestratorBatchService {
       context: params.context,
       durationMs,
       error: summary.error,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       status: summary.status,
       threadId: params.threadId,
       toolName,
@@ -217,11 +215,7 @@ export class AgentOrchestratorBatchService {
         toolCalls: [{ status: summary.status, toolName }],
         uiActions: result.nextActions ?? [],
       });
-    const artifactMetadata = await captureRunArtifacts(
-      this.agentRunsService,
-      params.context,
-      result.data,
-    );
+    const artifactMetadata = captureRunArtifacts(params.context, result.data);
     const assistantMetadata = {
       ...artifactMetadata,
       ...buildAgentScopeMetadata(params.context),
@@ -262,13 +256,13 @@ export class AgentOrchestratorBatchService {
       content: fullContent,
       context: params.context,
       metadata: assistantMetadata,
-      runId: params.context.runId,
+      runId: params.context.executionId,
       threadId: params.threadId,
     });
     await this.threadEventRecorder.recordRunCompleted({
       context: params.context,
       detail: 'Agent completed',
-      runId: params.context.runId,
+      runId: params.context.executionId,
       threadId: params.threadId,
     });
     await runEffectPromise(

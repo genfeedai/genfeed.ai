@@ -1,10 +1,10 @@
-import { AgentToolName, type AgentToolResult } from '@genfeedai/interfaces';
 import {
   getToolByName,
   getToolsForSurface,
   type McpToolOutput,
   toMcpTools,
-} from '@genfeedai/tools';
+} from '@genfeedai/actions';
+import { AgentToolName, type AgentToolResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
 import {
@@ -51,12 +51,7 @@ const AGENT_EXECUTOR_TOOL_NAMES: ReadonlySet<string> = new Set<string>(
 );
 
 const AGENT_CHAT_TOOL_NAMES: ReadonlySet<string> = new Set<string>([
-  'cancel_agent_run',
   'create_chat',
-  'get_agent_run',
-  'get_agent_run_content',
-  'list_agent_runs',
-  'retry_agent_run',
   'send_chat_message',
 ]);
 
@@ -154,7 +149,7 @@ type ExecutorKind =
 /**
  * Mutating MCP tools that must NOT execute immediately — instead they persist a
  * pending approval (human-in-the-loop) and only run once approved. Names are the
- * canonical tool names from `packages/tools/src/registry/source`. High-risk and
+ * canonical tool names from `packages/actions/src/registry/source`. High-risk and
  * expensive mutations (content creation, batch generation, external sends).
  * Extend deliberately.
  *
@@ -736,7 +731,7 @@ export class ToolRegistryService implements OnModuleInit {
         return {
           content: [
             {
-              text: `Workflow Status: ${workflow.name}\n\nID: ${workflow.id}\nStatus: ${workflow.status}\nCurrent Step: ${workflow.currentStepIndex !== undefined ? workflow.currentStepIndex + 1 : 'N/A'} of ${workflow.steps.length}\nLast Run: ${workflow.lastRunAt || 'Never'}\nNext Run: ${workflow.nextRunAt || 'Not scheduled'}`,
+              text: `Workflow Status: ${workflow.name}\n\nID: ${workflow.id}\nStatus: ${workflow.status}\nVersion: ${workflow.version ?? 'N/A'}\nNodes: ${workflow.nodeCount ?? 0}\nLast Run: ${workflow.lastRunAt || 'Never'}\nNext Run: ${workflow.nextRunAt || 'Not scheduled'}`,
               type: 'text',
             },
           ],

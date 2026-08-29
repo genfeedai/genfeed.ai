@@ -1,5 +1,4 @@
 import type { ExtractedMention } from '@genfeedai/agent/components/AgentChatInput';
-import { mapRunStatusToClientStatus } from '@genfeedai/agent/components/agent-workspace-run.helpers';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
 import { handleAgentUiAction } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
@@ -37,7 +36,7 @@ import {
 } from '@genfeedai/agent/utils/derive-timeline';
 import { hasRenderableThreadState } from '@genfeedai/agent/utils/has-renderable-thread-state';
 import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
-import { UploadStatus } from '@genfeedai/enums';
+import { UploadStatus, WorkflowExecutionStatus } from '@genfeedai/enums';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -399,7 +398,9 @@ export function useAgentChatContainer({
     setActiveRunStatus('cancelling');
 
     try {
-      await runAgentApiEffect(apiService.cancelRunEffect(activeRunId));
+      await runAgentApiEffect(
+        apiService.cancelWorkflowExecutionEffect(activeRunId),
+      );
       return true;
     } catch {
       setActiveRunStatus('failed');
@@ -958,25 +959,32 @@ export function useAgentChatContainer({
     setFollowUpTaskMessage(null);
   }, []);
 
-  // Restore active run from API on thread change
+  // Restore the active workflow execution when the user returns to a thread.
   useEffect(() => {
     const controller = new AbortController();
 
-    runAgentApiEffect(apiService.getActiveRunsEffect(controller.signal))
-      .then((runs) => {
+    runAgentApiEffect(
+      apiService.getActiveWorkflowExecutionsEffect(controller.signal),
+    )
+      .then((executions) => {
         if (controller.signal.aborted) {
           return;
         }
 
-        const matchingRun = runs.find((run) => run.thread === activeThreadId);
+        const matchingExecution = executions.find(
+          (execution) => execution.metadata?.threadId === activeThreadId,
+        );
 
-        if (!matchingRun) {
+        if (!matchingExecution) {
           return;
         }
 
-        setActiveRun(matchingRun.id, {
-          startedAt: matchingRun.startedAt ?? null,
-          status: mapRunStatusToClientStatus(matchingRun.status),
+        setActiveRun(matchingExecution.id, {
+          startedAt: matchingExecution.startedAt ?? null,
+          status:
+            matchingExecution.status === WorkflowExecutionStatus.RUNNING
+              ? 'running'
+              : 'idle',
         });
       })
       .catch(() => {

@@ -1,11 +1,12 @@
+import { AnalyticsMetric } from '@genfeedai/enums';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
+import type { AgentCampaignDocument } from '@server/collections/agent-campaigns/schemas/agent-campaign.schema';
 import { AgentCampaignsService } from '@server/collections/agent-campaigns/services/agent-campaigns.service';
 import { AgentMemoryCaptureService } from '@server/collections/agent-memories/services/agent-memory-capture.service';
 import { AnalyticsService } from '@server/endpoints/analytics/analytics.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { requireRelationId } from '@server/shared/utils/relation-id/relation-id.util';
-import { AnalyticsMetric } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
 
 interface TopContentEntry {
   date?: Date | string;
@@ -17,6 +18,15 @@ interface TopContentEntry {
   totalEngagement?: number;
   totalViews?: number;
 }
+
+export type CampaignWinnerExtractionState = {
+  campaign: AgentCampaignDocument;
+  campaignId: string;
+  organizationId: string;
+  skippedReason?: string;
+  summary?: string;
+  topContent: TopContentEntry[];
+};
 
 export interface CampaignWinnerExtractionResult {
   campaignId: string;
@@ -37,10 +47,10 @@ export class CampaignWinnerExtractionService {
     private readonly logger: LoggerService,
   ) {}
 
-  async extractWinnerPatterns(
+  async loadWinnerContext(
     campaignId: string,
     organizationId: string,
-  ): Promise<CampaignWinnerExtractionResult> {
+  ): Promise<CampaignWinnerExtractionState> {
     const campaign = await this.agentCampaignsService.findOne({
       id: campaignId,
       organizationId: organizationId,
@@ -52,10 +62,12 @@ export class CampaignWinnerExtractionService {
 
     if (campaign.status !== 'active') {
       return {
+        campaign,
         campaignId,
-        extractedCount: 0,
+        organizationId,
         skippedReason: `Campaign is ${campaign.status}, skipping winner extraction.`,
         summary: `Skipped winner extraction because campaign status is ${campaign.status}.`,
+        topContent: [],
       };
     }
 
@@ -80,14 +92,33 @@ export class CampaignWinnerExtractionService {
 
     if (topContent.length === 0) {
       return {
+        campaign,
         campaignId,
-        extractedCount: 0,
+        organizationId,
         skippedReason:
           'No top-performing content found for this campaign window.',
         summary:
           'Skipped winner extraction because no top-performing content was available for the last 30 days.',
+        topContent: [],
       };
     }
+
+    return { campaign, campaignId, organizationId, topContent };
+  }
+
+  async persistWinnerMemory(
+    state: CampaignWinnerExtractionState,
+  ): Promise<CampaignWinnerExtractionResult> {
+    if (state.skippedReason) {
+      return {
+        campaignId: state.campaignId,
+        extractedCount: 0,
+        skippedReason: state.skippedReason,
+        summary: state.summary ?? state.skippedReason,
+      };
+    }
+    const { campaign, campaignId, organizationId, topContent } = state;
+    const brandId = campaign.brandId ?? undefined;
 
     const patternSummary = this.buildWinnerPatternSummary(topContent);
     const topLabels = topContent

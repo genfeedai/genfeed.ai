@@ -2,15 +2,18 @@
 
 import { APP_ROUTES } from '@genfeedai/constants';
 import {
-  AgentExecutionStatus,
   ButtonSize,
   ButtonVariant,
   CardVariant,
   ComponentSize,
+  WorkflowExecutionStatus,
 } from '@genfeedai/enums';
-import type { IAgentRun, SurfaceSummaryItem } from '@genfeedai/interfaces';
+import type {
+  IWorkflowExecution,
+  SurfaceSummaryItem,
+} from '@genfeedai/interfaces';
 import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
-import type { AgentRunStats } from '@genfeedai/types';
+import type { WorkflowExecutionStats } from '@genfeedai/types';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
@@ -44,13 +47,13 @@ interface ReviewInboxSummary {
 }
 
 interface DashboardProps {
-  activeRuns: IAgentRun[];
-  isRunsLoading?: boolean;
+  activeExecutions: IWorkflowExecution[];
+  executions: IWorkflowExecution[];
+  isExecutionsLoading?: boolean;
   isTasksLoading?: boolean;
   isTrendsLoading?: boolean;
   reviewInbox: ReviewInboxSummary;
-  runs: IAgentRun[];
-  stats: AgentRunStats | null;
+  stats: WorkflowExecutionStats;
   trendsHref?: string;
   trendItems?: TrendItem[];
   workspaceTasks: Task[];
@@ -74,28 +77,29 @@ function formatOptionalRelativeTime(date?: string | null): string {
   return date ? formatRelativeTime(date) : 'unknown';
 }
 
-function formatStatusLabel(status: AgentExecutionStatus): string {
+function formatStatusLabel(status: WorkflowExecutionStatus): string {
   const normalized = status.toLowerCase();
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
 /* ------------------------------------------------------------------ */
-/*  Agent Cards (Top section)                                          */
+/*  Workflow execution cards                                           */
 /* ------------------------------------------------------------------ */
 
-function AgentRunCard({ run }: { run: IAgentRun }) {
+function WorkflowExecutionCard({
+  execution,
+}: {
+  execution: IWorkflowExecution;
+}) {
   const { href } = useOrgUrl();
   const statusLabel =
-    run.status === AgentExecutionStatus.RUNNING
+    execution.status === WorkflowExecutionStatus.RUNNING
       ? 'Live now'
-      : run.status === AgentExecutionStatus.PENDING
+      : execution.status === WorkflowExecutionStatus.PENDING
         ? 'Queued'
-        : formatStatusLabel(run.status);
+        : formatStatusLabel(execution.status);
 
-  const agentLabel =
-    typeof run.metadata?.agentName === 'string'
-      ? run.metadata.agentName
-      : (run.label?.split(' ')?.[0] ?? 'Agent');
+  const label = execution.workflow?.label ?? execution.workflowId;
 
   return (
     <Card
@@ -109,10 +113,11 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
             <Cpu className="size-3.5 text-foreground/60" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-foreground">
-              {agentLabel}
-            </p>
-            <Badge status={run.status} size={ComponentSize.SM}>
+            <p className="text-xs font-semibold text-foreground">{label}</p>
+            <Badge
+              status={execution.status.toLowerCase()}
+              size={ComponentSize.SM}
+            >
               {statusLabel}
             </Badge>
           </div>
@@ -124,8 +129,8 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
           className="opacity-0 transition-opacity group-hover:opacity-100"
         >
           <Link
-            href={href(`${APP_ROUTES.AUTOMATE.RUNS}/${run.id}`)}
-            aria-label={`Open ${run.label}`}
+            href={href(`${APP_ROUTES.AUTOMATE.RUNS}/${execution.id}`)}
+            aria-label={`Open ${label}`}
           >
             <ArrowRight className="size-3.5" />
           </Link>
@@ -134,13 +139,13 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
 
       <div className="rounded border border-border bg-muted/50 px-2.5 py-2">
         <p className="line-clamp-1 text-xs font-medium text-foreground/75">
-          {run.label}
+          {label}
         </p>
         <p className="mt-0.5 line-clamp-2 text-2xs font-mono text-foreground/45">
-          {run.status === AgentExecutionStatus.RUNNING ||
-          run.status === AgentExecutionStatus.PENDING
-            ? (run.objective ?? run.strategy ?? 'Waiting for output...')
-            : (run.summary ?? run.objective ?? 'Run completed')}
+          {execution.status === WorkflowExecutionStatus.RUNNING ||
+          execution.status === WorkflowExecutionStatus.PENDING
+            ? 'Workflow nodes are executing.'
+            : (execution.error ?? 'Workflow execution completed.')}
         </p>
       </div>
     </Card>
@@ -148,31 +153,31 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
 }
 
 export function DashboardAgentCards({
-  activeRuns,
+  activeExecutions,
+  executions,
   isLoading = false,
-  runs,
 }: {
-  activeRuns: IAgentRun[];
+  activeExecutions: IWorkflowExecution[];
+  executions: IWorkflowExecution[];
   isLoading?: boolean;
-  runs: IAgentRun[];
 }) {
   const { href } = useOrgUrl();
-  const displayRuns = useMemo(() => {
-    const liveRuns = activeRuns.slice(0, 3);
-    if (liveRuns.length >= 3) return liveRuns;
+  const displayExecutions = useMemo(() => {
+    const active = activeExecutions.slice(0, 3);
+    if (active.length >= 3) return active;
 
-    const recentCompleted = runs
+    const recentCompleted = executions
       .filter(
-        (run) =>
-          !activeRuns.some((active) => active.id === run.id) &&
-          run.status !== AgentExecutionStatus.PENDING,
+        (execution) =>
+          !activeExecutions.some((active) => active.id === execution.id) &&
+          execution.status !== WorkflowExecutionStatus.PENDING,
       )
-      .slice(0, 3 - liveRuns.length);
+      .slice(0, 3 - active.length);
 
-    return [...liveRuns, ...recentCompleted];
-  }, [activeRuns, runs]);
+    return [...active, ...recentCompleted];
+  }, [activeExecutions, executions]);
 
-  if (displayRuns.length === 0 && !isLoading) {
+  if (displayExecutions.length === 0 && !isLoading) {
     return null;
   }
 
@@ -182,7 +187,7 @@ export function DashboardAgentCards({
         <h2 className="text-xs font-semibold text-foreground">
           Running Agents
         </h2>
-        {(activeRuns.length > 3 || runs.length > 3) && (
+        {(activeExecutions.length > 3 || executions.length > 3) && (
           <Button
             asChild
             variant={ButtonVariant.SECONDARY}
@@ -193,7 +198,7 @@ export function DashboardAgentCards({
         )}
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {isLoading && displayRuns.length === 0
+        {isLoading && displayExecutions.length === 0
           ? [
               'agent-run-skeleton-1',
               'agent-run-skeleton-2',
@@ -203,7 +208,9 @@ export function DashboardAgentCards({
                 <WorkspaceTaskRowsSkeleton rows={1} />
               </Card>
             ))
-          : displayRuns.map((run) => <AgentRunCard key={run.id} run={run} />)}
+          : displayExecutions.map((execution) => (
+              <WorkflowExecutionCard execution={execution} key={execution.id} />
+            ))}
       </div>
     </section>
   );
@@ -214,18 +221,18 @@ export function DashboardAgentCards({
 /* ------------------------------------------------------------------ */
 
 export function DashboardStatsStrip({
-  activeRuns,
-  isRunsLoading = false,
+  activeExecutions,
+  isExecutionsLoading = false,
   isTasksLoading = false,
   reviewInbox,
   stats,
   workspaceTasks,
 }: {
-  activeRuns: IAgentRun[];
-  isRunsLoading?: boolean;
+  activeExecutions: IWorkflowExecution[];
+  isExecutionsLoading?: boolean;
   isTasksLoading?: boolean;
   reviewInbox: ReviewInboxSummary;
-  stats: AgentRunStats | null;
+  stats: WorkflowExecutionStats;
   workspaceTasks: Task[];
 }) {
   const inProgressTaskCount = workspaceTasks.filter(
@@ -234,13 +241,13 @@ export function DashboardStatsStrip({
   const items: SurfaceSummaryItem[] = useMemo(
     () => [
       {
-        accent: `${stats?.activeRuns ?? activeRuns.length} running, ${activeRuns.filter((r) => r.status === AgentExecutionStatus.PENDING).length} queued`,
-        isLoading: isRunsLoading,
-        label: 'Agents Active',
-        value: String(stats?.activeRuns ?? activeRuns.length),
+        accent: `${stats.active} active, ${activeExecutions.filter((execution) => execution.status === WorkflowExecutionStatus.PENDING).length} queued`,
+        isLoading: isExecutionsLoading,
+        label: 'Workflows Active',
+        value: String(stats.active),
       },
       {
-        accent: `${stats?.completedToday ?? 0} completed, ${stats?.failedToday ?? 0} failed`,
+        accent: `${stats.completed} completed, ${stats.failed} failed`,
         isLoading: isTasksLoading,
         label: 'Tasks In Progress',
         value: String(inProgressTaskCount),
@@ -254,9 +261,9 @@ export function DashboardStatsStrip({
       },
     ],
     [
-      activeRuns,
+      activeExecutions,
       inProgressTaskCount,
-      isRunsLoading,
+      isExecutionsLoading,
       isTasksLoading,
       reviewInbox,
       stats,
@@ -530,34 +537,34 @@ function WorkspaceDashboardFirstRun({ trendsHref }: { trendsHref: string }) {
  * underneath it, which is the state it exists to replace.
  */
 export function hasWorkspaceOverviewSignal({
-  activeRuns,
-  isRunsLoading = false,
+  activeExecutions,
+  executions,
+  isExecutionsLoading = false,
   isTasksLoading = false,
   isTrendsLoading = false,
   reviewInbox,
-  runs,
   trendItems = [],
   workspaceTasks,
 }: Pick<
   DashboardProps,
-  | 'activeRuns'
-  | 'isRunsLoading'
+  | 'activeExecutions'
+  | 'executions'
+  | 'isExecutionsLoading'
   | 'isTasksLoading'
   | 'isTrendsLoading'
   | 'reviewInbox'
-  | 'runs'
   | 'trendItems'
   | 'workspaceTasks'
 >): boolean {
   // Loading counts as signal: collapsing to the guided block mid-fetch would
   // flash the first-run copy at every returning operator.
-  if (isRunsLoading || isTasksLoading || isTrendsLoading) {
+  if (isExecutionsLoading || isTasksLoading || isTrendsLoading) {
     return true;
   }
 
   return (
-    activeRuns.length > 0 ||
-    runs.length > 0 ||
+    activeExecutions.length > 0 ||
+    executions.length > 0 ||
     workspaceTasks.length > 0 ||
     reviewInbox.pendingCount > 0 ||
     reviewInbox.recentItems.length > 0 ||
@@ -566,12 +573,12 @@ export function hasWorkspaceOverviewSignal({
 }
 
 export function WorkspaceDashboard({
-  activeRuns,
-  isRunsLoading = false,
+  activeExecutions,
+  executions,
+  isExecutionsLoading = false,
   isTasksLoading = false,
   isTrendsLoading = false,
   reviewInbox,
-  runs,
   stats,
   trendsHref: providedTrendsHref,
   trendItems = [],
@@ -584,12 +591,12 @@ export function WorkspaceDashboard({
   // each other. Collapse the whole thing into one guided block instead.
   if (
     !hasWorkspaceOverviewSignal({
-      activeRuns,
-      isRunsLoading,
+      activeExecutions,
+      executions,
+      isExecutionsLoading,
       isTasksLoading,
       isTrendsLoading,
       reviewInbox,
-      runs,
       trendItems,
       workspaceTasks,
     })
@@ -603,8 +610,8 @@ export function WorkspaceDashboard({
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
       <DashboardStatsStrip
-        activeRuns={activeRuns}
-        isRunsLoading={isRunsLoading}
+        activeExecutions={activeExecutions}
+        isExecutionsLoading={isExecutionsLoading}
         isTasksLoading={isTasksLoading}
         reviewInbox={reviewInbox}
         stats={stats}
@@ -612,9 +619,9 @@ export function WorkspaceDashboard({
       />
 
       <DashboardAgentCards
-        activeRuns={activeRuns}
-        isLoading={isRunsLoading}
-        runs={runs}
+        activeExecutions={activeExecutions}
+        executions={executions}
+        isLoading={isExecutionsLoading}
       />
 
       <DashboardGrid cols={3}>

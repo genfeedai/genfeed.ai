@@ -23,8 +23,6 @@ The repo has a real agent runtime, but the ownership model is hard to read becau
   - owns content plans, drafts, execution, review, and skill-driven content work
 - [`apps/server/api/src/services/content-orchestration/content-orchestration.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/content-orchestration/content-orchestration.module.ts)
   - owns deterministic media pipeline execution and queueing
-- [`apps/server/api/src/services/workflow-executor/workflow-executor.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/workflow-executor/workflow-executor.module.ts)
-  - owns older workflow processors for persona media, sound overlay, and trend inspiration
 - [`apps/server/api/src/services/skill-executor/skill-executor.module.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/api/src/services/skill-executor/skill-executor.module.ts)
   - owns deterministic skill handlers for trend discovery, content writing, and image generation
 
@@ -55,7 +53,6 @@ The target ownership rules are:
 - **Skill executor** owns deterministic skill handlers. It should stay below the tool executor and should not own agent turn state.
 - **Content engine** owns content plans, drafts, review, and deterministic execution primitives. It should be callable by agent tools or product controllers.
 - **Content orchestration** owns media pipeline jobs and generated asset persistence. It should remain a worker-friendly pipeline executor, not an agent state machine.
-- **Workflow executor** is legacy execution surface. New V1 paths should route through content orchestration or skill handlers before adding more processors here.
 
 ## Simplified Runtime Boundary
 
@@ -80,8 +77,7 @@ The follow-on work is intentionally narrow enough to land after V1 setup:
 1. Add an `AgentRuntimeModule` facade that exports runtime operations backed by `AgentOrchestratorService`, `AgentThreadEngineService`, `AgentRuntimeSessionService`, and `AgentExecutionLaneService`. **Started:** `AgentRuntimeService.startTurn` exists for campaign callers (thread + run + queue + best-effort `thread.turn_requested`).
 2. Migrate `AgentSpawnService` to depend on the runtime facade instead of resolving `AgentOrchestratorService` through `ModuleRef`.
 3. Migrate campaign orchestration to create or resume runtime turns through the facade, keeping only recurrence, trigger evaluation, queue scheduling, and memory extraction in `agent-campaign`. **Partial:** `AgentCampaignExecutionService` uses `startTurn`; `content-engine.service.ts` still create-and-queues directly.
-4. Re-home or wrap legacy `workflow-executor` processors behind content orchestration or skill handlers before adding new V1 execution paths.
-5. Add a smoke test that proves a campaign trigger creates a runtime run, appends thread events, and records completion through the same snapshot path used by chat.
+4. Add a smoke test that proves a campaign trigger creates a runtime run, appends thread events, and records completion through the same snapshot path used by chat.
 
 ## V1 Boundary
 

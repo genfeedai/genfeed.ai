@@ -95,7 +95,7 @@ describe('PerformanceSummaryService', () => {
         likes: 10,
         platform: 'instagram',
         postId: 'post-1',
-        publishDate: new Date('2026-07-20T14:00:00.000Z'),
+        publishDate: '2026-07-20T14:00:00.000Z',
         saves: 2,
         shares: 3,
         title: 'A great title',

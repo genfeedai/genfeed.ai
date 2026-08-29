@@ -5,23 +5,23 @@ export enum AgentRunFrequency {
 }
 
 /**
- * Agent run lifecycle. Values match Prisma `AgentRunStatus` (SCREAMING_SNAKE)
- * so DB writes need no cast.
+ * Strategy run-history lifecycle. Domain-only vocabulary persisted inside the
+ * `agent_strategies.config.runHistory` JSON blob — no Prisma enum backs it.
  *
- * `BUDGET_EXHAUSTED` is domain-only (strategy history / orchestration) — not a
- * Postgres AgentRunStatus label. Map it to FAILED before writing the agent_runs
- * column (see task-orchestrator normalizeRunStatus).
+ * The first five members mirror `WorkflowExecutionStatus` so a history entry
+ * can be written straight from a workflow execution. `BUDGET_EXHAUSTED` is the
+ * strategy-orchestration extra: the run stopped because the strategy hit its
+ * credit ceiling, not because the execution itself failed.
  *
- * @see packages/prisma/prisma/schema.prisma `enum AgentRunStatus`
- * @see AgentExecutionStatus (identical Prisma set without BUDGET_EXHAUSTED)
+ * @see WorkflowExecutionStatus (the execution-plane subset, Prisma-backed)
  */
-export enum AgentRunStatus {
+export enum AgentStrategyRunStatus {
   PENDING = 'PENDING',
   RUNNING = 'RUNNING',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
   CANCELLED = 'CANCELLED',
-  /** Strategy / orchestration only — not a Prisma AgentRun column value. */
+  /** Strategy credit ceiling reached — distinct from an execution FAILED. */
   BUDGET_EXHAUSTED = 'BUDGET_EXHAUSTED',
 }
 

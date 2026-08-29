@@ -1,7 +1,7 @@
 import type { UserSetupResult } from '@api/collections/users/services/user-setup.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import { SignupPrefillQueueService } from '@api/services/signup-prefill/signup-prefill-queue.service';
+import { SignupPrefillWorkflowService } from '@api/services/signup-prefill/signup-prefill-workflow.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -29,7 +29,7 @@ export class UserProvisioningListener {
   constructor(
     private readonly userSetupService: UserSetupService,
     private readonly lifecycleEmailService: LifecycleEmailService,
-    private readonly signupPrefillQueueService: SignupPrefillQueueService,
+    private readonly signupPrefillWorkflowService: SignupPrefillWorkflowService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -77,7 +77,7 @@ export class UserProvisioningListener {
       return;
     }
 
-    void this.signupPrefillQueueService
+    void this.signupPrefillWorkflowService
       .enqueuePrefill({
         brandId: String(brandId),
         email: event.email ?? undefined,

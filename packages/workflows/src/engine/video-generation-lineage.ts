@@ -4,11 +4,7 @@ import type { ExecutionOptions } from '../contracts';
  * Canonical video-generation node types the pilot-run gate wraps.
  * Processing nodes (lipSync, reframe, upscale) are out of scope.
  */
-export const VIDEO_GENERATION_NODE_TYPES = [
-  'videoGen',
-  'generateVideo',
-  'video-generator',
-] as const;
+export const VIDEO_GENERATION_NODE_TYPES = ['videoGen'] as const;
 
 export type VideoGenerationNodeType =
   (typeof VIDEO_GENERATION_NODE_TYPES)[number];

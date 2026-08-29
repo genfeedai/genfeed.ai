@@ -1,16 +1,12 @@
-import { QueueService } from '@server/queues/core/queue.service';
-import type { AdBulkUploadJobData } from '@genfeedai/queue-contracts';
-import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { randomUUID } from 'node:crypto';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { CreativeSource } from '@server/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
-import { AdBulkUploadJobsService } from '@server/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
+import { AdBulkUploadWorkflowService } from '@server/collections/workflows/services/ad-bulk-upload-workflow.service';
 
 export interface CreateBulkUploadInput {
   organizationId: string;
   brandId?: string;
   credentialId: string;
-  accessToken: string;
   adAccountId: string;
   campaignId: string;
   adSetId: string;
@@ -21,30 +17,19 @@ export interface CreateBulkUploadInput {
   bodyCopies: string[];
   callToAction?: string;
   linkUrl: string;
+  userId?: string;
 }
 
 @Injectable()
 export class AdBulkUploadService {
-  private readonly constructorName = this.constructor.name;
-  private readonly QUEUE_NAME = 'ad-bulk-upload';
-
-  constructor(
-    private readonly logger: LoggerService,
-    private readonly bulkUploadJobsService: AdBulkUploadJobsService,
-    private readonly queueService: QueueService,
-  ) {}
+  constructor(private readonly workflow: AdBulkUploadWorkflowService) {}
 
   async createBulkUpload(
     input: CreateBulkUploadInput,
-  ): Promise<{ jobId: string }> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
+  ): Promise<{ jobId: string; workflowJobId: string }> {
     this.validateInput(input);
-
-    const resolvedMedia = this.resolveCreativeSources(input);
-
     const totalPermutations =
-      (resolvedMedia.images.length + resolvedMedia.videos.length) *
+      (input.images.length + input.videos.length) *
       input.headlines.length *
       input.bodyCopies.length;
 
@@ -54,54 +39,26 @@ export class AdBulkUploadService {
       );
     }
 
-    const jobDoc = await this.bulkUploadJobsService.create({
-      adAccountId: input.adAccountId,
-      adSetId: input.adSetId,
-      bodyCopies: input.bodyCopies,
-      brandId: input.brandId || undefined,
-      callToAction: input.callToAction,
-      campaignId: input.campaignId,
-      creativeSource: input.creativeSource,
-      credentialId: input.credentialId,
-      headlines: input.headlines,
-      images: resolvedMedia.images,
-      linkUrl: input.linkUrl,
-      organizationId: input.organizationId,
-      status: 'pending',
-      totalPermutations,
-      videos: resolvedMedia.videos,
-    });
-
-    const jobId = String(jobDoc.id);
-
-    const queueData: AdBulkUploadJobData = {
-      accessToken: input.accessToken,
-      adAccountId: input.adAccountId,
-      adSetId: input.adSetId,
-      bodyCopies: input.bodyCopies,
-      brandId: input.brandId,
-      callToAction: input.callToAction,
-      campaignId: input.campaignId,
-      credentialId: input.credentialId,
-      headlines: input.headlines,
-      images: resolvedMedia.images,
-      jobId,
-      linkUrl: input.linkUrl,
-      organizationId: input.organizationId,
-      videos: resolvedMedia.videos,
-    };
-
-    await this.queueService.add(this.QUEUE_NAME, queueData, {
-      attempts: 3,
-      backoff: { delay: 5000, type: 'exponential' },
-      jobId,
-    });
-
-    this.logger.log(
-      `${caller} created bulk upload job ${jobId} with ${totalPermutations} permutations`,
+    const jobId = randomUUID();
+    return this.workflow.queue(
+      {
+        adAccountId: input.adAccountId,
+        adSetId: input.adSetId,
+        bodyCopies: input.bodyCopies,
+        brandId: input.brandId || undefined,
+        callToAction: input.callToAction,
+        campaignId: input.campaignId,
+        creativeSource: input.creativeSource,
+        credentialId: input.credentialId,
+        headlines: input.headlines,
+        images: input.images,
+        jobId,
+        linkUrl: input.linkUrl,
+        organizationId: input.organizationId,
+        videos: input.videos,
+      },
+      input.userId,
     );
-
-    return { jobId };
   }
 
   private validateInput(input: CreateBulkUploadInput): void {
@@ -129,27 +86,10 @@ export class AdBulkUploadService {
     if (input.images.length === 0 && input.videos.length === 0) {
       throw new BadRequestException('At least one image or video is required');
     }
-  }
-
-  private resolveCreativeSources(input: CreateBulkUploadInput): {
-    images: string[];
-    videos: string[];
-  } {
-    switch (input.creativeSource) {
-      case 'content-library':
-        this.logger.warn(
-          `${this.constructorName}: Content library integration is pending. Using provided URLs directly.`,
-        );
-        return { images: input.images, videos: input.videos };
-
-      case 'ai-generated':
-        this.logger.warn(
-          `${this.constructorName}: AI pipeline integration is pending. Using provided URLs directly.`,
-        );
-        return { images: input.images, videos: input.videos };
-
-      default:
-        return { images: input.images, videos: input.videos };
+    if (input.creativeSource !== 'manual-upload') {
+      throw new BadRequestException(
+        `Creative source ${input.creativeSource} requires an explicit asset-resolution workflow`,
+      );
     }
   }
 }

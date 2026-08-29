@@ -1,6 +1,6 @@
+import * as executionsApi from '@genfeedai/agent/services/agent-api/agent-api.executions';
 import * as mediaApi from '@genfeedai/agent/services/agent-api/agent-api.media';
 import * as mentionsApi from '@genfeedai/agent/services/agent-api/agent-api.mentions';
-import * as runsApi from '@genfeedai/agent/services/agent-api/agent-api.runs';
 import * as threadsApi from '@genfeedai/agent/services/agent-api/agent-api.threads';
 import * as workflowsApi from '@genfeedai/agent/services/agent-api/agent-api.workflows';
 import { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
@@ -18,7 +18,6 @@ export type {
   WorkflowTriggerScope,
 } from '@genfeedai/agent/services/agent-api.types';
 export type { AgentApiConfig } from '@genfeedai/agent/services/agent-base-api.service';
-export type { ListAgentRunsParams } from '@genfeedai/agent/services/agent-run-api.helpers';
 
 /**
  * Thin facade over domain API modules (threads, runs, mentions, media, workflows).
@@ -65,17 +64,20 @@ export class AgentApiService extends AgentBaseApiService {
     this,
   );
 
-  // Runs / credits / readiness
-  getInstallReadinessEffect = runsApi.getInstallReadinessEffect.bind(
+  // Workflow executions / credits / readiness
+  getInstallReadinessEffect = executionsApi.getInstallReadinessEffect.bind(
     null,
     this,
   );
-  getCreditsInfoEffect = runsApi.getCreditsInfoEffect.bind(null, this);
-  getActiveRunsEffect = runsApi.getActiveRunsEffect.bind(null, this);
-  listRunsEffect = runsApi.listRunsEffect.bind(null, this);
-  getRunEffect = runsApi.getRunEffect.bind(null, this);
-  cancelRunEffect = runsApi.cancelRunEffect.bind(null, this);
-  retryRunEffect = runsApi.retryRunEffect.bind(null, this);
+  getCreditsInfoEffect = executionsApi.getCreditsInfoEffect.bind(null, this);
+  getActiveWorkflowExecutionsEffect =
+    executionsApi.getActiveWorkflowExecutionsEffect.bind(null, this);
+  getWorkflowExecutionEffect = executionsApi.getWorkflowExecutionEffect.bind(
+    null,
+    this,
+  );
+  cancelWorkflowExecutionEffect =
+    executionsApi.cancelWorkflowExecutionEffect.bind(null, this);
 
   // Mentions / memory
   getMentionsEffect = mentionsApi.getMentionsEffect.bind(null, this);

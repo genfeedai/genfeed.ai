@@ -8,7 +8,6 @@ import { TRANSCRIPT_PURGE_RETENTION_DAYS } from '@workers/crons/transcript-purge
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const EMPTY_JSON = {} as Prisma.InputJsonValue;
-const EMPTY_JSON_ARRAY = [] as Prisma.InputJsonValue;
 
 const EXPIRED_THREAD_WIPE = {
   config: EMPTY_JSON,
@@ -23,20 +22,8 @@ const EXPIRED_MESSAGE_WIPE = {
   toolResults: Prisma.DbNull,
 } as const;
 
-const EXPIRED_RUN_WIPE = {
-  config: EMPTY_JSON,
-  error: null,
-  metadata: EMPTY_JSON,
-  objective: null,
-  result: Prisma.DbNull,
-  steps: EMPTY_JSON_ARRAY,
-  summary: null,
-  toolCalls: EMPTY_JSON_ARRAY,
-} as const;
-
 export type TranscriptPurgeTotals = {
   agentMessages: number;
-  agentRuns: number;
   agentThreadEvents: number;
   agentThreadSnapshots: number;
   agentThreads: number;
@@ -103,50 +90,39 @@ export class CronTranscriptPurgeService {
       updatedAt: { lt: cutoff },
     };
 
-    const [threads, messages, events, runs, snapshots, contexts] =
-      await Promise.all([
-        this.prisma.agentThread.findMany({
-          distinct: ['organizationId'],
-          select: { organizationId: true },
-          where: expiredTombstone,
-        }),
-        this.prisma.agentMessage.findMany({
-          distinct: ['organizationId'],
-          select: { organizationId: true },
-          where: expiredTombstone,
-        }),
-        this.prisma.agentThreadEvent.findMany({
-          distinct: ['organizationId'],
-          select: { organizationId: true },
-          where: expiredTombstone,
-        }),
-        this.prisma.agentRun.findMany({
-          distinct: ['organizationId'],
-          select: { organizationId: true },
-          where: expiredTombstone,
-        }),
-        this.prisma.agentThreadSnapshot.findMany({
-          distinct: ['organizationId'],
-          select: { organizationId: true },
-          where: expiredTombstone,
-        }),
-        this.prisma.threadContextState.findMany({
-          distinct: ['organizationId'],
-          select: { organizationId: true },
-          where: expiredTombstone,
-        }),
-      ]);
+    const [threads, messages, events, snapshots, contexts] = await Promise.all([
+      this.prisma.agentThread.findMany({
+        distinct: ['organizationId'],
+        select: { organizationId: true },
+        where: expiredTombstone,
+      }),
+      this.prisma.agentMessage.findMany({
+        distinct: ['organizationId'],
+        select: { organizationId: true },
+        where: expiredTombstone,
+      }),
+      this.prisma.agentThreadEvent.findMany({
+        distinct: ['organizationId'],
+        select: { organizationId: true },
+        where: expiredTombstone,
+      }),
+      this.prisma.agentThreadSnapshot.findMany({
+        distinct: ['organizationId'],
+        select: { organizationId: true },
+        where: expiredTombstone,
+      }),
+      this.prisma.threadContextState.findMany({
+        distinct: ['organizationId'],
+        select: { organizationId: true },
+        where: expiredTombstone,
+      }),
+    ]);
 
     return [
       ...new Set(
-        [
-          ...threads,
-          ...messages,
-          ...events,
-          ...runs,
-          ...snapshots,
-          ...contexts,
-        ].map((row) => row.organizationId),
+        [...threads, ...messages, ...events, ...snapshots, ...contexts].map(
+          (row) => row.organizationId,
+        ),
       ),
     ];
   }
@@ -179,8 +155,6 @@ export class CronTranscriptPurgeService {
       threadMessages,
       expiredEvents,
       threadEvents,
-      expiredRuns,
-      threadRuns,
       expiredSnapshots,
       threadSnapshots,
       expiredContexts,
@@ -212,16 +186,6 @@ export class CronTranscriptPurgeService {
                 where: expiredThreadChildren,
               })
             : noRows,
-          tx.agentRun.updateMany({
-            data: EXPIRED_RUN_WIPE,
-            where: expiredRow,
-          }),
-          expiredThreadChildren
-            ? tx.agentRun.updateMany({
-                data: EXPIRED_RUN_WIPE,
-                where: expiredThreadChildren,
-              })
-            : noRows,
           tx.agentThreadSnapshot.updateMany({
             data: { data: EMPTY_JSON },
             where: expiredRow,
@@ -248,7 +212,6 @@ export class CronTranscriptPurgeService {
 
     return {
       agentMessages: expiredMessages.count + threadMessages.count,
-      agentRuns: expiredRuns.count + threadRuns.count,
       agentThreadEvents: expiredEvents.count + threadEvents.count,
       agentThreadSnapshots: expiredSnapshots.count + threadSnapshots.count,
       agentThreads: expiredThreads.count,
@@ -262,7 +225,6 @@ const noRows = Promise.resolve({ count: 0 });
 function emptyTotals(): TranscriptPurgeTotals {
   return {
     agentMessages: 0,
-    agentRuns: 0,
     agentThreadEvents: 0,
     agentThreadSnapshots: 0,
     agentThreads: 0,
@@ -276,7 +238,6 @@ function addTotals(
   increment: Omit<TranscriptPurgeTotals, 'organizations'>,
 ): void {
   target.agentMessages += increment.agentMessages;
-  target.agentRuns += increment.agentRuns;
   target.agentThreadEvents += increment.agentThreadEvents;
   target.agentThreadSnapshots += increment.agentThreadSnapshots;
   target.agentThreads += increment.agentThreads;

@@ -1,3 +1,14 @@
+import { MemberRole } from '@genfeedai/enums';
+import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import {
   AUDITOR_IGNORED_TABLES,
   FIRST_ORDER_TARGETS,
@@ -12,17 +23,6 @@ import {
 import { CacheInvalidationService } from '@server/common/services/cache-invalidation.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { MemberRole } from '@genfeedai/enums';
-import { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
 
 /**
  * Minimal structural view of a Prisma model delegate, used to drive the brand→org
@@ -140,10 +140,6 @@ const RELOCATION_RESOURCE_LABELS: Record<
   },
   article: { singular: 'article', plural: 'articles' },
   asset: { singular: 'asset', plural: 'assets' },
-  batchWorkflowJob: {
-    singular: 'batch workflow job',
-    plural: 'batch workflow jobs',
-  },
   batch: { singular: 'batch', plural: 'batches' },
   bookmark: { singular: 'bookmark', plural: 'bookmarks' },
   botActivity: { singular: 'bot activity', plural: 'bot activities' },
@@ -208,7 +204,6 @@ const RELOCATION_RESOURCE_LABELS: Record<
     singular: 'reply bot config',
     plural: 'reply bot configs',
   },
-  run: { singular: 'run', plural: 'runs' },
   schedule: { singular: 'schedule', plural: 'schedules' },
   socialConversation: {
     singular: 'social conversation',
@@ -775,16 +770,9 @@ export class BrandRelocationService {
     });
 
     // Workflow definitions already moved through FIRST_ORDER_TARGETS. Move the
-    // org-keyed execution and batch history that follows those workflows.
+    // org-keyed execution history that follows those workflows.
     if (workflowsToMove.length > 0) {
       await client.workflowExecution.updateMany({
-        data: { organizationId: destOrgId },
-        where: {
-          workflowId: { in: workflowsToMove },
-          organizationId: { not: destOrgId },
-        },
-      });
-      await client.batchWorkflowJob.updateMany({
         data: { organizationId: destOrgId },
         where: {
           workflowId: { in: workflowsToMove },

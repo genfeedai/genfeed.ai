@@ -8,24 +8,11 @@
  * apart from the plain CRUD surface on `ArticlesController`.
  */
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@server/collections/activities/services/activities.service';
-import {
-  ArticleGenerationType,
-  GenerateArticlesDto,
-} from '@server/collections/articles/dto/generate-articles.dto';
 import { ReviewArticleDto } from '@api/collections/articles/dto/review-article.dto';
-import { ArticlesService } from '@server/collections/articles/services/articles.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@server/collections/models/services/models.service';
-import { baseModelKey } from '@server/collections/models/utils/model-key.util';
-import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
-import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -40,7 +27,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -61,6 +47,20 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { ActivityEntity } from '@server/collections/activities/entities/activity.entity';
+import { ActivitiesService } from '@server/collections/activities/services/activities.service';
+import {
+  ArticleGenerationType,
+  GenerateArticlesDto,
+} from '@server/collections/articles/dto/generate-articles.dto';
+import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { ModelsService } from '@server/collections/models/services/models.service';
+import { baseModelKey } from '@server/collections/models/utils/model-key.util';
+import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
+import { LogMethod } from '@server/helpers/decorators/log/log-method.decorator';
+import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
 import type { Request } from 'express';
 
 /**
@@ -152,8 +152,6 @@ export class ArticlesOperationsController {
       minimumRequiredCredits,
     );
 
-    let billedCredits = 0;
-
     // Create activity for article generation start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
@@ -182,15 +180,13 @@ export class ArticlesOperationsController {
     });
 
     try {
-      const articles = await this.articlesService.generateArticles(
-        dto,
-        user.userId ?? user.id,
-        user.organizationId,
-        brandId,
-        (amount) => {
-          billedCredits += amount;
-        },
-      );
+      const { articles, billedCredits } =
+        await this.articlesService.generateArticles(
+          dto,
+          user.userId ?? user.id,
+          user.organizationId,
+          brandId,
+        );
 
       this.settleDeferredCredits(request, billedCredits);
 
@@ -269,16 +265,11 @@ export class ArticlesOperationsController {
       ),
     );
 
-    let billedCredits = 0;
-
-    const review = await this.articlesService.reviewArticle(
+    const { billedCredits, review } = await this.articlesService.reviewArticle(
       articleId,
       user.userId ?? user.id,
       user.organizationId,
       dto.focus,
-      (amount) => {
-        billedCredits += amount;
-      },
     );
 
     this.settleDeferredCredits(request, billedCredits);

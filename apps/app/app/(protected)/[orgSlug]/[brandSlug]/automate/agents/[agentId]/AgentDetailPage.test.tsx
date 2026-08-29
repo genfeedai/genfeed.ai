@@ -39,38 +39,37 @@ vi.mock('@hooks/data/agent-strategies/use-agent-strategy', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/agent-runs/use-agent-runs', () => ({
-  useAgentRuns: () => ({
-    isLoading: false,
-    runs: [
+vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
+  useWorkflowExecutions: () => ({
+    cancelExecution: vi.fn(),
+    executions: [
       {
         completedAt: '2026-03-26T10:15:00.000Z',
         createdAt: '2026-03-26T10:00:00.000Z',
-        creditBudget: undefined,
         creditsUsed: 6,
         durationMs: 18000,
-        id: 'run-1',
-        label: 'Trend scan',
+        id: 'execution-1',
         metadata: {
           actualModel: 'google/gemini-2.5-flash',
           requestedModel: 'openai/gpt-5.6-terra',
-          routingPolicy: 'fresh-live-data',
-          webSearchEnabled: true,
+          strategyId: 'strategy-1',
         },
-        objective: 'Find latest creator trends',
-        organization: 'org-1',
-        parentRun: undefined,
-        progress: 100,
-        retryCount: 0,
+        nodeResults: [],
+        organizationId: 'org-1',
         startedAt: '2026-03-26T10:01:00.000Z',
-        status: 'completed',
-        summary: undefined,
-        toolCalls: [],
-        trigger: 'manual',
+        status: 'COMPLETED',
         updatedAt: '2026-03-26T10:15:00.000Z',
-        user: 'user-1',
       },
     ],
+    isLoading: false,
+    refresh: vi.fn(),
+    stats: {
+      active: 0,
+      completed: 1,
+      failed: 0,
+      total: 1,
+      totalCredits: 6,
+    },
   }),
 }));
 

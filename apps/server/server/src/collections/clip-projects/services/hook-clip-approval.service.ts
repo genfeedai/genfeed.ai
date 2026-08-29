@@ -1,22 +1,22 @@
-import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
-import {
-  ClipOrchestratorService,
-  type ClipRun,
-} from '@server/services/clip-orchestrator/clip-orchestrator.service';
-import { ClipRunState } from '@server/services/clip-orchestrator/clip-run-state.enum';
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import type {
   HookClipApprovalAction,
   HookClipApprovalStatus,
 } from '@genfeedai/interfaces';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
+import { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
 import {
   type ClipGenerationInput,
   ClipGenerationService,
-  type HookClipApprovalPlan,
-} from './clip-generation.service';
+} from '@server/collections/clip-projects/services/clip-generation.service';
+import { CLIP_HOOK_REVIEW_NODE_ID } from '@server/collections/clip-projects/services/clip-generation-workflow-definition';
+import { ClipResultsService } from '@server/collections/clip-results/clip-results.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import type { WorkflowExecutionDocument } from '@server/collections/workflow-executions/schemas/workflow-execution.schema';
+import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
+import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
+import { InsufficientCreditsException } from '@server/exceptions/business-logic.exception';
 
 export interface SubmitHookClipDecisionInput {
   action: HookClipApprovalAction;
@@ -26,135 +26,64 @@ export interface SubmitHookClipDecisionInput {
   feedback?: string;
 }
 
+type HookWorkflowState = {
+  attempt: number;
+  execution: WorkflowExecutionDocument;
+  feedback?: string;
+  hookClipResultId?: string;
+  lastAction?: HookClipApprovalAction;
+  remainingClipCount: number;
+  request: ClipGenerationInput;
+  state: HookClipApprovalStatus['state'];
+  workflowId: string;
+};
+
 @Injectable()
 export class HookClipApprovalService {
   constructor(
-    private readonly orchestrator: ClipOrchestratorService,
     private readonly clipResultsService: ClipResultsService,
     private readonly clipGenerationService: ClipGenerationService,
     private readonly clipProjectsService: ClipProjectsService,
     private readonly creditsUtilsService: CreditsUtilsService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef,
   ) {}
 
   async getStatus(
     projectId: string,
     organizationId: string,
   ): Promise<HookClipApprovalStatus> {
-    const run = await this.orchestrator.getProjectRun(
-      projectId,
-      organizationId,
-    );
-    const plan = run ? this.readPlan(run) : undefined;
-    if (!run || !plan) {
-      return this.toStatus('not_required');
-    }
-
-    if (run.currentState === ClipRunState.AwaitingConfirmation) {
-      return this.toStatus('awaiting_confirmation', plan);
-    }
-    if (run.currentState === ClipRunState.Failed) {
-      return this.toStatus(
-        plan.phase === 'rejected' ? 'rejected' : 'failed',
-        plan,
-      );
-    }
-    if (plan.phase === 'approved') {
-      return this.toStatus('approved', plan);
-    }
-    if (plan.phase === 'resuming') {
-      return this.toStatus('resuming', plan);
-    }
-
-    const hookResult = await this.clipResultsService.findOne({
-      id: plan.hookClipResultId,
-      isDeleted: false,
-      organizationId,
-      projectId,
-    });
-    const hookStatus =
-      typeof hookResult?.status === 'string' ? hookResult.status : undefined;
-
-    if (hookStatus === 'failed') {
-      const reason = 'Hook clip generation failed before approval.';
-      await this.orchestrator.reject(run.id, reason);
-      const failedPlan = {
-        ...plan,
-        feedback: reason,
-        phase: 'failed' as const,
-      };
-      await this.orchestrator.updateMetadata(run.id, {
-        hookApproval: failedPlan,
-      });
-      await this.clipProjectsService.patch(projectId, {
-        error: reason,
-        progress: 100,
-        status: 'failed',
-      });
-      return this.toStatus('failed', failedPlan);
-    }
-
-    if (hookStatus === 'completed') {
-      await this.orchestrator.completeStep(run.id, {
-        hookClipResultId: plan.hookClipResultId,
-      });
-      await this.orchestrator.requestConfirmation(
-        run.id,
-        ClipRunState.Generating,
-      );
-      // Provider completion reconciliation may have observed only the hook.
-      // Keep the project active while the durable run is paused for review.
-      await this.clipProjectsService.patch(projectId, {
-        error: null,
-        status: 'generating',
-      });
-      return this.toStatus('awaiting_confirmation', plan);
-    }
-
-    return this.toStatus('generating_hook', plan);
+    const state = await this.resolveWorkflowState(projectId, organizationId);
+    return state ? this.toStatus(state) : this.emptyStatus();
   }
 
   async submitDecision(
     input: SubmitHookClipDecisionInput,
   ): Promise<HookClipApprovalStatus> {
-    await this.getStatus(input.projectId, input.organizationId);
-    const run = await this.orchestrator.getProjectRun(
+    const state = await this.resolveWorkflowState(
       input.projectId,
       input.organizationId,
     );
-    const plan = run ? this.readPlan(run) : undefined;
-    if (
-      !run ||
-      !plan ||
-      run.currentState !== ClipRunState.AwaitingConfirmation
-    ) {
+    if (state?.state !== 'awaiting_confirmation') {
       throw new BadRequestException(
         'The hook clip is not awaiting an operator decision.',
       );
     }
 
-    const requiredCredits =
-      input.action === 'approve' ? plan.remainingInput.highlights.length : 1;
     if (input.action !== 'reject') {
-      await this.assertCredits(input.organizationId, requiredCredits);
-    }
-
-    const claimed = await this.orchestrator.claimConfirmation(
-      run.id,
-      plan.attempt,
-    );
-    if (!claimed) {
-      throw new BadRequestException(
-        'This hook approval was already resolved by another reviewer.',
+      await this.assertCredits(
+        input.organizationId,
+        input.action === 'approve' ? state.remainingClipCount : 1,
       );
     }
 
-    if (input.action === 'reject') {
-      return this.reject(run, plan, input);
-    }
     if (input.action === 'request_changes') {
-      return this.requestChanges(run, plan, input);
+      return this.requestChanges(state, input);
     }
-    return this.approve(run, plan, input);
+    if (input.action === 'reject') {
+      return this.reject(state, input);
+    }
+    return this.approve(state, input);
   }
 
   isProjectReconciliationBlocked(status: HookClipApprovalStatus): boolean {
@@ -168,133 +97,236 @@ export class HookClipApprovalService {
   }
 
   private async approve(
-    run: ClipRun,
-    plan: HookClipApprovalPlan,
+    state: HookWorkflowState,
     input: SubmitHookClipDecisionInput,
   ): Promise<HookClipApprovalStatus> {
-    await this.orchestrator.confirm(run.id);
-    const resumingPlan: HookClipApprovalPlan = {
-      ...plan,
-      feedback: input.feedback,
-      lastAction: 'approve',
-      phase: 'resuming',
-    };
-    await this.orchestrator.updateMetadata(run.id, {
-      hookApproval: resumingPlan,
-      hookApprovalReviewedBy: input.userId,
-    });
-    await this.clipProjectsService.patch(input.projectId, {
-      error: null,
-      status: 'generating',
-    });
-
-    const result = await this.clipGenerationService
-      .generateClips(plan.remainingInput)
-      .catch(() => undefined);
-    if (!result || result.queuedClipCount === 0) {
-      return this.failResume(run, resumingPlan, input.projectId);
-    }
-
-    const approvedPlan: HookClipApprovalPlan = {
-      ...resumingPlan,
-      phase: 'approved',
-    };
-    await this.orchestrator.updateMetadata(run.id, {
-      hookApproval: approvedPlan,
-    });
-    return this.toStatus('approved', approvedPlan);
+    await this.requireWorkflowExecutor().submitReviewGateApproval(
+      state.workflowId,
+      state.execution.id,
+      input.userId,
+      input.organizationId,
+      CLIP_HOOK_REVIEW_NODE_ID,
+      true,
+    );
+    await this.clipProjectsService.patch(
+      input.projectId,
+      {
+        clipHookReviewFeedback: input.feedback ?? null,
+        clipHookReviewLastAction: 'approve',
+        error: null,
+        status: 'generating',
+      },
+      [],
+      input.organizationId,
+    );
+    return this.getStatus(input.projectId, input.organizationId);
   }
 
   private async requestChanges(
-    run: ClipRun,
-    plan: HookClipApprovalPlan,
+    state: HookWorkflowState,
     input: SubmitHookClipDecisionInput,
   ): Promise<HookClipApprovalStatus> {
-    await this.orchestrator.confirm(run.id);
-    const resumingPlan: HookClipApprovalPlan = {
-      ...plan,
-      feedback: input.feedback,
-      lastAction: 'request_changes',
-      phase: 'resuming',
-    };
-    await this.orchestrator.updateMetadata(run.id, {
-      hookApproval: resumingPlan,
-      hookApprovalReviewedBy: input.userId,
-    });
-    const result = await this.clipGenerationService
-      .generateClips(this.withRevisionGuidance(plan.hookInput, input.feedback))
-      .catch(() => undefined);
-    const hookClipResultId = result?.clipResultIds[0];
-    if (!result || !hookClipResultId || result.queuedClipCount === 0) {
-      return this.failResume(run, resumingPlan, input.projectId);
+    const reason = input.feedback?.trim() || 'Hook revision requested.';
+    await this.requireWorkflowExecutor().submitReviewGateApproval(
+      state.workflowId,
+      state.execution.id,
+      input.userId,
+      input.organizationId,
+      CLIP_HOOK_REVIEW_NODE_ID,
+      false,
+      reason,
+    );
+    if (state.hookClipResultId) {
+      await this.clipResultsService.patch(
+        state.hookClipResultId,
+        { isDeleted: true },
+        [],
+        input.organizationId,
+      );
     }
-    await this.clipResultsService.patch(plan.hookClipResultId, {
-      isDeleted: true,
-    });
+    await this.clipProjectsService.patch(
+      input.projectId,
+      { error: null, status: 'generating' },
+      [],
+      input.organizationId,
+    );
 
-    const nextPlan: HookClipApprovalPlan = {
-      ...resumingPlan,
-      attempt: plan.attempt + 1,
-      feedback: input.feedback,
-      hookClipResultId,
-      phase: 'generating_hook',
-    };
-    await this.orchestrator.updateMetadata(run.id, {
-      hookApproval: nextPlan,
-    });
-    await this.clipProjectsService.patch(input.projectId, {
-      error: null,
-      status: 'generating',
-    });
-    return this.toStatus('generating_hook', nextPlan);
+    try {
+      await this.clipGenerationService.generateClips(
+        this.withRevisionGuidance(state.request, reason),
+        {
+          attempt: state.attempt + 1,
+          feedback: reason,
+          lastAction: 'request_changes',
+        },
+      );
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Hook revision workflow failed to start.';
+      await this.clipProjectsService.patch(
+        input.projectId,
+        { error: message, progress: 100, status: 'failed' },
+        [],
+        input.organizationId,
+      );
+    }
+    return this.getStatus(input.projectId, input.organizationId);
   }
 
   private async reject(
-    run: ClipRun,
-    plan: HookClipApprovalPlan,
+    state: HookWorkflowState,
     input: SubmitHookClipDecisionInput,
   ): Promise<HookClipApprovalStatus> {
     const reason = input.feedback?.trim() || 'Hook clip rejected by reviewer.';
-    const rejectedPlan: HookClipApprovalPlan = {
-      ...plan,
+    await this.requireWorkflowExecutor().submitReviewGateApproval(
+      state.workflowId,
+      state.execution.id,
+      input.userId,
+      input.organizationId,
+      CLIP_HOOK_REVIEW_NODE_ID,
+      false,
+      reason,
+    );
+    await this.clipProjectsService.patch(
+      input.projectId,
+      {
+        clipHookReviewFeedback: reason,
+        clipHookReviewLastAction: 'reject',
+        error: reason,
+        progress: 100,
+        status: 'failed',
+      },
+      [],
+      input.organizationId,
+    );
+    return {
+      attempt: state.attempt,
       feedback: reason,
+      ...(state.hookClipResultId
+        ? { hookClipResultId: state.hookClipResultId }
+        : {}),
       lastAction: 'reject',
-      phase: 'rejected',
+      remainingClipCount: state.remainingClipCount,
+      state: 'rejected',
     };
-    await this.orchestrator.updateMetadata(run.id, {
-      hookApproval: rejectedPlan,
-      hookApprovalReviewedBy: input.userId,
-    });
-    await this.orchestrator.reject(run.id, reason);
-    await this.clipProjectsService.patch(input.projectId, {
-      error: reason,
-      progress: 100,
-      status: 'failed',
-    });
-    return this.toStatus('rejected', rejectedPlan);
   }
 
-  private async failResume(
-    run: ClipRun,
-    plan: HookClipApprovalPlan,
+  private async resolveWorkflowState(
     projectId: string,
-  ): Promise<HookClipApprovalStatus> {
-    const reason = 'Clip generation failed before a provider job was queued.';
-    const failedPlan: HookClipApprovalPlan = {
-      ...plan,
-      feedback: reason,
-      phase: 'failed',
+    organizationId: string,
+  ): Promise<HookWorkflowState | undefined> {
+    const project = await this.clipProjectsService.findOne({
+      id: projectId,
+      isDeleted: false,
+      organizationId,
+    });
+    const workflowExecutionId = this.readString(project?.workflowExecutionId);
+    if (!project || !workflowExecutionId) {
+      return undefined;
+    }
+
+    const execution = await this.requireWorkflowExecutions().findOne({
+      id: workflowExecutionId,
+      isDeleted: false,
+      organizationId,
+    });
+    if (!execution) {
+      return undefined;
+    }
+    const request = this.resolveGenerationRequest(execution);
+    if (!this.isHookReviewRequired(request)) {
+      return undefined;
+    }
+
+    const hookClipResultId = this.resolveHookClipResultId(execution);
+    const attempt = this.readPositiveInteger(
+      execution.metadata?.clipHookReviewAttempt ??
+        project.clipHookReviewAttempt,
+      1,
+    );
+    const feedback = this.readString(
+      execution.metadata?.clipHookReviewFeedback ??
+        project.clipHookReviewFeedback,
+    );
+    const lastAction = this.readAction(
+      execution.metadata?.clipHookReviewLastAction ??
+        project.clipHookReviewLastAction,
+    );
+    const workflowId = this.readString(execution.workflowId);
+    if (!workflowId) {
+      throw new Error('Clip workflow execution has no workflow identity');
+    }
+
+    let state: HookClipApprovalStatus['state'];
+    if (String(execution.status) === WorkflowExecutionStatus.FAILED) {
+      state = lastAction === 'reject' ? 'rejected' : 'failed';
+    } else if (!hookClipResultId) {
+      state = 'generating_hook';
+    } else {
+      const hookResult = await this.clipResultsService.findOne({
+        id: hookClipResultId,
+        isDeleted: false,
+        organizationId,
+        projectId,
+      });
+      const hookStatus = this.readString(hookResult?.status);
+      if (hookStatus === 'failed' || hookStatus === 'degraded') {
+        state = 'failed';
+      } else if (this.hasPendingReview(execution)) {
+        state =
+          hookStatus === 'completed'
+            ? 'awaiting_confirmation'
+            : 'generating_hook';
+      } else if (
+        String(execution.status) === WorkflowExecutionStatus.COMPLETED
+      ) {
+        state = 'approved';
+      } else {
+        state = 'resuming';
+      }
+    }
+
+    return {
+      attempt,
+      execution,
+      ...(feedback ? { feedback } : {}),
+      ...(hookClipResultId ? { hookClipResultId } : {}),
+      ...(lastAction ? { lastAction } : {}),
+      remainingClipCount: request.highlights.length - 1,
+      request,
+      state,
+      workflowId,
     };
-    await this.orchestrator.updateMetadata(run.id, {
-      hookApproval: failedPlan,
-    });
-    await this.orchestrator.reject(run.id, reason);
-    await this.clipProjectsService.patch(projectId, {
-      error: reason,
-      progress: 100,
-      status: 'failed',
-    });
-    return this.toStatus('failed', failedPlan);
+  }
+
+  private hasPendingReview(execution: WorkflowExecutionDocument): boolean {
+    const pending = execution.metadata?.pendingApproval;
+    return (
+      pending !== null &&
+      typeof pending === 'object' &&
+      !Array.isArray(pending) &&
+      (pending as Record<string, unknown>).nodeId === CLIP_HOOK_REVIEW_NODE_ID
+    );
+  }
+
+  private withRevisionGuidance(
+    input: ClipGenerationInput,
+    feedback: string,
+  ): ClipGenerationInput {
+    const hookIndex = this.resolveHookIndex(input);
+    return {
+      ...input,
+      highlights: input.highlights.map((highlight, index) =>
+        index === hookIndex
+          ? {
+              ...highlight,
+              summary: `${highlight.summary}\nRevision guidance: ${feedback}`,
+            }
+          : highlight,
+      ),
+    };
   }
 
   private async assertCredits(
@@ -316,90 +348,120 @@ export class HookClipApprovalService {
     throw new InsufficientCreditsException(requiredCredits, balance);
   }
 
-  private readPlan(run: ClipRun): HookClipApprovalPlan | undefined {
-    const candidate = run.metadata?.hookApproval;
-    if (
-      !candidate ||
-      typeof candidate !== 'object' ||
-      Array.isArray(candidate)
-    ) {
-      return undefined;
-    }
-    const plan = candidate as Partial<HookClipApprovalPlan>;
-    if (
-      typeof plan.attempt !== 'number' ||
-      typeof plan.hookClipResultId !== 'string' ||
-      !this.isGenerationInput(plan.hookInput) ||
-      !this.isGenerationInput(plan.remainingInput) ||
-      typeof plan.phase !== 'string'
-    ) {
-      return undefined;
-    }
-    return {
-      ...(plan as HookClipApprovalPlan),
-      hookInput: this.freezeReferences(plan.hookInput),
-      remainingInput: this.freezeReferences(plan.remainingInput),
-    };
-  }
-
-  private freezeReferences(input: ClipGenerationInput): ClipGenerationInput {
-    return {
-      ...input,
-      runReferences: Object.freeze(
-        (input.runReferences ?? []).map((reference) =>
-          Object.freeze({ ...reference }),
-        ),
-      ),
-    };
-  }
-
-  private withRevisionGuidance(
-    input: ClipGenerationInput,
-    feedback?: string,
-  ): ClipGenerationInput {
-    const guidance = feedback?.trim();
-    if (!guidance) {
-      return input;
-    }
-    return {
-      ...input,
-      highlights: input.highlights.map((highlight, index) =>
-        index === 0
-          ? {
-              ...highlight,
-              summary: `${highlight.summary}\nRevision guidance: ${guidance}`,
-            }
-          : highlight,
-      ),
-    };
-  }
-
-  private isGenerationInput(value: unknown): value is ClipGenerationInput {
+  private readGenerationInput(value: unknown): ClipGenerationInput {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      return false;
+      throw new Error('Clip workflow execution has no generation request');
     }
-    const input = value as Partial<ClipGenerationInput>;
+    const request = value as Partial<ClipGenerationInput>;
+    if (
+      !Array.isArray(request.highlights) ||
+      typeof request.orgId !== 'string' ||
+      typeof request.projectId !== 'string' ||
+      typeof request.userId !== 'string'
+    ) {
+      throw new Error('Clip workflow execution has an invalid request');
+    }
+    return request as ClipGenerationInput;
+  }
+
+  private resolveGenerationRequest(
+    execution: WorkflowExecutionDocument,
+  ): ClipGenerationInput {
+    if (execution.inputValues?.request) {
+      return this.readGenerationInput(execution.inputValues.request);
+    }
+    const plan = execution.nodeResults.find(
+      (nodeResult) => nodeResult.nodeId === 'plan-generation',
+    );
+    const output = this.readRecord(plan?.output);
+    const baseInput = this.readRecord(output.baseInput);
+    return this.readGenerationInput(baseInput.request);
+  }
+
+  private resolveHookClipResultId(
+    execution: WorkflowExecutionDocument,
+  ): string | undefined {
+    const hookDispatch = execution.nodeResults.find(
+      (nodeResult) => nodeResult.nodeId === 'generate-hook',
+    );
+    const output = this.readRecord(hookDispatch?.output);
+    const first = Array.isArray(output.results) ? output.results[0] : undefined;
+    const childResult = this.readRecord(this.readRecord(first).result);
+    return this.readFirstString(childResult.clipResultIds);
+  }
+
+  private isHookReviewRequired(input: ClipGenerationInput): boolean {
     return (
-      Array.isArray(input.highlights) &&
-      typeof input.orgId === 'string' &&
-      typeof input.projectId === 'string' &&
-      typeof input.userId === 'string'
+      (input.hookApprovalRequired ??
+        ((input.mode ?? 'avatar') === 'avatar' &&
+          input.highlights.length > 1)) &&
+      input.highlights.length > 1
     );
   }
 
-  private toStatus(
-    state: HookClipApprovalStatus['state'],
-    plan?: HookClipApprovalPlan,
-  ): HookClipApprovalStatus {
+  private resolveHookIndex(input: ClipGenerationInput): number {
+    const index = input.highlights.findIndex(
+      (highlight) => highlight.clip_type.toLowerCase() === 'hook',
+    );
+    return index >= 0 ? index : 0;
+  }
+
+  private readAction(value: unknown): HookClipApprovalAction | undefined {
+    return value === 'approve' ||
+      value === 'request_changes' ||
+      value === 'reject'
+      ? value
+      : undefined;
+  }
+
+  private readFirstString(value: unknown): string | undefined {
+    return Array.isArray(value) ? this.readString(value[0]) : undefined;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private readPositiveInteger(value: unknown, fallback: number): number {
+    return Number.isInteger(value) && Number(value) > 0
+      ? Number(value)
+      : fallback;
+  }
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private emptyStatus(): HookClipApprovalStatus {
+    return { attempt: 0, remainingClipCount: 0, state: 'not_required' };
+  }
+
+  private toStatus(state: HookWorkflowState): HookClipApprovalStatus {
     return {
-      attempt: plan?.attempt ?? 0,
-      ...(plan?.feedback ? { feedback: plan.feedback } : {}),
-      ...(plan?.hookClipResultId
-        ? { hookClipResultId: plan.hookClipResultId }
+      attempt: state.attempt,
+      ...(state.feedback ? { feedback: state.feedback } : {}),
+      ...(state.hookClipResultId
+        ? { hookClipResultId: state.hookClipResultId }
         : {}),
-      ...(plan?.lastAction ? { lastAction: plan.lastAction } : {}),
-      remainingClipCount: plan?.remainingInput.highlights.length ?? 0,
-      state,
+      ...(state.lastAction ? { lastAction: state.lastAction } : {}),
+      remainingClipCount: state.remainingClipCount,
+      state: state.state,
     };
+  }
+
+  private requireWorkflowExecutor(): WorkflowExecutorService {
+    if (!this.moduleRef) {
+      throw new Error('Workflow executor is unavailable');
+    }
+    return this.moduleRef.get(WorkflowExecutorService, { strict: false });
+  }
+
+  private requireWorkflowExecutions(): WorkflowExecutionsService {
+    if (!this.moduleRef) {
+      throw new Error('Workflow executions service is unavailable');
+    }
+    return this.moduleRef.get(WorkflowExecutionsService, { strict: false });
   }
 }

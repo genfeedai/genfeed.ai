@@ -210,12 +210,10 @@ export const workflowCommand = new Command('workflow')
           if (workflow.key) print(formatLabel('Key', workflow.key));
           if (workflow.description) print(formatLabel('Description', workflow.description));
           if (workflow.status) print(formatLabel('Status', workflow.status));
-          if (workflow.steps?.length) {
-            print(formatHeader('\nSteps:\n'));
-            for (const step of workflow.steps) {
-              print(
-                `  ${chalk.dim(`${step.order ?? '-'}.`)} ${step.label ?? step.id} ${step.type ? chalk.blue(`[${step.type}]`) : ''}`
-              );
+          if (workflow.nodes?.length) {
+            print(formatHeader('\nNodes:\n'));
+            for (const node of workflow.nodes) {
+              print(`  ${node.data?.label ?? node.id} ${chalk.blue(`[${node.type}]`)}`);
             }
           }
         })

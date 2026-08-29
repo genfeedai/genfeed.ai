@@ -1,8 +1,3 @@
-import type {
-  SchedulerPostAnalytics,
-  SchedulerPostGroup,
-  SchedulerPostTarget,
-} from '@server/collections/post-groups/services/post-group.types';
 import {
   type ChannelTargetValidationResult,
   validateChannelTargetSettings,
@@ -53,6 +48,11 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
+import type {
+  SchedulerPostAnalytics,
+  SchedulerPostGroup,
+  SchedulerPostTarget,
+} from '@server/collections/post-groups/services/post-group.types';
 import { type ZodError, z } from 'zod';
 
 type ChannelValidationMedia = NonNullable<
@@ -406,8 +406,8 @@ export class PostGroupContractService {
         target.agentContextSource === provenance.agentContextSource) &&
       (provenance?.agentContextVersion === undefined ||
         target.agentContextVersion === provenance.agentContextVersion) &&
-      (provenance?.agentRunId === undefined ||
-        target.agentRunId === provenance.agentRunId) &&
+      (provenance?.workflowExecutionId === undefined ||
+        target.workflowExecutionId === provenance.workflowExecutionId) &&
       (provenance?.agentStrategyId === undefined ||
         target.agentStrategyId === provenance.agentStrategyId) &&
       (provenance?.agentThreadId === undefined ||
@@ -655,7 +655,6 @@ export class PostGroupContractService {
       return ReleaseTargetSource.WORKFLOW;
     }
     if (
-      target.agentRunId ||
       target.agentThreadId ||
       target.agentStrategyId ||
       target.agentContextSource

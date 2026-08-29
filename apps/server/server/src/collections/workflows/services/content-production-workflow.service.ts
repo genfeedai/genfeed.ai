@@ -1,12 +1,3 @@
-import type { BrandDocument } from '@server/collections/brands/schemas/brand.schema';
-import { BrandsService } from '@server/collections/brands/services/brands.service';
-import { CacheService } from '@server/services/cache/cache.service';
-import { ContentExecutionService } from '@server/services/content-engine/content-execution.service';
-import { ContentPlannerService } from '@server/services/content-engine/content-planner.service';
-import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
-import { ContentPipelineQueueService } from '@server/services/content-orchestration/content-pipeline-queue.service';
-import type { PipelineStep } from '@server/services/content-orchestration/pipeline.interfaces';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   ImageTaskModel,
   MusicTaskModel,
@@ -14,18 +5,26 @@ import {
   PersonaStatus,
   VideoTaskModel,
 } from '@genfeedai/enums';
-import { type Credential, type Persona, toPrismaJson } from '@genfeedai/prisma';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { BrandsService } from '@server/collections/brands/services/brands.service';
+import { AUTOMATION_WORKFLOW_IDS } from '@server/collections/workflows/services/automation-workflow-definitions';
+import { parseFrequencyToMs } from '@server/helpers/utils/content-frequency/content-frequency.util';
+import { CacheService } from '@server/services/cache/cache.service';
+import { ContentExecutionService } from '@server/services/content-engine/content-execution.service';
+import { ContentPlannerService } from '@server/services/content-engine/content-planner.service';
+import type { PipelineStep } from '@server/services/content-orchestration/pipeline.interfaces';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const MAX_BRANDS_PER_CYCLE = 10;
 const MAX_PERSONAS_PER_CYCLE = 20;
 const FIFTEEN_MINUTES_SECONDS = 900;
 
 type ContentProductionAction =
-  | 'contentEngineProduction'
-  | 'contentPipelineAutopilot';
+  | typeof AUTOMATION_WORKFLOW_IDS.CONTENT_ENGINE
+  | typeof AUTOMATION_WORKFLOW_IDS.CONTENT_PIPELINE;
 
 type PersonaContentStrategy = {
   formats?: PersonaContentFormat[];
@@ -41,9 +40,20 @@ type PersonaConfig = {
   profileImageUrl?: string;
 };
 
-type PersonaWithCredentials = Persona & {
+type ContentEngineBrandSnapshot = {
+  agentConfig: Record<string, unknown>;
+  id: string;
+  userId?: string;
+};
+
+type PersonaSnapshot = {
+  brandId?: string;
   config: PersonaConfig;
-  credentials: Credential[];
+  credentialCount: number;
+  id: string;
+  label: string;
+  organizationId: string;
+  userId: string;
 };
 
 export interface ContentProductionWorkflowResult {
@@ -65,224 +75,311 @@ export class ContentProductionWorkflowService {
     private readonly contentPlannerService: ContentPlannerService,
     private readonly contentExecutionService: ContentExecutionService,
     private readonly prisma: PrismaService,
-    private readonly contentPipelineQueueService: ContentPipelineQueueService,
     private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
   ) {}
 
-  async runContentEngineProduction(
+  async beginContentEngineProduction(
     organizationId: string,
-  ): Promise<ContentProductionWorkflowResult> {
-    const action: ContentProductionAction = 'contentEngineProduction';
+  ): Promise<Record<string, unknown>> {
+    const action = AUTOMATION_WORKFLOW_IDS.CONTENT_ENGINE;
     const lockKey = this.lockKey(action, organizationId);
     const acquired = await this.cacheService.acquireLock(
       lockKey,
       FIFTEEN_MINUTES_SECONDS,
     );
-
-    if (!acquired) {
-      return this.skipped(
-        action,
-        organizationId,
-        'content_engine_already_running',
-      );
-    }
-
-    let processed = 0;
-    let skipped = 0;
-    let failed = 0;
-
-    try {
-      const brands =
-        await this.brandsService.findForOrganization(organizationId);
-      const eligibleBrands = brands
-        .filter((brand) => {
-          if (brand.isActive !== true) {
-            return false;
-          }
-          const agentConfig = this.readRecord(brand.agentConfig);
-          const autoPublish = this.readRecord(agentConfig.autoPublish);
-          const strategy = this.readRecord(agentConfig.strategy);
-          return (
-            autoPublish.enabled === true &&
-            Array.isArray(strategy.contentTypes) &&
-            strategy.contentTypes.length > 0
-          );
-        })
-        .slice(0, MAX_BRANDS_PER_CYCLE);
-
-      skipped = Math.max(brands.length - eligibleBrands.length, 0);
-
-      for (const brand of eligibleBrands) {
-        try {
-          await this.processBrand(brand, organizationId);
-          processed += 1;
-        } catch (error: unknown) {
-          failed += 1;
-          this.logger.error(`${this.logContext} brand content engine failed`, {
-            brandId: this.optionalString(brand.id),
-            error: this.errorMessage(error),
-            organizationId,
-          });
-        }
-      }
-
-      return {
-        action,
-        failed,
-        organizationId,
-        processed,
-        skipped,
-        status: 'completed',
-      };
-    } finally {
-      await this.cacheService.releaseLock(lockKey);
-    }
+    return { acquired, lockKey, organizationId };
   }
 
-  async runContentPipelineAutopilot(
+  async discoverContentEngineBrands(
     organizationId: string,
-  ): Promise<ContentProductionWorkflowResult> {
-    const action: ContentProductionAction = 'contentPipelineAutopilot';
-    const lockKey = this.lockKey(action, organizationId);
-    const acquired = await this.cacheService.acquireLock(
-      lockKey,
-      FIFTEEN_MINUTES_SECONDS,
-    );
-
-    if (!acquired) {
-      return this.skipped(
-        action,
-        organizationId,
-        'content_pipeline_already_running',
-      );
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    if (this.readRecord(input.state).acquired !== true) {
+      return { baseInput: { organizationId }, items: [], skipped: 0 };
     }
-
-    let processed = 0;
-    let skipped = 0;
-    let failed = 0;
-
-    try {
-      const now = new Date();
-      const duePersonas = (await this.prisma.persona.findMany({
-        include: { credentials: true },
-        take: MAX_PERSONAS_PER_CYCLE,
-        where: scopedWhere(organizationId, {
-          isAutopilotEnabled: true,
-          nextAutopilotRunAt: { lte: now },
-          status: PersonaStatus.ACTIVE,
+    const brands = await this.brandsService.findForOrganization(organizationId);
+    const items = brands
+      .filter((brand) => {
+        if (brand.isActive !== true) return false;
+        const agentConfig = this.readRecord(brand.agentConfig);
+        const autoPublish = this.readRecord(agentConfig.autoPublish);
+        const strategy = this.readRecord(agentConfig.strategy);
+        return (
+          autoPublish.enabled === true &&
+          Array.isArray(strategy.contentTypes) &&
+          strategy.contentTypes.length > 0
+        );
+      })
+      .slice(0, MAX_BRANDS_PER_CYCLE)
+      .map(
+        (brand): ContentEngineBrandSnapshot => ({
+          agentConfig: this.readRecord(brand.agentConfig),
+          id: String(brand.id),
+          ...(this.optionalString(brand.userId)
+            ? { userId: String(brand.userId) }
+            : {}),
         }),
-      })) as PersonaWithCredentials[];
-
-      for (const persona of duePersonas) {
-        try {
-          const queued = await this.processPersona(persona, now);
-          if (queued) {
-            processed += 1;
-          } else {
-            skipped += 1;
-          }
-        } catch (error: unknown) {
-          failed += 1;
-          this.logger.error(`${this.logContext} persona autopilot failed`, {
-            error: this.errorMessage(error),
-            organizationId,
-            personaId: persona.id,
-          });
-        }
-      }
-
-      return {
-        action,
-        failed,
-        organizationId,
-        processed,
-        skipped,
-        status: 'completed',
-      };
-    } finally {
-      await this.cacheService.releaseLock(lockKey);
-    }
+      );
+    return {
+      baseInput: { organizationId },
+      items,
+      skipped: Math.max(brands.length - items.length, 0),
+    };
   }
 
-  private async processBrand(
-    brand: BrandDocument,
+  async planContentEngineBrand(
     organizationId: string,
-  ): Promise<void> {
-    const brandId = String(brand.id);
-    const userId = this.optionalString(brand.userId);
-    if (!userId) {
-      throw new Error(`Brand ${brandId} has no canonical user owner`);
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const brand = this.readRecord(
+      input.item,
+    ) as unknown as ContentEngineBrandSnapshot;
+    try {
+      const brandId = String(brand.id);
+      const userId = this.optionalString(brand.userId);
+      if (!userId)
+        throw new Error(`Brand ${brandId} has no canonical user owner`);
+      const strategy = this.readRecord(
+        this.readRecord(brand.agentConfig).strategy,
+      );
+      const now = new Date();
+      const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const { plan } = await this.contentPlannerService.generatePlan(
+        organizationId,
+        brandId,
+        userId,
+        {
+          itemCount: 5,
+          periodEnd: weekFromNow.toISOString(),
+          periodStart: now.toISOString(),
+          platforms: this.stringArray(strategy.platforms),
+          topics: this.stringArray(strategy.goals),
+        },
+      );
+      return {
+        brandId,
+        organizationId,
+        planId: String(plan.id),
+        status: 'planned',
+        userId,
+      };
+    } catch (error) {
+      this.logger.error(`${this.logContext} brand content planning failed`, {
+        error,
+        organizationId,
+      });
+      return {
+        error: this.errorMessage(error),
+        organizationId,
+        status: 'failed',
+      };
     }
-    const strategy = this.readRecord(
-      this.readRecord(brand.agentConfig).strategy,
-    );
-    const contentTypes = strategy.contentTypes;
+  }
 
-    if (!Array.isArray(contentTypes) || contentTypes.length === 0) {
-      return;
-    }
-
-    const now = new Date();
-    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-    const { plan } = await this.contentPlannerService.generatePlan(
+  async prepareContentEnginePlanExecution(
+    organizationId: string,
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const request = this.readRecord(input.request);
+    return this.contentExecutionService.preparePlanExecution(
       organizationId,
-      brandId,
-      userId,
-      {
-        itemCount: 5,
-        periodEnd: weekFromNow.toISOString(),
-        periodStart: now.toISOString(),
-        platforms: this.stringArray(strategy.platforms),
-        topics: this.stringArray(strategy.goals),
-      },
-    );
-
-    await this.contentExecutionService.executePlan(
-      organizationId,
-      brandId,
-      String(plan.id),
-      userId,
+      this.requiredString(request.brandId, 'brandId'),
+      this.requiredString(request.planId, 'planId'),
+      this.requiredString(request.userId, 'userId'),
     );
   }
 
-  private async processPersona(
-    persona: PersonaWithCredentials,
-    now: Date,
-  ): Promise<boolean> {
+  async executeContentEnginePlanItem(
+    organizationId: string,
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const item = this.readRecord(input.item);
+    const result = await this.contentExecutionService.executeSingleItem(
+      organizationId,
+      this.requiredString(input.brandId, 'brandId'),
+      this.requiredString(input.userId, 'userId'),
+      this.requiredString(item.id, 'item.id'),
+    );
+    return { ...result };
+  }
+
+  async finalizeContentEnginePlan(
+    organizationId: string,
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const state = this.readRecord(input.state);
+    const result = await this.contentExecutionService.finalizePlanExecution(
+      organizationId,
+      this.requiredString(state.brandId, 'brandId'),
+      this.requiredString(state.planId, 'planId'),
+      input.batch,
+    );
+    return { ...result, status: 'processed' };
+  }
+
+  async beginContentPipelineAutopilot(
+    organizationId: string,
+  ): Promise<Record<string, unknown>> {
+    const action = AUTOMATION_WORKFLOW_IDS.CONTENT_PIPELINE;
+    const lockKey = this.lockKey(action, organizationId);
+    const acquired = await this.cacheService.acquireLock(
+      lockKey,
+      FIFTEEN_MINUTES_SECONDS,
+    );
+    return { acquired, lockKey, organizationId };
+  }
+
+  async discoverContentPipelinePersonas(
+    organizationId: string,
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    if (this.readRecord(input.state).acquired !== true) {
+      return { baseInput: { organizationId }, items: [] };
+    }
+    const now = new Date();
+    const personas = await this.prisma.persona.findMany({
+      select: {
+        _count: { select: { credentials: true } },
+        brandId: true,
+        config: true,
+        id: true,
+        label: true,
+        organizationId: true,
+        userId: true,
+      },
+      take: MAX_PERSONAS_PER_CYCLE,
+      where: scopedWhere(organizationId, {
+        isAutopilotEnabled: true,
+        nextAutopilotRunAt: { lte: now },
+        status: PersonaStatus.ACTIVE,
+      }),
+    });
+    const items = personas.map(
+      (persona): PersonaSnapshot => ({
+        ...(persona.brandId ? { brandId: persona.brandId } : {}),
+        config: this.readRecord(persona.config) as PersonaConfig,
+        credentialCount: persona._count.credentials,
+        id: persona.id,
+        label: persona.label,
+        organizationId: persona.organizationId,
+        userId: persona.userId,
+      }),
+    );
+    return { baseInput: { now: now.toISOString(), organizationId }, items };
+  }
+
+  async prepareContentPipelinePersona(
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const persona = this.readRecord(input.item) as unknown as PersonaSnapshot;
+    const now = new Date(this.requiredString(input.now, 'now'));
     const personaId = persona.id;
     const config = (persona.config ?? {}) as PersonaConfig;
-
-    if (!persona.credentials || persona.credentials.length === 0) {
-      await this.scheduleNextRun(persona, now, false);
-      return false;
+    if (persona.credentialCount < 1 || !config.profileImageUrl) {
+      return {
+        imageItems: [],
+        musicItems: [],
+        now: now.toISOString(),
+        persona,
+        personaId,
+        status: 'skipped',
+        videoItems: [],
+      };
     }
-
-    if (!config.profileImageUrl) {
-      await this.scheduleNextRun(persona, now, false);
-      return false;
-    }
-
     const prompt = this.buildPromptFromStrategy(persona);
-    const steps = this.buildStepsFromStrategy(persona, prompt);
-
-    await this.contentPipelineQueueService.queueGenerateAndPublish({
+    const step = this.buildStepsFromStrategy(persona, prompt)[0];
+    if (!step) {
+      throw new Error(`Persona ${personaId} has no generation step`);
+    }
+    const pipelineRequest = {
       brandId: persona.brandId ?? '',
       idempotencyKey: `autopilot-${personaId}-${now.toISOString().slice(0, 13)}`,
       organizationId: persona.organizationId,
       personaId,
       platforms: config.contentStrategy?.platforms,
       prompt,
-      steps,
+      publishMode: 'final',
+      step,
+      stepIndex: 0,
       userId: persona.userId,
-    });
-
-    await this.scheduleNextRun(persona, now);
-    return true;
+    };
+    return {
+      imageItems: step.type === 'text-to-image' ? [pipelineRequest] : [],
+      musicItems: step.type === 'text-to-music' ? [pipelineRequest] : [],
+      now: now.toISOString(),
+      persona,
+      personaId,
+      status: 'prepared',
+      videoItems: step.type === 'image-to-video' ? [pipelineRequest] : [],
+    };
   }
 
-  private buildPromptFromStrategy(persona: PersonaWithCredentials): string {
+  async scheduleContentPipelinePersona(
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const state = this.readRecord(input.state);
+    const persona = state.persona as PersonaSnapshot | undefined;
+    if (!persona) {
+      throw new Error('persona is required');
+    }
+    const now = new Date(this.requiredString(state.now, 'now'));
+    const generated = ['imageBatch', 'musicBatch', 'videoBatch'].some(
+      (key) => this.readBatchResults(input[key]).length > 0,
+    );
+    await this.scheduleNextRun(persona, now, generated);
+    return {
+      personaId: persona.id,
+      status: generated ? 'processed' : 'skipped',
+    };
+  }
+
+  async finalizeContentProduction(
+    action: ContentProductionAction,
+    organizationId: string,
+    input: Record<string, unknown>,
+  ): Promise<ContentProductionWorkflowResult> {
+    const state = this.readRecord(input.state);
+    const discovery = this.readRecord(input.discovery);
+    const results = this.readBatchResults(input.batch).map((entry) =>
+      this.readRecord(entry.result),
+    );
+    if (state.acquired === true)
+      await this.cacheService.releaseLock(this.lockKey(action, organizationId));
+    if (state.acquired !== true) {
+      return this.skipped(
+        action,
+        organizationId,
+        action === AUTOMATION_WORKFLOW_IDS.CONTENT_ENGINE
+          ? 'content_engine_already_running'
+          : 'content_pipeline_already_running',
+      );
+    }
+    return {
+      action,
+      failed: results.filter((result) => result.status === 'failed').length,
+      organizationId,
+      processed: results.filter((result) => result.status === 'processed')
+        .length,
+      skipped:
+        (typeof discovery.skipped === 'number' ? discovery.skipped : 0) +
+        results.filter((result) => result.status === 'skipped').length,
+      status: 'completed',
+    };
+  }
+
+  async failContentProduction(
+    action: ContentProductionAction,
+    organizationId: string,
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const acquired = this.readRecord(input.state).acquired === true;
+    if (acquired)
+      await this.cacheService.releaseLock(this.lockKey(action, organizationId));
+    return { organizationId, released: acquired };
+  }
+
+  private buildPromptFromStrategy(persona: PersonaSnapshot): string {
     const config = (persona.config ?? {}) as PersonaConfig;
     const strategy = config.contentStrategy;
     if (!strategy?.topics?.length) {
@@ -297,7 +394,7 @@ export class ContentProductionWorkflowService {
   }
 
   private buildStepsFromStrategy(
-    persona: PersonaWithCredentials,
+    persona: PersonaSnapshot,
     prompt: string,
   ): PipelineStep[] {
     const config = (persona.config ?? {}) as PersonaConfig;
@@ -338,14 +435,12 @@ export class ContentProductionWorkflowService {
   }
 
   private async scheduleNextRun(
-    persona: PersonaWithCredentials,
+    persona: PersonaSnapshot,
     now: Date,
     updateLastRun = true,
   ): Promise<void> {
     const config = (persona.config ?? {}) as PersonaConfig;
-    const frequencyMs = ContentOrchestrationService.parseFrequencyToMs(
-      config.contentStrategy?.frequency,
-    );
+    const frequencyMs = parseFrequencyToMs(config.contentStrategy?.frequency);
     const nextRun = new Date(now.getTime() + frequencyMs);
 
     const updatedConfig: PersonaConfig = {
@@ -410,5 +505,18 @@ export class ContentProductionWorkflowService {
 
   private errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : 'Unknown error';
+  }
+
+  private readBatchResults(value: unknown): Array<{ result?: unknown }> {
+    const batch = this.readRecord(value);
+    return Array.isArray(batch.results)
+      ? (batch.results as Array<{ result?: unknown }>)
+      : [];
+  }
+
+  private requiredString(value: unknown, field: string): string {
+    if (typeof value !== 'string' || value.length === 0)
+      throw new Error(`${field} is required`);
+    return value;
   }
 }

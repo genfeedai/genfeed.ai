@@ -1,20 +1,3 @@
-import type { PostGroupsQueryDto } from '@server/collections/post-groups/dto/post-groups-query.dto';
-import type {
-  ManualRetryResolution,
-  ResolveManualRetryParams,
-  SchedulerPostGroup,
-} from '@server/collections/post-groups/services/post-group.types';
-import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
-import { PostGroupPersistenceService } from '@server/collections/post-groups/services/post-group-persistence.service';
-import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
-import { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
-import {
-  type ApiKeyPublishingContext,
-  assertApiKeyPublishingScope,
-  type PublishingCapability,
-} from '@server/helpers/utils/auth/api-key-publishing-scope.util';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { validateChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import type {
   ChannelTargetInput,
@@ -34,7 +17,6 @@ import { Prisma } from '@genfeedai/prisma';
 import {
   type PostLifecycleMutation,
   PostLifecycleService,
-  PostPublishQueueService,
   scopedWhere,
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -43,6 +25,24 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+import type { PostGroupsQueryDto } from '@server/collections/post-groups/dto/post-groups-query.dto';
+import type {
+  ManualRetryResolution,
+  ResolveManualRetryParams,
+  SchedulerPostGroup,
+} from '@server/collections/post-groups/services/post-group.types';
+import { PostGroupContractService } from '@server/collections/post-groups/services/post-group-contract.service';
+import { PostGroupPersistenceService } from '@server/collections/post-groups/services/post-group-persistence.service';
+import { PostGroupReadinessService } from '@server/collections/post-groups/services/post-group-readiness.service';
+import { ScheduledPostWorkflowQueueService } from '@server/collections/posts/services/scheduled-post-workflow-queue.service';
+import { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import {
+  type ApiKeyPublishingContext,
+  assertApiKeyPublishingScope,
+  type PublishingCapability,
+} from '@server/helpers/utils/auth/api-key-publishing-scope.util';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const GROUP_ACTION_STATES = new Set<string>([
   TargetExecutionState.DRAFT,
@@ -83,7 +83,7 @@ export class PostGroupsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
-    private readonly postPublishQueueService: PostPublishQueueService,
+    private readonly scheduledPostWorkflowQueue: ScheduledPostWorkflowQueueService,
     private readonly postLifecycleService: PostLifecycleService,
     private readonly publishApprovalsService: PublishApprovalsService,
     private readonly persistenceService: PostGroupPersistenceService,
@@ -340,8 +340,8 @@ export class PostGroupsService {
               ...(provenance?.agentContextVersion !== undefined && {
                 agentContextVersion: provenance.agentContextVersion,
               }),
-              ...(provenance?.agentRunId && {
-                agentRunId: provenance.agentRunId,
+              ...(provenance?.workflowExecutionId && {
+                workflowExecutionId: provenance.workflowExecutionId,
               }),
               ...(provenance?.agentStrategyId && {
                 agentStrategyId: provenance.agentStrategyId,
@@ -860,14 +860,7 @@ export class PostGroupsService {
     }
     if (result.manualRetryApproval) {
       const approval = result.manualRetryApproval;
-      if (approval.status !== PublishApprovalStatus.QUEUED) {
-        await this.publishApprovalsService.markQueued(
-          approval.id,
-          organizationId,
-          userId,
-        );
-      }
-      await this.postPublishQueueService.enqueue({
+      await this.scheduledPostWorkflowQueue.enqueue({
         approvalId: approval.id,
         operationId: approval.operationId,
         organizationId,
@@ -1134,12 +1127,7 @@ export class PostGroupsService {
             `Target ${target.id} has no version-bound publish approval.`,
           );
         }
-        await this.publishApprovalsService.markQueued(
-          approval.id,
-          release.organizationId,
-          userId,
-        );
-        return this.postPublishQueueService.enqueue({
+        return this.scheduledPostWorkflowQueue.enqueue({
           approvalId: approval.id,
           operationId: approval.operationId,
           organizationId: release.organizationId,

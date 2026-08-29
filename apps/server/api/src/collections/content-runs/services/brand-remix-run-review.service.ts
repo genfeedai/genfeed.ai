@@ -1,3 +1,8 @@
+import {
+  BRAND_REMIX_DOWNSTREAM_ACTION_IDS,
+  BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS,
+  buildBrandRemixReviewWorkflowDefinition,
+} from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
 import { projectBrandRemixRun } from '@api/collections/content-runs/services/brand-remix-run-projection';
@@ -11,13 +16,6 @@ import {
   BRAND_REMIX_RUNTIME,
   type BrandRemixRuntime,
 } from '@api/collections/content-runs/services/brand-remix-runtime';
-import { TrendReferenceCorpusService } from '@server/collections/trends/services/trend-reference-corpus.service';
-import {
-  SYSTEM_WORKFLOW_ACTION_IDS,
-  SystemWorkflowProvenanceService,
-} from '@server/collections/workflows/system-workflow-provenance.service';
-import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
-import type { ReviewBatchItemFormat } from '@server/services/batch-generation/constants/review-batch-item-format.constant';
 import {
   BRAND_REMIX_RUN_CONTRACT,
   type BrandRemixExecution,
@@ -26,25 +24,107 @@ import {
   brandRemixRunConfigSchema,
   type SubmitBrandRemixRunForReview,
 } from '@api-types/contracts/brand-remix-run.contract';
+import { ContentFormat, ContentRunStatus } from '@genfeedai/enums';
 import {
-  ContentFormat,
-  ContentRunStatus,
-  WorkflowExecutionTrigger,
-} from '@genfeedai/enums';
-import { ConflictException, Inject, Injectable } from '@nestjs/common';
+  ConflictException,
+  Inject,
+  Injectable,
+  type OnModuleInit,
+} from '@nestjs/common';
+import { TrendReferenceCorpusService } from '@server/collections/trends/services/trend-reference-corpus.service';
+import {
+  type SystemWorkflowProvenance,
+  SystemWorkflowRunnerService,
+} from '@server/collections/workflows/system-workflow-runner.service';
+import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
+import type { ReviewBatchItemFormat } from '@server/services/batch-generation/constants/review-batch-item-format.constant';
+
+type ReviewHandoffActionInput = {
+  input: SubmitBrandRemixRunForReview;
+  organizationId: string;
+  recordTrendLineage: boolean;
+  runId: string;
+  userId: string;
+};
+
+type ReviewProjectionState = {
+  brandContext: ResolvedBrandContext;
+  config: BrandRemixRunConfig;
+  run: BrandRemixRunRecord;
+};
+
+type ReviewPreparedState = ReviewProjectionState & {
+  brandId: string;
+  needsHandoff: boolean;
+  organizationId: string;
+  recordTrendLineage: boolean;
+  runId: string;
+  selected: BrandRemixExecution['variants'];
+  selectedAssetIds: string[];
+  userId: string;
+};
+
+type ReviewClaimedState = ReviewPreparedState & {
+  claimedConfig: BrandRemixRunConfig;
+  claimedRun: BrandRemixRunRecord;
+};
+
+type ReviewHandoffState = ReviewClaimedState & {
+  completed: {
+    batchId: string;
+    postIds: string[];
+    workflowExecutionId: string;
+    workflowId: string;
+  };
+};
 
 @Injectable()
-export class BrandRemixRunReviewService {
+export class BrandRemixRunReviewService implements OnModuleInit {
   constructor(
     private readonly planning: BrandRemixRunPlanningService,
     private readonly persistence: BrandRemixRunPersistenceService,
     private readonly state: BrandRemixRunStateService,
     private readonly batchGenerationService: BatchGenerationService,
     private readonly trendReferenceCorpusService: TrendReferenceCorpusService,
-    private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     @Inject(BRAND_REMIX_RUNTIME)
     private readonly runtime: BrandRemixRuntime,
   ) {}
+
+  onModuleInit(): void {
+    this.systemWorkflowRunner.registerAction(
+      BRAND_REMIX_DOWNSTREAM_ACTION_IDS.REVIEW_PREPARE,
+      ({ input }) =>
+        this.prepareReview(input.request as ReviewHandoffActionInput),
+    );
+    this.systemWorkflowRunner.registerAction(
+      BRAND_REMIX_DOWNSTREAM_ACTION_IDS.REVIEW_CLAIM,
+      ({ input }) => this.claimReviewAction(this.unwrapState(input.state)),
+    );
+    this.systemWorkflowRunner.registerAction(
+      BRAND_REMIX_DOWNSTREAM_ACTION_IDS.REVIEW_CREATE_HANDOFF,
+      ({ input, provenance }) =>
+        this.createReviewHandoffAction(
+          input.state as ReviewClaimedState,
+          provenance,
+        ),
+    );
+    this.systemWorkflowRunner.registerAction(
+      BRAND_REMIX_DOWNSTREAM_ACTION_IDS.REVIEW_RECORD_LINEAGE,
+      ({ input }) => this.recordReviewLineage(this.unwrapState(input.state)),
+    );
+    this.systemWorkflowRunner.registerAction(
+      BRAND_REMIX_DOWNSTREAM_ACTION_IDS.REVIEW_COMPLETE,
+      ({ input }) => this.completeReview(this.unwrapState(input.state)),
+    );
+    this.systemWorkflowRunner.registerAction(
+      BRAND_REMIX_DOWNSTREAM_ACTION_IDS.REVIEW_PROJECT,
+      ({ input }) => this.projectReview(this.unwrapState(input.state)),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildBrandRemixReviewWorkflowDefinition(),
+    );
+  }
 
   async submit(
     organizationId: string,
@@ -52,37 +132,29 @@ export class BrandRemixRunReviewService {
     userId: string,
     input: SubmitBrandRemixRunForReview,
   ): Promise<BrandRemixRunView> {
-    const prepared = await this.prepareReview(organizationId, runId, input);
-    if (prepared.view) return prepared.view;
-    const claimed = await this.claimReview(prepared);
-    const completed = await this.createReviewHandoff({
-      ...prepared,
-      claimedConfig: claimed.config,
-      claimedRun: claimed.run,
-      userId,
-    });
-    return this.completeReview({
-      ...prepared,
-      claimedConfig: claimed.config,
-      completed,
-    });
+    const { result } =
+      await this.systemWorkflowRunner.runWorkflow<BrandRemixRunView>({
+        actionType: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.REVIEW_HANDOFF,
+        canonicalId: BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS.REVIEW_HANDOFF,
+        inputValues: {
+          request: {
+            input,
+            organizationId,
+            runId,
+            userId,
+          },
+        },
+        organizationId,
+        source: 'BrandRemixRunsService.submitForReview',
+        userId,
+      });
+    return result;
   }
 
   private async prepareReview(
-    organizationId: string,
-    runId: string,
-    input: SubmitBrandRemixRunForReview,
-  ): Promise<{
-    brandContext: ResolvedBrandContext;
-    brandId: string;
-    config: BrandRemixRunConfig;
-    organizationId: string;
-    run: BrandRemixRunRecord;
-    runId: string;
-    selected: BrandRemixExecution['variants'];
-    selectedAssetIds: string[];
-    view?: BrandRemixRunView;
-  }> {
+    actionInput: ReviewHandoffActionInput,
+  ): Promise<ReviewPreparedState> {
+    const { input, organizationId, runId, userId } = actionInput;
     const initial = await this.persistence.requireRun(organizationId, runId);
     const reconciled = await this.state.reconcile(initial);
     const run = reconciled.run;
@@ -98,12 +170,14 @@ export class BrandRemixRunReviewService {
         brandContext,
         brandId,
         config,
+        needsHandoff: false,
         organizationId,
+        recordTrendLineage: false,
         run,
         runId,
         selected: [],
         selectedAssetIds: [],
-        view: projectBrandRemixRun(run, brandContext, config),
+        userId,
       };
     }
     if (!config.execution) {
@@ -146,12 +220,38 @@ export class BrandRemixRunReviewService {
       brandContext,
       brandId,
       config,
+      needsHandoff: true,
       organizationId,
+      recordTrendLineage:
+        config.sourceSnapshot.selector.kind === 'trend_reference',
       run,
       runId,
       selected,
       selectedAssetIds,
+      userId,
     };
+  }
+
+  private async claimReviewAction(
+    state: ReviewPreparedState,
+  ): Promise<ReviewClaimedState> {
+    const claimed = await this.claimReview(state);
+    return {
+      ...state,
+      claimedConfig: claimed.config,
+      claimedRun: claimed.run,
+    };
+  }
+
+  private async createReviewHandoffAction(
+    state: ReviewClaimedState,
+    provenance: SystemWorkflowProvenance,
+  ): Promise<ReviewHandoffState> {
+    const completed = await this.createReviewHandoff({
+      ...state,
+      provenance,
+    });
+    return { ...state, completed };
   }
 
   private async claimReview(params: {
@@ -222,6 +322,7 @@ export class BrandRemixRunReviewService {
     organizationId: string;
     run: BrandRemixRunRecord;
     selected: BrandRemixExecution['variants'];
+    provenance: SystemWorkflowProvenance;
     userId: string;
   }): Promise<{
     batchId: string;
@@ -240,58 +341,37 @@ export class BrandRemixRunReviewService {
       .map((variant) => variant.id)
       .sort()
       .join(':');
-    const workflow = await this.systemWorkflowProvenanceService.runAction(
-      {
-        actionType: 'brand-remix-review-handoff',
-        canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.BRAND_REMIX_REVIEW_HANDOFF,
-        description:
-          'Creates canonical draft Posts for selected brand remix variants and routes them to mandatory Review.',
-        inputValues: {
-          contentRunId: params.run.id,
-          recipeRevision: params.config.revision,
-          selectedVariantIds: params.selected.map((variant) => variant.id),
-        },
-        label: 'Brand Remix Review Handoff',
-        organizationId: params.organizationId,
-        source: 'BrandRemixRunsService.submitForReview',
-        trigger: WorkflowExecutionTrigger.MANUAL,
-        userId: params.userId,
-      },
-      async (provenance) => {
-        const items = params.selected.flatMap((variant) => {
-          const ingredientIds =
-            params.config.draft.output.kind === 'copy'
-              ? [undefined]
-              : variant.assetIds;
-          return ingredientIds.map((ingredientId) => ({
-            caption: variant.content ?? params.config.draft.intent.objective,
-            contentRunId: params.run.id,
-            creativeVersion: `recipe-${params.config.revision}`,
-            format,
-            ...(ingredientId ? { ingredientId } : {}),
-            label: `${params.brandContext.brand.label} remix ${variant.id}`,
-            platform,
-            prompt: params.config.execution?.generationBrief.intent.objective,
-            publishIntent:
-              params.config.draft.target.kind === 'paid' ? 'campaign' : 'test',
-            sourceActionId: params.config.sourceSnapshot.sourceId,
-            sourceWorkflowId: provenance.workflowId,
-            sourceWorkflowName: provenance.workflowLabel,
-            targetIdempotencyKey: `brand-remix:${params.run.id}:${params.config.revision}:${variant.id}:${ingredientId ?? 'copy'}`,
-            variantId: variant.id,
-            workflowExecutionId: provenance.executionId,
-          }));
-        });
-        const batch = await this.batchGenerationService.createManualReviewBatch(
-          { brandId: params.brandId, items },
-          params.userId,
-          params.organizationId,
-          `brand-remix:${params.run.id}:review:${params.config.revision}:${selectedKey}`,
-        );
-        return { batch, itemCount: items.length };
-      },
+    const items = params.selected.flatMap((variant) => {
+      const ingredientIds =
+        params.config.draft.output.kind === 'copy'
+          ? [undefined]
+          : variant.assetIds;
+      return ingredientIds.map((ingredientId) => ({
+        caption: variant.content ?? params.config.draft.intent.objective,
+        contentRunId: params.run.id,
+        creativeVersion: `recipe-${params.config.revision}`,
+        format,
+        ...(ingredientId ? { ingredientId } : {}),
+        label: `${params.brandContext.brand.label} remix ${variant.id}`,
+        platform,
+        prompt: params.config.execution?.generationBrief.intent.objective,
+        publishIntent:
+          params.config.draft.target.kind === 'paid' ? 'campaign' : 'test',
+        sourceActionId: params.config.sourceSnapshot.sourceId,
+        sourceWorkflowId: params.provenance.workflowId,
+        sourceWorkflowName: params.provenance.workflowLabel,
+        targetIdempotencyKey: `brand-remix:${params.run.id}:${params.config.revision}:${variant.id}:${ingredientId ?? 'copy'}`,
+        variantId: variant.id,
+        workflowExecutionId: params.provenance.executionId,
+      }));
+    });
+    const batch = await this.batchGenerationService.createManualReviewBatch(
+      { brandId: params.brandId, items },
+      params.userId,
+      params.organizationId,
+      `brand-remix:${params.run.id}:review:${params.config.revision}:${selectedKey}`,
     );
-    const { batch, itemCount } = workflow.result;
+    const itemCount = items.length;
     const postIds = batch.items.flatMap((item) =>
       item.postId ? [item.postId] : [],
     );
@@ -302,45 +382,45 @@ export class BrandRemixRunReviewService {
         title: 'Review handoff incomplete',
       });
     }
-    const selector = params.config.sourceSnapshot.selector;
-    if (selector.kind === 'trend_reference') {
-      await Promise.all(
-        postIds.map((postId) =>
-          this.trendReferenceCorpusService.recordPostRemixLineage({
-            brandId: params.brandId,
-            generatedBy: BRAND_REMIX_RUN_CONTRACT,
-            metadata: {
-              sourceReferenceId: selector.sourceReferenceId,
-              trendId: selector.trendId,
-            },
-            organizationId: params.organizationId,
-            platforms: [platform],
-            postId,
-            prompt: params.config.execution?.generationBrief.intent.objective,
-          }),
-        ),
-      );
-    }
     return {
       batchId: batch.id,
       postIds,
-      workflowExecutionId: workflow.provenance.executionId,
-      workflowId: workflow.provenance.workflowId,
+      workflowExecutionId: params.provenance.executionId,
+      workflowId: params.provenance.workflowId,
     };
   }
 
-  private async completeReview(params: {
-    brandContext: ResolvedBrandContext;
-    claimedConfig: BrandRemixRunConfig;
-    completed: {
-      batchId: string;
-      postIds: string[];
-      workflowExecutionId: string;
-      workflowId: string;
-    };
-    organizationId: string;
-    runId: string;
-  }): Promise<BrandRemixRunView> {
+  private async recordReviewLineage(
+    params: ReviewHandoffState,
+  ): Promise<ReviewHandoffState> {
+    const selector = params.config.sourceSnapshot.selector;
+    if (selector.kind !== 'trend_reference') {
+      throw new ConflictException(
+        'Trend lineage can only be recorded for a trend reference remix.',
+      );
+    }
+    await Promise.all(
+      params.completed.postIds.map((postId) =>
+        this.trendReferenceCorpusService.recordPostRemixLineage({
+          brandId: params.brandId,
+          generatedBy: BRAND_REMIX_RUN_CONTRACT,
+          metadata: {
+            sourceReferenceId: selector.sourceReferenceId,
+            trendId: selector.trendId,
+          },
+          organizationId: params.organizationId,
+          platforms: [params.config.draft.target.platform],
+          postId,
+          prompt: params.config.execution?.generationBrief.intent.objective,
+        }),
+      ),
+    );
+    return params;
+  }
+
+  private async completeReview(
+    params: ReviewHandoffState,
+  ): Promise<ReviewProjectionState> {
     const completedReviewClaim = params.claimedConfig.reviewClaim;
     if (!completedReviewClaim) {
       throw new ConflictException('The durable Review claim is missing.');
@@ -374,6 +454,21 @@ export class BrandRemixRunReviewService {
         title: 'Concurrent review submission',
       });
     }
-    return projectBrandRemixRun(updated, params.brandContext, nextConfig);
+    return {
+      brandContext: params.brandContext,
+      config: nextConfig,
+      run: updated,
+    };
+  }
+
+  private projectReview(state: ReviewProjectionState): BrandRemixRunView {
+    return projectBrandRemixRun(state.run, state.brandContext, state.config);
+  }
+
+  private unwrapState<T>(value: unknown): T {
+    if (value && typeof value === 'object' && 'data' in value) {
+      return (value as { data: T }).data;
+    }
+    return value as T;
   }
 }

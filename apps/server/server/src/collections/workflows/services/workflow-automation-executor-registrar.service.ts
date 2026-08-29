@@ -1,26 +1,31 @@
+import {
+  buildActionExecutionInput,
+  type ExecutionContext,
+  type WorkflowEngine,
+} from '@genfeedai/workflows/engine';
 import { WinnerPromotionWorkflowService } from '@server/collections/content-performance/services/winner-promotion-workflow.service';
 import { AdAutomationWorkflowService } from '@server/collections/workflows/services/ad-automation-workflow.service';
+import {
+  AD_BULK_UPLOAD_ACTION_IDS,
+  AdBulkUploadWorkflowService,
+} from '@server/collections/workflows/services/ad-bulk-upload-workflow.service';
 import { AgentAutopilotWorkflowService } from '@server/collections/workflows/services/agent-autopilot-workflow.service';
 import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
-import { CampaignOrchestrationWorkflowService } from '@server/collections/workflows/services/campaign-orchestration-workflow.service';
+import {
+  AUTOMATION_ACTION_IDS,
+  AUTOMATION_WORKFLOW_IDS,
+} from '@server/collections/workflows/services/automation-workflow-definitions';
 import { ContentProductionWorkflowService } from '@server/collections/workflows/services/content-production-workflow.service';
 import { LivestreamBotWorkflowService } from '@server/collections/workflows/services/livestream-bot-workflow.service';
-import { OutreachCampaignDispatchWorkflowService } from '@server/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
 import { PaidCreativeResearchWorkflowService } from '@server/collections/workflows/services/paid-creative-research-workflow.service';
 import { ReplyPollingWorkflowService } from '@server/collections/workflows/services/reply-polling-workflow.service';
 import { TrendNotificationWorkflowService } from '@server/collections/workflows/services/trend-notification-workflow.service';
-import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
-import type { TrendNotificationCadence } from '@server/collections/workflows/templates/trend-notification-workflows.template';
-import type {
-  ExecutionContext,
-  WorkflowEngine,
-} from '@genfeedai/workflows/engine';
+import { AD_AUTOMATION_ACTION_IDS } from '@server/collections/workflows/templates/ad-automation-workflows.template';
+import { ANALYTICS_SYNC_ACTION_IDS } from '@server/collections/workflows/templates/analytics-sync-workflows.template';
 
 export class WorkflowAutomationExecutorRegistrarService {
   constructor(
-    private readonly helper: WorkflowEngineExecutorHelperService,
     private readonly adAutomationWorkflowService?: AdAutomationWorkflowService,
-    private readonly campaignOrchestrationWorkflowService?: CampaignOrchestrationWorkflowService,
     private readonly agentAutopilotWorkflowService?: AgentAutopilotWorkflowService,
     private readonly analyticsSyncWorkflowService?: AnalyticsSyncWorkflowService,
     private readonly contentProductionWorkflowService?: ContentProductionWorkflowService,
@@ -29,12 +34,12 @@ export class WorkflowAutomationExecutorRegistrarService {
     private readonly livestreamBotWorkflowService?: LivestreamBotWorkflowService,
     private readonly winnerPromotionWorkflowService?: WinnerPromotionWorkflowService,
     private readonly paidCreativeResearchWorkflowService?: PaidCreativeResearchWorkflowService,
-    private readonly outreachCampaignDispatchWorkflowService?: OutreachCampaignDispatchWorkflowService,
+    private readonly adBulkUploadWorkflowService?: AdBulkUploadWorkflowService,
   ) {}
 
   register(engine: WorkflowEngine): void {
     this.registerAdAutomationExecutors(engine);
-    this.registerCampaignOrchestrationExecutors(engine);
+    this.registerAdBulkUploadExecutors(engine);
     this.registerAgentAutopilotExecutors(engine);
     this.registerAnalyticsSyncExecutors(engine);
     this.registerContentProductionExecutors(engine);
@@ -43,455 +48,712 @@ export class WorkflowAutomationExecutorRegistrarService {
     this.registerLivestreamBotExecutors(engine);
     this.registerWinnerPromotionExecutors(engine);
     this.registerPaidCreativeResearchExecutors(engine);
-    this.registerOutreachCampaignDispatchExecutors(engine);
   }
 
   private registerAdAutomationExecutors(engine: WorkflowEngine): void {
-    engine.registerExecutor('adOptimization', (_node, _inputs, context) =>
-      this.adAutomationWorkflowService
-        ? this.adAutomationWorkflowService.runAdOptimization(
-            context.organizationId,
-          )
-        : this.adAutomationUnavailable('adOptimization', context),
-    );
-    engine.registerExecutor('adSyncGoogle', (_node, _inputs, context) =>
-      this.adAutomationWorkflowService
-        ? this.adAutomationWorkflowService.runGoogleAdSync(
-            context.organizationId,
-          )
-        : this.adAutomationUnavailable('adSyncGoogle', context),
-    );
-    engine.registerExecutor('adSyncMeta', (_node, _inputs, context) =>
-      this.adAutomationWorkflowService
-        ? this.adAutomationWorkflowService.runMetaAdSync(context.organizationId)
-        : this.adAutomationUnavailable('adSyncMeta', context),
-    );
-    engine.registerExecutor('adSyncTikTok', (_node, _inputs, context) =>
-      this.adAutomationWorkflowService
-        ? this.adAutomationWorkflowService.runTikTokAdSync(
-            context.organizationId,
-          )
-        : this.adAutomationUnavailable('adSyncTikTok', context),
-    );
-  }
-
-  private registerCampaignOrchestrationExecutors(engine: WorkflowEngine): void {
-    engine.registerExecutor(
-      'agentCampaignOrchestration',
-      (_node, _inputs, context) =>
-        this.campaignOrchestrationWorkflowService
-          ? this.campaignOrchestrationWorkflowService.runDueCampaignOrchestration(
-              context.organizationId,
-            )
-          : this.campaignOrchestrationUnavailable(
-              'agentCampaignOrchestration',
-              context,
-            ),
-    );
-    engine.registerExecutor(
-      'agentCampaignTriggerEvaluation',
-      (_node, _inputs, context) =>
-        this.campaignOrchestrationWorkflowService
-          ? this.campaignOrchestrationWorkflowService.runTriggerEvaluations(
-              context.organizationId,
-            )
-          : this.campaignOrchestrationUnavailable(
-              'agentCampaignTriggerEvaluation',
-              context,
-            ),
-    );
-  }
-
-  private registerAgentAutopilotExecutors(engine: WorkflowEngine): void {
-    engine.registerExecutor(
-      'proactiveAgentStrategies',
-      (_node, _inputs, context) =>
-        this.agentAutopilotWorkflowService
-          ? this.agentAutopilotWorkflowService.runProactiveStrategies(
-              context.organizationId,
-              workflowContext(context, _node),
-            )
-          : this.agentAutopilotUnavailable('proactiveAgentStrategies', context),
-    );
-    engine.registerExecutor(
-      'aiInfluencerDailyPosts',
-      (_node, _inputs, context) =>
-        this.agentAutopilotWorkflowService
-          ? this.agentAutopilotWorkflowService.runAiInfluencerDailyPosts(
-              context.organizationId,
-              workflowContext(context, _node),
-            )
-          : this.agentAutopilotUnavailable('aiInfluencerDailyPosts', context),
-    );
-  }
-
-  private registerAnalyticsSyncExecutors(engine: WorkflowEngine): void {
-    const actions = [
-      ['analyticsFacebookSync', 'runFacebookAnalytics'],
-      ['analyticsSocialSync', 'runSocialAnalytics'],
-      ['analyticsThreadsSync', 'runThreadsAnalytics'],
-      ['analyticsTwitterSync', 'runTwitterAnalytics'],
-      ['analyticsGenericSync', 'runGenericAnalyticsSync'],
-      ['youtubeAnalyticsSync', 'runYouTubeAnalytics'],
+    const service = this.adAutomationWorkflowService;
+    if (!service) {
+      return;
+    }
+    const registrations = [
+      [
+        AD_AUTOMATION_ACTION_IDS.DISCOVER_CREDENTIALS,
+        service.discoverCredentials.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.GOOGLE_FETCH,
+        service.fetchGoogle.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.GOOGLE_NORMALIZE,
+        service.normalizeGoogle.bind(service),
+      ],
+      [AD_AUTOMATION_ACTION_IDS.META_FETCH, service.fetchMeta.bind(service)],
+      [
+        AD_AUTOMATION_ACTION_IDS.META_NORMALIZE,
+        service.normalizeMeta.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.OPTIMIZATION_ANALYZE,
+        service.analyzeOptimization.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.OPTIMIZATION_FINALIZE,
+        service.finalizeOptimization.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.OPTIMIZATION_LOAD_CONFIG,
+        service.loadOptimizationConfig.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.OPTIMIZATION_PERSIST,
+        service.persistOptimizationRecommendations.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.PERSIST_PERFORMANCE,
+        service.persistPerformance.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.TIKTOK_FETCH,
+        service.fetchTikTok.bind(service),
+      ],
+      [
+        AD_AUTOMATION_ACTION_IDS.TIKTOK_NORMALIZE,
+        service.normalizeTikTok.bind(service),
+      ],
     ] as const;
 
-    for (const [nodeType, method] of actions) {
-      engine.registerExecutor(nodeType, (_node, _inputs, context) =>
-        this.analyticsSyncWorkflowService
-          ? this.analyticsSyncWorkflowService[method](context.organizationId)
-          : this.analyticsSyncUnavailable(nodeType, context),
+    for (const [actionId, execute] of registrations) {
+      engine.registerExecutor(actionId, (node, inputs, context) =>
+        execute(context.organizationId, actionInputs(node.config, inputs)),
       );
     }
   }
 
-  private registerContentProductionExecutors(engine: WorkflowEngine): void {
-    engine.registerExecutor('contentEngineProduction', (_node, _inputs, ctx) =>
-      this.contentProductionWorkflowService
-        ? this.contentProductionWorkflowService.runContentEngineProduction(
-            ctx.organizationId,
-          )
-        : this.contentProductionUnavailable('contentEngineProduction', ctx),
+  private registerAdBulkUploadExecutors(engine: WorkflowEngine): void {
+    const service = this.adBulkUploadWorkflowService;
+    if (!service) {
+      return;
+    }
+    engine.registerExecutor(
+      AD_BULK_UPLOAD_ACTION_IDS.CLAIM,
+      (node, inputs, context) =>
+        service.claim(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
     );
     engine.registerExecutor(
-      'contentPipelineAutopilot',
-      (_node, _inputs, ctx) =>
-        this.contentProductionWorkflowService
-          ? this.contentProductionWorkflowService.runContentPipelineAutopilot(
-              ctx.organizationId,
-            )
-          : this.contentProductionUnavailable('contentPipelineAutopilot', ctx),
+      AD_BULK_UPLOAD_ACTION_IDS.BUILD_MEDIA_ITEMS,
+      async (node, inputs) =>
+        service.buildMediaItems(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      AD_BULK_UPLOAD_ACTION_IDS.UPLOAD_MEDIA,
+      (node, inputs, context) =>
+        service.uploadMedia(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AD_BULK_UPLOAD_ACTION_IDS.BUILD_PERMUTATIONS,
+      async (node, inputs) =>
+        service.buildPermutations(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      AD_BULK_UPLOAD_ACTION_IDS.CREATE_AD,
+      (node, inputs, context) =>
+        service.createAd(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AD_BULK_UPLOAD_ACTION_IDS.FINALIZE,
+      (node, inputs, context) =>
+        service.finalize(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AD_BULK_UPLOAD_ACTION_IDS.FAIL,
+      (node, inputs, context) =>
+        service.fail(context.organizationId, actionInputs(node.config, inputs)),
+    );
+  }
+
+  private registerAgentAutopilotExecutors(engine: WorkflowEngine): void {
+    const service = this.agentAutopilotWorkflowService;
+    if (!service) return;
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.AGENT_BEGIN,
+      (_node, _inputs, context) =>
+        service.beginProactiveStrategies(context.organizationId),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.AGENT_DISCOVER_RESETS,
+      (node, inputs, context) =>
+        service.discoverCreditResetStrategies(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.AGENT_RESET,
+      (node, inputs, context) =>
+        service.resetCreditWindow(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.AGENT_DISCOVER,
+      (node, inputs, context) =>
+        service.discoverProactiveStrategies(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.AGENT_DISPATCH,
+      (node, inputs, context) =>
+        service.dispatchProactiveStrategy(
+          actionInputs(node.config, inputs),
+          workflowContext(context, node),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.AGENT_FINALIZE,
+      (node, inputs, context) =>
+        service.finalizeProactiveStrategies(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.AGENT_FAIL,
+      (node, inputs, context) =>
+        service.failProactiveStrategies(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+  }
+
+  private registerAnalyticsSyncExecutors(engine: WorkflowEngine): void {
+    const service = this.analyticsSyncWorkflowService;
+    if (!service) {
+      return;
+    }
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.DISCOVER_POSTS,
+      (node, inputs, context) =>
+        service.discoverPosts(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.FACEBOOK_COLLECT,
+      (node, inputs) =>
+        service.collectFacebook(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.SOCIAL_COLLECT,
+      (node, inputs) =>
+        service.collectSocial(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.THREADS_COLLECT,
+      (node, inputs) =>
+        service.collectThreads(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.TWITTER_COLLECT,
+      (node, inputs) =>
+        service.collectTwitter(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.YOUTUBE_COLLECT,
+      (node, inputs) =>
+        service.collectYouTube(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.FINALIZE_COLLECTION,
+      async (node, inputs) =>
+        service.finalizeCollection(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.GENERIC_RESOLVE_WINDOW,
+      (node, inputs, context) =>
+        service.resolveGenericWindow(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.GENERIC_DISCOVER,
+      (node, inputs, context) =>
+        service.discoverGeneric(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.GENERIC_PERSIST,
+      (node, inputs, context) =>
+        service.persistGeneric(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.GENERIC_SYNC_MEMORY,
+      (node, inputs, context) =>
+        service.syncGenericMemory(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      ANALYTICS_SYNC_ACTION_IDS.GENERIC_DETECT_ALERTS,
+      (node, inputs, context) =>
+        service.detectGenericAlerts(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+  }
+
+  private registerContentProductionExecutors(engine: WorkflowEngine): void {
+    const service = this.contentProductionWorkflowService;
+    if (!service) return;
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_ENGINE_BEGIN,
+      (_node, _inputs, context) =>
+        service.beginContentEngineProduction(context.organizationId),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_ENGINE_DISCOVER,
+      (node, inputs, context) =>
+        service.discoverContentEngineBrands(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_ENGINE_PLAN,
+      (node, inputs, context) =>
+        service.planContentEngineBrand(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_ENGINE_PLAN_PREPARE,
+      (node, inputs, context) =>
+        service.prepareContentEnginePlanExecution(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_ENGINE_EXECUTE_ITEM,
+      (node, inputs, context) =>
+        service.executeContentEnginePlanItem(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_ENGINE_PLAN_FINALIZE,
+      (node, inputs, context) =>
+        service.finalizeContentEnginePlan(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_ENGINE_FINALIZE,
+      (node, inputs, context) =>
+        service.finalizeContentProduction(
+          AUTOMATION_WORKFLOW_IDS.CONTENT_ENGINE,
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_ENGINE_FAIL,
+      (node, inputs, context) =>
+        service.failContentProduction(
+          AUTOMATION_WORKFLOW_IDS.CONTENT_ENGINE,
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_PIPELINE_BEGIN,
+      (_node, _inputs, context) =>
+        service.beginContentPipelineAutopilot(context.organizationId),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_PIPELINE_DISCOVER,
+      (node, inputs, context) =>
+        service.discoverContentPipelinePersonas(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_PIPELINE_PREPARE,
+      (node, inputs) =>
+        service.prepareContentPipelinePersona(
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_PIPELINE_SCHEDULE,
+      (node, inputs) =>
+        service.scheduleContentPipelinePersona(
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_PIPELINE_FINALIZE,
+      (node, inputs, context) =>
+        service.finalizeContentProduction(
+          AUTOMATION_WORKFLOW_IDS.CONTENT_PIPELINE,
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.CONTENT_PIPELINE_FAIL,
+      (node, inputs, context) =>
+        service.failContentProduction(
+          AUTOMATION_WORKFLOW_IDS.CONTENT_PIPELINE,
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
     );
   }
 
   private registerReplyPollingExecutors(engine: WorkflowEngine): void {
-    engine.registerExecutor('replyBotPolling', (_node, _inputs, context) =>
-      this.replyPollingWorkflowService
-        ? this.replyPollingWorkflowService.runReplyBotPolling(
-            context.organizationId,
-          )
-        : this.replyPollingUnavailable('replyBotPolling', context),
+    const service = this.replyPollingWorkflowService;
+    if (!service) return;
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.REPLY_BEGIN,
+      (_node, _inputs, context) =>
+        service.beginReplyBotPolling(context.organizationId),
     );
     engine.registerExecutor(
-      'socialTriggerPolling',
+      AUTOMATION_ACTION_IDS.REPLY_DISCOVER,
+      (node, inputs, context) =>
+        service.discoverReplyBotTargets(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.REPLY_PREPARE,
+      async (node, inputs, context) =>
+        service.prepareReplyBotTarget(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.REPLY_FINALIZE_TARGET,
+      async (node, inputs) =>
+        service.finalizeReplyBotTarget(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.REPLY_FINALIZE,
+      (node, inputs, context) =>
+        service.finalizePolling(
+          AUTOMATION_WORKFLOW_IDS.REPLY_BOTS,
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.REPLY_FAIL,
+      (node, inputs, context) =>
+        service.failPolling(
+          AUTOMATION_WORKFLOW_IDS.REPLY_BOTS,
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.SOCIAL_BEGIN,
       (_node, _inputs, context) =>
-        this.replyPollingWorkflowService
-          ? this.replyPollingWorkflowService.runSocialTriggerPolling(
-              context.organizationId,
-            )
-          : this.replyPollingUnavailable('socialTriggerPolling', context),
+        service.beginSocialTriggerPolling(context.organizationId),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.SOCIAL_DISCOVER,
+      (node, inputs, context) =>
+        service.discoverSocialTriggerWorkflows(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.SOCIAL_PROCESS,
+      (node, inputs) =>
+        service.processSocialTriggerWorkflow(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.SOCIAL_FINALIZE,
+      (node, inputs, context) =>
+        service.finalizePolling(
+          AUTOMATION_WORKFLOW_IDS.SOCIAL_TRIGGERS,
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.SOCIAL_FAIL,
+      (node, inputs, context) =>
+        service.failPolling(
+          AUTOMATION_WORKFLOW_IDS.SOCIAL_TRIGGERS,
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
     );
   }
 
   private registerTrendNotificationExecutors(engine: WorkflowEngine): void {
+    const service = this.trendNotificationWorkflowService;
+    if (!service) return;
     engine.registerExecutor(
-      'trendSummaryNotifications',
-      (node, _inputs, context) => {
-        if (!this.trendNotificationWorkflowService) {
-          return this.trendNotificationUnavailable(
-            'trendSummaryNotifications',
-            context,
-          );
-        }
-
-        const cadence = this.helper.readConfigString(node.config, 'cadence');
-        if (!this.isTrendNotificationCadence(cadence)) {
-          return this.trendNotificationUnavailable(
-            'trendSummaryNotifications',
-            context,
-            'trend_notification_cadence_invalid',
-          );
-        }
-
-        return this.trendNotificationWorkflowService.runTrendSummaryNotifications(
+      AUTOMATION_ACTION_IDS.TRENDS_PREPARE,
+      (node, inputs, context) => {
+        const actionInput = actionInputs(node.config, inputs);
+        const request =
+          actionInput.request && typeof actionInput.request === 'object'
+            ? (actionInput.request as Record<string, unknown>)
+            : {};
+        const cadence = request.cadence;
+        if (cadence !== 'hourly' && cadence !== 'daily' && cadence !== 'weekly')
+          throw new Error('cadence must be hourly, daily, or weekly');
+        return service.prepareTrendSummaryNotifications(
           context.organizationId,
           cadence,
         );
       },
     );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.TRENDS_READ_VIDEOS,
+      (node, inputs) =>
+        service.readTrendSummaryVideos(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.TRENDS_READ_HASHTAGS,
+      (node, inputs) =>
+        service.readTrendSummaryHashtags(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.TRENDS_READ_SOUNDS,
+      (node, inputs) =>
+        service.readTrendSummarySounds(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.TRENDS_RENDER,
+      (node, inputs) =>
+        service.renderTrendSummaryNotifications(
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.TRENDS_DELIVER_TELEGRAM,
+      (node, inputs) =>
+        service.deliverTrendSummaryChannel(
+          'telegram',
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.TRENDS_DELIVER_EMAIL,
+      (node, inputs) =>
+        service.deliverTrendSummaryChannel(
+          'email',
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.TRENDS_DELIVER_IN_APP,
+      (node, inputs) =>
+        service.deliverTrendSummaryChannel(
+          'inApp',
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.TRENDS_FINALIZE,
+      async (node, inputs, context) =>
+        service.finalizeTrendSummaryNotifications(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
   }
 
   private registerLivestreamBotExecutors(engine: WorkflowEngine): void {
+    const service = this.livestreamBotWorkflowService;
+    if (!service) return;
     engine.registerExecutor(
-      'livestreamBotSessionProcessing',
+      AUTOMATION_ACTION_IDS.LIVESTREAM_BEGIN,
       (_node, _inputs, context) =>
-        this.livestreamBotWorkflowService
-          ? this.livestreamBotWorkflowService.runActiveSessionProcessing(
-              context.organizationId,
-            )
-          : this.livestreamBotUnavailable(
-              'livestreamBotSessionProcessing',
-              context,
-            ),
+        service.beginActiveSessionProcessing(context.organizationId),
     );
-
-    engine.registerExecutor('restreamChatIngest', (node, inputs, context) => {
-      if (!this.livestreamBotWorkflowService) {
-        return this.livestreamBotUnavailable('restreamChatIngest', context);
-      }
-
-      const inputRecord =
-        inputs instanceof Map
-          ? Object.fromEntries(inputs.entries())
-          : inputs && typeof inputs === 'object' && !Array.isArray(inputs)
-            ? (inputs as unknown as Record<string, unknown>)
-            : {};
-      const contextRecord = context as unknown as Record<string, unknown>;
-      const triggerData =
-        contextRecord.inputValues &&
-        typeof contextRecord.inputValues === 'object' &&
-        !Array.isArray(contextRecord.inputValues)
-          ? (contextRecord.inputValues as Record<string, unknown>)
-          : contextRecord.triggerData &&
-              typeof contextRecord.triggerData === 'object' &&
-              !Array.isArray(contextRecord.triggerData)
-            ? (contextRecord.triggerData as Record<string, unknown>)
-            : {};
-
-      const botId =
-        this.helper.readConfigString(node.config, 'botId') ||
-        (typeof inputRecord.botId === 'string' ? inputRecord.botId : '') ||
-        (typeof triggerData.botId === 'string' ? triggerData.botId : '');
-
-      if (!botId) {
-        return Promise.resolve({
-          action: 'restreamChatIngest',
-          ingested: 0,
-          organizationId: context.organizationId,
-          reason: 'botId_required',
-          status: 'failed',
-        });
-      }
-
-      return this.livestreamBotWorkflowService.runRestreamChatIngest(
-        context.organizationId,
-        botId,
-      );
-    });
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.LIVESTREAM_DISCOVER,
+      (node, inputs, context) =>
+        service.discoverActiveSessions(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.LIVESTREAM_SESSION_LOAD,
+      (node, inputs, context) =>
+        service.loadActiveSession(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.LIVESTREAM_SESSION_SYNC_RESTREAM,
+      (node, inputs) =>
+        service.syncActiveSessionRestream(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.LIVESTREAM_SESSION_DISCOVER_TARGETS,
+      async (node, inputs) =>
+        service.discoverActiveSessionTargets(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.LIVESTREAM_TARGET_DELIVER,
+      (node, inputs, context) =>
+        service.deliverActiveSessionTarget(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.LIVESTREAM_SESSION_FINALIZE,
+      async (node, inputs) =>
+        service.finalizeActiveSession(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.LIVESTREAM_FINALIZE,
+      (node, inputs, context) =>
+        service.finalizeActiveSessionProcessing(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.LIVESTREAM_FAIL,
+      (node, inputs, context) =>
+        service.failActiveSessionProcessing(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.RESTREAM_LOAD,
+      (node, inputs, context) =>
+        service.loadRestreamBot(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.RESTREAM_SYNC,
+      (node, inputs) =>
+        service.syncRestreamChat(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.RESTREAM_FINALIZE,
+      async (node, inputs, context) =>
+        service.finalizeRestreamChat(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
   }
 
   private registerWinnerPromotionExecutors(engine: WorkflowEngine): void {
+    const service = this.winnerPromotionWorkflowService;
+    if (!service) return;
     engine.registerExecutor(
-      'harnessWinnerPromotionSweep',
+      AUTOMATION_ACTION_IDS.HARNESS_BEGIN,
       (_node, _inputs, context) =>
-        this.winnerPromotionWorkflowService
-          ? this.winnerPromotionWorkflowService.runOrganizationWinnerPromotion(
-              context.organizationId,
-            )
-          : this.winnerPromotionUnavailable(
-              'harnessWinnerPromotionSweep',
-              context,
-            ),
+        service.beginOrganizationWinnerPromotion(context.organizationId),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.HARNESS_DISCOVER,
+      (node, inputs, context) =>
+        service.discoverEligibleWinnerBrands(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.HARNESS_PREPARE_BRAND,
+      (node, inputs, context) =>
+        service.prepareBrandWinners(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.HARNESS_PROMOTE_ITEM,
+      (node, inputs, context) =>
+        service.promoteWinnerItem(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.HARNESS_FINALIZE_BRAND,
+      async (node, inputs) =>
+        service.finalizeBrandWinners(actionInputs(node.config, inputs)),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.HARNESS_FINALIZE,
+      (node, inputs, context) =>
+        service.finalizeOrganizationWinnerPromotion(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.HARNESS_FAIL,
+      (node, inputs, context) =>
+        service.failOrganizationWinnerPromotion(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
     );
   }
 
   private registerPaidCreativeResearchExecutors(engine: WorkflowEngine): void {
+    const service = this.paidCreativeResearchWorkflowService;
+    if (!service) return;
     engine.registerExecutor(
-      'paidCreativeResearchIngestion',
-      (_node, _inputs, context) =>
-        this.paidCreativeResearchWorkflowService
-          ? this.paidCreativeResearchWorkflowService.runPaidCreativeResearchIngestion(
-              context.organizationId,
-            )
-          : this.paidCreativeResearchUnavailable(
-              'paidCreativeResearchIngestion',
-              context,
-            ),
+      AUTOMATION_ACTION_IDS.PAID_CREATIVE_PREPARE,
+      async (_node, _inputs, context) =>
+        service.preparePaidCreativeResearch(context.organizationId),
     );
-  }
-
-  private registerOutreachCampaignDispatchExecutors(
-    engine: WorkflowEngine,
-  ): void {
     engine.registerExecutor(
-      'outreachCampaignDispatch',
-      (_node, _inputs, context) =>
-        this.outreachCampaignDispatchWorkflowService
-          ? this.outreachCampaignDispatchWorkflowService.runActiveCampaignDispatch(
-              context.organizationId,
-            )
-          : this.outreachCampaignDispatchUnavailable(
-              'outreachCampaignDispatch',
-              context,
-            ),
+      AUTOMATION_ACTION_IDS.PAID_CREATIVE_DISCOVER,
+      (node, inputs, context) =>
+        service.discoverPaidCreativeAdvertisers(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
     );
-  }
-
-  private async winnerPromotionUnavailable(
-    action: string,
-    context: ExecutionContext,
-  ) {
-    return {
-      action,
-      brandsEligible: 0,
-      brandsFailed: 0,
-      brandsPromoted: 0,
-      organizationId: context.organizationId,
-      promoted: 0,
-      reason: 'winner_promotion_service_unavailable',
-      status: 'skipped',
-    };
-  }
-
-  private async paidCreativeResearchUnavailable(
-    action: string,
-    context: ExecutionContext,
-  ) {
-    return {
-      action,
-      advertisersChecked: 0,
-      errors: 0,
-      organizationId: context.organizationId,
-      reason: 'paid_creative_research_service_unavailable',
-      recordsIngested: 0,
-      skipped: 1,
-      status: 'skipped',
-    };
-  }
-
-  private async outreachCampaignDispatchUnavailable(
-    action: string,
-    context: ExecutionContext,
-  ) {
-    return {
-      action,
-      alreadyQueued: 0,
-      enqueued: 0,
-      failed: 0,
-      organizationId: context.organizationId,
-      reason: 'outreach_campaign_dispatch_service_unavailable',
-      skipped: 1,
-      status: 'skipped',
-    };
-  }
-
-  private async adAutomationUnavailable(
-    action: string,
-    context: ExecutionContext,
-  ) {
-    return {
-      action,
-      enqueued: 0,
-      organizationId: context.organizationId,
-      reason: 'ad_automation_service_unavailable',
-      skipped: 0,
-      status: 'skipped',
-    };
-  }
-
-  private async campaignOrchestrationUnavailable(
-    action: string,
-    context: ExecutionContext,
-  ) {
-    return {
-      action,
-      enqueued: 0,
-      organizationId: context.organizationId,
-      reason: 'campaign_orchestration_service_unavailable',
-      skipped: 0,
-      status: 'skipped',
-    };
-  }
-
-  private async agentAutopilotUnavailable(
-    action: string,
-    context: ExecutionContext,
-  ) {
-    return {
-      action,
-      enqueued: 0,
-      generated: 0,
-      organizationId: context.organizationId,
-      reason: 'agent_autopilot_service_unavailable',
-      skipped: 0,
-      status: 'skipped',
-    };
-  }
-
-  private async analyticsSyncUnavailable(
-    action: string,
-    context: ExecutionContext,
-  ) {
-    return {
-      action,
-      enqueued: 0,
-      organizationId: context.organizationId,
-      posts: 0,
-      queueName: '',
-      reason: 'analytics_sync_service_unavailable',
-      skipped: 0,
-      status: 'skipped',
-    };
-  }
-
-  private async contentProductionUnavailable(
-    action: string,
-    context: ExecutionContext,
-    reason = 'content_production_service_unavailable',
-  ) {
-    return {
-      action,
-      failed: 0,
-      organizationId: context.organizationId,
-      processed: 0,
-      reason,
-      skipped: 1,
-      status: 'skipped',
-    };
-  }
-
-  private async replyPollingUnavailable(
-    action: string,
-    context: ExecutionContext,
-  ) {
-    return {
-      action,
-      checked: 0,
-      errors: 0,
-      organizationId: context.organizationId,
-      reason: 'reply_polling_service_unavailable',
-      skipped: 1,
-      status: 'skipped',
-      triggered: 0,
-    };
-  }
-
-  private async trendNotificationUnavailable(
-    action: string,
-    context: ExecutionContext,
-    reason = 'trend_notification_service_unavailable',
-  ) {
-    return {
-      action,
-      errors: 0,
-      organizationId: context.organizationId,
-      reason,
-      sent: 0,
-      skipped: 1,
-      status: 'skipped',
-      trends: 0,
-    };
-  }
-
-  private async livestreamBotUnavailable(
-    action: string,
-    context: ExecutionContext,
-  ) {
-    return {
-      action,
-      failed: 0,
-      organizationId: context.organizationId,
-      processed: 0,
-      reason: 'livestream_bot_service_unavailable',
-      sessions: 0,
-      skipped: 1,
-      status: 'skipped',
-    };
-  }
-
-  private isTrendNotificationCadence(
-    cadence: string | undefined,
-  ): cadence is TrendNotificationCadence {
-    return cadence === 'hourly' || cadence === 'daily' || cadence === 'weekly';
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.PAID_CREATIVE_INGEST,
+      (node, inputs, context) =>
+        service.ingestPaidCreativeAdvertiser(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
+    engine.registerExecutor(
+      AUTOMATION_ACTION_IDS.PAID_CREATIVE_FINALIZE,
+      async (node, inputs, context) =>
+        service.finalizePaidCreativeResearch(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+    );
   }
 }
 
@@ -506,4 +768,11 @@ function workflowContext(
     workflowNodeType: node.type,
     workflowRunId: context.runId,
   };
+}
+
+function actionInputs(
+  config: Record<string, unknown>,
+  inputs: Map<string, unknown> | Record<string, unknown>,
+): Record<string, unknown> {
+  return buildActionExecutionInput(config, inputs);
 }

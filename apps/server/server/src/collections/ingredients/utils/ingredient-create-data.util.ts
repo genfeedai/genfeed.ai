@@ -2,7 +2,7 @@ import { isEntityId } from '@server/helpers/validation/entity-id.validator';
 import { pickDefinedFields } from '@server/shared/utils/object/pick-defined-fields.util';
 
 const INGREDIENT_SCALAR_FIELDS = [
-  'agentRunId',
+  'workflowExecutionId',
   'agentStrategyId',
   'assetLabel',
   'bookmarkId',

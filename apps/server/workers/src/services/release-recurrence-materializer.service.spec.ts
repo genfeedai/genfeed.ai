@@ -28,7 +28,7 @@ describe('ReleaseRecurrenceMaterializerService', () => {
   const sourceTarget = {
     agentContextSource: 'explicit',
     agentContextVersion: 2,
-    agentRunId: 'agent-run-1',
+    workflowExecutionId: 'agent-run-1',
     agentStrategyId: 'strategy-1',
     agentThreadId: 'thread-1',
     brandId: 'brand-1',
@@ -37,7 +37,7 @@ describe('ReleaseRecurrenceMaterializerService', () => {
       {
         agentContextSource: 'explicit',
         agentContextVersion: 2,
-        agentRunId: 'agent-run-1',
+        workflowExecutionId: 'agent-run-1',
         agentStrategyId: 'strategy-1',
         agentThreadId: 'thread-1',
         brandId: 'brand-1',

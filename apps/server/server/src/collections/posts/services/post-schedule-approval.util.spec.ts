@@ -11,7 +11,7 @@ describe('post-schedule-approval.util', () => {
     createForCurrentPost: vi.fn(),
     markQueued: vi.fn(),
   };
-  const postPublishQueueService = {
+  const scheduledPostWorkflowQueue = {
     enqueue: vi.fn(),
   };
 
@@ -103,7 +103,7 @@ describe('post-schedule-approval.util', () => {
         targetExecutionState: TargetExecutionState.SCHEDULED,
         userId: 'user-1',
       },
-      postPublishQueueService,
+      scheduledPostWorkflowQueue,
       publishApprovalsService,
     });
 
@@ -114,7 +114,7 @@ describe('post-schedule-approval.util', () => {
       postId: 'post-1',
       provenance: { surface: 'posts-service' },
     });
-    expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
+    expect(scheduledPostWorkflowQueue.enqueue).not.toHaveBeenCalled();
   });
 
   it('mints and enqueues due-now scheduled posts', async () => {
@@ -126,7 +126,7 @@ describe('post-schedule-approval.util', () => {
         scheduledDate: new Date().toISOString(),
         targetExecutionState: TargetExecutionState.SCHEDULED,
       },
-      postPublishQueueService,
+      scheduledPostWorkflowQueue,
       provenanceSurface: 'persona-publisher',
       publishApprovalsService,
     });
@@ -138,12 +138,8 @@ describe('post-schedule-approval.util', () => {
         provenance: { surface: 'persona-publisher' },
       }),
     );
-    expect(publishApprovalsService.markQueued).toHaveBeenCalledWith(
-      'approval-1',
-      'org-1',
-      'actor-1',
-    );
-    expect(postPublishQueueService.enqueue).toHaveBeenCalledWith({
+    expect(publishApprovalsService.markQueued).not.toHaveBeenCalled();
+    expect(scheduledPostWorkflowQueue.enqueue).toHaveBeenCalledWith({
       approvalId: 'approval-1',
       operationId: 'op-1',
       organizationId: 'org-1',

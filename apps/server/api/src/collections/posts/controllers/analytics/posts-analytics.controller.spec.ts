@@ -9,16 +9,16 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { PostsAnalyticsController } from '@api/collections/posts/controllers/analytics/posts-analytics.controller';
-import { PostAnalyticsService } from '@server/collections/posts/services/post-analytics.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { PostAnalyticsService } from '@server/collections/posts/services/post-analytics.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { AnalyticsSyncWorkflowService } from '@server/collections/workflows/services/analytics-sync-workflow.service';
 
 describe('PostsAnalyticsController', () => {
   let controller: PostsAnalyticsController;
@@ -69,7 +69,6 @@ describe('PostsAnalyticsController', () => {
   const mockPostAnalyticsService = {
     getAnalyticsByDateRange: vi.fn(),
     getPostAnalyticsSummary: vi.fn(),
-    trackPostAnalytics: vi.fn().mockResolvedValue(undefined),
   };
 
   const mockCredentialsService = {
@@ -77,7 +76,14 @@ describe('PostsAnalyticsController', () => {
   };
 
   const mockAnalyticsSyncWorkflowService = {
-    runOrganizationRefresh: vi.fn(),
+    queueOrganizationRefresh: vi.fn().mockResolvedValue({
+      jobId: 'organization-workflow-job',
+      workflowId: 'analytics.organization-refresh',
+    }),
+    queuePostRefresh: vi.fn().mockResolvedValue({
+      jobId: 'post-workflow-job',
+      workflowId: 'analytics.post-refresh',
+    }),
   };
 
   beforeEach(async () => {
@@ -190,9 +196,22 @@ describe('PostsAnalyticsController', () => {
 
       expect(mockPostsService.findOne).toHaveBeenCalled();
       expect(mockCredentialsService.findOne).toHaveBeenCalled();
-      expect(mockPostAnalyticsService.trackPostAnalytics).toHaveBeenCalled();
+      expect(
+        mockAnalyticsSyncWorkflowService.queuePostRefresh,
+      ).toHaveBeenCalledWith({
+        organizationId: testId('org'),
+        platform: 'twitter',
+        postId,
+        userId: testId('user'),
+      });
       expect(result).toBeDefined();
       expect(result.data?.type).toBe('post-analytics');
+      expect(result.data?.attributes).toEqual(
+        expect.objectContaining({
+          workflowJobId: 'post-workflow-job',
+          workflowId: 'analytics.post-refresh',
+        }),
+      );
     });
 
     it('should return not found when post does not exist', async () => {
@@ -258,33 +277,29 @@ describe('PostsAnalyticsController', () => {
 
       expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
       expect(
-        mockPostAnalyticsService.trackPostAnalytics,
+        mockAnalyticsSyncWorkflowService.queuePostRefresh,
       ).not.toHaveBeenCalled();
     });
   });
 
   describe('refreshAllAnalytics', () => {
     it('enqueues a keyset-paged org refresh instead of loading every post', async () => {
-      mockAnalyticsSyncWorkflowService.runOrganizationRefresh.mockResolvedValue(
-        {
-          enqueued: 3,
-          organizationId: testId('org'),
-          posts: 12,
-          skipped: 1,
-        },
-      );
-
       const result = await controller.refreshAllAnalytics(mockUser);
 
       expect(
-        mockAnalyticsSyncWorkflowService.runOrganizationRefresh,
-      ).toHaveBeenCalledWith(testId('org'));
+        mockAnalyticsSyncWorkflowService.queueOrganizationRefresh,
+      ).toHaveBeenCalledWith({
+        organizationId: testId('org'),
+        userId: testId('user'),
+      });
       expect(mockPostsService.findAll).not.toHaveBeenCalled();
       expect(result.data?.attributes).toEqual({
-        errorCount: 1,
+        errorCount: 0,
         lastRefreshed: expect.any(Date),
-        successCount: 3,
-        totalPosts: 12,
+        successCount: 0,
+        totalPosts: 0,
+        workflowJobId: 'organization-workflow-job',
+        workflowId: 'analytics.organization-refresh',
       });
     });
   });

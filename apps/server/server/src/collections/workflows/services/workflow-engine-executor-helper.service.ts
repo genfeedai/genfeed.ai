@@ -7,6 +7,7 @@ import {
 import { scopedWhere } from '@genfeedai/server';
 import type {
   ExecutableNode,
+  ExecutionContext,
   INodeExecutor,
   NodeExecutor,
 } from '@genfeedai/workflows/engine';
@@ -14,6 +15,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@server/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@server/collections/metadata/services/metadata.service';
+import { WorkflowNodeContinuationService } from '@server/collections/workflows/services/workflow-node-continuation.service';
 import { SharedService } from '@server/shared/services/shared/shared.service';
 
 export interface PendingWorkflowOutput {
@@ -27,6 +29,7 @@ export class WorkflowEngineExecutorHelperService {
     private readonly sharedService?: SharedService,
     private readonly metadataService?: MetadataService,
     private readonly ingredientsService?: IngredientsService,
+    private readonly continuationService?: WorkflowNodeContinuationService,
   ) {}
 
   wrapEngineExecutor(executor: INodeExecutor): NodeExecutor {
@@ -159,7 +162,16 @@ export class WorkflowEngineExecutorHelperService {
     output: Parameters<
       WorkflowEngineExecutorHelperService['createWorkflowOutputIngredient']
     >[0];
-    runProvider: (ingredientId: string) => Promise<string>;
+    continuation: {
+      actionId: string;
+      context: ExecutionContext;
+      node: ExecutableNode;
+      provider: string;
+    };
+    runProvider: (
+      ingredientId: string,
+      continuationId: string,
+    ) => Promise<string>;
     resultUrl: (ingredientId: string) => string;
   }): Promise<PendingWorkflowOutput> {
     if (!this.metadataService) {
@@ -171,28 +183,95 @@ export class WorkflowEngineExecutorHelperService {
     const pendingOutput = await this.createWorkflowOutputIngredient(
       args.output,
     );
+    const continuation = await this.createProviderContinuation({
+      ...args.continuation,
+      ingredientId: pendingOutput.ingredientId,
+    });
+    let externalId: string;
     try {
-      const externalId = await args.runProvider(pendingOutput.ingredientId);
+      externalId = await args.runProvider(
+        pendingOutput.ingredientId,
+        continuation.continuationId,
+      );
 
-      await this.metadataService.patch(
+      // Persist provider ownership immediately after acceptance. Metadata is
+      // useful for media lookup, but the continuation is the durable callback
+      // authority and must win the race with an immediate provider callback.
+      await this.markProviderContinuationSubmitted({
+        continuationId: continuation.continuationId,
+        externalId,
+        organizationId: args.continuation.context.organizationId,
+      });
+    } catch (error: unknown) {
+      await this.failProviderContinuationSubmission({
+        continuationId: continuation.continuationId,
+        error: error instanceof Error ? error.message : String(error),
+        organizationId: args.continuation.context.organizationId,
+      });
+      throw error;
+    }
+
+    // Callback routing is continuation-owned. This denormalized provider id is
+    // retained for media discovery, but it must not turn accepted provider
+    // work into a failed workflow if the callback can still finalize by the
+    // immutable continuation/ingredient identity.
+    await this.metadataService
+      .patch(
         pendingOutput.metadataId,
         new MetadataEntity({
           externalId,
           result: args.resultUrl(pendingOutput.ingredientId),
         }),
-      );
-    } catch (error: unknown) {
-      try {
-        await this.ingredientsService?.patch(pendingOutput.ingredientId, {
-          status: IngredientStatus.FAILED,
-        });
-      } catch {
-        // Preserve the provider failure that caused the workflow node to fail.
-      }
-      throw error;
-    }
+      )
+      .catch(() => undefined);
 
     return pendingOutput;
+  }
+
+  async createProviderContinuation(input: {
+    actionId: string;
+    context: ExecutionContext;
+    ingredientId: string;
+    node: ExecutableNode;
+    provider: string;
+  }): Promise<{ continuationId: string }> {
+    if (!this.continuationService || !input.context.executionId) {
+      throw new Error(
+        `Provider-callback action ${input.actionId} requires a durable workflow execution`,
+      );
+    }
+
+    return this.continuationService.createBeforeProviderSubmission({
+      actionId: input.actionId,
+      executionId: input.context.executionId,
+      ingredientId: input.ingredientId,
+      nodeId: input.node.id,
+      organizationId: input.context.organizationId,
+      provider: input.provider,
+      workflowVersionId: input.context.workflowVersionId,
+    });
+  }
+
+  async markProviderContinuationSubmitted(input: {
+    continuationId: string;
+    externalId: string;
+    organizationId: string;
+  }): Promise<void> {
+    if (!this.continuationService) {
+      throw new Error('Workflow continuation service is not available');
+    }
+    await this.continuationService.markProviderSubmitted(input);
+  }
+
+  async failProviderContinuationSubmission(input: {
+    continuationId: string;
+    error: string;
+    organizationId: string;
+  }): Promise<void> {
+    if (!this.continuationService) {
+      throw new Error('Workflow continuation service is not available');
+    }
+    await this.continuationService.failProviderSubmission(input);
   }
 
   async patchMetadata(

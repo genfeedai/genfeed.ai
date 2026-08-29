@@ -8,7 +8,7 @@
  *   - MuseTalk (stub — self-hosted via Fleet/ComfyUI, coming soon)
  */
 
-import type { AvatarVideoProviderName } from '@genfeedai/queue-contracts';
+import type { AvatarVideoProviderName } from '@genfeedai/interfaces';
 
 export interface AvatarVideoJobCreated {
   jobId: string;

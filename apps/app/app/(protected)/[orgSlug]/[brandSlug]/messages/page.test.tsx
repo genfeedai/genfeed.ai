@@ -247,14 +247,12 @@ const messages = [
     actionProvenance: {
       action: 'draft',
       actedAt: '2026-07-02T08:05:30.000Z',
-      actorType: 'agent',
-      agentRunId: 'agent-run-1',
+      actorType: 'workflow',
       platform: 'youtube',
       status: 'draft',
       userId: 'user-1',
       workflowRunId: 'workflow-run-1',
     },
-    agentRunId: 'agent-run-1',
     body: 'Here is a drafted answer.',
     conversationId: 'conversation-1',
     createdAt: '2026-07-02T08:05:00.000Z',
@@ -344,7 +342,6 @@ describe('SocialMessagesPage', () => {
       await screen.findByText('Here is a drafted answer.'),
     ).toBeInTheDocument();
     expect(screen.getByText('workflow-run-1')).toBeInTheDocument();
-    expect(screen.getByText('agent-run-1')).toBeInTheDocument();
     expect(screen.getByText('user-1')).toBeInTheDocument();
     expect(screen.getByText('Draft')).toBeInTheDocument();
     expect(screen.getByText(/separate from agent thread/i)).toBeInTheDocument();

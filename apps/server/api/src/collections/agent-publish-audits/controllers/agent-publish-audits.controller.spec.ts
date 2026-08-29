@@ -40,7 +40,7 @@ describe('AgentPublishAuditsController', () => {
   it('lists audits with tenant scope and query filters', async () => {
     service.findAllScoped.mockResolvedValue({ docs: [], total: 0 });
     const query = {
-      agentRunId: 'run-1',
+      workflowExecutionId: 'run-1',
       postGroupId: 'group-1',
     } as never;
 

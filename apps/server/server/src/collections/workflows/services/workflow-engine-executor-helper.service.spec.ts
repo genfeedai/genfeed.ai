@@ -135,7 +135,7 @@ describe('WorkflowEngineExecutorHelperService.createWorkflowOutputIngredient', (
 
 describe('WorkflowEngineExecutorHelperService.createAndLinkProcessingOutput', () => {
   it('marks the inspectable output failed when provider dispatch rejects', async () => {
-    const ingredientsPatch = vi.fn();
+    const failProviderSubmission = vi.fn().mockResolvedValue(undefined);
     const service = new WorkflowEngineExecutorHelperService(
       {} as ConfigService,
       {
@@ -145,12 +145,37 @@ describe('WorkflowEngineExecutorHelperService.createAndLinkProcessingOutput', ()
         }),
       } as never,
       { patch: vi.fn() } as never,
-      { patch: ingredientsPatch } as never,
+      { patch: vi.fn() } as never,
+      {
+        createBeforeProviderSubmission: vi
+          .fn()
+          .mockResolvedValue({ continuationId: 'continuation-1' }),
+        failProviderSubmission,
+      } as never,
     );
     const providerError = new Error('provider rejected the request');
 
     await expect(
       service.createAndLinkProcessingOutput({
+        continuation: {
+          actionId: 'videoGen',
+          context: {
+            executionId: 'execution-1',
+            organizationId: 'org-1',
+            runId: 'run-1',
+            userId: 'user-1',
+            workflowId: 'workflow-1',
+            workflowVersionId: 'version-1',
+          },
+          node: {
+            config: {},
+            id: 'generate',
+            inputs: [],
+            label: 'Generate',
+            type: 'videoGen',
+          },
+          provider: 'replicate',
+        },
         output: {
           brandId: 'brand-1',
           category: IngredientCategory.VIDEO,
@@ -163,8 +188,10 @@ describe('WorkflowEngineExecutorHelperService.createAndLinkProcessingOutput', ()
       }),
     ).rejects.toBe(providerError);
 
-    expect(ingredientsPatch).toHaveBeenCalledWith('ingredient-1', {
-      status: IngredientStatus.FAILED,
+    expect(failProviderSubmission).toHaveBeenCalledWith({
+      continuationId: 'continuation-1',
+      error: 'provider rejected the request',
+      organizationId: 'org-1',
     });
   });
 });

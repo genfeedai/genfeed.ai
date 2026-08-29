@@ -4,7 +4,7 @@
  * Owns the conversational workflow runner: listing/selecting workflows,
  * collecting inputs over multiple messages, confirmation, editing, and handing
  * a confirmed run to the workflow runner. Sole owner of per-chat conversation
- * state, pending generation images, and the loaded workflow map; the message
+ * state and the loaded workflow map; the message
  * handler reaches this state through the small public API below.
  */
 
@@ -16,21 +16,14 @@ import type {
 import { extractWorkflowInputs } from '@api/services/telegram-bot/telegram-workflow-loader';
 import type { TelegramWorkflowRunnerService } from '@api/services/telegram-bot/telegram-workflow-runner.service';
 import { ParseMode } from '@genfeedai/enums';
-import type { WorkflowEngine } from '@genfeedai/workflows/engine';
-import type { LoggerService } from '@libs/logger/logger.service';
 import { type Context, InlineKeyboard } from 'grammy';
 
 export class TelegramConversationService {
   private readonly conversations: Map<number, ConversationState> = new Map();
-  private readonly pendingGenerationImages: Map<number, string> = new Map();
   private readonly recentPhotoTimestamps: Map<number, number> = new Map();
   private workflows: Map<string, WorkflowJson> = new Map();
-  private engine: WorkflowEngine | null = null;
 
-  constructor(
-    private readonly loggerService: LoggerService,
-    private readonly runner: TelegramWorkflowRunnerService,
-  ) {}
+  constructor(private readonly runner: TelegramWorkflowRunnerService) {}
 
   setWorkflows(workflows: Map<string, WorkflowJson>): void {
     this.workflows = workflows;
@@ -44,14 +37,6 @@ export class TelegramConversationService {
     return this.workflows.size;
   }
 
-  attachEngine(engine: WorkflowEngine): void {
-    this.engine = engine;
-  }
-
-  hasEngine(): boolean {
-    return !!this.engine;
-  }
-
   getActiveCount(): number {
     return this.conversations.size;
   }
@@ -63,27 +48,6 @@ export class TelegramConversationService {
   /** Active conversation state for a chat (mutated in place by callers). */
   getState(chatId: number): ConversationState | undefined {
     return this.conversations.get(chatId);
-  }
-
-  setPendingImage(chatId: number, url: string): void {
-    this.pendingGenerationImages.set(chatId, url);
-  }
-
-  peekPendingImage(chatId: number): string | undefined {
-    return this.pendingGenerationImages.get(chatId);
-  }
-
-  clearPendingImage(chatId: number): void {
-    this.pendingGenerationImages.delete(chatId);
-  }
-
-  /** Take (read + clear) the pending generation image for a chat. */
-  takePendingImage(chatId: number): string | undefined {
-    const url = this.pendingGenerationImages.get(chatId);
-    if (url) {
-      this.pendingGenerationImages.delete(chatId);
-    }
-    return url;
   }
 
   /**
@@ -104,7 +68,6 @@ export class TelegramConversationService {
   /** Describe the current status of a chat for the /status command. */
   describeStatus(chatId?: number): {
     statusLine: string;
-    hasPendingImage: boolean;
   } {
     const state = chatId ? this.conversations.get(chatId) : undefined;
 
@@ -127,17 +90,13 @@ export class TelegramConversationService {
     }
 
     return {
-      hasPendingImage: chatId
-        ? this.pendingGenerationImages.has(chatId)
-        : false,
       statusLine,
     };
   }
 
-  /** Clear conversation + pending state and confirm the cancellation. */
+  /** Clear conversation state and confirm the cancellation. */
   private async resetConversation(ctx: Context, chatId: number): Promise<void> {
     this.conversations.delete(chatId);
-    this.pendingGenerationImages.delete(chatId);
     await ctx.reply('❌ Cancelled. Send /workflows to start again.');
   }
 
@@ -366,19 +325,13 @@ export class TelegramConversationService {
   /** Execute the workflow with collected inputs via the workflow runner. */
   private async handleConfirmRun(ctx: Context, chatId: number): Promise<void> {
     const state = this.conversations.get(chatId);
-    if (!state || !state.workflow) {
+    if (!state?.workflow) {
       await ctx.reply('❌ No workflow to run. Send /workflows to start.');
       return;
     }
 
-    if (!this.engine) {
-      await ctx.reply('❌ Workflow engine is not initialized.');
-      this.conversations.delete(chatId);
-      return;
-    }
-
     try {
-      await this.runner.execute(ctx, chatId, state, this.engine);
+      await this.runner.execute(ctx, chatId, state);
     } finally {
       this.conversations.delete(chatId);
     }

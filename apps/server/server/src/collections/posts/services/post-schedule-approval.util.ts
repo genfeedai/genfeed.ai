@@ -1,6 +1,6 @@
 import { TargetExecutionState } from '@genfeedai/enums';
-import type { PostPublishQueueService } from '@genfeedai/server';
 import { BadRequestException } from '@nestjs/common';
+import type { ScheduledPostWorkflowQueueService } from '@server/collections/posts/services/scheduled-post-workflow-queue.service';
 import type { PublishApprovalsService } from '@server/collections/publish-approvals/services/publish-approvals.service';
 
 const PUBLISHABLE_EXECUTION_STATES = new Set<string>([
@@ -20,11 +20,14 @@ export type ScheduledPublishPost = {
 export type ScheduledPublishApprovalContext = {
   actorUserId?: string | null;
   post: ScheduledPublishPost;
-  postPublishQueueService?: Pick<PostPublishQueueService, 'enqueue'>;
+  scheduledPostWorkflowQueue?: Pick<
+    ScheduledPostWorkflowQueueService,
+    'enqueue'
+  >;
   provenanceSurface?: string;
   publishApprovalsService?: Pick<
     PublishApprovalsService,
-    'createForCurrentPost' | 'markQueued'
+    'createForCurrentPost'
   >;
 };
 
@@ -93,15 +96,10 @@ export async function bindScheduledPublishApproval(
     return;
   }
 
-  await context.publishApprovalsService.markQueued(
-    approval.id,
-    post.organizationId,
-    actorUserId,
-  );
-  if (!context.postPublishQueueService) {
+  if (!context.scheduledPostWorkflowQueue) {
     return;
   }
-  await context.postPublishQueueService.enqueue({
+  await context.scheduledPostWorkflowQueue.enqueue({
     approvalId: approval.id,
     operationId: approval.operationId,
     organizationId: post.organizationId,

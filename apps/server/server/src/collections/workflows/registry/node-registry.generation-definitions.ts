@@ -1,9 +1,8 @@
-import type { NodeDefinition } from '@server/collections/workflows/registry/node-registry';
 import {
   DEFAULT_AGENT_CHAT_MODEL_KEY,
   SELECTABLE_AGENT_CHAT_MODELS,
 } from '@genfeedai/constants';
-import { WorkflowStepCategory } from '@genfeedai/enums';
+import type { NodeDefinition } from '@server/collections/workflows/registry/node-registry';
 
 export const SOURCE_CORPUS_CONFIG_LIMITS = {
   days: { default: 7, max: 30, min: 1 },
@@ -232,7 +231,6 @@ export const GENERATION_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
       prompt: { label: 'Prompt', type: 'text' },
     },
     label: 'Generate Image',
-    maps: WorkflowStepCategory.GENERATE_IMAGE,
     outputs: {
       image: { label: 'Generated Image', type: 'image' },
     },
@@ -456,7 +454,6 @@ export const GENERATION_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
     },
     isPremium: true,
     label: 'Generate Video',
-    maps: WorkflowStepCategory.GENERATE_VIDEO,
     outputs: {
       video: { label: 'Generated Video', type: 'video' },
     },
@@ -684,7 +681,6 @@ export const GENERATION_NODE_DEFINITIONS: Record<string, NodeDefinition> = {
     },
     isPremium: true,
     label: 'AI Upscale',
-    maps: WorkflowStepCategory.UPSCALE,
     outputs: {
       media: { label: 'Upscaled Media', type: 'any' },
     },

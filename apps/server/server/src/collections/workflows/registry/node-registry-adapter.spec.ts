@@ -1,10 +1,18 @@
 import {
   getNodeDefinition,
+  UNIFIED_NODE_REGISTRY,
   validateConnection,
 } from '@server/collections/workflows/registry/node-registry-adapter';
 import { describe, expect, it } from 'vitest';
 
 describe('node-registry-adapter', () => {
+  it('does not expose presentation nodes that cannot be persisted', () => {
+    expect(UNIFIED_NODE_REGISTRY).not.toHaveProperty('workflow-ref');
+    expect(UNIFIED_NODE_REGISTRY).not.toHaveProperty('animation');
+    expect(UNIFIED_NODE_REGISTRY).toHaveProperty('genfeedAction');
+    expect(UNIFIED_NODE_REGISTRY).toHaveProperty('workflowInput');
+  });
+
   it('allows image input to connect into ai-generate-image', () => {
     expect(
       validateConnection('input-image', 'image', 'ai-generate-image', 'image'),

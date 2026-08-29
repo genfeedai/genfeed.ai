@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { AgentToolName } from '@genfeedai/interfaces';
 import { ApiService } from '@services/api.service';
 import { AuthService } from '@services/auth.service';
 import * as vscode from 'vscode';
@@ -130,24 +131,28 @@ async function handleNewCommit(
 
   const prompt = buildCommitPrompt(commitMessage, platform);
 
-  const run = await vscode.window.withProgress(
+  const result = await vscode.window.withProgress(
     {
       cancellable: false,
       location: vscode.ProgressLocation.Notification,
       title: `GenFeed: generating ${platform} post from commit…`,
     },
     () =>
-      ApiService.getInstance().createAndExecuteRun('generate', {
-        channel: platform,
-        prompt,
-      }),
+      ApiService.getInstance().executeAgentTool(
+        AgentToolName.GENERATE_CONTENT,
+        {
+          platform: normalizePlatform(platform),
+          topic: prompt,
+          type: 'post',
+        },
+      ),
   );
 
-  const generatedText = extractGeneratedText(run.output);
+  const generatedText = extractGeneratedText(result.data);
 
-  if (!generatedText) {
+  if (!result.success || !generatedText) {
     vscode.window.showErrorMessage(
-      `GenFeed: generation failed (run ${run.id}).`,
+      result.error || 'GenFeed: generation workflow failed.',
     );
     return;
   }
@@ -181,7 +186,6 @@ async function handleNewCommit(
         channel: platform,
         commitMessage,
         content: generatedText,
-        sourceRunId: run.id,
         sourceType: 'commit-to-post',
       });
       vscode.window.showInformationMessage('Draft saved to GenFeed.');
@@ -202,6 +206,16 @@ function buildCommitPrompt(commitMessage: string, platform: string): string {
     `Explain what was shipped, why it matters, and make it exciting for a developer audience.`,
     `Tailor the tone and length for ${platform}.`,
   ].join('\n');
+}
+
+function normalizePlatform(platform: string): string {
+  if (platform === 'x') {
+    return 'twitter';
+  }
+  if (platform === 'blog') {
+    return 'newsletter';
+  }
+  return platform;
 }
 
 function extractGeneratedText(

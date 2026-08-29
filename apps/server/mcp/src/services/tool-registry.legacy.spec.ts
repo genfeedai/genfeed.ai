@@ -57,7 +57,7 @@ const MOCK_TOOLS = new Map(
   ].map((name) => [name, { name, surfaces: { mcp: true } }]),
 );
 
-vi.mock('@genfeedai/tools', () => ({
+vi.mock('@genfeedai/actions', () => ({
   getToolByName: vi.fn((name: string) => MOCK_TOOLS.get(name)),
   getToolsForSurface: vi.fn(() => [...MOCK_TOOLS.values()]),
   toMcpTools: vi.fn((tools) => tools),
@@ -118,13 +118,13 @@ function build() {
       .fn()
       .mockResolvedValue({ views: 1200, watchTime: 90 }),
     getWorkflowStatus: vi.fn().mockResolvedValue({
-      currentStepIndex: 1,
       id: 'workflow-1',
       lastRunAt: '2026-08-01T00:00:00.000Z',
       name: 'Daily digest',
       nextRunAt: '2026-08-09T00:00:00.000Z',
+      nodeCount: 3,
       status: 'RUNNING',
-      steps: [{ id: 'a' }, { id: 'b' }, { id: 'c' }],
+      version: 4,
     }),
     listAvatars: vi.fn().mockResolvedValue([{ id: 'avatar-1' }]),
     listImages: vi.fn().mockResolvedValue([{ id: 'image-1' }]),
@@ -384,7 +384,7 @@ describe('handleLegacyTool — media libraries', () => {
 });
 
 describe('handleLegacyTool — workflows', () => {
-  it('renders workflow status with a 1-based step counter', async () => {
+  it('renders workflow status with its pinned version and node count', async () => {
     const { client, registry } = build();
 
     const result = await callTool(registry, 'get_workflow_status', {
@@ -392,7 +392,8 @@ describe('handleLegacyTool — workflows', () => {
     });
 
     expect(client.getWorkflowStatus).toHaveBeenCalledWith('workflow-1');
-    expect(result.content[0].text).toContain('Current Step: 2 of 3');
+    expect(result.content[0].text).toContain('Version: 4');
+    expect(result.content[0].text).toContain('Nodes: 3');
     expect(result.content[0].text).toContain('Workflow Status: Daily digest');
   });
 
@@ -402,14 +403,14 @@ describe('handleLegacyTool — workflows', () => {
       id: 'workflow-2',
       name: 'Idle',
       status: 'IDLE',
-      steps: [{ id: 'a' }],
     });
 
     const result = await callTool(registry, 'get_workflow_status', {
       workflowId: 'workflow-2',
     });
 
-    expect(result.content[0].text).toContain('Current Step: N/A of 1');
+    expect(result.content[0].text).toContain('Version: N/A');
+    expect(result.content[0].text).toContain('Nodes: 0');
     expect(result.content[0].text).toContain('Last Run: Never');
     expect(result.content[0].text).toContain('Next Run: Not scheduled');
   });

@@ -1,14 +1,15 @@
+import {
+  createPublishExecutor,
+  PromptConstructorExecutor,
+  WorkflowEngine,
+} from '@genfeedai/workflows/engine';
+import { getWorkflowPresentationNodeType } from '@genfeedai/workflows/nodes';
 import { getNodeDefinition } from '@server/collections/workflows/registry/node-registry-adapter';
 import { WorkflowEngineConverterService } from '@server/collections/workflows/services/workflow-engine-converter.service';
 import {
   CONTENT_LOOP_PROMPT_TEMPLATE,
   CONTENT_LOOP_TEMPLATE,
 } from '@server/collections/workflows/templates/content-loop.template';
-import {
-  createPublishExecutor,
-  PromptConstructorExecutor,
-  WorkflowEngine,
-} from '@genfeedai/workflows/engine';
 import { describe, expect, it, vi } from 'vitest';
 
 const ANALYTICS_OUTPUT = {
@@ -24,6 +25,25 @@ const ANALYTICS_OUTPUT = {
   weekOverWeekDirection: 'up' as const,
   worstTopics: ['giveaway', 'unboxings'],
 };
+
+/**
+ * Product nodes persist as `genfeedAction`, so their handles live on the
+ * presentation definition for the configured action, not on the node type.
+ */
+function resolveNodeDefinition(
+  node: { data: { config?: unknown }; type: string } | undefined,
+) {
+  if (!node) {
+    return undefined;
+  }
+
+  const actionId = (node.data.config as { actionId?: string } | undefined)
+    ?.actionId;
+
+  return getNodeDefinition(
+    actionId ? getWorkflowPresentationNodeType(actionId) : node.type,
+  );
+}
 
 describe('CONTENT_LOOP_TEMPLATE', () => {
   it('wires every analytics recommendation output into a downstream handle', () => {
@@ -65,17 +85,21 @@ describe('CONTENT_LOOP_TEMPLATE', () => {
 
   it('keeps prompt and publish steps dependent on analytics feedback', () => {
     expect(
-      CONTENT_LOOP_TEMPLATE.steps.find((step) => step.id === 'step-prompt')
-        ?.dependsOn,
-    ).toEqual(['step-analytics-feedback', 'step-trend-trigger']);
+      CONTENT_LOOP_TEMPLATE.edges?.filter(
+        (edge) => edge.target === 'prompt-constructor',
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: 'analytics-feedback' }),
+        expect.objectContaining({ source: 'trend-trigger' }),
+      ]),
+    );
+    const promptConfig = CONTENT_LOOP_TEMPLATE.nodes?.find(
+      (node) => node.id === 'prompt-constructor',
+    )?.data.config;
     expect(
-      CONTENT_LOOP_TEMPLATE.steps.find((step) => step.id === 'step-publish')
-        ?.dependsOn,
-    ).toEqual(['step-analytics-feedback', 'step-generate']);
-    expect(
-      CONTENT_LOOP_TEMPLATE.nodes?.find(
-        (node) => node.id === 'prompt-constructor',
-      )?.data.config.template,
+      (promptConfig?.parameters as Record<string, unknown> | undefined)
+        ?.template,
     ).toBe(CONTENT_LOOP_PROMPT_TEMPLATE);
   });
 
@@ -91,7 +115,7 @@ describe('CONTENT_LOOP_TEMPLATE', () => {
       expect(targetNode).toBeDefined();
 
       if (edge.sourceHandle) {
-        const sourceDefinition = getNodeDefinition(sourceNode?.type ?? '');
+        const sourceDefinition = resolveNodeDefinition(sourceNode);
         expect(
           sourceDefinition?.outputs[edge.sourceHandle],
           `${sourceNode?.type}.${edge.sourceHandle}`,
@@ -99,7 +123,7 @@ describe('CONTENT_LOOP_TEMPLATE', () => {
       }
 
       if (edge.targetHandle) {
-        const targetDefinition = getNodeDefinition(targetNode?.type ?? '');
+        const targetDefinition = resolveNodeDefinition(targetNode);
         expect(
           targetDefinition?.inputs[edge.targetHandle],
           `${targetNode?.type}.${edge.targetHandle}`,
@@ -136,11 +160,16 @@ describe('CONTENT_LOOP_TEMPLATE', () => {
     engine.registerExecutor('analyticsFeedback', async () => ANALYTICS_OUTPUT);
     engine.registerExecutor('brandContext', async () => ({
       brandId: 'brand-1',
+      colors: { background: '#000', primary: '#fff', secondary: '#888' },
+      fonts: null,
+      label: 'Brand One',
+      models: { image: null, imageToVideo: null, music: null, video: null },
+      slug: 'brand-one',
       voice: 'direct and technical',
+      voiceConfig: null,
     }));
     engine.registerExecutor('trendTrigger', async (_node, inputs) => ({
       hashtags: [],
-      keywords: inputs.get('keywords'),
       platform: inputs.get('platform') ?? 'tiktok',
       soundId: null,
       topic: 'ai tools',
@@ -158,6 +187,7 @@ describe('CONTENT_LOOP_TEMPLATE', () => {
     );
     engine.registerExecutor('llm', async () => ({
       content: 'generated caption',
+      model: 'test-model',
       text: 'generated caption',
     }));
     engine.registerExecutor('publish', async (node, inputs, context) => {
@@ -168,7 +198,14 @@ describe('CONTENT_LOOP_TEMPLATE', () => {
 
     const result = await engine.execute(executable);
 
-    expect(result.status).toBe('completed');
+    expect(
+      result.status,
+      Array.from(result.nodeResults.entries())
+        .filter(([, nodeResult]) => nodeResult.error)
+        .map(([nodeId, nodeResult]) => `${nodeId}: ${nodeResult.error}`)
+        .join(' | ') ||
+        (result.error ?? ''),
+    ).toBe('completed');
     expect(captured.promptInputs.get('hooks')).toEqual(
       ANALYTICS_OUTPUT.topHooks,
     );

@@ -569,7 +569,7 @@ describeWithDatabase('Brand remix paid draft integration', () => {
         : {}) as never,
       prisma,
       runtime: { now: () => NOW, randomId: () => 'unused-random-id' },
-      systemWorkflowProvenanceService: {} as never,
+      systemWorkflowRunner: {} as never,
       trendReferenceCorpusService: {} as never,
       videoGenerationService: {} as never,
     }).service;

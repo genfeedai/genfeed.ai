@@ -1,14 +1,14 @@
+import { AgentType } from '@genfeedai/enums';
+import type { AgentToolResult } from '@genfeedai/interfaces';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { AgentContextAssemblyService } from '@server/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentChatModelRegistryService } from '@server/services/agent-orchestrator/agent-chat-model-registry.service';
 import type { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
 import { getAgentTypeConfig } from '@server/services/agent-orchestrator/constants/agent-type-config.constant';
 import type { AgentChatContext } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { SYSTEM_PROMPT_MANAGER } from '@server/services/agent-spawn/constants/spawn-system-prompt.constant';
-import { AgentType } from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 
 export interface SpawnSubAgentParams {
   agentType: AgentType;
@@ -71,7 +71,7 @@ export class AgentSpawnService implements OnModuleInit {
       { agentType, credentialId, organizationId: parentContext.organizationId },
     );
 
-    const result = await this.orchestratorService.chat(
+    const acknowledgement = await this.orchestratorService.chat(
       {
         agentType,
         content: task,
@@ -84,13 +84,15 @@ export class AgentSpawnService implements OnModuleInit {
       parentContext,
     );
 
+    // The turn is queued, not executed inline — the owning workflow execution
+    // bills its own credits, so the spawn call itself costs nothing.
     return {
-      creditsUsed: result.creditsUsed,
+      creditsUsed: 0,
       data: {
         agentType,
-        content: result.message.content,
-        threadId: result.threadId,
-        toolCallCount: result.toolCalls.length,
+        executionId: acknowledgement.executionId,
+        status: acknowledgement.status,
+        threadId: acknowledgement.threadId,
       },
       success: true,
     };

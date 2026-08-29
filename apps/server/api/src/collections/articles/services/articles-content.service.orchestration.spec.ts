@@ -11,12 +11,18 @@ import type { AccountPublishingContext } from '@genfeedai/interfaces';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
-import { ArticleGenerationType } from '@server/collections/articles/dto/generate-articles.dto';
+import {
+  ArticleGenerationType,
+  type GenerateArticlesDto,
+} from '@server/collections/articles/dto/generate-articles.dto';
 import type { ArticleContentPersistenceService } from '@server/collections/articles/services/article-content-persistence.service';
 import type { ArticleReviewService } from '@server/collections/articles/services/article-review.service';
 import type { ArticleTextGenerationService } from '@server/collections/articles/services/article-text-generation.service';
 import { ArticlesContentService } from '@server/collections/articles/services/articles-content.service';
-import type { PersistGeneratedArticleParams } from '@server/collections/articles/services/articles-content.types';
+import type {
+  ArticleCreateFn,
+  PersistGeneratedArticleParams,
+} from '@server/collections/articles/services/articles-content.types';
 import type { AccountPublishingContextService } from '@server/collections/credentials/services/account-publishing-context.service';
 import type { TemplatesService } from '@server/collections/templates/services/templates.service';
 import type { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
@@ -89,8 +95,13 @@ describe('ArticlesContentService generation orchestration', () => {
     } as unknown as ArticleTextGenerationService;
 
     const articleReviewService = {
-      runReviewUpdateCycle: vi.fn().mockImplementation(({ draft }) =>
+      reviewDraft: vi.fn().mockResolvedValue({
+        charge: { amount: 0 },
+        review: { issues: [], score: 9 },
+      }),
+      reviseDraft: vi.fn().mockImplementation(({ draft }) =>
         Promise.resolve({
+          charge: { amount: 0 },
           updated: {
             content: `reviewed:${draft.content}`,
             label: `reviewed:${draft.label}`,
@@ -164,6 +175,31 @@ describe('ArticlesContentService generation orchestration', () => {
     vi.clearAllMocks();
   });
 
+  /**
+   * Drives the action-backed generation pipeline end to end. Generation is no
+   * longer one method — each stage is its own workflow action, so orchestration
+   * is exercised by running the stages in the order the graph wires them.
+   */
+  async function runGenerationPipeline(
+    service: ArticlesContentService,
+    generateDto: GenerateArticlesDto,
+    createArticleFn: ArticleCreateFn,
+  ): Promise<void> {
+    const context = await service.prepareGeneration(
+      generateDto,
+      userId,
+      organizationId,
+      brandId,
+      modelConfig,
+    );
+    const { items } = await service.generateDrafts(context);
+    for (const item of items) {
+      const reviewed = await service.reviewDraft(item);
+      const revised = await service.reviseDraft(reviewed);
+      await service.persistDraft(revised, createArticleFn);
+    }
+  }
+
   it('keeps public generation methods and shared orchestration below 150 lines', () => {
     const source = readFileSync(
       join(
@@ -173,13 +209,15 @@ describe('ArticlesContentService generation orchestration', () => {
       'utf8',
     );
 
-    expect(countClassMethodLines(source, 'generateArticles')).toBeLessThan(150);
-    expect(
-      countClassMethodLines(source, 'generateLongFormArticle'),
-    ).toBeLessThan(150);
-    expect(
-      countClassMethodLines(source, 'runArticleGenerationOrchestration'),
-    ).toBeLessThan(150);
+    for (const method of [
+      'prepareGeneration',
+      'generateDrafts',
+      'reviewDraft',
+      'reviseDraft',
+      'persistDraft',
+    ]) {
+      expect(countClassMethodLines(source, method)).toBeLessThan(150);
+    }
   });
 
   it('orchestrates standard article prompt, model, review, tags, and persistence', async () => {
@@ -203,16 +241,10 @@ describe('ArticlesContentService generation orchestration', () => {
         ],
       },
     });
-    const onBilling = vi.fn();
-
-    await service.generateArticles(
-      { count: 1, prompt: 'write about growth' },
-      userId,
-      organizationId,
-      brandId,
-      modelConfig,
+    await runGenerationPipeline(
+      service,
+      { count: 1, prompt: 'write about growth' } as GenerateArticlesDto,
       createArticleFn,
-      onBilling,
     );
 
     expect(templatesService.getRenderedPrompt).toHaveBeenCalledWith(
@@ -238,18 +270,23 @@ describe('ArticlesContentService generation orchestration', () => {
           temperature: 0.8,
         }),
         model: 'test-generation-model',
-        onBilling,
+        onBilling: expect.any(Function),
         organizationId,
       }),
     );
-    expect(articleReviewService.runReviewUpdateCycle).toHaveBeenCalledWith(
+    expect(articleReviewService.reviewDraft).toHaveBeenCalledWith(
       expect.objectContaining({
-        draft: {
+        draft: expect.objectContaining({
           content: '<p>Body</p>',
           label: 'Generated article',
           summary: 'Summary',
-        },
-        onBilling,
+        }),
+        organizationId,
+        type: ArticleGenerationType.STANDARD,
+      }),
+    );
+    expect(articleReviewService.reviseDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
         organizationId,
         prompt: 'write about growth',
         type: ArticleGenerationType.STANDARD,
@@ -307,16 +344,14 @@ describe('ArticlesContentService generation orchestration', () => {
       },
     });
 
-    await service.generateLongFormArticle(
+    await runGenerationPipeline(
+      service,
       {
         prompt: 'write a long brief',
         targetWordCount: 5000,
         tone: 'authoritative',
-      },
-      userId,
-      organizationId,
-      brandId,
-      modelConfig,
+        type: ArticleGenerationType.X_ARTICLE,
+      } as GenerateArticlesDto,
       createArticleFn,
     );
 
@@ -341,7 +376,7 @@ describe('ArticlesContentService generation orchestration', () => {
         organizationId,
       }),
     );
-    expect(articleReviewService.runReviewUpdateCycle).toHaveBeenCalledWith(
+    expect(articleReviewService.reviseDraft).toHaveBeenCalledWith(
       expect.objectContaining({
         organizationId,
         prompt: 'write a long brief',
@@ -389,15 +424,13 @@ describe('ArticlesContentService generation orchestration', () => {
         } as unknown as AccountPublishingContext,
       });
 
-    await service.generateLongFormArticle(
+    await runGenerationPipeline(
+      service,
       {
         credential: 'cred_1',
         prompt: 'write a long brief',
-      },
-      userId,
-      organizationId,
-      brandId,
-      modelConfig,
+        type: ArticleGenerationType.X_ARTICLE,
+      } as GenerateArticlesDto,
       createArticleFn,
     );
 
@@ -423,12 +456,9 @@ describe('ArticlesContentService generation orchestration', () => {
     });
 
     await expect(
-      service.generateArticles(
-        { count: 1, prompt: 'write about growth' },
-        userId,
-        organizationId,
-        brandId,
-        modelConfig,
+      runGenerationPipeline(
+        service,
+        { count: 1, prompt: 'write about growth' } as GenerateArticlesDto,
         createArticleFn,
       ),
     ).rejects.toThrow('Invalid JSON response from AI service');

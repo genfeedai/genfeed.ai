@@ -22,6 +22,9 @@ export const WEBSITE_ANALYTICS_EVENTS = {
   YOUTUBE_CLIP_PREVIEW_REQUESTED: 'youtube_clip_preview_requested',
   YOUTUBE_CLIP_TOOL_SUBMITTED: 'youtube_clip_tool_submitted',
   YOUTUBE_CLIP_TOOL_VIEWED: 'youtube_clip_tool_viewed',
+  YOUTUBE_LONG_FORM_COMPLETED: 'youtube_long_form_completed',
+  YOUTUBE_LONG_FORM_SUBMITTED: 'youtube_long_form_submitted',
+  YOUTUBE_LONG_FORM_VIEWED: 'youtube_long_form_viewed',
   VIEW_PRICING: 'view_pricing',
 } as const;
 
@@ -74,6 +77,24 @@ export interface WebsiteAnalyticsEventProperties {
   };
   [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_CLIP_TOOL_VIEWED]: {
     readonly surface: 'youtube_clips';
+  };
+  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_LONG_FORM_COMPLETED]: {
+    readonly outcome: 'failed' | 'ready';
+    readonly outputType:
+      | 'article'
+      | 'linkedin-article'
+      | 'x-article'
+      | 'newsletter';
+  };
+  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_LONG_FORM_SUBMITTED]: {
+    readonly outputType:
+      | 'article'
+      | 'linkedin-article'
+      | 'x-article'
+      | 'newsletter';
+  };
+  [WEBSITE_ANALYTICS_EVENTS.YOUTUBE_LONG_FORM_VIEWED]: {
+    readonly surface: 'youtube_long_form';
   };
 }
 

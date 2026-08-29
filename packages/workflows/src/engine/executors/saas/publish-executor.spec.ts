@@ -48,7 +48,7 @@ describe('PublishExecutor', () => {
     it('returns valid for correct config', () => {
       const node: ExecutableNode = {
         config: {
-          platforms: { twitter: true },
+          platforms: ['twitter'],
           schedule: { type: 'immediate' },
         },
         id: '1',
@@ -75,7 +75,7 @@ describe('PublishExecutor', () => {
 
     it('requires at least one enabled platform', () => {
       const node: ExecutableNode = {
-        config: { platforms: { twitter: false } },
+        config: { platforms: [] },
         id: '1',
         inputs: [],
         label: 'P',
@@ -87,7 +87,7 @@ describe('PublishExecutor', () => {
     it('requires datetime for scheduled posts', () => {
       const node: ExecutableNode = {
         config: {
-          platforms: { twitter: true },
+          platforms: ['twitter'],
           schedule: { type: 'scheduled' },
         },
         id: '1',
@@ -103,7 +103,7 @@ describe('PublishExecutor', () => {
     it('throws without resolver', async () => {
       const exec = createPublishExecutor();
       const input = makeInput(
-        { platforms: { twitter: true } },
+        { platforms: ['twitter'] },
         { brand: { brandId: 'b-1' }, media: 'img.png' },
       );
       await expect(exec.execute(input)).rejects.toThrow('resolver');
@@ -111,7 +111,7 @@ describe('PublishExecutor', () => {
 
     it('publishes immediately', async () => {
       const input = makeInput(
-        { caption: 'Hello', platforms: { twitter: true } },
+        { caption: 'Hello', platforms: ['twitter'] },
         { brand: { brandId: 'b-1' }, media: 'img.png' },
       );
       const result = await executor.execute(input);
@@ -123,7 +123,7 @@ describe('PublishExecutor', () => {
 
     it('forwards workflowId from context to the resolver', async () => {
       const input = makeInput(
-        { caption: 'Test', platforms: { twitter: true } },
+        { caption: 'Test', platforms: ['twitter'] },
         { brand: { brandId: 'b-1' }, media: 'img.png' },
       );
       await executor.execute(input);
@@ -135,7 +135,7 @@ describe('PublishExecutor', () => {
 
     it('prefers caption from input over config', async () => {
       const input = makeInput(
-        { caption: 'config', platforms: { twitter: true } },
+        { caption: 'config', platforms: ['twitter'] },
         { brand: { brandId: 'b-1' }, caption: 'input', media: 'img' },
       );
       await executor.execute(input);
@@ -146,7 +146,7 @@ describe('PublishExecutor', () => {
 
     it('supports text-only publishing when caption input is present', async () => {
       const input = makeInput(
-        { platforms: { twitter: true } },
+        { platforms: ['twitter'] },
         { brand: { brandId: 'b-1' }, caption: 'text post' },
       );
       await executor.execute(input);
@@ -157,7 +157,7 @@ describe('PublishExecutor', () => {
 
     it('requires media or caption', async () => {
       const input = makeInput(
-        { platforms: { twitter: true } },
+        { platforms: ['twitter'] },
         { brand: { brandId: 'b-1' } },
       );
       await expect(executor.execute(input)).rejects.toThrow(
@@ -168,7 +168,7 @@ describe('PublishExecutor', () => {
     it('handles scheduled publish', async () => {
       const input = makeInput(
         {
-          platforms: { twitter: true },
+          platforms: ['twitter'],
           schedule: { datetime: '2025-06-01T12:00:00Z', type: 'scheduled' },
         },
         { brand: { brandId: 'b-1' }, media: 'img' },
@@ -179,7 +179,7 @@ describe('PublishExecutor', () => {
 
     it('accepts a brand id string from the brand handle', async () => {
       const input = makeInput(
-        { platforms: { twitter: true } },
+        { platforms: ['twitter'] },
         { brand: 'b-1', caption: 'text post' },
       );
       await executor.execute(input);
@@ -190,7 +190,7 @@ describe('PublishExecutor', () => {
 
     it('schedules from best posting times on the schedule handle', async () => {
       const input = makeInput(
-        { platforms: { twitter: true } },
+        { platforms: ['twitter'] },
         {
           brand: { brandId: 'b-1' },
           caption: 'text post',
@@ -227,7 +227,7 @@ describe('PublishExecutor', () => {
 
     it('falls back to config schedule when posting times are empty', async () => {
       const input = makeInput(
-        { platforms: { twitter: true } },
+        { platforms: ['twitter'] },
         { brand: { brandId: 'b-1' }, caption: 'text post', schedule: [] },
       );
 

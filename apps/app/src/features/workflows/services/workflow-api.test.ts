@@ -450,7 +450,7 @@ describe('WorkflowApiService', () => {
     );
   });
 
-  it('normalizes webhook, approval, template, brand, and batch responses', async () => {
+  it('normalizes webhook, approval, template, brand, and batch execution responses', async () => {
     mocks.post
       .mockResolvedValueOnce({
         data: {
@@ -474,7 +474,21 @@ describe('WorkflowApiService', () => {
         },
       })
       .mockResolvedValueOnce({
-        data: { data: { batchJobId: 'batch-1', totalCount: 2 } },
+        data: {
+          data: {
+            createdAt: '2026-08-29T08:00:00.000Z',
+            id: 'batch-execution-1',
+            nodeResults: [],
+            progress: 100,
+            status: 'COMPLETED',
+            trigger: 'api',
+            // The batch controller serializes through `serializeSingle`, so the
+            // wire shape is a JSON:API resource document, not a bare envelope.
+            type: 'execution',
+            updatedAt: '2026-08-29T08:01:00.000Z',
+            workflowId: 'hidden-batch-workflow',
+          },
+        },
       });
     mocks.patch.mockResolvedValueOnce({
       data: { data: { webhookSecret: 'secret-2' } },
@@ -503,9 +517,7 @@ describe('WorkflowApiService', () => {
             },
           ],
         },
-      })
-      .mockResolvedValueOnce({ data: { data: { id: 'batch-1', items: [] } } })
-      .mockResolvedValueOnce({ data: { data: [{ id: 'batch-1' }] } });
+      });
     mocks.delete.mockResolvedValueOnce({ data: undefined });
     mocks.brandsFindAll.mockResolvedValueOnce([
       { id: 123, label: null, logoUrl: 'logo.png', slug: null },
@@ -565,17 +577,14 @@ describe('WorkflowApiService', () => {
       },
     ]);
     await expect(
-      service().runBatch('workflow-1', ['ingredient-1']),
-    ).resolves.toEqual({
-      batchJobId: 'batch-1',
-      totalCount: 2,
+      service().startBatchExecution('workflow-1', ['ingredient-1']),
+    ).resolves.toMatchObject({
+      id: 'batch-execution-1',
     });
-    await expect(service().getBatchStatus('batch-1')).resolves.toMatchObject({
-      id: 'batch-1',
-    });
-    await expect(service().listBatchJobs()).resolves.toEqual([
-      { id: 'batch-1' },
-    ]);
+    expect(mocks.post).toHaveBeenLastCalledWith(
+      '/workflow-1/executions/batch',
+      { ingredientIds: ['ingredient-1'] },
+    );
   });
 
   it('lists system catalog entries from the plain (non-JSON:API) payload and preserves install state', async () => {

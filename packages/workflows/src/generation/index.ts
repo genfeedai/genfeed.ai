@@ -4,6 +4,7 @@ export interface WorkflowGenerationNodeType {
   inputs: string[];
   outputs: string[];
   type: string;
+  workflowActionId?: string;
 }
 
 export interface BuildWorkflowGenerationPromptParams {
@@ -41,49 +42,55 @@ export const DEFAULT_WORKFLOW_GENERATION_NODE_TYPES: WorkflowGenerationNodeType[
       description: 'Text prompt or source idea for content generation',
       inputs: [],
       outputs: ['prompt'],
-      type: 'prompt',
+      type: 'workflowInput',
     },
     {
       category: 'generation',
       description: 'Generate an image from a text prompt',
       inputs: ['prompt'],
       outputs: ['imageUrl'],
-      type: 'image_gen',
+      type: 'genfeedAction',
+      workflowActionId: 'imageGen',
     },
     {
       category: 'generation',
       description: 'Generate a video from a prompt or image',
       inputs: ['prompt', 'imageUrl'],
       outputs: ['videoUrl'],
-      type: 'text_to_video',
+      type: 'genfeedAction',
+      workflowActionId: 'videoGen',
     },
     {
       category: 'content',
       description: 'Generate social post copy from a prompt',
       inputs: ['prompt'],
       outputs: ['content'],
-      type: 'social_post',
+      type: 'genfeedAction',
+      workflowActionId: 'postGen',
     },
     {
       category: 'publishing',
       description: 'Prepare generated content for review or publishing',
       inputs: ['content', 'imageUrl', 'videoUrl'],
       outputs: ['post'],
-      type: 'publish_post',
+      type: 'genfeedAction',
+      workflowActionId: 'publish',
     },
     {
       category: 'input',
       description: 'Get recent posts, mentions, or search results from X',
       inputs: ['brand', 'query', 'username'],
       outputs: ['posts', 'summary', 'count'],
-      type: 'socialRead',
+      type: 'genfeedAction',
+      workflowActionId: 'socialRead',
     },
     {
       category: 'output',
       description: 'Send results privately by notification or email',
       inputs: ['content', 'subject', 'html'],
       outputs: ['delivered', 'destination'],
-      type: 'reportDelivery',
+      type: 'genfeedAction',
+      workflowActionId: 'reportDelivery',
     },
   ];
 
@@ -116,6 +123,7 @@ export function buildWorkflowGenerationMessages({
     '',
     'Rules:',
     '- Only use node types from the available list above.',
+    '- For an entry with workflowActionId, set node.type to "genfeedAction" and data.config to { "actionId": workflowActionId, "parameters": { ...action parameters } }.',
     '- Connect nodes via edges using valid input/output handles.',
     '- Position nodes in a left-to-right flow with ~250px horizontal spacing.',
     '- Return ONLY the JSON object, no markdown fences or explanation.',

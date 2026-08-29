@@ -14,7 +14,8 @@ describe('workflow generation shared helpers', () => {
           description: 'Generate image',
           inputs: ['prompt'],
           outputs: ['imageUrl'],
-          type: 'image_gen',
+          type: 'genfeedAction',
+          workflowActionId: 'imageGen',
         },
       ],
       description: 'Generate an image workflow',
@@ -22,7 +23,7 @@ describe('workflow generation shared helpers', () => {
     });
 
     expect(messages).toHaveLength(2);
-    expect(messages[0]?.content).toContain('image_gen');
+    expect(messages[0]?.content).toContain('imageGen');
     expect(messages[0]?.content).toContain('instagram');
     expect(messages[1]).toEqual({
       content: 'Generate an image workflow',
@@ -30,11 +31,11 @@ describe('workflow generation shared helpers', () => {
     });
   });
 
-  it('includes socialRead and reportDelivery in the generator vocabulary (#2664)', () => {
-    const types = DEFAULT_WORKFLOW_GENERATION_NODE_TYPES.map(
-      (node) => node.type,
+  it('includes socialRead and reportDelivery as action-backed generator vocabulary (#2664)', () => {
+    const actionIds = DEFAULT_WORKFLOW_GENERATION_NODE_TYPES.map(
+      (node) => node.workflowActionId,
     );
-    expect(types).toEqual(
+    expect(actionIds).toEqual(
       expect.arrayContaining(['socialRead', 'reportDelivery']),
     );
   });

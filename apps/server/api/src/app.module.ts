@@ -14,7 +14,6 @@ import { AdWatchedAdvertisersModule } from '@api/collections/ad-watched-advertis
 import { AgentCampaignsModule } from '@api/collections/agent-campaigns/agent-campaigns.module';
 import { AgentMemoriesModule } from '@api/collections/agent-memories/agent-memories.module';
 import { AgentPublishAuditsModule } from '@api/collections/agent-publish-audits/agent-publish-audits.module';
-import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { AgentTransfersModule } from '@api/collections/agent-transfers/agent-transfers.module';
@@ -92,7 +91,6 @@ import { PublishApprovalsModule } from '@api/collections/publish-approvals/publi
 import { PublishingSetupModule } from '@api/collections/publishing-setup/publishing-setup.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
 import { RssSourcesModule } from '@api/collections/rss-sources/rss-sources.module';
-import { RunsModule } from '@api/collections/runs/runs.module';
 import { SchedulesModule } from '@api/collections/schedules/schedules.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SkillsModule } from '@api/collections/skills/skills.module';
@@ -110,7 +108,6 @@ import { TasksModule } from '@api/collections/tasks/tasks.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { TrackedLinksModule } from '@api/collections/tracked-links/tracked-links.module';
 import { TrainingsModule } from '@api/collections/trainings/trainings.module';
-import { TranscriptsModule } from '@api/collections/transcripts/transcripts.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { UserSubscriptionsModule } from '@api/collections/user-subscriptions/user-subscriptions.module';
 import { UsersModule } from '@api/collections/users/users.module';
@@ -208,7 +205,6 @@ import { SyncModule } from '@api/services/sync/sync.module';
 import { TelegramBotModule } from '@api/services/telegram-bot/telegram-bot.module';
 import { TwitterPipelineModule } from '@api/services/twitter-pipeline/twitter-pipeline.module';
 import { VideoCompletionModule } from '@api/services/video-completion/video-completion.module';
-import { WorkflowExecutorModule } from '@api/services/workflow-executor/workflow-executor.module';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { RateLimitModule } from '@api/shared/modules/rate-limit/rate-limit.module';
 import { SharedModule } from '@api/shared/shared.module';
@@ -272,7 +268,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     AgentTransfersModule,
     AgentMemoriesModule,
     AgentPublishAuditsModule,
-    AgentRunsModule,
     AgentThreadingModule,
     AgentStrategiesModule,
     ActivitiesModule,
@@ -358,7 +353,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     PromptsModule,
     RolesModule,
     RssSourcesModule,
-    RunsModule,
     SchedulesModule,
     SettingsModule,
     SpeechModule,
@@ -378,7 +372,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     TagsModule,
     TemplatesModule,
     TrainingsModule,
-    TranscriptsModule,
     TrackedLinksModule,
     TrendsModule,
     UsersModule,
@@ -394,7 +387,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     WorkflowExecutionsModule,
     AgentWorkflowsModule,
     PreflightModule,
-    WorkflowExecutorModule,
     WorkflowsModule,
 
     // Services (alphabetical)

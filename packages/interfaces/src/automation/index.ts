@@ -1,3 +1,4 @@
+export * from './content-delivery-workflow.interface';
 export * from './metadata.interface';
 export * from './setting.interface';
 export * from './setting-option.interface';

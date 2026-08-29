@@ -1,26 +1,18 @@
+import { estimateBatchGenerationCredits } from '@genfeedai/constants';
 import {
-  chargeBatchGenerationCredits,
-  estimateBatchGenerationCredits,
-} from '@genfeedai/constants';
-import { ContentFormat, formatPlatformLabel } from '@genfeedai/enums';
+  ActivitySource,
+  ContentFormat,
+  formatPlatformLabel,
+} from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
-import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { runEffectPromise } from '@server/helpers/utils/effect/effect.util';
-import { BatchGenerationQueueService } from '@server/queues/batch-generation/batch-generation-queue.service';
-import { AgentStreamPublisherService } from '@server/services/agent-orchestrator/agent-stream-publisher.service';
 import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import {
-  BATCH_POST_PREVIEW_LIMIT,
-  takeBatchPostPreviews,
-} from '@server/services/agent-orchestrator/tools/batch-post-preview.util';
 import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
 import { BatchGenerationCreditsService } from '@server/services/batch-generation/batch-generation-credits.service';
-import { BatchGenerationStreamService } from '@server/services/batch-generation/batch-generation-stream.service';
-import { Effect } from 'effect';
+import { BatchGenerationWorkflowService } from '@server/services/batch-generation/batch-generation-workflow.service';
 
 interface AgentBrandsServiceLike {
   findOne: (
@@ -39,21 +31,7 @@ interface ContentMixPercents {
   storyPercent: number;
 }
 
-type StreamedBatchItem = {
-  error?: string;
-  format?: string;
-  hasMedia?: boolean;
-  index: number;
-  platform?: string;
-  postId?: string;
-  previewText?: string;
-  status: 'completed' | 'failed';
-  topic: string;
-};
-
 type BatchRecord = Awaited<ReturnType<BatchGenerationService['createBatch']>>;
-
-type StreamToolExecutionContext = ToolExecutionContext & { threadId: string };
 
 type BatchExecution = {
   batch: BatchRecord;
@@ -125,20 +103,15 @@ export class AgentMediaBatchGenerationService {
     private readonly loggerService: LoggerService,
     @Inject('AGENT_BRANDS_SERVICE')
     private readonly brandsService: AgentBrandsServiceLike,
+    private readonly batchGenerationWorkflowService: BatchGenerationWorkflowService,
     @Optional()
     private readonly batchGenerationService?: BatchGenerationService,
     @Optional()
     private readonly credentialsService?: CredentialsService,
     @Optional()
-    private readonly streamPublisher?: AgentStreamPublisherService,
-    @Optional()
     private readonly creditsUtilsService?: CreditsUtilsService,
     @Optional()
     private readonly batchCreditsService?: BatchGenerationCreditsService,
-    @Optional()
-    private readonly batchStreamService?: BatchGenerationStreamService,
-    @Optional()
-    private readonly batchGenerationQueueService?: BatchGenerationQueueService,
   ) {}
 
   async generateContentBatch(
@@ -164,10 +137,6 @@ export class AgentMediaBatchGenerationService {
       prepared,
     );
     if ('error' in execution) return execution.error;
-
-    if (ctx.streamBatchToUser && ctx.threadId && ctx.userId) {
-      return this.processStreamedBatch(execution.value, ctx);
-    }
 
     return this.queueOrRunBatch(execution.value, ctx);
   }
@@ -314,23 +283,29 @@ export class AgentMediaBatchGenerationService {
     });
     if ('error' in reservation) return reservation;
 
-    let recorded: boolean | undefined;
-    try {
-      recorded = await this.batchCreditsService?.recordUpfrontCharge({
-        batchId,
-        credits: prepared.estimatedCredits,
-        organizationId: ctx.organizationId,
-        pricingOptions: prepared.pricingOptions,
-        reservationId: reservation.reservationId,
-      });
-    } catch (recordError) {
-      this.loggerService.warn(
-        `${this.logContext} failed to record a batch reservation`,
-        { batchId, organizationId: ctx.organizationId, recordError },
-      );
-      recorded = false;
+    // Pin pricing before work so settlement moves only the eventual delta.
+    // Only a held reservation needs pinning: deployments without managed credits
+    // take no hold, so there is nothing to record and nothing to compensate.
+    let recorded = true;
+    if (reservation.reservationId) {
+      try {
+        recorded =
+          (await this.batchCreditsService?.recordUpfrontCharge({
+            batchId,
+            credits: prepared.estimatedCredits,
+            organizationId: ctx.organizationId,
+            pricingOptions: prepared.pricingOptions,
+            reservationId: reservation.reservationId,
+          })) === true;
+      } catch (recordError) {
+        this.loggerService.warn(
+          `${this.logContext} failed to record a batch reservation`,
+          { batchId, organizationId: ctx.organizationId, recordError },
+        );
+        recorded = false;
+      }
     }
-    if (recorded !== true) {
+    if (!recorded) {
       await this.compensateUnrecordedReservation({
         batchId,
         organizationId: ctx.organizationId,
@@ -354,6 +329,56 @@ export class AgentMediaBatchGenerationService {
         platforms: prepared.platforms,
         pricingOptions: prepared.pricingOptions,
       },
+    };
+  }
+
+  private async compensateUnqueuedBatch(
+    execution: BatchExecution,
+    ctx: ToolExecutionContext,
+    queueError: unknown,
+  ): Promise<AgentToolResult> {
+    try {
+      await this.batchGenerationService?.cancelBatch(
+        execution.batchId,
+        ctx.organizationId,
+      );
+    } catch (cancelError) {
+      this.loggerService.warn(
+        `${this.logContext} failed to cancel a batch that was never queued`,
+        {
+          batchId: execution.batchId,
+          cancelError,
+          organizationId: ctx.organizationId,
+        },
+      );
+    }
+
+    try {
+      // The charge is already pinned, so settlement — not release — returns the
+      // unspent credits for a batch that produced nothing.
+      await this.batchCreditsService?.settleBatchCredits({
+        batchId: execution.batchId,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+      });
+    } catch (settleError) {
+      this.loggerService.warn(
+        `${this.logContext} failed to settle a batch that was never queued`,
+        {
+          batchId: execution.batchId,
+          organizationId: ctx.organizationId,
+          settleError,
+        },
+      );
+    }
+
+    return {
+      creditsUsed: 0,
+      error:
+        queueError instanceof Error
+          ? queueError.message
+          : 'Batch could not be queued',
+      success: false,
     };
   }
 
@@ -437,353 +462,22 @@ export class AgentMediaBatchGenerationService {
     }
   }
 
-  private async processStreamedBatch(
-    execution: BatchExecution,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.batchGenerationService || !ctx.threadId || !ctx.userId) {
-      return this.queueOrRunBatch(execution, ctx);
-    }
-    const streamContext: StreamToolExecutionContext = {
-      ...ctx,
-      threadId: ctx.threadId,
-    };
-    const streamedItems: StreamedBatchItem[] = [];
-    const streamedBlocks: string[] = [];
-    let streamedTranscript =
-      `Creating ${execution.batch.totalCount} ${execution.platformLabel} post${execution.batch.totalCount === 1 ? '' : 's'}. ` +
-      'I will stream each draft as soon as it is ready.';
-    try {
-      await this.publishBatchStarted(
-        streamedTranscript,
-        execution.batch.totalCount,
-        streamContext,
-      );
-    } catch (error: unknown) {
-      // Streaming failed before processing claimed the batch. Hand it to the
-      // durable queue so the recorded reservation still has an execution owner.
-      this.loggerService.warn(
-        `${this.logContext} batch stream unavailable; using durable execution`,
-        { batchId: execution.batchId, error },
-      );
-      return this.queueOrRunBatch(execution, ctx);
-    }
-
-    const summary = await this.batchGenerationService.processBatch(
-      execution.batchId,
-      ctx.organizationId,
-      this.buildStreamingCallbacks(
-        execution.batchId,
-        streamedItems,
-        streamedBlocks,
-        streamContext,
-      ),
-    );
-    const summaryText =
-      `\n\nBatch complete. ${summary.completedCount} of ${summary.totalCount} ` +
-      `post${summary.totalCount === 1 ? '' : 's'} ready` +
-      `${summary.failedCount > 0 ? `, ${summary.failedCount} failed.` : '.'}`;
-    streamedTranscript += streamedBlocks.join('');
-    streamedTranscript += summaryText;
-    await runEffectPromise(
-      this.publishTokenEffect({
-        runId: streamContext.runId,
-        threadId: streamContext.threadId,
-        token: summaryText,
-        userId: streamContext.userId,
-      }),
-    );
-
-    return this.buildStreamedResult({
-      ctx: streamContext,
-      execution,
-      streamedItems,
-      streamedTranscript,
-      summary,
-    });
-  }
-
-  private buildStreamingCallbacks(
-    batchId: string,
-    streamedItems: StreamedBatchItem[],
-    streamedBlocks: string[],
-    ctx: StreamToolExecutionContext,
-  ): Parameters<BatchGenerationService['processBatch']>[2] {
-    return {
-      onItemCompleted: async (event) => {
-        const item: StreamedBatchItem = {
-          format: event.item.format,
-          hasMedia: Boolean(event.item.mediaUrl),
-          index: event.index,
-          platform: event.item.platform,
-          postId: event.postId,
-          previewText: event.previewText,
-          status: 'completed',
-          topic: event.topic,
-        };
-        streamedItems.push(item);
-        streamedBlocks.push(
-          this.formatStreamedItemBlock(item, event.totalCount),
-        );
-        await this.publishStreamedItem(item, event.totalCount, batchId, ctx, {
-          detail: `Draft ${event.completedCount}/${event.totalCount} is ready.`,
-          progress: Math.round((event.completedCount / event.totalCount) * 100),
-          status: 'completed',
-        });
-      },
-      onItemFailed: async (event) => {
-        const item: StreamedBatchItem = {
-          error: event.error,
-          format: event.item.format,
-          hasMedia: Boolean(event.item.mediaUrl),
-          index: event.index,
-          platform: event.item.platform,
-          status: 'failed',
-          topic: event.topic,
-        };
-        streamedItems.push(item);
-        const completedCount = streamedItems.filter(
-          (entry) => entry.status === 'completed',
-        ).length;
-        streamedBlocks.push(
-          this.formatStreamedItemBlock(item, event.totalCount),
-        );
-        await this.publishStreamedItem(item, event.totalCount, batchId, ctx, {
-          detail: event.error || 'Draft generation failed.',
-          progress: Math.round(
-            ((event.failedCount + completedCount) / event.totalCount) * 100,
-          ),
-          status: 'failed',
-        });
-      },
-      onItemStarted: async (event) => {
-        await runEffectPromise(
-          this.publishWorkEventEffect({
-            detail: `Generating draft ${event.index + 1}/${event.totalCount}.`,
-            event: 'tool_started',
-            label: `Generating post ${event.index + 1}`,
-            parameters: {
-              batchId,
-              format: event.item.format,
-              platform: event.item.platform,
-            },
-            progress: Math.round(
-              ((event.completedCount + event.failedCount) /
-                Math.max(event.totalCount, 1)) *
-                100,
-            ),
-            runId: ctx.runId,
-            status: 'running',
-            threadId: ctx.threadId,
-            toolName: AgentToolName.GENERATE_CONTENT_BATCH,
-            userId: ctx.userId,
-          }),
-        );
-      },
-    };
-  }
-
-  private async publishBatchStarted(
-    transcript: string,
-    totalCount: number,
-    ctx: StreamToolExecutionContext,
-  ): Promise<void> {
-    await runEffectPromise(
-      this.publishTokenEffect({
-        runId: ctx.runId,
-        threadId: ctx.threadId,
-        token: transcript,
-        userId: ctx.userId,
-      }),
-    );
-    await runEffectPromise(
-      this.publishWorkEventEffect({
-        detail: `Queued ${totalCount} post${totalCount === 1 ? '' : 's'} for generation.`,
-        event: 'started',
-        label: 'Batch generation started',
-        progress: 0,
-        runId: ctx.runId,
-        startedAt: new Date().toISOString(),
-        status: 'running',
-        threadId: ctx.threadId,
-        userId: ctx.userId,
-      }),
-    );
-  }
-
-  private async publishStreamedItem(
-    item: StreamedBatchItem,
-    totalCount: number,
-    batchId: string,
-    ctx: StreamToolExecutionContext,
-    outcome: {
-      detail: string;
-      progress: number;
-      status: 'completed' | 'failed';
-    },
-  ): Promise<void> {
-    const block = this.formatStreamedItemBlock(item, totalCount);
-    await runEffectPromise(
-      this.publishWorkEventEffect({
-        detail: outcome.detail,
-        event: 'tool_completed',
-        label: `${outcome.status === 'failed' ? 'Failed' : 'Generated'} post ${item.index + 1}`,
-        parameters:
-          item.status === 'completed'
-            ? {
-                batchId,
-                platform: item.platform,
-                postId: item.postId,
-                previewText: item.previewText,
-                topic: item.topic,
-              }
-            : { batchId, platform: item.platform, topic: item.topic },
-        progress: outcome.progress,
-        resultSummary:
-          item.status === 'completed'
-            ? item.previewText || item.topic
-            : item.error || 'Unknown error',
-        runId: ctx.runId,
-        status: outcome.status,
-        threadId: ctx.threadId,
-        toolName: AgentToolName.GENERATE_CONTENT_BATCH,
-        userId: ctx.userId,
-      }),
-    );
-    await runEffectPromise(
-      this.publishTokenEffect({
-        runId: ctx.runId,
-        threadId: ctx.threadId,
-        token: block,
-        userId: ctx.userId,
-      }),
-    );
-  }
-
-  private async buildStreamedResult(params: {
-    ctx: ToolExecutionContext;
-    execution: BatchExecution;
-    streamedItems: StreamedBatchItem[];
-    streamedTranscript: string;
-    summary: Awaited<ReturnType<BatchGenerationService['processBatch']>>;
-  }): Promise<AgentToolResult> {
-    const settlement = await this.batchCreditsService?.settleBatchCredits({
-      batchId: params.execution.batchId,
-      organizationId: params.ctx.organizationId,
-      userId: params.ctx.userId,
-    });
-    // Streamed settlement refunds partial failures against the reservation.
-    const creditsUsed =
-      settlement?.settledCredits ??
-      chargeBatchGenerationCredits(
-        params.streamedItems
-          .filter((entry) => entry.status === 'completed' && entry.postId)
-          .map((entry) => ({
-            format: entry.format ?? 'image',
-            hasMedia: Boolean(entry.hasMedia),
-          })),
-        params.execution.pricingOptions,
-      );
-    const { previews, remainingCount } = takeBatchPostPreviews(
-      params.streamedItems,
-      { limit: BATCH_POST_PREVIEW_LIMIT },
-    );
-    // Previews are already limited server-side; the card links to the full set.
-    const readyCount = params.summary.completedCount;
-    const viewAllLabel =
-      readyCount > BATCH_POST_PREVIEW_LIMIT
-        ? `View all ${readyCount} posts`
-        : readyCount > 0
-          ? 'Open reviews'
-          : 'Open Review Queue';
-
-    return {
-      creditsUsed,
-      data: {
-        batchId: params.execution.batchId,
-        completedCount: params.summary.completedCount,
-        creditsUsed,
-        estimatedCredits: params.execution.estimatedCredits,
-        failedCount: params.summary.failedCount,
-        message:
-          params.summary.failedCount > 0
-            ? `Batch finished with ${params.summary.completedCount} ready and ${params.summary.failedCount} failed.`
-            : `Batch finished with ${params.summary.completedCount} generated post${params.summary.completedCount === 1 ? '' : 's'}.`,
-        previewLimit: BATCH_POST_PREVIEW_LIMIT,
-        remainingCount,
-        status: params.summary.status,
-        streamedItems: params.streamedItems,
-        streamedTranscript: params.streamedTranscript,
-        totalCount: params.summary.totalCount,
-      },
-      isBillingDelegated: true,
-      nextActions: [
-        {
-          batchCount: params.execution.batch.totalCount,
-          completedCount: params.summary.completedCount,
-          creditEstimate: creditsUsed,
-          creditsUsed,
-          ctas: [
-            {
-              href: `/publish/review?batch=${params.execution.batchId}&filter=ready`,
-              label: viewAllLabel,
-            },
-            { href: '/calendar/posts', label: 'Open Calendar' },
-          ],
-          description:
-            params.summary.completedCount > 0
-              ? `Generated ${params.summary.completedCount} ${params.execution.platformLabel} draft${params.summary.completedCount === 1 ? '' : 's'}${params.summary.failedCount > 0 ? ` (${params.summary.failedCount} failed)` : ''} · ${creditsUsed} credits.`
-              : `Batch finished with 0 ready drafts${params.summary.failedCount > 0 ? `; ${params.summary.failedCount} failed` : ''}.`,
-          failedCount: params.summary.failedCount,
-          id: `batch-generation-${params.execution.batchId}`,
-          items: previews,
-          platforms: params.execution.platforms,
-          remainingCount,
-          title: 'Batch generation complete',
-          type: 'batch_generation_result_card',
-          // Result card with previews/review link, not the generation form.
-        },
-      ],
-      success: true,
-    };
-  }
-
   private async queueOrRunBatch(
     execution: BatchExecution,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    let queuedJobId: string | null | undefined;
     try {
-      queuedJobId = await this.batchGenerationQueueService?.queueBatch({
+      await this.batchGenerationWorkflowService.queueBatch({
         batchId: execution.batchId,
         organizationId: ctx.organizationId,
         runId: ctx.runId,
         threadId: ctx.threadId,
         userId: ctx.userId,
       });
-    } catch (error: unknown) {
-      // BatchGenerationQueueService only rejects before it records durable
-      // ownership. No worker can race this compensation path.
-      await this.compensateFailedBatchHandoff(execution.batchId, ctx);
-      return {
-        creditsUsed: 0,
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Batch generation could not be started',
-        success: false,
-      };
-    }
-    if (!queuedJobId) {
-      // #2501: the queue owns durable execution. Only self-hosted deployments
-      // without a queue fall back to the legacy in-process path.
-      this.runBatchInProcess({
-        batchId: execution.batchId,
-        organizationId: ctx.organizationId,
-        runId: ctx.runId,
-        threadId: ctx.threadId,
-        userId: ctx.userId,
-      });
+    } catch (queueError) {
+      // The queue owns durable execution: without ownership nothing will ever
+      // process the batch, so unwind the items and the pinned charge here.
+      return this.compensateUnqueuedBatch(execution, ctx, queueError);
     }
     return {
       creditsUsed: execution.estimatedCredits,
@@ -799,94 +493,6 @@ export class AgentMediaBatchGenerationService {
     };
   }
 
-  private async compensateFailedBatchHandoff(
-    batchId: string,
-    ctx: ToolExecutionContext,
-  ): Promise<void> {
-    try {
-      await this.batchGenerationService?.cancelBatch(
-        batchId,
-        ctx.organizationId,
-      );
-    } catch (cancelError: unknown) {
-      this.loggerService.warn(
-        `${this.logContext} failed to cancel a batch without execution ownership`,
-        { batchId, cancelError, organizationId: ctx.organizationId },
-      );
-    }
-
-    try {
-      await this.batchCreditsService?.settleBatchCredits({
-        batchId,
-        organizationId: ctx.organizationId,
-        userId: ctx.userId,
-      });
-    } catch (settlementError: unknown) {
-      this.loggerService.warn(
-        `${this.logContext} failed to release a batch reservation after hand-off failure`,
-        { batchId, organizationId: ctx.organizationId, settlementError },
-      );
-    }
-  }
-
-  private runBatchInProcess(context: {
-    batchId: string;
-    organizationId: string;
-    runId?: string;
-    threadId?: string;
-    userId: string;
-  }): void {
-    // Deliberately not awaited: the public tool returns once ownership starts.
-    if (!this.batchGenerationService) return;
-    const streamOptions =
-      context.threadId && this.batchStreamService
-        ? this.batchStreamService.buildProcessOptions({
-            batchId: context.batchId,
-            runId: context.runId,
-            threadId: context.threadId,
-            userId: context.userId,
-          })
-        : undefined;
-    this.batchGenerationService
-      .processBatch(context.batchId, context.organizationId, streamOptions)
-      .catch((error: Error) => {
-        this.loggerService.error(
-          `Batch processing failed: ${error.message}`,
-          this.logContext,
-        );
-      })
-      .then(async () => {
-        // Settle on failure too; only completed work should remain charged.
-        await this.batchCreditsService?.settleBatchCredits({
-          batchId: context.batchId,
-          organizationId: context.organizationId,
-          userId: context.userId,
-        });
-      })
-      .catch((error: Error) => {
-        this.loggerService.error(
-          `Batch settlement failed: ${error.message}`,
-          this.logContext,
-        );
-      });
-  }
-
-  private formatStreamedItemBlock(
-    item: StreamedBatchItem,
-    totalCount: number,
-  ): string {
-    const state = item.status === 'completed' ? 'ready' : 'failed';
-    const detail =
-      item.status === 'completed'
-        ? (item.previewText || item.topic).trim()
-        : item.error || 'Unknown error';
-    return (
-      `\n\nPost ${item.index + 1}/${totalCount} ${state}` +
-      `${item.platform ? ` (${item.platform})` : ''}` +
-      `\n${detail}`
-    );
-  }
-
   private formatBatchPlatformsLabel(platforms: string[]): string {
     if (platforms.length === 0) return 'content';
     if (platforms.length === 1) {
@@ -895,24 +501,5 @@ export class AgentMediaBatchGenerationService {
     return platforms
       .map((platform) => formatPlatformLabel(platform) ?? platform)
       .join(', ');
-  }
-
-  private publishTokenEffect(data: {
-    runId?: string;
-    threadId: string;
-    token: string;
-    userId: string;
-  }) {
-    return this.streamPublisher
-      ? this.streamPublisher.publishTokenEffect(data)
-      : Effect.void;
-  }
-
-  private publishWorkEventEffect(
-    data: Parameters<AgentStreamPublisherService['publishWorkEvent']>[0],
-  ) {
-    return this.streamPublisher
-      ? this.streamPublisher.publishWorkEventEffect(data)
-      : Effect.void;
   }
 }

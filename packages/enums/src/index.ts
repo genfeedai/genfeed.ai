@@ -5,7 +5,6 @@ export * from './activity-keys.tree';
 export * from './agent-conversation.enum';
 export * from './agent-publish-policy.enum';
 export * from './agent-reply-style.enum';
-export * from './agent-run.enum';
 export * from './agent-strategy.enum';
 export * from './agent-thread.enum';
 export * from './agent-transfer.enum';
@@ -102,8 +101,6 @@ export * from './review-decision.enum';
 export * from './review-gate.enum';
 export * from './router.enum';
 export * from './rss-source.enum';
-// Public automation interfaces import these from the package root.
-export * from './run.enum';
 export * from './scheduler.enum';
 export * from './scope.enum';
 export * from './setting.enum';

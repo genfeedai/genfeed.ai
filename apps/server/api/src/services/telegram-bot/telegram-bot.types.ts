@@ -2,11 +2,9 @@
  * Telegram Bot Types
  *
  * Shared types for the GenFeed workflow execution bot, extracted so the
- * conversation, run-command, executor, and runner collaborators can share a
+ * conversation, message-handler, and workflow-runner collaborators can share a
  * single canonical definition.
  */
-
-import type { RunAuthType } from '@genfeedai/enums';
 
 /** Workflow JSON type (matches core workflow format) */
 export interface WorkflowJson {
@@ -73,7 +71,7 @@ export interface ConversationState {
 
 /** Resolved org/user/auth context bound to a chat */
 export interface ChatAuthContext {
-  authType: RunAuthType;
+  authType: 'api_key' | 'better_auth';
   organizationId: string;
   userId: string;
   apiKeyId?: string;
@@ -85,8 +83,7 @@ export type TelegramWorkflowName =
   | 'image-series'
   | 'image-to-video'
   | 'single-image'
-  | 'single-video'
-  | 'ugc-factory';
+  | 'single-video';
 
 export interface ReplicatePredictionResult {
   status?: string;

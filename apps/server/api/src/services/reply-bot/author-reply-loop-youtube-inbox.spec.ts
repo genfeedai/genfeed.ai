@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AuthorReplyLoopService.getInbox YouTube path', () => {
   const prisma = {
@@ -12,7 +12,7 @@ describe('AuthorReplyLoopService.getInbox YouTube path', () => {
     getContentComments: vi.fn(),
   };
   const replyGenerationService = {};
-  const botActionExecutorService = {};
+  const systemWorkflowRunner = {};
   const replyBotConfigsService = {
     find: vi.fn().mockResolvedValue([]),
     patch: vi.fn(),
@@ -32,7 +32,7 @@ describe('AuthorReplyLoopService.getInbox YouTube path', () => {
       logger as never,
       socialMonitorService as never,
       replyGenerationService as never,
-      botActionExecutorService as never,
+      systemWorkflowRunner as never,
       replyBotConfigsService as never,
       credentialsService as never,
       processedTweetsService as never,
