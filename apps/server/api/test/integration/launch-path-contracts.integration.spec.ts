@@ -104,7 +104,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     });
 
     expect(service).toContain('buildContentPipelineWorkflowDefinition');
-    expect(service).toContain('runWorkflow<PipelineResultV2>');
+    expect(service).toContain(
+      'systemWorkflowRunner.runDefinition<PipelineResultV2>',
+    );
     expect(service).toContain("'content.pipeline.generate-image'");
     expect(service).toContain("'content.pipeline.publish'");
     expect(service).toContain("'content.pipeline.resolve-context'");
@@ -267,10 +269,21 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
       root: API_SRC,
     });
     const executeIdx = source.indexOf('async executeWorkflow(');
-    const slice = source.slice(executeIdx, executeIdx + 1200);
-    expect(slice).toContain('organizationId: ctx.organizationId');
-    expect(slice).toContain('Missing required workflow inputs');
-    expect(slice).toContain('executeManualWorkflow');
+    expect(executeIdx).toBeGreaterThan(-1);
+    // Assert by ordering rather than a fixed window: new branches at the top of
+    // executeWorkflow must not be able to push the org scope past the executor.
+    const scopeIdx = source.indexOf(
+      'organizationId: ctx.organizationId',
+      executeIdx,
+    );
+    const inputsIdx = source.indexOf(
+      'Missing required workflow inputs',
+      executeIdx,
+    );
+    const executorIdx = source.indexOf('executeManualWorkflow', executeIdx);
+    expect(scopeIdx).toBeGreaterThan(executeIdx);
+    expect(inputsIdx).toBeGreaterThan(scopeIdx);
+    expect(executorIdx).toBeGreaterThan(scopeIdx);
   });
 
   it('in-process node claim map hydrates completed nodes for same executionId', () => {
@@ -278,8 +291,8 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
       root: API_SRC,
     });
     expect(source).toContain('hydrateCompletedNodesFromExecution');
-    expect(source).toContain('this.nodeClaims.set');
-    expect(source).toContain('claimNodeOnce');
+    expect(source).toContain('completeNodeClaim(this.nodeClaims');
+    expect(source).toContain('claimNodeOnce(this.nodeClaims');
     expect(source).toContain('nodeClaimService.tryClaim');
     expect(source).toContain('nodeClaimService.complete');
   });

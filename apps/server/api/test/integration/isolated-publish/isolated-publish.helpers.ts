@@ -43,6 +43,7 @@ import { PublishApprovalsService } from '@server/collections/publish-approvals/s
 import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@server/collections/workflows/system-workflow.contract';
 import {
   type SystemWorkflowActionRequest,
+  type SystemWorkflowGraphDefinition,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
@@ -70,12 +71,25 @@ class InMemorySystemWorkflowRunner {
     string,
     (request: SystemWorkflowActionRequest) => Promise<unknown>
   >();
+  readonly workflows = new Map<string, SystemWorkflowGraphDefinition>();
 
   registerAction(
     actionId: string,
     executor: (request: SystemWorkflowActionRequest) => Promise<unknown>,
   ): void {
     this.actions.set(actionId, executor);
+  }
+
+  // The lane drives action executors directly, but services still register
+  // their graph definitions on init. Mirror the real registry's duplicate
+  // guard so a double registration fails here the same way it would in prod.
+  registerWorkflow(definition: SystemWorkflowGraphDefinition): void {
+    if (this.workflows.has(definition.canonicalId)) {
+      throw new Error(
+        `Duplicate system workflow definition: ${definition.canonicalId}`,
+      );
+    }
+    this.workflows.set(definition.canonicalId, definition);
   }
 }
 

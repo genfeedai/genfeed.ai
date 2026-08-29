@@ -28,8 +28,6 @@ if (process.env.SKIP_PRISMA_DB === 'true') {
   g.test = g.it;
 }
 
-import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   createTestOrganization,
   generateIdString,
@@ -46,6 +44,8 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { OutreachCampaignsService } from '@server/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 type StoredRateLimits = {
   currentDayCount?: number;
@@ -85,6 +85,10 @@ describe('Outreach reply-slot reservation (real Postgres, #3409)', () => {
   });
 
   beforeEach(async () => {
+    // Targets reference campaigns, so they have to go first — a sibling suite in
+    // the same serial tier can leave rows behind and the campaign delete then
+    // trips the campaign_targets foreign key.
+    await prisma.campaignTarget.deleteMany();
     await prisma.outreachCampaign.deleteMany();
     await dbHelper.clearDatabase();
   });

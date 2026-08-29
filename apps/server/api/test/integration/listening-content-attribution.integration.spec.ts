@@ -401,6 +401,14 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
       postId: string;
       versionPinId: string;
     };
+    // The scheduled-post workflow marks a fresh approval queued inside its claim
+    // action before leasing it. Mirror that order here — enqueue no longer
+    // transitions the approval on the caller's thread.
+    await publishApprovalsService.markQueued(
+      queued.approvalId,
+      queued.organizationId,
+      primary.userId,
+    );
     const claim = await publishApprovalsService.claimForExecution(queued);
     if (!claim.executionStartedAt) {
       throw new Error('Expected a fresh publish execution claim');

@@ -107,6 +107,22 @@ describe('Genfeed action registry', () => {
     }
   });
 
+  it('materializes every recursive JSON document marker before publication', () => {
+    // The engine compiles published schemas directly. An unmaterialized marker
+    // is annotation-only, so it fails contract compilation at API bootstrap
+    // rather than at registration time.
+    for (const action of ALL_ACTIONS) {
+      expect(
+        JSON.stringify(action.inputSchema),
+        `${action.id}.inputSchema`,
+      ).not.toContain('genfeed:recursive-json-document');
+      expect(
+        JSON.stringify(action.outputSchema),
+        `${action.id}.outputSchema`,
+      ).not.toContain('genfeed:recursive-json-document');
+    }
+  });
+
   it('maps every non-tool catalog action to exactly one explicit contract shard', () => {
     for (const action of ALL_ACTIONS.filter(
       (definition) => definition.visibility !== 'tool',

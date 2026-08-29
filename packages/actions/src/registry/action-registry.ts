@@ -6,9 +6,19 @@ import type {
 } from '../interfaces/action-definition.interface';
 import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
 import { getExplicitActionContract } from './contracts/explicit-action-contracts';
-import { closeObjectSchemas } from './contracts/schema-builders';
+import {
+  closeObjectSchemas,
+  materializeJsonDocumentSchema,
+} from './contracts/schema-builders';
 import { TOOL_ACTION_OUTPUT_SCHEMA } from './contracts/tool-action-contract';
 import { ALL_TOOLS } from './tool-registry';
+
+// Every tool action shares one materialized envelope: the recursive JSON
+// document marker has to become a real `$defs` reference before the engine
+// compiles the contract, and one shared instance keeps that compile cached.
+const MATERIALIZED_TOOL_ACTION_OUTPUT_SCHEMA = materializeJsonDocumentSchema(
+  TOOL_ACTION_OUTPUT_SCHEMA,
+);
 
 const PROVIDER_CALLBACK_ACTION_IDS = new Set([
   'aiAvatarVideo',
@@ -58,12 +68,14 @@ function toolAction(tool: CanonicalToolDefinition): GenfeedActionDefinition {
     description: tool.description,
     id: tool.name,
     idempotency: 'run-node',
-    inputSchema: closeObjectSchemas(tool.parameters),
+    inputSchema: materializeJsonDocumentSchema(
+      closeObjectSchemas(tool.parameters),
+    ),
     label: tool.name
       .split('_')
       .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
       .join(' '),
-    outputSchema: TOOL_ACTION_OUTPUT_SCHEMA,
+    outputSchema: MATERIALIZED_TOOL_ACTION_OUTPUT_SCHEMA,
     visibility: 'tool',
   };
 }

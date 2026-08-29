@@ -65,12 +65,8 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
   ): Promise<ScheduledPostClaim> {
     const request = this.readRequest(action.input);
     const post = await this.requireEligiblePost(request);
-    const approvalId = this.requiredString(request.approvalId, 'approvalId');
-    const operationId = this.requiredString(request.operationId, 'operationId');
-    const versionPinId = this.requiredString(
-      request.versionPinId,
-      'versionPinId',
-    );
+    const { approvalId, operationId, versionPinId } =
+      this.requireApprovalIdentity(request);
     let executionStartedAt: string | null = null;
 
     try {
@@ -308,8 +304,33 @@ export class ScheduledPostWorkflowService implements OnModuleInit {
       : {};
   }
 
+  // #3839 fail-closed contract: a publish job without all three identity fields
+  // can never be reconciled against an approved version, so it is refused with
+  // the documented wording rather than a generic missing-field error.
+  private requireApprovalIdentity(request: ScheduledPostWorkflowInput): {
+    approvalId: string;
+    operationId: string;
+    versionPinId: string;
+  } {
+    const { approvalId, operationId, versionPinId } = request;
+    if (
+      !this.isNonEmptyString(approvalId) ||
+      !this.isNonEmptyString(operationId) ||
+      !this.isNonEmptyString(versionPinId)
+    ) {
+      throw new Error(
+        'Publish execution requires an explicit version-bound approval identity.',
+      );
+    }
+    return { approvalId, operationId, versionPinId };
+  }
+
+  private isNonEmptyString(value: unknown): value is string {
+    return typeof value === 'string' && value.trim().length > 0;
+  }
+
   private requiredString(value: unknown, field: string): string {
-    if (typeof value !== 'string' || value.trim().length === 0) {
+    if (!this.isNonEmptyString(value)) {
       throw new Error(`Scheduled publish requires ${field}`);
     }
     return value;
