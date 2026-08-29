@@ -38,7 +38,8 @@
     "react-hook-form": "7.86.0",
     "recharts": "3.10.1",
     "temporal-polyfill": "1.0.4",
-    "vaul": "1.1.2"
+    "vaul": "1.1.2",
+    "zustand": "5.0.15"
   },
   "description": "Shared design tokens and UI primitives for Genfeed web, mobile, and extension surfaces",
   "devDependencies": {

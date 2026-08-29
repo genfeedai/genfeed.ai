@@ -14,7 +14,12 @@ import type {
   VideoGenerationPayload,
 } from '@genfeedai/interfaces/content/generation-payload.interface';
 
-const PRESET_TO_TEMPLATE_MAP: Record<string, ContentTemplateKey> = {
+/**
+ * Also read by `useStudioGenerationSetupLookOptions` to build the Look tab's
+ * "Prompt template" option list — the keys here are the only legal
+ * `promptTemplate` values Studio ever posts.
+ */
+export const PRESET_TO_TEMPLATE_MAP: Record<string, ContentTemplateKey> = {
   'article-banner': ContentTemplateKey.IMAGE_BANNER,
   'cinematic-video': ContentTemplateKey.VIDEO_CINEMATIC,
   'influencer-photo': ContentTemplateKey.IMAGE_SUPER_MODEL,

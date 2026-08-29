@@ -70,6 +70,18 @@ const UI_TEST_MESSAGES = {
       attachFiles: 'Attach files',
       referenceLibrary: 'Reference library content',
     },
+    generationSetup: {
+      agentPick: 'Agent pick',
+      current: 'Current',
+      durationSeconds: '{seconds}s',
+      loadingPresets: 'Loading presets…',
+      model: 'Model',
+      noMatchingFields: 'No matching fields',
+      noModels: 'No models found',
+      noPresets: 'No saved presets yet.',
+      pinned: 'Pinned: {label}',
+      presets: 'Presets',
+    },
     postingSets: {
       disconnected: 'Disconnected',
       expanding: 'Expanding posting set…',

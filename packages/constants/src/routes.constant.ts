@@ -358,9 +358,7 @@ export const APP_ROUTES = {
     INTEGRATIONS: '/settings/integrations',
     SUBSCRIPTION: '/settings/subscription',
     ELEMENTS_SCENES: '/settings/elements/scenes',
-    /** Personal chat model and generation-priority defaults. */
     CHARACTERS: '/settings/characters',
-    CHAT: '/settings/chat',
     HELP: '/settings/help',
     MEMBERS: '/settings/members',
     /** Personal email and future in-app notification preferences. */
@@ -478,7 +476,6 @@ export const APP_ROUTE_TEMPLATES = {
 export const PERSONAL_SETTINGS_CHILD_SEGMENTS = [
   'personal',
   'notifications',
-  'chat',
   'progress',
   'help',
 ] as const;

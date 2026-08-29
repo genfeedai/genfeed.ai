@@ -6,6 +6,7 @@ import { AgentOrchestratorContextService } from '@server/services/agent-orchestr
 import { AGENT_JAILBREAK_HARDENING } from '@server/services/agent-orchestrator/constants/agent-jailbreak-hardening.constant';
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@server/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
 import { AGENT_SCOPE_GUARDRAIL } from '@server/services/agent-orchestrator/constants/agent-scope-guardrail.constant';
+import { getAgentTypeConfig } from '@server/services/agent-orchestrator/constants/agent-type-config.constant';
 import { BRAND_INTERVIEW_SYSTEM_PROMPT } from '@server/services/agent-orchestrator/constants/brand-interview-system-prompt.constant';
 import { COMMUNITY_ONBOARDING_SYSTEM_PROMPT } from '@server/services/agent-orchestrator/constants/community-onboarding-system-prompt.constant';
 import { ONBOARDING_SYSTEM_PROMPT } from '@server/services/agent-orchestrator/constants/onboarding-system-prompt.constant';
@@ -514,4 +515,101 @@ describe('AgentOrchestratorContextService generation mode', () => {
       expect(result.systemPrompt).toContain(oppositeGuard);
     },
   );
+});
+
+describe('AgentOrchestratorContextService resolveModel chain (chat model pin)', () => {
+  function createServiceForModelResolution(options?: {
+    agentPolicy?: { thinkingModelOverride?: string | null };
+    strategy?: { model?: string } | null;
+  }): {
+    registry: {
+      getLocalDefaultModelKey: ReturnType<typeof vi.fn>;
+      resolveModelKey: ReturnType<typeof vi.fn>;
+    };
+    service: AgentOrchestratorContextService;
+  } {
+    const registry = {
+      getLocalDefaultModelKey: vi.fn().mockResolvedValue('local-default-model'),
+      resolveModelKey: vi.fn().mockResolvedValue('resolved-model'),
+    };
+    const service = new AgentOrchestratorContextService(
+      registry as never,
+      {} as never,
+      { findOne: vi.fn().mockResolvedValue(null) } as never,
+      {
+        prepareForTurn: vi.fn().mockResolvedValue({
+          existingScope: null,
+          initialBrandId: undefined,
+        }),
+      } as never,
+      {
+        getFeedbackMemoriesForGeneration: vi.fn().mockResolvedValue([]),
+      } as never,
+      {} as never,
+      { assembleContext: vi.fn().mockResolvedValue(null) } as never,
+      {
+        findOne: vi
+          .fn()
+          .mockResolvedValue(
+            options?.agentPolicy ? { agentPolicy: options.agentPolicy } : null,
+          ),
+      } as never,
+      {
+        findOneById: vi.fn().mockResolvedValue(options?.strategy ?? null),
+      } as never,
+    );
+    return { registry, service };
+  }
+
+  it('never reads request.model — the pinned catalogue default resolves it instead', async () => {
+    const { registry, service } = createServiceForModelResolution();
+
+    const result = await service.resolveSystemPromptAndModel(
+      { content: 'Plan next week of posts', model: 'client-requested-model' },
+      CONTEXT,
+    );
+
+    expect(registry.resolveModelKey).toHaveBeenCalledWith(undefined);
+    expect(result.model).toBe('resolved-model');
+  });
+
+  it('passes the agent-type default when no strategy or thinking override applies', async () => {
+    const { registry, service } = createServiceForModelResolution();
+
+    await service.resolveSystemPromptAndModel(
+      { agentType: AgentType.X_CONTENT, content: 'Draft a tweet' },
+      CONTEXT,
+    );
+
+    expect(registry.resolveModelKey).toHaveBeenCalledWith(
+      getAgentTypeConfig(AgentType.X_CONTENT)?.defaultModel,
+    );
+  });
+
+  it('prefers the org thinking-model override over the agent-type default', async () => {
+    const { registry, service } = createServiceForModelResolution({
+      agentPolicy: { thinkingModelOverride: 'thinking-model' },
+    });
+
+    await service.resolveSystemPromptAndModel(
+      { agentType: AgentType.X_CONTENT, content: 'Draft a tweet' },
+      CONTEXT,
+    );
+
+    expect(registry.resolveModelKey).toHaveBeenCalledWith('thinking-model');
+  });
+
+  it('prefers an explicit strategy model over the thinking-model override and agent-type default', async () => {
+    const { registry, service } = createServiceForModelResolution({
+      agentPolicy: { thinkingModelOverride: 'thinking-model' },
+      strategy: { model: 'strategy-model' },
+    });
+
+    await service.resolveSystemPromptAndModel(
+      { agentType: AgentType.X_CONTENT, content: 'Draft a tweet' },
+      { ...CONTEXT, strategyId: testId('strategy') },
+    );
+
+    expect(registry.resolveModelKey).toHaveBeenCalledWith('strategy-model');
+  });
 });

@@ -75,7 +75,7 @@ describe('AGENT_CHAT_MODELS', () => {
 
   it('keeps the free tier at zero credits', () => {
     expect(
-      getAgentChatModel(AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE)
+      getAgentChatModel(AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE)
         ?.creditCostPerRound,
     ).toBe(0);
   });
@@ -91,9 +91,9 @@ describe('AGENT_CHAT_MODELS', () => {
     }
   });
 
-  it('declares the free auto-router free', () => {
+  it('declares the pinned free default free', () => {
     expect(
-      getAgentChatModel(AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE)?.isFree,
+      getAgentChatModel(AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE)?.isFree,
     ).toBe(true);
   });
 
@@ -111,17 +111,18 @@ describe('AGENT_CHAT_MODELS', () => {
     ).toBe(false);
   });
 
-  it('offers no priced auto-routing entry', () => {
+  it('offers no auto-routing entry at all', () => {
     // `openrouter/auto` was retired because it picked any model at any price
-    // while we billed the cheapest tier. Only a $0-constrained auto-router can
-    // be billed exactly, so `openrouter/free` is the single allowed exception.
-    for (const model of AGENT_CHAT_MODELS.filter((candidate) =>
-      candidate.key.startsWith('openrouter/'),
-    )) {
-      expect(model.key).toBe(AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE);
-      expect(model.pricing.promptPerMillion).toBe(0);
-      expect(model.pricing.completionPerMillion).toBe(0);
-    }
+    // while we billed the cheapest tier. `openrouter/free` was retired next:
+    // every route it could pick was $0, so billing it was exact, but the
+    // underlying model still varied per request, which made chat performance
+    // untrackable. The catalogue now pins one concrete free model instead of
+    // offering any `openrouter/*` auto-router.
+    expect(
+      AGENT_CHAT_MODELS.some((candidate) =>
+        candidate.key.startsWith('openrouter/'),
+      ),
+    ).toBe(false);
   });
 
   it('catalogues both defaults so they always have a price', () => {

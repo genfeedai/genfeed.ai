@@ -31,7 +31,6 @@ import type {
   AgentThreadUiActionRequest,
 } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@server/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
-import { applyPinnedDefaultAgentModel } from '@server/services/agent-orchestrator/utils/agent-pinned-default-model.util';
 import { buildAgentRoutingMetadata } from '@server/services/agent-orchestrator/utils/agent-routing-policy.util';
 import {
   buildSeedThreadTitle,
@@ -228,10 +227,10 @@ export class AgentTurnWorkflowExecutionService {
     const userSettings = await this.settingsService.findOne({
       userId: state.userId,
     });
-    request = applyPinnedDefaultAgentModel(
-      request,
-      userSettings?.defaultAgentModel,
-    ) as AgentChatRequest & { threadId: string };
+    // Chat has no user-facing model picker: the resolver below always
+    // returns the pinned catalogue default unless a strategy, thinking
+    // override, or agent-type default applies. request.model is never
+    // read for that decision.
     const resolved = await this.contextService.resolveSystemPromptAndModel(
       request,
       baseContext,
@@ -244,7 +243,6 @@ export class AgentTurnWorkflowExecutionService {
     const scope = resolved.preparedScope.existingScope;
     const model =
       resolved.model ??
-      request.model ??
       (await this.agentChatModelRegistry.getDefaultModelKey());
     request = { ...request, model };
     const turnCost =

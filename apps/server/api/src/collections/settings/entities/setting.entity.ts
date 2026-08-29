@@ -1,5 +1,5 @@
-import { BaseEntity } from '@server/entities/base.entity';
 import { type Setting } from '@genfeedai/prisma';
+import { BaseEntity } from '@server/entities/base.entity';
 
 export class SettingEntity extends BaseEntity implements Setting {
   declare readonly id: string;
@@ -22,7 +22,6 @@ export class SettingEntity extends BaseEntity implements Setting {
   declare readonly trendNotificationsMinViralScore: Setting['trendNotificationsMinViralScore'];
   declare readonly contentPreferences: Setting['contentPreferences'];
   declare readonly favoriteModelKeys: Setting['favoriteModelKeys'];
-  declare readonly defaultAgentModel: Setting['defaultAgentModel'];
   declare readonly isAgentAssetsPanelOpen: Setting['isAgentAssetsPanelOpen'];
   declare readonly generationPriority: Setting['generationPriority'];
   declare readonly dashboardPreferences: Setting['dashboardPreferences'];

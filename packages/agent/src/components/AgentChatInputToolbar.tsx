@@ -1,21 +1,50 @@
-import { AgentGenerationComposerControls } from '@genfeedai/agent/components/AgentGenerationComposerControls';
 import { CONVERSATION_COMPOSER_ACTIONS } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
+import {
+  agentPresetToGenerationSetupValues,
+  useAgentGenerationSetupPresets,
+} from '@genfeedai/agent/hooks/use-agent-generation-setup-presets';
 import type {
   ConversationComposerActionName,
   ConversationComposerGenerationMode,
   ConversationComposerGenerationSettings,
 } from '@genfeedai/agent/models/conversation-composer.model';
-import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { useOptionalUser } from '@genfeedai/contexts/user/user-context/user-context';
+import type {
+  AgentApiService,
+  GenerationModel,
+} from '@genfeedai/agent/services/agent-api.service';
+import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
-  ButtonSize,
-  ButtonVariant,
-  type RouterPriority,
-} from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+  AGENT_GENERATION_SETUP_TYPE_OPTIONS,
+  buildConversationComposerGenerationSettings,
+  buildDefaultAgentGenerationSetupValues,
+  getAgentGenerationSetupCapabilities,
+  isAgentGenerationType,
+} from '@genfeedai/agent/utils/agent-generation-setup.util';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { ButtonSize, ButtonVariant, ModelCategory } from '@genfeedai/enums';
+import type { IStudioLook } from '@genfeedai/interfaces';
+import type { GenerationSetupFieldKey } from '@genfeedai/interfaces/studio/generation-setup.interface';
+import type { StudioGenerateType } from '@genfeedai/interfaces/studio/studio-generate.interface';
+import type {
+  GenerationSetupFieldSetter,
+  GenerationSetupLookOptions,
+} from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
-import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
+import { resolveOrgAllowlistedModels } from '@helpers/model-allowlist.helper';
+import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
+import GenerationSetupPopover from '@ui/dropdowns/generation-setup/GenerationSetupPopover';
+import { recommendGenerationSetup } from '@ui/dropdowns/generation-setup/generation-setup.recommend';
+import {
+  applyGenerationSetupPreset,
+  applyGenerationSetupRecommendation,
+  buildAgentGenerationSetupScope,
+  clearGenerationSetupPreset,
+  resetGenerationSetupAll,
+  resetGenerationSetupField,
+  setGenerationSetupField,
+  useGenerationSetupStore,
+} from '@ui/dropdowns/generation-setup/generation-setup.store';
 import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorites';
 import { Button } from '@ui/primitives/button';
 import {
@@ -28,16 +57,23 @@ import {
 } from '@ui/primitives/dropdown-menu';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
-import {
-  ArrowUp,
-  ImageIcon,
-  MessageSquare,
-  Square,
-  Video,
-  Zap,
-} from 'lucide-react';
+import { ArrowUp, Square, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { memo, type ReactElement, useMemo } from 'react';
+import {
+  memo,
+  type ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
+/** Debounce window before a prompt-text change re-runs the setup recommendation. */
+const RECOMMENDATION_DEBOUNCE_MS = 400;
+
+/** Agent composer never offers Look presets by field — only saved Studio Looks. */
+const EMPTY_LOOK_OPTIONS: GenerationSetupLookOptions = {};
 
 export interface AgentChatInputToolbarProps {
   apiService?: AgentApiService;
@@ -46,30 +82,22 @@ export interface AgentChatInputToolbarProps {
   disabled: boolean | undefined;
   hasEditor: boolean;
   isListening: boolean;
-  /** Registry catalogue is still loading — selector shows its skeleton. */
-  isModelsLoading?: boolean;
   isTranscribing: boolean;
   isUploading: boolean;
   generationMode: ConversationComposerGenerationMode;
-  generationSettings: ConversationComposerGenerationSettings;
-  /** Registry-backed chat catalogue (shared ModelSelectorPopover). */
-  models: readonly IModel[];
+  /** Live prompt text — drives the debounced setup recommendation. */
+  promptText: string;
   onAddFiles?: (files: File[]) => void;
   onInsertReference: () => void;
   onGenerationModeChange: (mode: ConversationComposerGenerationMode) => void;
   onGenerationSettingsChange: (
     settings: ConversationComposerGenerationSettings,
   ) => void;
-  onModelChange?: (model: string) => void;
-  /** Session Auto routing priority (maps from settings.generationPriority). */
-  onPrioritizeChange?: (priority: RouterPriority) => void;
   onSelectAction: (actionName: ConversationComposerActionName) => void;
   onSend: () => void;
   onStartListening: () => void;
   onStop: (() => void | Promise<void>) | undefined;
   onStopListening: () => void;
-  prioritize?: RouterPriority;
-  selectedModel?: string;
   shouldShowSendButton: boolean;
   shouldShowVoiceInput: boolean;
   showStop: boolean;
@@ -81,29 +109,23 @@ export interface AgentChatInputToolbarProps {
 function AgentChatInputToolbarInner({
   apiService,
   canSendMessage,
+  creditsAvailable = null,
   disabled,
   hasEditor,
   isListening,
-  isModelsLoading = false,
   isTranscribing,
   isUploading,
   generationMode,
-  generationSettings,
-  models,
-  creditsAvailable = null,
+  promptText,
   onAddFiles,
   onInsertReference,
   onGenerationModeChange,
   onGenerationSettingsChange,
-  onModelChange,
-  onPrioritizeChange,
   onSelectAction,
   onSend,
   onStartListening,
   onStop,
   onStopListening,
-  prioritize,
-  selectedModel,
   shouldShowSendButton,
   shouldShowVoiceInput,
   showStop,
@@ -112,96 +134,215 @@ function AgentChatInputToolbarInner({
 }: AgentChatInputToolbarProps): ReactElement {
   const translate = useTranslations('agent.composerToolbar');
   const isCompact = density === 'compact';
-  // Personal Advanced Mode gates non-essential composer chrome. Same default as
-  // `use-prompt-bar-state`: advanced until settings say otherwise.
-  const userContext = useOptionalUser();
-  const isAdvancedMode =
-    userContext?.currentUser?.settings?.isAdvancedMode ?? true;
+  const threadId = useAgentChatStore((state) => state.activeThreadId);
+  const {
+    organizationId,
+    settings: organizationSettings,
+    settingsLoading,
+  } = useBrand();
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
-  const hasSelectableModels = models.length > 0;
-  const isAutoSelected =
-    hasSelectableModels &&
-    (!selectedModel || selectedModel === AUTO_MODEL_OPTION_VALUE);
-  const generationModeOptions = [
-    {
-      description: 'Ask, plan, write, or choose the right action',
-      icon: MessageSquare,
-      label: 'Conversation',
-      value: 'auto',
-    },
-    {
-      description: 'Generate an image directly from this prompt',
-      icon: ImageIcon,
-      label: 'Image',
-      value: 'image',
-    },
-    {
-      description: 'Generate a video directly from this prompt',
-      icon: Video,
-      label: 'Video',
-      value: 'video',
-    },
-  ] as const;
-  const displayModels = useMemo(
-    () =>
-      models.map((model) =>
-        model.label === 'Auto (Free)'
-          ? { ...model, label: 'Free chat' }
-          : model,
-      ),
-    [models],
+
+  // The setup scope only ever tracks image/video — a brand-new composer
+  // starts on image, matching the shared store's own default aspect ratio.
+  const [activeGenerationType, setActiveGenerationType] = useState<
+    'image' | 'video'
+  >(generationMode === 'video' ? 'video' : 'image');
+
+  const scope = buildAgentGenerationSetupScope(threadId, activeGenerationType);
+  const defaults = buildDefaultAgentGenerationSetupValues(activeGenerationType);
+  const setupFromStore = useGenerationSetupStore(
+    (state) => state.setupByScope[scope],
   );
-  const modelSelector =
-    generationMode !== 'auto' || !isAdvancedMode || !onModelChange ? null : (
-      <ModelSelectorPopover
-        autoLabel={
-          hasSelectableModels
-            ? 'Automatic chat model'
-            : isModelsLoading
-              ? 'Loading models…'
-              : undefined
-        }
-        className={cn(
-          'max-w-[12rem] text-muted-foreground hover:text-foreground',
-          isCompact ? 'h-8 px-1.5' : 'h-9 px-2',
-        )}
-        favoriteModelKeys={favoriteModelKeys}
-        // Model pick stays available while reconnecting — only block during an
-        // active run or attachment/mic work.
-        isDisabled={Boolean(showStop || isUploading || isTranscribing)}
-        models={displayModels}
-        name="agent-chat-model"
-        onChange={(_name, values) => {
-          const next = values[0]?.trim();
-          if (!next) {
-            return;
-          }
-          // Auto or a concrete key — never leave the previous model in values.
-          onModelChange(next);
-        }}
-        onFavoriteToggle={onFavoriteToggle}
-        onPrioritizeChange={(priority) => {
-          // Parent handlePrioritizeChange already pins Auto + persists
-          // generationPriority. Do NOT also call onModelChange first — that
-          // raced a model-only settings patch and dropped the priority save.
-          onPrioritizeChange?.(priority);
-        }}
-        prioritize={prioritize}
-        creditsAvailable={creditsAvailable}
-        selectionMode="single"
-        values={
-          isAutoSelected
-            ? [AUTO_MODEL_OPTION_VALUE]
-            : selectedModel
-              ? [selectedModel]
-              : []
-        }
-      />
+  const reasons =
+    useGenerationSetupStore((state) => state.reasonsByScope[scope]) ?? {};
+  const setup = setupFromStore ?? { sources: {}, values: defaults };
+  const isTypeLocked = setup.sources.type === 'user';
+  const capabilities =
+    getAgentGenerationSetupCapabilities(activeGenerationType);
+
+  // The chip's send mode mirrors whether the operator has explicitly locked a
+  // type: unlocked stays plain conversation (the agent's own tools decide
+  // whether to generate), locked commits to a direct generation send.
+  useEffect(() => {
+    onGenerationModeChange(isTypeLocked ? activeGenerationType : 'auto');
+  }, [isTypeLocked, activeGenerationType, onGenerationModeChange]);
+
+  // Send-boundary wire shape stays the narrow ConversationComposerGenerationSettings
+  // the rest of the send pipeline already expects — only its source moved.
+  useEffect(() => {
+    onGenerationSettingsChange(
+      buildConversationComposerGenerationSettings(setup.values),
     );
-  const selectedGenerationMode = generationModeOptions.find(
-    (option) => option.value === generationMode,
+  }, [setup.values, onGenerationSettingsChange]);
+
+  // Model catalogue: registry fetch + org allowlist + category filter, ported
+  // from the retired AgentGenerationComposerControls (its aspect-ratio /
+  // duration / output UI is now owned by GenerationSetupCustomizePanel).
+  const [registryModels, setRegistryModels] = useState<GenerationModel[]>([]);
+
+  useEffect(() => {
+    if (!apiService) {
+      setRegistryModels([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    runAgentApiEffect(apiService.getModelsEffect(controller.signal))
+      .then(setRegistryModels)
+      .catch(() => {
+        if (!controller.signal.aborted) setRegistryModels([]);
+      });
+    return () => controller.abort();
+  }, [apiService]);
+
+  const category =
+    activeGenerationType === 'video'
+      ? ModelCategory.VIDEO
+      : ModelCategory.IMAGE;
+  const filteredModels = useMemo(
+    () =>
+      resolveOrgAllowlistedModels(registryModels, {
+        enabledModelIds: organizationSettings?.enabledModelIds,
+        isSettingsReady: !settingsLoading,
+        organizationId,
+      }).filter((model) => model.category === category),
+    [
+      category,
+      registryModels,
+      organizationId,
+      organizationSettings?.enabledModelIds,
+      settingsLoading,
+    ],
   );
-  const GenerationModeIcon = selectedGenerationMode?.icon ?? MessageSquare;
+
+  // Studio Looks presets — org+brand scoped, fetched lazily on first open.
+  const { deletePreset, isPresetsLoading, loadPresets, presets, savePreset } =
+    useAgentGenerationSetupPresets(apiService, activeGenerationType);
+  const triggerButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    const button = triggerButtonRef.current;
+    if (!button) {
+      return;
+    }
+    const handleOpenIntent = () => loadPresets();
+    button.addEventListener('pointerdown', handleOpenIntent);
+    button.addEventListener('focus', handleOpenIntent);
+    return () => {
+      button.removeEventListener('pointerdown', handleOpenIntent);
+      button.removeEventListener('focus', handleOpenIntent);
+    };
+  }, [loadPresets]);
+
+  // Debounced setup recommendation from prompt text. Unlocked, the type
+  // itself is auto-detected from the prompt (resolveType keyword-matches);
+  // locked, `lockedType` short-circuits that and only the other fields
+  // (aspect ratio, look, etc.) keep recommending.
+  const debouncedPrompt = useDebounce(promptText, RECOMMENDATION_DEBOUNCE_MS);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: capabilities/defaults are pure functions of activeGenerationType, already a dep — including their fresh per-render identities would re-run this every render and defeat the debounce.
+  useEffect(() => {
+    const recommendation = recommendGenerationSetup({
+      capabilities,
+      hasZeroCredits:
+        typeof creditsAvailable === 'number' && creditsAvailable <= 0,
+      lockedType: isTypeLocked ? activeGenerationType : undefined,
+      prompt: debouncedPrompt,
+      type: activeGenerationType,
+    });
+    const resolvedType = isAgentGenerationType(recommendation.values.type)
+      ? recommendation.values.type
+      : activeGenerationType;
+
+    if (!isTypeLocked && resolvedType !== activeGenerationType) {
+      // Re-home onto the new type's own scope before applying — writing the
+      // new type into the OLD scope's values would corrupt it.
+      const nextScope = buildAgentGenerationSetupScope(threadId, resolvedType);
+      applyGenerationSetupRecommendation(
+        nextScope,
+        recommendation,
+        buildDefaultAgentGenerationSetupValues(resolvedType),
+      );
+      setActiveGenerationType(resolvedType);
+      return;
+    }
+
+    applyGenerationSetupRecommendation(scope, recommendation, defaults);
+  }, [debouncedPrompt, scope, activeGenerationType, isTypeLocked, threadId]);
+
+  const handleSetField: GenerationSetupFieldSetter = useCallback(
+    (key, value) => {
+      // Type changes route through handleTypeChange, which re-homes the
+      // scope first — writing it here would land in the old scope.
+      if (key === 'type') {
+        return;
+      }
+      setGenerationSetupField(scope, key, value, defaults);
+    },
+    [scope, defaults],
+  );
+
+  const handleResetField = useCallback(
+    (key: GenerationSetupFieldKey) =>
+      resetGenerationSetupField(scope, key, defaults),
+    [scope, defaults],
+  );
+
+  const handleResetAll = useCallback(
+    () => resetGenerationSetupAll(scope, defaults),
+    [scope, defaults],
+  );
+
+  const handleClearPreset = useCallback(
+    () => clearGenerationSetupPreset(scope),
+    [scope],
+  );
+
+  const handleApplyPreset = useCallback(
+    (preset: IStudioLook) => {
+      applyGenerationSetupPreset(
+        scope,
+        preset.id,
+        agentPresetToGenerationSetupValues(preset),
+        defaults,
+      );
+    },
+    [scope, defaults],
+  );
+
+  const handleSavePreset = useCallback(
+    (label: string) => {
+      void savePreset(label, setup.values);
+    },
+    [savePreset, setup.values],
+  );
+
+  const handleDeletePreset = useCallback(
+    (presetId: string) => {
+      void deletePreset(presetId);
+    },
+    [deletePreset],
+  );
+
+  const handleTypeChange = useCallback(
+    (nextType: StudioGenerateType) => {
+      if (
+        !isAgentGenerationType(nextType) ||
+        nextType === activeGenerationType
+      ) {
+        return;
+      }
+      const nextScope = buildAgentGenerationSetupScope(threadId, nextType);
+      setGenerationSetupField(
+        nextScope,
+        'type',
+        nextType,
+        buildDefaultAgentGenerationSetupValues(nextType),
+      );
+      setActiveGenerationType(nextType);
+    },
+    [activeGenerationType, threadId],
+  );
 
   // Match paperclip / link / actions: square ICON control with default
   // design-system radius (rounded-md via ButtonSize.ICON) — never a full pill.
@@ -211,7 +352,7 @@ function AgentChatInputToolbarInner({
     controlSize,
     'min-h-0 min-w-0 p-0',
   );
-  // Pull only the far-right send into the shell padding — leading model chip
+  // Pull only the far-right send into the shell padding — leading setup chip
   // keeps natural shell inset so it doesn't hug the border or fight icon gap.
   const trailingEdgeOffset = isCompact ? '-mr-1.5' : '-mr-2';
 
@@ -304,68 +445,32 @@ function AgentChatInputToolbarInner({
         isCompact ? 'min-h-8 flex-wrap pt-0.5' : 'min-h-9 pt-1',
       )}
     >
-      {/* Leading: model first, then tools tight to the chip (no inflated gap). */}
+      {/* Leading: one setup chip, then tools tight to it (no inflated gap). */}
       <div className="flex min-w-0 shrink items-center gap-0.5">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              ariaLabel={`Composer mode: ${selectedGenerationMode?.label ?? 'Conversation'}`}
-              className="max-w-40 shrink-0 gap-1.5 px-2 text-foreground"
-              icon={<GenerationModeIcon className="size-4" />}
-              label={selectedGenerationMode?.label ?? 'Conversation'}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-72" side="top">
-            <DropdownMenuLabel>{translate('generationMode')}</DropdownMenuLabel>
-            {generationModeOptions.map((option) => {
-              const Icon = option.icon;
-              return (
-                <DropdownMenuItem
-                  key={option.value}
-                  onSelect={() => {
-                    onGenerationModeChange(option.value);
-                    onGenerationSettingsChange({
-                      aspectRatio: option.value === 'video' ? '16:9' : '1:1',
-                      ...(option.value === 'image' ? { outputs: 1 } : {}),
-                      ...(option.value === 'video' ? { duration: 5 } : {}),
-                    });
-                  }}
-                >
-                  <Icon className="mr-2 size-4 shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-foreground">
-                      {option.label}
-                    </p>
-                    <p className="text-2xs leading-4 text-muted-foreground">
-                      {option.description}
-                    </p>
-                  </div>
-                  {generationMode === option.value ? (
-                    <DropdownMenuShortcut>
-                      {translate('selected')}
-                    </DropdownMenuShortcut>
-                  ) : null}
-                </DropdownMenuItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {modelSelector}
-
-        {generationMode === 'image' || generationMode === 'video' ? (
-          <AgentGenerationComposerControls
-            apiService={apiService}
-            disabled={disabled || showStop}
-            mode={generationMode}
-            onChange={onGenerationSettingsChange}
-            prioritize={prioritize}
-            settings={generationSettings}
-          />
-        ) : null}
+        <GenerationSetupPopover
+          buttonRef={triggerButtonRef}
+          capabilities={capabilities}
+          creditsAvailable={creditsAvailable}
+          favoriteModelKeys={favoriteModelKeys}
+          isDisabled={disabled || showStop}
+          isPresetsLoading={isPresetsLoading}
+          lookOptions={EMPTY_LOOK_OPTIONS}
+          models={filteredModels}
+          onApplyPreset={handleApplyPreset}
+          onClearPreset={handleClearPreset}
+          onDeletePreset={handleDeletePreset}
+          onFavoriteToggle={onFavoriteToggle}
+          onResetAll={handleResetAll}
+          onResetField={handleResetField}
+          onSavePreset={handleSavePreset}
+          onSetField={handleSetField}
+          onTypeChange={handleTypeChange}
+          presets={presets}
+          reasons={reasons}
+          scopeKey={scope}
+          setup={setup}
+          typeOptions={AGENT_GENERATION_SETUP_TYPE_OPTIONS}
+        />
 
         <PromptBarReferenceControls
           density={density}

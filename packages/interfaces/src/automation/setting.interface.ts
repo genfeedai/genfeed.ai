@@ -26,7 +26,6 @@ export interface ISetting extends IBaseEntity {
   trendNotificationsMinViralScore: number;
 
   contentPreferences?: string[];
-  defaultAgentModel?: string;
   isAgentAssetsPanelOpen?: boolean;
   generationPriority?: GenerationPriority;
   dashboardPreferences?: DashboardPreferences;

@@ -362,7 +362,7 @@ export class PublicYoutubeClipsService implements OnModuleInit {
         ? [
             {
               highlightFallback: 'deterministic',
-              highlightModel: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+              highlightModel: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
               language: created.session.language,
               maxClips: MAX_FREE_RECOMMENDATIONS,
               minViralityScore: 0,
