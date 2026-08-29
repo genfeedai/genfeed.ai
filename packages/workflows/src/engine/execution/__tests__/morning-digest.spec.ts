@@ -52,7 +52,7 @@ function makeDigestWorkflow(): ExecutableWorkflow {
     edges: [
       makeEdge('read', 'analyze', {
         sourceHandle: 'summary',
-        targetHandle: 'summary',
+        targetHandle: 'content',
       }),
       makeEdge('analyze', 'report', {
         sourceHandle: 'content',
@@ -67,7 +67,7 @@ function makeDigestWorkflow(): ExecutableWorkflow {
         mode: 'timeline',
         username: 'genfeed',
       }),
-      makeNode('analyze', 'postGen'),
+      makeNode('analyze', 'llm'),
       makeNode('report', 'reportDelivery', {
         channel: 'notification',
         subject: 'Morning X digest',
@@ -113,9 +113,10 @@ describe('morning X digest (#2664)', () => {
     reportDelivery.setNotificationSender(notificationSender);
 
     engine.registerExecutor('socialRead', wrapExecutor(socialRead));
-    engine.registerExecutor('postGen', async (_node, inputs) => {
-      const summary = String(inputs.get('summary') ?? '');
-      return { content: `Morning digest\n${summary}` };
+    engine.registerExecutor('llm', async (_node, inputs) => {
+      const summary = String(inputs.get('content') ?? '');
+      const content = `Morning digest\n${summary}`;
+      return { content, model: 'stub-digest-model', text: content };
     });
     engine.registerExecutor('reportDelivery', wrapExecutor(reportDelivery));
   });

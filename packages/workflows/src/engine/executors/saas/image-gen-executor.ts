@@ -7,6 +7,10 @@ import {
 } from '../base-executor';
 
 export interface ImageGenOutput {
+  // `id` and `status` mirror the pending ingredient the resolver creates before
+  // handing off to the provider; the `imageGen` action contract requires both.
+  id: string;
+  status: string;
   imageUrl: string;
   // Uint8Array (not node's Buffer) keeps the engine package node-free; Buffer
   // is a Uint8Array subclass so runtime resolver values remain assignable.

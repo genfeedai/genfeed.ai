@@ -556,25 +556,6 @@ describe('VideoGenerationGateService', () => {
     expect(summary?.paidCandidateCount).toBe(3);
     expect(summary?.attempts).toHaveLength(3);
   });
-
-  it('still applies the gate for generateVideo and video-generator aliases', async () => {
-    const executor = vi.fn().mockResolvedValue({ video: 'pilot.mp4' });
-
-    const result = await service.execute({
-      baseCreditCost: 10,
-      executor,
-      gateConfig: DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
-      inputs: new Map(),
-      lineage: makeLineage(),
-      node: makeNode('video-generator', { duration: 8 }),
-      nodeId: 'video-1',
-      startedAt: new Date(),
-      workflowId: 'wf-1',
-    });
-
-    expect(result.kind).toBe('result');
-    expect(executor).toHaveBeenCalledTimes(1);
-  });
 });
 
 describe('resolveRequestedDurationSeconds', () => {

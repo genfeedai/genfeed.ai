@@ -61,7 +61,13 @@ const zeroRetry = {
 
 describe('WorkflowEngine video generation gate', () => {
   it('does not gate non-video actions when the gate is enabled', async () => {
-    const executor: NodeExecutor = vi.fn().mockResolvedValue({ result: 'ok' });
+    const imageOutput = {
+      id: 'img-1',
+      model: 'stub-model',
+      provider: 'stub',
+      status: 'completed',
+    };
+    const executor: NodeExecutor = vi.fn().mockResolvedValue(imageOutput);
     const engine = new WorkflowEngine({
       creditCosts: { imageGen: 10 },
       retryConfig: zeroRetry,
@@ -75,16 +81,21 @@ describe('WorkflowEngine video generation gate', () => {
     expect(executor).toHaveBeenCalledTimes(1);
     expect(result.status).toBe('completed');
     expect(result.totalCreditsUsed).toBe(10);
-    expect(result.nodeResults.get('n1')?.output).toEqual({ result: 'ok' });
+    expect(result.nodeResults.get('n1')?.output).toEqual(imageOutput);
     expect(
       result.nodeResults.get('n1')?.videoGenerationLineage,
     ).toBeUndefined();
   });
 
   it('behaves exactly as today when the gate is disabled', async () => {
-    const executor: NodeExecutor = vi
-      .fn()
-      .mockResolvedValue({ video: 'full.mp4' });
+    const fullOutput = {
+      id: 'v1',
+      model: 'stub-model',
+      provider: 'stub',
+      status: 'completed',
+      videoUrl: 'full.mp4',
+    };
+    const executor: NodeExecutor = vi.fn().mockResolvedValue(fullOutput);
     const engine = new WorkflowEngine({
       creditCosts: { videoGen: 10 },
       retryConfig: zeroRetry,
@@ -114,16 +125,20 @@ describe('WorkflowEngine video generation gate', () => {
     );
     expect(result.status).toBe('completed');
     expect(result.totalCreditsUsed).toBe(10);
-    expect(result.nodeResults.get('v1')?.output).toEqual({ video: 'full.mp4' });
+    expect(result.nodeResults.get('v1')?.output).toEqual(fullOutput);
     expect(
       result.nodeResults.get('v1')?.videoGenerationLineage,
     ).toBeUndefined();
   });
 
   it('behaves exactly as today when requested duration is at the provider minimum', async () => {
-    const executor: NodeExecutor = vi
-      .fn()
-      .mockResolvedValue({ video: 'full.mp4' });
+    const executor: NodeExecutor = vi.fn().mockResolvedValue({
+      id: 'v1',
+      model: 'stub-model',
+      provider: 'stub',
+      status: 'completed',
+      videoUrl: 'full.mp4',
+    });
     const engine = new WorkflowEngine({
       creditCosts: { videoGen: 10 },
       retryConfig: zeroRetry,
@@ -142,10 +157,23 @@ describe('WorkflowEngine video generation gate', () => {
   });
 
   it('charges only the pilot until videoQa accepts, then charges the full run', async () => {
+    const fullOutput = {
+      id: 'v1-full',
+      model: 'veo-3.1-fast',
+      provider: 'stub',
+      status: 'completed',
+      videoUrl: 'full.mp4',
+    };
     const executor: NodeExecutor = vi
       .fn()
-      .mockResolvedValueOnce({ video: 'pilot.mp4' })
-      .mockResolvedValueOnce({ video: 'full.mp4' });
+      .mockResolvedValueOnce({
+        id: 'v1-pilot',
+        model: 'veo-3.1-fast',
+        provider: 'stub',
+        status: 'completed',
+        videoUrl: 'pilot.mp4',
+      })
+      .mockResolvedValueOnce(fullOutput);
     const engine = new WorkflowEngine({
       creditCosts: { videoGen: 10 },
       retryConfig: zeroRetry,
@@ -169,13 +197,17 @@ describe('WorkflowEngine video generation gate', () => {
     expect(executor).toHaveBeenCalledTimes(2);
     expect(result.status).toBe('completed');
     expect(result.totalCreditsUsed).toBe(15);
-    expect(result.nodeResults.get('v1')?.output).toEqual({ video: 'full.mp4' });
+    expect(result.nodeResults.get('v1')?.output).toEqual(fullOutput);
   });
 
   it('halts after three rejected paid candidates with a structured summary and no fourth provider call', async () => {
-    const executor: NodeExecutor = vi
-      .fn()
-      .mockResolvedValue({ video: 'bad.mp4' });
+    const executor: NodeExecutor = vi.fn().mockResolvedValue({
+      id: 'v1-bad',
+      model: 'stub-model',
+      provider: 'stub',
+      status: 'completed',
+      videoUrl: 'bad.mp4',
+    });
     const engine = new WorkflowEngine({
       creditCosts: { videoGen: 10 },
       retryConfig: zeroRetry,

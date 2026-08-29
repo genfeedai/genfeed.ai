@@ -92,7 +92,7 @@ describe('ClipChainVideoTemplate', () => {
           (edge) =>
             edge.source === `video-gen-${index}` &&
             edge.target === `frame-extract-${index}` &&
-            edge.sourceHandle === 'video' &&
+            edge.sourceHandle === 'videoUrl' &&
             edge.targetHandle === 'video',
         );
         const extractToNext = CLIP_CHAIN_VIDEO_TEMPLATE.edges.find(
@@ -135,8 +135,11 @@ describe('ClipChainVideoTemplate', () => {
           (edge) =>
             edge.source === `video-gen-${index}` &&
             edge.target === 'video-stitch-1' &&
-            edge.sourceHandle === 'video' &&
-            edge.targetHandle === `video-${index}`,
+            edge.sourceHandle === 'videoUrl' &&
+            // videoStitch's closed input contract has one `videos` array
+            // field, not dynamic video-N keys — every segment shares that
+            // handle and the engine merges them into an ordered array.
+            edge.targetHandle === 'videos',
         );
         expect(stitchEdge).toBeDefined();
       }
@@ -257,10 +260,20 @@ describe('ClipChainVideoTemplate', () => {
 
       engine.registerExecutor('videoGen', async (node, inputs) => {
         startFrames.set(node.id, inputs.get('image'));
-        return { video: `https://cdn.example/${node.id}.mp4` };
+        return {
+          id: node.id,
+          model: 'stub-model',
+          provider: 'stub',
+          status: 'completed',
+          videoUrl: `https://cdn.example/${node.id}.mp4`,
+        };
       });
       engine.registerExecutor('videoFrameExtract', async (node, inputs) => {
-        const sourceVideo = inputs.get('video');
+        const source = inputs.get('video');
+        const sourceVideo =
+          typeof source === 'string'
+            ? source
+            : ((source as { videoUrl?: string } | undefined)?.videoUrl ?? '');
         const lastFrame = `https://cdn.example/last-from-${node.id}.jpg`;
         return {
           image: lastFrame,
@@ -327,11 +340,21 @@ describe('ClipChainVideoTemplate', () => {
         if (node.id === 'video-gen-2') {
           throw new Error('segment 2 generation failed');
         }
-        return { video: `https://cdn.example/${node.id}.mp4` };
+        return {
+          id: node.id,
+          model: 'stub-model',
+          provider: 'stub',
+          status: 'completed',
+          videoUrl: `https://cdn.example/${node.id}.mp4`,
+        };
       });
       engine.registerExecutor('videoFrameExtract', async (node) => {
         const lastFrame = `https://cdn.example/last-from-${node.id}.jpg`;
-        return { image: lastFrame, last_frame: lastFrame };
+        return {
+          image: lastFrame,
+          last_frame: lastFrame,
+          sourceVideo: `https://cdn.example/${node.id}-source.mp4`,
+        };
       });
       engine.registerExecutor('videoStitch', async () => {
         throw new Error('stitch should not run after a failed segment');
@@ -345,7 +368,11 @@ describe('ClipChainVideoTemplate', () => {
       expect(result.error).toContain('segment 2 generation failed');
       expect(result.nodeResults.get('video-gen-1')?.status).toBe('completed');
       expect(result.nodeResults.get('video-gen-1')?.output).toEqual({
-        video: 'https://cdn.example/video-gen-1.mp4',
+        id: 'video-gen-1',
+        model: 'stub-model',
+        provider: 'stub',
+        status: 'completed',
+        videoUrl: 'https://cdn.example/video-gen-1.mp4',
       });
       expect(result.nodeResults.get('video-gen-2')?.status).toBe('failed');
       expect(result.nodeResults.get('video-gen-2')?.retryCount).toBe(0);

@@ -19,6 +19,7 @@ type InputField =
   | 'aspectRatio'
   | 'assetType'
   | 'audio'
+  | 'audioCodec'
   | 'audioUrl'
   | 'audioVolume'
   | 'auto'
@@ -45,6 +46,7 @@ type InputField =
   | 'data'
   | 'days'
   | 'destination'
+  | 'dispatchMode'
   | 'duration'
   | 'durationSeconds'
   | 'email'
@@ -103,6 +105,8 @@ type InputField =
   | 'niche'
   | 'orientation'
   | 'outputFormat'
+  | 'outputQuality'
+  | 'parentId'
   | 'parentIngredientId'
   | 'photoUrl'
   | 'pitchShift'
@@ -127,8 +131,10 @@ type InputField =
   | 'scale'
   | 'schedule'
   | 'script'
+  | 'seamlessLoop'
   | 'secondaryKeywords'
   | 'seed'
+  | 'selectionMode'
   | 'skipped'
   | 'slideIndex'
   | 'sound'
@@ -153,6 +159,7 @@ type InputField =
   | 'template'
   | 'text'
   | 'textColor'
+  | 'timestampSeconds'
   | 'timezone'
   | 'title'
   | 'to'
@@ -161,6 +168,8 @@ type InputField =
   | 'topic'
   | 'topN'
   | 'trackingEnabled'
+  | 'transitionDuration'
+  | 'transitionType'
   | 'trend'
   | 'trendData'
   | 'trendId'
@@ -215,6 +224,7 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
     case 'trackingEnabled':
     case 'skipped':
     case 'auto':
+    case 'seamlessLoop':
     case 'useIdentityDefaults':
     case 'useLlm':
       return BOOLEAN_SCHEMA;
@@ -252,9 +262,19 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
     case 'strength':
     case 'targetScore':
     case 'temperature':
+    case 'timestampSeconds':
+    case 'transitionDuration':
     case 'width':
     case 'wordsPerSecond':
       return NUMBER_SCHEMA;
+    case 'selectionMode':
+      return enumSchema(['first', 'last', 'timestamp', 'percentage'] as const);
+    case 'audioCodec':
+      return enumSchema(['aac', 'mp3'] as const);
+    case 'outputQuality':
+      return enumSchema(['full', 'draft'] as const);
+    case 'transitionType':
+      return enumSchema(['cut', 'crossfade', 'wipe', 'fade'] as const);
     case 'keywords':
     case 'languages':
     case 'secondaryKeywords':
@@ -1204,7 +1224,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       }),
     },
     videoFrameExtract: {
-      inputSchema: inputSchema(['video']),
+      inputSchema: inputSchema(['selectionMode', 'timestampSeconds', 'video']),
       outputSchema: objectOutput({
         image: STRING_SCHEMA,
         last_frame: STRING_SCHEMA,
@@ -1251,7 +1271,19 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       }),
     },
     videoStitch: {
-      inputSchema: inputSchema(['quality', 'videos']),
+      inputSchema: inputSchema([
+        'audioCodec',
+        'brandId',
+        'dispatchMode',
+        'model',
+        'outputQuality',
+        'parentId',
+        'quality',
+        'seamlessLoop',
+        'transitionDuration',
+        'transitionType',
+        'videos',
+      ]),
       outputSchema: objectOutput({
         video: STRING_SCHEMA,
         videoUrl: STRING_SCHEMA,

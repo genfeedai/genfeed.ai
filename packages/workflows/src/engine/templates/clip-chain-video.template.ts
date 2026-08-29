@@ -125,12 +125,12 @@ function buildClipChainNodes(
         parameters: {
           aspectRatio: videoConfig?.aspectRatio ?? '16:9',
           duration: videoConfig?.duration ?? 8,
-          generateAudio: true,
-          identityDirective,
           model: videoConfig?.model ?? 'veo-3.1-fast',
+          // identityDirective + segmentPrompt are already folded into `prompt`
+          // above; segmentIndex is template bookkeeping only. None are part
+          // of the videoGen action's input contract, so they stay off the
+          // action's parameters (closed input schema).
           prompt,
-          segmentIndex: index,
-          segmentPrompt,
         },
       }),
     );
@@ -181,7 +181,9 @@ function buildClipChainEdges(segmentCount: number): ExecutableEdge[] {
     edges.push({
       id: `edge-video-extract-${index}`,
       source: `video-gen-${index}`,
-      sourceHandle: 'video',
+      // videoGen's action output only ever carries a `videoUrl` key
+      // (GENERATED_MEDIA_OUTPUT) — there is no `video` key to bind to.
+      sourceHandle: 'videoUrl',
       target: `frame-extract-${index}`,
       targetHandle: 'video',
     });
@@ -199,9 +201,15 @@ function buildClipChainEdges(segmentCount: number): ExecutableEdge[] {
     edges.push({
       id: `edge-video-stitch-${index}`,
       source: `video-gen-${index}`,
-      sourceHandle: 'video',
+      sourceHandle: 'videoUrl',
       target: 'video-stitch-1',
-      targetHandle: `video-${index}`,
+      // videoStitch's input contract is a closed schema with a single
+      // `videos` array field — it has no dynamic video-N keys. The engine
+      // merges multiple edges delivered to the same targetHandle into an
+      // array (in edge push order, which follows segment order here), so
+      // routing every segment through the shared `videos` handle both
+      // satisfies the contract and preserves stitch ordering.
+      targetHandle: 'videos',
     });
   }
 
@@ -372,14 +380,19 @@ export function buildVideoExtensionTemplate(
         source: 'source-video',
         sourceHandle: 'video',
         target: 'extended-video',
-        targetHandle: 'video-1',
+        // videoStitch's closed input contract has one `videos` array field,
+        // not dynamic video-N keys — the engine merges same-handle edges
+        // into an ordered array (source, then extension, per push order).
+        targetHandle: 'videos',
       },
       {
         id: 'edge-extension-stitch',
         source: 'extension-video',
-        sourceHandle: 'video',
+        // extension-video is a videoGen action node — its output only
+        // carries `videoUrl` (GENERATED_MEDIA_OUTPUT), not `video`.
+        sourceHandle: 'videoUrl',
         target: 'extended-video',
-        targetHandle: 'video-2',
+        targetHandle: 'videos',
       },
     ],
     id: 'video-extension',
