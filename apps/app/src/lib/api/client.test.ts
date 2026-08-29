@@ -14,16 +14,16 @@ function createJsonResponse(body: unknown, init?: ResponseInit): Response {
   });
 }
 
+beforeEach(() => {
+  vi.stubGlobal('fetch', fetchMock);
+  fetchMock.mockReset();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 describe('apiClient', () => {
-  beforeEach(() => {
-    vi.stubGlobal('fetch', fetchMock);
-    fetchMock.mockReset();
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   describe('get', () => {
     it('should make GET request and return parsed JSON', async () => {
       const mockResponse = { data: 'test' };
