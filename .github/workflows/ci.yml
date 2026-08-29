@@ -286,11 +286,21 @@ jobs:
           fi
       - name: Run typecheck
         run: |
+          set -o pipefail
           if [ "$CI_IS_CHANGE_RUN" = "true" ]; then
-            TURBO_SCM_BASE="$CI_BASE_SHA" bunx turbo run type-check --affected --concurrency=1
+            TURBO_SCM_BASE="$CI_BASE_SHA" bunx turbo run type-check --affected --concurrency=1 \
+              2>&1 | tee "${RUNNER_TEMP}/turbo-type-check.log"
           else
-            bunx turbo run type-check --concurrency=1
+            bunx turbo run type-check --concurrency=1 \
+              2>&1 | tee "${RUNNER_TEMP}/turbo-type-check.log"
           fi
+      # Annotation only, never a gate: a rejected TURBO_TOKEN makes turbo print
+      # one warning, exit 0, and rebuild every task cold, so the remote cache
+      # can sit dead for months while CI stays green and slow.
+      - name: Check Turbo remote cache is live
+        if: ${{ !cancelled() && env.TURBO_TOKEN != '' }}
+        continue-on-error: true
+        run: node scripts/ci/check-turbo-remote-cache.mjs "${RUNNER_TEMP}/turbo-type-check.log"
       - name: Run executable contracts
         run: bun run test:executable-contracts
 
