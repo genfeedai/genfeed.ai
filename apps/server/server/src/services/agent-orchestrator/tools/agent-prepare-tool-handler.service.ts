@@ -1,3 +1,12 @@
+import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/enums';
+import type {
+  AgentClipRunIdentity,
+  AgentNextStepOption,
+  AgentToolResult,
+  AgentUiActionCta,
+} from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
 import { resolveEffectiveBrandAgentConfig } from '@server/collections/brands/utils/brand-agent-config-resolution.util';
 import { resolveClipIdentity } from '@server/collections/clip-projects/services/clip-identity-resolution.util';
@@ -17,15 +26,6 @@ import {
   resolveLockedGenerationType,
   type ThreadGenerationType,
 } from '@server/services/agent-orchestrator/utils/thread-generation-type.util';
-import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/enums';
-import type {
-  AgentClipRunIdentity,
-  AgentNextStepOption,
-  AgentToolResult,
-  AgentUiActionCta,
-} from '@genfeedai/interfaces';
-import { scopedWhere } from '@genfeedai/server';
-import { Inject, Injectable, Optional } from '@nestjs/common';
 
 interface AgentBrandsServiceLike {
   findOne: (
@@ -58,7 +58,12 @@ export class AgentPrepareToolHandler {
     params: Record<string, unknown>,
     ctx?: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const generationType = params.generationType as ThreadGenerationType;
+    const requestedGenerationType =
+      params.generationType as ThreadGenerationType;
+    const generationType =
+      ctx?.generationMode === 'image' || ctx?.generationMode === 'video'
+        ? ctx.generationMode
+        : requestedGenerationType;
     const prompt = params.prompt as string | undefined;
     const model = params.model as string | undefined;
     const aspectRatio = params.aspectRatio as string | undefined;
@@ -72,10 +77,13 @@ export class AgentPrepareToolHandler {
       };
     }
 
-    const lockError = generationTypeLockError(
-      generationType,
-      await this.readLockedGenerationType(ctx),
-    );
+    const lockError =
+      ctx?.generationMode === 'image' || ctx?.generationMode === 'video'
+        ? null
+        : generationTypeLockError(
+            generationType,
+            await this.readLockedGenerationType(ctx),
+          );
     if (lockError) {
       return {
         creditsUsed: 0,

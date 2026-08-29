@@ -354,6 +354,11 @@ export class WebhooksService {
       status: IngredientStatus.FAILED,
     });
 
+    this.postProcessingOrchestrator.notifyBotGatewayFailureIfNeeded(
+      ingredient.id.toString(),
+      errorMessage || 'Generation failed',
+    );
+
     const { dbUserId, userId, userRoom } = extractUserIds(ingredient.userId);
 
     // Activity update via decomposed service

@@ -22,6 +22,9 @@ import { TransactionUtil } from '@server/helpers/utils/transaction/transaction.u
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const DEFAULT_RESERVATION_TTL_MS = 2 * 60 * 60 * 1000;
+const MAX_SERIALIZATION_RETRIES = 3;
+const PRISMA_SERIALIZATION_FAILURE = 'P2034';
+const PRISMA_UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 
 type ReserveCreditsInput = IReserveCreditsInput & {
   billingAccountId: string;
@@ -42,88 +45,127 @@ export class CreditReservationService {
       throw new BusinessLogicException('Reservation amount must be positive');
     }
 
-    const existing = await this.prisma.creditReservation.findFirst({
-      where: {
-        idempotencyKey: input.idempotencyKey,
-        isDeleted: false,
-        organizationId: input.organizationId,
-      },
-    });
-    if (existing) {
-      return this.toReservation(existing);
-    }
+    try {
+      return await this.runSerializable(async (tx) => {
+        const existing = await tx.creditReservation.findFirst({
+          where: {
+            idempotencyKey: input.idempotencyKey,
+            isDeleted: false,
+            organizationId: input.organizationId,
+          },
+        });
+        if (existing) {
+          return this.toReservation(existing);
+        }
 
-    const run = async (tx: PrismaTransactionClient) => {
-      await this.creditBalanceService.applyDelta(
-        input.organizationId,
-        {
-          billingAccountId: input.billingAccountId,
-          heldDelta: input.amount,
-        },
-        tx,
-      );
+        await this.creditBalanceService.applyDelta(
+          input.organizationId,
+          {
+            billingAccountId: input.billingAccountId,
+            heldDelta: input.amount,
+          },
+          tx,
+        );
 
-      const created = await tx.creditReservation.create({
-        data: {
-          actorUserId: input.actorUserId,
-          amount: input.amount,
-          billingAccountId: input.billingAccountId,
-          expiresAt:
-            input.expiresAt ??
-            new Date(Date.now() + DEFAULT_RESERVATION_TTL_MS),
-          idempotencyKey: input.idempotencyKey,
-          organizationId: input.organizationId,
-          status: CreditReservationStatus.RESERVED,
-          workloadId: input.workloadId,
-          workloadType: input.workloadType,
-        },
+        const created = await tx.creditReservation.create({
+          data: {
+            actorUserId: input.actorUserId,
+            amount: input.amount,
+            billingAccountId: input.billingAccountId,
+            expiresAt:
+              input.expiresAt ??
+              new Date(Date.now() + DEFAULT_RESERVATION_TTL_MS),
+            idempotencyKey: input.idempotencyKey,
+            organizationId: input.organizationId,
+            status: CreditReservationStatus.RESERVED,
+            workloadId: input.workloadId,
+            workloadType: input.workloadType,
+          },
+        });
+        return this.toReservation(created);
       });
-      return this.toReservation(created);
-    };
-
-    return this.transactionUtil.runInTransaction((tx) => run(tx), {
-      isolationLevel: 'Serializable',
-    });
+    } catch (error: unknown) {
+      if (this.errorCode(error) === PRISMA_UNIQUE_CONSTRAINT_VIOLATION) {
+        const existing = await this.prisma.creditReservation.findFirst({
+          where: {
+            idempotencyKey: input.idempotencyKey,
+            isDeleted: false,
+            organizationId: input.organizationId,
+          },
+        });
+        if (existing) return this.toReservation(existing);
+      }
+      throw error;
+    }
   }
 
   async settle(
     input: ISettleCreditReservationInput,
   ): Promise<ICreditWalletSnapshot> {
-    const reservation = await this.findReservation(input);
-    if (reservation.status === CreditReservationStatus.SETTLED) {
-      return this.creditBalanceService.toSnapshot(
-        await this.creditBalanceService.getOrCreateBalance(
-          reservation.organizationId,
-          undefined,
-          reservation.billingAccountId,
-        ),
-      );
-    }
-
-    if (reservation.status !== CreditReservationStatus.RESERVED) {
-      throw new BusinessLogicException(
-        `Reservation ${reservation.status} cannot be settled`,
-      );
-    }
-
     if (!Number.isFinite(input.actualAmount) || input.actualAmount < 0) {
       throw new BusinessLogicException(
         'Settlement amount must be finite and non-negative',
       );
     }
 
-    if (input.actualAmount > reservation.amount) {
-      throw new BusinessLogicException(
-        'Settlement amount exceeds the reserved amount',
-        {
-          actualAmount: input.actualAmount,
-          reservedAmount: reservation.amount,
-        },
-        'SETTLEMENT_EXCEEDS_RESERVATION',
-      );
-    }
+    return this.runSerializable(async (tx) => {
+      const reservation = await this.findReservation(input, tx);
+      if (reservation.status === CreditReservationStatus.SETTLED) {
+        if (reservation.settledAmount !== input.actualAmount) {
+          throw new BusinessLogicException(
+            'Settlement amount does not match the completed reservation',
+            {
+              actualAmount: input.actualAmount,
+              settledAmount: reservation.settledAmount,
+            },
+            'SETTLEMENT_AMOUNT_MISMATCH',
+          );
+        }
+        return this.walletSnapshot(reservation, tx);
+      }
 
-    const run = async (tx: PrismaTransactionClient) => {
+      if (reservation.status !== CreditReservationStatus.RESERVED) {
+        throw new BusinessLogicException(
+          `Reservation ${reservation.status} cannot be settled`,
+        );
+      }
+
+      if (input.actualAmount > reservation.amount) {
+        throw new BusinessLogicException(
+          'Settlement amount exceeds the reserved amount',
+          {
+            actualAmount: input.actualAmount,
+            reservedAmount: reservation.amount,
+          },
+          'SETTLEMENT_EXCEEDS_RESERVATION',
+        );
+      }
+
+      const claimed = await tx.creditReservation.updateMany({
+        data: {
+          settledAmount: input.actualAmount,
+          status: CreditReservationStatus.SETTLED,
+        },
+        where: {
+          id: reservation.id,
+          isDeleted: false,
+          organizationId: reservation.organizationId,
+          status: CreditReservationStatus.RESERVED,
+        },
+      });
+      if (claimed.count !== 1) {
+        const latest = await this.findReservation(input, tx);
+        if (
+          latest.status === CreditReservationStatus.SETTLED &&
+          latest.settledAmount === input.actualAmount
+        ) {
+          return this.walletSnapshot(latest, tx);
+        }
+        throw new BusinessLogicException(
+          `Reservation ${latest.status} cannot be settled`,
+        );
+      }
+
       const snapshot = await this.creditBalanceService.applyDelta(
         reservation.organizationId,
         {
@@ -150,14 +192,6 @@ export class CreditReservationService {
         },
       );
 
-      await tx.creditReservation.update({
-        data: {
-          settledAmount: input.actualAmount,
-          status: CreditReservationStatus.SETTLED,
-        },
-        where: { id: reservation.id },
-      });
-
       await tx.creditTransaction.updateMany({
         data: {
           actorUserId: input.actorUserId,
@@ -172,42 +206,35 @@ export class CreditReservationService {
       });
 
       return snapshot;
-    };
-
-    return this.transactionUtil.runInTransaction((tx) => run(tx), {
-      isolationLevel: 'Serializable',
     });
   }
 
   async release(
     input: IReleaseCreditReservationInput,
   ): Promise<ICreditWalletSnapshot> {
-    const reservation = await this.findReservation(input);
-    if (
-      reservation.status === CreditReservationStatus.RELEASED ||
-      reservation.status === CreditReservationStatus.EXPIRED
-    ) {
-      return this.creditBalanceService.toSnapshot(
-        await this.creditBalanceService.getOrCreateBalance(
-          reservation.organizationId,
-          undefined,
-          reservation.billingAccountId,
-        ),
-      );
-    }
+    return this.runSerializable(async (tx) => {
+      const reservation = await this.findReservation(input, tx);
+      if (reservation.status !== CreditReservationStatus.RESERVED) {
+        return this.walletSnapshot(reservation, tx);
+      }
 
-    if (reservation.status !== CreditReservationStatus.RESERVED) {
-      throw new BusinessLogicException(
-        `Reservation ${reservation.status} cannot be released`,
-      );
-    }
+      const nextStatus =
+        input.reason === 'expiry'
+          ? CreditReservationStatus.EXPIRED
+          : CreditReservationStatus.RELEASED;
+      const claimed = await tx.creditReservation.updateMany({
+        data: { status: nextStatus },
+        where: {
+          id: reservation.id,
+          isDeleted: false,
+          organizationId: reservation.organizationId,
+          status: CreditReservationStatus.RESERVED,
+        },
+      });
+      if (claimed.count !== 1) {
+        return this.walletSnapshot(await this.findReservation(input, tx), tx);
+      }
 
-    const nextStatus =
-      input.reason === 'expiry'
-        ? CreditReservationStatus.EXPIRED
-        : CreditReservationStatus.RELEASED;
-
-    const run = async (tx: PrismaTransactionClient) => {
       const snapshot = await this.creditBalanceService.applyDelta(
         reservation.organizationId,
         {
@@ -216,19 +243,13 @@ export class CreditReservationService {
         },
         tx,
       );
-      await tx.creditReservation.update({
-        data: { status: nextStatus },
-        where: { id: reservation.id },
-      });
       return snapshot;
-    };
-
-    return this.transactionUtil.runInTransaction((tx) => run(tx), {
-      isolationLevel: 'Serializable',
     });
   }
 
   async expireDue(now = new Date()): Promise<number> {
+    // tenant-scope-ignore: platform maintenance sweep — every candidate carries
+    // its organizationId and release is re-scoped before mutating its wallet
     const due = await this.prisma.creditReservation.findMany({
       where: {
         expiresAt: { lte: now },
@@ -240,28 +261,38 @@ export class CreditReservationService {
 
     let expired = 0;
     for (const reservation of due) {
-      await this.release({
-        organizationId: reservation.organizationId,
-        reason: 'expiry',
-        reservationId: reservation.id,
-      });
-      expired += 1;
+      try {
+        await this.release({
+          organizationId: reservation.organizationId,
+          reason: 'expiry',
+          reservationId: reservation.id,
+        });
+        expired += 1;
+      } catch (error: unknown) {
+        this.logger.error('Credit reservation expiry failed', error, {
+          organizationId: reservation.organizationId,
+          reservationId: reservation.id,
+        });
+      }
     }
 
     this.logger.log('Expired credit reservations', { expired });
     return expired;
   }
 
-  private async findReservation(input: {
-    organizationId: string;
-    reservationId?: string;
-    idempotencyKey?: string;
-  }) {
+  private async findReservation(
+    input: {
+      organizationId: string;
+      reservationId?: string;
+      idempotencyKey?: string;
+    },
+    tx?: PrismaTransactionClient,
+  ) {
     if (!input.reservationId && !input.idempotencyKey) {
       throw new BusinessLogicException('Reservation identity is required');
     }
 
-    const reservation = await this.prisma.creditReservation.findFirst({
+    const reservation = await (tx ?? this.prisma).creditReservation.findFirst({
       where: scopedWhere(input.organizationId, {
         ...(input.reservationId ? { id: input.reservationId } : {}),
         ...(input.idempotencyKey
@@ -275,6 +306,45 @@ export class CreditReservationService {
     }
 
     return reservation;
+  }
+
+  private async walletSnapshot(
+    reservation: { billingAccountId: string; organizationId: string },
+    tx: PrismaTransactionClient,
+  ): Promise<ICreditWalletSnapshot> {
+    return this.creditBalanceService.toSnapshot(
+      await this.creditBalanceService.getOrCreateBalance(
+        reservation.organizationId,
+        tx,
+        reservation.billingAccountId,
+      ),
+    );
+  }
+
+  private async runSerializable<T>(
+    operation: (tx: PrismaTransactionClient) => Promise<T>,
+  ): Promise<T> {
+    for (let attempt = 0; attempt < MAX_SERIALIZATION_RETRIES; attempt += 1) {
+      try {
+        return await this.transactionUtil.runInTransaction(operation, {
+          isolationLevel: 'Serializable',
+        });
+      } catch (error: unknown) {
+        if (
+          this.errorCode(error) !== PRISMA_SERIALIZATION_FAILURE ||
+          attempt === MAX_SERIALIZATION_RETRIES - 1
+        ) {
+          throw error;
+        }
+      }
+    }
+    throw new Error('Serializable reservation transition exhausted retries');
+  }
+
+  private errorCode(error: unknown): string | undefined {
+    return typeof error === 'object' && error !== null && 'code' in error
+      ? String(error.code)
+      : undefined;
   }
 
   private toReservation(row: {

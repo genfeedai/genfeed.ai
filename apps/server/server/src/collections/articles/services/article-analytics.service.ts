@@ -13,6 +13,7 @@ import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { BaseService } from '@server/shared/services/base/base.service';
 import { findOrThrow } from '@server/shared/utils/find-or-throw/find-or-throw.util';
+import { scopedWhere } from '@server/tenancy/scoped-where';
 
 @Injectable()
 export class ArticleAnalyticsService extends BaseService<
@@ -141,7 +142,10 @@ export class ArticleAnalyticsService extends BaseService<
   /**
    * Get analytics summary for an article (aggregated across all dates)
    */
-  async getArticleAnalyticsSummary(articleId: string): Promise<{
+  async getArticleAnalyticsSummary(
+    articleId: string,
+    organizationId: string,
+  ): Promise<{
     totalViews: number;
     totalLikes: number;
     totalComments: number;
@@ -150,7 +154,7 @@ export class ArticleAnalyticsService extends BaseService<
     avgClickThroughRate: number;
     lastUpdated?: Date;
   }> {
-    const where = { articleId, isDeleted: false };
+    const where = scopedWhere(organizationId, { articleId });
     const [summary, latest] = await Promise.all([
       this.prisma.articleAnalytics.aggregate({
         _avg: { engagementRate: true },

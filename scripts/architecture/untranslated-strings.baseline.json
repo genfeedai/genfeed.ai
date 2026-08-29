@@ -509,7 +509,6 @@
     "packages/ui/src/components/menus/shared/MenuShared.tsx": 1,
     "packages/ui/src/components/menus/shared/MenuSharedConversations.tsx": 2,
     "packages/ui/src/components/menus/shared/MenuSharedPrimaryAction.tsx": 2,
-    "packages/ui/src/components/menus/sidebar-logo-toggle/SidebarLogoToggleButton.tsx": 1,
     "packages/ui/src/components/menus/sidebar-nested/SidebarNested.tsx": 1,
     "packages/ui/src/components/menus/user-dropdown/UserDropdown.tsx": 1,
     "packages/ui/src/components/modals/automation/ModalBotChatSettings.tsx": 1,

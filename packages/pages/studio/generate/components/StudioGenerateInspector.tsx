@@ -36,6 +36,7 @@ export default function StudioGenerateInspector({
   const { label } = getStudioGenerateTypeConfig(job.type);
   const recipe = resolveRecipeForJob(job);
   const recipeText = recipe ? formatStudioRecipePrompt(recipe) : '';
+  const promptText = recipeText || job.prompt.trim();
   const siblingJobs = useMemo(
     () => runJobs.filter((candidate) => candidate.id !== job.id),
     [job.id, runJobs],
@@ -149,9 +150,9 @@ export default function StudioGenerateInspector({
           className="min-h-0 flex-1 overflow-y-auto px-4 py-3"
           value="recipe"
         >
-          {recipeText ? (
+          {promptText ? (
             <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-foreground/80">
-              {recipeText}
+              {promptText}
             </pre>
           ) : (
             <p className="text-xs text-muted-foreground">

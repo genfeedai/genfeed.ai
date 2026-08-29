@@ -1,5 +1,4 @@
-import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
+import { randomUUID } from 'node:crypto';
 import { APP_ROUTES } from '@genfeedai/constants';
 import type {
   AgentToolResult,
@@ -9,6 +8,8 @@ import type {
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
+import type { ToolExecutionContext } from '@server/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { BatchGenerationService } from '@server/services/batch-generation/batch-generation.service';
 
 interface AgentBrandsServiceLike {
   findOne: (
@@ -336,6 +337,7 @@ export class AgentBrandContentToolHandler {
       },
       ctx.organizationId,
     );
+    const sourceActionId = `brand-voice-profile-${randomUUID()}`;
 
     return {
       creditsUsed: 0,
@@ -356,6 +358,7 @@ export class AgentBrandContentToolHandler {
               label: 'Approve and save',
               payload: {
                 brandId: String(brand.id),
+                sourceActionId,
                 voiceProfile: profile,
               },
             },
@@ -363,7 +366,7 @@ export class AgentBrandContentToolHandler {
           data: { voiceProfile: profile },
           description:
             'Review this draft. Ask for changes in chat, or approve to save it to the brand.',
-          id: `brand-voice-profile-${String(brand.id)}`,
+          id: sourceActionId,
           textContent: this.formatBrandVoiceProfile(profile),
           title: 'Brand Voice Draft',
           type: 'brand_voice_profile_card',

@@ -23,13 +23,16 @@
     "empty": "No characters found"
   },
   "composerToolbar": {
-    "actions": "Actions",
-    "actionsAria": "Open composer actions",
+    "actions": "Workspace shortcuts",
+    "actionsAria": "Open workspace shortcuts",
+    "actionsDescription": "Open a focused workspace with this draft",
     "addContext": "Add context",
     "attachFiles": "Attach files",
+    "generationMode": "Composer mode",
     "noModelsEnabled": "No models enabled",
     "noModelsEnabledTitle": "No models enabled for this workspace",
-    "referenceLibrary": "Reference library content"
+    "referenceLibrary": "Reference library content",
+    "selected": "Selected"
   },
   "generationActionCard": {
     "acceptFullRun": "Accept full run",

@@ -1,9 +1,10 @@
 {
   "dependencies": {
+    "@genfeedai/libs": "workspace:*",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
-    "grammy": "1.45.1",
+    "grammy": "1.46.0",
     "tsconfig-paths": "4.2.0"
   },
   "description": "Genfeed Telegram Service",
@@ -30,7 +31,7 @@
     "test:cov": "vitest run --coverage --config vitest.config.ts",
     "test:e2e": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",
-    "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
+    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit -p tsconfig.typecheck.json"
   },
   "version": "1.0.0",
   "type": "module"

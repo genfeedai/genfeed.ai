@@ -1,11 +1,16 @@
+import { BatchItemStatus, BatchStatus, ContentFormat } from '@genfeedai/enums';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, TestingModule } from '@nestjs/testing';
+import { CreditReservationService } from '@server/collections/credits/services/credit-reservation.service';
 import { BATCH_MAX_RESUME_ATTEMPTS } from '@server/services/batch-generation/batch-generation.constants';
 import { BatchGenerationCreditsService } from '@server/services/batch-generation/batch-generation-credits.service';
 import { BatchGenerationReconcileService } from '@server/services/batch-generation/batch-generation-reconcile.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { BatchItemStatus, BatchStatus, ContentFormat } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+type CreditReservationServiceMock = {
+  expireDue: ReturnType<typeof vi.fn>;
+};
 
 /**
  * Stranded-batch detection (#2501). Before this, an API reload mid-batch left
@@ -24,6 +29,7 @@ describe('BatchGenerationReconcileService', () => {
     retrySettlementShortfall: ReturnType<typeof vi.fn>;
     settleBatchCredits: ReturnType<typeof vi.fn>;
   };
+  let reservationService: CreditReservationServiceMock;
 
   const pendingItem = {
     format: ContentFormat.IMAGE,
@@ -58,6 +64,7 @@ describe('BatchGenerationReconcileService', () => {
         settledCredits: 4,
       }),
     };
+    reservationService = { expireDue: vi.fn().mockResolvedValue(0) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -76,6 +83,10 @@ describe('BatchGenerationReconcileService', () => {
         {
           provide: BatchGenerationCreditsService,
           useValue: creditsService,
+        },
+        {
+          provide: CreditReservationService,
+          useValue: reservationService,
         },
       ],
     }).compile();
@@ -277,5 +288,13 @@ describe('BatchGenerationReconcileService', () => {
     await service.reconcileSettlementShortfalls();
 
     expect(creditsService.retrySettlementShortfall).not.toHaveBeenCalled();
+  });
+
+  it('expires stale reservations on the existing credit reconciliation sweep', async () => {
+    reservationService.expireDue.mockResolvedValue(3);
+
+    await service.reconcileSettlementShortfalls();
+
+    expect(reservationService.expireDue).toHaveBeenCalledOnce();
   });
 });

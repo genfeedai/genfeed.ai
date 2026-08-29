@@ -44,7 +44,10 @@ describe('ArticleEditorContent', () => {
   });
 
   it('renders the article editor for the deep-linked artifact', () => {
-    mocks.params.set('returnTo', '/acme/main/lab/articles?status=draft');
+    mocks.params.set(
+      'returnTo',
+      '/acme/main/publish/posts?type=article&status=draft',
+    );
     mocks.params.set('credentialId', 'credential-1');
 
     render(<ArticleEditorContent artifactId="article-1" />);
@@ -54,7 +57,10 @@ describe('ArticleEditorContent', () => {
     );
     expect(
       screen.getByRole('link', { name: /back to articles/i }),
-    ).toHaveAttribute('href', '/acme/main/lab/articles?status=draft');
+    ).toHaveAttribute(
+      'href',
+      '/acme/main/publish/posts?type=article&status=draft',
+    );
   });
 
   it('falls back to the articles list when no return target was carried', () => {
@@ -63,6 +69,6 @@ describe('ArticleEditorContent', () => {
     expect(screen.getByTestId('article-detail')).toHaveTextContent('article-1');
     expect(
       screen.getByRole('link', { name: /back to articles/i }),
-    ).toHaveAttribute('href', '/acme/main/lab/articles');
+    ).toHaveAttribute('href', '/acme/main/publish/posts?type=article');
   });
 });

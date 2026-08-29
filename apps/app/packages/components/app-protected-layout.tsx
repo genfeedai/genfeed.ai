@@ -4,8 +4,17 @@ import LibrarySidebarNav from '@app/(protected)/[orgSlug]/[brandSlug]/library/li
 import StreakNotificationsBridge from '@app-components/streaks/StreakNotificationsBridge';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.provider';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import type { AgentThreadListProps } from '@genfeedai/agent';
+import {
+  getBrandEntityId,
+  getBrandOrganizationSlug,
+} from '@contexts/user/brand-context/brand-context.helpers';
+import type { AgentThread, AgentThreadListProps } from '@genfeedai/agent';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+  createOrganizationAppRoute,
+} from '@genfeedai/constants';
 import type { SidebarNavPanel } from '@genfeedai/props/navigation/menu.props';
 import { useAgentThreadCommands } from '@hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
 import type { LayoutProps } from '@props/layout/layout.props';
@@ -197,6 +206,31 @@ function AppLayoutWithDynamicMenu({
     });
   }, [isWorkspaceShellMounted, workspaceShellRoute?.telemetryClass]);
 
+  const resolveAgentThreadHref = useCallback(
+    (thread: AgentThread) => {
+      const ownerBrand = thread.brandId
+        ? brands.find((brand) => getBrandEntityId(brand) === thread.brandId)
+        : undefined;
+      const ownerOrgSlug = getBrandOrganizationSlug(ownerBrand) || orgSlug;
+
+      if (!ownerOrgSlug) {
+        return `${APP_ROUTES.AGENT.ROOT}/${thread.id}`;
+      }
+
+      return ownerBrand?.slug
+        ? createBrandAppRoute(
+            ownerOrgSlug,
+            ownerBrand.slug,
+            `${APP_ROUTES.AGENT.ROOT}/${thread.id}`,
+          )
+        : createOrganizationAppRoute(
+            ownerOrgSlug,
+            `${APP_ROUTES.AGENT.ROOT}/${thread.id}`,
+          );
+    },
+    [brands, orgSlug],
+  );
+
   const renderConversations = useCallback(
     (searchAction?: ReactNode) =>
       agentApiService ? (
@@ -204,11 +238,12 @@ function AppLayoutWithDynamicMenu({
           apiService={agentApiService}
           brandId={brandId || null}
           onNavigate={handleNavigate}
+          resolveThreadHref={resolveAgentThreadHref}
           searchAction={searchAction}
           showTitle
         />
       ) : null,
-    [agentApiService, brandId, handleNavigate],
+    [agentApiService, brandId, handleNavigate, resolveAgentThreadHref],
   );
 
   // Keep nav-panel *identity* stable across renders. The panel object is

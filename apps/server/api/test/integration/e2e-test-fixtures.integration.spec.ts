@@ -15,6 +15,7 @@ import {
 } from '@api-test/e2e-test.module';
 import { ActivitiesService } from '@server/collections/activities/services/activities.service';
 import { ArticlesService } from '@server/collections/articles/services/articles.service';
+import { BillingAccountsService } from '@server/collections/billing-accounts/services/billing-accounts.service';
 import { BrandGenerationService } from '@server/collections/brands/services/brand-generation.service';
 import { BrandKitAssetsService } from '@server/collections/brands/services/brand-kit-assets.service';
 import { BrandKitDraftService } from '@server/collections/brands/services/brand-kit-draft.service';
@@ -22,6 +23,7 @@ import { BrandRelocationService } from '@server/collections/brands/services/bran
 import { DefaultRecurringContentService } from '@server/collections/brands/services/default-recurring-content.service';
 import { CredentialCryptoService } from '@server/collections/credentials/services/credential-crypto.service';
 import { CredentialsService } from '@server/collections/credentials/services/credentials.service';
+import { CreditReservationService } from '@server/collections/credits/services/credit-reservation.service';
 import { ImagesService } from '@server/collections/images/services/images.service';
 import { LinksService } from '@server/collections/links/services/links.service';
 import { MusicsService } from '@server/collections/musics/services/musics.service';
@@ -81,6 +83,8 @@ describe('E2E fixture contracts', () => {
       BrandKitDraftService,
     ];
     const expectedCollectionTokens = [
+      BillingAccountsService,
+      CreditReservationService,
       CredentialCryptoService,
       StreaksService,
       DefaultRecurringContentService,

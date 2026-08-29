@@ -1,5 +1,4 @@
 import { AgentChatPromptBar } from '@genfeedai/agent/components/AgentChatPromptBar';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -11,6 +10,7 @@ vi.mock('next-intl', () => ({
 vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
   AgentChatInput: (props: {
     disabled?: boolean;
+    isTopAttached?: boolean;
     showStop?: boolean;
     willQueueFollowUp?: boolean;
   }) => (
@@ -18,6 +18,7 @@ vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
       data-disabled={props.disabled ? 'true' : 'false'}
       data-show-stop={props.showStop ? 'true' : 'false'}
       data-testid="chat-input"
+      data-top-attached={props.isTopAttached ? 'true' : 'false'}
       data-will-queue={props.willQueueFollowUp ? 'true' : 'false'}
     />
   ),
@@ -25,16 +26,11 @@ vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
 
 vi.mock('@genfeedai/agent/components/AgentComposerStatusStack', () => ({
   AgentComposerStatusStack: () => null,
+  hasRenderableComposerTasks: () => false,
 }));
 
 vi.mock('@genfeedai/agent/components/ConversationComposerShellContext', () => ({
   useConversationComposerShell: () => null,
-}));
-
-vi.mock('@genfeedai/agent/components/GenerationActionCard', () => ({
-  GenerationActionCard: ({ className }: { className?: string }) => (
-    <div className={className} data-testid="generation-action-card" />
-  ),
 }));
 
 vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
@@ -51,13 +47,6 @@ vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
     </div>
   ),
 }));
-
-const activeGenerationAction = {
-  generationType: 'image',
-  id: 'generation-card-1',
-  title: 'Generate image',
-  type: 'generation_action_card',
-} satisfies AgentUiAction;
 
 function renderPromptBar(
   isReadOnly: boolean,
@@ -78,8 +67,8 @@ function renderPromptBar(
 ): void {
   render(
     <AgentChatPromptBar
-      activeGenerationAction={activeGenerationAction}
       activeWorkEvent={null}
+      workEvents={[]}
       addFiles={vi.fn()}
       apiService={{} as never}
       chatAttachments={[]}
@@ -109,7 +98,6 @@ function renderPromptBar(
       onSendFollowUpNow={extras.onSendFollowUpNow}
       onStop={vi.fn()}
       onSubmitInputRequest={vi.fn()}
-      onUiAction={vi.fn()}
       pendingInputRequest={null}
       promptBarSuggestions={null}
       removeAttachment={vi.fn()}
@@ -120,33 +108,17 @@ function renderPromptBar(
 }
 
 describe('AgentChatPromptBar', () => {
-  it('hides actionable generation cards in read-only threads', () => {
+  it('keeps read-only threads from rendering a second generation surface', () => {
     renderPromptBar(true);
 
-    expect(
-      screen.queryByTestId('generation-action-card'),
-    ).not.toBeInTheDocument();
-  });
-
-  it('keeps generation cards available in writable threads', () => {
-    renderPromptBar(false);
-
-    expect(screen.getByTestId('generation-action-card')).toBeInTheDocument();
-  });
-
-  it('docks the generation card flush on the prompt bar without a transcript gap', () => {
-    renderPromptBar(false);
-
-    const card = screen.getByTestId('generation-action-card');
-    expect(card.parentElement).not.toHaveClass('pb-2');
-  });
-
-  it('keeps the generation card 5% narrower than the prompt bar', () => {
-    renderPromptBar(false);
-
-    const card = screen.getByTestId('generation-action-card');
-    expect(card).toHaveClass('w-[95%]');
-    expect(card).toHaveClass('mx-auto');
+    expect(screen.getByTestId('chat-input')).toHaveAttribute(
+      'data-disabled',
+      'true',
+    );
+    expect(screen.getByTestId('chat-input')).toHaveAttribute(
+      'data-top-attached',
+      'false',
+    );
   });
 
   it('renders queued follow-ups above the composer', () => {

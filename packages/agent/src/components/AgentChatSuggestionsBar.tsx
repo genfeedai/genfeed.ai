@@ -5,6 +5,7 @@ import { type ReactElement, useMemo } from 'react';
 interface AgentChatSuggestionsBarProps {
   suggestedActions: SuggestedAction[];
   isReadOnly: boolean;
+  layout?: 'compact' | 'equal';
   onSend: (prompt: string) => void;
 }
 
@@ -18,6 +19,7 @@ function isPlanModeSuggestion(action: SuggestedAction): boolean {
 export function AgentChatSuggestionsBar({
   suggestedActions,
   isReadOnly,
+  layout = 'compact',
   onSend,
 }: AgentChatSuggestionsBarProps): ReactElement | null {
   const normalized = useMemo(() => {
@@ -56,6 +58,11 @@ export function AgentChatSuggestionsBar({
       isDisabled={isReadOnly}
       maxSuggestions={3}
       variant={hasDescriptions ? 'cards' : 'chips'}
+      className={
+        layout === 'equal' && !hasDescriptions
+          ? 'grid grid-cols-1 sm:grid-cols-3 [&>button]:w-full [&>button]:max-w-none [&>button]:rounded-lg [&>button]:border-0 [&>button]:bg-transparent [&>button]:shadow-none [&>button]:hover:bg-hover'
+          : undefined
+      }
     />
   );
 }

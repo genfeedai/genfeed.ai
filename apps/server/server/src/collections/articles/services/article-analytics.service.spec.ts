@@ -42,7 +42,7 @@ describe('ArticleAnalyticsService', () => {
     findFirst.mockResolvedValue({ updatedAt });
 
     await expect(
-      service.getArticleAnalyticsSummary('article-1'),
+      service.getArticleAnalyticsSummary('article-1', 'org-1'),
     ).resolves.toEqual({
       avgClickThroughRate: 0,
       avgEngagementRate: 0.35,
@@ -60,12 +60,20 @@ describe('ArticleAnalyticsService', () => {
         totalShares: true,
         totalViews: true,
       },
-      where: { articleId: 'article-1', isDeleted: false },
+      where: {
+        articleId: 'article-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
     });
     expect(findFirst).toHaveBeenCalledWith({
       orderBy: { date: 'desc' },
       select: { updatedAt: true },
-      where: { articleId: 'article-1', isDeleted: false },
+      where: {
+        articleId: 'article-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
     });
   });
 
@@ -82,7 +90,7 @@ describe('ArticleAnalyticsService', () => {
     findFirst.mockResolvedValue(null);
 
     await expect(
-      service.getArticleAnalyticsSummary('article-1'),
+      service.getArticleAnalyticsSummary('article-1', 'org-1'),
     ).resolves.toEqual({
       avgClickThroughRate: 0,
       avgEngagementRate: 0,

@@ -191,7 +191,7 @@ function AgentChatMessageInner({
     return `Generated ${normalizedType.charAt(0).toUpperCase()}${normalizedType.slice(1)}`;
   }, [generatedContentType]);
   const shouldRenderGeneratedTextCard = useMemo(() => {
-    if (!generatedContent) {
+    if (!generatedContent || turnHasProductResultCard) {
       return false;
     }
     const normalizedType = generatedContentType?.trim().toLowerCase();
@@ -207,7 +207,7 @@ function AgentChatMessageInner({
       'video',
       'videos',
     ].includes(normalizedType);
-  }, [generatedContent, generatedContentType]);
+  }, [generatedContent, generatedContentType, turnHasProductResultCard]);
   // Product result cards own CTAs for the turn — suppress copy/retry footers
   // that stack next to generation/review surfaces (T3 density).
   const shouldShowAssistantActions =
@@ -274,7 +274,7 @@ function AgentChatMessageInner({
           isUser
             ? AGENT_CONVERSATION_USER_PROMPT_CARD_CLASS
             : // Free-text assistant: no card chrome — document flow like T3/chat
-              'w-full max-w-full border-0 bg-transparent px-0.5 py-1 text-md leading-7 text-foreground shadow-none',
+              'w-full max-w-full border-0 bg-transparent py-1 text-md leading-7 text-foreground shadow-none',
         )}
       >
         <h3 className="sr-only">

@@ -145,7 +145,9 @@ export class AgentMediaAssetGenerationService {
       topic: rawPrompt.slice(0, 120),
     });
     const dimensions = this.aspectRatioToDimensions(
-      (params.aspectRatio as string) || '1:1',
+      ctx.generationSettings?.aspectRatio ||
+        (params.aspectRatio as string) ||
+        '1:1',
     );
     const promptPreview = rawPrompt.substring(0, 80);
     const imageUrl =
@@ -156,16 +158,20 @@ export class AgentMediaAssetGenerationService {
       explicitReferences: params.references,
       handles: params.characterHandles,
       modelKey:
-        typeof ctx.generationModelOverride === 'string'
-          ? ctx.generationModelOverride
-          : undefined,
+        ctx.generationSettings?.model ??
+        (typeof params.model === 'string' ? params.model : undefined) ??
+        ctx.generationModelOverride ??
+        undefined,
     });
     if (resolvedReferences.error) {
       return resolvedReferences.error;
     }
+    const rawRequestedOutputs =
+      ctx.generationSettings?.outputs ?? params.outputs;
     const requestedOutputs =
-      typeof params.outputs === 'number' && Number.isFinite(params.outputs)
-        ? Math.min(8, Math.max(1, Math.round(params.outputs)))
+      typeof rawRequestedOutputs === 'number' &&
+      Number.isFinite(rawRequestedOutputs)
+        ? Math.min(8, Math.max(1, Math.round(rawRequestedOutputs)))
         : undefined;
     const body: Record<string, unknown> = {
       height: dimensions.height,
@@ -183,8 +189,13 @@ export class AgentMediaAssetGenerationService {
         : {}),
     };
 
-    if (ctx.generationModelOverride) {
-      body.model = ctx.generationModelOverride;
+    const requestedModel =
+      ctx.generationSettings?.model ??
+      (typeof params.model === 'string' && params.model.trim().length > 0
+        ? params.model.trim()
+        : ctx.generationModelOverride);
+    if (requestedModel) {
+      body.model = requestedModel;
     } else {
       body.autoSelectModel = true;
       body.prioritize = ctx.generationPriority || RouterPriority.QUALITY;
@@ -260,7 +271,7 @@ export class AgentMediaAssetGenerationService {
       isBillingDelegated: true,
       nextActions: [
         {
-          ctas: [{ href: `/g/image/${id}`, label: 'View in gallery' }],
+          ctas: [{ href: '/library/assets', label: 'View in Library' }],
           assetId: id,
           assetKind: 'image',
           description: `Image ${cdnUrl ? 'generated' : 'is generating'} from: "${promptPreview}"`,
@@ -312,7 +323,7 @@ export class AgentMediaAssetGenerationService {
       nextActions: id
         ? [
             {
-              ctas: [{ href: `/g/image/${id}`, label: 'View in gallery' }],
+              ctas: [{ href: '/library/assets', label: 'View in Library' }],
               description: `Reframed to ${aspectRatio}`,
               id: `image-reframe-${id}`,
               images: cdnUrl ? [cdnUrl] : [],
@@ -357,11 +368,14 @@ export class AgentMediaAssetGenerationService {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const requestedModel =
-      typeof params.model === 'string' && params.model.trim().length > 0
+      ctx.generationSettings?.model ??
+      (typeof params.model === 'string' && params.model.trim().length > 0
         ? params.model.trim()
-        : (ctx.generationModelOverride ?? undefined);
+        : (ctx.generationModelOverride ?? undefined));
     const dimensions = this.aspectRatioToDimensions(
-      (params.aspectRatio as string) || '16:9',
+      ctx.generationSettings?.aspectRatio ||
+        (params.aspectRatio as string) ||
+        '16:9',
     );
     const imageUrl =
       (params.imageUrl as string | undefined) || ctx.attachmentUrls?.[0];
@@ -386,7 +400,8 @@ export class AgentMediaAssetGenerationService {
       audioUrl,
       ctx,
       dimensions,
-      duration: (params.duration as number) || 10,
+      duration:
+        ctx.generationSettings?.duration || (params.duration as number) || 10,
       endFrame:
         typeof params.endFrame === 'string' ? params.endFrame : undefined,
       extraReferences: resolvedReferences.references,
@@ -429,7 +444,7 @@ export class AgentMediaAssetGenerationService {
       nextActions: id
         ? [
             {
-              ctas: [{ href: `/g/video/${id}`, label: 'View in gallery' }],
+              ctas: [{ href: '/library/assets', label: 'View in Library' }],
               assetId: id,
               assetKind: 'video',
               description: `Video ${cdnUrl ? 'generated' : 'is generating'} from: "${(params.prompt as string).substring(0, 80)}"`,
@@ -685,8 +700,14 @@ export class AgentMediaAssetGenerationService {
             {
               ctas: [
                 {
-                  href: `/g/${params.endpoint}/${id}`,
-                  label: 'View in gallery',
+                  href:
+                    params.endpoint === 'image'
+                      ? '/library/assets'
+                      : `/g/${params.endpoint}/${id}`,
+                  label:
+                    params.endpoint === 'image'
+                      ? 'View in Library'
+                      : 'View in gallery',
                 },
               ],
               description: params.description,
@@ -724,10 +745,10 @@ export class AgentMediaAssetGenerationService {
           id: `image-gen-incomplete-${Date.now()}`,
           primaryCta: params.assetId
             ? {
-                href: `/g/image/${params.assetId}`,
-                label: 'View in gallery',
+                href: '/library/assets',
+                label: 'View in Library',
               }
-            : { href: '/library/images', label: 'Check gallery' },
+            : { href: '/library/assets', label: 'Open Library' },
           status: 'failed',
           summaryText: `Image was not ready: "${params.promptPreview}". ${params.error}`,
           title: 'Image not ready',

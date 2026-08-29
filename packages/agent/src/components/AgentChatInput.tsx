@@ -3,7 +3,11 @@ import { AgentChatInputStyles } from '@genfeedai/agent/components/AgentChatInput
 import { AgentChatInputToolbar } from '@genfeedai/agent/components/AgentChatInputToolbar';
 import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibraryPicker';
 import { useAgentChatInput } from '@genfeedai/agent/components/useAgentChatInput';
-import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
+import type {
+  ConversationComposerGenerationMode,
+  ConversationComposerGenerationSettings,
+  ConversationComposerSendOptions,
+} from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
@@ -17,7 +21,7 @@ import type {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { type ReactElement, useCallback, useMemo } from 'react';
+import { type ReactElement, useCallback, useMemo, useState } from 'react';
 
 // Stable default so memoized children do not see a new [] every render.
 const EMPTY_CHAT_ATTACHMENTS: AttachmentItem[] = [];
@@ -62,6 +66,8 @@ interface AgentChatInputProps {
   /** Registry-backed chat catalogue for the shared ModelSelectorPopover. */
   models: readonly IModel[];
   isModelsLoading?: boolean;
+  /** Joins the composer to an expandable mode/settings strip above it. */
+  isTopAttached?: boolean;
   onModelChange?: (model: string) => void;
   onPrioritizeChange?: (priority: RouterPriority) => void;
   prioritize?: RouterPriority;
@@ -103,6 +109,7 @@ export function AgentChatInput({
   selectedModel,
   models,
   isModelsLoading = false,
+  isTopAttached = false,
   onModelChange,
   onPrioritizeChange,
   prioritize,
@@ -111,6 +118,33 @@ export function AgentChatInput({
 }: AgentChatInputProps): ReactElement {
   const isCompact = density === 'compact';
   const isInspector = density === 'inspector';
+  const [generationMode, setGenerationMode] =
+    useState<ConversationComposerGenerationMode>('auto');
+  const [generationSettings, setGenerationSettings] =
+    useState<ConversationComposerGenerationSettings>({
+      aspectRatio: '1:1',
+      outputs: 1,
+    });
+  const handleConversationSend = useCallback(
+    async (
+      content: string,
+      mentions?: ExtractedMention[],
+      completedAttachments?: ChatAttachment[],
+      options?: ConversationComposerSendOptions,
+    ) => {
+      const accepted = await onSend(
+        content,
+        mentions,
+        completedAttachments,
+        options,
+      );
+      if (accepted !== false) {
+        setGenerationMode('auto');
+      }
+      return accepted;
+    },
+    [onSend],
+  );
   const {
     actionFeedback,
     canSendMessage,
@@ -145,10 +179,12 @@ export function AgentChatInput({
     disabled,
     dragState,
     getCompletedAttachments,
+    generationMode,
+    generationSettings,
     hasQueuedFollowUps,
     isUploading,
     onPromoteQueuedFollowUp,
-    onSend,
+    onSend: handleConversationSend,
     onStop,
     placeholder,
     removeAttachment,
@@ -202,7 +238,10 @@ export function AgentChatInput({
             />
           ) : null
         }
-        className={cn(isDragActive && 'ring-1 ring-primary/40')}
+        className={cn(
+          isTopAttached && 'rounded-t-none',
+          isDragActive && 'ring-1 ring-primary/40',
+        )}
         data-testid="agent-chat-input-shell"
         density={isCompact ? 'compact' : 'default'}
         onPointerDown={handleShellPointerDown}
@@ -214,6 +253,7 @@ export function AgentChatInput({
         />
 
         <AgentChatInputToolbar
+          apiService={apiService}
           canSendMessage={canSendMessage}
           creditsAvailable={creditsAvailable}
           disabled={disabled}
@@ -222,9 +262,13 @@ export function AgentChatInput({
           isModelsLoading={isModelsLoading}
           isTranscribing={isTranscribing}
           isUploading={isUploading}
+          generationMode={generationMode}
+          generationSettings={generationSettings}
           models={models}
           onAddFiles={addFiles}
           onInsertReference={handleInsertReference}
+          onGenerationModeChange={setGenerationMode}
+          onGenerationSettingsChange={setGenerationSettings}
           onModelChange={onModelChange}
           onPrioritizeChange={onPrioritizeChange}
           onSelectAction={handleSelectAction}

@@ -54,11 +54,6 @@ describe('ThreadsService (coverage)', () => {
     get: ReturnType<typeof vi.fn>;
     post: ReturnType<typeof vi.fn>;
   };
-  let loggerService: {
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-  };
-
   beforeEach(async () => {
     const credentialsMock = {
       findOne: vi.fn(),
@@ -70,6 +65,8 @@ describe('ThreadsService (coverage)', () => {
         credentialsMock.findOne(options),
       ),
     };
+    const httpServiceMock = { get: vi.fn(), post: vi.fn() };
+    const loggerServiceMock = { error: vi.fn(), log: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -84,11 +81,11 @@ describe('ThreadsService (coverage)', () => {
         },
         {
           provide: LoggerService,
-          useValue: { error: vi.fn(), log: vi.fn() },
+          useValue: loggerServiceMock,
         },
         {
           provide: HttpService,
-          useValue: { get: vi.fn(), post: vi.fn() },
+          useValue: httpServiceMock,
         },
       ],
     }).compile();
@@ -97,8 +94,7 @@ describe('ThreadsService (coverage)', () => {
     credentialsService = service[
       'credentialsService'
     ] as unknown as typeof credentialsService;
-    httpService = service['httpService'] as typeof httpService;
-    loggerService = service['loggerService'] as typeof loggerService;
+    httpService = httpServiceMock;
   });
 
   // Helper — set the credential lookup to return MOCK_CREDENTIAL

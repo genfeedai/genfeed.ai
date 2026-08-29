@@ -159,6 +159,7 @@ export type {
   ConversationComposerContextReferenceKind,
   ConversationComposerDispatchResult,
   ConversationComposerDispatchStatus,
+  ConversationComposerGenerationMode,
   ConversationComposerScope,
   ConversationComposerSendOptions,
   ParsedConversationComposerCommand,

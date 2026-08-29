@@ -2,7 +2,10 @@
  * ClipProjectsCoreModule
  *
  * Core clip services, immutable workflow definitions, and their action
- * executors. ClipProjectsModule adds only the HTTP controllers.
+ * executors, plus clip project persistence, generation dispatch, identity,
+ * rewrite, hook-approval, and raw-cut services.
+ *
+ * ClipProjectsModule adds only the HTTP controllers.
  */
 
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
@@ -27,6 +30,7 @@ import { ClipContinuityWorkflowService } from '@server/collections/clip-projects
 import { ClipFactoryWorkflowService } from '@server/collections/clip-projects/services/clip-factory-workflow.service';
 import { ClipFactoryWorkflowQueueService } from '@server/collections/clip-projects/services/clip-factory-workflow-queue.service';
 import { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
+import { ClipGenerationDispatchService } from '@server/collections/clip-projects/services/clip-generation-dispatch.service';
 import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
 import { ClipHighlightDetector } from '@server/collections/clip-projects/services/clip-highlight-detector.service';
 import { ClipIdentityResolutionService } from '@server/collections/clip-projects/services/clip-identity-resolution.service';
@@ -45,6 +49,7 @@ import { RawCutClipCompletionService } from '@server/collections/clip-projects/s
     ClipFactoryWorkflowQueueService,
     ClipFactoryWorkflowService,
     ClipGenerationService,
+    ClipGenerationDispatchService,
     ClipGenerationRequestService,
     ClipHighlightDetector,
     ClipIdentityResolutionService,
@@ -78,6 +83,7 @@ import { RawCutClipCompletionService } from '@server/collections/clip-projects/s
     ClipFactoryWorkflowQueueService,
     ClipFactoryWorkflowService,
     ClipGenerationService,
+    ClipGenerationDispatchService,
     ClipGenerationRequestService,
     ClipHighlightDetector,
     ClipIdentityResolutionService,

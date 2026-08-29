@@ -59,6 +59,7 @@ function renderThreadList(
   options: {
     brandId?: string | null;
     onNavigate?: (path: string) => void;
+    resolveThreadHref?: (thread: AgentThread) => string;
   } = {},
 ) {
   return renderHook(() =>
@@ -67,6 +68,7 @@ function renderThreadList(
       brandId: options.brandId ?? null,
       isActive: true,
       onNavigate: options.onNavigate,
+      resolveThreadHref: options.resolveThreadHref,
     }),
   );
 }
@@ -134,14 +136,58 @@ describe('useAgentThreadList', () => {
   it('handleSelect navigates instead of loading when onNavigate is provided', async () => {
     const onNavigate = vi.fn();
     const apiService = makeApiService();
-    const { result } = renderThreadList(apiService, { onNavigate });
+    const { result } = renderThreadList(apiService, {
+      onNavigate,
+      resolveThreadHref: (thread) => `/acme/moonrise/agent/${thread.id}`,
+    });
     await waitFor(() => expect(result.current.threads).toHaveLength(1));
 
     await act(async () => {
       await result.current.handleSelect(makeThread('t-1'));
     });
 
-    expect(onNavigate).toHaveBeenCalledWith('/agent/t-1');
+    expect(onNavigate).toHaveBeenCalledWith('/acme/moonrise/agent/t-1');
+    expect(apiService.getMessagesEffect).not.toHaveBeenCalled();
+    expect(useAgentChatStore.getState().activeThreadId).toBeNull();
+  });
+
+  it('paints a cached target before the route transition commits', async () => {
+    const onNavigate = vi.fn();
+    const apiService = makeApiService();
+    const { result } = renderThreadList(apiService, {
+      onNavigate,
+      resolveThreadHref: (thread) => `/acme/moonrise/agent/${thread.id}`,
+    });
+    await waitFor(() => expect(result.current.threads).toHaveLength(1));
+
+    act(() => {
+      useAgentChatStore.getState().primeConversationCache('t-1', {
+        hasMoreMessages: false,
+        latestProposedPlan: null,
+        messages: [
+          {
+            content: 'prefetched reply',
+            createdAt: '2026-03-20T10:00:00.000Z',
+            id: 'm-prefetched',
+            role: 'assistant',
+            threadId: 't-1',
+          },
+        ],
+        messagesCursor: null,
+        pendingInputRequest: null,
+        workEvents: [],
+      });
+    });
+
+    await act(async () => {
+      await result.current.handleSelect(makeThread('t-1'));
+    });
+
+    expect(useAgentChatStore.getState().activeThreadId).toBe('t-1');
+    expect(useAgentChatStore.getState().messages[0]?.content).toBe(
+      'prefetched reply',
+    );
+    expect(onNavigate).toHaveBeenCalledWith('/acme/moonrise/agent/t-1');
     expect(apiService.getMessagesEffect).not.toHaveBeenCalled();
   });
 

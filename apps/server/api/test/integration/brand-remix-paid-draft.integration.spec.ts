@@ -63,17 +63,11 @@ describeWithDatabase('Brand remix paid draft integration', () => {
     dbHelper = new TestDatabaseHelper(prisma);
   });
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    await prisma.post.deleteMany();
-    await prisma.contentRun.deleteMany();
-    await dbHelper.clearDatabase();
   });
 
   afterAll(async () => {
-    await prisma.post.deleteMany();
-    await prisma.contentRun.deleteMany();
-    await dbHelper.clearDatabase();
     await moduleRef.close();
   });
 

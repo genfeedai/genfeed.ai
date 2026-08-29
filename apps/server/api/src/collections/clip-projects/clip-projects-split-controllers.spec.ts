@@ -1,3 +1,4 @@
+import { ClipProjectGenerationController } from '@api/collections/clip-projects/clip-project-generation.controller';
 import { ClipProjectHandoffsController } from '@api/collections/clip-projects/clip-project-handoffs.controller';
 import { ClipProjectHighlightsController } from '@api/collections/clip-projects/clip-project-highlights.controller';
 import { ClipProjectIngestionController } from '@api/collections/clip-projects/clip-project-ingestion.controller';
@@ -96,12 +97,64 @@ describe('Clip Projects split controllers', () => {
     ).toBe(HttpStatus.OK);
   });
 
+  it.each([
+    [
+      'generateClips',
+      ':projectId/generate',
+      RequestMethod.POST,
+      HttpStatus.ACCEPTED,
+      'ClipProjectsController.generateClips',
+    ],
+    [
+      'retryFailedClips',
+      ':projectId/retry-failed',
+      RequestMethod.POST,
+      HttpStatus.ACCEPTED,
+      'ClipProjectsController.retryFailedClips',
+    ],
+    [
+      'getHookClipApproval',
+      ':projectId/hook-approval',
+      RequestMethod.GET,
+      undefined,
+      'ClipProjectsController.getHookClipApproval',
+    ],
+    [
+      'submitHookClipDecision',
+      ':projectId/hook-approval',
+      RequestMethod.POST,
+      HttpStatus.OK,
+      'ClipProjectsController.submitHookClipDecision',
+    ],
+  ] as const)(
+    'preserves %s generation route and OpenAPI metadata',
+    (methodName, path, method, httpCode, operationId) => {
+      const handler = Reflect.get(
+        ClipProjectGenerationController.prototype,
+        methodName,
+      ) as object;
+
+      expect(
+        Reflect.getMetadata(PATH_METADATA, ClipProjectGenerationController),
+      ).toBe('clip-projects');
+      expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
+      expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(method);
+      expect(Reflect.getMetadata(HTTP_CODE_METADATA, handler)).toBe(httpCode);
+      expect(
+        Reflect.getMetadata('swagger/apiOperation', handler),
+      ).toMatchObject({ operationId });
+    },
+  );
+
   it('preserves the shared clip-projects role guard', () => {
     expect(
       Reflect.getMetadata(GUARDS_METADATA, ClipProjectIngestionController),
     ).toContain(RolesGuard);
     expect(
       Reflect.getMetadata(GUARDS_METADATA, ClipProjectHighlightsController),
+    ).toContain(RolesGuard);
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, ClipProjectGenerationController),
     ).toContain(RolesGuard);
     expect(
       Reflect.getMetadata(GUARDS_METADATA, ClipProjectsController),
@@ -130,6 +183,18 @@ describe('Clip Projects split controllers', () => {
         ClipProjectHighlightsController,
       ),
     ).toEqual([{ bearer: [] }]);
+    expect(
+      Reflect.getMetadata(
+        'swagger/apiUseTags',
+        ClipProjectGenerationController,
+      ),
+    ).toEqual(['clip-projects']);
+    expect(
+      Reflect.getMetadata(
+        'swagger/apiSecurity',
+        ClipProjectGenerationController,
+      ),
+    ).toEqual([{ bearer: [] }]);
   });
 
   it('registers static sibling controllers before the wildcard CRUD controller', () => {
@@ -141,6 +206,7 @@ describe('Clip Projects split controllers', () => {
       ClipProjectHandoffsController,
       ClipProjectPublicToolController,
       ClipProjectReferenceFramesController,
+      ClipProjectGenerationController,
       ClipProjectsController,
     ]);
   });
@@ -157,6 +223,18 @@ describe('Clip Projects split controllers', () => {
     );
     expect(ClipProjectsController.prototype).not.toHaveProperty(
       'rewriteHighlight',
+    );
+    expect(ClipProjectsController.prototype).not.toHaveProperty(
+      'generateClips',
+    );
+    expect(ClipProjectsController.prototype).not.toHaveProperty(
+      'retryFailedClips',
+    );
+    expect(ClipProjectsController.prototype).not.toHaveProperty(
+      'getHookClipApproval',
+    );
+    expect(ClipProjectsController.prototype).not.toHaveProperty(
+      'submitHookClipDecision',
     );
   });
 });

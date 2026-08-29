@@ -52,10 +52,12 @@ export class CalendarPage {
       '[data-testid="loading"], .loading, .spinner',
     );
 
-    // Posts calendar is canonical. Articles live at the Lab list, not a
-    // second calendar route — keep the locators distinct.
+    // Posts calendar is canonical. Articles are a type-filtered view of the
+    // unified Publish content library.
     this.postsTab = page.locator(`a[href$="${APP_ROUTES.PUBLISH.CALENDAR}"]`);
-    this.articlesTab = page.locator(`a[href$="${APP_ROUTES.LAB.ARTICLES}"]`);
+    this.articlesTab = page.locator(
+      `a[href*="${APP_ROUTES.PUBLISH.POSTS}"][href*="type=article"]`,
+    );
 
     // Calendar grid elements
     this.calendarGrid = page.locator(
@@ -164,7 +166,7 @@ export class CalendarPage {
     if (isVisible) {
       await this.articlesTab.first().click();
     } else {
-      await this.page.goto(APP_ROUTES.LAB.ARTICLES);
+      await this.page.goto(`${APP_ROUTES.PUBLISH.POSTS}?type=article`);
     }
     await this.waitForPageLoad();
   }

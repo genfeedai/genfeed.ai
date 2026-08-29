@@ -12,6 +12,7 @@ import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import type { ModelsService } from '@server/collections/models/services/models.service';
+import { BusinessLogicException } from '@server/exceptions/business-logic.exception';
 import type { ByokService } from '@server/services/byok/byok.service';
 
 const orgId = testId('org');
@@ -22,7 +23,7 @@ const createContext = (
   const req: Record<string, unknown> = {
     body,
     params: {},
-    user: { id: 'user-1', organizationId: orgId },
+    user: { id: 'user-1', organizationId: orgId, userId: 'user-1' },
   };
   return {
     getClass: vi.fn(),
@@ -44,6 +45,7 @@ describe('CreditsGuard', () => {
   let creditsUtilsService: {
     checkOrganizationCreditsAvailable: ReturnType<typeof vi.fn>;
     getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
+    reserveCredits: ReturnType<typeof vi.fn>;
   };
   let modelsService: { findOne: ReturnType<typeof vi.fn> };
   let byokService: {
@@ -56,6 +58,13 @@ describe('CreditsGuard', () => {
     creditsUtilsService = {
       checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
+      reserveCredits: vi.fn().mockImplementation((input: { amount: number }) =>
+        Promise.resolve({
+          amount: input.amount,
+          id: 'reservation-1',
+          status: 'RESERVED',
+        }),
+      ),
     };
     modelsService = { findOne: vi.fn() };
     byokService = {
@@ -94,6 +103,63 @@ describe('CreditsGuard', () => {
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).toHaveBeenCalledWith(orgId, 10);
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: 'user-1',
+        amount: 10,
+        organizationId: orgId,
+        workloadType: 'generation',
+      }),
+    );
+  });
+
+  it('stores the reservation identity for settlement after generation', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
+      amount: 10,
+      description: 'Image generation',
+    });
+    const ctx = createContext({ sourceActionId: 'action-1' });
+
+    await guard.canActivate(ctx);
+
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith({
+      actorUserId: 'user-1',
+      amount: 10,
+      expiresAt: expect.any(Date),
+      idempotencyKey: 'generation:action-1',
+      organizationId: orgId,
+      workloadId: 'action-1',
+      workloadType: 'generation',
+    });
+    expect(ctx.switchToHttp().getRequest().creditsConfig).toMatchObject({
+      reservationId: 'reservation-1',
+    });
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('maps an uncovered atomic source-action reservation to a credit error', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
+      amount: 10,
+      description: 'Image generation',
+    });
+    creditsUtilsService.reserveCredits.mockRejectedValue(
+      new BusinessLogicException(
+        'insufficient credits',
+        undefined,
+        'INSUFFICIENT_CREDITS',
+      ),
+    );
+    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(4);
+
+    await expect(
+      guard.canActivate(createContext({ sourceActionId: 'action-short' })),
+    ).rejects.toThrow();
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
   });
 
   it('multiplies a fixed per-output amount using a trusted guard override', async () => {
@@ -301,6 +367,7 @@ describe('CreditsGuard', () => {
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).not.toHaveBeenCalled();
+    expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
 
     const req = ctx.switchToHttp().getRequest() as Record<string, unknown>;
     expect(req.creditsConfig).toMatchObject({

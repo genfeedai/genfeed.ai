@@ -115,6 +115,26 @@ describe('AgentConversationTurnNavigator', () => {
     expect(rail?.className).not.toMatch(/justify-between/);
   });
 
+  it('keeps the turn rail against the sidebar edge at every desktop width', () => {
+    const conversation = createConversationDom(['user-1', 'user-2']);
+
+    render(
+      <AgentConversationTurnNavigator
+        scrollContainerRef={conversation.ref}
+        timeline={[
+          buildMessage('user-1', 'user', 'First'),
+          buildMessage('user-2', 'user', 'Second'),
+        ]}
+      />,
+    );
+
+    const navigation = screen.getByRole('navigation', {
+      name: 'Conversation prompts',
+    });
+    expect(navigation).toHaveClass('left-2');
+    expect(navigation.className).not.toContain('calc(50%');
+  });
+
   it('jumps to the selected user prompt', () => {
     const conversation = createConversationDom(['user-1', 'user-2']);
 

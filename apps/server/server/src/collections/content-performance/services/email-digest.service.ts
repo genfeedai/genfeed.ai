@@ -4,15 +4,15 @@ import {
 } from '@helpers/email/system-email.helper';
 import { Inject, Injectable } from '@nestjs/common';
 import {
-  PerformanceSummaryService,
-  type WeeklySummary,
-} from '@server/collections/content-performance/services/performance-summary.service';
-import {
   SERVER_TOKENS,
   type ServerLogger,
   type ServerNotifications,
   type ServerPrisma,
 } from '@server/server.dependencies';
+import {
+  PerformanceSummaryService,
+  type WeeklySummary,
+} from './performance-summary.service';
 
 export interface EmailDigestResult {
   sent: number;

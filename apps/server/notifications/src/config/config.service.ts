@@ -13,8 +13,12 @@ import {
 import { Injectable, Logger } from '@nestjs/common';
 import Joi from 'joi';
 
+interface NotificationsEnvConfig extends IEnvConfig {
+  GF_DEV_ENABLE_DISCORD?: 'true' | 'false';
+}
+
 @Injectable()
-export class ConfigService extends createServiceConfig<IEnvConfig>({
+export class ConfigService extends createServiceConfig<NotificationsEnvConfig>({
   appName: 'notifications',
   schemas: [
     redisSchema,
@@ -40,6 +44,10 @@ export class ConfigService extends createServiceConfig<IEnvConfig>({
       .optional()
       .allow(''),
     GENFEEDAI_API_KEY: Joi.string().optional().allow(''),
+    GF_DEV_ENABLE_DISCORD: Joi.string()
+      .valid('true', 'false')
+      .optional()
+      .allow(''),
     // Notifications-specific
     GENFEEDAI_APP_URL: Joi.string().uri().optional().allow(''),
     GENFEED_TERMINAL_CWD: Joi.string().optional().allow(''),
@@ -123,11 +131,16 @@ export class ConfigService extends createServiceConfig<IEnvConfig>({
   }
 
   public isDiscordEnabled(): boolean {
-    return !!(
+    const isConfigured = !!(
       this.envConfig.DISCORD_BOT_TOKEN &&
       this.envConfig.DISCORD_CLIENT_ID &&
       this.envConfig.DISCORD_GUILD_ID
     );
+    if (!isConfigured || !this.isDevelopment) {
+      return isConfigured;
+    }
+
+    return this.envConfig.GF_DEV_ENABLE_DISCORD === 'true';
   }
 
   public isResendEnabled(): boolean {

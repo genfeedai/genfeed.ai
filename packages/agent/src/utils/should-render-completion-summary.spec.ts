@@ -78,7 +78,7 @@ describe('shouldRenderCompletionSummary', () => {
     ).toBe(false);
   });
 
-  it('keeps Done when it has media previews', () => {
+  it('hides Done with duplicate media when a product result owns the turn', () => {
     expect(
       shouldRenderCompletionSummary(
         completion({
@@ -88,7 +88,7 @@ describe('shouldRenderCompletionSummary', () => {
         }),
         [batchResult()],
       ),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('hides generic Done without a sibling product card', () => {
@@ -110,7 +110,7 @@ describe('shouldRenderCompletionSummary', () => {
     ).toBe(false);
   });
 
-  it('keeps Done with real outcome bullets even with batch sibling', () => {
+  it('hides Done with duplicate outcome bullets when a batch result owns the turn', () => {
     expect(
       shouldRenderCompletionSummary(
         completion({
@@ -119,10 +119,10 @@ describe('shouldRenderCompletionSummary', () => {
         }),
         [batchResult({ completedCount: 3, failedCount: 17 })],
       ),
-    ).toBe(true);
+    ).toBe(false);
   });
 
-  it('keeps Done with non-generic summary alongside a product card', () => {
+  it('hides Done with non-generic copy alongside a concrete preview', () => {
     expect(
       shouldRenderCompletionSummary(
         completion({
@@ -130,7 +130,7 @@ describe('shouldRenderCompletionSummary', () => {
         }),
         [contentPreview()],
       ),
-    ).toBe(true);
+    ).toBe(false);
   });
 });
 

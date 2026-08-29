@@ -145,6 +145,24 @@ describe('AgentChatMessage', () => {
     vi.useRealTimers();
   });
 
+  it('aligns assistant text and padded user-card text to one content rail', () => {
+    const assistant = render(
+      <AgentChatMessage message={buildMessage('assistant', 'Aligned reply')} />,
+    );
+    const assistantSurface = assistant.container.querySelector(
+      '[data-message-role="assistant"]',
+    );
+    expect(assistantSurface).not.toHaveClass('px-0.5');
+
+    assistant.unmount();
+    const user = render(
+      <AgentChatMessage message={buildMessage('user', 'Aligned prompt')} />,
+    );
+    expect(
+      user.container.querySelector('[data-message-role="user"]'),
+    ).toHaveClass('-mx-3', 'px-3');
+  });
+
   it('does not truncate long assistant content', () => {
     const longAssistantContent = `${'A'.repeat(700)} tail-marker-assistant`;
 
@@ -385,6 +403,33 @@ describe('AgentChatMessage', () => {
     expect(
       screen.getByRole('img', { name: 'Generated content 1' }),
     ).toHaveAttribute('src', ONE_PIXEL_IMAGE);
+  });
+
+  it('renders a generated post once when its product preview card owns the turn', () => {
+    const tweet = 'Move fast, learn faster, and keep shipping.';
+    render(
+      <AgentChatMessage
+        message={{
+          ...buildMessage('assistant', 'Your post is ready.'),
+          metadata: {
+            contentType: 'post',
+            generatedContent: tweet,
+            uiActions: [
+              {
+                contentFormat: 'post',
+                id: 'content-preview-post',
+                platform: 'twitter',
+                title: 'X post',
+                tweets: [tweet],
+                type: 'content_preview_card',
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getAllByText(tweet)).toHaveLength(1);
   });
 
   it('keeps generation configuration out of the transcript card stack', () => {

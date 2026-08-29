@@ -59,6 +59,7 @@ import {
 } from '@server/services/agent-orchestrator/utils/agent-turn-credit.util';
 import { sanitizeAgentOutputText } from '@server/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { LlmDispatcherService } from '@server/services/integrations/llm/llm-dispatcher.service';
+import type { OpenRouterChatCompletionResponse } from '@server/services/integrations/openrouter/dto/openrouter.dto';
 import { SkillRuntimeService } from '@server/services/skill-runtime/skill-runtime.service';
 import { Effect } from 'effect';
 
@@ -216,6 +217,12 @@ export class AgentOrchestratorStreamLoopService {
       );
       const messages = [...history];
       let round = 0;
+      let terminalContent: string | undefined;
+      let latestProviderUsage = {
+        completion_tokens: 0,
+        prompt_tokens: 0,
+        total_tokens: 0,
+      };
       // Credits accrue per completed round, not per turn: a turn that burns
       // five tool rounds costs five rounds of inference and has to bill like it.
 
@@ -226,13 +233,13 @@ export class AgentOrchestratorStreamLoopService {
       const canStreamLiveTokens =
         this.isRealTokenStreamingEnabled() && !(seedTitle ?? '').trim();
 
-      while (round < AGENT_MAX_TOOL_ROUNDS) {
+      while (round < AGENT_MAX_TOOL_ROUNDS || terminalContent) {
         if (await this.isRunCancelled(context)) {
           toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
           await this.handleCancelledStream(context, threadId);
           return;
         }
-        if (round > 0) {
+        if (round > 0 && !terminalContent) {
           const requiredCredits = resolveAgentNextRoundCreditRequirement({
             nextRoundCredits: turnCost,
             roundCredits,
@@ -326,60 +333,79 @@ export class AgentOrchestratorStreamLoopService {
         // IIFE so a mid-stream cancellation (StreamCancelledError thrown from
         // onStreamToken) is caught here and routed to the cancelled-stream
         // handler; any other error still propagates as a real failure.
-        const response = await (async () => {
-          try {
-            return canStreamLiveTokens
-              ? await this.llmDispatcher.streamChatCompletionAggregated(
-                  chatParams,
-                  context.organizationId,
-                  onStreamToken,
+        const isTerminalCompletion = Boolean(terminalContent);
+        const response: OpenRouterChatCompletionResponse | null =
+          terminalContent
+            ? {
+                choices: [
                   {
-                    brandId: context.scope?.brandId,
-                    runId: context.executionId,
-                    threadId,
-                    userId: context.userId,
+                    finish_reason: 'stop',
+                    message: {
+                      content: terminalContent,
+                      role: 'assistant',
+                    },
                   },
-                )
-              : await this.llmDispatcher.chatCompletion(
-                  chatParams,
-                  context.organizationId,
-                  {
-                    brandId: context.scope?.brandId,
-                    runId: context.executionId,
-                    threadId,
-                    userId: context.userId,
-                  },
-                );
-          } catch (error) {
-            if (error instanceof StreamCancelledError) {
-              return null;
-            }
-            throw error;
-          }
-        })();
+                ],
+                id: `terminal-tool-${context.executionId ?? threadId}`,
+                usage: latestProviderUsage,
+              }
+            : await (async () => {
+                try {
+                  return canStreamLiveTokens
+                    ? await this.llmDispatcher.streamChatCompletionAggregated(
+                        chatParams,
+                        context.organizationId,
+                        onStreamToken,
+                        {
+                          brandId: context.scope?.brandId,
+                          runId: context.executionId,
+                          threadId,
+                          userId: context.userId,
+                        },
+                      )
+                    : await this.llmDispatcher.chatCompletion(
+                        chatParams,
+                        context.organizationId,
+                        {
+                          brandId: context.scope?.brandId,
+                          runId: context.executionId,
+                          threadId,
+                          userId: context.userId,
+                        },
+                      );
+                } catch (error) {
+                  if (error instanceof StreamCancelledError) {
+                    return null;
+                  }
+                  throw error;
+                }
+              })();
+        terminalContent = undefined;
 
         if (!response) {
           await this.handleCancelledStream(context, threadId);
           return;
         }
-        const actualModel = await this.turnRoundRunner.recordAgentResponseModel(
-          {
-            actualModels: Array.from(actualModels),
-            context,
-            requestedModel: model,
-            responseModel: response.model,
-            executionId: context.executionId,
-            source,
-            threadId,
-          },
-        );
-        actualModels.add(actualModel);
-        roundCredits += resolveAgentRoundCreditCost({
-          actualModel,
-          roundCreditsForModel:
-            await this.agentChatModelRegistry.getRoundCredits(actualModel),
-          turnCost,
-        });
+        if (!isTerminalCompletion) {
+          latestProviderUsage = response.usage;
+          const actualModel =
+            await this.turnRoundRunner.recordAgentResponseModel({
+              actualModels: Array.from(actualModels),
+              context,
+              requestedModel: model,
+              responseModel: response.model,
+              executionId: context.executionId,
+              source,
+              threadId,
+            });
+          actualModels.add(actualModel);
+          roundCredits += resolveAgentRoundCreditCost({
+            actualModel,
+            roundCreditsForModel:
+              await this.agentChatModelRegistry.getRoundCredits(actualModel),
+            turnCost,
+          });
+        }
 
         const choice = response.choices[0];
         if (!choice) {
@@ -426,6 +452,11 @@ export class AgentOrchestratorStreamLoopService {
               context.organizationId,
             );
           const reasoning = assistantMessage.reasoning_content ?? null;
+
+          if (await this.isRunCancelled(context)) {
+            await this.handleCancelledStream(context, threadId);
+            return;
+          }
 
           await runEffectPromise(
             this.streamEffects.publishStreamAssistantResponseEffect({
@@ -669,6 +700,7 @@ export class AgentOrchestratorStreamLoopService {
           await this.handleCancelledStream(context, threadId);
           return;
         }
+        terminalContent = toolRoundResult.terminalContent;
       }
 
       // Overflowing the round budget still consumed every one of those rounds
@@ -693,6 +725,22 @@ export class AgentOrchestratorStreamLoopService {
         return;
       }
 
+      this.loggerService.error(
+        `${this.constructorName} streaming chat failed`,
+        {
+          error: error instanceof Error ? error.message : error,
+          organizationId: context.organizationId,
+          userId: context.userId,
+        },
+      );
+
+      // A queue-owned attempt is not terminal until BullMQ exhausts its retry
+      // budget. Propagate the provider/tool failure without recording a
+      // run.failed event; the processor owns the one durable terminal outcome.
+      if (context.executionMode === 'background') {
+        throw error;
+      }
+
       await runEffectPromise(
         this.streamEffects.publishStreamFailureEffect({
           context,
@@ -701,15 +749,6 @@ export class AgentOrchestratorStreamLoopService {
           persistedError: classifyAgentRunFailure(error),
           threadId,
         }),
-      );
-
-      this.loggerService.error(
-        `${this.constructorName} streaming chat failed`,
-        {
-          error: error instanceof Error ? error.message : error,
-          organizationId: context.organizationId,
-          userId: context.userId,
-        },
       );
     } finally {
       this.activeStreams.delete(threadId);

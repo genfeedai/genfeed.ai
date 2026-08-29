@@ -291,10 +291,12 @@ describe('PostGroupPersistenceService', () => {
       select: { groupId: true },
       where: {
         brandId: 'brand-1',
+        credentialId: { not: null },
         groupId: { not: null },
         isDeleted: false,
         organizationId: 'org-1',
         parentId: null,
+        platform: { not: null },
         scheduledDate: window,
       },
     });
@@ -329,6 +331,7 @@ describe('PostGroupPersistenceService', () => {
         }),
         where: {
           brandId: 'brand-1',
+          credentialId: { not: null },
           isDeleted: false,
           OR: [
             { groupId: { in: ['group-target'] } },
@@ -336,6 +339,7 @@ describe('PostGroupPersistenceService', () => {
           ],
           organizationId: 'org-1',
           parentId: null,
+          platform: { not: null },
         },
       }),
     );
@@ -583,12 +587,28 @@ describe('PostGroupPersistenceService', () => {
     expect(prisma.post.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          credentialId: { not: null },
           isDeleted: false,
           organizationId: 'org-1',
           parentId: null,
+          platform: { not: null },
         },
       }),
     );
+  });
+
+  it('ignores legacy posts without a channel identity', async () => {
+    prisma.post.findMany.mockResolvedValue([
+      {
+        ...makeTarget({ groupId: null, id: 'legacy-post' }),
+        platform: null,
+      },
+    ]);
+
+    await expect(
+      service.listReleaseGroups({ organizationId: 'org-1' }),
+    ).resolves.toMatchObject({ docs: [], totalDocs: 0 });
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
   });
 
   it('copies independent lifecycle and visibility onto attachment posts', async () => {

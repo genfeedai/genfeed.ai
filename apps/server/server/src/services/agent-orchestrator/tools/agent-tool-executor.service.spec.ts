@@ -457,6 +457,8 @@ describe('AgentToolExecutorService', () => {
         credits: [],
         totalBalance: 0,
       }),
+      releaseReservation: vi.fn().mockResolvedValue(undefined),
+      reserveCredits: vi.fn().mockResolvedValue({ id: 'reservation-1' }),
     };
     const batchGenerationService = {
       approveItems: vi.fn(),
@@ -468,6 +470,10 @@ describe('AgentToolExecutorService', () => {
       getBatch: vi.fn(),
       getReviewInboxSummary: vi.fn(),
       processBatch: vi.fn().mockResolvedValue(undefined),
+    };
+    const batchCreditsService = {
+      recordUpfrontCharge: vi.fn().mockResolvedValue(true),
+      settleBatchCredits: vi.fn().mockResolvedValue({ settledCredits: 0 }),
     };
     const streamPublisher = {
       publishDone: vi.fn().mockResolvedValue(undefined),
@@ -1129,6 +1135,29 @@ describe('AgentToolExecutorService', () => {
       xActionsHandler,
     };
   };
+
+  it('enforces an explicit generation mode over the model tool arguments', async () => {
+    const { service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.PREPARE_GENERATION,
+      { generationType: 'video', prompt: 'Launch-day portrait' },
+      {
+        generationMode: 'image',
+        organizationId: testId('org'),
+        userId: testId('user'),
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual({
+      generationType: 'image',
+      prompt: 'Launch-day portrait',
+    });
+    expect(result.nextActions?.[0]).toEqual(
+      expect.objectContaining({ generationType: 'image' }),
+    );
+  });
 
   it('should create a goal via agent tool', async () => {
     const { agentGoalsService, service } = createService();
@@ -3332,6 +3361,39 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
+  it('should give consecutive same-brand voice drafts distinct action identities', async () => {
+    const { brandsService, service } = createService();
+
+    brandsService.findOne.mockResolvedValue({
+      agentConfig: { strategy: { platforms: ['linkedin'] } },
+      id: 'brand-voice-1',
+      label: 'Genfeed',
+    });
+
+    const first = await service.executeTool(
+      AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
+      {},
+      { organizationId: testId('org'), userId: testId('user') },
+    );
+    const second = await service.executeTool(
+      AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
+      {},
+      { organizationId: testId('org'), userId: testId('user') },
+    );
+    const firstAction = first.nextActions?.[0];
+    const secondAction = second.nextActions?.[0];
+
+    expect(firstAction?.id).toMatch(/^brand-voice-profile-/);
+    expect(secondAction?.id).toMatch(/^brand-voice-profile-/);
+    expect(secondAction?.id).not.toBe(firstAction?.id);
+    expect(firstAction?.ctas?.[0]?.payload).toEqual(
+      expect.objectContaining({ sourceActionId: firstAction?.id }),
+    );
+    expect(secondAction?.ctas?.[0]?.payload).toEqual(
+      expect.objectContaining({ sourceActionId: secondAction?.id }),
+    );
+  });
+
   it('should persist an approved brand voice profile into brand agent config', async () => {
     const { brandsService, service } = createService();
 
@@ -5118,7 +5180,7 @@ describe('AgentToolExecutorService', () => {
       }),
     );
     expect(result.nextActions?.[0]).toMatchObject({
-      ctas: [{ href: '/g/image/img-root-123', label: 'View in gallery' }],
+      ctas: [{ href: '/library/assets', label: 'View in Library' }],
       id: 'image-gen-img-root-123',
     });
   });

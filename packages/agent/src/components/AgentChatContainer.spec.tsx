@@ -278,16 +278,6 @@ vi.mock('@genfeedai/agent/components/AgentInputRequestOverlay', () => ({
   },
 }));
 
-vi.mock('@genfeedai/agent/components/GenerationActionCard', () => ({
-  GenerationActionCard: function MockGenerationActionCard(props: {
-    action: { title: string };
-  }) {
-    return (
-      <div data-testid="composer-generation-card">{props.action.title}</div>
-    );
-  },
-}));
-
 type StoreState = {
   activeThreadId: string | null;
   activeRunId: string | null;
@@ -342,6 +332,7 @@ type StoreState = {
   setError: ReturnType<typeof vi.fn>;
   setLatestProposedPlan: ReturnType<typeof vi.fn>;
   setIsLoadingOlderMessages: ReturnType<typeof vi.fn>;
+  setUiActionStatus: ReturnType<typeof vi.fn>;
   stream: {
     activeToolCalls: [];
     pendingUiActions: Array<{
@@ -411,6 +402,7 @@ const storeState: StoreState = {
   setIsLoadingOlderMessages: vi.fn((loading: boolean) => {
     storeState.isLoadingOlderMessages = loading;
   }),
+  setUiActionStatus: vi.fn(),
   stream: {
     activeToolCalls: [],
     pendingUiActions: [],
@@ -484,8 +476,10 @@ function buildAssistantMessage(
 }
 
 vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
-  useAgentChatStore: (selector: (state: StoreState) => unknown) =>
-    selector(storeState),
+  useAgentChatStore: Object.assign(
+    (selector: (state: StoreState) => unknown) => selector(storeState),
+    { getState: () => storeState },
+  ),
 }));
 
 import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
@@ -519,6 +513,7 @@ describe('AgentChatContainer', () => {
     storeState.setError.mockReset();
     storeState.setLatestProposedPlan.mockReset();
     storeState.setIsLoadingOlderMessages.mockClear();
+    storeState.setUiActionStatus.mockReset();
     storeState.upsertThread.mockReset();
     storeState.updateThread.mockReset();
     storeState.activeThreadId = 'thread-1';
@@ -618,10 +613,18 @@ describe('AgentChatContainer', () => {
     );
   });
 
-  it('anchors an unresolved generation request above the prompt bar', () => {
+  it('keeps legacy generation actions out of the docked composer', () => {
     const apiService = createApiService();
 
     storeState.pendingInputRequest = null;
+    storeState.stream.pendingUiActions = [
+      {
+        generationType: 'video',
+        id: 'generation-video',
+        title: 'Generate Video',
+        type: 'generation_action_card',
+      },
+    ];
     storeState.messages = [
       {
         content: 'Configure the image before generation.',
@@ -644,67 +647,8 @@ describe('AgentChatContainer', () => {
 
     render(<AgentChatContainer apiService={apiService as never} />);
 
-    const card = screen.getByTestId('composer-generation-card');
-    const input = screen.getByTestId('chat-input');
-    expect(card.compareDocumentPosition(input)).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    );
-  });
-
-  it('docks Generate Image on an image thread even when a later video card is pending', () => {
-    const apiService = createApiService();
-
-    storeState.pendingInputRequest = null;
-    storeState.stream.pendingUiActions = [
-      {
-        generationType: 'video',
-        id: 'generation-video',
-        title: 'Generate Video',
-        type: 'generation_action_card',
-      },
-    ];
-    storeState.messages = [
-      {
-        content: 'Configure the image before generation.',
-        createdAt: '2026-08-18T09:32:00.000Z',
-        id: 'generation-message-image',
-        metadata: {
-          uiActions: [
-            {
-              generationType: 'image',
-              id: 'generation-image',
-              title: 'Generate Image',
-              type: 'generation_action_card',
-            },
-          ],
-        },
-        role: 'assistant',
-        threadId: 'thread-1',
-      },
-      {
-        content: 'I prepared the next step below.',
-        createdAt: '2026-08-19T08:43:00.000Z',
-        id: 'generation-message-video',
-        metadata: {
-          uiActions: [
-            {
-              generationType: 'video',
-              id: 'generation-video',
-              title: 'Generate Video',
-              type: 'generation_action_card',
-            },
-          ],
-        },
-        role: 'assistant',
-        threadId: 'thread-1',
-      },
-    ];
-
-    render(<AgentChatContainer apiService={apiService as never} />);
-
-    expect(screen.getByTestId('composer-generation-card').textContent).toBe(
-      'Generate Image',
-    );
+    expect(screen.queryByTestId('composer-generation-card')).toBeNull();
+    expect(screen.getByTestId('chat-input')).toBeInTheDocument();
   });
 
   it('supports a rail-scoped prompt bar shell layout when requested', () => {
@@ -1931,13 +1875,15 @@ describe('AgentChatContainer', () => {
         { brandId: null, expectedContextVersion: 1 },
       );
     });
-    expect(storeState.upsertThread).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandId: 'brand-created-1',
-        contextVersion: 2,
-        id: 'thread-1',
-      }),
-    );
+    await waitFor(() => {
+      expect(storeState.upsertThread).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: 'brand-created-1',
+          contextVersion: 2,
+          id: 'thread-1',
+        }),
+      );
+    });
   });
 
   it('renders the provided empty-state title and description', () => {

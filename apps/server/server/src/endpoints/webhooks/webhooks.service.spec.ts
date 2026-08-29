@@ -2,6 +2,17 @@ vi.mock('@server/collections/evaluations/services/evaluations.service', () => ({
   EvaluationsService: class {},
 }));
 
+import {
+  AssetCategory,
+  IngredientCategory,
+  IngredientStatus,
+  MetadataExtension,
+} from '@genfeedai/enums';
+import type { IFileMetadata } from '@genfeedai/interfaces';
+import { testId } from '@helpers/testing/test-id.helper';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, type TestingModule } from '@nestjs/testing';
 import type { AssetDocument } from '@server/collections/assets/schemas/asset.schema';
 import { AssetsService } from '@server/collections/assets/services/assets.service';
 import { EvaluationsService } from '@server/collections/evaluations/services/evaluations.service';
@@ -18,22 +29,11 @@ import { MetadataLookupService } from '@server/endpoints/webhooks/services/metad
 import { PostProcessingOrchestratorService } from '@server/endpoints/webhooks/services/post-processing-orchestrator.service';
 import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
 import { CacheService } from '@server/services/cache/cache.service';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
 import { MediaGenerationCostService } from '@server/services/media-vendor-cost/media-generation-cost.service';
 import { NotificationsService } from '@server/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@server/services/notifications/publisher/notifications-publisher.service';
-import {
-  AssetCategory,
-  IngredientCategory,
-  IngredientStatus,
-  MetadataExtension,
-} from '@genfeedai/enums';
-import type { IFileMetadata } from '@genfeedai/interfaces';
-import { testId } from '@helpers/testing/test-id.helper';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, type TestingModule } from '@nestjs/testing';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 // Mock setImmediate for testing async callbacks
 vi.useFakeTimers();
@@ -262,6 +262,7 @@ describe('WebhooksService', () => {
         {
           provide: PostProcessingOrchestratorService,
           useValue: {
+            notifyBotGatewayFailureIfNeeded: vi.fn(),
             notifyBotGatewayIfNeeded: vi.fn(),
             triggerAutoEvaluationIfEnabled: vi.fn(),
           },
@@ -620,6 +621,9 @@ describe('WebhooksService', () => {
         mockIngredientId.toString(),
         { status: IngredientStatus.FAILED },
       );
+      expect(
+        postProcessingOrchestrator.notifyBotGatewayFailureIfNeeded,
+      ).toHaveBeenCalledWith(mockIngredientId.toString(), errorMessage);
     });
 
     it('should handle case when metadata not found', async () => {

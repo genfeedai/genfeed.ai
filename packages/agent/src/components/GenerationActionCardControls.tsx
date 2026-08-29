@@ -224,7 +224,7 @@ export function GenerationActionCardControls({
             ) : isAllowlistEmpty ? (
               <Button
                 ariaLabel={translate('noModelsEnabled')}
-                variant={ButtonVariant.SECONDARY}
+                variant={ButtonVariant.GHOST}
                 size={ButtonSize.SM}
                 isDisabled
                 className={cn('w-44 justify-start', SHELL_CONTROL_HEIGHT_CLASS)}
@@ -237,7 +237,7 @@ export function GenerationActionCardControls({
               </Button>
             ) : modelsError || hasNoSelectableModels ? (
               <Button
-                variant={ButtonVariant.SECONDARY}
+                variant={ButtonVariant.GHOST}
                 size={ButtonSize.SM}
                 onClick={onRetryLoadModels}
                 disabled={isDisabled}
@@ -255,7 +255,7 @@ export function GenerationActionCardControls({
               >
                 <ModelSelectorPopover
                   name="models"
-                  className="w-44 min-w-0 border border-border bg-background hover:bg-accent/50"
+                  className="w-44 min-w-0 border-0 bg-transparent shadow-none hover:bg-hover"
                   models={filteredModels}
                   values={
                     isAutoMode
@@ -281,7 +281,7 @@ export function GenerationActionCardControls({
               value={aspectRatio}
               ratios={availableAspectRatios}
               onChange={onAspectRatioChange}
-              className="border border-border bg-background hover:bg-accent/50"
+              className="border-0 bg-transparent shadow-none hover:bg-hover"
               isDisabled={isDisabled}
               direction={DropdownDirection.UP}
               placeholder="Aspect ratio"
@@ -300,7 +300,7 @@ export function GenerationActionCardControls({
                   };
                 })}
                 onChange={(_name, value) => onOutputsChange(Number(value))}
-                className="border border-border bg-background hover:bg-accent/50"
+                className="border-0 bg-transparent shadow-none hover:bg-hover"
                 isDisabled={isDisabled}
                 direction={DropdownDirection.UP}
                 placeholder="1x"
@@ -318,7 +318,10 @@ export function GenerationActionCardControls({
                 <SelectTrigger
                   aria-label="Duration in seconds"
                   id="gen-action-duration"
-                  className={cn('w-28', SHELL_CONTROL_HEIGHT_CLASS)}
+                  className={cn(
+                    'w-28 border-0 bg-transparent shadow-none hover:bg-hover',
+                    SHELL_CONTROL_HEIGHT_CLASS,
+                  )}
                 >
                   <SelectValue placeholder="Duration" />
                 </SelectTrigger>

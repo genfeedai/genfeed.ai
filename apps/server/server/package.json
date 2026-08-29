@@ -1,7 +1,7 @@
 {
   "dependencies": {
-    "@anthropic-ai/sdk": "0.120.0",
-    "@aws-sdk/client-ec2": "3.1118.0",
+    "@anthropic-ai/sdk": "0.122.0",
+    "@aws-sdk/client-ec2": "3.1120.0",
     "@genfeedai/agent": "workspace:*",
     "@genfeedai/api-types": "workspace:*",
     "@genfeedai/config": "workspace:*",
@@ -11,6 +11,7 @@
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
+    "@genfeedai/libs": "workspace:*",
     "@genfeedai/pricing": "workspace:*",
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/queue-contracts": "workspace:*",
@@ -19,26 +20,26 @@
     "@genfeedai/types": "workspace:*",
     "@genfeedai/utils": "workspace:*",
     "@genfeedai/workflows": "workspace:*",
-    "@nestjs/axios": "4.0.1",
-    "@nestjs/bullmq": "11.0.5",
-    "@nestjs/common": "11.2.3",
-    "@nestjs/event-emitter": "3.1.0",
-    "axios": "1.19.0",
-    "bullmq": "6.2.2",
+    "@nestjs/axios": "12.0.0",
+    "@nestjs/bullmq": "12.0.0",
+    "@nestjs/common": "12.0.1",
+    "@nestjs/event-emitter": "12.0.0",
+    "axios": "1.20.0",
+    "bullmq": "6.3.1",
     "effect": "3.22.1",
     "google-auth-library": "11.0.2",
     "googleapis": "176.0.0",
     "htmlparser2": "12.0.0",
     "jsonwebtoken": "9.0.3",
     "linkedin-api-client": "0.3.0",
-    "openai": "7.5.0",
+    "openai": "7.8.0",
     "rxjs": "7.8.2",
     "twitter-api-v2": "1.29.1",
     "twitter-text": "3.1.0"
   },
   "description": "Server-tier services shared by Genfeed API and workers",
   "devDependencies": {
-    "@nestjs/testing": "11.2.3",
+    "@nestjs/testing": "12.0.1",
     "@types/jsonwebtoken": "9.0.10",
     "@types/node": "24.13.3",
     "@types/twitter-text": "3.1.10",
@@ -48,28 +49,29 @@
   },
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "default": "./src/index.ts"
     },
     "./*": {
-      "types": "./src/*.ts",
+      "types": "./dist/*.d.ts",
       "default": "./src/*.ts"
     }
   },
   "files": [
+    "dist",
     "src"
   ],
   "main": "./src/index.ts",
   "name": "@genfeedai/server",
   "private": true,
   "scripts": {
-    "build": "echo 'Source-level package \u2014 consumed via path aliases, no build needed'",
-    "clean": "echo 'Nothing to clean'",
+    "build": "rm -rf dist && tsc -p tsconfig.declarations.json",
+    "clean": "rm -rf dist",
     "test": "vitest run --config vitest.config.ts",
-    "type-check": "NODE_OPTIONS=--max-old-space-size=6144 bunx tsc --noEmit -p tsconfig.typecheck.json"
+    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts --require-turbo && tsc --noEmit -p tsconfig.typecheck.json"
   },
   "sideEffects": false,
   "type": "module",
-  "types": "./src/index.ts",
+  "types": "./dist/index.d.ts",
   "version": "0.1.0"
 }

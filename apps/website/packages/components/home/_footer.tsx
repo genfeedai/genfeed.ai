@@ -91,14 +91,11 @@ const WEBSITE_SECTIONS: FooterSection[] = [
 
 export default function HomeFooter(): React.ReactElement {
   return (
-    <footer className="border-t gen-border">
-      <SiteFooter
-        sections={WEBSITE_SECTIONS}
-        variant="default"
-        showNewsletter
-        showBookCall
-        brandTagline="The AI content studio. Generate, review, schedule, and publish every piece of content from one workspace."
-      />
-    </footer>
+    <SiteFooter
+      sections={WEBSITE_SECTIONS}
+      variant="default"
+      showNewsletter
+      brandTagline="The AI content studio. Generate, review, schedule, and publish every piece of content from one workspace."
+    />
   );
 }

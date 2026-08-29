@@ -36,7 +36,9 @@ export class CreditDeductionQueueService {
 
   async queueByokUsage(data: CreditDeductionJobData): Promise<void> {
     await this.queue.add('record-byok-usage', data, {
-      jobId: `byok-usage-${data.organizationId}-${Date.now()}`,
+      jobId: data.idempotencyKey
+        ? `byok-usage-${data.organizationId}-${data.idempotencyKey}`
+        : `byok-usage-${data.organizationId}-${Date.now()}`,
     });
 
     this.logger.log(`${this.constructorName} BYOK usage job queued`, {

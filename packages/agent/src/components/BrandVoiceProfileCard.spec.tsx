@@ -1,7 +1,12 @@
 import { BrandVoiceProfileCard } from '@genfeedai/agent/components/BrandVoiceProfileCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+beforeEach(() => {
+  useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
+});
 
 describe('BrandVoiceProfileCard', () => {
   it('renders the structured brand voice fields', () => {
@@ -77,5 +82,100 @@ describe('BrandVoiceProfileCard', () => {
         voiceProfile: { tone: 'confident' },
       },
     );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Brand voice saved to this brand.'),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('keeps the approval available when the action is rejected', async () => {
+    const onUiAction = vi.fn().mockResolvedValue(false);
+    const action: AgentUiAction = {
+      ctas: [
+        {
+          action: 'confirm_save_brand_voice_profile',
+          label: 'Approve and save',
+        },
+      ],
+      data: { voiceProfile: { tone: 'confident' } },
+      id: 'brand-voice-rejected',
+      title: 'Brand Voice Draft',
+      type: 'brand_voice_profile_card',
+    };
+
+    render(<BrandVoiceProfileCard action={action} onUiAction={onUiAction} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Approve and save' }));
+
+    await waitFor(() => {
+      expect(onUiAction).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      screen.queryByText('Brand voice saved to this brand.'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Approve and save' }),
+    ).toBeEnabled();
+  });
+
+  it('renders a store-persisted completed action as saved after remount', () => {
+    useAgentChatStore
+      .getState()
+      .setUiActionStatus('brand-voice-completed', 'completed');
+
+    render(
+      <BrandVoiceProfileCard
+        action={{
+          id: 'brand-voice-completed',
+          title: 'Brand Voice Draft',
+          type: 'brand_voice_profile_card',
+        }}
+        onUiAction={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText('Brand voice saved to this brand.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Approve and save' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps approval available for a later draft of the same brand', () => {
+    useAgentChatStore
+      .getState()
+      .setUiActionStatus('brand-voice-brand-1-first-draft', 'completed');
+
+    render(
+      <BrandVoiceProfileCard
+        action={{
+          ctas: [
+            {
+              action: 'confirm_save_brand_voice_profile',
+              label: 'Approve and save',
+              payload: {
+                brandId: 'brand-1',
+                sourceActionId: 'brand-voice-brand-1-second-draft',
+              },
+            },
+          ],
+          data: { brandId: 'brand-1' },
+          id: 'brand-voice-brand-1-second-draft',
+          title: 'Brand Voice Draft',
+          type: 'brand_voice_profile_card',
+        }}
+        onUiAction={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Approve and save' }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByText('Brand voice saved to this brand.'),
+    ).not.toBeInTheDocument();
   });
 });

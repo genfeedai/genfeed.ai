@@ -2,6 +2,7 @@ import type {
   AgentUiAction,
   AgentUiActionHandler,
 } from '@genfeedai/agent/models/agent-chat.model';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, Megaphone, Sparkles } from 'lucide-react';
@@ -26,6 +27,11 @@ export function BrandVoiceProfileCard({
 }: BrandVoiceProfileCardProps): ReactElement {
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const persistedStatus = useAgentChatStore(
+    (state) => state.uiActionStatusById[action.id],
+  );
+  const hasSaved =
+    isSaved || persistedStatus === 'completed' || action.status === 'completed';
   const profile = useMemo(() => {
     const data = action.data ?? {};
     const rawProfile =
@@ -57,21 +63,31 @@ export function BrandVoiceProfileCard({
   const approveCta = action.ctas?.find((cta) => cta.action);
 
   const handleApprove = useCallback(async () => {
-    if (!approveCta?.action || !onUiAction || isSaving || isSaved) {
+    if (!approveCta?.action || !onUiAction || isSaving || hasSaved) {
       return;
     }
 
     setIsSaving(true);
 
     try {
-      await onUiAction(approveCta.action, approveCta.payload);
-      setIsSaved(true);
+      const outcome = await onUiAction(approveCta.action, approveCta.payload);
+      if (outcome !== false) {
+        useAgentChatStore.getState().setUiActionStatus(action.id, 'completed');
+        setIsSaved(true);
+      }
     } finally {
       setIsSaving(false);
     }
-  }, [approveCta?.action, approveCta?.payload, isSaved, isSaving, onUiAction]);
+  }, [
+    action.id,
+    approveCta?.action,
+    approveCta?.payload,
+    hasSaved,
+    isSaving,
+    onUiAction,
+  ]);
 
-  if (isSaved) {
+  if (hasSaved) {
     return (
       <div className="my-2 border border-success/20 bg-background p-4">
         <div className="flex items-center gap-2 text-success">

@@ -289,6 +289,8 @@ interface AgentChatState {
   stream: AgentStreamState;
   composerSeed: AgentComposerSeed | null;
   threadUiBusyById: Record<string, boolean>;
+  /** Client-confirmed action status, retained when a message row is rebuilt. */
+  uiActionStatusById: Record<string, string>;
   /** Per-thread terminal sessions. Key = threadId | "global". */
   terminalSessionsByThread: TerminalSessionsByThread;
   /** Per-thread active session id. Key = threadId | "global". */
@@ -301,6 +303,7 @@ interface AgentChatActions {
   addPendingUiActions: (actions: AgentUiAction[]) => void;
   addWorkEvent: (event: AgentWorkEvent) => void;
   addMessage: (message: AgentChatMessage) => void;
+  setUiActionStatus: (actionId: string, status: string) => void;
   clearPendingInputRequest: () => void;
   setMessages: (messages: AgentChatMessage[]) => void;
   setMessagesPage: (page: AgentMessagesPage) => void;
@@ -534,6 +537,50 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
         message.metadata?.proposedPlan ?? state.latestProposedPlan,
       messages: [...state.messages, message],
     })),
+  setUiActionStatus: (actionId, status) =>
+    set((state) => {
+      let messagesChanged = false;
+      const messages = state.messages.map((message) => {
+        const uiActions = message.metadata?.uiActions;
+        if (
+          !uiActions?.some(
+            (action) => action.id === actionId && action.status !== status,
+          )
+        ) {
+          return message;
+        }
+
+        messagesChanged = true;
+        return {
+          ...message,
+          metadata: {
+            ...message.metadata,
+            uiActions: uiActions.map((action) =>
+              action.id === actionId ? { ...action, status } : action,
+            ),
+          },
+        };
+      });
+      const pendingUiActions = state.stream.pendingUiActions.map((action) =>
+        action.id === actionId && action.status !== status
+          ? { ...action, status }
+          : action,
+      );
+      const pendingChanged = pendingUiActions.some(
+        (action, index) => action !== state.stream.pendingUiActions[index],
+      );
+
+      return {
+        messages: messagesChanged ? messages : state.messages,
+        stream: pendingChanged
+          ? { ...state.stream, pendingUiActions }
+          : state.stream,
+        uiActionStatusById: {
+          ...state.uiActionStatusById,
+          [actionId]: status,
+        },
+      };
+    }),
   addPendingUiActions: (actions) =>
     set((state) => {
       const pendingUiActions = [...state.stream.pendingUiActions];
@@ -679,8 +726,10 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       activeRunStatus: 'idle',
       composerSeed: null,
       draftPlanModeEnabled: false,
+      error: null,
       latestProposedPlan: null,
       hasMoreMessages: false,
+      isGenerating: false,
       isLoadingOlderMessages: false,
       messages: [],
       messagesCursor: null,
@@ -854,8 +903,10 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       activeRunStatus: 'idle',
       composerSeed: null,
       draftPlanModeEnabled: false,
+      error: null,
       latestProposedPlan: null,
       hasMoreMessages: false,
+      isGenerating: false,
       isLoadingOlderMessages: false,
       messages: [],
       messagesCursor: null,
@@ -890,8 +941,10 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       activeRunStatus: 'idle',
       composerSeed: null,
       draftPlanModeEnabled: false,
+      error: null,
       latestProposedPlan: cached.latestProposedPlan,
       hasMoreMessages: cached.hasMoreMessages,
+      isGenerating: false,
       isLoadingOlderMessages: false,
       messages: cached.messages,
       messagesCursor: cached.messagesCursor,
@@ -1062,6 +1115,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
   threadPrompts: {},
   threads: [],
   threadUiBusyById: {},
+  uiActionStatusById: {},
   terminalSessionsByThread: loadPersistedSessionsByThread(),
   activeTerminalSessionByThread: {},
   setTerminalSessionsByThread: (map) => {

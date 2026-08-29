@@ -312,23 +312,26 @@ export function UiActionRenderer({
     return null;
   }
 
-  if (!isInert) {
-    return card;
-  }
-
+  // Keep this shell mounted in both live and inert states. Conditionally
+  // inserting it remounts stateful cards when an action starts, which erases
+  // their pending/success state before the action promise resolves.
   // `inert` blocks pointer + keyboard focus. Archived mutation cards omit
   // apiService and render null; temporarily busy cards retain it so their
   // state remains visible while their handlers stay disconnected.
   return (
     <div
-      aria-disabled="true"
-      className="select-none opacity-60"
+      aria-disabled={isInert ? 'true' : undefined}
+      className={isInert ? 'select-none opacity-60' : 'contents'}
       data-archived-readonly={isReadOnly ? 'true' : undefined}
       data-testid={
-        isReadOnly ? 'ui-action-archived-readonly' : 'ui-action-busy'
+        isReadOnly
+          ? 'ui-action-archived-readonly'
+          : isDisabled
+            ? 'ui-action-busy'
+            : undefined
       }
       // React 19 supports the inert boolean attribute.
-      inert
+      inert={isInert}
     >
       {card}
     </div>

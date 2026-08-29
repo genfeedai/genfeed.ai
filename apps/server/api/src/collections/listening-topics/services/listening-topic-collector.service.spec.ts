@@ -6,11 +6,11 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { ListeningTopicCollectorService } from '@api/collections/listening-topics/services/listening-topic-collector.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   ListeningEvidenceType,
   ListeningSourcePlatform,
 } from '@genfeedai/enums';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 const context = {
   brandId: 'brand-1',
@@ -158,9 +158,10 @@ describe('ListeningTopicCollectorService', () => {
       ],
       provider: 'app-bearer',
     });
-    harness.sourcePostsService.upsertCollectedPosts.mockResolvedValue([
-      { externalId: 'post-match', id: 'source-post-1' },
-    ]);
+    harness.sourcePostsService.upsertCollectedPosts.mockResolvedValue({
+      posts: [{ externalId: 'post-match', id: 'source-post-1' }],
+      rejectedCount: 0,
+    });
 
     await harness.service.collectScoped('topic-1', { limit: 40 }, context);
 
@@ -255,6 +256,54 @@ describe('ListeningTopicCollectorService', () => {
     );
   });
 
+  it('keeps valid evidence aligned when an identifier-less match is rejected', async () => {
+    const harness = createHarness();
+    harness.sourceCollector.collectTimeline.mockResolvedValue({
+      handle: 'source-1',
+      platform: ListeningSourcePlatform.TWITTER,
+      posts: [
+        {
+          id: undefined,
+          language: 'en',
+          platform: ListeningSourcePlatform.TWITTER,
+          text: 'AI agents without an identifier',
+        },
+        {
+          id: 'post-valid',
+          language: 'en',
+          platform: ListeningSourcePlatform.TWITTER,
+          text: 'AI agents with a stable identifier',
+        },
+      ],
+      provider: 'apify',
+    } as never);
+    harness.sourcePostsService.upsertCollectedPosts.mockResolvedValue({
+      posts: [{ externalId: 'post-valid', id: 'source-post-valid' }],
+      rejectedCount: 1,
+    });
+
+    await harness.service.collectScoped('topic-1', {}, context);
+
+    expect(harness.listeningEvidence.upsert).toHaveBeenCalledTimes(1);
+    expect(harness.listeningEvidence.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          externalId: 'post-valid',
+          sourcePostId: 'source-post-valid',
+        }),
+      }),
+    );
+    expect(harness.listeningTopicSource.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        collectionCursor: 'post-valid',
+        collectionState: 'success',
+        lastCollectionError:
+          'Skipped 1 collected post without a stable external identifier',
+      }),
+      where: expect.objectContaining({ id: 'topic-source-1' }),
+    });
+  });
+
   it('records an empty source without advancing its cursor', async () => {
     const harness = createHarness();
     harness.sourceCollector.collectTimeline.mockResolvedValue({
@@ -263,7 +312,10 @@ describe('ListeningTopicCollectorService', () => {
       posts: [],
       provider: 'brand-oauth',
     });
-    harness.sourcePostsService.upsertCollectedPosts.mockResolvedValue([]);
+    harness.sourcePostsService.upsertCollectedPosts.mockResolvedValue({
+      posts: [],
+      rejectedCount: 0,
+    });
 
     await harness.service.collectScoped('topic-1', {}, context);
 
@@ -290,7 +342,10 @@ describe('ListeningTopicCollectorService', () => {
         posts: [],
         provider: 'brand-oauth',
       });
-    harness.sourcePostsService.upsertCollectedPosts.mockResolvedValue([]);
+    harness.sourcePostsService.upsertCollectedPosts.mockResolvedValue({
+      posts: [],
+      rejectedCount: 0,
+    });
 
     await expect(
       harness.service.collectScoped('topic-1', {}, context),

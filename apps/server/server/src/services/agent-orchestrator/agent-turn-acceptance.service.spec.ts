@@ -18,9 +18,13 @@ describe('AgentTurnAcceptanceService', () => {
   };
   const scopeService = {
     prepareForTurn: vi.fn(),
+    resolveCreatedThreadScope: vi.fn(),
   };
   const workflowRunner = {
     enqueueWorkflow: vi.fn(),
+  };
+  const agentMessagesService = {
+    addMessage: vi.fn(),
   };
 
   let service: AgentTurnAcceptanceService;
@@ -32,6 +36,7 @@ describe('AgentTurnAcceptanceService', () => {
       prisma as never,
       scopeService as never,
       workflowRunner as never,
+      agentMessagesService as never,
     );
     scopeService.prepareForTurn.mockResolvedValue({
       initialBrandId: 'brand-1',
@@ -49,6 +54,20 @@ describe('AgentTurnAcceptanceService', () => {
     workflowRunner.enqueueWorkflow.mockResolvedValue({
       executionId: 'execution-1',
     });
+    scopeService.resolveCreatedThreadScope.mockImplementation(
+      ({ brandId, organizationId, threadId, userId }) =>
+        Promise.resolve({
+          brandId,
+          contextVersion: 1,
+          isLegacyFallback: false,
+          isVersionExplicit: true,
+          organizationId,
+          source: 'thread_created',
+          threadId,
+          userId,
+        }),
+    );
+    agentMessagesService.addMessage.mockResolvedValue({});
   });
 
   it('durably acknowledges a new turn with stable request, execution, thread, and context identity', async () => {
@@ -102,6 +121,16 @@ describe('AgentTurnAcceptanceService', () => {
           threadId: acknowledgement.threadId,
         }),
         organizationId: 'org-1',
+        userId: 'user-1',
+      }),
+    );
+    expect(agentMessagesService.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        content: 'Generate an image of a lighthouse',
+        id: acknowledgement.runId,
+        organizationId: 'org-1',
+        room: acknowledgement.threadId,
         userId: 'user-1',
       }),
     );

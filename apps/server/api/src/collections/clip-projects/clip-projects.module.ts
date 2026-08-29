@@ -1,3 +1,4 @@
+import { ClipProjectGenerationController } from '@api/collections/clip-projects/clip-project-generation.controller';
 import { ClipProjectHandoffsController } from '@api/collections/clip-projects/clip-project-handoffs.controller';
 import { ClipProjectHighlightsController } from '@api/collections/clip-projects/clip-project-highlights.controller';
 import { ClipProjectIngestionController } from '@api/collections/clip-projects/clip-project-ingestion.controller';
@@ -24,6 +25,7 @@ import { Module } from '@nestjs/common';
     ClipProjectHandoffsController,
     ClipProjectPublicToolController,
     ClipProjectReferenceFramesController,
+    ClipProjectGenerationController,
     ClipProjectsController,
   ],
   exports: [ClipProjectsCoreModule],

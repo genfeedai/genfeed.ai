@@ -1,3 +1,4 @@
+import { ClipProjectGenerationController } from '@api/collections/clip-projects/clip-project-generation.controller';
 import { ClipProjectHandoffsController } from '@api/collections/clip-projects/clip-project-handoffs.controller';
 import { ClipProjectReferenceFramesController } from '@api/collections/clip-projects/clip-project-reference-frames.controller';
 import { ClipProjectsController } from '@api/collections/clip-projects/clip-projects.controller';
@@ -19,6 +20,7 @@ import {
 } from '@server/collections/clip-projects/dto/generate-clips.dto';
 import type { ClipProjectDocument } from '@server/collections/clip-projects/schemas/clip-project.schema';
 import type { ClipGenerationService } from '@server/collections/clip-projects/services/clip-generation.service';
+import { ClipGenerationDispatchService } from '@server/collections/clip-projects/services/clip-generation-dispatch.service';
 import { ClipGenerationRequestService } from '@server/collections/clip-projects/services/clip-generation-request.service';
 import type {
   ClipIdentityResolutionService,
@@ -171,7 +173,8 @@ describe('ClipProjectsController', () => {
     userId: userId,
   };
 
-  let controller: ClipProjectsController;
+  let controller: ClipProjectGenerationController;
+  let crudController: ClipProjectsController;
   let handoffsController: ClipProjectHandoffsController;
   let referenceFramesController: ClipProjectReferenceFramesController;
   let clipProjectsService: ReturnType<typeof createMockClipProjectsService>;
@@ -231,21 +234,28 @@ describe('ClipProjectsController', () => {
       submitDecision: vi.fn(),
     };
 
-    controller = new ClipProjectsController(
+    const clipGenerationRequestService = new ClipGenerationRequestService(
+      clipProjectsService as ClipProjectsService,
+      clipIdentityResolutionService as ClipIdentityResolutionService,
+      brandsService as unknown as BrandsService,
+    );
+    controller = new ClipProjectGenerationController(
+      createMockLogger(),
+      new ClipGenerationDispatchService(
+        clipProjectsService as ClipProjectsService,
+        clipGenerationService as ClipGenerationService,
+        clipGenerationRequestService,
+        clipIdentityResolutionService as ClipIdentityResolutionService,
+        creditsUtilsService as unknown as CreditsUtilsService,
+        clipResultsService as unknown as ClipResultsService,
+      ),
+      hookClipApprovalService as unknown as HookClipApprovalService,
+    );
+    crudController = new ClipProjectsController(
       createMockLogger(),
       clipProjectsService as ClipProjectsService,
-      clipGenerationService as ClipGenerationService,
-      // Real request-preparation service over the same mocks: the validation
-      // logic simply moved out of the controller, so behaviour is unchanged.
-      new ClipGenerationRequestService(
-        clipProjectsService as ClipProjectsService,
-        clipIdentityResolutionService as ClipIdentityResolutionService,
-        brandsService as unknown as BrandsService,
-      ),
       clipIdentityResolutionService as ClipIdentityResolutionService,
-      creditsUtilsService as unknown as CreditsUtilsService,
       hookClipApprovalService as unknown as HookClipApprovalService,
-      clipResultsService as unknown as ClipResultsService,
     );
     handoffsController = new ClipProjectHandoffsController(
       createMockLogger(),
@@ -269,7 +279,7 @@ describe('ClipProjectsController', () => {
     );
 
     await expect(
-      controller.create({} as never, currentUser as never, dto),
+      crudController.create({} as never, currentUser as never, dto),
     ).rejects.toThrow('Brand not found');
 
     expect(clipIdentityResolutionService.resolve).toHaveBeenCalledWith({
@@ -533,6 +543,8 @@ describe('ClipProjectsController', () => {
         settings: expect.objectContaining({ mode: 'avatar' }),
         status: 'generating',
       }),
+      [],
+      organizationId,
     );
     expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -747,6 +759,8 @@ describe('ClipProjectsController', () => {
         progress: 100,
         status: 'failed',
       }),
+      [],
+      organizationId,
     );
     expect(result.status).toBe('failed');
   });

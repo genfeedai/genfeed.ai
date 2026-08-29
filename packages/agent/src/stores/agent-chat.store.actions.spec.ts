@@ -3,6 +3,7 @@ import type {
   AgentInputRequest,
   AgentMemoryEntry,
   AgentProposedPlan,
+  AgentUiAction,
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import {
@@ -89,6 +90,84 @@ describe('agent-chat.store messages and plans', () => {
     expect(state.latestProposedPlan).toEqual(plan);
   });
 
+  it('persists a completed UI action across message row remounts', () => {
+    const action: AgentUiAction = {
+      id: 'brand-voice-card-1',
+      title: 'Brand Voice Draft',
+      type: 'brand_voice_profile_card',
+    };
+    const store = useAgentChatStore.getState();
+    store.setMessages([
+      makeMessage('m-1', { metadata: { uiActions: [action] } }),
+    ]);
+    store.addPendingUiActions([action]);
+
+    useAgentChatStore
+      .getState()
+      .setUiActionStatus('brand-voice-card-1', 'completed');
+
+    const state = useAgentChatStore.getState();
+    expect(state.messages[0]?.metadata?.uiActions?.[0]?.status).toBe(
+      'completed',
+    );
+    expect(state.stream.pendingUiActions[0]?.status).toBe('completed');
+    expect(state.uiActionStatusById['brand-voice-card-1']).toBe('completed');
+  });
+
+  it('retains a completed UI action even after its message is replaced', () => {
+    useAgentChatStore
+      .getState()
+      .setUiActionStatus('brand-voice-card-removed', 'completed');
+
+    expect(
+      useAgentChatStore.getState().uiActionStatusById[
+        'brand-voice-card-removed'
+      ],
+    ).toBe('completed');
+  });
+
+  it('preserves message and stream references when an action id is absent', () => {
+    const store = useAgentChatStore.getState();
+    store.setMessages([makeMessage('m-1')]);
+    store.addPendingUiActions([
+      { id: 'other-action', type: 'completion_summary_card' },
+    ]);
+    const before = useAgentChatStore.getState();
+
+    before.setUiActionStatus('missing-action', 'completed');
+
+    const after = useAgentChatStore.getState();
+    expect(after.messages).toBe(before.messages);
+    expect(after.stream).toBe(before.stream);
+    expect(after.uiActionStatusById['missing-action']).toBe('completed');
+  });
+
+  it('updates matching message actions without replacing an unrelated pending stream', () => {
+    const store = useAgentChatStore.getState();
+    store.setMessages([
+      makeMessage('m-1', {
+        metadata: {
+          uiActions: [
+            { id: 'message-action', type: 'brand_voice_profile_card' },
+          ],
+        },
+      }),
+    ]);
+    store.addPendingUiActions([
+      { id: 'other-action', type: 'completion_summary_card' },
+    ]);
+    const before = useAgentChatStore.getState();
+
+    before.setUiActionStatus('message-action', 'completed');
+
+    const after = useAgentChatStore.getState();
+    expect(after.messages).not.toBe(before.messages);
+    expect(after.messages[0]?.metadata?.uiActions?.[0]?.status).toBe(
+      'completed',
+    );
+    expect(after.stream).toBe(before.stream);
+  });
+
   it('setMessages derives the latest proposed plan from the newest message', () => {
     const older = makePlan('plan-old');
     const newer = makePlan('plan-new');
@@ -159,6 +238,8 @@ describe('agent-chat.store messages and plans', () => {
     store.addMessage(makeMessage('m-1'));
     store.setActiveRun('run-1', { startedAt: '2026-03-26T10:00:00.000Z' });
     store.setDraftPlanModeEnabled(true);
+    store.setError('Previous conversation failed');
+    store.setIsGenerating(true);
     store.setThreadUiBusy('thread-1', true);
     store.setIsLoadingOlderMessages(true);
 
@@ -170,6 +251,8 @@ describe('agent-chat.store messages and plans', () => {
     expect(state.activeRunStatus).toBe('idle');
     expect(state.runStartedAt).toBeNull();
     expect(state.draftPlanModeEnabled).toBe(false);
+    expect(state.error).toBeNull();
+    expect(state.isGenerating).toBe(false);
     expect(state.threadUiBusyById).toEqual({});
     expect(state.hasMoreMessages).toBe(false);
     expect(state.messagesCursor).toBeNull();
@@ -185,6 +268,8 @@ describe('agent-chat.store messages and plans', () => {
       nextCursor: 'cursor-1',
     });
     store.setIsLoadingOlderMessages(true);
+    store.setError('Previous conversation failed');
+    store.setIsGenerating(true);
 
     useAgentChatStore.getState().resetActiveConversationState();
 
@@ -195,6 +280,8 @@ describe('agent-chat.store messages and plans', () => {
     expect(state.hasMoreMessages).toBe(false);
     expect(state.messagesCursor).toBeNull();
     expect(state.isLoadingOlderMessages).toBe(false);
+    expect(state.error).toBeNull();
+    expect(state.isGenerating).toBe(false);
   });
 });
 
@@ -717,6 +804,8 @@ describe('agent-chat.store conversation cache', () => {
     useAgentChatStore.getState().cacheConversation('thread-1');
     useAgentChatStore.getState().resetActiveConversationState();
     expect(useAgentChatStore.getState().messages).toHaveLength(0);
+    useAgentChatStore.getState().setError('Another conversation failed');
+    useAgentChatStore.getState().setIsGenerating(true);
 
     expect(
       useAgentChatStore.getState().restoreCachedConversation('thread-1'),
@@ -729,6 +818,8 @@ describe('agent-chat.store conversation cache', () => {
     expect(state.pendingInputRequest?.inputRequestId).toBe('req-1');
     expect(state.hasMoreMessages).toBe(true);
     expect(state.messagesCursor).toBe('cursor-2');
+    expect(state.error).toBeNull();
+    expect(state.isGenerating).toBe(false);
   });
 
   it('restoreCachedConversation reports a miss without touching state', () => {

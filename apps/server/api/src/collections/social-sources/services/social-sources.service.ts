@@ -8,15 +8,11 @@ import type {
   SocialSourceDocument,
   SocialSourceSyncDocumentResult,
 } from '@api/collections/social-sources/schemas/social-source.schema';
-import type { SourcePostDocument } from '@server/collections/source-posts/schemas/source-post.schema';
-import { SourcePostsService } from '@server/collections/source-posts/services/source-posts.service';
-import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
 import type {
   CollectedSourcePost,
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   parseSocialPostUrl,
   SocialSourcePlatform,
@@ -27,6 +23,10 @@ import type { SocialSourceValidationResult } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import type { SourcePostDocument } from '@server/collections/source-posts/schemas/source-post.schema';
+import { SourcePostsService } from '@server/collections/source-posts/services/source-posts.service';
+import { NotFoundException } from '@server/exceptions/not-found.exception';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 export interface SocialSourcesFeedResult {
   sources: SocialSourceDocument[];
@@ -339,10 +339,16 @@ export class SocialSourcesService {
     }
 
     const collectedPost = collected.posts[0];
+    if (!hasStableCollectedPostIdentifier(collectedPost)) {
+      throw new BadRequestException(
+        'Collected post is missing a stable external identifier',
+      );
+    }
+    const externalId = collectedPost.id.trim();
     const existing = await this.sourcePostsService.findByExternalIdScoped(
       context,
       reference.platform,
-      collectedPost.id,
+      externalId,
     );
 
     // Reuse the existing item's source; fall back to an import container when
@@ -359,10 +365,14 @@ export class SocialSourcesService {
       existingSource ??
       (await this.resolveImportContainer(reference, collectedPost, context));
 
-    const normalized = normalizeCollectedPost(source, collectedPost);
-    const posts = await this.sourcePostsService.upsertCollectedPosts(source, [
-      { ...normalized, sourceUrl: normalized.sourceUrl ?? reference.url },
-    ]);
+    const normalized = normalizeCollectedPost(source, {
+      ...collectedPost,
+      id: externalId,
+    });
+    const { posts } = await this.sourcePostsService.upsertCollectedPosts(
+      source,
+      [{ ...normalized, sourceUrl: normalized.sourceUrl ?? reference.url }],
+    );
 
     this.logger.log('Social post imported', {
       deduplicated: Boolean(existing),
@@ -491,11 +501,16 @@ export class SocialSourcesService {
       const normalizedPosts = collected.posts.map((item) =>
         normalizeCollectedPost(source, item),
       );
-      const posts = await this.sourcePostsService.upsertCollectedPosts(
-        source,
-        normalizedPosts,
-      );
-      const latestPost = collected.posts[0];
+      const { posts, rejectedCount } =
+        await this.sourcePostsService.upsertCollectedPosts(
+          source,
+          normalizedPosts,
+        );
+      const latestPost = posts[0];
+      const rejectedPostMessage =
+        rejectedCount > 0
+          ? `Skipped ${rejectedCount} collected ${rejectedCount === 1 ? 'post' : 'posts'} without a stable external identifier`
+          : null;
       const updatedSource = await this.prisma.socialSource.update({
         data: {
           avatarUrl: latestPost?.authorAvatarUrl ?? source.avatarUrl,
@@ -506,16 +521,18 @@ export class SocialSourcesService {
           externalId: latestPost?.authorId ?? source.externalId,
           followersCount:
             latestPost?.authorFollowersCount ?? source.followersCount,
-          lastPostExternalId: latestPost?.id ?? source.lastPostExternalId,
+          lastPostExternalId:
+            latestPost?.externalId ?? source.lastPostExternalId,
           lastSyncError:
-            posts.length === 0
+            rejectedPostMessage ??
+            (posts.length === 0
               ? 'Sync completed but no posts were collected'
-              : null,
+              : null),
           lastSyncStatus: posts.length === 0 ? 'empty' : 'success',
           lastSyncedAt: new Date(),
           profileUrl: buildProfileUrl(
             source.platform,
-            latestPost?.authorUsername || source.handle,
+            latestPost?.authorHandle || source.handle,
           ),
         },
         where: scopedWhere(source.organizationId, {
@@ -524,7 +541,12 @@ export class SocialSourcesService {
         }),
       });
 
-      return { count: posts.length, posts, source: updatedSource };
+      return {
+        count: posts.length,
+        posts,
+        rejectedCount,
+        source: updatedSource,
+      };
     } catch (error: unknown) {
       const message = (error as Error)?.message ?? 'Failed to sync source';
       this.logger.error('Failed to sync social source', {
@@ -723,4 +745,10 @@ function normalizeCollectedPost(
     thumbnailUrl: item.thumbnailUrl ?? null,
     userId: source.userId,
   };
+}
+
+function hasStableCollectedPostIdentifier(
+  post: CollectedSourcePost | undefined,
+): post is CollectedSourcePost {
+  return typeof post?.id === 'string' && post.id.trim().length > 0;
 }

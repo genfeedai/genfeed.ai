@@ -1,3 +1,5 @@
+import { AgentMessageRole, AgentType } from '@genfeedai/enums';
+import { testId } from '@helpers/testing/test-id.helper';
 import { type AgentMemoryDocument } from '@server/collections/agent-memories/schemas/agent-memory.schema';
 import { type AgentMessageDocument } from '@server/collections/agent-messages/schemas/agent-message.schema';
 import { AgentOrchestratorContextService } from '@server/services/agent-orchestrator/agent-orchestrator-context.service';
@@ -15,8 +17,6 @@ import type {
 import { composeAgentGuardrails } from '@server/services/agent-orchestrator/utils/agent-guardrail-compose.util';
 import { UNTRUSTED_USER_DATA_FRAMING } from '@server/services/agent-orchestrator/utils/agent-untrusted-content.util';
 import type { OpenRouterMessage } from '@server/services/integrations/openrouter/dto/openrouter.dto';
-import { AgentMessageRole, AgentType } from '@genfeedai/enums';
-import { testId } from '@helpers/testing/test-id.helper';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const ONBOARDING_REQUEST: AgentChatRequest = {
@@ -496,4 +496,22 @@ describe('AgentOrchestratorContextService jailbreak hardening', () => {
       String(history[0]?.content).split(AGENT_JAILBREAK_HARDENING),
     ).toHaveLength(2);
   });
+});
+
+describe('AgentOrchestratorContextService generation mode', () => {
+  it.each([
+    ['image', 'generationType=image', 'Do not choose video'],
+    ['video', 'generationType=video', 'Do not choose image'],
+  ] as const)(
+    'adds the explicit %s mode to the orchestration prompt',
+    async (generationMode, expectedType, oppositeGuard) => {
+      const result = await createService().resolveSystemPromptAndModel(
+        { content: 'Make a launch asset', generationMode },
+        CONTEXT,
+      );
+
+      expect(result.systemPrompt).toContain(expectedType);
+      expect(result.systemPrompt).toContain(oppositeGuard);
+    },
+  );
 });

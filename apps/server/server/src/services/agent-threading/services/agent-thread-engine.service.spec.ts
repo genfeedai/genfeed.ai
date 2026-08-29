@@ -20,15 +20,15 @@ vi.mock(
   }),
 );
 
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
 import { AgentMemoriesService } from '@server/collections/agent-memories/services/agent-memories.service';
 import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { AgentRuntimeSessionService } from '@server/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadProjectorService } from '@server/services/agent-threading/services/agent-thread-projector.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 import { Effect } from 'effect';
 
 import { AgentThreadEngineService } from './agent-thread-engine.service';
@@ -294,6 +294,24 @@ describe('AgentThreadEngineService', () => {
 
   // ── getSnapshot ───────────────────────────────────────────────────────────────
   describe('getSnapshot', () => {
+    it('accepts an opaque Better Auth user id when scoping thread access', async () => {
+      const legacyUserId = 'Ia5LDdyqVLQPVNE2oKjknCVuP2ti8LoQ';
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(
+        mockSnapshotRow,
+      );
+
+      await service.getSnapshot(threadId, orgId, legacyUserId);
+
+      expect(agentThreadsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: threadId,
+          isDeleted: false,
+          organizationId: orgId,
+          userId: legacyUserId,
+        }),
+      );
+    });
+
     it('exposes an Effect-based snapshot path', async () => {
       mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(
         mockSnapshotRow,

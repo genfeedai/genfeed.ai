@@ -392,6 +392,7 @@ function AppSwitcherGridItem({
   href,
   navigationAnnouncement,
   onNavigateStart,
+  onPreviewChange,
 }: {
   app: LifecycleAppSwitcherItemConfig;
   isActive: boolean;
@@ -399,6 +400,7 @@ function AppSwitcherGridItem({
   href: string;
   navigationAnnouncement?: string;
   onNavigateStart: (announcement?: string) => void;
+  onPreviewChange: (app: LifecycleAppSwitcherItemConfig | null) => void;
 }) {
   const Icon = APP_SWITCHER_ICON_OVERRIDES[app.itemKey] ?? app.icon;
 
@@ -413,6 +415,8 @@ function AppSwitcherGridItem({
             : undefined
         }
         onClick={() => onNavigateStart(navigationAnnouncement)}
+        onFocus={() => onPreviewChange(app)}
+        onMouseEnter={() => onPreviewChange(app)}
         className={cn(
           'group grid min-h-[4.5rem] min-w-0 grid-rows-[2.25rem_1.125rem] place-items-center gap-1 rounded-lg px-1 py-1.5 text-center outline-none',
           'border-transparent !bg-transparent !shadow-none !ring-0 !ring-offset-0',
@@ -466,6 +470,7 @@ export function AppSwitcher({
   const appSwitcherVisibility = useAppSwitcherVisibility();
   const preventTriggerAutoFocusRef = useRef(false);
   const [navigationAnnouncement, setNavigationAnnouncement] = useState('');
+  const [previewAppKey, setPreviewAppKey] = useState<string | null>(null);
 
   function getRouteBrandSlug(app: AppSwitcherItemConfig) {
     if (app.id === 'agent') {
@@ -543,6 +548,17 @@ export function AppSwitcher({
     currentPath,
   });
   const activeApp = apps.find((app) => app.itemKey === activeItemKey);
+  const previewApp = apps.find((app) => app.itemKey === previewAppKey) ?? null;
+  const previewRowIndex = previewApp
+    ? Math.floor(
+        apps.findIndex((app) => app.itemKey === previewApp.itemKey) / 3,
+      )
+    : 0;
+  // 44px header + 10px grid padding, then 72px rows separated by 4px.
+  const previewRowTop = 54 + previewRowIndex * 76;
+  const PreviewIcon = previewApp
+    ? (APP_SWITCHER_ICON_OVERRIDES[previewApp.itemKey] ?? previewApp.icon)
+    : null;
   const ActiveIcon = activeApp?.icon ?? LayoutGrid;
   const activeLabel = activeApp?.label ?? 'Apps';
   const tenantLabel = humanizeSlug(brandSlug || orgSlug);
@@ -554,7 +570,14 @@ export function AppSwitcher({
   }
 
   return (
-    <DropdownMenu modal={false}>
+    <DropdownMenu
+      modal={false}
+      onOpenChange={(open) => {
+        if (!open) {
+          setPreviewAppKey(null);
+        }
+      }}
+    >
       <DropdownMenuTrigger asChild>
         {variant === 'labeled' ? (
           <Button
@@ -585,7 +608,11 @@ export function AppSwitcher({
       <DropdownMenuContent
         align="end"
         sideOffset={8}
-        className="max-h-[min(80vh,30rem)] w-[calc(100vw-2rem)] overflow-y-auto p-0 sm:w-[19rem]"
+        collisionPadding={16}
+        className={cn(
+          'w-[calc(100vw-2rem)] overflow-visible bg-transparent p-0 shadow-none sm:w-[19rem]',
+          previewApp && 'sm:w-[35rem]',
+        )}
         onCloseAutoFocus={(event) => {
           if (!preventTriggerAutoFocusRef.current) {
             return;
@@ -595,44 +622,90 @@ export function AppSwitcher({
           preventTriggerAutoFocusRef.current = false;
         }}
       >
-        <div className="flex min-h-11 items-center justify-between gap-3 border-b border-border px-3 py-2">
-          <div className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/52">
-            Apps
-          </div>
-          <div className="min-w-0 truncate text-sm font-semibold text-foreground/58">
-            {tenantLabel}
-          </div>
-        </div>
-
         <div
-          className="grid grid-cols-3 gap-1 px-2.5 py-2.5"
-          role="group"
-          aria-label="Apps"
+          className={cn(
+            'relative grid max-h-[min(80vh,30rem)]',
+            previewApp && 'sm:grid-cols-[16rem_19rem]',
+          )}
         >
-          {apps.map((app) => {
-            const navigation = resolveAppNavigation(app);
-
-            return (
-              <AppSwitcherGridItem
-                key={app.itemKey}
-                app={app}
-                isActive={app.itemKey === activeItemKey}
-                isLocked={isAppLocked(app)}
-                href={navigation.href}
-                navigationAnnouncement={navigation.announcement}
-                onNavigateStart={handleNavigateStart}
-              />
-            );
-          })}
-        </div>
-
-        <div className="sr-only" aria-live="polite">
-          {activeApp ? (
-            <>
-              Current app:
-              <span className="truncate">{activeLabel}</span>
-            </>
+          {previewApp ? (
+            <div className="relative hidden min-h-0 sm:block">
+              {PreviewIcon ? (
+                <div
+                  aria-label={`${previewApp.label}: ${previewApp.description}`}
+                  aria-live="polite"
+                  className="pointer-events-none absolute left-0 -right-px z-20 flex h-[4.5rem] items-center gap-2.5 rounded-l-md bg-secondary px-3 font-normal shadow-dropdown after:absolute after:inset-y-px after:-right-px after:w-1 after:bg-secondary"
+                  role="status"
+                  style={{ top: previewRowTop }}
+                >
+                  <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-background-secondary text-foreground">
+                    <PreviewIcon
+                      aria-hidden="true"
+                      className="size-[1.125rem]"
+                    />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-foreground">
+                      {previewApp.label}
+                    </span>
+                    <span className="mt-0.5 block text-xs leading-4 text-muted-foreground">
+                      {previewApp.description}
+                    </span>
+                  </span>
+                </div>
+              ) : null}
+            </div>
           ) : null}
+          <div className="relative z-10 min-h-0 overflow-y-auto rounded-md bg-secondary shadow-dropdown">
+            <div className="flex min-h-11 items-center justify-between gap-3 border-b border-border px-3 py-2">
+              <div className="text-2xs font-bold uppercase tracking-[0.16em] text-foreground/52">
+                Apps
+              </div>
+              <div className="min-w-0 truncate text-sm font-semibold text-foreground/58">
+                {tenantLabel}
+              </div>
+            </div>
+
+            <div
+              className="grid grid-cols-3 gap-1 px-2.5 py-2.5"
+              role="group"
+              aria-label="Apps"
+              onBlurCapture={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  setPreviewAppKey(null);
+                }
+              }}
+              onMouseLeave={() => setPreviewAppKey(null)}
+            >
+              {apps.map((app) => {
+                const navigation = resolveAppNavigation(app);
+
+                return (
+                  <AppSwitcherGridItem
+                    key={app.itemKey}
+                    app={app}
+                    isActive={app.itemKey === activeItemKey}
+                    isLocked={isAppLocked(app)}
+                    href={navigation.href}
+                    navigationAnnouncement={navigation.announcement}
+                    onNavigateStart={handleNavigateStart}
+                    onPreviewChange={(preview) =>
+                      setPreviewAppKey(preview?.itemKey ?? null)
+                    }
+                  />
+                );
+              })}
+            </div>
+
+            <div className="sr-only" aria-live="polite">
+              {activeApp ? (
+                <>
+                  Current app:
+                  <span className="truncate">{activeLabel}</span>
+                </>
+              ) : null}
+            </div>
+          </div>
         </div>
       </DropdownMenuContent>
       <span aria-live="polite" className="sr-only" role="status">

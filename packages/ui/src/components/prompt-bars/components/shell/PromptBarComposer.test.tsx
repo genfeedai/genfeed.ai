@@ -11,7 +11,9 @@ describe('PromptBarComposer', () => {
     );
 
     expect(screen.getByTestId('prompt-bar-composer')).toHaveClass(
-      'rounded-2xl',
+      'rounded-[var(--radius-workspace-composer)]',
+      'bg-background/70',
+      'shadow-composer',
       'backdrop-blur-xl',
     );
     expect(screen.getByText('References')).toBeInTheDocument();

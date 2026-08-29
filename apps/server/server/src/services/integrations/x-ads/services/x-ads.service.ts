@@ -22,7 +22,7 @@ import type {
   XAdsRequestCredentials,
   XAdsTweet,
 } from '@server/services/integrations/x-ads/interfaces/x-ads.interface';
-import { XAdsOAuthService } from '@server/services/integrations/x-ads/services/x-ads-oauth.service';
+import { XAdsOAuthService } from './x-ads-oauth.service';
 
 type XAdsReportingEntity = 'CAMPAIGN' | 'LINE_ITEM' | 'PROMOTED_TWEET';
 const X_ADS_STATS_MAX_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;

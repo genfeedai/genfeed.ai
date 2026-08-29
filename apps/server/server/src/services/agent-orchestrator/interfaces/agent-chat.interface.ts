@@ -35,6 +35,15 @@ export interface AgentPageContext {
   url?: string;
 }
 
+export type AgentGenerationMode = 'auto' | 'image' | 'video';
+
+export interface AgentGenerationSettings {
+  aspectRatio: string;
+  duration?: number;
+  model?: string;
+  outputs?: number;
+}
+
 export interface AgentChatRequest {
   agentType?: AgentType;
   artifactReferences?: AgentArtifactReference[];
@@ -43,6 +52,7 @@ export interface AgentChatRequest {
   clientRequestId?: string;
   content: string;
   expectedContextVersion?: number;
+  generationMode?: AgentGenerationMode;
   pageContext?: AgentPageContext;
   planModeEnabled?: boolean;
   threadId?: string;
@@ -77,6 +87,10 @@ export interface AgentChatContext {
    * before it reaches this context or `body.prioritize`.
    */
   generationPriority?: RouterPriority;
+  /** Per-turn media routing selected by the operator. */
+  generationMode?: AgentGenerationMode;
+  /** Validated media settings selected in the conversation composer. */
+  generationSettings?: AgentGenerationSettings;
   organizationId: string;
   /** Resolved runtime skills for tool set augmentation */
   resolvedSkills?: ResolvedRuntimeSkill[];

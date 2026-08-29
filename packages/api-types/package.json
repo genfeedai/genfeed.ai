@@ -42,7 +42,7 @@
     "prepublishOnly": "bun run build",
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",
-    "type-check": "tsc --noEmit",
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit",
     "verify:compiled-contracts": "bun run scripts/verify-compiled-contracts.ts"
   },
   "sideEffects": false,

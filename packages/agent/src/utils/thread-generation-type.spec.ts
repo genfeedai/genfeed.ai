@@ -19,7 +19,7 @@ function message(
 }
 
 describe('resolveThreadGenerationType', () => {
-  it('locks to the earliest generation card even when messages arrive newest-first', () => {
+  it('uses the latest generation card when an explicit mode changes the thread', () => {
     const locked = resolveThreadGenerationType([
       message('newer-video', '2026-08-19T08:43:00.000Z', [
         {
@@ -39,7 +39,7 @@ describe('resolveThreadGenerationType', () => {
       ]),
     ]);
 
-    expect(locked).toBe('image');
+    expect(locked).toBe('video');
   });
 
   it('ignores generation cards from another thread', () => {

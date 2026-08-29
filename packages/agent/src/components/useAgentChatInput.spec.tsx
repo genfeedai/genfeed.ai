@@ -189,6 +189,111 @@ describe('useAgentChatInput voice exclusivity', () => {
   });
 });
 
+describe('useAgentChatInput generation mode', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  it('sends the selected generation mode with the turn', async () => {
+    const onSend = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useAgentChatInput({
+          generationMode: 'video',
+          generationSettings: {
+            aspectRatio: '9:16',
+            duration: 5,
+            model: 'replicate/video-model',
+          },
+          onSend,
+        }),
+      { wrapper: Wrapper },
+    );
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+    act(() => {
+      result.current.editor?.commands.setContent('Create a launch reel');
+    });
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    expect(onSend).toHaveBeenCalledWith(
+      'Create a launch reel',
+      undefined,
+      undefined,
+      expect.objectContaining({
+        generationMode: 'video',
+        generationSettings: {
+          aspectRatio: '9:16',
+          duration: 5,
+          model: 'replicate/video-model',
+        },
+      }),
+    );
+  });
+
+  it('removes restored brand tags while preserving route brand scope', async () => {
+    writeConversationComposerDocument(
+      draftScopeKey,
+      {
+        content: [
+          {
+            content: [
+              {
+                attrs: { id: 'brand-1', label: 'Acme' },
+                type: 'brandMention',
+              },
+            ],
+            type: 'paragraph',
+          },
+        ],
+        type: 'doc',
+      },
+      '#undefined',
+    );
+    const onSend = vi.fn();
+    const BrandScopedWrapper = ({ children }: { children: ReactNode }) => (
+      <ConversationComposerShellProvider
+        brandId="brand-1"
+        contextLabel="Acme"
+        draftScopeKey={draftScopeKey}
+        portalTarget={null}
+        shellState="canvas"
+      >
+        {children}
+      </ConversationComposerShellProvider>
+    );
+
+    const { result } = renderHook(() => useAgentChatInput({ onSend }), {
+      wrapper: BrandScopedWrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+      expect(result.current.editor?.getText()).toBe('');
+    });
+    expect(result.current.references).toEqual([]);
+
+    act(() => {
+      result.current.editor?.commands.setContent('Create a launch image');
+    });
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    expect(onSend).toHaveBeenCalledWith(
+      'Create a launch image',
+      undefined,
+      undefined,
+      expect.objectContaining({ brandId: 'brand-1' }),
+    );
+  });
+});
+
 describe('useAgentChatInput references', () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -200,4 +200,27 @@ describe('StudioGenerateInspector', () => {
     expect(screen.getByText(/Style: cinematic/)).toBeVisible();
     expect(screen.getByText(/Mood: serene/)).toBeVisible();
   });
+
+  it('shows the complete stored prompt when no structured recipe exists', () => {
+    const prompt =
+      'A long, detailed generation prompt with lighting, composition, texture, subject placement, and background instructions.';
+
+    render(
+      <StudioGenerateInspector
+        job={{
+          createdAt: 1,
+          id: 'job-without-recipe',
+          prompt,
+          status: IngredientStatus.GENERATED,
+          type: 'image',
+        }}
+        onClose={vi.fn()}
+        onSelect={vi.fn()}
+        onVary={vi.fn()}
+        runJobs={[]}
+      />,
+    );
+
+    expect(screen.getByText(prompt)).toBeVisible();
+  });
 });

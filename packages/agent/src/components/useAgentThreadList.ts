@@ -25,6 +25,7 @@ interface UseAgentThreadListParams {
    */
   brandId?: string | null;
   onNavigate?: (path: string) => void;
+  resolveThreadHref?: (thread: AgentThread) => string;
 }
 
 export function useAgentThreadList({
@@ -32,6 +33,7 @@ export function useAgentThreadList({
   isActive,
   brandId = null,
   onNavigate,
+  resolveThreadHref,
 }: UseAgentThreadListParams) {
   const threads = useAgentChatStore((s) => s.threads);
   const setThreads = useAgentChatStore((s) => s.setThreads);
@@ -52,6 +54,10 @@ export function useAgentThreadList({
   );
   const clearConversationCache = useAgentChatStore(
     (s) => s.clearConversationCache,
+  );
+  const cacheConversation = useAgentChatStore((s) => s.cacheConversation);
+  const restoreCachedConversation = useAgentChatStore(
+    (s) => s.restoreCachedConversation,
   );
   const isStreaming = useAgentChatStore((s) => s.stream.isStreaming);
 
@@ -86,8 +92,9 @@ export function useAgentThreadList({
   });
 
   const getThreadHref = useCallback(
-    (threadId: string) => `${APP_ROUTES.AGENT.ROOT}/${threadId}`,
-    [],
+    (thread: AgentThread) =>
+      resolveThreadHref?.(thread) ?? `${APP_ROUTES.AGENT.ROOT}/${thread.id}`,
+    [resolveThreadHref],
   );
   const getNewThreadHref = useCallback(() => APP_ROUTES.AGENT.NEW, []);
 
@@ -348,15 +355,27 @@ export function useAgentThreadList({
         return;
       }
 
+      if (onNavigate) {
+        // The persistent Agent shell renders from the shared store, while
+        // `router.push` cannot update its route prop until the RSC response
+        // commits. Paint a prefetched/cached target immediately so a warm
+        // thread switch is not held hostage by that network round trip.
+        const currentActiveThreadId =
+          useAgentChatStore.getState().activeThreadId;
+        if (currentActiveThreadId) {
+          cacheConversation(currentActiveThreadId);
+        }
+        if (restoreCachedConversation(thread.id)) {
+          setActiveThread(thread.id);
+        }
+        onNavigate(getThreadHref(thread));
+        return;
+      }
+
       setActiveThread(thread.id);
 
       abortRef.current?.abort();
       abortRef.current = new AbortController();
-
-      if (onNavigate) {
-        onNavigate(getThreadHref(thread.id));
-        return;
-      }
 
       setMessages([]);
       setWorkEvents([]);
@@ -399,6 +418,7 @@ export function useAgentThreadList({
     [
       activeThreadId,
       apiService,
+      cacheConversation,
       clearThreadAttention,
       getThreadHref,
       onNavigate,
@@ -409,6 +429,7 @@ export function useAgentThreadList({
       setMessages,
       setWorkEvents,
       resetStreamState,
+      restoreCachedConversation,
     ],
   );
 
@@ -493,7 +514,7 @@ export function useAgentThreadList({
         );
 
         if (onNavigate) {
-          onNavigate(getThreadHref(branchedThread.id));
+          onNavigate(getThreadHref(branchedThread));
           return;
         }
 

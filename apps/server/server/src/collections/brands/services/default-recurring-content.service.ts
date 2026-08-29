@@ -449,14 +449,11 @@ export class DefaultRecurringContentService {
     tx: PrismaTransactionClient;
     userId: string;
   }): Promise<void> {
-    const brandId = String(
-      params.brand.id ?? (params.brand as Record<string, unknown>).id,
-    );
-    const brandRecord = params.brand as unknown as Record<string, unknown>;
-    const scheduleConfig = this.resolveScheduleConfig(brandRecord.agentConfig);
+    const brandId = params.brand.id;
+    const scheduleConfig = this.resolveScheduleConfig(params.brand.agentConfig);
 
     const workflowLabel = this.buildWorkflowLabel(
-      params.brand.label as unknown as string,
+      params.brand.label,
       params.contentType,
     );
     const workflowDescription = this.buildWorkflowDescription(
@@ -504,7 +501,7 @@ export class DefaultRecurringContentService {
             data: {
               config: this.buildNodeConfig({
                 brandId,
-                brandLabel: params.brand.label as unknown as string,
+                brandLabel: params.brand.label,
                 contentType: params.contentType,
                 credentialId: params.credentialId ?? undefined,
                 timezone: scheduleConfig.timezone,
@@ -557,7 +554,6 @@ export class DefaultRecurringContentService {
           prompt: `Create the next daily newsletter issue for ${params.brandLabel}.`,
         };
       case 'image':
-      default:
         return {
           ...sharedConfig,
           model: 'genfeed-ai/flux2-dev',
@@ -574,7 +570,6 @@ export class DefaultRecurringContentService {
       case 'newsletter':
         return 'Generate Newsletter';
       case 'image':
-      default:
         return 'Generate Image';
     }
   }
@@ -586,7 +581,6 @@ export class DefaultRecurringContentService {
       case 'newsletter':
         return 'ai-generate-newsletter';
       case 'image':
-      default:
         return 'ai-generate-image';
     }
   }
@@ -601,7 +595,6 @@ export class DefaultRecurringContentService {
       case 'newsletter':
         return `Daily newsletter for ${brandLabel}`;
       case 'image':
-      default:
         return `Daily images for ${brandLabel}`;
     }
   }

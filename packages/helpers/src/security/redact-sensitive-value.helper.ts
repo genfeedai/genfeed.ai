@@ -3,6 +3,9 @@ export const REDACTED_VALUE = '[REDACTED]';
 const SENSITIVE_KEY_PATTERN =
   /(^|[_-])(access[_-]?token|api[_-]?key|authorization|bearer|client[_-]?secret|cookie|id[_-]?token|password|private[_-]?key|refresh[_-]?token|secret|session|token)([_-]|$)/i;
 
+const SENSITIVE_CAMEL_CASE_KEY_PATTERN =
+  /(authorization|cookie|password|secret|token|privateKey|apiKey|codeVerifier)(hash|encrypted|ciphertext|value)?$/i;
+
 const SENSITIVE_QUERY_PARAM_PATTERN =
   /([?&][^=&#]*(?:access[_-]?token|api[_-]?key|client[_-]?secret|id[_-]?token|password|refresh[_-]?token|secret|session|token)[^=&#]*=)[^&#]*/gi;
 
@@ -17,6 +20,13 @@ const PRIVATE_KEY_MARKER_SUFFIX = 'PRIVATE KEY-----';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isSensitiveKey(key: string): boolean {
+  return (
+    SENSITIVE_KEY_PATTERN.test(key) ||
+    SENSITIVE_CAMEL_CASE_KEY_PATTERN.test(key)
+  );
 }
 
 function isPrivateKeyMarkerCharacter(character: string): boolean {
@@ -185,9 +195,7 @@ export function redactSensitiveValue(value: unknown): unknown {
   return Object.fromEntries(
     Object.entries(value).map(([key, entry]) => [
       key,
-      SENSITIVE_KEY_PATTERN.test(key)
-        ? REDACTED_VALUE
-        : redactSensitiveValue(entry),
+      isSensitiveKey(key) ? REDACTED_VALUE : redactSensitiveValue(entry),
     ]),
   );
 }

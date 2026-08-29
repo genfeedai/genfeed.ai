@@ -67,6 +67,7 @@ export function buildModelsTableColumns({
     {
       header: 'Label',
       key: 'label',
+      sortable: true,
       render: (model: IModel) => (
         <Button
           variant={ButtonVariant.UNSTYLED}
@@ -84,14 +85,21 @@ export function buildModelsTableColumns({
       className: 'truncate max-w-40',
       header: 'Description',
       key: 'description',
+      sortable: true,
       render: (model: IModel) => model.description || '-',
     },
     ...(isAdminScope
       ? [
-          { className: 'font-mono text-sm', header: 'Key', key: 'key' },
+          {
+            className: 'font-mono text-sm',
+            header: 'Key',
+            key: 'key',
+            sortable: true,
+          },
           {
             header: 'Provider',
             key: 'provider',
+            sortable: true,
             render: (model: IModel) => (
               <Badge
                 className={`text-xs uppercase ${model.providerBadgeClass}`}
@@ -107,6 +115,7 @@ export function buildModelsTableColumns({
           {
             header: 'Registry',
             key: 'reviewStatus',
+            sortable: true,
             render: (model: IModel) => {
               const status = getRegistryStatus(model);
               return (
@@ -121,6 +130,7 @@ export function buildModelsTableColumns({
     {
       header: 'Category',
       key: 'category',
+      sortable: true,
       render: (model: IModel) => (
         <Badge className={`text-xs uppercase ${model.categoryBadgeClass}`}>
           {model.category}
@@ -130,6 +140,7 @@ export function buildModelsTableColumns({
     {
       header: 'Quality',
       key: 'qualityTier',
+      sortable: true,
       render: (model: IModel) =>
         model.qualityTier ? (
           <ModelSelectorQualityBar qualityTier={model.qualityTier} />
@@ -140,6 +151,7 @@ export function buildModelsTableColumns({
     {
       header: 'Cost',
       key: 'costTier',
+      sortable: true,
       render: (model: IModel) =>
         model.costTier ? (
           <ModelSelectorCostBadge costTier={model.costTier} />
@@ -152,6 +164,7 @@ export function buildModelsTableColumns({
           {
             header: 'Active',
             key: 'isActive',
+            sortable: true,
             render: (model: IModel) => (
               <Switch
                 isChecked={model.isActive}
@@ -167,6 +180,7 @@ export function buildModelsTableColumns({
           {
             header: 'Default',
             key: 'isDefault',
+            sortable: true,
             render: (model: IModel) => (
               <Switch
                 isChecked={model.isDefault}

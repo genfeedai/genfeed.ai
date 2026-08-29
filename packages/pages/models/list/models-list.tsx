@@ -38,6 +38,8 @@ export default function ModelsList({
     isLoading,
     columns,
     filteredModels,
+    sortKey,
+    sortDirection,
     selectedModel,
     setSelectedModel,
     refresh,
@@ -46,6 +48,7 @@ export default function ModelsList({
     handleApproveRegistryModel,
     handleRejectRegistryModel,
     handleMarkRegistryModelLegacy,
+    handleSortChange,
     openConfirm,
   } = useModelsList({
     type,
@@ -171,6 +174,9 @@ export default function ModelsList({
           />
         }
         items={filteredModels}
+        sortKey={sortKey}
+        sortDirection={sortDirection}
+        onSortChange={handleSortChange}
       />
 
       {/* Model details modal - view mode for non-admin, edit mode for admin */}

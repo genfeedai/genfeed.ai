@@ -190,5 +190,27 @@ describe('CreditDeductionQueueService', () => {
         'Redis connection lost',
       );
     });
+
+    it('uses a deterministic BYOK job ID when an idempotency key is supplied', async () => {
+      const jobData: CreditDeductionJobData = {
+        amount: 7,
+        description: 'Bot media generation',
+        idempotencyKey: 'bot-media-image-1',
+        organizationId: 'org-789',
+        source: ActivitySource.BOT_GENERATION,
+        type: 'record-byok-usage',
+        userId: 'user-1',
+      };
+
+      await service.queueByokUsage(jobData);
+
+      expect(queue.add).toHaveBeenCalledWith(
+        'record-byok-usage',
+        jobData,
+        expect.objectContaining({
+          jobId: 'byok-usage-org-789-bot-media-image-1',
+        }),
+      );
+    });
   });
 });

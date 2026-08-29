@@ -3,7 +3,7 @@
     "next": "16.3.3",
     "nextra": "4.6.1",
     "nextra-theme-docs": "4.6.1",
-    "posthog-js": "1.419.4",
+    "posthog-js": "1.422.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "swagger-ui-react": "5.32.14"
@@ -27,7 +27,7 @@
     "lint": "biome check app components content lib tests instrumentation-client.ts mdx-components.tsx next.config.mjs vitest.config.ts package.json tsconfig.json types styles README.md",
     "start": "next start",
     "test": "vitest run --config vitest.config.ts",
-    "type-check": "tsc --noEmit",
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit",
     "dev:process": "bun run ../../scripts/dev/run-service.ts docs -- next dev --turbopack",
     "dev:debug": "bun run dev:process"
   },

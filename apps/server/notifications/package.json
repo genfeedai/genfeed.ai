@@ -1,9 +1,10 @@
 {
   "dependencies": {
+    "@genfeedai/libs": "workspace:*",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
-    "@slack/web-api": "8.0.0",
+    "@slack/web-api": "8.1.1",
     "jose": "^6.2.10",
     "node-pty": "1.1.0",
     "tsconfig-paths": "4.2.0"
@@ -32,7 +33,7 @@
     "test:cov": "vitest run --coverage --config vitest.config.ts",
     "test:e2e": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",
-    "type-check": "tsc --noEmit -p tsconfig.typecheck.json",
+    "type-check": "bun run ../../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit -p tsconfig.typecheck.json",
     "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
     "dev:process": "NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" bun run ../../../scripts/dev/run-service.ts notifications -- bun run ../../../scripts/dev/nest-fast-dev.ts notifications",
     "dev:debug": "bun run dev:process"

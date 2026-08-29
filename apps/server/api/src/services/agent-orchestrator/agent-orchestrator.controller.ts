@@ -1,16 +1,5 @@
-import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
-import { CreateAgentGoalDto } from '@server/collections/agent-goals/dto/create-agent-goal.dto';
-import { UpdateAgentGoalDto } from '@server/collections/agent-goals/dto/update-agent-goal.dto';
-import { AgentGoalsService } from '@server/collections/agent-goals/services/agent-goals.service';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { SocialInboxService } from '@server/collections/social-inbox/services/social-inbox.service';
-import { UsersService } from '@server/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
-import { AgentChatModelRegistryService } from '@server/services/agent-orchestrator/agent-chat-model-registry.service';
-import { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentChatBodyDto } from '@api/services/agent-orchestrator/dto/agent-chat-body.dto';
-import type { AgentPageContext } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import {
   authorizeResearchFindingReferences,
   isAuthorizedAnalyticsQueryReference,
@@ -32,6 +21,17 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { AuthenticatedUser as User } from '@server/auth/interfaces/authenticated-user.interface';
+import { CreateAgentGoalDto } from '@server/collections/agent-goals/dto/create-agent-goal.dto';
+import { UpdateAgentGoalDto } from '@server/collections/agent-goals/dto/update-agent-goal.dto';
+import { AgentGoalsService } from '@server/collections/agent-goals/services/agent-goals.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { SocialInboxService } from '@server/collections/social-inbox/services/social-inbox.service';
+import { UsersService } from '@server/collections/users/services/users.service';
+import { ErrorResponse } from '@server/helpers/utils/error-response/error-response.util';
+import { AgentChatModelRegistryService } from '@server/services/agent-orchestrator/agent-chat-model-registry.service';
+import { AgentOrchestratorService } from '@server/services/agent-orchestrator/agent-orchestrator.service';
+import type { AgentPageContext } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 
 @ApiTags('Agent')
 @Controller('agent')
@@ -184,6 +184,7 @@ export class AgentOrchestratorController {
       clientRequestId: body.clientRequestId,
       content: body.content,
       expectedContextVersion: body.expectedContextVersion,
+      generationMode: body.generationMode,
       model: body.model,
       pageContext,
       planModeEnabled: body.planModeEnabled,

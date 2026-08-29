@@ -67,7 +67,7 @@ export default function HomeFormats(): React.ReactElement {
   return (
     <section
       id="formats"
-      className="gen-section-spacing-lg border-b border-edge/5"
+      className="gen-section-spacing border-b border-edge/5"
     >
       <div className="container mx-auto px-6">
         <div className="mb-12 grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(320px,0.55fr)] lg:items-end">

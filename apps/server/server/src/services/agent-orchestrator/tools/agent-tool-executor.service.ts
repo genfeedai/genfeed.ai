@@ -21,6 +21,10 @@ import {
   type ApiKeyPublishingContext,
   assertApiKeyAgentPublishingScope as assertScope,
 } from '@server/helpers/utils/auth/api-key-publishing-scope.util';
+import type {
+  AgentGenerationMode,
+  AgentGenerationSettings,
+} from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentAdsResearchToolHandler } from '@server/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@server/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
 import { AgentBrandContentToolHandler } from '@server/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
@@ -62,6 +66,8 @@ export interface ToolExecutionContext {
   authToken?: string;
   /** Router request vocabulary — map the persisted setting with `toRouterPriority`. */
   generationPriority?: RouterPriority;
+  generationMode?: AgentGenerationMode;
+  generationSettings?: AgentGenerationSettings;
   qualityTier?: 'budget' | 'balanced' | 'high_quality';
   thinkingModel?: string;
   generationModelOverride?: string | null;

@@ -1,3 +1,7 @@
+import { toPrismaJson } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { AgentMemoriesService } from '@server/collections/agent-memories/services/agent-memories.service';
 import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
@@ -18,10 +22,6 @@ import { AgentThreadProjectorService } from '@server/services/agent-threading/se
 import { ThreadContextCompressorService } from '@server/services/agent-threading/services/thread-context-compressor.service';
 import { AgentThreadEventType } from '@server/services/agent-threading/types/agent-thread.types';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
-import { toPrismaJson } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
 
 export interface AppendAgentThreadEventParams {
@@ -644,7 +644,11 @@ export class AgentThreadEngineService {
     };
 
     if (userId) {
-      if (!EntityIdUtil.isValid(userId)) {
+      // Better Auth user ids are canonical opaque identifiers. Legacy
+      // accounts use base62 values while newer accounts may use UUIDs, so
+      // ownership must be enforced by the scoped query rather than an entity
+      // id shape check.
+      if (userId.trim() === '') {
         throw new BadRequestException('Invalid userId');
       }
       query.userId = userId;

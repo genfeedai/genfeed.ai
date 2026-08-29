@@ -34,6 +34,21 @@ import type {
 } from '@server/services/integrations/openrouter/dto/openrouter.dto';
 
 const RESULT_SUMMARY_MAX_LENGTH = 500;
+const TERMINAL_RESULT_TOOLS = new Set<AgentToolName>([
+  AgentToolName.GENERATE_IMAGE,
+  AgentToolName.GENERATE_VIDEO,
+  AgentToolName.SUGGEST_INGREDIENT_ALTERNATIVES,
+]);
+
+function getTerminalToolContent(toolName: AgentToolName): string {
+  if (toolName === AgentToolName.SUGGEST_INGREDIENT_ALTERNATIVES) {
+    return 'Here are the ingredient alternatives.';
+  }
+  if (toolName === AgentToolName.GENERATE_VIDEO) {
+    return 'Video generation accepted.';
+  }
+  return 'Image generation accepted.';
+}
 
 export type AgentToolRoundRiskLevel = 'low' | 'medium' | 'high';
 
@@ -144,6 +159,8 @@ export type ExecuteToolRoundParams = {
 
 export type ExecuteToolRoundResult = {
   isCancelled: boolean;
+  terminalContent?: string;
+  terminalToolName?: AgentToolName;
 };
 
 function summarizeToolResult(result: {
@@ -239,6 +256,7 @@ export class AgentTurnRoundRunnerService {
       role: 'assistant' as const,
       tool_calls: toolCalls,
     });
+    let terminalToolName: AgentToolName | undefined;
 
     for (const toolCall of toolCalls) {
       if (strategy.onBeforeTool) {
@@ -273,9 +291,12 @@ export class AgentTurnRoundRunnerService {
         const recoveredToolName = this.getGenerationPreparationRedirect(
           rawRequestedToolName,
           allowedToolNames,
+          context.generationMode,
+          toolParams.generationType,
         );
 
         if (recoveredToolName) {
+          allowedToolNames.add(recoveredToolName);
           toolName = recoveredToolName;
           toolParams = this.buildUnknownToolRecoveryParams(
             rawRequestedToolName,
@@ -350,8 +371,11 @@ export class AgentTurnRoundRunnerService {
       const directGenerationOverride = this.getGenerationPreparationRedirect(
         toolName,
         allowedToolNames,
+        context.generationMode,
+        toolParams.generationType,
       );
       if (directGenerationOverride) {
+        allowedToolNames.add(directGenerationOverride);
         const originalToolName = toolName;
         toolName = directGenerationOverride;
         toolParams = this.buildUnknownToolRecoveryParams(
@@ -500,7 +524,9 @@ export class AgentTurnRoundRunnerService {
           brandId: policy.brandId,
           creditGovernance: policy.creditGovernance,
           generationModelOverride: policy.generationModelOverride,
+          generationMode: context.generationMode,
           generationPriority,
+          generationSettings: context.generationSettings,
           organizationId: context.organizationId,
           platform: policy.platform,
           qualityTier: policy.qualityTier,
@@ -519,6 +545,13 @@ export class AgentTurnRoundRunnerService {
 
       if (result.nextActions?.length) {
         state.uiActions.push(...result.nextActions);
+      }
+      if (
+        result.success &&
+        result.nextActions?.length &&
+        TERMINAL_RESULT_TOOLS.has(toolName)
+      ) {
+        terminalToolName = toolName;
       }
 
       if (result.requiresConfirmation) {
@@ -625,7 +658,15 @@ export class AgentTurnRoundRunnerService {
       });
     }
 
-    return { isCancelled: false };
+    return {
+      isCancelled: false,
+      ...(terminalToolName
+        ? {
+            terminalContent: getTerminalToolContent(terminalToolName),
+            terminalToolName,
+          }
+        : {}),
+    };
   }
 
   private buildUnknownToolError(
@@ -643,8 +684,13 @@ export class AgentTurnRoundRunnerService {
   private getGenerationPreparationRedirect(
     toolName: string,
     allowedTools: Set<AgentToolName>,
+    generationMode?: AgentChatContext['generationMode'],
+    requestedGenerationType?: unknown,
   ): AgentToolName | null {
-    return getGenerationPreparationRedirect(toolName, allowedTools);
+    return getGenerationPreparationRedirect(toolName, allowedTools, {
+      generationMode,
+      requestedGenerationType,
+    });
   }
 
   private buildUnknownToolRecoveryParams(

@@ -4,7 +4,7 @@ import {
   ContentIntelligencePlatform,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
-import { extractHashtags } from '@genfeedai/utils/data/extract.util';
+import { extractHashtags } from '@genfeedai/utils/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';

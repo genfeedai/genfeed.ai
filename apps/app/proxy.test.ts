@@ -30,7 +30,11 @@ function makeSignedInRequest(
   pathname: string,
   opts: {
     extraCookies?: Record<string, string>;
+    method?: string;
+    nextAction?: string;
+    nextUrl?: string;
     referer?: string;
+    rsc?: boolean;
     search?: string;
   } = {},
 ) {
@@ -59,9 +63,19 @@ function makeSignedInRequest(
         if (normalizedName === 'referer') {
           return opts.referer ?? null;
         }
+        if (normalizedName === 'rsc') {
+          return opts.rsc ? '1' : null;
+        }
+        if (normalizedName === 'next-action') {
+          return opts.nextAction ?? null;
+        }
+        if (normalizedName === 'next-url') {
+          return opts.nextUrl ?? null;
+        }
         return null;
       }),
     },
+    method: opts.method ?? 'GET',
     nextUrl: {
       origin: 'http://localhost:3000',
       pathname,
@@ -1535,6 +1549,55 @@ describe('proxy', () => {
     );
   });
 
+  it('resolves signed-in root from authenticated access instead of a stale scoped referrer', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/', {
+        referer: 'http://localhost:3000/default/default/agent',
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/agent',
+    );
+  });
+
+  it('recovers signed-in root from a stale workspace cache and signed cookie', async () => {
+    vi.stubEnv('COOKIE_SECRET', 'test-secret-at-least-32-chars-long!!');
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
+
+    const staleResponse = await proxy(
+      makeSignedInRequest('/default/default/agent'),
+      {} as never,
+    );
+    const staleCookie = (staleResponse.headers.get('set-cookie') ?? '')
+      .match(/gf_ws=([^;]+)/)
+      ?.at(1);
+    expect(staleCookie).toBeTruthy();
+
+    fetchMock.mockClear();
+    const recoveredResponse = await proxy(
+      makeSignedInRequest('/', {
+        extraCookies: { gf_ws: staleCookie ?? '' },
+      }),
+      {} as never,
+    );
+
+    expect(recoveredResponse.status).toBe(307);
+    expect(recoveredResponse.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/agent',
+    );
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).endsWith('/organizations?mine=true'),
+      ),
+    ).toBe(true);
+  });
+
   it('brand-scopes /library/assets from the referer without leaving the page', async () => {
     const { default: proxy } = await import('./proxy');
 
@@ -1576,6 +1639,98 @@ describe('proxy', () => {
     expect(unscopedResponse.status).toBe(307);
     expect(unscopedResponse.headers.get('location')).toBe(
       'http://localhost:3000/demo/FUDNEWS/library/assets',
+    );
+  });
+
+  it('skips network auth bootstrap for a scoped RSC transition from the mounted app shell', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', {
+        referer: 'http://localhost:3000/acme/moonrise-studio/agent/thread-1',
+        rsc: true,
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('uses the scoped next-url header when the RSC fetch omits its referer', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', {
+        nextUrl: '/acme/moonrise-studio/agent/thread-1',
+        rsc: true,
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects an absolute next-url as proof of a mounted app shell', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    await proxy(
+      makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', {
+        nextUrl: 'https://attacker.example/acme/moonrise-studio/agent/thread-1',
+        rsc: true,
+      }),
+      {} as never,
+    );
+
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
+      'http://localhost:3010/v1/auth/token',
+    );
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
+      'http://localhost:3010/v1/auth/bootstrap',
+    );
+  });
+
+  it('keeps strict auth bootstrap for a scoped RSC request without a mounted scoped shell', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', {
+        rsc: true,
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
+      'http://localhost:3010/v1/auth/token',
+    );
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
+      'http://localhost:3010/v1/auth/bootstrap',
+    );
+  });
+
+  it('keeps strict auth bootstrap for server actions from a scoped page', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', {
+        method: 'POST',
+        nextAction: 'action-id',
+        referer: 'http://localhost:3000/acme/moonrise-studio/agent/thread-1',
+        rsc: true,
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
+      'http://localhost:3010/v1/auth/token',
+    );
+    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
+      'http://localhost:3010/v1/auth/bootstrap',
     );
   });
 

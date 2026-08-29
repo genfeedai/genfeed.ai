@@ -144,6 +144,16 @@ export async function handleAgentUiAction(
       ),
     );
 
+    const sourceActionId =
+      typeof payload?.sourceActionId === 'string'
+        ? payload.sourceActionId
+        : null;
+    if (sourceActionId) {
+      useAgentChatStore
+        .getState()
+        .setUiActionStatus(sourceActionId, 'completed');
+    }
+
     const existingThread = deps.threads.find(
       (thread) => thread.id === response.threadId,
     );

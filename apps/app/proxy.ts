@@ -538,6 +538,31 @@ function resolveRefererWorkspaceSlugs(
   }
 }
 
+function resolveAppRouterSourceWorkspaceSlugs(
+  req: NextRequest,
+): WorkspaceSlugs | null {
+  const refererSlugs = resolveRefererWorkspaceSlugs(req);
+  if (refererSlugs) {
+    return refererSlugs;
+  }
+
+  // Next's client router does not consistently expose the browser-generated
+  // Referer through Request.headers. It does send the mounted route as the
+  // relative `next-url` header on RSC fetches, which is the actual shell the
+  // transition originated from. Keep this deliberately relative: an absolute
+  // or protocol-relative value must not be treated as a trusted app route.
+  const nextUrl = req.headers.get('next-url');
+  if (!nextUrl?.startsWith('/') || nextUrl.startsWith('//')) {
+    return null;
+  }
+
+  try {
+    return slugsFromPathname(new URL(nextUrl, req.url).pathname);
+  } catch {
+    return null;
+  }
+}
+
 async function continueWithCurrentWorkspace(
   req: NextRequest,
   cacheKey?: string | null,
@@ -564,29 +589,35 @@ async function resolveActiveWorkspaceSlugs(
 ): Promise<SlugResolution | null> {
   const preferAvailableBrand = options?.preferAvailableBrand === true;
   const skipSlugCookie = options?.skipSlugCookie === true;
+  // Root/login recovery must come from the authenticated bootstrap. A scoped
+  // request, referrer, in-memory entry, or signed cookie proves only that the
+  // slug was syntactically valid when it was recorded; it does not prove the
+  // current session still belongs to that workspace. Letting one of those
+  // sources win here can permanently redirect `/` into an unauthorized scope.
+  const mayReuseCurrentWorkspace = !preferAvailableBrand;
   const fromRequestPath =
     req && !skipSlugCookie ? slugsFromPathname(req.nextUrl.pathname) : null;
-  if (fromRequestPath && (!preferAvailableBrand || fromRequestPath.brandSlug)) {
+  if (mayReuseCurrentWorkspace && fromRequestPath) {
     const cookieValue = await encodeSlugCookie(fromRequestPath);
     return { cookieValue, slugs: fromRequestPath };
   }
 
   const fromReferer = resolveRefererWorkspaceSlugs(req);
-  if (fromReferer && (!preferAvailableBrand || fromReferer.brandSlug)) {
+  if (mayReuseCurrentWorkspace && fromReferer) {
     const cookieValue = await encodeSlugCookie(fromReferer);
     return { cookieValue, slugs: fromReferer };
   }
 
   const cached = skipSlugCookie ? null : readWorkspaceSlugCache(cacheKey);
-  if (cached && (!preferAvailableBrand || cached.brandSlug)) {
+  if (mayReuseCurrentWorkspace && cached) {
     return { cookieValue: null, slugs: cached };
   }
 
-  if (req && !skipSlugCookie) {
+  if (mayReuseCurrentWorkspace && req && !skipSlugCookie) {
     const cookieRaw = req.cookies.get(WORKSPACE_SLUG_COOKIE_NAME)?.value;
     if (cookieRaw) {
       const fromCookie = await decodeSlugCookie(cookieRaw);
-      if (fromCookie && (!preferAvailableBrand || fromCookie.brandSlug)) {
+      if (fromCookie) {
         writeWorkspaceSlugCache(cacheKey, fromCookie);
         return { cookieValue: null, slugs: fromCookie };
       }
@@ -1104,6 +1135,23 @@ function isServiceWorkerRoute(pathname: string): boolean {
   return pathname === '/~offline' || pathname.startsWith('/serwist/');
 }
 
+/**
+ * Client App Router transitions already originate inside an authenticated,
+ * scoped shell. Let Next serve their RSC payload without blocking on the
+ * token -> bootstrap network waterfall. Full entries, bare-route
+ * canonicalization, and mutations keep the strict validation path below.
+ * Page data and actions remain authorized at their server/API boundaries.
+ */
+function isScopedAppRouterTransition(req: NextRequest): boolean {
+  return (
+    req.method === 'GET' &&
+    req.headers.get('rsc') === '1' &&
+    req.headers.get('next-action') === null &&
+    slugsFromPathname(req.nextUrl.pathname) !== null &&
+    resolveAppRouterSourceWorkspaceSlugs(req) !== null
+  );
+}
+
 interface BetterAuthRoutingOptions {
   isDesktopSurface?: boolean;
   preferredBearerToken?: string | null;
@@ -1188,6 +1236,10 @@ async function routeBetterAuthRequest(
 
   if (!hasSession) {
     return redirectToLoginPreservingDestination(req);
+  }
+
+  if (isScopedAppRouterTransition(req)) {
+    return continueWithCurrentWorkspace(req, sessionCookie);
   }
 
   const token =

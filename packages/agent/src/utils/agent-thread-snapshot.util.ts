@@ -28,6 +28,47 @@ export function mapSnapshotRunStatus(
   }
 }
 
+export function readSnapshotRunError(
+  snapshot: AgentThreadSnapshot,
+): string | null {
+  if (mapSnapshotRunStatus(snapshot.activeRun?.status) !== 'failed') {
+    return null;
+  }
+
+  const activeRunId = snapshot.activeRun?.runId;
+  let failedEntry: AgentThreadSnapshot['timeline'][number] | undefined;
+  for (let index = snapshot.timeline.length - 1; index >= 0; index -= 1) {
+    const entry = snapshot.timeline[index];
+    if (!entry) {
+      continue;
+    }
+    if (activeRunId && entry.runId !== activeRunId) {
+      continue;
+    }
+
+    const sourceEventType = readPayloadString(entry, 'sourceEventType');
+    if (
+      entry.kind === 'error' ||
+      entry.status?.toLowerCase() === 'failed' ||
+      sourceEventType === 'error.raised' ||
+      sourceEventType === 'run.failed'
+    ) {
+      failedEntry = entry;
+      break;
+    }
+  }
+
+  const detail = failedEntry?.detail?.trim();
+  if (detail) {
+    return detail;
+  }
+
+  const payloadError = failedEntry?.payload?.error;
+  return typeof payloadError === 'string' && payloadError.trim()
+    ? payloadError.trim()
+    : 'Agent generation failed. Please retry.';
+}
+
 function readPayloadString(
   entry: AgentThreadSnapshot['timeline'][number],
   key: string,

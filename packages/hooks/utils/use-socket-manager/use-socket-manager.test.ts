@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const getTokenMock = vi.fn().mockResolvedValue('mock-token');
 const resolveAuthTokenMock = vi.fn().mockResolvedValue('mock-token');
 const useAuthIdentityMock = vi.fn();
+const socketManagerClearInstanceMock = vi.fn();
 const socketManagerGetInstanceMock = vi.fn(() => ({
   cleanup: vi.fn(),
   connect: vi.fn(),
@@ -33,6 +34,7 @@ vi.mock('@helpers/auth/auth.helper', () => ({
 
 vi.mock('@genfeedai/services/core/socket-manager.service', () => ({
   SocketManager: {
+    clearInstance: () => socketManagerClearInstanceMock(),
     getInstance: (...args: unknown[]) => socketManagerGetInstanceMock(...args),
   },
 }));
@@ -85,9 +87,18 @@ describe('useSocketManager', () => {
 
     expect(socketManagerGetInstanceMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        resolveToken: expect.any(Function),
         token: 'mock-token',
       }),
     );
+
+    const config = socketManagerGetInstanceMock.mock.calls[0]?.[0] as {
+      resolveToken: () => Promise<string | null>;
+    };
+    await config.resolveToken();
+    expect(resolveAuthTokenMock).toHaveBeenLastCalledWith(getTokenMock, {
+      forceRefresh: true,
+    });
   });
 
   it('stays offline until auth is loaded and signed in', async () => {
@@ -104,6 +115,7 @@ describe('useSocketManager', () => {
     });
 
     expect(result.current.isReady).toBe(false);
+    expect(socketManagerClearInstanceMock).toHaveBeenCalledTimes(1);
     expect(resolveAuthTokenMock).not.toHaveBeenCalled();
     expect(socketManagerGetInstanceMock).not.toHaveBeenCalled();
   });

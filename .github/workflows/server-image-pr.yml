@@ -1,10 +1,15 @@
 name: Server Image PR Guard
 
+# Scoped to the image DEFINITION, not server source. Source changes under
+# apps/server/** and packages/** are validated by normal CI (typecheck, tests,
+# webpack via build-verify on master push), and build-server-image.yml rebuilds
+# the image on every master push — so a source-only PR breaking the Docker
+# build surfaces within one merge, while the ~15-30 min docker build stops
+# taxing every server-touching PR. Changes to the Dockerfile or bundler config
+# still must prove the image builds before merging.
 on:
   pull_request:
     paths:
-      - 'apps/server/**'
-      - 'packages/**'
       - 'docker/Dockerfile.server'
       # Bundler config decides what lands in the server bundles, so a change
       # here must exercise the image build even when no server source changed.

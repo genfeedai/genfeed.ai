@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
-import { AgentThreadStatus } from '@genfeedai/enums';
+import { AgentMessageRole, AgentThreadStatus } from '@genfeedai/enums';
+import { toAgentScopeMetadata } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { AgentScopeContextService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { AgentMessagesService } from '@server/collections/agent-messages/services/agent-messages.service';
 import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
 import type {
   AgentChatContext,
@@ -52,6 +54,7 @@ export class AgentTurnAcceptanceService {
     private readonly prisma: PrismaService,
     private readonly scopeService: AgentScopeContextService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
+    private readonly agentMessagesService: AgentMessagesService,
   ) {}
 
   async accept(
@@ -73,10 +76,19 @@ export class AgentTurnAcceptanceService {
         context.userId,
         request.clientRequestId,
       );
-    const thread = preparedScope.existingScope
+    const existingScope = preparedScope.existingScope;
+    const thread = existingScope
       ? await this.loadThread(threadId, context)
       : await this.createThread(threadId, request, context, preparedScope);
     const contextVersion = Number(thread.contextVersion ?? 1);
+    const scope =
+      existingScope ??
+      (await this.scopeService.resolveCreatedThreadScope({
+        brandId: thread.brandId ?? undefined,
+        organizationId: context.organizationId,
+        threadId,
+        userId: context.userId,
+      }));
     const contextId = `${threadId}:v${contextVersion}`;
     const queuedAt = new Date().toISOString();
     const { executionId } = await this.workflowRunner.enqueueWorkflow({
@@ -100,9 +112,11 @@ export class AgentTurnAcceptanceService {
             ? { attachments: request.attachments }
             : {}),
           ...(thread.brandId ? { brandId: thread.brandId } : {}),
-          ...(request.expectedContextVersion !== undefined
-            ? { expectedContextVersion: request.expectedContextVersion }
-            : {}),
+          // Acceptance has already loaded and authorized this exact thread
+          // version. Pin it into the durable request so the execution
+          // revalidates the same scope instead of downgrading to a missing
+          // version context.
+          expectedContextVersion: contextVersion,
           ...(request.model ? { model: request.model } : {}),
           ...(request.pageContext ? { pageContext: request.pageContext } : {}),
           ...(request.planModeEnabled !== undefined
@@ -123,6 +137,39 @@ export class AgentTurnAcceptanceService {
       },
       organizationId: context.organizationId,
       source: 'AgentTurnAcceptanceService.accept',
+      userId: context.userId,
+    });
+
+    // Acceptance owns the durable user turn. Persisting it only inside the
+    // execution left titled, zero-message threads whenever provider
+    // resolution failed before the generation loop reached its own idempotent
+    // message upsert. The execution reuses this id, so its later write is a
+    // no-op while the transcript is complete at acknowledgement.
+    await this.agentMessagesService.addMessage({
+      artifactReferences: request.artifactReferences,
+      brandId: scope.brandId,
+      content: request.content,
+      id: executionId,
+      metadata: {
+        agentScope: toAgentScopeMetadata(scope),
+        ...(request.generationMode
+          ? { generationMode: request.generationMode }
+          : {}),
+        ...(request.transferId
+          ? {
+              agentTransfer: {
+                direction: 'inbound',
+                transferId: request.transferId,
+              },
+            }
+          : {}),
+        ...(request.attachments?.length
+          ? { attachments: request.attachments }
+          : {}),
+      },
+      organizationId: context.organizationId,
+      role: AgentMessageRole.USER,
+      room: threadId,
       userId: context.userId,
     });
 

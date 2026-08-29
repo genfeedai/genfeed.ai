@@ -5,10 +5,10 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
-import { SourcePostsService } from '@server/collections/source-posts/services/source-posts.service';
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { SocialSourcePlatform, SourcePostActionType } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { SourcePostsService } from '@server/collections/source-posts/services/source-posts.service';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 describe('SourcePostsService', () => {
   const logger = {
@@ -59,6 +59,64 @@ describe('SourcePostsService', () => {
       } as unknown as PrismaService,
       logger,
       credentialsService as never,
+    );
+  });
+
+  it('rejects missing and blank external identifiers before the Prisma upsert', async () => {
+    const savedPost = { externalId: 'post-1', id: 'source-post-1' };
+    const postScope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      sourceId: 'source-1',
+    };
+    sourcePost.upsert.mockResolvedValue(savedPost);
+
+    const result = await service.upsertCollectedPosts(
+      {
+        brandId: 'brand-1',
+        handle: 'openai',
+        id: 'source-1',
+        organizationId: 'org-1',
+        platform: SocialSourcePlatform.TWITTER,
+        userId: 'user-1',
+      },
+      [
+        {
+          ...postScope,
+          contentType: 'tweet',
+          externalId: undefined as never,
+          platform: SocialSourcePlatform.TWITTER,
+        },
+        {
+          ...postScope,
+          contentType: 'tweet',
+          externalId: '   ',
+          platform: SocialSourcePlatform.TWITTER,
+        },
+        {
+          ...postScope,
+          contentType: 'tweet',
+          externalId: 'post-1',
+          platform: SocialSourcePlatform.TWITTER,
+        },
+      ],
+    );
+
+    expect(result).toEqual({ posts: [savedPost], rejectedCount: 2 });
+    expect(sourcePost.upsert).toHaveBeenCalledTimes(1);
+    expect(sourcePost.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          sourceId_externalId: {
+            externalId: 'post-1',
+            sourceId: 'source-1',
+          },
+        },
+      }),
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      'Rejected collected posts without stable external identifiers',
+      { rejectedCount: 2, sourceId: 'source-1' },
     );
   });
 
