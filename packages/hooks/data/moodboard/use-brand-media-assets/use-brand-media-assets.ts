@@ -30,6 +30,16 @@ interface PageableService {
   ): Promise<IIngredient[]>;
 }
 
+interface StreamPagesOptions {
+  brandId: string;
+  /** False once the shared asset budget is spent, which stops further paging. */
+  hasBudget: () => boolean;
+  onCapped: () => void;
+  onPage: (batch: IIngredient[]) => void;
+  service: PageableService;
+  signal: AbortSignal;
+}
+
 function isVisualMediaIngredient(ingredient: IIngredient): boolean {
   const isVisualCategory =
     ingredient.category === IngredientCategory.IMAGE ||
@@ -44,16 +54,28 @@ function isVisualMediaIngredient(ingredient: IIngredient): boolean {
   );
 }
 
-async function fetchAllPages(
-  service: PageableService,
-  brandId: string,
-  signal: AbortSignal,
-): Promise<IIngredient[]> {
-  const collected: IIngredient[] = [];
-
-  for (let page = 1; collected.length < MAX_ASSETS; page += 1) {
+/**
+ * Walks one ingredient service page by page, handing each page to the caller as
+ * it lands instead of accumulating a full result. Paging is sequential because
+ * the API reports no total, so the last page is only known once it comes up
+ * short.
+ */
+async function streamPages({
+  brandId,
+  hasBudget,
+  onCapped,
+  onPage,
+  service,
+  signal,
+}: StreamPagesOptions): Promise<void> {
+  for (let page = 1; ; page += 1) {
     if (signal.aborted) {
-      break;
+      return;
+    }
+
+    if (!hasBudget()) {
+      onCapped();
+      return;
     }
 
     const batch = await service.findAll(
@@ -69,26 +91,35 @@ async function fetchAllPages(
       signal,
     );
 
-    collected.push(...batch);
+    if (signal.aborted) {
+      return;
+    }
+
+    onPage(batch);
 
     if (batch.length < PAGE_SIZE) {
-      break;
+      return;
     }
   }
-
-  return collected;
 }
 
 /**
  * Loads every displayable visual asset (images, videos, gifs, avatars) for the
- * active brand by fanning out parallel per-type fetches and merging the result.
- * There is no combined-all endpoint, so this mirrors how the library landing
- * preview aggregates the per-type ingredient services.
+ * active brand by fanning out parallel per-type fetches. There is no
+ * combined-all endpoint, so this mirrors how the library landing preview
+ * aggregates the per-type ingredient services.
+ *
+ * Assets are published page by page rather than after the last request
+ * resolves: a brand at the cap otherwise waits on up to forty sequential
+ * requests before a single tile paints. The four services share one asset
+ * budget, so a large image library no longer causes four independent caps'
+ * worth of rows to be fetched for a canvas that can only show one.
  */
 export function useBrandMediaAssets(): UseBrandMediaAssetsResult {
   const { brandId } = useBrand();
   const [assets, setAssets] = useState<IIngredient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [isTruncated, setIsTruncated] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
@@ -129,14 +160,35 @@ export function useBrandMediaAssets(): UseBrandMediaAssetsResult {
     if (!brandId) {
       setAssets([]);
       setIsLoading(false);
+      setIsLoadingMore(false);
       return;
     }
 
     const controller = new AbortController();
     setIsLoading(true);
+    setIsLoadingMore(true);
+    setIsTruncated(false);
     setError(null);
 
     async function load() {
+      // One bucket per service in a fixed order, so a page arriving late never
+      // reshuffles the tiles already on the canvas.
+      const buckets: IIngredient[][] = [[], [], [], []];
+      let accepted = 0;
+      let hasPainted = false;
+
+      function publish() {
+        const merged = buckets.flat();
+        setAssets(merged);
+
+        // The canvas shows an empty state at zero assets, so the first paint
+        // waits for something to actually show rather than for the first page.
+        if (!hasPainted && merged.length > 0) {
+          hasPainted = true;
+          setIsLoading(false);
+        }
+      }
+
       try {
         const {
           getImagesService: images,
@@ -152,23 +204,49 @@ export function useBrandMediaAssets(): UseBrandMediaAssetsResult {
           avatars(),
         ]);
 
-        const batches = await Promise.all(
-          services.map((service) =>
-            fetchAllPages(
-              service as PageableService,
-              brandId,
-              controller.signal,
-            ),
-          ),
-        );
-
         if (controller.signal.aborted) {
           return;
         }
 
-        const merged = batches.flat().filter(isVisualMediaIngredient);
-        setIsTruncated(merged.length > MAX_ASSETS);
-        setAssets(merged.slice(0, MAX_ASSETS));
+        // `allSettled`, not `all`: a rejected stream would resolve the await
+        // immediately while its siblings were still paging, so the `finally`
+        // below cleared the loading flags and the canvas painted its empty
+        // state under assets that had not arrived yet.
+        const outcomes = await Promise.allSettled(
+          services.map((service, index) =>
+            streamPages({
+              brandId,
+              hasBudget: () => accepted < MAX_ASSETS,
+              onCapped: () => setIsTruncated(true),
+              onPage: (batch) => {
+                const displayable = batch.filter(isVisualMediaIngredient);
+                const room = MAX_ASSETS - accepted;
+                const kept = displayable.slice(0, room);
+
+                if (kept.length < displayable.length) {
+                  setIsTruncated(true);
+                }
+
+                accepted += kept.length;
+                buckets[index].push(...kept);
+                publish();
+              },
+              service: service as PageableService,
+              signal: controller.signal,
+            }),
+          ),
+        );
+
+        const failure = outcomes.find(
+          (outcome): outcome is PromiseRejectedResult =>
+            outcome.status === 'rejected',
+        );
+
+        // A partial load still shows what did arrive; the error only surfaces
+        // when nothing did.
+        if (failure && accepted === 0) {
+          throw failure.reason;
+        }
       } catch (caught) {
         if (controller.signal.aborted) {
           return;
@@ -179,6 +257,7 @@ export function useBrandMediaAssets(): UseBrandMediaAssetsResult {
       } finally {
         if (!controller.signal.aborted) {
           setIsLoading(false);
+          setIsLoadingMore(false);
         }
       }
     }
@@ -190,5 +269,5 @@ export function useBrandMediaAssets(): UseBrandMediaAssetsResult {
     };
   }, [brandId, reloadToken]);
 
-  return { assets, error, isLoading, isTruncated, refresh };
+  return { assets, error, isLoading, isLoadingMore, isTruncated, refresh };
 }

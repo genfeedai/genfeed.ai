@@ -13,6 +13,18 @@ export interface TableColumn<T> {
 
 export type TableSortDirection = 'asc' | 'desc';
 
+/**
+ * Destination for a row that navigates.
+ *
+ * `label` is the anchor's accessible name: the link is a transparent overlay
+ * with no text of its own, so without it a screen reader announces an empty
+ * link for every row.
+ */
+export interface TableRowLink {
+  href: string;
+  label: string;
+}
+
 export interface TableProps<T> {
   items: T[];
   isLoading?: boolean;
@@ -35,6 +47,17 @@ export interface TableProps<T> {
   selectedIds?: string[];
   onSelectionChange?: (selectedIds: string[]) => void;
   getItemId?: (item: T) => string;
+
+  /**
+   * Destination for rows that navigate. Rows that return a link render a real
+   * anchor, so the router prefetches the destination before the click, and
+   * middle-click and cmd-click open it in a new tab. Return `undefined` for a
+   * row with nowhere to go.
+   *
+   * Prefer this over `onRowClick` for navigation. `onRowClick` stays for rows
+   * that open a modal, select an item, or otherwise act in place.
+   */
+  getRowLink?: (item: T) => TableRowLink | undefined;
 
   // Row click handler
   onRowClick?: (item: T) => void;

@@ -16,6 +16,7 @@ export interface MoodBoardCanvasProps {
   onNodesChange: (changes: NodeChange<MediaAssetFlowNode>[]) => void;
   onNodeDragStop: () => void;
   onClose: () => void;
+  isLoadingMore?: boolean;
   isTruncated?: boolean;
 }
 

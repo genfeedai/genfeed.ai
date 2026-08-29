@@ -6,6 +6,7 @@ import type {
   IFleetGenerationJob,
 } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
 import { AdminFleetService } from '@services/admin/fleet.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -16,6 +17,9 @@ import { useCallback, useEffect, useReducer, useRef } from 'react';
 
 import GeneratedImagesGrid from './generated-images-grid';
 import GenerationForm from './generation-form';
+
+/** Cadence for re-reading a running generation job while the tab is in front. */
+const GENERATION_POLL_INTERVAL_MS = 2000;
 
 interface GeneratedImage {
   id: string;
@@ -156,7 +160,8 @@ export default function GeneratePage() {
 
   // activeJob is only used for polling — never rendered — so keep it in a ref
   const activeJobRef = useRef<IFleetGenerationJob | null>(null);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const polledJobIdRef = useRef<string | null>(null);
+  polledJobIdRef.current = state.activeJobId;
 
   const { data: characters, error: charactersError } = useQuery<
     FleetCharacterRecord[]
@@ -241,61 +246,56 @@ export default function GeneratePage() {
     notificationsService,
   ]);
 
-  useEffect(() => {
+  const pollActiveGenerationJob = useCallback(async () => {
     if (!activeJobId) {
       return;
     }
 
-    const poll = async () => {
-      try {
-        const service = await getFleetService();
-        const nextJob = await service.getGenerationJob(activeJobId);
+    try {
+      const service = await getFleetService();
+      const nextJob = await service.getGenerationJob(activeJobId);
 
-        const prevCdnUrl = activeJobRef.current?.cdnUrl ?? '';
-        activeJobRef.current = nextJob;
-        dispatch({
-          type: 'UPDATE_GENERATED_IMAGE',
-          payload: {
-            jobId: nextJob.jobId,
-            cdnUrl: nextJob.cdnUrl || prevCdnUrl,
-            error: nextJob.error,
-            progress: nextJob.progress,
-            stage: nextJob.stage,
-            status: nextJob.status,
-          },
-        });
+      // A late response for a job the operator has moved on from must not
+      // overwrite the card they are watching now.
+      if (polledJobIdRef.current !== activeJobId) {
+        return;
+      }
 
-        if (nextJob.status === 'completed' || nextJob.status === 'failed') {
-          if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-          }
-          dispatch({ type: 'SET_ACTIVE_JOB_ID', payload: null });
+      const prevCdnUrl = activeJobRef.current?.cdnUrl ?? '';
+      activeJobRef.current = nextJob;
+      dispatch({
+        type: 'UPDATE_GENERATED_IMAGE',
+        payload: {
+          jobId: nextJob.jobId,
+          cdnUrl: nextJob.cdnUrl || prevCdnUrl,
+          error: nextJob.error,
+          progress: nextJob.progress,
+          stage: nextJob.stage,
+          status: nextJob.status,
+        },
+      });
 
-          if (nextJob.status === 'completed') {
-            notificationsService.success('Image generated successfully');
-          } else {
-            notificationsService.error(
-              nextJob.error || 'Image generation failed',
-            );
-          }
+      if (nextJob.status === 'completed' || nextJob.status === 'failed') {
+        dispatch({ type: 'SET_ACTIVE_JOB_ID', payload: null });
+
+        if (nextJob.status === 'completed') {
+          notificationsService.success('Image generated successfully');
+        } else {
+          notificationsService.error(
+            nextJob.error || 'Image generation failed',
+          );
         }
-      } catch (error) {
-        logger.error('GET /admin/fleet/generate/jobs failed', error);
       }
-    };
-
-    pollingRef.current = setInterval(() => {
-      void poll();
-    }, 2000);
-
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    };
+    } catch (error) {
+      logger.error('GET /admin/fleet/generate/jobs failed', error);
+    }
   }, [activeJobId, getFleetService, notificationsService]);
+
+  // Clearing `activeJobId` on a terminal status is what stops the poll.
+  useVisiblePolling(pollActiveGenerationJob, {
+    intervalMs: GENERATION_POLL_INTERVAL_MS,
+    isEnabled: Boolean(activeJobId),
+  });
 
   return (
     <Container

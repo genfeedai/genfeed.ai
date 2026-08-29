@@ -30,7 +30,9 @@ describe('CredentialsService HTTP methods', () => {
 
     const result = await service.findCredentialInstagramPages(credentialId);
 
-    expect(http.get).toHaveBeenCalledWith(`/${credentialId}/instagram/pages`);
+    expect(http.get).toHaveBeenCalledWith(`/${credentialId}/instagram/pages`, {
+      signal: undefined,
+    });
     expect(result[0]).toBeInstanceOf(CredentialInstagram);
   });
 

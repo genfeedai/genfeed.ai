@@ -48,7 +48,8 @@ function getSessionId(): string {
   return sessionId;
 }
 
-interface FetchOptions extends RequestInit {
+interface FetchOptions {
+  headers?: Record<string, string>;
   signal?: AbortSignal;
 }
 

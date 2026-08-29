@@ -19,6 +19,7 @@ import {
 } from '@/lib/analytics';
 import { getCoreAppFeatureFlagFallbacks } from '@/lib/core-apps';
 import { captureWorkspaceShellSession } from '@/lib/workspace-shell/workspace-shell-telemetry';
+import ApiAuthBridge from './api-auth-bridge';
 import RoutedOrganizationBoundary from './routed-organization-boundary';
 
 const CORE_APP_FEATURE_FLAG_FALLBACKS = getCoreAppFeatureFlagFallbacks();
@@ -76,6 +77,7 @@ export default function ProtectedLayoutClient({
         SessionKeepAlive for the nanostores STORE_UNMOUNT_DELAY details.
       */}
       <SessionKeepAlive />
+      <ApiAuthBridge />
       <RoutedOrganizationProvider>
         <RoutedOrganizationBoundary>
           <AppProtectedLayout initialBootstrap={initialBootstrap}>

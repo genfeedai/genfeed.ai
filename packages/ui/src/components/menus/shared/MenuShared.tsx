@@ -116,6 +116,7 @@ export default function MenuShared({
         <div className="pb-1">
           <Link
             href={resolvedBackHref ?? backHref}
+            prefetch={false}
             onFocus={prefetchBackHref}
             onMouseEnter={prefetchBackHref}
             className={cn(

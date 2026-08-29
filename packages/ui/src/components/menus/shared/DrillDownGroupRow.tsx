@@ -93,6 +93,7 @@ export default function DrillDownGroupRow({
       <Link
         href={defaultHref}
         onClick={handleLinkClick}
+        prefetch={false}
         onFocus={prefetchDefaultHref}
         onMouseEnter={prefetchDefaultHref}
         className={rowClasses}

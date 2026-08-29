@@ -21,6 +21,10 @@ const {
   generateMetadata,
   generateStaticParams,
 } = await import('./page');
+const {
+  default: ArticlePreviewRoute,
+  generateMetadata: generatePreviewMetadata,
+} = await import('./preview/page');
 const { getPublicArticleBySlugCached } = await import('./article-loader');
 
 function article(overrides: Partial<Article> = {}): Article {
@@ -40,6 +44,29 @@ function article(overrides: Partial<Article> = {}): Article {
     wordCount: 900,
     ...overrides,
   } as Article;
+}
+
+/**
+ * The public and preview routes now delegate their body to the shared
+ * `ArticleView` server component (`<ArticleView slug={slug} />`) instead of
+ * rendering JSON-LD inline. Next's RSC renderer awaits a nested async
+ * component like that automatically; a plain unit test does not, so a route
+ * call alone only returns the unresolved element referencing it. Invoking
+ * the element's own function type is the one-level-deeper equivalent of what
+ * the real renderer does, and it is what actually runs the fetch/notFound
+ * logic the tests below assert on.
+ */
+async function resolveAsyncElement(element: ReactNode): Promise<ReactNode> {
+  if (!isValidElement(element)) {
+    return element;
+  }
+  const { type, props } = element as ReactElement<Record<string, unknown>>;
+  if (typeof type === 'function') {
+    return (type as (elementProps: unknown) => ReactNode | Promise<ReactNode>)(
+      props,
+    );
+  }
+  return element;
 }
 
 function readJsonLdScripts(element: ReactNode): unknown[] {
@@ -178,10 +205,11 @@ describe('ArticleDetailRoute', () => {
   it('renders article and breadcrumb JSON-LD for a published article', async () => {
     getPublicArticleBySlug.mockResolvedValue(article());
 
-    const element = await ArticleDetailRoute({
-      params: Promise.resolve({ slug: 'route-published' }),
-      searchParams: Promise.resolve({}),
-    });
+    const element = await resolveAsyncElement(
+      await ArticleDetailRoute({
+        params: Promise.resolve({ slug: 'route-published' }),
+      }),
+    );
 
     const [articleJsonLd, breadcrumbJsonLd] = readJsonLdScripts(element) as [
       {
@@ -220,10 +248,11 @@ describe('ArticleDetailRoute', () => {
       }),
     );
 
-    const element = await ArticleDetailRoute({
-      params: Promise.resolve({ slug: 'route-anonymous' }),
-      searchParams: Promise.resolve({}),
-    });
+    const element = await resolveAsyncElement(
+      await ArticleDetailRoute({
+        params: Promise.resolve({ slug: 'route-anonymous' }),
+      }),
+    );
 
     const [articleJsonLd] = readJsonLdScripts(element) as [
       {
@@ -254,10 +283,11 @@ describe('ArticleDetailRoute', () => {
       }),
     );
 
-    const element = (await ArticleDetailRoute({
-      params: Promise.resolve({ slug: 'numeric-author' }),
-      searchParams: Promise.resolve({}),
-    })) as ReactElement<{ children?: ReactNode }>;
+    const element = (await resolveAsyncElement(
+      await ArticleDetailRoute({
+        params: Promise.resolve({ slug: 'numeric-author' }),
+      }),
+    )) as ReactElement<{ children?: ReactNode }>;
 
     const [articleJsonLd] = readJsonLdScripts(element) as [
       { author: { name: string } },
@@ -270,13 +300,52 @@ describe('ArticleDetailRoute', () => {
     expect(detail.props.article.author).toBe('Vincent Tellier');
   });
 
+  it('never forwards a preview token from the public route', async () => {
+    getPublicArticleBySlug.mockResolvedValue(article());
+
+    await resolveAsyncElement(
+      await ArticleDetailRoute({
+        params: Promise.resolve({ slug: 'route-public' }),
+      }),
+    );
+
+    expect(getPublicArticleBySlug).toHaveBeenCalledWith(
+      'route-public',
+      undefined,
+    );
+  });
+
+  it('answers with a 404 when the article is missing', async () => {
+    getPublicArticleBySlug.mockResolvedValue(null);
+
+    await expect(
+      ArticleDetailRoute({
+        params: Promise.resolve({ slug: 'gone' }),
+      }).then(resolveAsyncElement),
+    ).rejects.toThrow();
+  });
+
+  it('answers with a 404 for the sentinel "undefined" id', async () => {
+    getPublicArticleBySlug.mockResolvedValue(article({ id: 'undefined' }));
+
+    await expect(
+      ArticleDetailRoute({
+        params: Promise.resolve({ slug: 'sentinel' }),
+      }).then(resolveAsyncElement),
+    ).rejects.toThrow();
+  });
+});
+
+describe('ArticlePreviewRoute', () => {
   it('passes the preview token through and flags an unpublished article', async () => {
     getPublicArticleBySlug.mockResolvedValue(article({ publishedAt: null }));
 
-    const element = (await ArticleDetailRoute({
-      params: Promise.resolve({ slug: 'route-preview' }),
-      searchParams: Promise.resolve({ previewToken: 'token-123' }),
-    })) as ReactElement<{ children?: ReactNode }>;
+    const element = (await resolveAsyncElement(
+      await ArticlePreviewRoute({
+        params: Promise.resolve({ slug: 'route-preview' }),
+        searchParams: Promise.resolve({ previewToken: 'token-123' }),
+      }),
+    )) as ReactElement<{ children?: ReactNode }>;
 
     expect(getPublicArticleBySlug).toHaveBeenCalledWith(
       'route-preview',
@@ -289,25 +358,37 @@ describe('ArticleDetailRoute', () => {
     expect(detail.props.isPreview).toBe(true);
   });
 
-  it('answers with a 404 when the article is missing', async () => {
-    getPublicArticleBySlug.mockResolvedValue(null);
+  // Next resolves a repeated query key to an array, which must never reach a
+  // lookup that expects a single token.
+  it('ignores a repeated preview token', async () => {
+    getPublicArticleBySlug.mockResolvedValue(article({ publishedAt: null }));
 
-    await expect(
-      ArticleDetailRoute({
-        params: Promise.resolve({ slug: 'gone' }),
-        searchParams: Promise.resolve({}),
+    await resolveAsyncElement(
+      await ArticlePreviewRoute({
+        params: Promise.resolve({ slug: 'route-preview' }),
+        searchParams: Promise.resolve({
+          previewToken: ['token-123', 'token-456'],
+        }),
       }),
-    ).rejects.toThrow();
+    );
+
+    expect(getPublicArticleBySlug).toHaveBeenCalledWith(
+      'route-preview',
+      undefined,
+    );
   });
 
-  it('answers with a 404 for the sentinel "undefined" id', async () => {
-    getPublicArticleBySlug.mockResolvedValue(article({ id: 'undefined' }));
+  // A draft URL that leaks into a crawl must not be indexed under the slug the
+  // published article will own.
+  it('keeps drafts out of the index', async () => {
+    getPublicArticleBySlug.mockResolvedValue(article({ publishedAt: null }));
 
-    await expect(
-      ArticleDetailRoute({
-        params: Promise.resolve({ slug: 'sentinel' }),
-        searchParams: Promise.resolve({}),
-      }),
-    ).rejects.toThrow();
+    const meta = await generatePreviewMetadata({
+      params: Promise.resolve({ slug: 'route-preview' }),
+      searchParams: Promise.resolve({ previewToken: 'token-123' }),
+    });
+
+    expect(meta.robots).toEqual({ follow: false, index: false });
+    expect(meta.alternates?.canonical).toContain('/articles/route-preview');
   });
 });

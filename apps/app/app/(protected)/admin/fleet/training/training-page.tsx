@@ -3,6 +3,7 @@
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import type { IFleetCharacter, IFleetTraining } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { AdminFleetService } from '@services/admin/fleet.service';
 import { logger } from '@services/core/logger.service';
@@ -14,11 +15,20 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Cpu } from 'lucide-react';
-import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { useCallback, useReducer } from 'react';
 
 import TrainingConfigForm from './training-config-form';
 import TrainingProgressPanel from './training-progress-panel';
 import TrainingResultPanel from './training-result-panel';
+
+/** Cadence for re-reading a live training run while the tab is in front. */
+const TRAINING_POLL_INTERVAL_MS = 3000;
+
+const TERMINAL_TRAINING_STATUSES = new Set(['completed', 'failed']);
+
+function isTerminalTrainingStatus(status: string | undefined): boolean {
+  return status !== undefined && TERMINAL_TRAINING_STATUSES.has(status);
+}
 
 const TRAINING_STATUS_COLORS = {
   completed: 'bg-success/10 text-success',
@@ -96,8 +106,6 @@ export default function TrainingPage() {
     isStarting,
     activeTraining,
   } = state;
-
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: characters } = useQuery<IFleetCharacter[]>({
     queryKey: ['fleet-characters'],
@@ -178,53 +186,42 @@ export default function TrainingPage() {
     refresh,
   ]);
 
-  // Poll active training status
-  useEffect(() => {
-    if (!activeTraining) {
+  const activeTrainingId = activeTraining?.id;
+  const activeTrainingStatus = activeTraining?.status;
+
+  const pollActiveTraining = useCallback(async () => {
+    if (!activeTrainingId) {
       return;
     }
 
-    const poll = async () => {
-      try {
-        const service = await getFleetService();
-        const updated = await service.getTraining(activeTraining.id);
+    try {
+      const service = await getFleetService();
+      const updated = await service.getTraining(activeTrainingId);
 
-        dispatch({ type: 'SET_ACTIVE_TRAINING', payload: updated });
+      dispatch({ type: 'SET_ACTIVE_TRAINING', payload: updated });
 
-        if (updated.status === 'completed' || updated.status === 'failed') {
-          if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-          }
+      if (isTerminalTrainingStatus(updated.status)) {
+        refresh();
 
-          refresh();
-
-          if (updated.status === 'completed') {
-            notificationsService.success('Training completed');
-          } else {
-            notificationsService.error('Training failed');
-          }
+        if (updated.status === 'completed') {
+          notificationsService.success('Training completed');
+        } else {
+          notificationsService.error('Training failed');
         }
-      } catch (error) {
-        logger.error('Failed to poll training status', error);
       }
-    };
+    } catch (error) {
+      logger.error('Failed to poll training status', error);
+    }
+  }, [activeTrainingId, getFleetService, notificationsService, refresh]);
 
-    pollingRef.current = setInterval(poll, 3000);
-
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    };
-  }, [
-    activeTraining?.id,
-    getFleetService,
-    notificationsService,
-    refresh,
-    activeTraining,
-  ]);
+  // A finished run stops the poll through `isEnabled`: the terminal status it
+  // just wrote back is what closes the gate.
+  useVisiblePolling(pollActiveTraining, {
+    intervalMs: TRAINING_POLL_INTERVAL_MS,
+    isEnabled:
+      Boolean(activeTrainingId) &&
+      !isTerminalTrainingStatus(activeTrainingStatus),
+  });
 
   const columns: TableColumn<IFleetTraining>[] = [
     { header: 'Label', key: 'label' },

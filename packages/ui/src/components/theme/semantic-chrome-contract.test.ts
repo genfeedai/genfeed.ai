@@ -11,7 +11,7 @@ function readComponent(relativePath: string): string {
 describe('shared semantic chrome contract', () => {
   it('contains the content calendar with a semantic border', () => {
     const source = readComponent(
-      'calendar/content-calendar/ContentCalendar.tsx',
+      'calendar/content-calendar/ContentCalendarView.tsx',
     );
 
     expect(source).toContain('border-border');

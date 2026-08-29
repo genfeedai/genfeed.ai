@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, apiClient } from './client';
+import { ApiError, apiClient, registerApiAuthTokenGetter } from './client';
 
 const API_BASE_URL = '/v1';
 const fetchMock = vi.fn<typeof fetch>();
@@ -14,16 +14,16 @@ function createJsonResponse(body: unknown, init?: ResponseInit): Response {
   });
 }
 
+beforeEach(() => {
+  vi.stubGlobal('fetch', fetchMock);
+  fetchMock.mockReset();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
 describe('apiClient', () => {
-  beforeEach(() => {
-    vi.stubGlobal('fetch', fetchMock);
-    fetchMock.mockReset();
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   describe('get', () => {
     it('should make GET request and return parsed JSON', async () => {
       const mockResponse = { data: 'test' };
@@ -173,6 +173,97 @@ describe('apiClient', () => {
           }),
         );
       }
+    });
+  });
+});
+
+describe('authorization', () => {
+  afterEach(() => {
+    registerApiAuthTokenGetter(null);
+  });
+
+  it('attaches the session bearer token once a resolver is registered', async () => {
+    registerApiAuthTokenGetter(async () => 'session-token');
+    fetchMock.mockResolvedValueOnce(createJsonResponse({}));
+
+    await apiClient.get('/workflows');
+
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/workflows`, {
+      headers: {
+        Authorization: 'Bearer session-token',
+        'Content-Type': 'application/json',
+      },
+      method: 'GET',
+    });
+  });
+
+  it('omits the header when the resolver has no token to give', async () => {
+    registerApiAuthTokenGetter(async () => null);
+    fetchMock.mockResolvedValueOnce(createJsonResponse({}));
+
+    await apiClient.get('/workflows');
+
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/workflows`, {
+      headers: { 'Content-Type': 'application/json' },
+      method: 'GET',
+    });
+  });
+
+  it('extends caller headers instead of replacing the defaults', async () => {
+    registerApiAuthTokenGetter(async () => 'session-token');
+    fetchMock.mockResolvedValueOnce(createJsonResponse({}));
+
+    await apiClient.post(
+      '/workflows/run',
+      { id: 'workflow-1' },
+      { headers: { 'X-Replicate-Api-Key': 'byok' } },
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/workflows/run`, {
+      body: JSON.stringify({ id: 'workflow-1' }),
+      headers: {
+        Authorization: 'Bearer session-token',
+        'Content-Type': 'application/json',
+        'X-Replicate-Api-Key': 'byok',
+      },
+      method: 'POST',
+    });
+  });
+
+  it('replaces a default header supplied under different casing', async () => {
+    registerApiAuthTokenGetter(async () => 'session-token');
+    fetchMock.mockResolvedValueOnce(createJsonResponse({}));
+
+    await apiClient.post(
+      '/workflows/run',
+      { id: 'workflow-1' },
+      { headers: { 'content-type': 'text/plain' } },
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/workflows/run`, {
+      body: JSON.stringify({ id: 'workflow-1' }),
+      headers: {
+        Authorization: 'Bearer session-token',
+        'Content-Type': 'text/plain',
+      },
+      method: 'POST',
+    });
+  });
+
+  it('lets the generated bearer token win over a lowercase override', async () => {
+    registerApiAuthTokenGetter(async () => 'session-token');
+    fetchMock.mockResolvedValueOnce(createJsonResponse({}));
+
+    await apiClient.get('/workflows', {
+      headers: { authorization: 'Bearer stale' },
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/workflows`, {
+      headers: {
+        Authorization: 'Bearer session-token',
+        'Content-Type': 'application/json',
+      },
+      method: 'GET',
     });
   });
 });

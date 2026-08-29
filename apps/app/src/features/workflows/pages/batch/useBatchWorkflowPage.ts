@@ -7,6 +7,7 @@ import {
 import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
 import { usePostModal } from '@providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
@@ -297,6 +298,9 @@ export function useBatchWorkflowPage() {
   const activeBatchId = activeBatchStatus?.id;
   const activeBatchLifecycleStatus = activeBatchStatus?.status;
 
+  const polledBatchIdRef = useRef(activeBatchId);
+  polledBatchIdRef.current = activeBatchId;
+
   useEffect(() => {
     if (
       !activeBatchId ||
@@ -317,44 +321,40 @@ export function useBatchWorkflowPage() {
     startedBatchJobIdRef.current = null;
   }, [activeBatchId, activeBatchLifecycleStatus]);
 
-  useEffect(() => {
-    if (!activeBatchId || !activeBatchLifecycleStatus) {
+  const pollActiveBatchStatus = useCallback(async () => {
+    if (!activeBatchId) {
       return;
     }
 
-    if (isTerminalBatchStatus(activeBatchLifecycleStatus)) {
-      return;
-    }
+    try {
+      const service = await getService();
+      const nextBatchStatus = await service.getBatchStatus(activeBatchId);
 
-    let cancelled = false;
-    const intervalId = window.setInterval(async () => {
-      try {
-        const service = await getService();
-        const nextBatchStatus = await service.getBatchStatus(activeBatchId);
-
-        if (cancelled) {
-          return;
-        }
-
-        setActiveBatchStatus(nextBatchStatus);
-        setRecentJobs((previousJobs) =>
-          upsertRecentJob(previousJobs, nextBatchStatus),
-        );
-      } catch (pollError) {
-        if (!cancelled) {
-          logger.error('Failed to poll batch status', {
-            batchJobId: activeBatchId,
-            error: pollError,
-          });
-        }
+      // The operator may have switched batches while this request was in
+      // flight; a late response must not overwrite the one they are watching.
+      if (polledBatchIdRef.current !== activeBatchId) {
+        return;
       }
-    }, BATCH_POLL_INTERVAL_MS);
 
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-    };
-  }, [activeBatchId, activeBatchLifecycleStatus, getService]);
+      setActiveBatchStatus(nextBatchStatus);
+      setRecentJobs((previousJobs) =>
+        upsertRecentJob(previousJobs, nextBatchStatus),
+      );
+    } catch (pollError) {
+      logger.error('Failed to poll batch status', {
+        batchJobId: activeBatchId,
+        error: pollError,
+      });
+    }
+  }, [activeBatchId, getService]);
+
+  useVisiblePolling(pollActiveBatchStatus, {
+    intervalMs: BATCH_POLL_INTERVAL_MS,
+    isEnabled:
+      Boolean(activeBatchId) &&
+      activeBatchLifecycleStatus !== undefined &&
+      !isTerminalBatchStatus(activeBatchLifecycleStatus),
+  });
 
   useEffect(() => {
     const selectableIds = new Set(availableOutputs.map(({ item }) => item.id));

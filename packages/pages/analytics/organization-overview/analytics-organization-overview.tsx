@@ -296,7 +296,10 @@ export default function AnalyticsOrganizationOverview({
             isLoading={loadingBrands}
             emptyLabel="No brands found"
             getRowKey={(brand) => brand.id}
-            onRowClick={(brand) => router.push(`/analytics/brands/${brand.id}`)}
+            getRowLink={(brand) => ({
+              href: `/analytics/brands/${brand.id}`,
+              label: `Open ${brand.name} analytics`,
+            })}
             columns={[
               {
                 header: 'Brand',

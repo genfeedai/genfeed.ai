@@ -186,6 +186,7 @@ export default function MenuItem({
       <Link
         href={href}
         onClick={onClick}
+        prefetch={false}
         onFocus={prefetchHref}
         onMouseEnter={prefetchHref}
         className={contentClasses}

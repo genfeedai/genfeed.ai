@@ -2,6 +2,7 @@
 
 import type { IFleetCharacter } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
 import { AdminFleetService } from '@services/admin/fleet.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -14,6 +15,9 @@ import { useCallback, useEffect, useReducer, useRef } from 'react';
 import LipSyncConfigForm from './lip-sync-config-form';
 import LipSyncProcessingStatus from './lip-sync-processing-status';
 import LipSyncResultVideo from './lip-sync-result-video';
+
+/** Cadence for re-reading a queued lip-sync job while the tab is in front. */
+const LIP_SYNC_POLL_INTERVAL_MS = 5000;
 
 type AudioSourceType = 'upload' | 'tts';
 
@@ -103,7 +107,18 @@ export default function LipSyncPage() {
     jobId,
     videoUrl,
   } = state;
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const polledJobIdRef = useRef(state.jobId);
+  polledJobIdRef.current = state.jobId;
+
+  // The poll callback treats a matching ref as "this job is still mine". After
+  // unmount the ref keeps its last value, so a late response would still pass
+  // that guard and fire a lip-sync toast through the singleton notifications
+  // service on whatever page the operator navigated to.
+  useEffect(() => {
+    return () => {
+      polledJobIdRef.current = null;
+    };
+  }, []);
 
   const {
     data: characters,
@@ -163,58 +178,41 @@ export default function LipSyncPage() {
     notificationsService,
   ]);
 
-  // Poll for job completion
-  useEffect(() => {
+  const pollLipSyncJob = useCallback(async () => {
     if (!jobId) {
       return;
     }
 
-    const controller = new AbortController();
+    try {
+      const service = await getFleetService();
+      const status = await service.getLipSyncStatus(jobId);
 
-    const poll = async () => {
-      if (controller.signal.aborted) {
+      // A finished or replaced job must not have a late response dispatched
+      // against it; both terminal actions clear `jobId`, which stops the poll.
+      if (polledJobIdRef.current !== jobId) {
         return;
       }
 
-      try {
-        const service = await getFleetService();
-        const status = await service.getLipSyncStatus(jobId);
-
-        if (status.status === 'completed' && status.videoUrl) {
-          dispatch({ type: 'JOB_COMPLETED', payload: status.videoUrl });
-          notificationsService.success('Lip sync video ready');
-
-          if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-          }
-        } else if (status.status === 'failed') {
-          dispatch({ type: 'JOB_FAILED' });
-          notificationsService.error('Lip sync generation failed');
-
-          if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-          }
-        }
-      } catch (error) {
-        if (controller.signal.aborted) {
-          return;
-        }
-        logger.error('Failed to poll lip sync status', error);
+      if (status.status === 'completed' && status.videoUrl) {
+        dispatch({ type: 'JOB_COMPLETED', payload: status.videoUrl });
+        notificationsService.success('Lip sync video ready');
+      } else if (status.status === 'failed') {
+        dispatch({ type: 'JOB_FAILED' });
+        notificationsService.error('Lip sync generation failed');
       }
-    };
-
-    pollingRef.current = setInterval(poll, 5000);
-
-    return () => {
-      controller.abort();
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
+    } catch (error) {
+      if (polledJobIdRef.current !== jobId) {
+        return;
       }
-    };
+
+      logger.error('Failed to poll lip sync status', error);
+    }
   }, [jobId, getFleetService, notificationsService]);
+
+  useVisiblePolling(pollLipSyncJob, {
+    intervalMs: LIP_SYNC_POLL_INTERVAL_MS,
+    isEnabled: Boolean(jobId),
+  });
 
   return (
     <Container

@@ -177,9 +177,17 @@ function loadWebsiteAnalyticsSdk(): void {
         // the PostHog asset CDN. It adds no signal we act on and its request
         // sits on the marketing critical path — keep it off.
         capture_dead_clicks: false,
-        // Web-vitals capture is redundant: field data already reaches us via
-        // CrUX/Lighthouse, and its lazy bundle is another CDN round trip.
-        capture_performance: false,
+        // CrUX aggregates by origin and cannot separate the landing pages from
+        // the article and use-case routes, so per-route field vitals come from
+        // here. Network timing stays off: it reports every resource URL.
+        // Attribution is off for the same reason — it attaches the LCP
+        // element's URL (query string included) and the interaction target's
+        // selector to every vitals event.
+        capture_performance: {
+          network_timing: false,
+          web_vitals: true,
+          web_vitals_attribution: false,
+        },
         // Capture $pageview on the initial load AND every App Router
         // (History API) navigation.
         capture_pageview: 'history_change',

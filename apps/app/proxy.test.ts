@@ -2299,6 +2299,26 @@ describe('proxy', () => {
     delete process.env.COOKIE_SECRET;
   });
 
+  it('reads the bootstrap once per protected request', async () => {
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/workspace'),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    // The onboarding gate and workspace-slug resolution both need the same
+    // payload. A visitor with no slug cookie waits on that round trip before
+    // the redirect is issued, so it happens once, not once per consumer.
+    expect(
+      fetchMock.mock.calls.filter(([input]) =>
+        String(input).endsWith('/auth/bootstrap'),
+      ),
+    ).toHaveLength(1);
+  });
+
   it('deletes slug cookie on logout', async () => {
     vi.resetModules();
     const { default: proxy } = await import('./proxy');

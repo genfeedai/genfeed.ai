@@ -69,6 +69,43 @@ describe('useMoodBoardCanvas', () => {
     ]);
   });
 
+  it('applies a saved layout that arrives after the assets', () => {
+    const assets = [asset('a')];
+    const { rerender, result } = renderHook(
+      ({ savedLayout }: { savedLayout: IMoodBoardLayoutItem[] }) =>
+        useMoodBoardCanvas({ assets, savedLayout, onPersist: vi.fn() }),
+      { initialProps: { savedLayout: EMPTY_LAYOUT } },
+    );
+
+    // Seeded into a grid slot because the layout had not loaded yet.
+    const seeded = result.current.nodes[0].position;
+
+    rerender({ savedLayout: [{ assetId: 'a', position: { x: 300, y: 400 } }] });
+
+    expect(result.current.nodes[0].position).toEqual({ x: 300, y: 400 });
+    expect(result.current.nodes[0].position).not.toEqual(seeded);
+  });
+
+  it('keeps an undrafted drag when only the assets change', () => {
+    const savedLayout: IMoodBoardLayoutItem[] = [];
+    const { rerender, result } = renderHook(
+      ({ assets }: { assets: IIngredient[] }) =>
+        useMoodBoardCanvas({ assets, savedLayout, onPersist: vi.fn() }),
+      { initialProps: { assets: [asset('a')] } },
+    );
+
+    act(() => {
+      result.current.onNodesChange([
+        { id: 'a', type: 'position', position: { x: 50, y: 60 } },
+      ]);
+    });
+
+    // A later asset page must not snap the dragged tile back.
+    rerender({ assets: [asset('a'), asset('b')] });
+
+    expect(result.current.nodes[0].position).toEqual({ x: 50, y: 60 });
+  });
+
   it('coalesces rapid drags into a single persist', () => {
     const assets = [asset('a')];
     const onPersist = vi.fn();

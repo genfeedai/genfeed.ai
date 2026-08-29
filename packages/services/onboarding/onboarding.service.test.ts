@@ -82,7 +82,9 @@ describe('OnboardingService', () => {
 
     const result = await service.getProactiveWorkspace();
 
-    expect(http.get).toHaveBeenCalledWith('proactive-workspace');
+    expect(http.get).toHaveBeenCalledWith('proactive-workspace', {
+      signal: undefined,
+    });
     expect(result).toEqual(workspace);
   });
 
@@ -97,7 +99,9 @@ describe('OnboardingService', () => {
 
     const result = await service.claimProactiveWorkspace();
 
-    expect(http.post).toHaveBeenCalledWith('proactive-claim');
+    expect(http.post).toHaveBeenCalledWith('proactive-claim', undefined, {
+      signal: undefined,
+    });
     expect(result).toEqual(workspace);
   });
 

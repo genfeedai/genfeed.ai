@@ -8,6 +8,7 @@ import MoodBoardCanvasClient from '@/features/moodboard/MoodBoardCanvasClient';
 const assetsState = {
   assets: [] as IIngredient[],
   isLoading: false,
+  isLoadingMore: false,
   isTruncated: false,
   refresh: vi.fn(),
 };
@@ -34,8 +35,19 @@ vi.mock('@/features/moodboard/use-mood-board-canvas', () => ({
   }),
 }));
 vi.mock('@/features/moodboard/MoodBoardCanvas', () => ({
-  default: ({ assets }: { assets: IIngredient[] }) => (
-    <div data-testid="canvas">{assets.length} assets</div>
+  default: ({
+    assets,
+    isLoadingMore,
+  }: {
+    assets: IIngredient[];
+    isLoadingMore?: boolean;
+  }) => (
+    <div
+      data-testid="canvas"
+      data-loading-more={String(Boolean(isLoadingMore))}
+    >
+      {assets.length} assets
+    </div>
   ),
 }));
 vi.mock('next/navigation', () => ({
@@ -48,6 +60,7 @@ describe('MoodBoardCanvasClient', () => {
   beforeEach(() => {
     assetsState.assets = [];
     assetsState.isLoading = false;
+    assetsState.isLoadingMore = false;
     boardState.isLoading = false;
   });
 
@@ -69,5 +82,16 @@ describe('MoodBoardCanvasClient', () => {
     ];
     render(<MoodBoardCanvasClient />);
     expect(screen.getByTestId('canvas')).toHaveTextContent('2 assets');
+  });
+
+  it('renders the first page while later pages are still streaming', () => {
+    assetsState.assets = [{ id: 'a' } as IIngredient];
+    assetsState.isLoadingMore = true;
+
+    render(<MoodBoardCanvasClient />);
+
+    const canvas = screen.getByTestId('canvas');
+    expect(canvas).toHaveTextContent('1 assets');
+    expect(canvas).toHaveAttribute('data-loading-more', 'true');
   });
 });

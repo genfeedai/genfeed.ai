@@ -43,16 +43,32 @@ export function useMoodBoardCanvas({
     [assets],
   );
 
+  const hydratedLayoutRef = useRef<typeof savedLayout | undefined>(undefined);
+
   useEffect(() => {
     const { seeds } = mergeMoodBoardLayout(assets, savedLayout);
-    setNodes(
-      seeds.map((seed) => ({
+    // The saved layout usually arrives after the first assets do, so those
+    // tiles were seeded into grid slots. Applying the layout is the whole
+    // point of it loading — preserving live positions here would pin the
+    // placeholder grid and then persist it on the next drag.
+    const hasNewLayout = hydratedLayoutRef.current !== savedLayout;
+    hydratedLayoutRef.current = savedLayout;
+
+    setNodes((current) => {
+      // Assets stream in page by page, so this re-derives mid-session. On an
+      // asset-only update a tile the user has dragged but not yet autosaved
+      // keeps its live position instead of snapping back to its grid slot.
+      const livePositions = hasNewLayout
+        ? new Map<string, (typeof current)[number]['position']>()
+        : new Map(current.map((node) => [node.id, node.position]));
+
+      return seeds.map((seed) => ({
         id: seed.assetId,
         type: 'mediaAsset',
-        position: seed.position,
+        position: livePositions.get(seed.assetId) ?? seed.position,
         data: { ingredient: seed.ingredient },
-      })),
-    );
+      }));
+    });
   }, [assets, savedLayout]);
 
   const onNodesChange = useCallback(

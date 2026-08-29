@@ -17,6 +17,7 @@ export default function SidebarBackRow({ label, href }: SidebarBackRowProps) {
     <div className="px-3 pt-2 pb-1 flex-shrink-0">
       <Link
         href={href}
+        prefetch={false}
         onFocus={prefetchHref}
         onMouseEnter={prefetchHref}
         className={cn(

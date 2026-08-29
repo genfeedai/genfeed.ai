@@ -193,6 +193,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
   ...classifyPublicRoutes('website', 'public-content', [
     '/articles',
     '/articles/:slug',
+    '/articles/:slug/preview',
     '/posts',
     '/posts/:id',
     '/u/:handle',
