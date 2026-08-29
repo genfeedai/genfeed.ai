@@ -89,14 +89,20 @@ describe('Genfeed action registry', () => {
   });
 
   it('has no placeholder or open action contracts', () => {
+    // Contract shards share schema fragments across actions. One `seen` set for
+    // the whole registry validates each distinct object once instead of
+    // re-walking the common fragments for every action.
+    const seen = new Set<object>();
     for (const action of ALL_ACTIONS) {
       expectConcreteClosedSchema(
         action.inputSchema,
         `${action.id}.inputSchema`,
+        seen,
       );
       expectConcreteClosedSchema(
         action.outputSchema,
         `${action.id}.outputSchema`,
+        seen,
       );
     }
   });
