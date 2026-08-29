@@ -51,7 +51,6 @@ describe('social inbox enums', () => {
       'reply',
     ]);
     expect(Object.values(SocialActionActorType)).toEqual([
-      'agent',
       'system',
       'user',
       'workflow',

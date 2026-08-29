@@ -45,10 +45,10 @@ describe('SmartSchedulerService', () => {
     expect(typeof instance.cancelSchedule).toBe('function');
   });
 
-  it('instance has workflow methods', () => {
+  // Workflow authoring moved to the workflows collection; the scheduler only
+  // still starts an execution for an existing workflow.
+  it('instance can execute a workflow', () => {
     const instance = SmartSchedulerService.getInstance(mockToken);
-    expect(typeof instance.createWorkflow).toBe('function');
-    expect(typeof instance.getWorkflows).toBe('function');
     expect(typeof instance.executeWorkflow).toBe('function');
   });
 

@@ -21,8 +21,8 @@ describe('article.enum', () => {
   });
 
   describe('ArticleCategory', () => {
-    it('should have 13 members', () => {
-      expect(Object.values(ArticleCategory)).toHaveLength(13);
+    it('should have 14 members', () => {
+      expect(Object.values(ArticleCategory)).toHaveLength(14);
     });
 
     it('should have correct values', () => {
@@ -38,6 +38,7 @@ describe('article.enum', () => {
       expect(ArticleCategory.WHITEPAPER).toBe('whitepaper');
       expect(ArticleCategory.ESSAY).toBe('essay');
       expect(ArticleCategory.LISTICLE).toBe('listicle');
+      expect(ArticleCategory.LINKEDIN_ARTICLE).toBe('linkedin-article');
       expect(ArticleCategory.X_ARTICLE).toBe('x-article');
     });
   });
