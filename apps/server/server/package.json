@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "@anthropic-ai/sdk": "0.122.0",
-    "@aws-sdk/client-ec2": "3.1120.0",
+    "@aws-sdk/client-ec2": "3.1121.0",
     "@genfeedai/agent": "workspace:*",
     "@genfeedai/api-types": "workspace:*",
     "@genfeedai/config": "workspace:*",
@@ -25,7 +25,7 @@
     "@nestjs/common": "12.0.1",
     "@nestjs/event-emitter": "12.0.0",
     "axios": "1.20.0",
-    "bullmq": "6.3.1",
+    "bullmq": "6.3.2",
     "effect": "3.22.1",
     "google-auth-library": "11.0.2",
     "googleapis": "176.0.0",
