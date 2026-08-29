@@ -13,157 +13,171 @@ import {
 } from './schema-builders.js';
 
 type InputField =
+  | 'acceptsStructuredPrompt'
+  | 'addWatermark'
   | 'aspectRatio'
   | 'assetType'
   | 'audio'
-  | 'audioVolume'
   | 'audioUrl'
+  | 'audioVolume'
   | 'auto'
+  | 'autoAnalyzeAfterHours'
+  | 'autoSync'
+  | 'backgroundColor'
+  | 'bitrate'
   | 'brand'
   | 'brandId'
   | 'brandLabel'
   | 'brandVoice'
   | 'caption'
+  | 'category'
   | 'channel'
+  | 'characterReferenceUrls'
+  | 'checkFrequency'
   | 'clipCount'
   | 'clonedVoiceId'
   | 'content'
   | 'contentPreference'
   | 'conversationId'
   | 'credentialId'
+  | 'creditCost'
   | 'data'
+  | 'days'
+  | 'destination'
   | 'duration'
   | 'durationSeconds'
-  | 'destination'
-  | 'days'
+  | 'email'
   | 'endTime'
-  | 'format'
-  | 'generatePrompt'
-  | 'harnessContext'
-  | 'hashtag'
-  | 'height'
-  | 'image'
-  | 'images'
-  | 'language'
-  | 'limit'
-  | 'lastFrame'
-  | 'maxDuration'
-  | 'maxIterations'
-  | 'maxTokens'
-  | 'mediaUrl'
-  | 'media'
-  | 'minUsageCount'
-  | 'minViralScore'
-  | 'model'
-  | 'music'
-  | 'musicUrl'
-  | 'negativePrompt'
-  | 'niche'
-  | 'photoUrl'
-  | 'pitchShift'
-  | 'platform'
-  | 'post'
-  | 'postId'
-  | 'product'
-  | 'productContext'
-  | 'prompt'
-  | 'quality'
-  | 'query'
-  | 'recipientId'
-  | 'references'
-  | 'scale'
-  | 'releaseAnalytics'
-  | 'schedule'
-  | 'script'
-  | 'seed'
-  | 'sound'
-  | 'soundId'
-  | 'soundUrl'
-  | 'sourceType'
-  | 'startTime'
-  | 'strength'
-  | 'style'
-  | 'suggestions'
-  | 'targetKeyword'
-  | 'targetScore'
-  | 'targetAspectRatio'
-  | 'targetVoiceId'
-  | 'temperature'
-  | 'text'
-  | 'title'
-  | 'topic'
-  | 'trend'
-  | 'trendId'
-  | 'uploadUrl'
-  | 'useLlm'
-  | 'useIdentityDefaults'
-  | 'video'
-  | 'videoReferences'
-  | 'videos'
-  | 'videoUrl'
-  | 'voiceId'
-  | 'width'
-  | 'wordsPerSecond'
-  | 'idempotencyKey'
-  | 'instructions'
-  | 'mode'
-  | 'timezone'
-  | 'acceptsStructuredPrompt'
-  | 'addWatermark'
-  | 'autoAnalyzeAfterHours'
-  | 'autoSync'
-  | 'backgroundColor'
-  | 'bitrate'
-  | 'category'
-  | 'checkFrequency'
-  | 'creditCost'
+  | 'faceImage'
   | 'fadeIn'
   | 'fadeOut'
   | 'fontColor'
   | 'fontSize'
   | 'fontWeight'
+  | 'format'
   | 'fps'
   | 'generateChapters'
+  | 'generatePrompt'
   | 'generateTranscript'
+  | 'harnessContext'
+  | 'hashtag'
   | 'hashtagCount'
   | 'headers'
+  | 'height'
   | 'hookFormula'
+  | 'html'
+  | 'idempotencyKey'
+  | 'image'
+  | 'images'
   | 'includeAssetUrl'
   | 'includeCTA'
   | 'includeEmojis'
   | 'includeHashtags'
   | 'includeMetadata'
+  | 'instructions'
   | 'keywords'
+  | 'language'
   | 'languages'
+  | 'lastFrame'
   | 'libraryCategory'
   | 'libraryMood'
+  | 'limit'
   | 'maintainQuality'
+  | 'maxDuration'
+  | 'maxIterations'
   | 'maxLength'
+  | 'maxTokens'
+  | 'media'
+  | 'mediaUrl'
   | 'method'
+  | 'minUsageCount'
+  | 'minViralScore'
   | 'mixMode'
+  | 'mode'
+  | 'model'
   | 'monetization'
+  | 'music'
+  | 'musicUrl'
+  | 'negativePrompt'
+  | 'niche'
   | 'orientation'
   | 'outputFormat'
+  | 'photoUrl'
+  | 'pitchShift'
+  | 'platform'
   | 'platforms'
   | 'position'
+  | 'post'
+  | 'postId'
+  | 'product'
+  | 'productContext'
+  | 'productReferenceUrls'
+  | 'prompt'
   | 'promptFormat'
   | 'provider'
+  | 'quality'
+  | 'query'
+  | 'reason'
+  | 'recipientId'
+  | 'references'
+  | 'releaseAnalytics'
   | 'resolution'
+  | 'scale'
+  | 'schedule'
+  | 'script'
+  | 'secondaryKeywords'
+  | 'seed'
+  | 'skipped'
   | 'slideIndex'
+  | 'sound'
+  | 'soundId'
+  | 'soundUrl'
+  | 'sourceType'
+  | 'startFrame'
+  | 'startTime'
+  | 'strength'
   | 'strokeColor'
   | 'strokeWidth'
   | 'structuredPrompt'
+  | 'style'
+  | 'subject'
+  | 'suggestions'
+  | 'summary'
+  | 'targetAspectRatio'
+  | 'targetKeyword'
+  | 'targetScore'
+  | 'targetVoiceId'
+  | 'temperature'
   | 'template'
+  | 'text'
   | 'textColor'
+  | 'timezone'
+  | 'title'
+  | 'to'
   | 'tone'
   | 'toneStyle'
+  | 'topic'
   | 'topN'
   | 'trackingEnabled'
+  | 'trend'
+  | 'trendData'
+  | 'trendId'
   | 'trendType'
+  | 'uploadUrl'
   | 'url'
+  | 'useIdentityDefaults'
+  | 'useLlm'
   | 'variables'
+  | 'video'
+  | 'videoReference'
+  | 'videoReferences'
+  | 'videos'
+  | 'videoUrl'
   | 'videoVolume'
   | 'visibility'
+  | 'voiceId'
+  | 'width'
+  | 'wordsPerSecond'
   | 'worstN'
   | 'username';
 
@@ -197,6 +211,7 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
     case 'maintainQuality':
     case 'monetization':
     case 'trackingEnabled':
+    case 'skipped':
     case 'auto':
     case 'useIdentityDefaults':
     case 'useLlm':
@@ -214,6 +229,7 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
     case 'days':
     case 'limit':
       return INTEGER_SCHEMA;
+    case 'audioVolume':
     case 'bitrate':
     case 'creditCost':
     case 'fadeIn':
@@ -239,8 +255,17 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
       return NUMBER_SCHEMA;
     case 'keywords':
     case 'languages':
+    case 'secondaryKeywords':
     case 'platforms':
       return arraySchema(STRING_SCHEMA);
+    case 'faceImage':
+    case 'soundUrl':
+    case 'startFrame':
+    case 'videoReference':
+    case 'videoUrl':
+      return URL_OR_MEDIA_SCHEMA;
+    case 'characterReferenceUrls':
+    case 'productReferenceUrls':
     case 'images':
     case 'references':
     case 'videoReferences':
@@ -261,6 +286,7 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
     case 'schedule':
     case 'sound':
     case 'trend':
+    case 'trendData':
     case 'video':
       return MEDIA_VALUE_SCHEMA;
     default:
@@ -493,6 +519,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'content',
         'product',
         'prompt',
+        'startFrame',
         'style',
       ]),
       outputSchema: objectOutput({
@@ -575,6 +602,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'product',
         'toneStyle',
         'trend',
+        'trendData',
       ]),
       outputSchema: objectOutput({
         captionHook: STRING_SCHEMA,
@@ -586,7 +614,9 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
     imageGen: {
       inputSchema: inputSchema([
         'brandId',
+        'faceImage',
         'height',
+        'image',
         'model',
         'negativePrompt',
         'prompt',
@@ -656,7 +686,16 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'sourceType',
         'uploadUrl',
       ]),
-      outputSchema: STRING_SCHEMA,
+      // The library branch resolves an ingredient; upload and generate branches
+      // hand back the caller-supplied URL, which may not resolve at all.
+      outputSchema: objectOutput(
+        {
+          musicIngredientId: STRING_SCHEMA,
+          musicUrl: nullableSchema(STRING_SCHEMA),
+          sourceType: STRING_SCHEMA,
+        },
+        ['musicUrl', 'sourceType'],
+      ),
     },
     newsletterGen: {
       inputSchema: inputSchema([
@@ -856,7 +895,17 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       }),
     },
     reportDelivery: {
-      inputSchema: inputSchema(['channel', 'content', 'destination', 'title']),
+      inputSchema: inputSchema([
+        'channel',
+        'content',
+        'destination',
+        'email',
+        'html',
+        'subject',
+        'summary',
+        'text',
+        'title',
+      ]),
       outputSchema: objectOutput({
         delivered: BOOLEAN_SCHEMA,
         destination: STRING_SCHEMA,
@@ -886,7 +935,15 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       ),
     },
     sendEmail: {
-      inputSchema: inputSchema(['content', 'title']),
+      inputSchema: inputSchema([
+        'content',
+        'html',
+        'reason',
+        'skipped',
+        'subject',
+        'title',
+        'to',
+      ]),
       outputSchema: {
         oneOf: [
           objectOutput({
@@ -917,7 +974,13 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       }),
     },
     seoScore: {
-      inputSchema: inputSchema(['content', 'targetKeyword', 'title', 'useLlm']),
+      inputSchema: inputSchema([
+        'content',
+        'secondaryKeywords',
+        'targetKeyword',
+        'title',
+        'useLlm',
+      ]),
       outputSchema: objectOutput({
         breakdown: JSON_DOCUMENT_SCHEMA,
         content: nullableSchema(STRING_SCHEMA),
@@ -930,6 +993,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
     },
     socialRead: {
       inputSchema: inputSchema([
+        'brand',
         'brandId',
         'credentialId',
         'limit',
@@ -958,7 +1022,12 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'videoUrl',
         'videoVolume',
       ]),
-      outputSchema: STRING_SCHEMA,
+      // The executor returns the merged video ingredient, not a bare url.
+      outputSchema: objectOutput({
+        id: STRING_SCHEMA,
+        status: STRING_SCHEMA,
+        videoUrl: STRING_SCHEMA,
+      }),
     },
     sourceCorpus: {
       inputSchema: inputSchema(['brandId', 'days', 'limit']),
@@ -1147,6 +1216,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'duration',
         'fps',
         'height',
+        'image',
         'lastFrame',
         'model',
         'negativePrompt',
@@ -1155,13 +1225,20 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'resolution',
         'seed',
         'style',
+        'videoReference',
         'videoReferences',
         'width',
       ]),
       outputSchema: GENERATED_MEDIA_OUTPUT,
     },
     videoQa: {
-      inputSchema: inputSchema(['references', 'video', 'videoUrl']),
+      inputSchema: inputSchema([
+        'characterReferenceUrls',
+        'productReferenceUrls',
+        'references',
+        'video',
+        'videoUrl',
+      ]),
       outputSchema: objectOutput({
         ...VIDEO_QA_REPORT_PROPERTIES,
         continuityQa: nullableSchema(JSON_DOCUMENT_SCHEMA),

@@ -71,7 +71,13 @@ export class WorkflowEngineConverterService {
         id: node.id,
         inputs: (node as unknown as { inputs?: string[] }).inputs || [],
         isLocked: workflowDoc.lockedNodeIds?.includes(node.id) || false,
-        label: node.data?.label || node.type,
+        // An action envelope's identity is its action id — falling back to the
+        // `genfeedAction` wrapper type would label every node identically.
+        label:
+          node.data?.label ||
+          (typeof nodeConfig.actionId === 'string'
+            ? nodeConfig.actionId
+            : node.type),
         type: executorType,
       };
     });

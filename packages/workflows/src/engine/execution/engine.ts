@@ -739,11 +739,15 @@ export class WorkflowEngine {
         if (sourceOutput !== undefined) {
           const handleKey = edge.targetHandle ?? edge.source;
           const sourceKey = edge.sourceHandle ?? edge.targetHandle;
+          // A named source handle that an object output does not carry is a
+          // mis-wired multi-output node, so the edge stays closed. A scalar
+          // output has no keys to name at all — the editor still stamps a
+          // handle id on it, so the whole value is delivered instead.
           if (
             edge.sourceHandle !== undefined &&
-            (!sourceOutput ||
-              typeof sourceOutput !== 'object' ||
-              !(edge.sourceHandle in (sourceOutput as Record<string, unknown>)))
+            sourceOutput &&
+            typeof sourceOutput === 'object' &&
+            !(edge.sourceHandle in (sourceOutput as Record<string, unknown>))
           ) {
             continue;
           }

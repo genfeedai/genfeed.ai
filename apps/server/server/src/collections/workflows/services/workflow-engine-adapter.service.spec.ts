@@ -18,6 +18,25 @@ describe('WorkflowEngineAdapterService', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
+  /**
+   * Asserts a completed run and surfaces the failing node's error message, so a
+   * contract or executor regression names itself instead of reporting `failed`.
+   */
+  function expectCompleted(result: {
+    error?: string;
+    nodeResults: Map<string, { error?: string }>;
+    status: string;
+  }) {
+    expect(
+      result.status,
+      Array.from(result.nodeResults.entries())
+        .filter(([, nodeResult]) => nodeResult.error)
+        .map(([nodeId, nodeResult]) => `${nodeId}: ${nodeResult.error}`)
+        .join(' | ') ||
+        (result.error ?? ''),
+    ).toBe('completed');
+  }
+
   function convertActionGraph(
     adapter: WorkflowEngineAdapterService,
     workflow: Record<string, unknown> & {
@@ -261,7 +280,10 @@ describe('WorkflowEngineAdapterService', () => {
   });
 
   describe('executeWorkflow', () => {
-    it('executes an explicitly action-backed enhancement node', async () => {
+    it('refuses to run a catalog action that has no registered executor', async () => {
+      // `ai-enhance` is an allowlisted action id with no backing service. The
+      // hard cut removed the graceful no-op fallback, so the engine must refuse
+      // the graph up front rather than report a node that never ran as done.
       const workflowDoc = {
         id: 'wf-unsupported',
         nodes: [
@@ -277,7 +299,11 @@ describe('WorkflowEngineAdapterService', () => {
 
       const workflow = convertActionGraph(service, workflowDoc);
       const result = await service.executeWorkflow(workflow);
-      expect(result.status).toBe('completed');
+
+      expect(result.status).toBe('failed');
+      expect(result.error).toContain(
+        'No executor registered for Genfeed action: ai-enhance',
+      );
     });
 
     it('routes workflow social replies through the social inbox when a conversation is present', async () => {
@@ -327,7 +353,7 @@ describe('WorkflowEngineAdapterService', () => {
           workflowRunId: expect.any(String),
         }),
       );
-      expect(result.status).toBe('completed');
+      expectCompleted(result);
       expect(result.nodeResults.get('reply-node')?.output).toMatchObject({
         originalPostId: 'comment-1',
         replyId: 'reply-message-1',
@@ -383,7 +409,7 @@ describe('WorkflowEngineAdapterService', () => {
           workflowRunId: expect.any(String),
         }),
       );
-      expect(result.status).toBe('completed');
+      expectCompleted(result);
       expect(result.nodeResults.get('dm-node')?.output).toMatchObject({
         messageId: 'dm-message-1',
         platform: 'instagram',
@@ -451,7 +477,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const result = await service.executeWorkflow(workflow);
 
-      expect(result.status).toBe('completed');
+      expectCompleted(result);
       expect(result.error).toBeUndefined();
       expect(result.nodeResults.get('PyHRz6uB')?.output).toBe(
         'Write a FUD News brief',
@@ -505,7 +531,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const result = await service.executeWorkflow(workflow);
 
-      expect(result.status).toBe('completed');
+      expectCompleted(result);
       expect(result.nodeResults.get('constructor-1')?.output).toBe(
         'Hello FUD News',
       );
@@ -536,7 +562,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const result = await service.executeWorkflow(workflow);
 
-      expect(result.status).toBe('completed');
+      expectCompleted(result);
       expect(result.nodeResults.get('image-input')?.output).toBe(
         'https://cdn.example.com/img-1.png',
       );
@@ -567,7 +593,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const result = await service.executeWorkflow(workflow);
 
-      expect(result.status).toBe('completed');
+      expectCompleted(result);
       expect(result.nodeResults.get('video-input')?.output).toBe(
         'https://cdn.example.com/vid-1.mp4',
       );
@@ -590,7 +616,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const result = await service.executeWorkflow(workflow);
 
-      expect(result.status).toBe('completed');
+      expectCompleted(result);
       expect(result.nodeResults.get('analytics')?.output).toEqual(
         expect.objectContaining({
           bestPlatform: null,
@@ -630,7 +656,7 @@ describe('WorkflowEngineAdapterService', () => {
         slidePrompts: string[];
       };
 
-      expect(result.status).toBe('completed');
+      expectCompleted(result);
       expect(output.hookText).toContain('Here is what matters');
       expect(output.hashtags).toContain('#aifounders');
       expect(output.slidePrompts).toHaveLength(6);
@@ -678,7 +704,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const result = await service.executeWorkflow(workflow);
 
-      expect(result.status).toBe('completed');
+      expectCompleted(result);
       expect(result.nodeResults.get('trend')?.output).toEqual(
         expect.objectContaining({
           platform: 'tiktok',
@@ -722,7 +748,7 @@ describe('WorkflowEngineAdapterService', () => {
           {
             data: {
               config: {
-                platforms: { twitter: true },
+                platforms: ['twitter'],
                 schedule: { type: 'immediate' },
               },
               label: 'Publish',
@@ -737,7 +763,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const result = await service.executeWorkflow(workflow);
 
-      expect(result.status).toBe('completed');
+      expectCompleted(result);
       expect(result.nodeResults.get('publish')?.output).toEqual(
         expect.objectContaining({
           platforms: ['twitter'],
@@ -827,6 +853,7 @@ describe('WorkflowEngineAdapterService', () => {
           organizationId: 'org-1',
           userId: 'user-1',
         }),
+        expect.any(Function),
       );
     });
 
@@ -917,7 +944,7 @@ describe('WorkflowEngineAdapterService', () => {
       const captionsResult =
         await executionService.executeWorkflow(captionsWorkflow);
 
-      expect(captionsResult.status).toBe('completed');
+      expectCompleted(captionsResult);
       expect(whisperService.generateCaptions).toHaveBeenCalledWith(avatarId);
       expect(captionsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -944,7 +971,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const musicResult = await executionService.executeWorkflow(musicWorkflow);
 
-      expect(musicResult.status).toBe('completed');
+      expectCompleted(musicResult);
       expect(musicsService.findOne).toHaveBeenCalled();
 
       const overlayWorkflow = convertActionGraph(executionService, {
@@ -993,7 +1020,7 @@ describe('WorkflowEngineAdapterService', () => {
       const overlayResult =
         await executionService.executeWorkflow(overlayWorkflow);
 
-      expect(overlayResult.status).toBe('completed');
+      expectCompleted(overlayResult);
       expect(
         videoMusicOrchestrationService.mergeVideoWithMusic,
       ).toHaveBeenCalledWith(
@@ -1037,31 +1064,24 @@ describe('WorkflowEngineAdapterService', () => {
         runModel: vi.fn().mockResolvedValue('prediction-1'),
       };
 
+      const adapterArgs = new Array(47).fill(undefined);
+      adapterArgs[0] = { cdnUrl: 'https://cdn.example.com' };
+      adapterArgs[1] = loggerService;
+      adapterArgs[7] = ingredientsService;
+      adapterArgs[8] = metadataService;
+      adapterArgs[13] = sharedService;
+      adapterArgs[19] = replicateService;
+      adapterArgs[20] = promptBuilderService;
+      // Image generation submits to a provider, so it needs the durable
+      // continuation the callback finalizes against.
+      adapterArgs[46] = {
+        createBeforeProviderSubmission: vi
+          .fn()
+          .mockResolvedValue({ continuationId: 'continuation-1' }),
+        markProviderSubmitted: vi.fn().mockResolvedValue(undefined),
+      };
       const imageWorkflowService = new WorkflowEngineAdapterService(
-        {
-          cdnUrl: 'https://cdn.example.com',
-        } as never,
-        loggerService as never,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        ingredientsService as never,
-        metadataService as never,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        sharedService as never,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        replicateService as never,
-        promptBuilderService as never,
-        undefined,
+        ...adapterArgs,
       );
 
       const template = GENERATION_WORKFLOW_TEMPLATES['virtual-staging-rescue'];
@@ -1091,11 +1111,22 @@ describe('WorkflowEngineAdapterService', () => {
         },
       );
 
-      const result =
-        await imageWorkflowService.executeWorkflow(hydratedWorkflow);
+      const result = await imageWorkflowService.executeWorkflow(
+        hydratedWorkflow,
+        { executionId: 'execution-1' },
+      );
 
-      expect(result.status).toBe('completed');
+      // Image generation submits to Replicate and suspends until the provider
+      // callback finalizes the continuation, so the run stays `running`.
+      expect(
+        Array.from(result.nodeResults.entries())
+          .filter(([, nodeResult]) => nodeResult.error)
+          .map(([nodeId, nodeResult]) => `${nodeId}: ${nodeResult.error}`),
+      ).toEqual([]);
+      expect(result.status).toBe('running');
       expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
+      // The staging prompt template interpolates the runtime inputs, and the
+      // source photo rides the reference-image handle into the same call.
       expect(replicateService.runModel).toHaveBeenCalledWith(
         'qwen/qwen-image',
         expect.objectContaining({
@@ -1103,6 +1134,8 @@ describe('WorkflowEngineAdapterService', () => {
           prompt: expect.stringContaining('bedroom'),
           strength: 0.32,
         }),
+        undefined,
+        'continuation-1',
       );
     });
 
