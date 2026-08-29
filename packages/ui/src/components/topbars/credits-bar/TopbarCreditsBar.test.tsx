@@ -341,25 +341,39 @@ describe('TopbarCreditsBar', () => {
     });
   });
 
+  // React Query only cancels-and-refetches (`cancelRefetch`) once a query
+  // already has data; while the very first fetch is still in flight, a
+  // refetch call is deduped onto that same request instead of issuing a
+  // second one. So the race has to start after the initial load lands.
   it('does not let an older request publish data or clear a newer loading state', async () => {
     const older = createDeferred<ReturnType<typeof balanceResponse>>();
     const newer = createDeferred<ReturnType<typeof balanceResponse>>();
     mockGetTopbarBalances
+      .mockResolvedValueOnce(balanceResponse(1))
       .mockImplementationOnce(() => older.promise)
       .mockImplementationOnce(() => newer.promise);
 
     renderBar();
 
     await waitFor(() => {
-      expect(mockGetTopbarBalances).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('credits-balance')).toHaveTextContent('1');
+    });
+
+    // The first refresh starts the "older" request; a second refresh lands
+    // before it settles, so cancelRefetch cancels it and starts a third,
+    // "newer" request in its place.
+    act(() => {
+      window.dispatchEvent(new Event('genfeed:topbar-balances:refresh'));
+    });
+    await waitFor(() => {
+      expect(mockGetTopbarBalances).toHaveBeenCalledTimes(2);
     });
 
     act(() => {
       window.dispatchEvent(new Event('genfeed:topbar-balances:refresh'));
     });
-
     await waitFor(() => {
-      expect(mockGetTopbarBalances).toHaveBeenCalledTimes(2);
+      expect(mockGetTopbarBalances).toHaveBeenCalledTimes(3);
     });
 
     await act(async () => {
@@ -367,11 +381,8 @@ describe('TopbarCreditsBar', () => {
       await older.promise;
     });
 
-    expect(screen.getByTestId('credits-numeric')).toHaveTextContent('unknown');
-    expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
-      'data-loading',
-      'true',
-    );
+    // The cancelled "older" request must never publish its data.
+    expect(screen.getByTestId('credits-balance')).toHaveTextContent('1');
 
     await act(async () => {
       newer.resolve(balanceResponse(84));
@@ -391,19 +402,27 @@ describe('TopbarCreditsBar', () => {
     const older = createDeferred<ReturnType<typeof balanceResponse>>();
     const newer = createDeferred<ReturnType<typeof balanceResponse>>();
     mockGetTopbarBalances
+      .mockResolvedValueOnce(balanceResponse(1))
       .mockImplementationOnce(() => older.promise)
       .mockImplementationOnce(() => newer.promise);
 
     renderBar();
 
     await waitFor(() => {
-      expect(mockGetTopbarBalances).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('credits-balance')).toHaveTextContent('1');
     });
+
     act(() => {
       window.dispatchEvent(new Event('genfeed:topbar-balances:refresh'));
     });
     await waitFor(() => {
       expect(mockGetTopbarBalances).toHaveBeenCalledTimes(2);
+    });
+    act(() => {
+      window.dispatchEvent(new Event('genfeed:topbar-balances:refresh'));
+    });
+    await waitFor(() => {
+      expect(mockGetTopbarBalances).toHaveBeenCalledTimes(3);
     });
 
     await act(async () => {
