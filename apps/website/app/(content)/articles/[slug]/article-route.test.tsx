@@ -21,6 +21,10 @@ const {
   generateMetadata,
   generateStaticParams,
 } = await import('./page');
+const {
+  default: ArticlePreviewRoute,
+  generateMetadata: generatePreviewMetadata,
+} = await import('./preview/page');
 const { getPublicArticleBySlugCached } = await import('./article-loader');
 
 function article(overrides: Partial<Article> = {}): Article {
@@ -180,7 +184,6 @@ describe('ArticleDetailRoute', () => {
 
     const element = await ArticleDetailRoute({
       params: Promise.resolve({ slug: 'route-published' }),
-      searchParams: Promise.resolve({}),
     });
 
     const [articleJsonLd, breadcrumbJsonLd] = readJsonLdScripts(element) as [
@@ -222,7 +225,6 @@ describe('ArticleDetailRoute', () => {
 
     const element = await ArticleDetailRoute({
       params: Promise.resolve({ slug: 'route-anonymous' }),
-      searchParams: Promise.resolve({}),
     });
 
     const [articleJsonLd] = readJsonLdScripts(element) as [
@@ -256,7 +258,6 @@ describe('ArticleDetailRoute', () => {
 
     const element = (await ArticleDetailRoute({
       params: Promise.resolve({ slug: 'numeric-author' }),
-      searchParams: Promise.resolve({}),
     })) as ReactElement<{ children?: ReactNode }>;
 
     const [articleJsonLd] = readJsonLdScripts(element) as [
@@ -270,10 +271,45 @@ describe('ArticleDetailRoute', () => {
     expect(detail.props.article.author).toBe('Vincent Tellier');
   });
 
+  it('never forwards a preview token from the public route', async () => {
+    getPublicArticleBySlug.mockResolvedValue(article());
+
+    await ArticleDetailRoute({
+      params: Promise.resolve({ slug: 'route-public' }),
+    });
+
+    expect(getPublicArticleBySlug).toHaveBeenCalledWith(
+      'route-public',
+      undefined,
+    );
+  });
+
+  it('answers with a 404 when the article is missing', async () => {
+    getPublicArticleBySlug.mockResolvedValue(null);
+
+    await expect(
+      ArticleDetailRoute({
+        params: Promise.resolve({ slug: 'gone' }),
+      }),
+    ).rejects.toThrow();
+  });
+
+  it('answers with a 404 for the sentinel "undefined" id', async () => {
+    getPublicArticleBySlug.mockResolvedValue(article({ id: 'undefined' }));
+
+    await expect(
+      ArticleDetailRoute({
+        params: Promise.resolve({ slug: 'sentinel' }),
+      }),
+    ).rejects.toThrow();
+  });
+});
+
+describe('ArticlePreviewRoute', () => {
   it('passes the preview token through and flags an unpublished article', async () => {
     getPublicArticleBySlug.mockResolvedValue(article({ publishedAt: null }));
 
-    const element = (await ArticleDetailRoute({
+    const element = (await ArticlePreviewRoute({
       params: Promise.resolve({ slug: 'route-preview' }),
       searchParams: Promise.resolve({ previewToken: 'token-123' }),
     })) as ReactElement<{ children?: ReactNode }>;
@@ -289,25 +325,17 @@ describe('ArticleDetailRoute', () => {
     expect(detail.props.isPreview).toBe(true);
   });
 
-  it('answers with a 404 when the article is missing', async () => {
-    getPublicArticleBySlug.mockResolvedValue(null);
+  // A draft URL that leaks into a crawl must not be indexed under the slug the
+  // published article will own.
+  it('keeps drafts out of the index', async () => {
+    getPublicArticleBySlug.mockResolvedValue(article({ publishedAt: null }));
 
-    await expect(
-      ArticleDetailRoute({
-        params: Promise.resolve({ slug: 'gone' }),
-        searchParams: Promise.resolve({}),
-      }),
-    ).rejects.toThrow();
-  });
+    const meta = await generatePreviewMetadata({
+      params: Promise.resolve({ slug: 'route-preview' }),
+      searchParams: Promise.resolve({ previewToken: 'token-123' }),
+    });
 
-  it('answers with a 404 for the sentinel "undefined" id', async () => {
-    getPublicArticleBySlug.mockResolvedValue(article({ id: 'undefined' }));
-
-    await expect(
-      ArticleDetailRoute({
-        params: Promise.resolve({ slug: 'sentinel' }),
-        searchParams: Promise.resolve({}),
-      }),
-    ).rejects.toThrow();
+    expect(meta.robots).toEqual({ follow: false, index: false });
+    expect(meta.alternates?.canonical).toContain('/articles/route-preview');
   });
 });
