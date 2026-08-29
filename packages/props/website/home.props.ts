@@ -13,16 +13,10 @@ export interface DemoCardProps {
   platform?: string;
 }
 
-export interface AudienceBenefit {
-  label: string;
-}
-
 export interface OutputFormat {
-  credits: number;
   description: string;
   /** Sample output asset shown in the format tile (public/images/home/formats) */
   image: string;
-  priceSuffix?: string;
   title: string;
 }
 

@@ -63,9 +63,10 @@ const REQUEST_TIMEOUT_MS = 15_000;
  * Sitemap URLs that are intentionally not reachable by crawling <a> links, so
  * they must not be reported as orphans:
  * - llms.txt / llms-full.txt are plain-text AI resources, not linked HTML pages.
- * - /retainer, /dfy, /fleet are high-ticket pitch pages: deliberately kept out
- *   of nav/footer (direct-send sales collateral + ad landing pages) but listed
- *   in the sitemap so a shared link stays indexable.
+ * - Everything else here is an app/sales landing page in the `(landing)` route
+ *   group: deliberately kept out of nav/footer (direct-send collateral and paid
+ *   ad destinations) but listed in the sitemap so a shared link stays
+ *   indexable. Every page a visitor is meant to *find* is linked from /sitemap.
  */
 const ORPHAN_ALLOWLIST = new Set<string>([
   '/llms.txt',
@@ -73,6 +74,11 @@ const ORPHAN_ALLOWLIST = new Set<string>([
   '/retainer',
   '/dfy',
   '/fleet',
+  '/done-for-you',
+  '/founder-content',
+  '/launch-content',
+  '/linkedin-content',
+  '/podcast-to-content',
 ]);
 
 /**

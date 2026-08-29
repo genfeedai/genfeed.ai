@@ -16,24 +16,12 @@ vi.mock('@web-components/home/_formats', () => ({
   default: () => <section data-testid="home-formats">Formats</section>,
 }));
 
-vi.mock('@web-components/proof/ProofTestimonials', () => ({
-  default: () => <section>Testimonials</section>,
-}));
-
-vi.mock('@web-components/home/_audiences', () => ({
-  default: () => <section>Audiences</section>,
-}));
-
-vi.mock('@web-components/home/_credits', () => ({
-  default: () => <section>Credits</section>,
-}));
-
-vi.mock('@web-components/home/_faq', () => ({
-  default: () => <section>FAQ</section>,
+vi.mock('@web-components/proof/ProofWinners', () => ({
+  default: () => <section data-testid="home-winners">Winners</section>,
 }));
 
 vi.mock('@web-components/home/_cta', () => ({
-  default: () => <section>CTA</section>,
+  default: () => <section data-testid="home-cta">CTA</section>,
 }));
 
 vi.mock('@web-components/home/_footer', () => ({
@@ -48,5 +36,21 @@ describe('HomeContent', () => {
     expect(sections[0]).toBe(screen.getByTestId('home-hero'));
     expect(sections[1]).toBe(screen.getByTestId('home-distribution-loop'));
     expect(sections[2]).toBe(screen.getByTestId('home-formats'));
+  });
+
+  it('places proof between the formats grid and the closing CTA', () => {
+    const { container } = render(<HomeContent />);
+    const sections = Array.from(container.children);
+
+    expect(sections[3]).toBe(screen.getByTestId('home-winners'));
+    expect(sections[4]).toBe(screen.getByTestId('home-cta'));
+  });
+
+  it('drops the sections that moved to pricing and the FAQ page', () => {
+    render(<HomeContent />);
+
+    expect(screen.queryByText(/audiences/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/credits/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/faq/i)).not.toBeInTheDocument();
   });
 });

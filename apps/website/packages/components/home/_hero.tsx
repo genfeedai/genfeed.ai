@@ -1,13 +1,13 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { HOME_OUTPUT_WALL_ASSETS } from '@web-components/home/_assets';
-import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
+
+const AGENT_HREF = '/agent';
 
 const HERO_WALL_ITEMS = [
   {
@@ -23,7 +23,7 @@ const HERO_WALL_ITEMS = [
     className:
       'col-span-3 row-span-4 sm:col-span-3 sm:row-span-9 sm:col-start-6 sm:row-start-1',
     imageClassName: 'object-[50%_50%]',
-    priority: true,
+    priority: false,
     sizes: '(max-width: 640px) 50vw, (max-width: 1024px) 28vw, 220px',
   },
   {
@@ -31,7 +31,7 @@ const HERO_WALL_ITEMS = [
     className:
       'col-span-3 row-span-4 sm:col-span-4 sm:row-span-4 sm:col-start-9 sm:row-start-1',
     imageClassName: 'object-[50%_50%]',
-    priority: true,
+    priority: false,
     sizes: '(max-width: 640px) 50vw, (max-width: 1024px) 35vw, 300px',
   },
   {
@@ -66,29 +66,22 @@ export default function HomeHero(): React.ReactElement {
       <div className="container mx-auto px-6">
         <div className="grid min-h-[calc(100svh-5.5rem)] items-center gap-12 py-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(440px,0.95fr)] lg:gap-14 lg:py-16 xl:gap-20">
           <div className="max-w-[42rem] self-center">
-            <Text className="mb-5 text-xs font-bold uppercase tracking-[0.16em] text-surface/65">
+            <Text className="mb-5 text-xs font-bold uppercase tracking-[0.16em] text-surface/72">
               The AI content studio
             </Text>
             <Heading
               as="h1"
               className="hero-headline max-w-[44rem] text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.035em] text-surface sm:text-5xl md:text-[3.5rem] lg:text-[3.5rem] xl:text-[4rem] 2xl:text-[4.5rem]"
             >
-              Every post, image, and video. One studio.
+              One brief. <span className="block">Every channel.</span>
             </Heading>
 
             <Text
               as="p"
-              className="mt-6 text-xl font-semibold tracking-[-0.02em] text-surface md:text-2xl"
+              className="hero-description mt-6 max-w-2xl text-base leading-7 text-surface/72 md:text-lg"
             >
-              Generate, review, schedule, publish.
-            </Text>
-
-            <Text
-              as="p"
-              className="hero-description mt-4 max-w-2xl text-base leading-7 text-surface/62 md:text-lg"
-            >
-              One brief in. Platform-native content out, on every channel you
-              publish to. No stitching six tools together.
+              Genfeed drafts the posts, makes the images and video, and
+              publishes on your schedule.
             </Text>
 
             <div className="flex flex-row items-center mt-8 flex-wrap gap-3">
@@ -96,12 +89,11 @@ export default function HomeHero(): React.ReactElement {
                 asChild
                 size={ButtonSize.PUBLIC}
                 className="hero-cta"
-                trackingData={{ action: 'start_free_hero' }}
-                trackingName="hero_cta_click"
+                trackingData={{ action: 'start_creating_hero' }}
+                trackingName="home_hero_click"
               >
                 <a href={`${EnvironmentService.apps.app}/sign-up`}>
-                  Start for free
-                  <ArrowRight className="size-4" />
+                  Start creating
                 </a>
               </ButtonTracked>
 
@@ -109,19 +101,17 @@ export default function HomeHero(): React.ReactElement {
                 asChild
                 className="hero-cta"
                 size={ButtonSize.PUBLIC}
-                trackingData={{ action: 'book_demo_hero' }}
-                trackingName="hero_cta_click"
+                trackingData={{ action: 'use_agent_hero' }}
+                trackingName="home_hero_click"
                 variant={ButtonVariant.SECONDARY}
               >
-                <a
-                  href={EnvironmentService.calendly}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  Book a Demo
-                </a>
+                <Link href={AGENT_HREF}>Use the Agent</Link>
               </ButtonTracked>
             </div>
+
+            <Text as="p" className="mt-5 text-[13px] leading-5 text-surface/72">
+              Free to start. No card required.
+            </Text>
           </div>
 
           <figure
