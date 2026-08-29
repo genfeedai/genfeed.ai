@@ -129,12 +129,17 @@ describe('ModelCatalogSeedService', () => {
 
     await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
-    expect(callForKey(defaultEntry?.key ?? '')?.update).toMatchObject({
+    // First boot takes the CREATE path — the pin ships in `create`, and
+    // `update` deliberately omits it so an admin repoint survives restarts.
+    expect(callForKey(defaultEntry?.key ?? '')?.create).toMatchObject({
       isActive: true,
       isDefault: true,
       isDiscovered: false,
       isPublic: true,
     });
+    expect(callForKey(defaultEntry?.key ?? '')?.update).not.toHaveProperty(
+      'isDefault',
+    );
   });
 
   it('demotes other defaults in a category when promoting a catalog default', async () => {
@@ -242,7 +247,7 @@ describe('ModelCatalogSeedService', () => {
         }),
       }),
     );
-    expect(callForKey(LOWEST_COST_VIDEO_MODEL_KEY)?.update).toMatchObject({
+    expect(callForKey(LOWEST_COST_VIDEO_MODEL_KEY)?.create).toMatchObject({
       isActive: true,
       isDefault: true,
     });

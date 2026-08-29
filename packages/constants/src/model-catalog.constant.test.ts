@@ -101,8 +101,14 @@ describe('UNIFIED_MODEL_CATALOG', () => {
       expect(row?.isLegacy).toBe(true);
       expect(row?.isActive).toBe(false);
       expect(row?.succeededBy).toBe(succeededBy);
-      // A stale binding must never bill at zero.
-      expect(row?.cost).toBeGreaterThan(0);
+      // A stale binding must never bill at zero by accident. Zero is only
+      // legitimate when the successor is declared free — then the row must
+      // carry the deliberate `isFree` marker.
+      if (row?.isFree) {
+        expect(row.cost).toBe(0);
+      } else {
+        expect(row?.cost).toBeGreaterThan(0);
+      }
     }
   });
 

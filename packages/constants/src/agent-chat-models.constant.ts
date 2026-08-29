@@ -390,13 +390,15 @@ export function getAgentChatModel(
 
 /**
  * Round cost for a model that is not in the catalogue yet. Deliberately the
- * default model's price rather than 1 credit: an unknown model is far more
- * likely to be a new frontier release than a bargain, and under-billing it is
+ * priciest catalogued model's rate rather than the pinned default's: the
+ * default is a free model (round cost 0), and an unknown key is far more
+ * likely to be a new frontier release than a bargain — under-billing it is
  * the exact failure `openrouter/auto` shipped.
  */
-export const AGENT_FALLBACK_ROUND_CREDITS: number =
-  AGENT_CHAT_MODELS_BY_KEY.get(DEFAULT_AGENT_CHAT_MODEL_KEY)
-    ?.creditCostPerRound ?? 4;
+export const AGENT_FALLBACK_ROUND_CREDITS: number = Math.max(
+  4,
+  ...AGENT_CHAT_MODELS.map((model) => model.creditCostPerRound),
+);
 
 /** Credits burned by one LLM round on the given model. */
 export function getAgentChatModelRoundCredits(key?: string | null): number {

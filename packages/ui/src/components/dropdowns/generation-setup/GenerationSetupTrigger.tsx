@@ -10,7 +10,7 @@ import {
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { ChevronsUpDown, Sparkles } from 'lucide-react';
-import { memo, type Ref } from 'react';
+import { type ButtonHTMLAttributes, memo, type Ref } from 'react';
 
 /**
  * Compact `{Type} · {Model or Auto} · {ratio}` summary chip. Carries a subtle
@@ -26,7 +26,9 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
   ref,
   setup,
   typeOptions,
-}: GenerationSetupTriggerProps & { ref?: Ref<HTMLButtonElement> }) {
+  ...buttonProps
+}: GenerationSetupTriggerProps &
+  ButtonHTMLAttributes<HTMLButtonElement> & { ref?: Ref<HTMLButtonElement> }) {
   const typeLabel =
     typeOptions.find((option) => option.value === setup.values.type)?.label ??
     setup.values.type;
@@ -59,6 +61,7 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
       textTransform="none"
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
+      {...buttonProps}
     >
       <Sparkles
         className={cn(

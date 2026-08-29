@@ -194,7 +194,7 @@ export function seedGenerationSetupFromLegacyStudioSettings(
       if (legacyValue === undefined || legacyValue === defaults[key]) {
         continue;
       }
-      (values as Record<string, unknown>)[key] = legacyValue;
+      (values as unknown as Record<string, unknown>)[key] = legacyValue;
       sources[key] = 'user';
       hasDivergence = true;
     }
