@@ -4,6 +4,7 @@ import { generateArticle } from '@/api/articles';
 import { requireAuth } from '@/api/client';
 import { printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
+import { parseIntegerInRange } from '@/utils/options';
 import { parseKeywords, printArticle, requireGenerationBrand } from './helpers';
 
 export const articleXCommand = new Command('article-x')
@@ -12,7 +13,9 @@ export const articleXCommand = new Command('article-x')
   .option('-b, --brand <id>', 'Brand ID (overrides active brand)')
   .option('--keywords <list>', 'Comma-separated keywords to steer the article')
   .option('--tone <tone>', 'Tone of voice for the article')
-  .option('--words <n>', 'Target word count (2500-10000)', Number.parseInt)
+  .option('--words <n>', 'Target word count (2500-10000)', (value) =>
+    parseIntegerInRange(value, 2_500, 10_000)
+  )
   .option('--no-header-image', 'Skip generating a header image prompt')
   .option('--json', 'Output as JSON')
   .action(async (prompt, options) => {

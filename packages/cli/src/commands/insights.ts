@@ -12,12 +12,13 @@ import {
 } from '@/api/insights';
 import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
+import { parsePositiveInteger, wantsJson } from '@/utils/options';
 
 export const insightsCommand = new Command('insights')
   .description('AI-powered content insights')
-  .option('-l, --limit <n>', 'Max insights', Number.parseInt, 5)
+  .option('-l, --limit <n>', 'Max insights', parsePositiveInteger, 5)
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async (options, command: Command) => {
     try {
       await requireAuth();
 
@@ -30,7 +31,7 @@ export const insightsCommand = new Command('insights')
         return;
       }
 
-      if (options.json) {
+      if (wantsJson(command)) {
         printJson(insights);
         return;
       }
@@ -57,7 +58,7 @@ insightsCommand
   .requiredOption('--topic <topic>', 'Topic to forecast')
   .option('--platform <platform>', 'Target platform')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async (options, command: Command) => {
     try {
       await requireAuth();
 
@@ -65,7 +66,7 @@ insightsCommand
       const forecast = await getForecast(options.topic, options.platform);
       spinner.stop();
 
-      if (options.json) {
+      if (wantsJson(command)) {
         printJson(forecast);
         return;
       }
@@ -94,7 +95,7 @@ insightsCommand
   .description('Analyze content for viral potential')
   .requiredOption('--content <text>', 'Content to analyze')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async (options, command: Command) => {
     try {
       await requireAuth();
 
@@ -102,7 +103,7 @@ insightsCommand
       const analysis = await getViralAnalysis(options.content);
       spinner.stop();
 
-      if (options.json) {
+      if (wantsJson(command)) {
         printJson(analysis);
         return;
       }
@@ -134,7 +135,7 @@ insightsCommand
   .command('gaps')
   .description('Identify content gaps')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async (_options, command: Command) => {
     try {
       await requireAuth();
 
@@ -147,7 +148,7 @@ insightsCommand
         return;
       }
 
-      if (options.json) {
+      if (wantsJson(command)) {
         printJson(gaps);
         return;
       }
@@ -175,7 +176,7 @@ insightsCommand
   .option('--platform <platform>', 'Platform', 'instagram')
   .option('--timezone <tz>', 'Timezone', 'UTC')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async (options, command: Command) => {
     try {
       await requireAuth();
 
@@ -188,7 +189,7 @@ insightsCommand
         return;
       }
 
-      if (options.json) {
+      if (wantsJson(command)) {
         printJson(times);
         return;
       }
@@ -211,7 +212,7 @@ insightsCommand
   .description('Get growth prediction')
   .option('--platform <platform>', 'Platform', 'instagram')
   .option('--json', 'Output as JSON')
-  .action(async (options) => {
+  .action(async (options, command: Command) => {
     try {
       await requireAuth();
 
@@ -219,7 +220,7 @@ insightsCommand
       const prediction = await getGrowthPrediction(options.platform);
       spinner.stop();
 
-      if (options.json) {
+      if (wantsJson(command)) {
         printJson(prediction);
         return;
       }

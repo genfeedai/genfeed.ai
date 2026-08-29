@@ -1,13 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGet = vi.fn();
+const mockPost = vi.fn();
+const mockFlattenCollection = vi.fn();
 const mockFlattenSingle = vi.fn();
 
-vi.mock('../../src/api/client', () => ({
+vi.mock('@/api/client', () => ({
   get: (...args: unknown[]) => mockGet(...args),
+  post: (...args: unknown[]) => mockPost(...args),
 }));
 
-vi.mock('../../src/api/json-api', () => ({
+vi.mock('@/api/json-api', () => ({
+  flattenCollection: (...args: unknown[]) => mockFlattenCollection(...args),
   flattenSingle: (...args: unknown[]) => mockFlattenSingle(...args),
 }));
 
@@ -21,7 +25,7 @@ describe('api/credits', () => {
     mockGet.mockResolvedValue(response);
     mockFlattenSingle.mockReturnValue({ currentBalance: 120 });
 
-    const { getCreditUsage } = await import('../../src/api/credits');
+    const { getCreditUsage } = await import('@/api/credits');
     const result = await getCreditUsage();
 
     expect(mockGet).toHaveBeenCalledWith('/credits/usage');
@@ -33,7 +37,7 @@ describe('api/credits', () => {
     mockGet.mockResolvedValue({ data: { id: 'summary' } });
     mockFlattenSingle.mockReturnValue({ billableUsage: 5, freeRemaining: 95, totalUsage: 100 });
 
-    const { getCreditSummary } = await import('../../src/api/credits');
+    const { getCreditSummary } = await import('@/api/credits');
     const result = await getCreditSummary();
 
     expect(mockGet).toHaveBeenCalledWith('/credits/byok-usage-summary');
@@ -50,11 +54,63 @@ describe('api/credits', () => {
       usedSinceLastPurchase: 100,
     });
 
-    const { getLastPurchaseBaseline } = await import('../../src/api/credits');
+    const { getLastPurchaseBaseline } = await import('@/api/credits');
     const result = await getLastPurchaseBaseline();
 
     expect(mockGet).toHaveBeenCalledWith('/credits/last-purchase-baseline');
     expect(result.usedPercent).toBe(20);
     expect(result.lastPurchaseAt).toBeNull();
+  });
+
+  it('creates a server-priced hosted Checkout session', async () => {
+    const response = { data: { attributes: { url: 'https://checkout.stripe.test/cs_1' } } };
+    mockPost.mockResolvedValue(response);
+    mockFlattenSingle.mockReturnValue({ url: 'https://checkout.stripe.test/cs_1' });
+
+    const { createCreditsCheckout } = await import('@/api/credits');
+    const result = await createCreditsCheckout(5_000);
+
+    expect(mockPost).toHaveBeenCalledWith('/services/stripe/credits/checkout', {
+      credits: 5_000,
+    });
+    expect(result.url).toBe('https://checkout.stripe.test/cs_1');
+  });
+
+  it('forwards cancellation to hosted Checkout creation', async () => {
+    mockPost.mockResolvedValue({ data: { id: 'checkout' } });
+    mockFlattenSingle.mockReturnValue({ url: 'https://checkout.stripe.test/cs_1' });
+    const controller = new AbortController();
+
+    const { createCreditsCheckout } = await import('@/api/credits');
+    await createCreditsCheckout(5_000, controller.signal);
+
+    expect(mockPost).toHaveBeenCalledWith(
+      '/services/stripe/credits/checkout',
+      { credits: 5_000 },
+      { signal: controller.signal }
+    );
+  });
+
+  it('fetches credit transaction history with a bounded limit', async () => {
+    const response = { data: [] };
+    mockGet.mockResolvedValue(response);
+    mockFlattenCollection.mockReturnValue([]);
+
+    const { listCreditTransactions } = await import('@/api/credits');
+    const result = await listCreditTransactions(25);
+
+    expect(mockGet).toHaveBeenCalledWith('/credits/transactions?limit=25');
+    expect(mockFlattenCollection).toHaveBeenCalledWith(response);
+    expect(result).toEqual([]);
+  });
+
+  it('falls back to the default transaction limit for non-finite callers', async () => {
+    mockGet.mockResolvedValue({ data: [] });
+    mockFlattenCollection.mockReturnValue([]);
+
+    const { listCreditTransactions } = await import('@/api/credits');
+    await listCreditTransactions(Number.NaN);
+
+    expect(mockGet).toHaveBeenCalledWith('/credits/transactions?limit=50');
   });
 });

@@ -1,12 +1,12 @@
 import { PersistedArticleStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { generateArticle, getArticle } from '../../src/api/articles';
+import { generateArticle, getArticle } from '@/api/articles';
 
 const mockApiKey = vi.fn<[], string | undefined>();
 const mockApiUrl = vi.fn<[], string>();
 const mockFetch = vi.fn();
 
-vi.mock('../../src/config/store', () => ({
+vi.mock('@/config/store', () => ({
   getApiKey: () => mockApiKey(),
   getApiUrl: () => mockApiUrl(),
 }));
@@ -98,6 +98,20 @@ describe('api/articles', () => {
           type: 'standard',
         },
         method: 'POST',
+      });
+    });
+
+    it('forwards cancellation to article generation', async () => {
+      mockFetch.mockResolvedValue({ data: [] });
+      const controller = new AbortController();
+      const request = { brandId: 'brand-1', prompt: 'AI workflows', type: 'standard' } as const;
+
+      await generateArticle(request, controller.signal);
+
+      expect(mockFetch).toHaveBeenCalledWith('/articles/generations', {
+        body: request,
+        method: 'POST',
+        signal: controller.signal,
       });
     });
   });

@@ -145,8 +145,11 @@ export async function listThreads(status?: string): Promise<AgentThread[]> {
   return flattenCollection<AgentThread>(response);
 }
 
-export async function getThread(threadId: string): Promise<AgentThread> {
-  const response = await get<JsonApiSingleResponse>(`${AGENT_THREADS_ENDPOINT}/${threadId}`);
+export async function getThread(threadId: string, signal?: AbortSignal): Promise<AgentThread> {
+  const path = `${AGENT_THREADS_ENDPOINT}/${threadId}`;
+  const response = signal
+    ? await get<JsonApiSingleResponse>(path, { signal })
+    : await get<JsonApiSingleResponse>(path);
   return flattenSingle<AgentThread>(response);
 }
 
@@ -178,13 +181,20 @@ export async function updateThreadContext(
   return flattenSingle<AgentThread>(response);
 }
 
-export async function getThreadSnapshot(threadId: string): Promise<AgentThreadSnapshot> {
-  return await get<AgentThreadSnapshot>(`${AGENT_THREADS_ENDPOINT}/${threadId}/snapshot`);
+export async function getThreadSnapshot(
+  threadId: string,
+  signal?: AbortSignal
+): Promise<AgentThreadSnapshot> {
+  const path = `${AGENT_THREADS_ENDPOINT}/${threadId}/snapshot`;
+  return signal
+    ? await get<AgentThreadSnapshot>(path, { signal })
+    : await get<AgentThreadSnapshot>(path);
 }
 
 export async function getThreadEvents(
   threadId: string,
-  afterSequence?: number
+  afterSequence?: number,
+  signal?: AbortSignal
 ): Promise<AgentThreadEvent[]> {
   const query = new URLSearchParams();
   if (typeof afterSequence === 'number' && afterSequence > 0) {
@@ -192,27 +202,31 @@ export async function getThreadEvents(
   }
 
   const qs = query.toString();
-  return await get<AgentThreadEvent[]>(
-    qs
-      ? `${AGENT_THREADS_ENDPOINT}/${threadId}/events?${qs}`
-      : `${AGENT_THREADS_ENDPOINT}/${threadId}/events`
-  );
+  const path = qs
+    ? `${AGENT_THREADS_ENDPOINT}/${threadId}/events?${qs}`
+    : `${AGENT_THREADS_ENDPOINT}/${threadId}/events`;
+  return signal
+    ? await get<AgentThreadEvent[]>(path, { signal })
+    : await get<AgentThreadEvent[]>(path);
 }
 
 export async function respondToInputRequest(
   threadId: string,
   requestId: string,
   answer: string,
-  scope?: { brandId?: string | null; expectedContextVersion?: number }
+  scope?: { brandId?: string | null; expectedContextVersion?: number },
+  signal?: AbortSignal
 ): Promise<RespondToInputRequestResponse> {
-  return await post<RespondToInputRequestResponse>(
-    `${AGENT_THREADS_ENDPOINT}/${threadId}/input-requests/${requestId}/responses`,
-    { answer, ...(scope ?? {}) }
-  );
+  const path = `${AGENT_THREADS_ENDPOINT}/${threadId}/input-requests/${requestId}/responses`;
+  const body = { answer, ...(scope ?? {}) };
+  return signal
+    ? await post<RespondToInputRequestResponse>(path, body, { signal })
+    : await post<RespondToInputRequestResponse>(path, body);
 }
 
 export async function startAgentChatStream(
-  request: AgentChatRequest
+  request: AgentChatRequest,
+  signal?: AbortSignal
 ): Promise<AgentChatStreamStartResponse> {
   const body = {
     attachments: request.attachments,
@@ -227,5 +241,7 @@ export async function startAgentChatStream(
     ? `${AGENT_THREADS_ENDPOINT}/${request.threadId}/turns/stream`
     : `${AGENT_THREADS_ENDPOINT}/turns/stream`;
 
-  return await post<AgentChatStreamStartResponse>(endpoint, body);
+  return signal
+    ? await post<AgentChatStreamStartResponse>(endpoint, body, { signal })
+    : await post<AgentChatStreamStartResponse>(endpoint, body);
 }

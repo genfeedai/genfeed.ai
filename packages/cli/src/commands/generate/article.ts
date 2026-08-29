@@ -4,6 +4,7 @@ import { type Article, generateArticle } from '@/api/articles';
 import { requireAuth } from '@/api/client';
 import { printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
+import { parseIntegerInRange } from '@/utils/options';
 import { parseKeywords, printArticle, requireGenerationBrand } from './helpers';
 
 function toJsonSummary(article: Article): Record<string, unknown> {
@@ -20,7 +21,12 @@ function toJsonSummary(article: Article): Record<string, unknown> {
 export const articleCommand = new Command('article')
   .description('Generate an AI article')
   .argument('<prompt>', 'The prompt describing the article to generate')
-  .option('-c, --count <n>', 'Number of articles to generate (1-4)', Number.parseInt, 1)
+  .option(
+    '-c, --count <n>',
+    'Number of articles to generate (1-4)',
+    (value) => parseIntegerInRange(value, 1, 4),
+    1
+  )
   .option('-b, --brand <id>', 'Brand ID (overrides active brand)')
   .option('--category <cat>', 'Article category')
   .option('--keywords <list>', 'Comma-separated keywords to steer the article')

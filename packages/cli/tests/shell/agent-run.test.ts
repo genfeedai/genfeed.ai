@@ -10,10 +10,10 @@ const mockLiveStream = {
   waitForActivity: vi.fn(async () => undefined),
   waitUntilReady: vi.fn(async () => undefined),
 };
-const mockOpenAgentLiveStream = vi.fn(async () => mockLiveStream);
+const mockOpenAgentLiveStream = vi.fn(async (_signal?: AbortSignal) => mockLiveStream);
 
 vi.mock('../../src/shell/agent-live-stream', () => ({
-  openAgentLiveStream: () => mockOpenAgentLiveStream(),
+  openAgentLiveStream: (signal?: AbortSignal) => mockOpenAgentLiveStream(signal),
 }));
 
 const mockGetThread = vi.fn();
@@ -50,6 +50,7 @@ describe('shell/agent-run', () => {
     vi.clearAllMocks();
     liveEventBatches = [];
     mockLiveStream.drain.mockImplementation(() => liveEventBatches.shift() ?? []);
+    mockLiveStream.waitForActivity.mockImplementation(async () => undefined);
     mockOpenAgentLiveStream.mockResolvedValue(mockLiveStream);
     mockGetThreadEvents.mockResolvedValue([]);
   });
@@ -487,6 +488,27 @@ describe('shell/agent-run', () => {
       expect(result.status).toBe('timeout');
       expect(result.error).toContain('Timed out waiting for agent run');
       expect(result.assistantMessage).toBeUndefined();
+    });
+
+    it('aborts an active turn and closes the live stream', async () => {
+      const controller = new AbortController();
+      mockStartAgentChatStream.mockResolvedValue({
+        runId: 'run-aborted',
+        startedAt: '2026-08-09T00:00:00.000Z',
+        threadId: 'thread-1',
+      });
+      mockLiveStream.waitForActivity.mockImplementation(() => new Promise<void>(() => undefined));
+
+      const { runAgentTurn } = await import('../../src/shell/agent-run');
+      const result = runAgentTurn({ content: 'hi' }, 120_000, {}, controller.signal);
+      await vi.waitFor(() => expect(mockLiveStream.waitForActivity).toHaveBeenCalledOnce());
+
+      controller.abort(new Error('Operation cancelled'));
+
+      await expect(result).rejects.toThrow('Operation cancelled');
+      expect(mockOpenAgentLiveStream).toHaveBeenCalledWith(controller.signal);
+      expect(mockGetThreadEvents).toHaveBeenCalledWith('thread-1', 0, controller.signal);
+      expect(mockLiveStream.close).toHaveBeenCalledOnce();
     });
   });
 

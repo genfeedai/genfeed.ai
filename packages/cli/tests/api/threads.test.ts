@@ -167,6 +167,18 @@ describe('api/threads', () => {
     expect(mockGet).toHaveBeenCalledWith('/agent/threads/thread-1/events?afterSequence=7');
   });
 
+  it('forwards an abort signal while getting thread events', async () => {
+    const controller = new AbortController();
+    mockGet.mockResolvedValue([]);
+
+    const { getThreadEvents } = await import('../../src/api/threads');
+    await getThreadEvents('thread-1', 7, controller.signal);
+
+    expect(mockGet).toHaveBeenCalledWith('/agent/threads/thread-1/events?afterSequence=7', {
+      signal: controller.signal,
+    });
+  });
+
   it('responds to an input request with scope', async () => {
     mockPost.mockResolvedValue({ requestId: 'req-1', status: 'resolved' });
 

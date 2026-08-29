@@ -161,6 +161,27 @@ describe('CliAuthPage', () => {
     );
   });
 
+  it('renders an account-creation handoff for CLI signup intent', async () => {
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams('port=4321&intent=signup'),
+    );
+    useAuthMock.mockReturnValue({
+      getToken: vi.fn(),
+      isLoaded: true,
+      isSignedIn: false,
+    });
+
+    render(<CliAuthPage />);
+
+    const signUpLink = await screen.findByRole('link', {
+      name: 'Create account to continue',
+    });
+    expect(signUpLink).toHaveAttribute(
+      'href',
+      '/sign-up?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321%26intent%3Dsignup',
+    );
+  });
+
   it('validates the required localhost callback port', async () => {
     useSearchParamsMock.mockReturnValue(new URLSearchParams('port=bad'));
 

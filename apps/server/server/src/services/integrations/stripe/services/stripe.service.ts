@@ -4,6 +4,7 @@ import {
   creditPackTotalCredits,
   INCLUDED_MONTHLY_CREDITS_METADATA_KEY,
   PAYG_CREDIT_PACKS,
+  PAYG_CREDITS_PER_USD,
   PAYG_MAX_PURCHASE_USD,
   PAYG_MIN_PURCHASE_USD,
   parseIncludedMonthlyCredits,
@@ -248,15 +249,15 @@ export class StripeService {
    *
    * Credits are billed at 1 credit = $0.01, so the dollar bounds
    * (`PAYG_MIN_PURCHASE_USD` / `PAYG_MAX_PURCHASE_USD`) map to credit bounds by
-   * a factor of 100. Presets and custom amounts both flow through here, so the
+   * the canonical credits-per-dollar rate. Presets and custom amounts both flow through here, so the
    * server is the single source of truth for min/max — the UI bound is a
    * convenience, not the enforcement point.
    *
    * @throws BadRequestException when `quantity` (in credits) is outside range.
    */
   private assertPaygQuantityWithinBounds(quantity: number): void {
-    const minCredits = PAYG_MIN_PURCHASE_USD * 100;
-    const maxCredits = PAYG_MAX_PURCHASE_USD * 100;
+    const minCredits = PAYG_MIN_PURCHASE_USD * PAYG_CREDITS_PER_USD;
+    const maxCredits = PAYG_MAX_PURCHASE_USD * PAYG_CREDITS_PER_USD;
 
     if (
       !Number.isFinite(quantity) ||

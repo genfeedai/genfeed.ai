@@ -13,7 +13,8 @@
   > What image | video do you want to create? _
 ```
 
-CLI tool for [Genfeed.ai](https://genfeed.ai) - Generate, schedule, analyze, and publish AI content from your terminal.
+The Genfeed terminal content workspace. Use the interactive TUI for creative work and slash
+commands, or the deterministic command tree for scripts and external agents.
 
 ## Last Verified
 
@@ -49,8 +50,8 @@ bun run --cwd packages/cli type-check
 
 ## Requirements
 
-- Node.js 18+
-- A [Genfeed.ai](https://genfeed.ai) account with API access
+- Node.js 22.12+
+- A [Genfeed.ai](https://genfeed.ai) account (existing users can log in; new users can sign up from the CLI)
 
 ## Installation
 
@@ -68,22 +69,26 @@ npm install -g @genfeedai/cli
 
 ## Quick Start
 
-Login with your API key:
+Open the interactive workspace:
 
 ```bash
-genfeed login
+gf
 ```
 
-Generate an image:
+Inside it, normal text talks to the Genfeed agent and `/` commands perform direct actions:
 
-```bash
-genfeed generate image "A futuristic cityscape at sunset"
+```text
+› Build a launch campaign for our new product
+› /image cinematic product launch poster
+› /workflow run weekly-content
+› /credits buy 5000
 ```
 
-Generate a video:
+The equivalent non-interactive commands are shell commands without a leading slash:
 
 ```bash
-genfeed generate video "A drone flying over mountains"
+gf gen image "A futuristic cityscape at sunset"
+gf gen video "A drone flying over mountains"
 ```
 
 ## Authentication
@@ -91,7 +96,13 @@ genfeed generate video "A drone flying over mountains"
 Browser login (opens `https://app.genfeed.ai/oauth/cli` and completes a PKCE flow):
 
 ```bash
-genfeed login
+gf login
+```
+
+Create an account in the same secure browser flow:
+
+```bash
+gf signup
 ```
 
 Non-interactive login with an API key from the [Genfeed.ai dashboard](https://app.genfeed.ai/settings/api-keys) — also the path for self-hosted deployments:
@@ -184,58 +195,95 @@ Show the current organization:
 gf organizations current
 ```
 
-### Brand Management
+### Brands
 
 List all brands:
 
 ```bash
-genfeed brands
+gf brand list
 ```
 
 Select active brand:
 
 ```bash
-genfeed brands select
+gf brand use <id-or-slug-or-label>
 ```
 
 Show current brand:
 
 ```bash
-genfeed brands current
+gf brand current
 ```
+
+The published `brands` spelling remains an alias, and `brand use` has an interactive picker when
+the reference is omitted.
+
+### Balance and credit checkout
+
+`balance` is the fast read. `credits` owns credit-related actions:
+
+```bash
+gf balance
+gf credits packs
+gf credits buy 5000
+gf credits history --limit 20
+```
+
+`gf credits buy` asks the API for a server-priced Stripe Checkout session and opens the hosted
+checkout page. The CLI never accepts card data or a caller-supplied Stripe price ID. Use
+`--no-open --json` to return the secure URL for a remote/headless session. Cryptocurrency checkout
+is not advertised as supported; it remains a separate payments/compliance decision rather than a
+CLI-specific payment path.
+
+### Workflows
+
+```bash
+gf workflow list
+gf workflow run weekly-content --inputs '{"topic":"launch"}'
+gf workflow runs --status completed
+gf workflow status <execution-id>
+```
+
+`workflow run` accepts an exact workflow ID, key, or label. Ambiguous labels are rejected before a
+run is created.
 
 ### Image Generation
 
 Basic generation:
 
 ```bash
-genfeed generate image "Your prompt here"
+gf gen image "Your prompt here"
 ```
 
 With options:
 
 ```bash
-genfeed generate image "Your prompt" --model imagen-4 --width 1920 --height 1080 --output ./image.jpg
+gf gen image "Your prompt" --model imagen-4 --width 1920 --height 1080 --output ./image.jpg
 ```
 
 Don't wait for completion:
 
 ```bash
-genfeed generate image "Your prompt" --no-wait
+gf gen image "Your prompt" --no-wait
 ```
+
+The image command exposes the generation API's creative controls, including references, output
+count, seed, style, format, mood, camera, lens, scene, lighting, negative prompt, blacklist, tags,
+automatic model routing and priority, brand/fidelity modes, and prompt templates. Run
+`gf gen image --help` for the complete list.
 
 ### Video Generation
 
 Basic generation:
 
 ```bash
-genfeed generate video "Your prompt here"
+gf gen video "Your prompt here"
 ```
 
 With options:
 
 ```bash
-genfeed generate video "Your prompt" --model google-veo-3 --duration 10 --resolution 1080p --output ./video.mp4
+gf gen video "Your prompt" --model google-veo-3 --duration 10 --resolution 1080p --output ./video.mp4
 ```
 
 ### Article Generation
@@ -284,6 +332,18 @@ Check article status:
 ```bash
 genfeed status <id> --type article
 ```
+
+### Assets and jobs
+
+```bash
+gf asset list --type image --limit 20
+gf asset show <id>
+gf asset download <id> --output ./asset.jpg
+gf job status <id> --type image
+```
+
+`library` remains an alias for `asset`; the singular namespace keeps shell completion and nested
+actions predictable.
 
 ### Agent Chat
 

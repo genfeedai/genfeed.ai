@@ -17,10 +17,12 @@ const mockSocket = {
     return mockSocket;
   }),
 };
-const mockCreateWebSocketConnection = vi.fn(async () => mockSocket as unknown as Socket);
+const mockCreateWebSocketConnection = vi.fn(
+  async (_signal?: AbortSignal) => mockSocket as unknown as Socket
+);
 
 vi.mock('../../src/utils/websocket', () => ({
-  createWebSocketConnection: () => mockCreateWebSocketConnection(),
+  createWebSocketConnection: (signal?: AbortSignal) => mockCreateWebSocketConnection(signal),
 }));
 
 function emit(event: string, payload?: unknown): void {
@@ -37,6 +39,16 @@ describe('shell/agent-live-stream', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('forwards cancellation to websocket setup', async () => {
+    const controller = new AbortController();
+    const { openAgentLiveStream } = await import('../../src/shell/agent-live-stream');
+
+    const stream = await openAgentLiveStream(controller.signal);
+
+    expect(mockCreateWebSocketConnection).toHaveBeenCalledWith(controller.signal);
+    stream.close();
   });
 
   it('buffers early events, then filters them to the bound run', async () => {

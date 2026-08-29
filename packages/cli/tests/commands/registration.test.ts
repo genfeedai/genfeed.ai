@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(testDir, '../..');
 const COMMANDS_DIR = path.join(PACKAGE_ROOT, 'src/commands');
-const INDEX_PATH = path.join(PACKAGE_ROOT, 'src/index.ts');
+const PROGRAM_PATH = path.join(PACKAGE_ROOT, 'src/program.ts');
 // Matches both `new Command(...)` and factory-built exports such as `createLoginCommand()`.
 const EXPORTED_COMMAND = /^export const (\w+Command) =/m;
 
@@ -28,27 +28,27 @@ async function readTopLevelCommandExports(): Promise<{ file: string; exportName:
 
 describe('command registration', () => {
   it('registers every top-level command module on the program', async () => {
-    const [commandExports, indexSource] = await Promise.all([
+    const [commandExports, programSource] = await Promise.all([
       readTopLevelCommandExports(),
-      readFile(INDEX_PATH, 'utf8'),
+      readFile(PROGRAM_PATH, 'utf8'),
     ]);
 
     expect(commandExports.length).toBeGreaterThan(0);
 
     const unregistered = commandExports
-      .filter(({ exportName }) => !indexSource.includes(`.addCommand(${exportName})`))
+      .filter(({ exportName }) => !programSource.includes(`.addCommand(${exportName})`))
       .map(({ file }) => file);
 
     expect(unregistered).toEqual([]);
   });
 
   it('keeps the reported CLI version in sync with package.json', async () => {
-    const [indexSource, packageJson] = await Promise.all([
-      readFile(INDEX_PATH, 'utf8'),
+    const [programSource, packageJson] = await Promise.all([
+      readFile(PROGRAM_PATH, 'utf8'),
       readFile(path.join(PACKAGE_ROOT, 'package.json'), 'utf8'),
     ]);
 
     const { version } = JSON.parse(packageJson) as { version: string };
-    expect(indexSource).toContain(`.version('${version}')`);
+    expect(programSource).toContain(`.version('${version}')`);
   });
 });
