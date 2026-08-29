@@ -13,21 +13,16 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => {
-  const tx = {
-    workflow: {
-      create: vi.fn(),
-      findFirst: vi.fn(),
-      update: vi.fn(),
-    },
-  };
   const prisma = {
-    $transaction: vi.fn(),
     workflow: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
     },
+  };
+  const workflowsService = {
+    create: vi.fn(),
   };
   const workflowExecutionQueueService = {
     syncWorkflowScheduler: vi.fn(),
@@ -50,18 +45,12 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
     workflowExecutionQueueService.syncWorkflowScheduler.mockResolvedValue(
       undefined,
     );
-    tx.workflow.findFirst.mockResolvedValue(null);
-    tx.workflow.create.mockResolvedValue({});
-    tx.workflow.update.mockResolvedValue({});
-    prisma.$transaction.mockImplementation(
-      async (
-        callback: (transactionClient: typeof tx) => Promise<void>,
-      ): Promise<void> => callback(tx),
-    );
+    workflowsService.create.mockResolvedValue({});
 
     service = new WorkflowTemplateSeederService(
       prisma as never,
       logger as never,
+      workflowsService as never,
       workflowExecutionQueueService as never,
     );
   });
@@ -69,8 +58,8 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
   it('seeds the livestream bot workflow default-on for an organization', async () => {
     await service.ensureLivestreamBotWorkflows('user-1', 'org-1');
 
-    expect(tx.workflow.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(workflowsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
         isScheduleEnabled: true,
         label: 'Livestream Bot Session Processing',
         metadata: expect.objectContaining({
@@ -99,8 +88,8 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
         timezone: 'UTC',
         userId: 'user-1',
       }),
-    });
-    expect(tx.workflow.create.mock.calls[0][0].data.nodes).toEqual(
+    );
+    expect(workflowsService.create.mock.calls[0][0].nodes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: 'begin', type: 'genfeedAction' }),
         expect.objectContaining({ id: 'process-items', type: 'genfeedAction' }),
@@ -111,8 +100,8 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
   it('seeds the content loop autopilot workflow default-on for an organization (#3018)', async () => {
     await service.ensureContentLoopAutopilotWorkflows('user-1', 'org-1');
 
-    expect(tx.workflow.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(workflowsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
         isScheduleEnabled: true,
         label: 'Content Loop Autopilot',
         metadata: expect.objectContaining({
@@ -130,8 +119,8 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
         status: WorkflowStatus.ACTIVE,
         userId: 'user-1',
       }),
-    });
-    expect(tx.workflow.create.mock.calls[0][0].data.nodes).toEqual(
+    );
+    expect(workflowsService.create.mock.calls[0][0].nodes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: 'resolveAnalyticsWindow',
@@ -148,10 +137,10 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
   it('seeds the outreach campaign dispatch workflow default-on for an organization (#3407)', async () => {
     await service.ensureOutreachCampaignDispatchWorkflows('user-1', 'org-1');
 
-    expect(tx.workflow.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(workflowsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
         isScheduleEnabled: true,
-        label: 'Outreach Campaign Dispatch',
+        label: 'Dispatch Active Campaigns',
         metadata: expect.objectContaining({
           sourceIssue: 3407,
           sourceTemplateId: 'outreach-campaign-dispatch',
@@ -166,8 +155,8 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
         status: WorkflowStatus.ACTIVE,
         userId: 'user-1',
       }),
-    });
-    expect(tx.workflow.create.mock.calls[0][0].data.nodes).toEqual(
+    );
+    expect(workflowsService.create.mock.calls[0][0].nodes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: 'discover-campaigns',
@@ -202,9 +191,8 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
 
     await service.ensureLivestreamBotWorkflows('user-1', 'org-1');
 
-    expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(prisma.workflow.update).not.toHaveBeenCalled();
-    expect(tx.workflow.create).not.toHaveBeenCalled();
+    expect(workflowsService.create).not.toHaveBeenCalled();
   });
 
   it('repairs legacy seeded workflow metadata without creating a duplicate', async () => {
@@ -218,7 +206,6 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
 
     await service.ensureLivestreamBotWorkflows('user-1', 'org-1');
 
-    expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(prisma.workflow.update).toHaveBeenCalledWith({
       data: {
         metadata: expect.objectContaining({
@@ -239,7 +226,7 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
       },
       where: { id: 'workflow-1', isDeleted: false, organizationId: 'org-1' },
     });
-    expect(tx.workflow.create).not.toHaveBeenCalled();
+    expect(workflowsService.create).not.toHaveBeenCalled();
   });
 
   it('does not auto-provision or unpause Daily Trends Digest clones', () => {
