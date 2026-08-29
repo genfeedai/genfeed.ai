@@ -1,4 +1,4 @@
-import DynamicChart from '@genfeedai/agent/components/blocks/DynamicChart';
+import DynamicChartView from '@genfeedai/agent/components/blocks/DynamicChartView';
 import type { ChartBlock } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
@@ -98,9 +98,9 @@ function seriesKeys(testId: string): string[] {
     .map((node) => node.getAttribute('data-key') ?? '');
 }
 
-describe('DynamicChart', () => {
+describe('DynamicChartView', () => {
   it('renders a bar chart by default and infers numeric series', () => {
-    render(<DynamicChart block={makeBlock()} />);
+    render(<DynamicChartView block={makeBlock()} />);
 
     expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
     expect(seriesKeys('bar')).toEqual(['clicks', 'views']);
@@ -108,7 +108,7 @@ describe('DynamicChart', () => {
 
   it('excludes the x-axis key and non-numeric fields from inferred series', () => {
     render(
-      <DynamicChart
+      <DynamicChartView
         block={makeBlock({
           data: [{ id: 'a', label: 'x', name: 'Mon', views: 10 }],
         })}
@@ -120,7 +120,7 @@ describe('DynamicChart', () => {
 
   it('honours an explicit x-axis key', () => {
     render(
-      <DynamicChart
+      <DynamicChartView
         block={makeBlock({
           data: [{ day: 'Mon', views: 10 }],
           xAxis: 'day',
@@ -134,7 +134,7 @@ describe('DynamicChart', () => {
 
   it('uses the configured series keys, labels and colors', () => {
     render(
-      <DynamicChart
+      <DynamicChartView
         block={makeBlock({
           series: [{ color: '#ff0000', key: 'views', label: 'Impressions' }],
         })}
@@ -149,7 +149,9 @@ describe('DynamicChart', () => {
   });
 
   it('falls back to the palette and the raw key when unconfigured', () => {
-    render(<DynamicChart block={makeBlock({ series: [{ key: 'views' }] })} />);
+    render(
+      <DynamicChartView block={makeBlock({ series: [{ key: 'views' }] })} />,
+    );
 
     const bar = screen.getByTestId('bar');
 
@@ -158,21 +160,21 @@ describe('DynamicChart', () => {
   });
 
   it('renders an area chart', () => {
-    render(<DynamicChart block={makeBlock({ chartType: 'area' })} />);
+    render(<DynamicChartView block={makeBlock({ chartType: 'area' })} />);
 
     expect(screen.getByTestId('area-chart')).toBeInTheDocument();
     expect(seriesKeys('area')).toEqual(['clicks', 'views']);
   });
 
   it('renders a line chart', () => {
-    render(<DynamicChart block={makeBlock({ chartType: 'line' })} />);
+    render(<DynamicChartView block={makeBlock({ chartType: 'line' })} />);
 
     expect(screen.getByTestId('line-chart')).toBeInTheDocument();
     expect(seriesKeys('line')).toEqual(['clicks', 'views']);
   });
 
   it('renders a pie chart with one cell per datum', () => {
-    render(<DynamicChart block={makeBlock({ chartType: 'pie' })} />);
+    render(<DynamicChartView block={makeBlock({ chartType: 'pie' })} />);
 
     expect(screen.getByTestId('pie-chart')).toBeInTheDocument();
     expect(screen.getByTestId('pie')).toHaveAttribute('data-key', 'clicks');
@@ -181,7 +183,7 @@ describe('DynamicChart', () => {
 
   it('defaults the pie data key when no numeric series exist', () => {
     render(
-      <DynamicChart
+      <DynamicChartView
         block={makeBlock({
           chartType: 'pie',
           data: [{ name: 'Mon' }],
@@ -194,7 +196,7 @@ describe('DynamicChart', () => {
 
   it('hides the legend and grid when disabled', () => {
     render(
-      <DynamicChart
+      <DynamicChartView
         block={makeBlock({ showGrid: false, showLegend: false })}
       />,
     );
@@ -205,7 +207,7 @@ describe('DynamicChart', () => {
 
   it('hides the legend on a pie chart when disabled', () => {
     render(
-      <DynamicChart
+      <DynamicChartView
         block={makeBlock({ chartType: 'pie', showLegend: false })}
       />,
     );
@@ -214,7 +216,7 @@ describe('DynamicChart', () => {
   });
 
   it('applies the configured height', () => {
-    render(<DynamicChart block={makeBlock({ height: 420 })} />);
+    render(<DynamicChartView block={makeBlock({ height: 420 })} />);
 
     expect(screen.getByTestId('responsive')).toHaveAttribute(
       'data-height',
@@ -223,7 +225,7 @@ describe('DynamicChart', () => {
   });
 
   it('shows an empty state when there is no data', () => {
-    render(<DynamicChart block={makeBlock({ data: [] })} />);
+    render(<DynamicChartView block={makeBlock({ data: [] })} />);
 
     expect(screen.getByText('No chart data available')).toBeInTheDocument();
   });
@@ -234,7 +236,7 @@ describe('DynamicChart', () => {
       hydration: { status: 'loading' as const },
     } as ChartBlock;
 
-    const { container } = render(<DynamicChart block={hydrating} />);
+    const { container } = render(<DynamicChartView block={hydrating} />);
 
     expect(screen.queryByTestId('bar-chart')).not.toBeInTheDocument();
     expect(container.querySelectorAll('.animate-pulse')).toHaveLength(6);
