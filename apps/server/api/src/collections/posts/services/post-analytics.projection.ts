@@ -405,13 +405,20 @@ export class PostAnalyticsProjection {
     endDate: Date,
     groupBy: TimeSeriesGroup,
   ): string[] {
+    // Step one calendar day at a time and de-duplicate: a seven-day step can
+    // skip a week key across a year boundary, dropping real rows from the series.
     const dates: string[] = [];
+    const seen = new Set<string>();
     const current = new Date(startDate);
-    current.setHours(0, 0, 0, 0);
+    current.setUTCHours(0, 0, 0, 0);
 
     while (current <= endDate) {
-      dates.push(this.readDateKey(current, groupBy));
-      current.setDate(current.getDate() + (groupBy === 'day' ? 1 : 7));
+      const key = this.readDateKey(current, groupBy);
+      if (!seen.has(key)) {
+        seen.add(key);
+        dates.push(key);
+      }
+      current.setUTCDate(current.getUTCDate() + 1);
     }
 
     return dates;
@@ -423,12 +430,12 @@ export class PostAnalyticsProjection {
     }
 
     const current = new Date(date);
-    const year = current.getFullYear();
-    const oneJan = new Date(year, 0, 1);
+    const year = current.getUTCFullYear();
+    const oneJan = new Date(Date.UTC(year, 0, 1));
     const days = Math.floor(
       (current.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000),
     );
-    const week = Math.ceil((days + oneJan.getDay() + 1) / 7);
+    const week = Math.ceil((days + oneJan.getUTCDay() + 1) / 7);
     return `${year}-${String(week).padStart(2, '0')}`;
   }
 

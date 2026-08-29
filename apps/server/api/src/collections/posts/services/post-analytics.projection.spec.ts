@@ -141,6 +141,67 @@ describe('PostAnalyticsProjection', () => {
     expect(points[1]?.instagram).toEqual(points[0]?.twitter);
   });
 
+  it('buckets week scaffolding on UTC boundaries', () => {
+    const points = projection.buildTimeSeriesWithPlatforms(
+      [
+        {
+          _avg: { engagementRate: 4 },
+          _sum: {
+            totalComments: 1,
+            totalLikes: 1,
+            totalSaves: 1,
+            totalShares: 1,
+            totalViews: 5,
+          },
+          date: new Date('2026-01-01T00:00:00.000Z'),
+          platform: 'tiktok',
+        },
+      ],
+      new Date('2026-01-01T00:00:00.000Z'),
+      new Date('2026-01-08T23:59:59.999Z'),
+      'week',
+    );
+
+    expect(points.map((point) => point.date)).toEqual(['2026-01', '2026-02']);
+    expect(points[0]?.tiktok).toMatchObject({ views: 5 });
+    expect(points[1]?.tiktok).toEqual({
+      comments: 0,
+      engagementRate: 0,
+      likes: 0,
+      saves: 0,
+      shares: 0,
+      views: 0,
+    });
+  });
+
+  it('keeps every week key when the range crosses a year boundary', () => {
+    const points = projection.buildTimeSeriesWithPlatforms(
+      [
+        {
+          _avg: { engagementRate: 4 },
+          _sum: {
+            totalComments: 1,
+            totalLikes: 1,
+            totalSaves: 1,
+            totalShares: 1,
+            totalViews: 7,
+          },
+          date: new Date('2026-01-01T00:00:00.000Z'),
+          platform: 'tiktok',
+        },
+      ],
+      new Date('2025-12-31T00:00:00.000Z'),
+      new Date('2026-01-10T23:59:59.999Z'),
+      'week',
+    );
+
+    const dates = points.map((point) => point.date);
+    expect(dates).toEqual(['2025-53', '2026-01', '2026-02']);
+    expect(
+      points.find((point) => point.date === '2026-01')?.tiktok,
+    ).toMatchObject({ views: 7 });
+  });
+
   it('preserves ranking metrics and post response projection', () => {
     const analyticsRows = [
       {
