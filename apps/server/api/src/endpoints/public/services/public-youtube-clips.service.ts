@@ -1,11 +1,4 @@
-import { hashToken } from '@server/auth/shared/pkce.util';
-import { generateClipSrt } from '@server/collections/clip-projects/services/clip-srt.util';
 import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
-import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
-import {
-  PublicClipToolStoreService,
-  type StoredPublicYoutubeClipSession,
-} from '@server/services/public-clip-tool/public-clip-tool-store.service';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import { JobState } from '@genfeedai/enums';
 import type {
@@ -19,6 +12,13 @@ import {
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { hashToken } from '@server/auth/shared/pkce.util';
+import { generateClipSrt } from '@server/collections/clip-projects/services/clip-srt.util';
+import { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
+import {
+  PublicClipToolStoreService,
+  type StoredPublicYoutubeClipSession,
+} from '@server/services/public-clip-tool/public-clip-tool-store.service';
 import { firstValueFrom } from 'rxjs';
 
 const MAX_FREE_RECOMMENDATIONS = 3;
@@ -65,7 +65,7 @@ export class PublicYoutubeClipsService {
       try {
         await this.clipAnalyzeQueueService.enqueue({
           highlightFallback: 'deterministic',
-          highlightModel: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+          highlightModel: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
           language: created.session.language,
           maxClips: MAX_FREE_RECOMMENDATIONS,
           minViralityScore: 0,

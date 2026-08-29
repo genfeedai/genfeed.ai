@@ -22,21 +22,27 @@ describe('agent-auto-model.util', () => {
   it('routes zero-balance Auto through the selectable free model', () => {
     expect(
       resolveAgentModelForBalance(AUTO_MODEL_OPTION_VALUE, 0, [
-        'openrouter/free',
+        'nvidia/nemotron-3-ultra-550b-a55b:free',
         'openai/gpt-5.4',
       ]),
-    ).toBe('openrouter/free');
-    expect(resolveAgentModelForBalance('', 0, ['openrouter/free'])).toBe(
-      'openrouter/free',
-    );
-    expect(resolveAgentModelForBalance(undefined, 0, ['openrouter/free'])).toBe(
-      'openrouter/free',
-    );
+    ).toBe('nvidia/nemotron-3-ultra-550b-a55b:free');
+    expect(
+      resolveAgentModelForBalance('', 0, [
+        'nvidia/nemotron-3-ultra-550b-a55b:free',
+      ]),
+    ).toBe('nvidia/nemotron-3-ultra-550b-a55b:free');
+    expect(
+      resolveAgentModelForBalance(undefined, 0, [
+        'nvidia/nemotron-3-ultra-550b-a55b:free',
+      ]),
+    ).toBe('nvidia/nemotron-3-ultra-550b-a55b:free');
   });
 
   it('does not replace explicit or unavailable model picks', () => {
     expect(
-      resolveAgentModelForBalance('openai/gpt-5.4', 0, ['openrouter/free']),
+      resolveAgentModelForBalance('openai/gpt-5.4', 0, [
+        'nvidia/nemotron-3-ultra-550b-a55b:free',
+      ]),
     ).toBe('openai/gpt-5.4');
     expect(
       resolveAgentModelForBalance(AUTO_MODEL_OPTION_VALUE, 0, [
@@ -45,7 +51,7 @@ describe('agent-auto-model.util', () => {
     ).toBe(AUTO_MODEL_OPTION_VALUE);
     expect(
       resolveAgentModelForBalance(AUTO_MODEL_OPTION_VALUE, 1, [
-        'openrouter/free',
+        'nvidia/nemotron-3-ultra-550b-a55b:free',
       ]),
     ).toBe(AUTO_MODEL_OPTION_VALUE);
   });

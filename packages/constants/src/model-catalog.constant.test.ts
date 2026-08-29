@@ -118,9 +118,9 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(unpricedActiveRows).toEqual([]);
   });
 
-  it('marks the zero-cost auto-router free rather than leaving it unpriced', () => {
+  it('marks the zero-cost pinned default free rather than leaving it unpriced', () => {
     const freeRow = UNIFIED_MODEL_CATALOG.find(
-      (entry) => entry.key === AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+      (entry) => entry.key === AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
     );
 
     expect(freeRow?.isFree).toBe(true);

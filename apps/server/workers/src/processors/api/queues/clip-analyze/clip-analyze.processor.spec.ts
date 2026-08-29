@@ -1,10 +1,11 @@
-import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
-import type { PublicClipToolStoreService } from '@server/services/public-clip-tool/public-clip-tool-store.service';
-import type { WhisperService } from '@server/services/whisper/whisper.service';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
 import type { ClipAnalyzeJobData } from '@genfeedai/queue-contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
+import type { ClipProjectsService } from '@server/collections/clip-projects/clip-projects.service';
+import type { PublicClipToolStoreService } from '@server/services/public-clip-tool/public-clip-tool-store.service';
+import type { WhisperService } from '@server/services/whisper/whisper.service';
 import { ClipAnalyzeProcessor } from '@workers/processors/api/queues/clip-analyze/clip-analyze.processor';
 import { ClipHighlightDetector } from '@workers/processors/api/queues/shared/clip-highlight-detector.service';
 import type { Job } from 'bullmq';
@@ -221,7 +222,7 @@ describe('ClipAnalyzeProcessor', () => {
       createMockJob({
         ...mockJobData,
         highlightFallback: 'deterministic',
-        highlightModel: 'openrouter/free',
+        highlightModel: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
         projectId,
       }),
     );

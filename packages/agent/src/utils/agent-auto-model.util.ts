@@ -39,9 +39,9 @@ export function resolveAgentModelForBalance(
   if (
     creditsRemaining === 0 &&
     isAutoSelection &&
-    selectableModelKeys.includes(AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE)
+    selectableModelKeys.includes(AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE)
   ) {
-    return AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE;
+    return AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE;
   }
 
   return trimmedSelection;

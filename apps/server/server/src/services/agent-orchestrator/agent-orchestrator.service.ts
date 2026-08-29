@@ -53,7 +53,6 @@ import type {
 } from '@server/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { ResolvedAgentExecutionPolicy } from '@server/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { extractAgentGenerationSettings } from '@server/services/agent-orchestrator/utils/agent-generation-composer-settings.util';
-import { applyPinnedDefaultAgentModel } from '@server/services/agent-orchestrator/utils/agent-pinned-default-model.util';
 import { buildAgentRoutingMetadata } from '@server/services/agent-orchestrator/utils/agent-routing-policy.util';
 import {
   classifyAgentRunFailure,
@@ -147,14 +146,10 @@ export class AgentOrchestratorService {
       const userSettings = await this.settingsService.findOne({
         userId: context.userId,
       });
-      // Empty defaultAgentModel = Auto (leave request.model unset for registry
-      // / brand / subscription resolution). A non-empty pin is the user's
-      // durable chat override when the client omits model.
-      request = applyPinnedDefaultAgentModel(
-        request,
-        userSettings?.defaultAgentModel,
-      );
-
+      // Chat has no user-facing model picker: the resolver below always
+      // returns the pinned catalogue default unless a strategy, thinking
+      // override, or agent-type default applies. request.model is never
+      // read for that decision.
       const resolved = await this.contextService.resolveSystemPromptAndModel(
         request,
         context,
@@ -168,9 +163,7 @@ export class AgentOrchestratorService {
       if (resolved.model !== request.model) {
         request = { ...request, model: resolved.model };
       }
-      const model =
-        request.model ||
-        (await this.agentChatModelRegistry.getDefaultModelKey());
+      const model = request.model;
 
       const turnCost =
         request.agentType === AgentType.BRAND_INTERVIEW
@@ -384,15 +377,15 @@ export class AgentOrchestratorService {
       const userSettings = await this.settingsService.findOne({
         userId: context.userId,
       });
-      const resolvedRequest = applyPinnedDefaultAgentModel(
-        request,
-        userSettings?.defaultAgentModel,
-      );
+      // Chat has no user-facing model picker: the resolver below always
+      // returns the pinned catalogue default unless a strategy, thinking
+      // override, or agent-type default applies. request.model is never
+      // read for that decision.
       const resolved = await this.contextService.resolveSystemPromptAndModel(
-        resolvedRequest,
+        request,
         context,
       );
-      return { request: resolvedRequest, resolved, userSettings };
+      return { request, resolved, userSettings };
     })().catch((error: unknown) => {
       this.loggerService.error(`${this.constructorName} stage failed`, {
         clientRequestId: request.clientRequestId,
@@ -427,8 +420,7 @@ export class AgentOrchestratorService {
       request = { ...request, model: resolved.model };
     }
 
-    const model =
-      request.model || (await this.agentChatModelRegistry.getDefaultModelKey());
+    const model = request.model;
 
     // Brand interview turns are free — the engine charges 10 credits once via
     // BrandInterviewService.start(). Never double-bill the per-turn cost.

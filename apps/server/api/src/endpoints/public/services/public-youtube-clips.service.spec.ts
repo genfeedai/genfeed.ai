@@ -1,14 +1,14 @@
 import { PublicYoutubeClipsService } from '@api/endpoints/public/services/public-youtube-clips.service';
 import type { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { HttpService } from '@nestjs/axios';
+import { BadRequestException } from '@nestjs/common';
 import type { FileQueueService } from '@server/services/files-microservice/queue/file-queue.service';
 import type {
   PublicClipToolStoreService,
   StoredPublicYoutubeClipSession,
 } from '@server/services/public-clip-tool/public-clip-tool-store.service';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/constants';
-import type { LoggerService } from '@libs/logger/logger.service';
-import type { HttpService } from '@nestjs/axios';
-import { BadRequestException } from '@nestjs/common';
 import { of } from 'rxjs';
 
 const token = 'a'.repeat(43);
@@ -85,7 +85,7 @@ describe('PublicYoutubeClipsService', () => {
     expect(queue.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
         highlightFallback: 'deterministic',
-        highlightModel: AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE,
+        highlightModel: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
         maxClips: 3,
         projectId: `public-youtube-clip-session-${'f'.repeat(64)}`,
       }),
