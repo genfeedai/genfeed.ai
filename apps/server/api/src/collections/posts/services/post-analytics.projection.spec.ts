@@ -141,6 +141,39 @@ describe('PostAnalyticsProjection', () => {
     expect(points[1]?.instagram).toEqual(points[0]?.twitter);
   });
 
+  it('buckets week scaffolding on UTC boundaries', () => {
+    const points = projection.buildTimeSeriesWithPlatforms(
+      [
+        {
+          _avg: { engagementRate: 4 },
+          _sum: {
+            totalComments: 1,
+            totalLikes: 1,
+            totalSaves: 1,
+            totalShares: 1,
+            totalViews: 5,
+          },
+          date: new Date('2026-04-01T00:00:00.000Z'),
+          platform: 'tiktok',
+        },
+      ],
+      new Date('2026-04-01T00:00:00.000Z'),
+      new Date('2026-04-08T23:59:59.999Z'),
+      'week',
+    );
+
+    expect(points.map((point) => point.date)).toEqual(['2026-14', '2026-15']);
+    expect(points[0]?.tiktok).toMatchObject({ views: 5 });
+    expect(points[1]?.tiktok).toEqual({
+      comments: 0,
+      engagementRate: 0,
+      likes: 0,
+      saves: 0,
+      shares: 0,
+      views: 0,
+    });
+  });
+
   it('preserves ranking metrics and post response projection', () => {
     const analyticsRows = [
       {

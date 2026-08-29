@@ -407,11 +407,11 @@ export class PostAnalyticsProjection {
   ): string[] {
     const dates: string[] = [];
     const current = new Date(startDate);
-    current.setHours(0, 0, 0, 0);
+    current.setUTCHours(0, 0, 0, 0);
 
     while (current <= endDate) {
       dates.push(this.readDateKey(current, groupBy));
-      current.setDate(current.getDate() + (groupBy === 'day' ? 1 : 7));
+      current.setUTCDate(current.getUTCDate() + (groupBy === 'day' ? 1 : 7));
     }
 
     return dates;
@@ -423,12 +423,12 @@ export class PostAnalyticsProjection {
     }
 
     const current = new Date(date);
-    const year = current.getFullYear();
-    const oneJan = new Date(year, 0, 1);
+    const year = current.getUTCFullYear();
+    const oneJan = new Date(Date.UTC(year, 0, 1));
     const days = Math.floor(
       (current.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000),
     );
-    const week = Math.ceil((days + oneJan.getDay() + 1) / 7);
+    const week = Math.ceil((days + oneJan.getUTCDay() + 1) / 7);
     return `${year}-${String(week).padStart(2, '0')}`;
   }
 
