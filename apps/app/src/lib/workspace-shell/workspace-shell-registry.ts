@@ -228,7 +228,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/admin/videos/:id': 'Video',
   '/settings': 'Settings',
   '/settings/personal': 'Personal',
-  '/settings/chat': 'Chat',
   '/settings/help': 'Help',
   '/settings/notifications': 'Notifications',
   '/settings/progress': 'Progress',
@@ -423,7 +422,6 @@ const PERSONAL_ROUTE_REGISTRATIONS = [
     [
       '/settings',
       '/settings/personal',
-      '/settings/chat',
       '/settings/help',
       '/settings/notifications',
       '/settings/progress',
@@ -587,7 +585,6 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/settings',
       '/:orgSlug/~/settings/general',
       '/:orgSlug/~/settings/personal',
-      '/:orgSlug/~/settings/chat',
       '/:orgSlug/~/settings/help',
       '/:orgSlug/~/settings/notifications',
       '/:orgSlug/~/settings/progress',

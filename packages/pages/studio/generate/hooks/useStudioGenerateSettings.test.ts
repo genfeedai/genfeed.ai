@@ -1,10 +1,14 @@
 import { STUDIO_GENERATE_STORAGE_KEY } from '@pages/studio/generate/utils/studio-generate-storage';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { useGenerationSetupStore } from '@ui/dropdowns/generation-setup/generation-setup.store';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useStudioGenerateSettings } from './useStudioGenerateSettings';
 
 describe('useStudioGenerateSettings', () => {
-  beforeEach(() => window.localStorage.clear());
+  beforeEach(() => {
+    window.localStorage.clear();
+    useGenerationSetupStore.setState({ reasonsByScope: {}, setupByScope: {} });
+  });
 
   it('reports hydration only after persisted per-type settings are restored', async () => {
     window.localStorage.setItem(

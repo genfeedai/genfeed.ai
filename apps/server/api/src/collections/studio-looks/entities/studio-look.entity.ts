@@ -15,6 +15,14 @@ export class StudioLookEntity implements StudioLook {
   lens!: string;
   lighting!: string;
   cameraMovement!: string | null;
+  modelKey!: string | null;
+  prioritize!: string | null;
+  outputs!: number | null;
+  aspectRatio!: string | null;
+  duration!: number | null;
+  resolution!: string | null;
+  brandingMode!: string | null;
+  isPromptEnhanceEnabled!: boolean;
   isDeleted!: boolean;
   createdAt!: Date;
   updatedAt!: Date;

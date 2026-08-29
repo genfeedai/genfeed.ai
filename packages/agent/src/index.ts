@@ -15,10 +15,6 @@ export { AgentOnboardingChecklist } from '@genfeedai/agent/components/AgentOnboa
 export { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 export { AgentOverlay } from '@genfeedai/agent/components/AgentOverlay';
 export { AgentPanel } from '@genfeedai/agent/components/AgentPanel';
-export {
-  AgentSettings,
-  type AgentSettingsValues,
-} from '@genfeedai/agent/components/AgentSettings';
 export { AgentSidebar } from '@genfeedai/agent/components/AgentSidebar';
 export { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
 export { AgentStrategyConfig } from '@genfeedai/agent/components/AgentStrategyConfig';
@@ -96,7 +92,6 @@ export {
   useAgentDraftContext,
 } from '@genfeedai/agent/hooks/use-agent-draft-context';
 export { useAgentPageContext } from '@genfeedai/agent/hooks/use-agent-page-context';
-export { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
 export { useCharacterMentions } from '@genfeedai/agent/hooks/use-character-mentions';
 export { useStudioCharacterMentions } from '@genfeedai/agent/hooks/use-studio-character-mentions';
 export type {

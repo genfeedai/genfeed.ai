@@ -1,4 +1,3 @@
-import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import {
   getModelCatalogForDeployment,
   LOWEST_COST_VIDEO_MODEL_KEY,
@@ -6,6 +5,7 @@ import {
 } from '@genfeedai/constants';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
+import type { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 import { ModelCatalogSeedService } from './model-catalog-seed.service';
 
@@ -18,6 +18,8 @@ interface UpsertCall {
 describe('ModelCatalogSeedService', () => {
   let prisma: {
     model: {
+      findFirst: ReturnType<typeof vi.fn>;
+      findUnique: ReturnType<typeof vi.fn>;
       updateMany: ReturnType<typeof vi.fn>;
       upsert: ReturnType<typeof vi.fn>;
     };
@@ -38,6 +40,13 @@ describe('ModelCatalogSeedService', () => {
   beforeEach(() => {
     prisma = {
       model: {
+        // `null` simulates a first-ever boot (every key brand-new) so the
+        // pre-existing behavioral tests below — written before the
+        // admin-pin self-heal logic existed — keep exercising the CREATE
+        // path unchanged. Tests for the UPDATE / self-heal paths override
+        // this per-key.
+        findFirst: vi.fn().mockResolvedValue(null),
+        findUnique: vi.fn().mockResolvedValue(null),
         updateMany: vi.fn().mockResolvedValue({ count: 0 }),
         upsert: vi.fn().mockResolvedValue({ id: 'model' }),
       },
@@ -120,12 +129,17 @@ describe('ModelCatalogSeedService', () => {
 
     await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
-    expect(callForKey(defaultEntry?.key ?? '')?.update).toMatchObject({
+    // First boot takes the CREATE path — the pin ships in `create`, and
+    // `update` deliberately omits it so an admin repoint survives restarts.
+    expect(callForKey(defaultEntry?.key ?? '')?.create).toMatchObject({
       isActive: true,
       isDefault: true,
       isDiscovered: false,
       isPublic: true,
     });
+    expect(callForKey(defaultEntry?.key ?? '')?.update).not.toHaveProperty(
+      'isDefault',
+    );
   });
 
   it('demotes other defaults in a category when promoting a catalog default', async () => {
@@ -233,7 +247,7 @@ describe('ModelCatalogSeedService', () => {
         }),
       }),
     );
-    expect(callForKey(LOWEST_COST_VIDEO_MODEL_KEY)?.update).toMatchObject({
+    expect(callForKey(LOWEST_COST_VIDEO_MODEL_KEY)?.create).toMatchObject({
       isActive: true,
       isDefault: true,
     });
@@ -249,5 +263,119 @@ describe('ModelCatalogSeedService', () => {
       expect.any(Error),
       'ModelCatalogSeedService',
     );
+  });
+
+  describe('admin pin survives restarts (existing rows)', () => {
+    it('never writes isDefault for a non-default catalog entry, even when its row already exists', async () => {
+      const nonDefault = UNIFIED_MODEL_CATALOG.find(
+        (entry) => !entry.isDefault,
+      );
+      expect(nonDefault).toBeDefined();
+
+      prisma.model.findUnique.mockImplementation(
+        async ({ where }: { where: { key: string } }) =>
+          where.key === nonDefault?.key ? { id: 'existing-row' } : null,
+      );
+
+      await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+
+      const call = callForKey(nonDefault?.key ?? '');
+      expect(call?.update).not.toHaveProperty('isDefault');
+    });
+
+    it('leaves an admin-repointed default alone instead of reclaiming it for the catalog pin', async () => {
+      const defaultEntry = UNIFIED_MODEL_CATALOG.find(
+        (entry) => entry.isDefault,
+      );
+      expect(defaultEntry).toBeDefined();
+
+      // The catalog's declared default already has a row, but a different
+      // key is the category's live active default — an admin used
+      // Settings → Models (PATCH `/models/:id`) to repoint the pin.
+      prisma.model.findUnique.mockImplementation(
+        async ({ where }: { where: { key: string } }) =>
+          where.key === defaultEntry?.key ? { id: 'existing-row' } : null,
+      );
+      prisma.model.findFirst.mockImplementation(
+        async ({ where }: { where?: { category?: string } }) =>
+          where?.category === defaultEntry?.category
+            ? { key: 'admin-pinned-model' }
+            : null,
+      );
+
+      await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+
+      const call = callForKey(defaultEntry?.key ?? '');
+      expect(call?.update).toMatchObject({ isDefault: false });
+      expect(call?.update).not.toHaveProperty('isActive');
+      expect(call?.update).not.toHaveProperty('isDiscovered');
+      expect(call?.update).not.toHaveProperty('isPublic');
+      expect(prisma.model.updateMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ category: defaultEntry?.category }),
+        }),
+      );
+    });
+
+    it('reaffirms isDefault when the existing row already holds the active default', async () => {
+      const defaultEntry = UNIFIED_MODEL_CATALOG.find(
+        (entry) => entry.isDefault,
+      );
+      expect(defaultEntry).toBeDefined();
+
+      prisma.model.findUnique.mockImplementation(
+        async ({ where }: { where: { key: string } }) =>
+          where.key === defaultEntry?.key ? { id: 'existing-row' } : null,
+      );
+      prisma.model.findFirst.mockImplementation(
+        async ({ where }: { where?: { category?: string } }) =>
+          where?.category === defaultEntry?.category
+            ? { key: defaultEntry?.key }
+            : null,
+      );
+
+      await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+
+      expect(callForKey(defaultEntry?.key ?? '')?.update).toMatchObject({
+        isActive: true,
+        isDefault: true,
+        isDiscovered: false,
+        isPublic: true,
+      });
+    });
+
+    it('self-heals a category left with no active default back to the catalog pin', async () => {
+      const defaultEntry = UNIFIED_MODEL_CATALOG.find(
+        (entry) => entry.isDefault,
+      );
+      expect(defaultEntry).toBeDefined();
+
+      // The row for the catalog's declared default already exists, but
+      // nothing in its category is currently an active, non-deleted default
+      // — e.g. whatever previously held the pin was disabled or deleted.
+      prisma.model.findUnique.mockImplementation(
+        async ({ where }: { where: { key: string } }) =>
+          where.key === defaultEntry?.key ? { id: 'existing-row' } : null,
+      );
+      prisma.model.findFirst.mockResolvedValue(null);
+
+      await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+
+      expect(prisma.model.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { isDefault: false },
+          where: expect.objectContaining({
+            category: defaultEntry?.category,
+            key: { not: defaultEntry?.key },
+          }),
+        }),
+      );
+      expect(callForKey(defaultEntry?.key ?? '')?.update).toMatchObject({
+        isActive: true,
+        isDefault: true,
+        isDiscovered: false,
+        isPublic: true,
+      });
+    });
   });
 });

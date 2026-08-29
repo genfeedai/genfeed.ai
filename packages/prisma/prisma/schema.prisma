@@ -1158,9 +1158,20 @@ model StudioLook {
   lens           String       @default("")
   lighting       String       @default("")
   cameraMovement String?
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  // Preset widening (Generation Setup): router model selection, output
+  // count, and brand/enhancement toggles saved alongside the Look. All
+  // optional so pre-widening rows stay valid.
+  modelKey               String?
+  prioritize             String?
+  outputs                Int?
+  aspectRatio            String?
+  duration               Int?
+  resolution             String?
+  brandingMode           String?
+  isPromptEnhanceEnabled Boolean  @default(true)
+  isDeleted              Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc), id(sort: Desc)], map: "studio_looks_scope_created_idx")
   @@map("studio_looks")
@@ -1379,7 +1390,6 @@ model Setting {
   trendNotificationsMinViralScore  Int                        @default(70)
   contentPreferences               String[]                   @default([])
   favoriteModelKeys                String[]                   @default([])
-  defaultAgentModel                String                     @default("deepseek/deepseek-chat")
   isAgentAssetsPanelOpen           Boolean                    @default(false)
   generationPriority               GenerationPriority         @default(QUALITY)
   dashboardPreferences             Json                       @default("{\"scopes\":{}}")

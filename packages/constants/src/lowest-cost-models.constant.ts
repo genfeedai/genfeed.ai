@@ -25,7 +25,7 @@ export interface LowestCostModelDefaultsInput {
  * Prices are Replicate / OpenRouter list (reviewed 2026-08):
  * - image: FLUX Schnell $0.003/image (Nano Banana 2 Lite is $0.034)
  * - video: P-Video $0.02/s at 720p (MiniMax H3 is up to $0.13/s at 2K)
- * - chat: OpenRouter free-only auto-router $0 (Gemini Flash Lite is $0.10/$0.40)
+ * - chat: Nemotron 3 Ultra (pinned free) $0 (Gemini Flash Lite is $0.10/$0.40)
  */
 export const LOWEST_COST_IMAGE_MODEL_KEY =
   MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL;
@@ -33,7 +33,7 @@ export const LOWEST_COST_IMAGE_MODEL_KEY =
 export const LOWEST_COST_VIDEO_MODEL_KEY = MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO;
 
 export const LOWEST_COST_AGENT_CHAT_MODEL_KEY =
-  AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE;
+  AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE;
 
 export const CLOUD_QUALITY_IMAGE_MODEL_KEY =
   MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2_LITE;

@@ -6,7 +6,6 @@ export {
   useAgentDraftContext,
 } from '@genfeedai/agent/hooks/use-agent-draft-context';
 export { useAgentPageContext } from '@genfeedai/agent/hooks/use-agent-page-context';
-export { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
 export { useBrandMentions } from '@genfeedai/agent/hooks/use-brand-mentions';
 export { useCharacterMentions } from '@genfeedai/agent/hooks/use-character-mentions';
 export { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions';

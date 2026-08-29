@@ -217,7 +217,6 @@ describe('routes.constant', () => {
     expect(isPersonalSettingsPath('/settings')).toBe(true);
     expect(isPersonalSettingsPath('/settings/personal')).toBe(true);
     expect(isPersonalSettingsPath('/settings/notifications')).toBe(true);
-    expect(isPersonalSettingsPath('/settings/chat')).toBe(true);
     expect(isPersonalSettingsPath('/settings/progress')).toBe(true);
     expect(isPersonalSettingsPath('/settings/help')).toBe(true);
     expect(isPersonalSettingsPath('/settings/members')).toBe(false);
