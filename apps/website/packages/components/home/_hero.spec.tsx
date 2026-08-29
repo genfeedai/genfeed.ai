@@ -7,7 +7,7 @@ import HomeHero from './_hero';
 vi.mock('next/image', () => ({
   default: ({
     fill: _fill,
-    priority: _priority,
+    priority,
     ...props
   }: ImgHTMLAttributes<HTMLImageElement> & {
     fill?: boolean;
@@ -15,6 +15,7 @@ vi.mock('next/image', () => ({
   }) => (
     <span
       aria-label={props.alt ?? ''}
+      data-priority={priority ? 'true' : undefined}
       data-src={typeof props.src === 'string' ? props.src : undefined}
       role="img"
     />
@@ -123,5 +124,19 @@ describe('HomeHero', () => {
     expect(
       imageSources.some((src) => src?.includes('generated-output-wall.png')),
     ).toBe(false);
+  });
+
+  it('preloads only the LCP tile of the output wall', () => {
+    render(<HomeHero />);
+
+    const preloaded = screen
+      .getAllByRole('img')
+      .filter((image) => image.getAttribute('data-priority') === 'true');
+
+    expect(preloaded).toHaveLength(1);
+    expect(preloaded[0]).toHaveAttribute(
+      'data-src',
+      HOME_OUTPUT_WALL_ASSETS[0].src,
+    );
   });
 });

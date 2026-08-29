@@ -7,6 +7,14 @@ import { HOME_OUTPUT_WALL_ASSETS } from '@web-components/home/_assets';
 import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 
+/**
+ * Exactly one wall tile is `priority`. `priority` emits a preload link and a
+ * high fetch priority, so marking three of them made the browser race three
+ * full-size images against each other and against the hero's own font and CSS.
+ * The largest tile is the LCP candidate; the rest are in-viewport lazy images,
+ * which browsers still fetch immediately, just behind the element that decides
+ * the score.
+ */
 const HERO_WALL_ITEMS = [
   {
     ...HOME_OUTPUT_WALL_ASSETS[0],
@@ -21,7 +29,7 @@ const HERO_WALL_ITEMS = [
     className:
       'col-span-3 row-span-4 sm:col-span-3 sm:row-span-9 sm:col-start-6 sm:row-start-1',
     imageClassName: 'object-[50%_50%]',
-    priority: true,
+    priority: false,
     sizes: '(max-width: 640px) 50vw, (max-width: 1024px) 28vw, 220px',
   },
   {
@@ -29,7 +37,7 @@ const HERO_WALL_ITEMS = [
     className:
       'col-span-3 row-span-4 sm:col-span-4 sm:row-span-4 sm:col-start-9 sm:row-start-1',
     imageClassName: 'object-[50%_50%]',
-    priority: true,
+    priority: false,
     sizes: '(max-width: 640px) 50vw, (max-width: 1024px) 35vw, 300px',
   },
   {
