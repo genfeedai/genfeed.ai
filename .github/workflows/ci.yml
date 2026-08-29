@@ -1,8 +1,13 @@
 name: CI
 
+# No standalone `push` trigger: master pushes are validated by full-suite.yml,
+# which calls this workflow with `run_heavy_tests: true`. A push trigger here
+# ran the same commit twice per merge (standalone affected tier + the nested
+# heavy tier under Full Suite). The push-gated jobs below (the tests-gate push
+# arm, the master failure tracker, the merge-queue janitor) still fire on every
+# master push inside that nested run, because a reusable workflow inherits the
+# CALLER's originating event — `github.event_name` is `push` there.
 on:
-  push:
-    branches: [master]
   pull_request:
     branches: [master]
     types: [opened, synchronize, reopened]
@@ -41,21 +46,24 @@ on:
 # path `ci` runs UNDER full-suite, both computed the same group with
 # cancel-in-progress, and the nested `ci` cancelled itself at startup (0 jobs) —
 # tripping cancel-doomed-run and silently killing every stable release. The
-# prefix keeps push-CI dedup ("ci-CI-<ref>") while never matching a caller group.
+# prefix guarantees this group never matches a caller's group.
 #
 # `cancel-in-progress` is PULL-REQUEST ONLY. On a PR, a new push makes the
-# running validation obsolete, so cancelling is free. On `master` it is not:
-# every merge shares the group `ci-CI-refs/heads/master`, so an unconditional
-# `true` meant each merge killed the previous commit's validation before it
-# could report. On 2026-07-31 fifteen merges landed in three hours and NINE
-# consecutive master runs were cancelled — a non-booting API
-# (`Cannot access 'CredentialsCoreModule' before initialization`, #2270) rode
-# master for twenty minutes because no run ever survived long enough to fail.
-# Each master commit now validates to completion, and `workflow_call` (the
-# release path, which inherits the caller's event) is likewise never cancelled.
-# `merge_group` runs are never cancelled either: each queue entry has its own
-# `gh-readonly-queue/...` ref, so the group is already unique per entry, and a
-# cancelled run would time the entry out of the queue.
+# running validation obsolete, so cancelling is free. Nested runs (merge queue,
+# full-suite/release workflow_call) are never cancelled from HERE:
+#   - `merge_group` entries each get their own `gh-readonly-queue/...` ref, so
+#     the group is already unique per entry, and a cancelled run would time the
+#     entry out of the queue.
+#   - master pushes reach this workflow only via full-suite.yml's call, where
+#     the group is `ci-<caller workflow>-refs/heads/master` and the event is
+#     `push` (inherited) → cancel-in-progress false. Master-push supersession
+#     is owned by full-suite.yml's OWN top-level group (master is cumulative,
+#     newest run validates a superset), which cancels the whole caller run —
+#     nested jobs included. History: on 2026-07-31, when this workflow still
+#     had its own push trigger with unconditional cancel, NINE consecutive
+#     master runs were cancelled mid-burst and a non-booting API (#2270) rode
+#     master unreported for twenty minutes. Supersession must live at the
+#     full-suite level, never here.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -71,8 +79,9 @@ env:
   # new event type is wired in one place:
   #   pull_request → PR base (master at PR-head time)
   #   merge_group  → queue base (current master the entry is being tested on)
-  #   push         → previous master head (`github.event.before`)
-  #   workflow_call/dispatch → '' → callers fall back to full runs / HEAD~1
+  #   push         → previous master head (`github.event.before`); arrives via
+  #                  full-suite.yml's master-push call (event payload inherited)
+  #   workflow_dispatch → '' → callers fall back to full runs / HEAD~1
   CI_BASE_SHA: ${{ github.event_name == 'merge_group' && github.event.merge_group.base_sha || github.event.pull_request.base.sha || github.event.before || '' }}
   # True when the run validates a proposed change against a base (PR or queue
   # entry) rather than a landed master commit; gates the "affected only" paths.
@@ -960,9 +969,10 @@ jobs:
   # Tests Gate fails on a master push, file (or update) ONE `master-ci-failure`
   # tracking issue at Project Priority P0; when the next push is green, close
   # every open tracker automatically — same contract as the self-hosted release
-  # E2E tracker. Push-only by construction: pull requests surface a red gate on
-  # the PR itself, and the release path never fires these (workflow_call
-  # inherits the caller's originating event, which is not `push`).
+  # E2E tracker. Push-only by construction: these fire inside full-suite.yml's
+  # master-push run (workflow_call inherits the caller's originating `push`
+  # event). Pull requests surface a red gate on the PR itself, and the release
+  # path (workflow_dispatch) never matches `push`.
   #
   # `!cancelled()` is load-bearing on the failure arm twice over: an `if:`
   # without a status function implicitly ANDs `success()`, which is false the
@@ -1115,10 +1125,11 @@ jobs:
   # queued or in progress on that ref are not cancelled with it. Each zombie
   # held a runner slot until the 6-hour workflow timeout, which starved the
   # org-wide runner pool at peak (measured while auditing #1850). Every queue
-  # merge lands on `master` as a push, so this job sweeps on exactly that
-  # signal: cancel active merge_group runs whose queue ref no longer resolves,
-  # and leave runs on live queue refs alone. Independent of the test graph by
-  # design — a red gate must not keep zombies alive.
+  # merge lands on `master` as a push (reaching this workflow through
+  # full-suite.yml's call, which inherits the `push` event), so this job sweeps
+  # on exactly that signal: cancel active merge_group runs whose queue ref no
+  # longer resolves, and leave runs on live queue refs alone. Independent of
+  # the test graph by design — a red gate must not keep zombies alive.
   merge-queue-janitor:
     name: Merge Queue Janitor
     runs-on: ubuntu-latest
