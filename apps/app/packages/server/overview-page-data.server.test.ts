@@ -35,7 +35,6 @@ describe('loadOverviewPageData', () => {
     shouldSkipCloudBootstrapMock.mockReturnValue(false);
     isDesktopServerRequestMock.mockResolvedValue(false);
     getOverviewBootstrapMock.mockResolvedValue({
-      activeRuns: [{ id: 'run_2' }],
       analytics: { totalPosts: 12 },
       reviewInbox: {
         approvedCount: 1,
@@ -44,22 +43,6 @@ describe('loadOverviewPageData', () => {
         readyCount: 3,
         recentItems: [{ id: 'item-1' }],
         rejectedCount: 0,
-      },
-      runs: [{ id: 'run_1' }],
-      stats: {
-        activeRuns: 1,
-        anomalies: [],
-        autoRoutedRuns: 1,
-        completedToday: 2,
-        failedToday: 0,
-        routingPaths: [],
-        timeRange: '7d',
-        topActualModels: [{ count: 1, model: 'google/gemini-2.5-flash' }],
-        topRequestedModels: [{ count: 1, model: 'openai/gpt-5.6-terra' }],
-        totalCreditsToday: 15,
-        totalRuns: 10,
-        trends: [],
-        webEnabledRuns: 1,
       },
       timeSeries: [{ date: '2026-03-17', instagram: 10 }],
     });
@@ -74,7 +57,6 @@ describe('loadOverviewPageData', () => {
     );
 
     await expect(loadOverviewPageData()).resolves.toEqual({
-      activeRuns: [],
       analytics: {},
       reviewInbox: {
         approvedCount: 0,
@@ -84,8 +66,6 @@ describe('loadOverviewPageData', () => {
         recentItems: [],
         rejectedCount: 0,
       },
-      runs: [],
-      stats: null,
       timeSeriesData: [],
     });
     expect(getInstanceMock).not.toHaveBeenCalled();
@@ -101,7 +81,6 @@ describe('loadOverviewPageData', () => {
     expect(getInstanceMock).toHaveBeenCalledWith('token_123');
     expect(getOverviewBootstrapMock).toHaveBeenCalledTimes(1);
     expect(result).toEqual({
-      activeRuns: [{ id: 'run_2' }],
       analytics: { totalPosts: 12 },
       reviewInbox: {
         approvedCount: 1,
@@ -110,22 +89,6 @@ describe('loadOverviewPageData', () => {
         readyCount: 3,
         recentItems: [{ id: 'item-1' }],
         rejectedCount: 0,
-      },
-      runs: [{ id: 'run_1' }],
-      stats: {
-        activeRuns: 1,
-        anomalies: [],
-        autoRoutedRuns: 1,
-        completedToday: 2,
-        failedToday: 0,
-        routingPaths: [],
-        timeRange: '7d',
-        topActualModels: [{ count: 1, model: 'google/gemini-2.5-flash' }],
-        topRequestedModels: [{ count: 1, model: 'openai/gpt-5.6-terra' }],
-        totalCreditsToday: 15,
-        totalRuns: 10,
-        trends: [],
-        webEnabledRuns: 1,
       },
       timeSeriesData: [{ date: '2026-03-17', instagram: 10 }],
     });
