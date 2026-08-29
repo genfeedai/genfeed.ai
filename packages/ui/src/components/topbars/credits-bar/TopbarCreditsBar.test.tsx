@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -115,6 +116,33 @@ function balanceResponse(balance: number) {
   };
 }
 
+/**
+ * The bar reads its balance through the shared topbar-balances query, so it
+ * needs a cache. One client per case keeps them isolated; `rerender` reuses the
+ * same client so a re-render does not discard the in-flight request.
+ */
+function renderBar() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { gcTime: 0, retry: false } },
+  });
+
+  const utils = render(
+    <QueryClientProvider client={queryClient}>
+      <TopbarCreditsBar />
+    </QueryClientProvider>,
+  );
+
+  return {
+    ...utils,
+    rerender: () =>
+      utils.rerender(
+        <QueryClientProvider client={queryClient}>
+          <TopbarCreditsBar />
+        </QueryClientProvider>,
+      ),
+  };
+}
+
 describe('TopbarCreditsBar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -130,7 +158,7 @@ describe('TopbarCreditsBar', () => {
 
   it('subscribes to live balance events only once the socket is ready', async () => {
     socketState.isReady = false;
-    const { rerender } = render(<TopbarCreditsBar />);
+    const { rerender } = renderBar();
 
     await waitFor(() => {
       expect(screen.getByTestId('credits-balance')).toHaveTextContent('42');
@@ -140,7 +168,7 @@ describe('TopbarCreditsBar', () => {
     expect(mockSubscribe).not.toHaveBeenCalled();
 
     socketState.isReady = true;
-    rerender(<TopbarCreditsBar />);
+    rerender();
 
     await waitFor(() => {
       expect(mockSubscribe).toHaveBeenCalledWith(
@@ -155,7 +183,7 @@ describe('TopbarCreditsBar', () => {
   });
 
   it('loads topbar balances without logging an error', async () => {
-    render(<TopbarCreditsBar />);
+    renderBar();
 
     await waitFor(() => {
       expect(screen.getByTestId('credits-balance')).toHaveTextContent('42');
@@ -178,7 +206,7 @@ describe('TopbarCreditsBar', () => {
       () => new Promise(() => undefined),
     );
 
-    render(<TopbarCreditsBar />);
+    renderBar();
 
     expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
       'data-loading',
@@ -191,7 +219,7 @@ describe('TopbarCreditsBar', () => {
     process.env.NEXT_PUBLIC_DESKTOP_SHELL = 'true';
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
 
-    const { container } = render(<TopbarCreditsBar />);
+    const { container } = renderBar();
 
     await waitFor(() => {
       expect(mockGetTopbarBalances).not.toHaveBeenCalled();
@@ -214,7 +242,7 @@ describe('TopbarCreditsBar', () => {
       ],
     });
 
-    render(<TopbarCreditsBar />);
+    renderBar();
 
     await waitFor(() => {
       expect(screen.getByTestId('credits-numeric')).toHaveTextContent('0');
@@ -225,7 +253,7 @@ describe('TopbarCreditsBar', () => {
   it('links to credits for top-up when EE billing is enabled', async () => {
     process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'test-license';
 
-    render(<TopbarCreditsBar />);
+    renderBar();
 
     await waitFor(() => {
       expect(screen.getByTestId('credits-balance')).toHaveTextContent('42');
@@ -244,11 +272,11 @@ describe('TopbarCreditsBar', () => {
     timeoutError.isTimeout = true;
     mockGetTopbarBalances.mockRejectedValue(timeoutError);
 
-    render(<TopbarCreditsBar />);
+    renderBar();
 
     await waitFor(() => {
       expect(mockLoggerWarn).toHaveBeenCalledWith(
-        'TopbarCreditsBar: failed to fetch balances',
+        'useTopbarBalances: failed to fetch balances',
         {
           error: timeoutError,
           reportToSentry: false,
@@ -275,7 +303,7 @@ describe('TopbarCreditsBar', () => {
       .mockRejectedValueOnce(new Error('Temporary failure'))
       .mockImplementationOnce(() => retry.promise);
 
-    render(<TopbarCreditsBar />);
+    renderBar();
 
     await waitFor(() => {
       expect(screen.getByTestId('credits-numeric')).toHaveTextContent(
@@ -320,7 +348,7 @@ describe('TopbarCreditsBar', () => {
       .mockImplementationOnce(() => older.promise)
       .mockImplementationOnce(() => newer.promise);
 
-    render(<TopbarCreditsBar />);
+    renderBar();
 
     await waitFor(() => {
       expect(mockGetTopbarBalances).toHaveBeenCalledTimes(1);
@@ -366,7 +394,7 @@ describe('TopbarCreditsBar', () => {
       .mockImplementationOnce(() => older.promise)
       .mockImplementationOnce(() => newer.promise);
 
-    render(<TopbarCreditsBar />);
+    renderBar();
 
     await waitFor(() => {
       expect(mockGetTopbarBalances).toHaveBeenCalledTimes(1);
@@ -397,7 +425,7 @@ describe('TopbarCreditsBar', () => {
   it('keeps a real zero balance distinct from an unavailable balance', async () => {
     mockGetTopbarBalances.mockResolvedValue(balanceResponse(0));
 
-    render(<TopbarCreditsBar />);
+    renderBar();
 
     await waitFor(() => {
       expect(screen.getByTestId('credits-numeric')).toHaveTextContent('0');
