@@ -32,6 +32,7 @@ function MoodBoardCanvasInner({
   onNodesChange,
   onNodeDragStop,
   onClose,
+  isLoadingMore,
   isTruncated,
 }: MoodBoardCanvasProps): React.JSX.Element {
   const translate = useTranslations('common.moodboard');
@@ -69,9 +70,11 @@ function MoodBoardCanvasInner({
             data-testid="moodboard-actions"
             className="gen-glass flex items-center gap-0.5 rounded-lg p-0.5"
           >
-            {isTruncated ? (
+            {isLoadingMore || isTruncated ? (
               <span className="px-2 text-xs text-foreground/55">
-                {translate('first', { count: assets.length })}
+                {isLoadingMore
+                  ? translate('loadingMore', { count: assets.length })
+                  : translate('first', { count: assets.length })}
               </span>
             ) : null}
             <Button

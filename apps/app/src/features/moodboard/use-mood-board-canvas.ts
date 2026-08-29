@@ -45,14 +45,21 @@ export function useMoodBoardCanvas({
 
   useEffect(() => {
     const { seeds } = mergeMoodBoardLayout(assets, savedLayout);
-    setNodes(
-      seeds.map((seed) => ({
+    setNodes((current) => {
+      // Assets stream in page by page, so this re-derives mid-session. A tile
+      // the user has dragged but not yet autosaved keeps its live position
+      // instead of snapping back to the seeded grid slot.
+      const livePositions = new Map(
+        current.map((node) => [node.id, node.position]),
+      );
+
+      return seeds.map((seed) => ({
         id: seed.assetId,
         type: 'mediaAsset',
-        position: seed.position,
+        position: livePositions.get(seed.assetId) ?? seed.position,
         data: { ingredient: seed.ingredient },
-      })),
-    );
+      }));
+    });
   }, [assets, savedLayout]);
 
   const onNodesChange = useCallback(
