@@ -498,6 +498,12 @@ const PostsGrid = memo(
     if (prevProps.onPostEvaluated !== nextProps.onPostEvaluated) {
       return false;
     }
+    // Each card renders either a Button bound to this callback or a Link when
+    // it is absent, so skipping the re-render keeps a stale handler — or the
+    // wrong element entirely.
+    if (prevProps.onOpenPostDetail !== nextProps.onOpenPostDetail) {
+      return false;
+    }
 
     return true;
   },

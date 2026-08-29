@@ -110,6 +110,16 @@ export default function LipSyncPage() {
   const polledJobIdRef = useRef(state.jobId);
   polledJobIdRef.current = state.jobId;
 
+  // The poll callback treats a matching ref as "this job is still mine". After
+  // unmount the ref keeps its last value, so a late response would still pass
+  // that guard and fire a lip-sync toast through the singleton notifications
+  // service on whatever page the operator navigated to.
+  useEffect(() => {
+    return () => {
+      polledJobIdRef.current = null;
+    };
+  }, []);
+
   const {
     data: characters,
     error: charactersError,

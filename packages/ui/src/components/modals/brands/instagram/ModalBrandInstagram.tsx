@@ -99,7 +99,10 @@ export default function ModalBrandInstagram({
     void (async () => {
       try {
         const service = await getCredentialsService();
-        const data = await service.findCredentialInstagramPages(credential.id);
+        const data = await service.findCredentialInstagramPages(
+          credential.id,
+          controller.signal,
+        );
 
         if (controller.signal.aborted) {
           return;
@@ -113,6 +116,10 @@ export default function ModalBrandInstagram({
         }
 
         logger.error(`${url} failed`, error);
+        // Without this the effect leaves an empty handle list behind, and the
+        // modal reports "No Instagram Business Brands Found" for what is
+        // actually a failed request.
+        setError('Failed to load Instagram accounts. Please try again.');
       } finally {
         if (!controller.signal.aborted) {
           setIsLoading(false);
@@ -235,7 +242,7 @@ export default function ModalBrandInstagram({
           </Alert>
         )}
 
-        {!isLoading && availableHandles.length === 0 && (
+        {!isLoading && !error && availableHandles.length === 0 && (
           <div className="text-center py-8">
             <div className="size-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
               <InstagramIcon className="text-muted-foreground text-xl" />

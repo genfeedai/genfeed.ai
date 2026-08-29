@@ -135,7 +135,10 @@ jobs:
             const marker = `<!-- bundle-size:${{ matrix.app }} -->`;
             const body = `${marker}\n${fs.readFileSync('.bundle-size/report.md', 'utf8')}`;
 
-            const { data: comments } = await github.rest.issues.listComments({
+            // Paginate: a single page stops at 100 comments, and once the
+            // marker falls past it every later run posts a duplicate report
+            // instead of updating the sticky comment.
+            const comments = await github.paginate(github.rest.issues.listComments, {
               issue_number: context.issue.number,
               owner: context.repo.owner,
               per_page: 100,
