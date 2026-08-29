@@ -354,14 +354,20 @@ jobs:
       - name: Setup Bun environment
         if: >-
           inputs.run_heavy_tests != true
-          && github.event_name != 'merge_group'
           && !contains(github.event.pull_request.labels.*.name, 'full-suite')
         uses: ./.github/actions/setup-bun-env
         with:
           bun-version: '1.3.14'
       - name: Compute affected test plan
         id: plan
-        run: node scripts/ci/pr-test-plan.mjs --event "${{ github.event_name }}" --base "$CI_BASE_SHA" --run-heavy "${{ inputs.run_heavy_tests || github.event_name == 'merge_group' || contains(github.event.pull_request.labels.*.name, 'full-suite') }}"
+        # Merge-queue runs stay on the affected tier against the queue base
+        # (current master) — the documented queue design in full-suite.yml.
+        # The heavy matrix escalates only via `run_heavy_tests` (full-suite /
+        # release path) or the explicit `full-suite` PR label; master pushes
+        # get the complete heavy pass from full-suite.yml immediately after
+        # the queue merges, so re-running it per queue entry only serialized
+        # the queue (~20 min/entry) without adding coverage.
+        run: node scripts/ci/pr-test-plan.mjs --event "${{ github.event_name }}" --base "$CI_BASE_SHA" --run-heavy "${{ inputs.run_heavy_tests || contains(github.event.pull_request.labels.*.name, 'full-suite') }}"
       - name: Upload pull-request test plan
         if: github.event_name == 'pull_request' && steps.plan.outcome == 'success'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
