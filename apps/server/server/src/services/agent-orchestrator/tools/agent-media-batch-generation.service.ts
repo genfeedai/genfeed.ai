@@ -138,14 +138,6 @@ export class AgentMediaBatchGenerationService {
     );
     if ('error' in execution) return execution.error;
 
-    // Pin pricing before work so settlement moves only the eventual delta.
-    await this.batchCreditsService?.recordUpfrontCharge({
-      batchId: execution.value.batchId,
-      credits: execution.value.estimatedCredits,
-      organizationId: ctx.organizationId,
-      pricingOptions: execution.value.pricingOptions,
-    });
-
     return this.queueOrRunBatch(execution.value, ctx);
   }
 
@@ -291,23 +283,29 @@ export class AgentMediaBatchGenerationService {
     });
     if ('error' in reservation) return reservation;
 
-    let recorded: boolean | undefined;
-    try {
-      recorded = await this.batchCreditsService?.recordUpfrontCharge({
-        batchId,
-        credits: prepared.estimatedCredits,
-        organizationId: ctx.organizationId,
-        pricingOptions: prepared.pricingOptions,
-        reservationId: reservation.reservationId,
-      });
-    } catch (recordError) {
-      this.loggerService.warn(
-        `${this.logContext} failed to record a batch reservation`,
-        { batchId, organizationId: ctx.organizationId, recordError },
-      );
-      recorded = false;
+    // Pin pricing before work so settlement moves only the eventual delta.
+    // Only a held reservation needs pinning: deployments without managed credits
+    // take no hold, so there is nothing to record and nothing to compensate.
+    let recorded = true;
+    if (reservation.reservationId) {
+      try {
+        recorded =
+          (await this.batchCreditsService?.recordUpfrontCharge({
+            batchId,
+            credits: prepared.estimatedCredits,
+            organizationId: ctx.organizationId,
+            pricingOptions: prepared.pricingOptions,
+            reservationId: reservation.reservationId,
+          })) === true;
+      } catch (recordError) {
+        this.loggerService.warn(
+          `${this.logContext} failed to record a batch reservation`,
+          { batchId, organizationId: ctx.organizationId, recordError },
+        );
+        recorded = false;
+      }
     }
-    if (recorded !== true) {
+    if (!recorded) {
       await this.compensateUnrecordedReservation({
         batchId,
         organizationId: ctx.organizationId,
@@ -331,6 +329,56 @@ export class AgentMediaBatchGenerationService {
         platforms: prepared.platforms,
         pricingOptions: prepared.pricingOptions,
       },
+    };
+  }
+
+  private async compensateUnqueuedBatch(
+    execution: BatchExecution,
+    ctx: ToolExecutionContext,
+    queueError: unknown,
+  ): Promise<AgentToolResult> {
+    try {
+      await this.batchGenerationService?.cancelBatch(
+        execution.batchId,
+        ctx.organizationId,
+      );
+    } catch (cancelError) {
+      this.loggerService.warn(
+        `${this.logContext} failed to cancel a batch that was never queued`,
+        {
+          batchId: execution.batchId,
+          cancelError,
+          organizationId: ctx.organizationId,
+        },
+      );
+    }
+
+    try {
+      // The charge is already pinned, so settlement — not release — returns the
+      // unspent credits for a batch that produced nothing.
+      await this.batchCreditsService?.settleBatchCredits({
+        batchId: execution.batchId,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+      });
+    } catch (settleError) {
+      this.loggerService.warn(
+        `${this.logContext} failed to settle a batch that was never queued`,
+        {
+          batchId: execution.batchId,
+          organizationId: ctx.organizationId,
+          settleError,
+        },
+      );
+    }
+
+    return {
+      creditsUsed: 0,
+      error:
+        queueError instanceof Error
+          ? queueError.message
+          : 'Batch could not be queued',
+      success: false,
     };
   }
 
@@ -418,13 +466,19 @@ export class AgentMediaBatchGenerationService {
     execution: BatchExecution,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    await this.batchGenerationWorkflowService.queueBatch({
-      batchId: execution.batchId,
-      organizationId: ctx.organizationId,
-      runId: ctx.runId,
-      threadId: ctx.threadId,
-      userId: ctx.userId,
-    });
+    try {
+      await this.batchGenerationWorkflowService.queueBatch({
+        batchId: execution.batchId,
+        organizationId: ctx.organizationId,
+        runId: ctx.runId,
+        threadId: ctx.threadId,
+        userId: ctx.userId,
+      });
+    } catch (queueError) {
+      // The queue owns durable execution: without ownership nothing will ever
+      // process the batch, so unwind the items and the pinned charge here.
+      return this.compensateUnqueuedBatch(execution, ctx, queueError);
+    }
     return {
       creditsUsed: execution.estimatedCredits,
       data: {
