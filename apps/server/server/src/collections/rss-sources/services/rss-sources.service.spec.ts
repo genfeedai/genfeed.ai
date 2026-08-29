@@ -15,7 +15,6 @@ import {
   RssImportPolicy,
 } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
-import type { LoggerService } from '@libs/logger/logger.service';
 import type { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
 import { RssSourcesService } from '@server/collections/rss-sources/services/rss-sources.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
@@ -96,9 +95,6 @@ describe('RssSourcesService', () => {
     create: vi.fn(),
     publishNow: vi.fn(),
   };
-  const logger = {
-    error: vi.fn(),
-  };
 
   let service: RssSourcesService;
 
@@ -164,7 +160,6 @@ describe('RssSourcesService', () => {
     service = new RssSourcesService(
       prisma as unknown as PrismaService,
       postGroupsService as unknown as PostGroupsService,
-      logger as unknown as LoggerService,
     );
   });
 

@@ -17,7 +17,6 @@ import {
 } from '@genfeedai/enums';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
-import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PostGroupsService } from '@server/collections/post-groups/services/post-groups.service';
 import type { CreateRssSourceDto } from '@server/collections/rss-sources/dto/create-rss-source.dto';
@@ -73,7 +72,6 @@ export class RssSourcesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly postGroupsService: PostGroupsService,
-    _logger: LoggerService,
   ) {}
 
   async createScoped(
