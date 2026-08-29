@@ -52,6 +52,7 @@ export default function MenuSharedConversations({
         <div className="pb-1">
           <Link
             href={newAgentThreadHref}
+            prefetch={false}
             onFocus={prefetchNewAgentThreadHref}
             onMouseEnter={prefetchNewAgentThreadHref}
             className="group flex h-8 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 cursor-pointer hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"

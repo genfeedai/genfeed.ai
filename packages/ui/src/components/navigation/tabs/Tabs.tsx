@@ -76,6 +76,7 @@ function NavigationTabLink({
       data-size={size}
       data-state={isActive ? 'active' : 'inactive'}
       data-variant={variant}
+      prefetch={false}
       onFocus={prefetchHref}
       onMouseEnter={prefetchHref}
       className={getTabsTriggerClassName()}

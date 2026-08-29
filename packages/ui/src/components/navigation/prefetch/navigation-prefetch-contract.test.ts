@@ -26,4 +26,16 @@ describe('navigation prefetch wiring', () => {
     expect(source).toContain('onMouseEnter');
     expect(source).toContain('onFocus');
   });
+
+  it.each(navigationSurfaces)(
+    'leaves %s prefetching to hover and focus, not the viewport',
+    (surface) => {
+      const source = readFileSync(join(componentsRoot, surface), 'utf8');
+
+      // Next prefetches every in-viewport link by default. A sidebar renders
+      // its whole destination list at once, so the default would fetch an RSC
+      // payload per item on mount against the data the page is waiting on.
+      expect(source).toContain('prefetch={false}');
+    },
+  );
 });
