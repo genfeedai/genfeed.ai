@@ -471,6 +471,9 @@ describe('AgentToolExecutorService', () => {
       getReviewInboxSummary: vi.fn(),
       processBatch: vi.fn().mockResolvedValue(undefined),
     };
+    const batchGenerationWorkflowService = {
+      queueBatch: vi.fn().mockResolvedValue('job-1'),
+    };
     const batchCreditsService = {
       recordUpfrontCharge: vi.fn().mockResolvedValue(true),
       settleBatchCredits: vi.fn().mockResolvedValue({ settledCredits: 0 }),
@@ -1026,10 +1029,11 @@ describe('AgentToolExecutorService', () => {
       new AgentMediaBatchGenerationService(
         loggerService,
         brandsService as never,
-        { queueBatch: vi.fn().mockResolvedValue('job-1') } as never,
+        batchGenerationWorkflowService as never,
         batchGenerationService as never,
         credentialsService as never,
         creditsUtilsService as never,
+        batchCreditsService as never,
       ),
     );
     const qualityHandler = new AgentQualityToolHandler(
@@ -1096,6 +1100,7 @@ describe('AgentToolExecutorService', () => {
       brandInterviewService,
       analyticsService,
       batchGenerationService,
+      batchGenerationWorkflowService,
       botsLivestreamService,
       botsService,
       brandsService,
@@ -3823,8 +3828,8 @@ describe('AgentToolExecutorService', () => {
     });
   });
 
-  it('seeds async batch item processes into the live agent thread', async () => {
-    const { batchGenerationService, brandsService, service, streamPublisher } =
+  it('hands an async batch to the workflow queue with its live thread identity', async () => {
+    const { batchGenerationService, batchGenerationWorkflowService, brandsService, service } =
       createService();
 
     brandsService.findOne.mockResolvedValue({
@@ -3836,17 +3841,6 @@ describe('AgentToolExecutorService', () => {
       label: 'Genfeed',
       text: 'Publish content. Now.',
     });
-
-    let capturedOptions:
-      | Parameters<typeof batchGenerationService.processBatch>[2]
-      | undefined;
-
-    batchGenerationService.processBatch.mockImplementation(
-      async (_batchId, _orgId, options) => {
-        capturedOptions = options;
-        return undefined as never;
-      },
-    );
 
     const result = await service.executeTool(
       AgentToolName.GENERATE_CONTENT_BATCH,
@@ -3874,71 +3868,16 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(batchGenerationService.processBatch).toHaveBeenCalledWith(
-      testId('batch'),
-      testId('org'),
-      expect.any(Object),
-    );
-    expect(capturedOptions).toBeDefined();
-
-    const itemId = testId('entitybb');
-
-    await capturedOptions?.onBatchStarted?.({
+    // Generation runs in the batch workflow now — the tool only reserves credits
+    // and hands over the identity the workflow streams progress back through.
+    expect(batchGenerationWorkflowService.queueBatch).toHaveBeenCalledWith({
       batchId: testId('batch'),
-      totalCount: 2,
+      organizationId: testId('org'),
+      runId: 'run-1',
+      threadId: 'thread-1',
+      userId: testId('user'),
     });
-    await capturedOptions?.onItemStarted?.({
-      batchId: testId('batch'),
-      completedCount: 0,
-      failedCount: 0,
-      index: 0,
-      item: {
-        id: itemId,
-        format: 'image',
-        platform: 'instagram',
-        status: 'generating',
-      } as never,
-      topic: 'launch day',
-      totalCount: 2,
-    });
-    await capturedOptions?.onItemCompleted?.({
-      batchId: testId('batch'),
-      completedCount: 1,
-      failedCount: 0,
-      index: 0,
-      item: {
-        id: itemId,
-        format: 'image',
-        platform: 'instagram',
-        status: 'completed',
-      } as never,
-      postId: 'post-1',
-      previewText: 'Draft ready',
-      topic: 'launch day',
-      totalCount: 2,
-    });
-
-    expect(streamPublisher.publishWorkEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        label: 'Batch generation started',
-        toolCallId: `batch:${testId('batch')}`,
-        toolName: AgentToolName.GENERATE_CONTENT_BATCH,
-      }),
-    );
-    expect(streamPublisher.publishWorkEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        label: 'Generating post 1',
-        toolCallId: `batch:${testId('batch')}:item:${testId('entitybb')}`,
-        toolName: AgentToolName.GENERATE_CONTENT_BATCH,
-      }),
-    );
-    expect(streamPublisher.publishWorkEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        label: 'Generated post 1',
-        toolCallId: `batch:${testId('batch')}:item:${testId('entitybb')}`,
-        toolName: AgentToolName.GENERATE_CONTENT_BATCH,
-      }),
-    );
+    expect(batchGenerationService.processBatch).not.toHaveBeenCalled();
   });
 
   it('should return clip_workflow_run_card from prepare_clip_workflow_run', async () => {

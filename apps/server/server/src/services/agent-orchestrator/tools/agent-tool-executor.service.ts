@@ -203,9 +203,9 @@ export class AgentToolExecutorService implements OnModuleInit {
               userId: workflowContext.userId,
             },
           );
-          if (!result.success) {
-            throw new Error(result.error ?? `Action ${toolName} failed`);
-          }
+          // A fail-closed tool result is a completed action that returned a
+          // remediation envelope — the workflow node keeps its `data` and
+          // `nextActions` instead of collapsing them into a thrown message.
           return result;
         },
       );
