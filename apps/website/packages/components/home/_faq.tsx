@@ -1,5 +1,3 @@
-'use client';
-
 import { FAQ_ITEMS_CORE } from '@data/faq.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';

@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
   AVATAR_CREDIT_COSTS,

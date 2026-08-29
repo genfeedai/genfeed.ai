@@ -1,5 +1,3 @@
-'use client';
-
 import { ButtonSize } from '@genfeedai/enums';
 import { getProPlan } from '@genfeedai/pricing';
 import type { AudienceBenefit } from '@props/website/home.props';

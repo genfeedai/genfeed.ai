@@ -1,5 +1,3 @@
-'use client';
-
 import type { HowStep } from '@props/website/home.props';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
