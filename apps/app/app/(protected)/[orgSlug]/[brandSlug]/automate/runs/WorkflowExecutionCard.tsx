@@ -8,6 +8,7 @@ import {
 import type { IWorkflowExecution } from '@genfeedai/interfaces';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
+import { useTranslations } from 'next-intl';
 
 interface WorkflowExecutionCardProps {
   execution: IWorkflowExecution;
@@ -51,6 +52,7 @@ export default function WorkflowExecutionCard({
   execution,
   onCancel,
 }: WorkflowExecutionCardProps) {
+  const translate = useTranslations('common.automation.workflowExecutions');
   const isActive =
     execution.status === WorkflowExecutionStatus.PENDING ||
     execution.status === WorkflowExecutionStatus.RUNNING;
@@ -75,7 +77,9 @@ export default function WorkflowExecutionCard({
         </div>
         <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
           {execution.creditsUsed > 0 ? (
-            <span>{execution.creditsUsed} credits</span>
+            <span>
+              {execution.creditsUsed} {translate('creditsSuffix')}
+            </span>
           ) : null}
           {execution.durationMs ? (
             <span>{formatDuration(execution.durationMs)}</span>
@@ -95,7 +99,7 @@ export default function WorkflowExecutionCard({
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             >
-              Cancel
+              {translate('cancel')}
             </Button>
           ) : null}
         </div>

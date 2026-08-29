@@ -1,3 +1,4 @@
+import { testId } from '@helpers/testing/test-id.helper';
 import {
   PUBLIC_LONG_FORM_ORGANIZATION_ID,
   PUBLIC_LONG_FORM_USER_ID,
@@ -12,6 +13,8 @@ import type {
   SystemWorkflowGraphDefinition,
 } from '@server/collections/workflows/system-workflow-runner.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const INGREDIENT_ID = testId('ingredient');
 
 const DOCUMENT = {
   content: 'Long-form body',
@@ -267,7 +270,7 @@ describe('YoutubeLongFormWorkflowService', () => {
       provenance: { executionId: 'promotion-execution' },
       result: {
         artifactId: 'artifact-source',
-        ingredientId: 'y12345678901234567890123',
+        ingredientId: INGREDIENT_ID,
         status: 'linked',
       },
     });
@@ -298,7 +301,7 @@ describe('YoutubeLongFormWorkflowService', () => {
         videoId: DOCUMENT.videoId,
         youtubeUrl: DOCUMENT.youtubeUrl,
       },
-      promotionTargetId: 'y12345678901234567890123',
+      promotionTargetId: INGREDIENT_ID,
       promotionTargetType: 'ingredient',
       expiresAt: new Date(Date.now() + 60_000),
       state: 'PROMOTED',
@@ -307,7 +310,7 @@ describe('YoutubeLongFormWorkflowService', () => {
     prisma.ingredient.findFirst.mockResolvedValue(null);
     prisma.metadata.create.mockResolvedValue({ id: 'metadata-1' });
     prisma.ingredient.create.mockResolvedValue({
-      id: 'y12345678901234567890123',
+      id: INGREDIENT_ID,
     });
     const createAsset = actions.get(
       YOUTUBE_LONG_FORM_ACTION_IDS.CREATE_SOURCE_LIBRARY_ASSET,
@@ -317,7 +320,7 @@ describe('YoutubeLongFormWorkflowService', () => {
       actionRequest(
         {
           artifactId: 'artifact-source',
-          ingredientId: 'y12345678901234567890123',
+          ingredientId: INGREDIENT_ID,
         },
         { organizationId: 'org-1', userId: 'user-1' },
       ),

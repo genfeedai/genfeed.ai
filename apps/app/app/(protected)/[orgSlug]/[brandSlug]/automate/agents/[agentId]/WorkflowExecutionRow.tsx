@@ -4,6 +4,7 @@ import type { IWorkflowExecution } from '@genfeedai/interfaces';
 import Badge from '@ui/display/badge/Badge';
 import { TableCell, TableRow } from '@ui/primitives/table';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 
 function getExecutionMetadataString(
@@ -44,6 +45,8 @@ export default function WorkflowExecutionRow({
   isExpanded,
   onToggle,
 }: WorkflowExecutionRowProps) {
+  const translate = useTranslations('common.automation.workflowExecutions');
+
   return (
     <>
       <TableRow
@@ -96,7 +99,7 @@ export default function WorkflowExecutionRow({
           >
             <div className="space-y-2 p-4 text-xs text-foreground/65">
               {execution.nodeResults.length === 0 ? (
-                <p>No node results recorded yet.</p>
+                <p>{translate('noNodeResults')}</p>
               ) : (
                 execution.nodeResults.map((result) => (
                   <div
