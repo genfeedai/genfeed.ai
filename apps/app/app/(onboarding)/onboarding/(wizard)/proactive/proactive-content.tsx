@@ -2,6 +2,7 @@
 
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useVisiblePolling } from '@genfeedai/hooks/ui/use-visible-polling/use-visible-polling';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import {
   OnboardingService,
@@ -9,7 +10,7 @@ import {
 } from '@services/onboarding/onboarding.service';
 import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useReducer } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { toast } from 'sonner';
 import ProactiveErrorState from './proactive-error-state';
 import ProactiveHeroCard from './proactive-hero-card';
@@ -88,10 +89,20 @@ export default function ProactiveContent() {
     return `${workspace.prepPercent}% ready`;
   }, [workspace]);
 
-  useEffect(() => {
-    let isCancelled = false;
+  // The workspace is claimed once and then polled; both paths must stop
+  // dispatching once the wizard step unmounts.
+  const isMountedRef = useRef(true);
 
-    const loadWorkspace = async (mode: 'claim' | 'refresh') => {
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const loadWorkspace = useCallback(
+    async (mode: 'claim' | 'refresh') => {
       const token = await resolveAuthToken(getToken);
       if (!token) {
         return;
@@ -105,7 +116,7 @@ export default function ProactiveContent() {
             ? await service.claimProactiveWorkspace()
             : await service.getProactiveWorkspace();
 
-        if (!isCancelled) {
+        if (isMountedRef.current) {
           if (mode === 'claim') {
             dispatch({ type: 'LOAD_SUCCESS', payload: result });
           } else {
@@ -116,7 +127,7 @@ export default function ProactiveContent() {
         if (mode === 'claim') {
           try {
             const fallback = await service.getProactiveWorkspace();
-            if (!isCancelled) {
+            if (isMountedRef.current) {
               dispatch({ type: 'LOAD_SUCCESS', payload: fallback });
             }
             return;
@@ -125,7 +136,7 @@ export default function ProactiveContent() {
           }
         }
 
-        if (!isCancelled) {
+        if (isMountedRef.current) {
           if (mode === 'claim') {
             dispatch({
               type: 'LOAD_ERROR',
@@ -136,32 +147,32 @@ export default function ProactiveContent() {
         }
         throw loadError;
       }
-    };
+    },
+    [getToken],
+  );
 
+  useEffect(() => {
     void loadWorkspace('claim')
       .catch(() => undefined)
       .finally(() => {
-        if (!isCancelled) {
+        if (isMountedRef.current) {
           dispatch({ type: 'LOAD_DONE' });
         }
       });
+  }, [loadWorkspace]);
 
-    const intervalId = window.setInterval(() => {
-      dispatch({ type: 'REFRESH_START' });
-      void loadWorkspace('refresh')
-        .catch(() => undefined)
-        .finally(() => {
-          if (!isCancelled) {
-            dispatch({ type: 'REFRESH_DONE' });
-          }
-        });
-    }, POLL_INTERVAL_MS);
+  const refreshWorkspace = useCallback(() => {
+    dispatch({ type: 'REFRESH_START' });
+    void loadWorkspace('refresh')
+      .catch(() => undefined)
+      .finally(() => {
+        if (isMountedRef.current) {
+          dispatch({ type: 'REFRESH_DONE' });
+        }
+      });
+  }, [loadWorkspace]);
 
-    return () => {
-      isCancelled = true;
-      window.clearInterval(intervalId);
-    };
-  }, [getToken]);
+  useVisiblePolling(refreshWorkspace, { intervalMs: POLL_INTERVAL_MS });
 
   if (isLoading) {
     return <PageLoadingState />;

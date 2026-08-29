@@ -4,8 +4,9 @@ import type { IAgentRun } from '@genfeedai/interfaces';
 import { AgentRunsService } from '@genfeedai/services/ai/agent-runs.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
+import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { useCallback } from 'react';
 
 export interface UseActiveAgentRunsReturn {
   activeRuns: IAgentRun[];
@@ -18,15 +19,17 @@ export interface UseActiveAgentRunsOptions {
   revalidateOnMount?: boolean;
 }
 
+/** How often a live run's progress is re-read while the tab is in front. */
+const ACTIVE_RUNS_POLL_INTERVAL_MS = 5000;
+
 /**
  * Hook for active agent runs with polling for live updates.
- * Polls every 5 seconds when there are active runs.
+ * Polls every 5 seconds when there are active runs and the tab is visible.
  */
 export function useActiveAgentRuns(
   options: UseActiveAgentRunsOptions = {},
 ): UseActiveAgentRunsReturn {
   const { getToken, orgId, userId } = useAuthIdentity();
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const shouldRevalidateOnMount =
     options.revalidateOnMount ?? options.initialActiveRuns == null;
@@ -48,20 +51,15 @@ export function useActiveAgentRuns(
     staleTime: shouldRevalidateOnMount ? 0 : Number.POSITIVE_INFINITY,
   });
 
-  useEffect(() => {
-    if (runs.length > 0) {
-      intervalRef.current = setInterval(() => {
-        void refetch();
-      }, 5000);
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [runs.length, refetch]);
+  useVisiblePolling(
+    useCallback(() => {
+      void refetch();
+    }, [refetch]),
+    {
+      intervalMs: ACTIVE_RUNS_POLL_INTERVAL_MS,
+      isEnabled: runs.length > 0,
+    },
+  );
 
   return {
     activeRuns: runs,

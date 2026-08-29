@@ -16,6 +16,7 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
 import {
   AgentStrategiesService,
   type AgentStrategy,
@@ -44,7 +45,7 @@ import {
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AddAgentDialog, { type AddAgentMode } from './AddAgentDialog';
 import AgentWorkflowRunDialog from './AgentWorkflowRunDialog';
 
@@ -193,6 +194,9 @@ function AgentCard({
   );
 }
 
+/** Cadence for refreshing agent run state while the tab is in front. */
+const AGENT_HUB_POLL_INTERVAL_MS = 30_000;
+
 export default function AgentHubPage() {
   const translate = useTranslations('common.automation.agentHub');
   const collectionScope = useCollectionScope();
@@ -239,18 +243,7 @@ export default function AgentHubPage() {
     setIsAddAgentOpen(true);
   }, [addIntent]);
 
-  // Auto-refresh every 30 seconds
-  const refreshRef = useRef(refresh);
-  useEffect(() => {
-    refreshRef.current = refresh;
-  }, [refresh]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refreshRef.current();
-    }, 30_000);
-    return () => clearInterval(interval);
-  }, []);
+  useVisiblePolling(refresh, { intervalMs: AGENT_HUB_POLL_INTERVAL_MS });
 
   const handleToggle = useCallback(
     async (id: string, isActive: boolean) => {

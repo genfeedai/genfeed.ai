@@ -4,6 +4,7 @@ import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefr
 import { ButtonVariant } from '@genfeedai/enums';
 import type { IEC2Instance, IFleetHealthResponse } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { AdminFleetService } from '@services/admin/fleet.service';
@@ -14,7 +15,7 @@ import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Play, Server, Square } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import CloudFrontSection from './CloudFrontSection';
 import EC2InstancesSection from './EC2InstancesSection';
@@ -43,7 +44,6 @@ export default function InfrastructurePage() {
   );
   const [isActioningAll, setIsActioningAll] = useState(false);
   const [isInvalidating, setIsInvalidating] = useState(false);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const {
     data: instances,
@@ -93,18 +93,12 @@ export default function InfrastructurePage() {
     }
   }, [fleetError]);
 
-  useEffect(() => {
-    pollingRef.current = setInterval(() => {
+  useVisiblePolling(
+    useCallback(() => {
       void refreshFleet();
-    }, POLL_INTERVAL_MS);
-
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    };
-  }, [refreshFleet]);
+    }, [refreshFleet]),
+    { intervalMs: POLL_INTERVAL_MS },
+  );
 
   const handleEC2Action = useCallback(
     async (instanceId: string, action: 'start' | 'stop') => {
