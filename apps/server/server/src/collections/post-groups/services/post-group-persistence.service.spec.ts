@@ -468,7 +468,7 @@ describe('PostGroupPersistenceService', () => {
     ]);
     prisma.post.findMany.mockResolvedValue([
       makeTarget({
-        workflowExecutionId: 'run-1',
+        agentThreadId: 'thread-1',
         groupId: 'group-agent',
         id: 'agent',
       }),

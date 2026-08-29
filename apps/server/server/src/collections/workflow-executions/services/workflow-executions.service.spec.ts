@@ -334,7 +334,7 @@ describe('WorkflowExecutionsService', () => {
         trigger: true,
         userId: true,
         workflowId: true,
-        workflow: { select: { label: true, userId: true } },
+        workflow: { select: { label: true, metadata: true, userId: true } },
       },
       where: { id: 'execution-1' },
     });

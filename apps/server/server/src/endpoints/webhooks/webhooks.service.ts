@@ -313,6 +313,16 @@ export class WebhooksService {
         metadataId: metadata.id,
       });
       if (!ingredient) {
+        // The failure reason still belongs on the metadata record when the
+        // provider gave up before any ingredient row existed for it.
+        if (errorMessage) {
+          await this.metadataService.patch(metadata.id, {
+            error: errorMessage,
+          });
+        }
+        this.loggerService.warn(`${logContext} ingredient not found`, {
+          externalId,
+        });
         return;
       }
 

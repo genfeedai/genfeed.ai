@@ -160,12 +160,15 @@ describe('ClipGenerationService workflow boundary', () => {
     await expect(service.generateClips(request)).resolves.toEqual(result);
     expect(runner.startWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
+        actionType: 'clip.generation',
         canonicalId: 'clip.generation',
-        resultNodeId: 'generate-remaining',
-      }),
-      expect.objectContaining({
         inputValues: { request, reviewContext: { attempt: 1 } },
+        metadata: expect.objectContaining({
+          clipHookReviewAttempt: 1,
+          projectId: 'project-1',
+        }),
         organizationId: 'org-1',
+        source: 'clip.generation',
         userId: 'user-1',
       }),
     );

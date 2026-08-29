@@ -51,7 +51,6 @@ describe('ReplyPostWatchService workflow boundary', () => {
     expect(workflowQueue.queueSystemWorkflow).toHaveBeenCalledTimes(7);
     expect(workflowQueue.queueSystemWorkflow).toHaveBeenNthCalledWith(
       1,
-      expect.anything(),
       expect.objectContaining({
         inputValues: {
           request: expect.objectContaining({
@@ -60,10 +59,13 @@ describe('ReplyPostWatchService workflow boundary', () => {
             postId: 'video-1',
           }),
         },
+        organizationId: 'org-1',
+        source: 'reply-post-watch-series',
       }),
+      // The job id carries the watch identity so a redelivered series replaces
+      // its own attempt instead of queueing a duplicate watch.
       expect.stringContaining('reply-post-watch-org-1-youtube-video-1-0'),
-      undefined,
-      expect.objectContaining({ delayMs: 120_000 }),
+      expect.objectContaining({ delayMs: 120_000, replaceTerminalJob: true }),
     );
   });
 });

@@ -322,29 +322,32 @@ export class RssSourcesService {
     outcome: RssItemClaim | RssItemRelease | undefined,
     failure?: unknown,
   ): Promise<{ outcome: 'failed' | 'imported' | 'skipped' }> {
-    const itemRow = await this.prisma.rssFeedItem.findFirst({
-      select: { id: true, status: true },
-      where: {
-        guid: request.item.guid,
-        isDeleted: false,
-        rssSourceId: request.source.id,
-      },
-    });
-    if (!itemRow) throw new Error('RSS feed item claim is missing');
+    // The claim node owns the row identity; only a failure raised before the
+    // claim ran has to fall back to the feed guid to find the row.
+    const itemRowId =
+      outcome?.itemRowId ??
+      (
+        await this.prisma.rssFeedItem.findFirst({
+          select: { id: true },
+          where: {
+            guid: request.item.guid,
+            isDeleted: false,
+            rssSourceId: request.source.id,
+          },
+        })
+      )?.id;
+    if (!itemRowId) throw new Error('RSS feed item claim is missing');
     if (failure) {
       await this.prisma.rssFeedItem.update({
         data: {
           error: errorMessage(failure),
           status: RssFeedItemStatus.FAILED,
         },
-        where: { id: itemRow.id },
+        where: { id: itemRowId },
       });
       return { outcome: 'failed' };
     }
-    if (
-      outcome?.outcome === 'skipped' ||
-      itemRow.status === RssFeedItemStatus.IMPORTED
-    ) {
+    if (outcome?.outcome === 'skipped') {
       return { outcome: 'skipped' };
     }
     const releaseId =
@@ -357,7 +360,7 @@ export class RssSourcesService {
         postGroupId: releaseId,
         status: RssFeedItemStatus.IMPORTED,
       },
-      where: { id: itemRow.id },
+      where: { id: itemRowId },
     });
     return { outcome: 'imported' };
   }
