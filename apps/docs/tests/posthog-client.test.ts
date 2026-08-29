@@ -52,6 +52,7 @@ describe('docs PostHog client', () => {
       capture_performance: {
         network_timing: false,
         web_vitals: true,
+        web_vitals_attribution: false,
       },
       cookieless_mode: 'always',
       defaults: '2026-05-30',

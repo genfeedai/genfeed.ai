@@ -23,10 +23,13 @@ export function buildDocsPosthogOptions(
     capture_pageleave: true,
     // Docs pages are the slowest public routes to render and CrUX cannot split
     // them apart, so vitals are captured per route here. Network timing stays
-    // off: it reports every resource URL.
+    // off: it reports every resource URL. Attribution is off for the same
+    // reason: it attaches the LCP element's URL (query string included) and the
+    // interaction target's selector to every vitals event.
     capture_performance: {
       network_timing: false,
       web_vitals: true,
+      web_vitals_attribution: false,
     },
     capture_pageview: 'history_change',
     cookieless_mode: 'always',

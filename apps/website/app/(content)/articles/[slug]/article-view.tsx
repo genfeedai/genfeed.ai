@@ -32,6 +32,13 @@ export default async function ArticleView({
   // reader that this is not live yet.
   const isPreview = !article.publishedAt;
   const authorLabel = resolvePublicArticleAuthor(article);
+  // `name` is required on both the Article headline and every BreadcrumbList
+  // item, so guard the label once and reuse it — an undefined `name` is dropped
+  // by JSON.stringify and silently invalidates the structured data.
+  const headline =
+    typeof article.label === 'string' && article.label.trim().length > 0
+      ? article.label.trim()
+      : 'Article';
 
   const articleJsonLd = buildArticleJsonLd({
     author: authorLabel ?? {
@@ -43,10 +50,7 @@ export default async function ArticleView({
     datePublished: article.publishedAt || article.createdAt,
     description:
       typeof article.summary === 'string' ? article.summary : undefined,
-    headline:
-      typeof article.label === 'string' && article.label.trim().length > 0
-        ? article.label.trim()
-        : 'Article',
+    headline,
     // The artwork first — it is the article's own image — then the composed
     // social card, which is what a share preview actually renders.
     imageUrls: [
@@ -86,7 +90,7 @@ export default async function ArticleView({
       {
         '@type': 'ListItem',
         item: `${EnvironmentService.apps.website}/articles/${slug}`,
-        name: article.label,
+        name: headline,
         position: 3,
       },
     ],

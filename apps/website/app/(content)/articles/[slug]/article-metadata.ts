@@ -19,11 +19,16 @@ export function buildArticlePageTitle(articleTitle: string): string {
     return suffixed;
   }
 
-  if (articleTitle.length <= TITLE_MAX_LENGTH) {
+  // `String.length` and `String.slice` count UTF-16 code units, so clipping a
+  // headline containing an astral character (an emoji, say) mid-pair leaves a
+  // lone surrogate in the `<title>`. Measure and cut on code points instead.
+  const codePoints = Array.from(articleTitle);
+
+  if (codePoints.length <= TITLE_MAX_LENGTH) {
     return articleTitle;
   }
 
-  const clipped = articleTitle.slice(0, TITLE_MAX_LENGTH - 1);
+  const clipped = codePoints.slice(0, TITLE_MAX_LENGTH - 1).join('');
   const lastSpace = clipped.lastIndexOf(' ');
 
   return `${(lastSpace > 0 ? clipped.slice(0, lastSpace) : clipped).trimEnd()}…`;

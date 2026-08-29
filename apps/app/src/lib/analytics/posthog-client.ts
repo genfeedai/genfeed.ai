@@ -686,9 +686,14 @@ function loadAnalyticsSdk(): void {
         // by route, organization, or deploy, so field vitals have to come from
         // here. Network timing stays off: it reports per-resource URLs, which
         // sit outside the FR8 property boundary that before_send enforces.
+        // Attribution stays off for the same reason: it attaches the LCP
+        // element's URL (signed asset query strings included) and the
+        // interaction target's selector, which can carry tenant-defined
+        // workflow keys.
         capture_performance: {
           network_timing: false,
           web_vitals: true,
+          web_vitals_attribution: false,
         },
         // Route components capture pageviews only after auth and organization
         // scope is synchronized. SDK history capture runs inside pushState,

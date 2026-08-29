@@ -229,6 +229,43 @@ describe('authorization', () => {
       method: 'POST',
     });
   });
+
+  it('replaces a default header supplied under different casing', async () => {
+    registerApiAuthTokenGetter(async () => 'session-token');
+    fetchMock.mockResolvedValueOnce(createJsonResponse({}));
+
+    await apiClient.post(
+      '/workflows/run',
+      { id: 'workflow-1' },
+      { headers: { 'content-type': 'text/plain' } },
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/workflows/run`, {
+      body: JSON.stringify({ id: 'workflow-1' }),
+      headers: {
+        Authorization: 'Bearer session-token',
+        'Content-Type': 'text/plain',
+      },
+      method: 'POST',
+    });
+  });
+
+  it('lets the generated bearer token win over a lowercase override', async () => {
+    registerApiAuthTokenGetter(async () => 'session-token');
+    fetchMock.mockResolvedValueOnce(createJsonResponse({}));
+
+    await apiClient.get('/workflows', {
+      headers: { authorization: 'Bearer stale' },
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/workflows`, {
+      headers: {
+        Authorization: 'Bearer session-token',
+        'Content-Type': 'application/json',
+      },
+      method: 'GET',
+    });
+  });
 });
 
 describe('ApiError', () => {
