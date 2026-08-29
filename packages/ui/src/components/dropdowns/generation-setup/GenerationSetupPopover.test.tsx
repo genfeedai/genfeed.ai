@@ -329,7 +329,9 @@ describe('GenerationSetupPopover', () => {
 
     expect(screen.getByTestId('generation-setup-popover')).toBeVisible();
     expect(screen.getByText('Agent pick')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Search fields…')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Search setup fields' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('No saved presets yet.')).toBeInTheDocument();
   });
 
