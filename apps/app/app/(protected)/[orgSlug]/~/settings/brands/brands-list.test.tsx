@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandsList from './brands-list';
 import '@testing-library/jest-dom/vitest';
@@ -113,11 +113,13 @@ describe('BrandsList', () => {
     expect(screen.getByText('3 connected')).toBeInTheDocument();
   });
 
-  it('opens brand settings on row click instead of the edit overlay', () => {
+  it('links the row to brand settings instead of the edit overlay', () => {
     render(<BrandsList />);
 
-    fireEvent.click(screen.getByText('Test Brand'));
-
-    expect(pushMock).toHaveBeenCalledWith('/default/testbrand/settings');
+    // A real anchor, not a click handler: the router prefetches the
+    // settings route before the click and cmd-click opens it in a new tab.
+    expect(
+      screen.getByRole('link', { name: 'Open Test Brand settings' }),
+    ).toHaveAttribute('href', '/default/testbrand/settings');
   });
 });

@@ -393,8 +393,12 @@ describe('AnalyticsTrends', () => {
     expect(screen.getByText('Launch audio')).toBeInTheDocument();
     expect(screen.getByText(/Highest term volume:/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open AI video' }));
-    expect(mocks.push).toHaveBeenCalledWith('/analytics/trends/detail/trend-1');
+    // A real anchor, not a click handler: the router prefetches the trend
+    // detail route before the click and cmd-click opens it in a new tab.
+    expect(screen.getByRole('link', { name: 'Open AI video' })).toHaveAttribute(
+      'href',
+      '/analytics/trends/detail/trend-1',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Last 7 Days' }));
     await waitFor(() => {
