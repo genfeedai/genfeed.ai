@@ -8,9 +8,64 @@ import type {
 import { createExecutableActionNode } from '../../utils/action-node';
 import { type NodeExecutor, WorkflowEngine } from '../engine';
 
+// Real @genfeedai/actions output contracts are closed schemas
+// (`additionalProperties: false`), so mock executors must return
+// fixtures that satisfy each action's declared required fields.
+function buildFixtureOutput(actionId: string): unknown {
+  switch (actionId) {
+    case 'imageGen':
+      return {
+        id: 'media-1',
+        model: 'flux',
+        provider: 'replicate',
+        status: 'succeeded',
+      };
+    case 'publish':
+      return {
+        platforms: [],
+        postIds: [],
+        scheduledFor: null,
+        status: 'published',
+      };
+    case 'upscale':
+      return {
+        id: 'media-1',
+        mediaUrl: 'https://cdn.example.com/media.png',
+        model: 'esrgan',
+        scale: '2x',
+        status: 'succeeded',
+      };
+    case 'videoStitch':
+      return {
+        video: 'stitched.mp4',
+        videoUrl: 'https://cdn.example.com/stitched.mp4',
+      };
+    default:
+      throw new Error(`No fixture output registered for action "${actionId}"`);
+  }
+}
+
+// Tests that need a bespoke executor for an action already registered in
+// beforeEach's shared `engine` build their own engine here instead of
+// re-registering — WorkflowEngine.registerExecutor throws on duplicates.
+function createTestEngine(
+  overrides: ConstructorParameters<typeof WorkflowEngine>[0] = {},
+): WorkflowEngine {
+  return new WorkflowEngine({
+    maxConcurrency: 3,
+    retryConfig: {
+      backoffMultiplier: 1,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      maxRetries: 0,
+    },
+    ...overrides,
+  });
+}
+
 function makeNode(
   id: string,
-  type = 'imageGen',
+  type = 'publish',
   overrides: Partial<ExecutableNode> = {},
 ): ExecutableNode {
   if (['imageGen', 'publish', 'upscale', 'videoStitch'].includes(type)) {
@@ -84,7 +139,7 @@ describe('WorkflowEngine', () => {
         maxRetries: 0,
       },
     });
-    mockExecutor = vi.fn().mockResolvedValue({ result: 'ok' });
+    mockExecutor = vi.fn(async (node) => buildFixtureOutput(node.type));
     engine.registerExecutor('imageGen', mockExecutor);
     engine.registerExecutor('upscale', mockExecutor);
     engine.registerExecutor('publish', mockExecutor);
@@ -117,18 +172,15 @@ describe('WorkflowEngine', () => {
     });
 
     it('should pass persisted execution id into node context', async () => {
-      const contextExecutor: NodeExecutor = vi.fn(
-        async (_node, _inputs, ctx) => ({
-          executionId: ctx.executionId,
-          runId: ctx.runId,
-          workflowId: ctx.workflowId,
-        }),
+      const contextEngine = createTestEngine();
+      const contextExecutor: NodeExecutor = vi.fn(async () =>
+        buildFixtureOutput('imageGen'),
       );
-      engine.registerExecutor('imageGen', contextExecutor);
+      contextEngine.registerExecutor('imageGen', contextExecutor);
 
-      const workflow = makeWorkflow([makeNode('n1')]);
+      const workflow = makeWorkflow([makeNode('n1', 'imageGen')]);
 
-      await engine.execute(workflow, { executionId: 'exec-1' });
+      await contextEngine.execute(workflow, { executionId: 'exec-1' });
 
       expect(contextExecutor).toHaveBeenCalledWith(
         expect.any(Object),
@@ -143,21 +195,24 @@ describe('WorkflowEngine', () => {
     });
 
     it('suspends a provider-callback action and does not dispatch downstream nodes', async () => {
+      const suspendEngine = createTestEngine();
       const imageExecutor = vi.fn().mockResolvedValue({
         id: 'ingredient-1',
         model: 'flux',
         provider: 'replicate',
         status: 'PROCESSING',
       });
-      const publishExecutor = vi.fn().mockResolvedValue({ postId: 'post-1' });
-      engine.registerExecutor('imageGen', imageExecutor);
-      engine.registerExecutor('publish', publishExecutor);
+      const publishExecutor = vi
+        .fn()
+        .mockResolvedValue(buildFixtureOutput('publish'));
+      suspendEngine.registerExecutor('imageGen', imageExecutor);
+      suspendEngine.registerExecutor('publish', publishExecutor);
       const workflow = makeWorkflow(
         [makeNode('generate', 'imageGen'), makeNode('publish', 'publish')],
         [makeEdge('generate', 'publish')],
       );
 
-      const result = await engine.execute(workflow, {
+      const result = await suspendEngine.execute(workflow, {
         executionId: 'execution-1',
       });
 
@@ -168,12 +223,13 @@ describe('WorkflowEngine', () => {
     });
 
     it('never transport-retries a provider-callback submission', async () => {
+      const retryEngine = createTestEngine();
       const providerError = new Error('provider submit failed');
       const imageExecutor = vi.fn().mockRejectedValue(providerError);
-      engine.registerExecutor('imageGen', imageExecutor);
+      retryEngine.registerExecutor('imageGen', imageExecutor);
 
-      const result = await engine.execute(
-        makeWorkflow([makeNode('generate')]),
+      const result = await retryEngine.execute(
+        makeWorkflow([makeNode('generate', 'imageGen')]),
         {
           executionId: 'execution-1',
           maxRetries: 3,
@@ -185,35 +241,37 @@ describe('WorkflowEngine', () => {
     });
 
     it('should execute nodes in dependency order', async () => {
+      const orderEngine = createTestEngine();
       const executionOrder: string[] = [];
       const trackingExecutor: NodeExecutor = vi.fn(async (node) => {
         executionOrder.push(node.id);
-        return { result: node.id };
+        return buildFixtureOutput(node.type);
       });
 
-      engine.registerExecutor('imageGen', trackingExecutor);
-      engine.registerExecutor('upscale', trackingExecutor);
+      orderEngine.registerExecutor('imageGen', trackingExecutor);
+      orderEngine.registerExecutor('upscale', trackingExecutor);
 
       const workflow = makeWorkflow(
         [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
-        [makeEdge('n1', 'n2')],
+        [makeEdge('n1', 'n2', { targetHandle: 'media' })],
       );
 
-      await engine.execute(workflow);
+      await orderEngine.execute(workflow);
 
       expect(executionOrder).toEqual(['n1', 'n2']);
     });
 
     it('should handle diamond dependency graph', async () => {
+      const diamondEngine = createTestEngine();
       const executionOrder: string[] = [];
       const trackingExecutor: NodeExecutor = vi.fn(async (node) => {
         executionOrder.push(node.id);
-        return { result: node.id };
+        return buildFixtureOutput(node.type);
       });
 
-      engine.registerExecutor('imageGen', trackingExecutor);
-      engine.registerExecutor('upscale', trackingExecutor);
-      engine.registerExecutor('publish', trackingExecutor);
+      diamondEngine.registerExecutor('imageGen', trackingExecutor);
+      diamondEngine.registerExecutor('upscale', trackingExecutor);
+      diamondEngine.registerExecutor('publish', trackingExecutor);
 
       // Diamond:  A → B, A → C, B → D, C → D
       const workflow = makeWorkflow(
@@ -224,14 +282,14 @@ describe('WorkflowEngine', () => {
           makeNode('D', 'publish'),
         ],
         [
-          makeEdge('A', 'B'),
-          makeEdge('A', 'C'),
-          makeEdge('B', 'D'),
-          makeEdge('C', 'D'),
+          makeEdge('A', 'B', { targetHandle: 'media' }),
+          makeEdge('A', 'C', { targetHandle: 'media' }),
+          makeEdge('B', 'D', { targetHandle: 'media' }),
+          makeEdge('C', 'D', { targetHandle: 'media' }),
         ],
       );
 
-      await engine.execute(workflow);
+      await diamondEngine.execute(workflow);
 
       // A must come first, D must come last
       expect(executionOrder[0]).toBe('A');
@@ -256,91 +314,105 @@ describe('WorkflowEngine', () => {
 
   describe('execute — input gathering', () => {
     it('should pass upstream output as inputs to downstream node', async () => {
+      const gatherEngine = createTestEngine();
       const capturedInputs: Map<string, unknown>[] = [];
       const capturingExecutor: NodeExecutor = vi.fn(async (node, inputs) => {
         capturedInputs.push(new Map(inputs));
-        return { data: `from-${node.id}` };
+        return buildFixtureOutput(node.type);
       });
 
-      engine.registerExecutor('imageGen', capturingExecutor);
-      engine.registerExecutor('upscale', capturingExecutor);
+      gatherEngine.registerExecutor('imageGen', capturingExecutor);
+      gatherEngine.registerExecutor('upscale', capturingExecutor);
 
       const workflow = makeWorkflow(
         [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
-        [makeEdge('n1', 'n2', { targetHandle: 'image' })],
+        [makeEdge('n1', 'n2', { targetHandle: 'media' })],
       );
 
-      await engine.execute(workflow);
+      await gatherEngine.execute(workflow);
 
       // First node should have empty inputs
       expect(capturedInputs[0].size).toBe(0);
       // Second node should receive first node's output keyed by targetHandle
-      expect(capturedInputs[1].get('image')).toEqual({
-        data: 'from-n1',
-      });
+      expect(capturedInputs[1].get('media')).toEqual(
+        buildFixtureOutput('imageGen'),
+      );
     });
 
     it('should use source node id as key when targetHandle is absent', async () => {
+      const gatherEngine = createTestEngine();
       const capturedInputs: Map<string, unknown>[] = [];
       const capturingExecutor: NodeExecutor = vi.fn(async (node, inputs) => {
         capturedInputs.push(new Map(inputs));
-        return `output-${node.id}`;
+        return buildFixtureOutput(node.type);
       });
 
-      engine.registerExecutor('imageGen', capturingExecutor);
-      engine.registerExecutor('upscale', capturingExecutor);
+      gatherEngine.registerExecutor('imageGen', capturingExecutor);
+      gatherEngine.registerExecutor('upscale', capturingExecutor);
 
+      // The source node id is deliberately named after a real `upscale`
+      // input field ("media") — the fallback key is the literal source
+      // node id, and under closed-schema contract validation that id must
+      // be a declared field of the downstream action for the edge to
+      // validate when no explicit targetHandle is set.
       const workflow = makeWorkflow(
-        [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
-        [makeEdge('n1', 'n2')],
+        [makeNode('media', 'imageGen'), makeNode('n2', 'upscale')],
+        [makeEdge('media', 'n2')],
       );
 
-      await engine.execute(workflow);
+      await gatherEngine.execute(workflow);
 
-      expect(capturedInputs[1].get('n1')).toBe('output-n1');
+      expect(capturedInputs[1].get('media')).toEqual(
+        buildFixtureOutput('imageGen'),
+      );
     });
 
     it('should read sourceHandle field and write it to targetHandle', async () => {
+      const gatherEngine = createTestEngine();
       const capturedInputs: Map<string, unknown>[] = [];
       const sourceExecutor: NodeExecutor = vi.fn(async () => ({
-        topTopics: ['ai tools'],
+        id: 'ingredient-42',
+        model: 'flux',
+        provider: 'replicate',
+        status: 'succeeded',
       }));
       const targetExecutor: NodeExecutor = vi.fn(async (_node, inputs) => {
         capturedInputs.push(new Map(inputs));
-        return null;
+        return buildFixtureOutput('upscale');
       });
 
-      engine.registerExecutor('imageGen', sourceExecutor);
-      engine.registerExecutor('upscale', targetExecutor);
+      gatherEngine.registerExecutor('imageGen', sourceExecutor);
+      gatherEngine.registerExecutor('upscale', targetExecutor);
 
       const workflow = makeWorkflow(
         [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
         [
           makeEdge('n1', 'n2', {
-            sourceHandle: 'topTopics',
-            targetHandle: 'keywords',
+            sourceHandle: 'id',
+            targetHandle: 'model',
           }),
         ],
       );
 
-      await engine.execute(workflow);
+      await gatherEngine.execute(workflow);
 
-      expect(capturedInputs[0].get('keywords')).toEqual(['ai tools']);
+      expect(capturedInputs[0].get('model')).toBe('ingredient-42');
     });
 
     it('does not route an inactive explicit sourceHandle', async () => {
+      const gatherEngine = createTestEngine();
       const capturedInputs: Map<string, unknown>[] = [];
-      const sourceExecutor: NodeExecutor = vi.fn(async () => ({
-        result: 'completed',
-      }));
+      const sourceExecutor: NodeExecutor = vi.fn(async () =>
+        buildFixtureOutput('imageGen'),
+      );
       const targetExecutor: NodeExecutor = vi.fn(async (_node, inputs) => {
         capturedInputs.push(new Map(inputs));
-        return null;
+        return buildFixtureOutput('upscale');
       });
-      engine.registerExecutor('imageGen', sourceExecutor);
-      engine.registerExecutor('upscale', targetExecutor);
+      gatherEngine.registerExecutor('imageGen', sourceExecutor);
+      gatherEngine.registerExecutor('upscale', targetExecutor);
 
-      await engine.execute(
+      await gatherEngine.execute(
         makeWorkflow(
           [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
           [
@@ -356,15 +428,17 @@ describe('WorkflowEngine', () => {
     });
 
     it('collects repeated target handles into an ordered array', async () => {
-      const targetExecutor: NodeExecutor = vi.fn(async (_node, inputs) => ({
-        videos: inputs.get('videos'),
-      }));
+      const capturedInputs: Map<string, unknown>[] = [];
+      const targetExecutor: NodeExecutor = vi.fn(async (_node, inputs) => {
+        capturedInputs.push(new Map(inputs));
+        return buildFixtureOutput('videoStitch');
+      });
       engine.registerExecutor('videoStitch', targetExecutor);
 
       const workflow = makeWorkflow(
         [
-          makeNode('source-1', 'imageGen'),
-          makeNode('source-2', 'upscale'),
+          makeNode('source-1', 'publish'),
+          makeNode('source-2', 'publish'),
           makeNode('target', 'videoStitch'),
         ],
         [
@@ -373,27 +447,33 @@ describe('WorkflowEngine', () => {
         ],
       );
 
-      const result = await engine.execute(workflow);
+      await engine.execute(workflow);
 
-      expect(result.nodeResults.get('target')?.output).toEqual({
-        videos: [{ result: 'ok' }, { result: 'ok' }],
-      });
+      expect(capturedInputs[0].get('videos')).toEqual([
+        buildFixtureOutput('publish'),
+        buildFixtureOutput('publish'),
+      ]);
     });
   });
 
   describe('execute — failure handling', () => {
     it('should stop execution on node failure', async () => {
+      const failureEngine = createTestEngine();
       const failingExecutor: NodeExecutor = vi
         .fn()
         .mockRejectedValue(new Error('generation failed'));
-      engine.registerExecutor('imageGen', failingExecutor);
+      failureEngine.registerExecutor('imageGen', failingExecutor);
+      // n2 never actually dispatches (n1 fails first), but coverage is
+      // validated for every planned node up front, so it still needs a
+      // registered executor for the plan to reach n1's dispatch at all.
+      failureEngine.registerExecutor('upscale', vi.fn());
 
       const workflow = makeWorkflow(
         [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
         [makeEdge('n1', 'n2')],
       );
 
-      const result = await engine.execute(workflow);
+      const result = await failureEngine.execute(workflow);
 
       expect(result.status).toBe('failed');
       expect(result.error).toContain('generation failed');
@@ -440,7 +520,7 @@ describe('WorkflowEngine', () => {
           }),
           makeNode('n2', 'upscale'),
         ],
-        [makeEdge('n1', 'n2')],
+        [makeEdge('n1', 'n2', { targetHandle: 'media' })],
         { lockedNodeIds: ['n1'] },
       );
 
@@ -454,13 +534,14 @@ describe('WorkflowEngine', () => {
     });
 
     it('should pass locked node cached output as input to downstream', async () => {
+      const lockedEngine = createTestEngine();
       const capturedInputs: Map<string, unknown>[] = [];
       const capturingExecutor: NodeExecutor = vi.fn(async (_node, inputs) => {
         capturedInputs.push(new Map(inputs));
-        return 'done';
+        return buildFixtureOutput('upscale');
       });
 
-      engine.registerExecutor('upscale', capturingExecutor);
+      lockedEngine.registerExecutor('upscale', capturingExecutor);
 
       const workflow = makeWorkflow(
         [
@@ -470,13 +551,13 @@ describe('WorkflowEngine', () => {
           }),
           makeNode('n2', 'upscale'),
         ],
-        [makeEdge('n1', 'n2', { targetHandle: 'input' })],
+        [makeEdge('n1', 'n2', { targetHandle: 'media' })],
         { lockedNodeIds: ['n1'] },
       );
 
-      await engine.execute(workflow);
+      await lockedEngine.execute(workflow);
 
-      expect(capturedInputs[0].get('input')).toEqual({ image: 'cached.png' });
+      expect(capturedInputs[0].get('media')).toEqual({ image: 'cached.png' });
     });
 
     it('should execute locked nodes when respectLocks is false', async () => {
@@ -503,7 +584,7 @@ describe('WorkflowEngine', () => {
   describe('execute — credit checking', () => {
     it('should fail when insufficient credits', async () => {
       const engineWithCosts = new WorkflowEngine({
-        creditCosts: { generate: 10, upscale: 5 },
+        creditCosts: { imageGen: 10, upscale: 5 },
       });
       engineWithCosts.registerExecutor('imageGen', mockExecutor);
       engineWithCosts.registerExecutor('upscale', mockExecutor);
@@ -523,7 +604,7 @@ describe('WorkflowEngine', () => {
 
     it('should pass when sufficient credits', async () => {
       const engineWithCosts = new WorkflowEngine({
-        creditCosts: { generate: 10 },
+        creditCosts: { imageGen: 10 },
       });
       engineWithCosts.registerExecutor('imageGen', mockExecutor);
 
@@ -538,7 +619,7 @@ describe('WorkflowEngine', () => {
 
     it('should track total credits used', async () => {
       const engineWithCosts = new WorkflowEngine({
-        creditCosts: { generate: 10, upscale: 5 },
+        creditCosts: { imageGen: 10, upscale: 5 },
       });
       engineWithCosts.registerExecutor('imageGen', mockExecutor);
       engineWithCosts.registerExecutor('upscale', mockExecutor);
@@ -575,7 +656,7 @@ describe('WorkflowEngine', () => {
 
       const workflow = makeWorkflow(
         [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
-        [makeEdge('n1', 'n2')],
+        [makeEdge('n1', 'n2', { targetHandle: 'media' })],
       );
 
       await engine.execute(workflow, { onProgress });
@@ -620,15 +701,16 @@ describe('WorkflowEngine', () => {
 
   describe('execute — partial execution', () => {
     it('should only execute selected nodes', async () => {
+      const partialEngine = createTestEngine();
       const executionOrder: string[] = [];
       const trackingExecutor: NodeExecutor = vi.fn(async (node) => {
         executionOrder.push(node.id);
-        return `output-${node.id}`;
+        return buildFixtureOutput(node.type);
       });
 
-      engine.registerExecutor('imageGen', trackingExecutor);
-      engine.registerExecutor('upscale', trackingExecutor);
-      engine.registerExecutor('publish', trackingExecutor);
+      partialEngine.registerExecutor('imageGen', trackingExecutor);
+      partialEngine.registerExecutor('upscale', trackingExecutor);
+      partialEngine.registerExecutor('publish', trackingExecutor);
 
       const workflow = makeWorkflow(
         [
@@ -641,7 +723,7 @@ describe('WorkflowEngine', () => {
 
       // Only execute n2, but n1 output is needed — n1 is not cached
       // so it should fail with missing dependency
-      const result = await engine.execute(workflow, { nodeIds: ['n2'] });
+      const result = await partialEngine.execute(workflow, { nodeIds: ['n2'] });
 
       // n2 depends on n1 which has no cache — plan should be invalid
       expect(result.status).toBe('failed');
@@ -657,7 +739,7 @@ describe('WorkflowEngine', () => {
           }),
           makeNode('n2', 'upscale'),
         ],
-        [makeEdge('n1', 'n2')],
+        [makeEdge('n1', 'n2', { targetHandle: 'media' })],
         { lockedNodeIds: ['n1'] },
       );
 
@@ -681,6 +763,7 @@ describe('WorkflowEngine', () => {
 
   describe('resume', () => {
     it('should resume from a failed run', async () => {
+      const resumeEngine = createTestEngine();
       // First run: n1 succeeds, n2 fails
       const callCount = { n2: 0 };
       const executorThatFailsOnce: NodeExecutor = vi.fn(async (node) => {
@@ -690,23 +773,23 @@ describe('WorkflowEngine', () => {
             throw new Error('temporary failure');
           }
         }
-        return `output-${node.id}`;
+        return buildFixtureOutput(node.type);
       });
 
-      engine.registerExecutor('imageGen', executorThatFailsOnce);
-      engine.registerExecutor('upscale', executorThatFailsOnce);
+      resumeEngine.registerExecutor('imageGen', executorThatFailsOnce);
+      resumeEngine.registerExecutor('upscale', executorThatFailsOnce);
 
       const workflow = makeWorkflow(
         [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
-        [makeEdge('n1', 'n2')],
+        [makeEdge('n1', 'n2', { targetHandle: 'media' })],
       );
 
       // First execution — n2 fails
-      const firstRun = await engine.execute(workflow, { maxRetries: 0 });
+      const firstRun = await resumeEngine.execute(workflow, { maxRetries: 0 });
       expect(firstRun.status).toBe('failed');
 
       // Resume — n2 should succeed this time
-      const resumedRun = await engine.resume(workflow, firstRun, {
+      const resumedRun = await resumeEngine.resume(workflow, firstRun, {
         maxRetries: 0,
       });
 
@@ -728,6 +811,7 @@ describe('WorkflowEngine', () => {
 
   describe('execute — cancellation', () => {
     it('should stop dispatching and return cancelled when aborted mid-execution', async () => {
+      const cancellationEngine = createTestEngine();
       const controller = new AbortController();
       const executed: string[] = [];
       const abortingExecutor: NodeExecutor = vi.fn(async (node) => {
@@ -735,12 +819,12 @@ describe('WorkflowEngine', () => {
         if (node.id === 'n1') {
           controller.abort();
         }
-        return { result: node.id };
+        return buildFixtureOutput(node.type);
       });
 
-      engine.registerExecutor('imageGen', abortingExecutor);
-      engine.registerExecutor('upscale', abortingExecutor);
-      engine.registerExecutor('publish', abortingExecutor);
+      cancellationEngine.registerExecutor('imageGen', abortingExecutor);
+      cancellationEngine.registerExecutor('upscale', abortingExecutor);
+      cancellationEngine.registerExecutor('publish', abortingExecutor);
 
       // Sequential chain so the abort lands before n2/n3 are dispatched.
       const workflow = makeWorkflow(
@@ -752,7 +836,7 @@ describe('WorkflowEngine', () => {
         [makeEdge('n1', 'n2'), makeEdge('n2', 'n3')],
       );
 
-      const result = await engine.execute(workflow, {
+      const result = await cancellationEngine.execute(workflow, {
         abortSignal: controller.signal,
       });
 
@@ -771,7 +855,7 @@ describe('WorkflowEngine', () => {
       // n1 aborts the run the moment it runs, then succeeds immediately.
       const aborter: NodeExecutor = vi.fn(async (node) => {
         controller.abort();
-        return { result: node.id };
+        return buildFixtureOutput(node.type);
       });
       // n2 is already in flight when the abort fires; it fails during the drain.
       const failer: NodeExecutor = vi.fn(async () => {
@@ -818,11 +902,13 @@ describe('WorkflowEngine', () => {
             resolve();
           });
         });
-        return { result: 'ok' };
+        return buildFixtureOutput('imageGen');
       });
 
-      // engine from beforeEach is configured with maxConcurrency: 3.
-      engine.registerExecutor('imageGen', gatedExecutor);
+      // Fresh engine configured with maxConcurrency: 3, since imageGen is
+      // already registered on the shared beforeEach engine.
+      const concurrencyEngine = createTestEngine({ maxConcurrency: 3 });
+      concurrencyEngine.registerExecutor('imageGen', gatedExecutor);
 
       // 6 independent branches (no edges) all eligible to run at once.
       const workflow = makeWorkflow([
@@ -835,7 +921,7 @@ describe('WorkflowEngine', () => {
       ]);
 
       let done = false;
-      const runPromise = engine.execute(workflow).then((r) => {
+      const runPromise = concurrencyEngine.execute(workflow).then((r) => {
         done = true;
         return r;
       });
@@ -871,7 +957,7 @@ describe('WorkflowEngine', () => {
 
     it('should sum credits from cost config', () => {
       const engineWithCosts = new WorkflowEngine({
-        creditCosts: { generate: 10, upscale: 5 },
+        creditCosts: { imageGen: 10, upscale: 5 },
       });
 
       const result = engineWithCosts.estimateCredits([
