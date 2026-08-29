@@ -16,9 +16,41 @@ if (typeof global.document === 'undefined') {
   global.navigator = dom.window.navigator;
 }
 
+// Node 22+ ships an experimental global `localStorage`/`sessionStorage`
+// accessor that shadows jsdom's own Storage implementation, because
+// vitest-environment-jsdom aliases `window` to the Node global object rather
+// than a standalone jsdom window. Node's accessor stays inert (returns
+// `undefined`) unless the process is launched with `--localstorage-file`, so
+// reading `window.localStorage` here hands back `undefined` and every
+// storage-backed hook throws. Provide a real in-memory Storage instead.
+function createMemoryStorage(): Storage {
+  let store: Record<string, string> = {};
+  return {
+    clear: () => {
+      store = {};
+    },
+    getItem: (key: string) => (key in store ? store[key] : null),
+    key: (index: number) => Object.keys(store)[index] ?? null,
+    get length() {
+      return Object.keys(store).length;
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    setItem: (key: string, value: string) => {
+      store[key] = String(value);
+    },
+  } as unknown as Storage;
+}
+
 Object.defineProperty(globalThis, 'localStorage', {
   configurable: true,
-  value: window.localStorage,
+  value: createMemoryStorage(),
+  writable: true,
+});
+Object.defineProperty(globalThis, 'sessionStorage', {
+  configurable: true,
+  value: createMemoryStorage(),
   writable: true,
 });
 
