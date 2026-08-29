@@ -8,7 +8,6 @@ import {
   within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const storeState = {
@@ -71,17 +70,11 @@ vi.mock('@genfeedai/agent/hooks/use-microphone-input', () => ({
   }),
 }));
 
-// Personal Advanced Mode gates the composer model picker. Mutable so a single
-// test can flip it without re-mocking the module.
-const userSettings = { isAdvancedMode: true };
-
-vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
-  useOptionalUser: () => ({ currentUser: { settings: userSettings } }),
-}));
-
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
-    settings: { isVoiceControlEnabled: false },
+    organizationId: 'org-1',
+    settings: { enabledModelIds: undefined, isVoiceControlEnabled: false },
+    settingsLoading: false,
   }),
 }));
 
@@ -92,47 +85,11 @@ vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
   }),
 }));
 
-vi.mock('@ui/dropdowns/model-selector/ModelSelectorPopover', () => ({
-  default: function MockModelSelectorPopover(props: {
-    contextOptions?: readonly { label: string; value: string }[];
-    contextValue?: string;
-    models: readonly unknown[];
-    name?: string;
-    onChange: (name: string, values: string[]) => void;
-    onContextChange?: (value: string) => void;
-  }) {
-    const activeContext = props.contextOptions?.find(
-      (option) => option.value === props.contextValue,
-    );
-    return (
-      <div>
-        <button type="button">
-          {activeContext
-            ? `Generation settings: ${activeContext.label}`
-            : 'Select model'}
-        </button>
-        <span data-testid="model-catalog-size">{props.models.length}</span>
-        {props.contextOptions?.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => props.onContextChange?.(option.value)}
-          >
-            {option.label}
-          </button>
-        ))}
-        {props.models.length > 0 ? (
-          <button
-            type="button"
-            onClick={() =>
-              props.onChange(props.name ?? 'models', ['__auto_model__'])
-            }
-          >
-            Use Auto
-          </button>
-        ) : null}
-      </div>
-    );
+// The generation setup popover is `packages/ui` surface with its own
+// colocated tests; this composer-body spec only needs it to render inertly.
+vi.mock('@ui/dropdowns/generation-setup/GenerationSetupPopover', () => ({
+  default: function MockGenerationSetupPopover() {
+    return <div data-testid="generation-setup-popover" />;
   },
 }));
 
@@ -141,26 +98,14 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
     selector(storeState),
 }));
 
-import { AgentChatInput as AgentChatInputComponent } from '@genfeedai/agent/components/AgentChatInput';
+import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
 import { ConversationComposerShellProvider } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { writeConversationComposerDocument } from '@genfeedai/agent/stores/conversation-composer-draft.store';
-
-type TestAgentChatInputProps = Omit<
-  ComponentProps<typeof AgentChatInputComponent>,
-  'models'
-> & {
-  models?: ComponentProps<typeof AgentChatInputComponent>['models'];
-};
-
-function AgentChatInput({ models = [], ...props }: TestAgentChatInputProps) {
-  return <AgentChatInputComponent {...props} models={models} />;
-}
 
 describe('AgentChatInput', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
-    userSettings.isAdvancedMode = true;
     storeState.activeThreadId = null;
     storeState.draftPlanModeEnabled = false;
     storeState.composerSeed = null;
@@ -173,7 +118,7 @@ describe('AgentChatInput', () => {
       'utf8',
     );
     expect(source).toContain("useTranslations('agent.composerToolbar')");
-    expect(source).toContain("translate('generationMode')");
+    expect(source).toContain("translate('actionsAria')");
     expect(source).toContain("{translate('actions')}");
     expect(source).toContain("translate('actionsDescription')");
     expect(source).not.toContain('const COPY =');
@@ -194,104 +139,10 @@ describe('AgentChatInput', () => {
     expect(shell).not.toHaveClass('opacity-50');
   });
 
-  it('keeps generation type switching available when the model catalog is empty', async () => {
-    const onModelChange = vi.fn();
+  it('renders the generation setup chip in the leading toolbar slot', () => {
+    render(<AgentChatInput onSend={vi.fn()} />);
 
-    render(<AgentChatInput onModelChange={onModelChange} onSend={vi.fn()} />);
-
-    expect(
-      screen.getByRole('button', { name: 'Composer mode: Conversation' }),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('model-catalog-size')).toHaveTextContent('0');
-    expect(
-      screen.queryByRole('button', { name: 'Use Auto' }),
-    ).not.toBeInTheDocument();
-
-    fireEvent.pointerDown(
-      screen.getByRole('button', { name: 'Composer mode: Conversation' }),
-    );
-    fireEvent.click(await screen.findByRole('menuitem', { name: /Image/i }));
-    expect(
-      screen.getByRole('button', { name: 'Composer mode: Image' }),
-    ).toBeInTheDocument();
-    expect(onModelChange).not.toHaveBeenCalled();
-  });
-
-  it('hides the model picker entirely when Advanced Mode is off', () => {
-    userSettings.isAdvancedMode = false;
-
-    render(<AgentChatInput onModelChange={vi.fn()} onSend={vi.fn()} />);
-
-    // Minimal bar: prompt + voice + send only. The server Auto-routes the turn.
-    expect(screen.queryByTestId('model-catalog-size')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Use Auto' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /no models enabled/i }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('uses one generation settings control for mode and model selection', async () => {
-    render(
-      <AgentChatInput
-        models={[
-          {
-            id: 'image-1',
-            key: 'replicate/image-1',
-            label: 'Image One',
-          } as never,
-        ]}
-        onModelChange={vi.fn()}
-        onSend={vi.fn()}
-      />,
-    );
-
-    expect(
-      screen.getByRole('button', { name: 'Composer mode: Conversation' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /Generation mode:/i }),
-    ).not.toBeInTheDocument();
-
-    fireEvent.pointerDown(
-      screen.getByRole('button', { name: 'Composer mode: Conversation' }),
-    );
-    fireEvent.click(await screen.findByRole('menuitem', { name: /Video/i }));
-    expect(
-      screen.getByRole('button', { name: 'Composer mode: Video' }),
-    ).toBeInTheDocument();
-  });
-
-  it('returns the same composer to Conversation after a media turn is accepted', async () => {
-    const onSend = vi.fn().mockResolvedValue(true);
-    storeState.composerSeed = {
-      content: 'Create a square launch image',
-      nonce: 1,
-      threadId: null,
-    };
-
-    render(<AgentChatInput onSend={onSend} />);
-    fireEvent.pointerDown(
-      screen.getByRole('button', { name: 'Composer mode: Conversation' }),
-    );
-    fireEvent.click(await screen.findByRole('menuitem', { name: /Image/i }));
-    fireEvent.click(await screen.findByLabelText('Generate image'));
-
-    await waitFor(() => {
-      expect(onSend).toHaveBeenCalledWith(
-        'Create a square launch image',
-        undefined,
-        undefined,
-        expect.objectContaining({
-          generationMode: 'image',
-          generationSettings: { aspectRatio: '1:1', outputs: 1 },
-        }),
-      );
-      expect(
-        screen.getByRole('button', { name: 'Composer mode: Conversation' }),
-      ).toBeInTheDocument();
-    });
+    expect(screen.getByTestId('generation-setup-popover')).toBeInTheDocument();
   });
 
   it('renders the stop action within the shell footer when a run is active', () => {

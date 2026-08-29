@@ -10,10 +10,10 @@
  * `applyRecommendation` only ever writes fields the agent still owns, and a
  * pinned `presetId` freezes recomposition entirely until the caller clears it.
  *
- * Pattern-matched against packages/agent/src/stores/agent-preferred-model.store.ts
- * (scope-keyed map, standalone read/write wrappers, adopt-new-scope helper) and
- * apps/app/src/store/brand-interview-draft.store.ts (zustand `persist`, scope
- * map, `partialize`).
+ * Pattern-matched against the retired agent-preferred-model.store (scope-keyed
+ * map, standalone read/write wrappers, adopt-new-scope helper — superseded by
+ * this store) and apps/app/src/store/brand-interview-draft.store.ts (zustand
+ * `persist`, scope map, `partialize`).
  */
 import type {
   GenerationSetup,
