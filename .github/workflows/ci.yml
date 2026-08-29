@@ -254,10 +254,18 @@ jobs:
   # that hole. This job typechecks them against the same compiler options via
   # tsconfig.typecheck.specs.json and ratchets the pre-existing debt.
   #
-  # It runs unconditionally rather than through turbo's --affected. Each
-  # workspace is checked in a fresh Bun process so TypeScript can release the
-  # previous program's memory before loading the next workspace; the CLI scopes
-  # the repo-wide baseline to the requested workspace on each invocation.
+  # On change runs (PR / merge queue) the scope step below narrows the ratchet
+  # to the server workspaces the diff can actually affect, and skips the whole
+  # tail (Bun setup, package build, loop) when nothing server-related changed —
+  # the common frontend-only PR. Anything shared (packages/**, root configs,
+  # apps/server files outside a single workspace, this workflow) escalates to
+  # every workspace, as does a heavy run, the full-suite label, or a missing
+  # diff base. Heavy full-suite runs on master push always cover all
+  # workspaces, so any cross-workspace drift a scoped PR run misses lands at
+  # most one merge behind. Each workspace is still checked in a fresh Bun
+  # process so TypeScript can release the previous program's memory before
+  # loading the next workspace; the CLI scopes the repo-wide baseline to the
+  # requested workspace on each invocation.
   spec-typecheck:
     name: Spec Typecheck
     runs-on: ubuntu-latest
@@ -268,18 +276,91 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+      - name: Determine spec typecheck scope
+        id: scope
+        env:
+          RUN_HEAVY: ${{ inputs.run_heavy_tests == true || contains(github.event.pull_request.labels.*.name, 'full-suite') }}
+        run: |
+          set -euo pipefail
+          all_workspaces=()
+          for config in apps/server/*/tsconfig.typecheck.specs.json; do
+            workspace="${config#apps/server/}"
+            all_workspaces+=("${workspace%%/*}")
+          done
+
+          emit() {
+            echo "workspaces=$1" >>"${GITHUB_OUTPUT}"
+            if [ -n "$1" ]; then
+              echo "run_any=true" >>"${GITHUB_OUTPUT}"
+            else
+              echo "run_any=false" >>"${GITHUB_OUTPUT}"
+            fi
+            echo "Spec typecheck scope: ${1:-<none>} ($2)"
+          }
+
+          # Heavy tier, non-change runs (master push / release), and runs with
+          # no usable diff base always check every workspace.
+          if [ "${RUN_HEAVY}" = "true" ] || [ "${CI_IS_CHANGE_RUN}" != "true" ] || [ -z "${CI_BASE_SHA}" ]; then
+            emit "${all_workspaces[*]}" "full: heavy tier or no diff base"
+            exit 0
+          fi
+
+          if ! changed="$(git diff --name-only "${CI_BASE_SHA}...HEAD")"; then
+            emit "${all_workspaces[*]}" "full: diff base unresolvable"
+            exit 0
+          fi
+
+          declare -A affected=()
+          while IFS= read -r file; do
+            [ -n "${file}" ] || continue
+            case "${file}" in
+              apps/server/*/*)
+                workspace="${file#apps/server/}"
+                workspace="${workspace%%/*}"
+                # A changed workspace without its own ratchet config (e.g. the
+                # shared apps/server/server package) feeds every program.
+                if [ -f "apps/server/${workspace}/tsconfig.typecheck.specs.json" ]; then
+                  affected["${workspace}"]=1
+                else
+                  emit "${all_workspaces[*]}" "full: shared server surface ${file}"
+                  exit 0
+                fi
+                ;;
+              apps/*)
+                # Frontend/desktop apps never feed server spec programs.
+                ;;
+              *)
+                # packages/**, root tsconfigs, scripts, lockfile, workflows —
+                # anything outside apps/ can reshape every program: escalate.
+                emit "${all_workspaces[*]}" "full: shared surface ${file}"
+                exit 0
+                ;;
+            esac
+          done <<<"${changed}"
+
+          scoped=()
+          for workspace in "${all_workspaces[@]}"; do
+            if [ -n "${affected[${workspace}]:-}" ]; then
+              scoped+=("${workspace}")
+            fi
+          done
+          emit "${scoped[*]-}" "affected only"
       - name: Setup Bun environment
+        if: steps.scope.outputs.run_any == 'true'
         uses: ./.github/actions/setup-bun-env
         with:
           bun-version: '1.3.14'
       - name: Spec Typecheck Guard Tests
+        if: steps.scope.outputs.run_any == 'true'
         run: bunx vitest run --config scripts/architecture/vitest.config.ts check-spec-typecheck.test.ts
       # The typecheck base config resolves @genfeedai/enums and
       # @genfeedai/constants to their dist output, so the package graph has to
       # exist before any program is created.
       - name: Build packages
+        if: steps.scope.outputs.run_any == 'true'
         run: bunx turbo run build --filter='./packages/*' --concurrency=1
       - name: Spec Typecheck Ratchet
+        if: steps.scope.outputs.run_any == 'true'
         # Keep each TypeScript program in its own process. A single repo-wide
         # process retained enough compiler state to hit the runner shutdown
         # window without emitting a diagnostic.
@@ -290,14 +371,14 @@ jobs:
         # and `mcp` held 2 more that only a local regeneration surfaced. One
         # baseline fix would otherwise cost a CI round-trip per workspace.
         # Failures are collected and their diagnostics replayed together below.
+        env:
+          SCOPED_WORKSPACES: ${{ steps.scope.outputs.workspaces }}
         run: |
           set -euo pipefail
           log_dir="$(mktemp -d)"
           failed=()
           checked=0
-          for config in apps/server/*/tsconfig.typecheck.specs.json; do
-            workspace="${config#apps/server/}"
-            workspace="${workspace%%/*}"
+          for workspace in ${SCOPED_WORKSPACES}; do
             checked=$((checked + 1))
             echo "::group::Spec typecheck: ${workspace}"
             # `if !` keeps `set -e` from aborting the loop on a failing
