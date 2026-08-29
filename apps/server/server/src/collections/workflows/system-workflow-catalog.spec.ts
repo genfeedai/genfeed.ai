@@ -6,21 +6,19 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('system workflow catalog', () => {
-  it('lists installable product templates and non-installable system actions', () => {
+  it('publishes only installable product templates', () => {
+    // The action-graph hard cut removed the `system-action` catalog family:
+    // product system actions are action nodes created on demand, never
+    // catalog rows. Every published entry is therefore user-installable.
     const catalog = listSystemWorkflowCatalog();
     const installable = listInstallableSystemWorkflowCatalog();
 
-    expect(catalog.length).toBeGreaterThan(installable.length);
+    expect(catalog.length).toBeGreaterThan(0);
+    expect(installable.length).toBe(catalog.length);
     expect(
       catalog.some((entry) => entry.canonicalId === 'daily-trends-digest'),
     ).toBe(true);
-    expect(
-      installable.some((entry) => entry.canonicalId === 'daily-trends-digest'),
-    ).toBe(true);
     expect(catalog.some((entry) => entry.family === 'system-action')).toBe(
-      true,
-    );
-    expect(installable.some((entry) => entry.family === 'system-action')).toBe(
       false,
     );
   });

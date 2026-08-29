@@ -1,10 +1,10 @@
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { WorkflowEntity } from '@server/collections/workflows/entities/workflow.entity';
-import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import { buildSystemWorkflowMetadata } from '@server/collections/workflows/system-workflow.contract';
+import { SYSTEM_WORKFLOW_CATALOG } from '@server/collections/workflows/workflows.tokens';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const emptyModuleRef = { get: vi.fn(() => undefined) };
@@ -100,7 +100,7 @@ describe('WorkflowsService template creation', () => {
     expect(createInput.organization).toBeUndefined();
     expect(createInput.user).toBeUndefined();
     expect(createInput.nodes?.map((node) => node.type)).toEqual(
-      expect.arrayContaining(['llm', 'reviewGate', 'workflow-output']),
+      expect.arrayContaining(['workflowInput', 'genfeedAction', 'reviewGate']),
     );
   });
 
@@ -313,7 +313,7 @@ describe('WorkflowsService executeWorkflow ModuleRef', () => {
     });
     const moduleRef = {
       get: vi.fn((token: unknown) => {
-        if (token === SystemWorkflowCatalogService) {
+        if (token === SYSTEM_WORKFLOW_CATALOG) {
           return { install };
         }
         return undefined;

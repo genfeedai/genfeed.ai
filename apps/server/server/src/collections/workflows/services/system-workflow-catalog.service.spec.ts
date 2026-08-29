@@ -1,15 +1,43 @@
-import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+/**
+ * The shipped catalog no longer publishes non-installable system-action
+ * entries — the action-graph hard cut removed that family. The service guard
+ * is still a live contract for MCP and agent install callers, so it is proved
+ * against a synthetic non-installable entry rather than a real canonical id.
+ */
+const NON_INSTALLABLE_CANONICAL_ID = 'test-only-non-installable';
+
+vi.mock(
+  '@server/collections/workflows/system-workflow-catalog',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@server/collections/workflows/system-workflow-catalog')
+      >();
+
+    return {
+      ...actual,
+      getSystemWorkflowCatalogEntry: (canonicalId: string) =>
+        canonicalId === NON_INSTALLABLE_CANONICAL_ID
+          ? {
+              ...actual.listSystemWorkflowCatalog()[0],
+              canonicalId: NON_INSTALLABLE_CANONICAL_ID,
+              installable: false,
+            }
+          : actual.getSystemWorkflowCatalogEntry(canonicalId),
+    };
+  },
+);
 
 describe('SystemWorkflowCatalogService', () => {
   const workflow = {
-    create: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
   };
   const prisma = {
-    $transaction: vi.fn(),
     workflow,
   };
   const logger: Partial<LoggerService> = {
@@ -17,6 +45,10 @@ describe('SystemWorkflowCatalogService', () => {
     error: vi.fn(),
     log: vi.fn(),
     warn: vi.fn(),
+  };
+  const workflowsService = {
+    create: vi.fn(),
+    findOne: vi.fn(),
   };
   const workflowExecutionQueueService = {
     syncWorkflowScheduler: vi.fn(),
@@ -29,6 +61,7 @@ describe('SystemWorkflowCatalogService', () => {
     service = new SystemWorkflowCatalogService(
       prisma as never,
       logger as LoggerService,
+      workflowsService as never,
       workflowExecutionQueueService as never,
     );
   });
@@ -70,6 +103,7 @@ describe('SystemWorkflowCatalogService', () => {
       status: 'active',
       timezone: 'UTC',
     });
+    workflowsService.findOne.mockResolvedValueOnce({ id: 'existing-wf' });
 
     const result = await service.install({
       canonicalId: 'daily-trends-digest',
@@ -78,7 +112,7 @@ describe('SystemWorkflowCatalogService', () => {
     });
 
     expect(result).toMatchObject({ id: 'existing-wf' });
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(workflowsService.create).not.toHaveBeenCalled();
     // Idempotent retries must re-sync so a prior post-commit scheduler failure
     // can recover without creating a duplicate install (#2259).
     expect(
@@ -120,25 +154,15 @@ describe('SystemWorkflowCatalogService', () => {
     // findExistingInstall uses scopedWhere → isDeleted: false, so a deleted
     // prior install is invisible and install proceeds to create.
     workflow.findFirst.mockResolvedValueOnce(null);
-    prisma.$transaction.mockImplementation(
-      async (callback: (tx: unknown) => Promise<unknown>) => {
-        const tx = {
-          workflow: {
-            create: vi.fn().mockResolvedValue({
-              id: 'reactivated-wf',
-              isDeleted: false,
-              isScheduleEnabled: true,
-              metadata: { sourceTemplateId: 'daily-trends-digest' },
-              schedule: '0 7 * * *',
-              status: 'active',
-              timezone: 'UTC',
-            }),
-            findFirst: vi.fn().mockResolvedValue(null),
-          },
-        };
-        return callback(tx);
-      },
-    );
+    workflowsService.create.mockResolvedValueOnce({
+      id: 'reactivated-wf',
+      isDeleted: false,
+      isScheduleEnabled: true,
+      metadata: { sourceTemplateId: 'daily-trends-digest' },
+      schedule: '0 7 * * *',
+      status: 'active',
+      timezone: 'UTC',
+    });
 
     const result = await service.install({
       canonicalId: 'daily-trends-digest',
@@ -159,25 +183,15 @@ describe('SystemWorkflowCatalogService', () => {
 
   it('installs an editable tenant workflow from the catalog', async () => {
     workflow.findFirst.mockResolvedValueOnce(null);
-    prisma.$transaction.mockImplementation(
-      async (callback: (tx: unknown) => Promise<unknown>) => {
-        const tx = {
-          workflow: {
-            create: vi.fn().mockResolvedValue({
-              id: 'new-wf',
-              isDeleted: false,
-              isScheduleEnabled: true,
-              metadata: { sourceTemplateId: 'daily-trends-digest' },
-              schedule: '0 7 * * *',
-              status: 'active',
-              timezone: 'UTC',
-            }),
-            findFirst: vi.fn().mockResolvedValue(null),
-          },
-        };
-        return callback(tx);
-      },
-    );
+    workflowsService.create.mockResolvedValueOnce({
+      id: 'new-wf',
+      isDeleted: false,
+      isScheduleEnabled: true,
+      metadata: { sourceTemplateId: 'daily-trends-digest' },
+      schedule: '0 7 * * *',
+      status: 'active',
+      timezone: 'UTC',
+    });
 
     const result = await service.install({
       brandId: 'brand-1',
@@ -187,6 +201,12 @@ describe('SystemWorkflowCatalogService', () => {
     });
 
     expect(result).toMatchObject({ id: 'new-wf' });
+    expect(workflowsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+      }),
+    );
     expect(
       workflowExecutionQueueService.syncWorkflowScheduler,
     ).toHaveBeenCalledWith(
@@ -200,25 +220,15 @@ describe('SystemWorkflowCatalogService', () => {
 
   it('returns the installed workflow when scheduler sync throws after commit', async () => {
     workflow.findFirst.mockResolvedValueOnce(null);
-    prisma.$transaction.mockImplementation(
-      async (callback: (tx: unknown) => Promise<unknown>) => {
-        const tx = {
-          workflow: {
-            create: vi.fn().mockResolvedValue({
-              id: 'new-wf',
-              isDeleted: false,
-              isScheduleEnabled: true,
-              metadata: { sourceTemplateId: 'daily-trends-digest' },
-              schedule: '0 7 * * *',
-              status: 'active',
-              timezone: 'UTC',
-            }),
-            findFirst: vi.fn().mockResolvedValue(null),
-          },
-        };
-        return callback(tx);
-      },
-    );
+    workflowsService.create.mockResolvedValueOnce({
+      id: 'new-wf',
+      isDeleted: false,
+      isScheduleEnabled: true,
+      metadata: { sourceTemplateId: 'daily-trends-digest' },
+      schedule: '0 7 * * *',
+      status: 'active',
+      timezone: 'UTC',
+    });
     workflowExecutionQueueService.syncWorkflowScheduler.mockRejectedValueOnce(
       new Error('queue unavailable'),
     );
@@ -233,16 +243,17 @@ describe('SystemWorkflowCatalogService', () => {
     expect(logger.error).toHaveBeenCalled();
   });
 
-  it('rejects install of non-installable system action catalog entries', async () => {
+  it('rejects install of non-installable catalog entries', async () => {
     await expect(
       service.install({
-        canonicalId: 'scheduled-post-publishing',
+        canonicalId: NON_INSTALLABLE_CANONICAL_ID,
         organizationId: 'org-1',
         userId: 'user-1',
       }),
     ).rejects.toThrow(/not user-installable/i);
 
     expect(workflow.findFirst).not.toHaveBeenCalled();
+    expect(workflowsService.create).not.toHaveBeenCalled();
   });
 
   it('rejects unknown catalog ids', async () => {
