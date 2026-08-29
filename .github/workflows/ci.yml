@@ -98,6 +98,10 @@ jobs:
     timeout-minutes: 5
     outputs:
       is-trusted: ${{ steps.non_pr.outputs.trusted || steps.check.outputs.trusted }}
+      # Single source of truth for "run the full heavy matrix on this run".
+      # Every heavy gate below reads this instead of re-deriving the escalation
+      # signals, so the tier can never disagree between jobs.
+      heavy-tier: ${{ steps.tier.outputs.heavy }}
     steps:
       - name: Allow non-PR events
         id: non_pr
@@ -123,6 +127,11 @@ jobs:
             const isTrusted = isSameRepository || trustedRoles.includes(association);
             const hasLabel = pr.labels.some(l => l.name === 'run-ci');
 
+            // Trust decides *whether* CI runs; this decides *how much* of it.
+            // An external contributor stays external even once a maintainer
+            // adds `run-ci`: the label buys them a run, not the light tier.
+            core.setOutput('external', isTrusted ? 'false' : 'true');
+
             if (isTrusted) {
               const trustReason = isSameRepository
                 ? 'same-repo PR'
@@ -139,6 +148,43 @@ jobs:
                 'A maintainer must review the code and add the label.'
               );
             }
+
+      # Trust-tiered heavy matrix (open-source PR policy).
+      #
+      # Maintainer and same-repo PRs run the affected tier: the planner picks
+      # the shards the diff can actually break, and full-suite.yml runs the
+      # complete matrix on the master push a few minutes later, so a maintainer
+      # mistake is caught at most one merge behind.
+      #
+      # A fork PR from an external contributor gets no such safety net — nobody
+      # is watching the post-merge signal on their behalf, and the affected-tier
+      # planner trusts the diff to describe its own blast radius. Those PRs run
+      # the full heavy matrix on the PR itself.
+      #
+      # `run_heavy_tests` (full-suite / release path) and the `full-suite` label
+      # keep working as before, for anyone.
+      - name: Resolve heavy test tier
+        id: tier
+        env:
+          EXTERNAL_CONTRIBUTOR: ${{ steps.check.outputs.external }}
+          FULL_SUITE_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'full-suite') }}
+          RUN_HEAVY_INPUT: ${{ inputs.run_heavy_tests }}
+        run: |
+          set -euo pipefail
+          heavy=false
+          reason='affected tier'
+          if [ "${RUN_HEAVY_INPUT}" = "true" ]; then
+            heavy=true
+            reason='run_heavy_tests input'
+          elif [ "${FULL_SUITE_LABEL}" = "true" ]; then
+            heavy=true
+            reason='full-suite label'
+          elif [ "${EXTERNAL_CONTRIBUTOR}" = "true" ]; then
+            heavy=true
+            reason='external contributor PR'
+          fi
+          echo "heavy=${heavy}" >>"${GITHUB_OUTPUT}"
+          echo "Heavy test tier: ${heavy} (${reason})"
 
   gitleaks:
     name: Gitleaks
@@ -279,7 +325,7 @@ jobs:
       - name: Determine spec typecheck scope
         id: scope
         env:
-          RUN_HEAVY: ${{ inputs.run_heavy_tests == true || contains(github.event.pull_request.labels.*.name, 'full-suite') }}
+          RUN_HEAVY: ${{ needs.trust.outputs.heavy-tier == 'true' }}
         run: |
           set -euo pipefail
           all_workspaces=()
@@ -442,9 +488,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Setup Bun environment
-        if: >-
-          inputs.run_heavy_tests != true
-          && !contains(github.event.pull_request.labels.*.name, 'full-suite')
+        if: needs.trust.outputs.heavy-tier != 'true'
         uses: ./.github/actions/setup-bun-env
         with:
           bun-version: '1.3.14'
@@ -452,12 +496,13 @@ jobs:
         id: plan
         # Merge-queue runs stay on the affected tier against the queue base
         # (current master) — the documented queue design in full-suite.yml.
-        # The heavy matrix escalates only via `run_heavy_tests` (full-suite /
-        # release path) or the explicit `full-suite` PR label; master pushes
-        # get the complete heavy pass from full-suite.yml immediately after
-        # the queue merges, so re-running it per queue entry only serialized
-        # the queue (~20 min/entry) without adding coverage.
-        run: node scripts/ci/pr-test-plan.mjs --event "${{ github.event_name }}" --base "$CI_BASE_SHA" --run-heavy "${{ inputs.run_heavy_tests || contains(github.event.pull_request.labels.*.name, 'full-suite') }}"
+        # The heavy matrix escalates only via the Trust Check's `heavy-tier`
+        # verdict (`run_heavy_tests` on the full-suite / release path, the
+        # explicit `full-suite` PR label, or an external-contributor PR);
+        # master pushes get the complete heavy pass from full-suite.yml
+        # immediately after the queue merges, so re-running it per queue entry
+        # only serialized the queue (~20 min/entry) without adding coverage.
+        run: node scripts/ci/pr-test-plan.mjs --event "${{ github.event_name }}" --base "$CI_BASE_SHA" --run-heavy "${{ needs.trust.outputs.heavy-tier }}"
       - name: Upload pull-request test plan
         if: github.event_name == 'pull_request' && steps.plan.outcome == 'success'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -489,7 +534,7 @@ jobs:
     needs: [trust, test-scope]
     if: >-
       needs.trust.outputs.is-trusted == 'true'
-      && (inputs.run_heavy_tests
+      && (needs.trust.outputs.heavy-tier == 'true'
         || needs.test-scope.outputs.packages == 'true')
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -520,7 +565,7 @@ jobs:
     needs: [trust, test-scope]
     if: >-
       needs.trust.outputs.is-trusted == 'true'
-      && (inputs.run_heavy_tests
+      && (needs.trust.outputs.heavy-tier == 'true'
         || needs.test-scope.outputs.server_services == 'true')
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -551,7 +596,7 @@ jobs:
     needs: [trust, test-scope]
     if: >-
       needs.trust.outputs.is-trusted == 'true'
-      && (inputs.run_heavy_tests
+      && (needs.trust.outputs.heavy-tier == 'true'
         || needs.test-scope.outputs.web_desktop_mobile == 'true')
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -594,7 +639,7 @@ jobs:
     if: >-
       vars.ENABLE_EXTENSION_CI == 'true'
       && needs.trust.outputs.is-trusted == 'true'
-      && (inputs.run_heavy_tests
+      && (needs.trust.outputs.heavy-tier == 'true'
         || needs.test-scope.outputs.extensions == 'true')
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

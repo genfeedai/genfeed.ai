@@ -543,13 +543,56 @@ test('ordinary labels do not restart CI and full-suite has an isolated dispatche
   assert.doesNotMatch(ci, /\b(?:labeled|unlabeled)\b/);
   assert.match(
     ci,
-    /--run-heavy "\$\{\{ inputs\.run_heavy_tests \|\| github\.event_name == 'merge_group' \|\| contains\(github\.event\.pull_request\.labels\.\*\.name, 'full-suite'\) \}\}"/,
+    /--run-heavy "\$\{\{ needs\.trust\.outputs\.heavy-tier \}\}"/,
   );
 
   assert.match(dispatcher, /^ {4}types: \[labeled\]$/m);
   assert.match(dispatcher, /if: github\.event\.label\.name == 'full-suite'/);
   assert.match(dispatcher, /uses: \.\/\.github\/workflows\/ci\.yml/);
   assert.match(dispatcher, /^ {6}run_heavy_tests: true$/m);
+});
+
+test('external contributor pull requests run the heavy tier maintainers skip', () => {
+  const ci = readWorkflow('ci.yml');
+  const trust = jobBlock(ci, 'trust', 'ci.yml');
+
+  assert.match(
+    trust,
+    /^ {6}heavy-tier: \$\{\{ steps\.tier\.outputs\.heavy \}\}$/m,
+  );
+  assert.match(
+    trust,
+    /core\.setOutput\('external', isTrusted \? 'false' : 'true'\)/,
+  );
+
+  for (const signal of [
+    /RUN_HEAVY_INPUT: \$\{\{ inputs\.run_heavy_tests \}\}/,
+    /FULL_SUITE_LABEL: \$\{\{ contains\(github\.event\.pull_request\.labels\.\*\.name, 'full-suite'\) \}\}/,
+    /EXTERNAL_CONTRIBUTOR: \$\{\{ steps\.check\.outputs\.external \}\}/,
+  ]) {
+    assert.match(
+      trust,
+      signal,
+      'every heavy-tier escalation signal must reach the tier step',
+    );
+  }
+
+  // The tier is resolved once, in Trust Check. A heavy gate that re-derives it
+  // from `inputs.run_heavy_tests` would silently keep external contributors on
+  // the affected tier.
+  assert.doesNotMatch(
+    ci.slice(ci.indexOf('  gitleaks:')),
+    /inputs\.run_heavy_tests(?![^\n]*description)/,
+  );
+
+  const heavyGates = ci.match(
+    /^ {6}&& \(needs\.trust\.outputs\.heavy-tier == 'true'$/gm,
+  );
+  assert.equal(
+    heavyGates?.length,
+    4,
+    'the packages, server-services, web/desktop/mobile, and extension jobs gate on the resolved tier',
+  );
 });
 
 test('reusable full-suite callers preserve planner applicability at the tests gate', () => {
