@@ -31,7 +31,9 @@ describe('AgentContent', () => {
   it('positions the page as the three agent surfaces, not the hire-a-team feature', () => {
     render(<AgentContent />);
 
-    expect(screen.getByText('Genfeed Agent')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Genfeed Agent' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Genfeed CLI')).toBeInTheDocument();
     expect(screen.getByText('MCP server')).toBeInTheDocument();
     expect(screen.getByText('Agent skills')).toBeInTheDocument();

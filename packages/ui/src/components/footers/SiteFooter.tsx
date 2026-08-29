@@ -229,6 +229,13 @@ export default function SiteFooter({
             >
               Privacy
             </Link>
+
+            <Link
+              href="/sitemap"
+              className="transition-colors hover:text-foreground"
+            >
+              Sitemap
+            </Link>
           </div>
         </div>
       </div>

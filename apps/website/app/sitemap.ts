@@ -259,6 +259,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
       url: 'https://genfeed.ai/vs',
     },
+    // The HTML directory behind the footer's bottom bar: it links every hub so
+    // no indexable page depends on the (deliberately short) footer nav.
+    {
+      changeFrequency: 'monthly',
+      lastModified: new Date(),
+      priority: 0.4,
+      url: 'https://genfeed.ai/sitemap',
+    },
     {
       changeFrequency: 'yearly',
       lastModified: new Date(),

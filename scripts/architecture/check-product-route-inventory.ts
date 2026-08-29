@@ -179,6 +179,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/retainer',
     '/self-hosted',
     '/services',
+    '/sitemap',
     '/skills',
     '/studio',
     '/tools',
