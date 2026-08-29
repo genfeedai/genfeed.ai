@@ -13,7 +13,7 @@ import { VoicesOperationsController } from '@api/collections/voices/controllers/
 import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';
 import { VoiceLibraryService } from '@api/collections/voices/services/voice-library.service';
 import { VotesModule } from '@api/collections/votes/votes.module';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { QueuesModule } from '@api/queues/core/queues.module';
@@ -52,7 +52,7 @@ import { VoicesService } from '@server/collections/voices/services/voices.servic
     NotificationsPublisherModule,
     QueuesModule,
     VotesModule,
-    WorkflowsModule,
+    WorkflowsCoreModule,
   ],
   providers: [
     ExternalVoiceCatalogService,

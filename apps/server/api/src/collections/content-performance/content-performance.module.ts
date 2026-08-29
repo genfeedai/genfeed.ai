@@ -6,7 +6,7 @@ import { PerformanceSummaryController } from '@api/collections/content-performan
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { UsersModule } from '@api/collections/users/users.module';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
@@ -56,7 +56,7 @@ import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
     OrganizationsCoreModule,
     UsersModule,
     CacheModule,
-    WorkflowsModule,
+    WorkflowsCoreModule,
   ],
   providers: [
     AttributionService,

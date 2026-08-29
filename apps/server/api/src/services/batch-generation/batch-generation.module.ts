@@ -5,7 +5,7 @@ import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness
 import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { BatchGenerationController } from '@api/services/batch-generation/batch-generation.controller';
 import { ContentHarnessModule } from '@api/services/harness/harness.module';
@@ -49,7 +49,7 @@ import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
     PostLifecycleModule,
     PostsCoreModule,
     PublishApprovalsModule,
-    WorkflowsModule,
+    WorkflowsCoreModule,
   ],
   providers: [
     AgentArtifactReferenceService,

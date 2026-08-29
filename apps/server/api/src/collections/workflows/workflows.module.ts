@@ -54,13 +54,10 @@ import { PaidCreativeResearchModule } from '@api/services/paid-creative-research
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { SharedModule } from '@api/shared/shared.module';
-import {
-  HEYGEN_POLL_QUEUE,
-  WORKFLOW_EXECUTION_QUEUE,
-} from '@genfeedai/queue-contracts';
+import { HEYGEN_POLL_QUEUE } from '@genfeedai/queue-contracts';
 import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { AdAutomationWorkflowService } from '@server/collections/workflows/services/ad-automation-workflow.service';
 import { InstagramSocialAdapter } from '@server/collections/workflows/services/adapters/instagram-social.adapter';
 import { SocialAdapterFactory } from '@server/collections/workflows/services/adapters/social-adapter.factory';
@@ -168,8 +165,8 @@ import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-q
     LlmDispatcherModule,
     PostsModule,
     ReplyBotConfigsModule,
-    forwardRef(() => ReplyBotModule),
-    forwardRef(() => SocialInboxModule),
+    ReplyBotModule,
+    SocialInboxModule,
     SourcePostsModule,
     SharedModule,
     TrendsModule,
@@ -183,15 +180,6 @@ import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-q
     WorkflowExecutionsModule,
     PaidCreativeResearchModule,
 
-    BullModule.registerQueue({
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: { delay: 5000, type: 'exponential' },
-        removeOnComplete: 200,
-        removeOnFail: 100,
-      },
-      name: WORKFLOW_EXECUTION_QUEUE,
-    }),
     BullModule.registerQueue({ name: HEYGEN_POLL_QUEUE }),
   ],
   providers: [
@@ -204,7 +192,6 @@ import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-q
     WorkflowEngineAdapterService,
     WorkflowExecutionAuthorizationService,
     WorkflowExecutorService,
-    WorkflowExecutionQueueService,
     HeygenPollQueueService,
     WorkflowArtifactLifecycleService,
     WorkflowNodeClaimService,
@@ -224,7 +211,6 @@ import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-q
       provide: SYSTEM_WORKFLOW_CATALOG,
       useExisting: SystemWorkflowCatalogService,
     },
-    SystemWorkflowRunnerService,
     {
       provide: SYSTEM_WORKFLOW_RUNNER,
       useExisting: SystemWorkflowRunnerService,

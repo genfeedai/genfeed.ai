@@ -8,9 +8,9 @@
 import { CampaignTargetsModule } from '@api/collections/campaign-targets/campaign-targets.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { OutreachCampaignsCoreModule } from '@api/collections/outreach-campaigns/outreach-campaigns-core.module';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { CampaignDiscoveryService } from '@server/services/campaign/campaign-discovery.service';
 import { CampaignExecutorService } from '@server/services/campaign/campaign-executor.service';
 import { DmCampaignExecutorService } from '@server/services/campaign/dm-campaign-executor.service';
@@ -26,7 +26,7 @@ import { DmCampaignExecutorService } from '@server/services/campaign/dm-campaign
     OutreachCampaignsCoreModule,
     CredentialsCoreModule,
     ReplyBotModule,
-    forwardRef(() => WorkflowsModule),
+    WorkflowsCoreModule,
   ],
   providers: [
     CampaignDiscoveryService,

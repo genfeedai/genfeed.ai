@@ -20,7 +20,7 @@ import { MonitoredAccountsModule } from '@api/collections/monitored-accounts/mon
 import { ProcessedTweetsModule } from '@api/collections/processed-tweets/processed-tweets.module';
 import { ReplyBotConfigsCoreModule } from '@api/collections/reply-bot-configs/reply-bot-configs-core.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
@@ -28,7 +28,7 @@ import { TwitterModule } from '@api/services/integrations/twitter/twitter.module
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { AuthorReplyLoopService } from '@server/services/reply-bot/author-reply-loop.service';
 import { BotActionExecutorService } from '@server/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@server/services/reply-bot/rate-limit.service';
@@ -85,7 +85,7 @@ import { XActivityWebhookService } from '@server/services/reply-bot/x-activity-w
 
     // Instagram for comment replies and DMs
     InstagramModule,
-    forwardRef(() => WorkflowsModule),
+    WorkflowsCoreModule,
   ],
   providers: [
     AuthorReplyLoopService,

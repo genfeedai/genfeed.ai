@@ -3,7 +3,7 @@
  * Brand knowledge storage and semantic retrieval for direct context injection.
  */
 import { ContextsController } from '@api/collections/contexts/controllers/contexts.controller';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { RouterModule } from '@api/services/router/router.module';
@@ -27,7 +27,7 @@ import { KnowledgeSourceIngestWorkflowService } from '@server/collections/contex
     ConfigModule,
     ReplicateModule,
     RouterModule,
-    WorkflowsModule,
+    WorkflowsCoreModule,
   ],
   providers: [
     ContextsService,
