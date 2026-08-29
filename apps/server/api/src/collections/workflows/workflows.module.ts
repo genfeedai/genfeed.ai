@@ -8,6 +8,7 @@ import { AdOptimizationAuditLogsModule } from '@api/collections/ad-optimization-
 import { AdOptimizationConfigsModule } from '@api/collections/ad-optimization-configs/ad-optimization-configs.module';
 import { AdOptimizationRecommendationsModule } from '@api/collections/ad-optimization-recommendations/ad-optimization-recommendations.module';
 import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
+import { AgentGoalsModule } from '@api/collections/agent-goals/agent-goals.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
@@ -18,6 +19,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
+import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OutreachCampaignsCoreModule } from '@api/collections/outreach-campaigns/outreach-campaigns-core.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
@@ -36,6 +38,7 @@ import { WorkflowMarketplaceController } from '@api/collections/workflows/contro
 import { WorkflowWebhookManagementController } from '@api/collections/workflows/controllers/workflow-webhook-management.controller';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
+import { ContentEngineModule } from '@api/services/content-engine/content-engine.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
@@ -63,7 +66,9 @@ import { InstagramSocialAdapter } from '@server/collections/workflows/services/a
 import { SocialAdapterFactory } from '@server/collections/workflows/services/adapters/social-adapter.factory';
 import { TwitterSocialAdapter } from '@server/collections/workflows/services/adapters/twitter-social.adapter';
 import { YoutubeSocialAdapter } from '@server/collections/workflows/services/adapters/youtube-social.adapter';
+import { AgentAutopilotWorkflowService } from '@server/collections/workflows/services/agent-autopilot-workflow.service';
 import { BatchWorkflowExecutionService } from '@server/collections/workflows/services/batch-workflow-execution.service';
+import { ContentProductionWorkflowService } from '@server/collections/workflows/services/content-production-workflow.service';
 import { LivestreamBotWorkflowService } from '@server/collections/workflows/services/livestream-bot-workflow.service';
 import { OutreachCampaignDispatchWorkflowService } from '@server/collections/workflows/services/outreach-campaign-dispatch-workflow.service';
 import { PaidCreativeResearchWorkflowService } from '@server/collections/workflows/services/paid-creative-research-workflow.service';
@@ -71,6 +76,7 @@ import { ReplyPollingWorkflowService } from '@server/collections/workflows/servi
 import { ReviewGateNotificationService } from '@server/collections/workflows/services/review-gate-notification.service';
 import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
 import { SystemWorkflowDefinitionRegistrarService } from '@server/collections/workflows/services/system-workflow-definition-registrar.service';
+import { TrendNotificationWorkflowService } from '@server/collections/workflows/services/trend-notification-workflow.service';
 import { VideoQaContinuityResolverService } from '@server/collections/workflows/services/video-qa-continuity-resolver.service';
 import { WorkflowArtifactLifecycleService } from '@server/collections/workflows/services/workflow-artifact-lifecycle.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
@@ -139,9 +145,11 @@ import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-q
     AdOptimizationConfigsModule,
     AdOptimizationRecommendationsModule,
     AdPerformanceModule,
+    AgentGoalsModule,
     AgentThreadsModule,
     BrandsCoreModule,
     CaptionsModule,
+    ContentEngineModule,
     ContentPerformanceModule,
     CredentialsCoreModule,
     CreditsModule,
@@ -160,6 +168,7 @@ import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-q
     NotificationsModule,
     NotificationsPublisherModule,
     OpenRouterModule,
+    OrganizationSettingsModule,
     OutreachCampaignsCoreModule,
     LlmDispatcherModule,
     PostsModule,
@@ -200,6 +209,12 @@ import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-q
     WorkflowGenerationService,
     YoutubeLongFormWorkflowService,
     ReplyPollingWorkflowService,
+    // SystemWorkflowDefinitionRegistrarService registers the automation graphs in
+    // this process, and the runner refuses to boot with a graph whose executors
+    // are unregistered — so the services backing those actions belong here.
+    AgentAutopilotWorkflowService,
+    ContentProductionWorkflowService,
+    TrendNotificationWorkflowService,
     LivestreamBotWorkflowService,
     OutreachCampaignDispatchWorkflowService,
     ReviewGateNotificationService,

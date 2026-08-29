@@ -128,6 +128,15 @@ export class AuthorReplyLoopService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
+    // The inbound ingestion graph runs `author-reply.send-reply` as a child, and
+    // the runner's boot guard requires every child graph to be registered — so
+    // both author-reply definitions register here rather than at call time.
+    this.systemWorkflowRunner.registerWorkflow(
+      buildAuthorReplyDraftWorkflowDefinition(),
+    );
+    this.systemWorkflowRunner.registerWorkflow(
+      buildAuthorReplySendWorkflowDefinition(),
+    );
     this.systemWorkflowRunner.registerAction(
       AUTHOR_REPLY_ACTION_IDS.RESOLVE_INTENT,
       (request) => this.resolveIntentAction(request),

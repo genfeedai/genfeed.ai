@@ -1,5 +1,48 @@
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
 
+// Hoisted so both `anyOf` branches close over the identical property set: the
+// engine compiles action contracts in strict mode, where every object branch
+// must define the properties it requires and set `additionalProperties`.
+const SUGGEST_NEXT_STEP_PROPERTIES = {
+  description: {
+    description: 'One-line explanation of what this step does.',
+    type: 'string',
+  },
+  destination: {
+    description:
+      'Page that owns this step. Omit when the step is only actionable inside the conversation.',
+    enum: [
+      'agent',
+      'analytics',
+      'billing',
+      'brand_settings',
+      'calendar',
+      'connect_accounts',
+      'credits',
+      'library',
+      'members',
+      'models',
+      'posts',
+      'provider_keys',
+      'publishing_settings',
+      'review_queue',
+      'settings',
+      'studio',
+      'workflows',
+    ],
+    type: 'string',
+  },
+  prompt: {
+    description:
+      'Message to send back into this conversation when the user chooses to do it here. Omit when the step can only be completed on its page.',
+    type: 'string',
+  },
+  title: {
+    description: 'Short label for the step, e.g. "Brand setup".',
+    type: 'string',
+  },
+} as const;
+
 export const AGENT_UI_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
@@ -29,6 +72,10 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
                 type: 'string',
               },
               columns: {
+                anyOf: [
+                  { items: { type: 'object' }, type: 'array' },
+                  { type: 'number' },
+                ],
                 description:
                   'Table columns: [{ key, label, sortable?, align? }] or number of columns for kpi_grid/image_grid',
               },
@@ -89,6 +136,7 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
                 type: 'string',
               },
               value: {
+                anyOf: [{ type: 'string' }, { type: 'number' }],
                 description: 'Display value for metric_card (string or number)',
               },
               width: {
@@ -369,46 +417,23 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
           description:
             'The offered choices, in the order they should be presented. Every step must carry a destination and/or a prompt — a title alone is not actionable and fails the whole call.',
           items: {
-            anyOf: [{ required: ['destination'] }, { required: ['prompt'] }],
-            properties: {
-              description: {
-                description: 'One-line explanation of what this step does.',
-                type: 'string',
+            additionalProperties: false,
+            // A title alone is not actionable, so a step must carry at least
+            // one of the two ways to act on it. Ajv's strictRequired needs each
+            // branch to declare the property it requires, hence the repeat.
+            anyOf: [
+              {
+                additionalProperties: false,
+                properties: SUGGEST_NEXT_STEP_PROPERTIES,
+                required: ['destination'],
               },
-              destination: {
-                description:
-                  'Page that owns this step. Omit when the step is only actionable inside the conversation.',
-                enum: [
-                  'agent',
-                  'analytics',
-                  'billing',
-                  'brand_settings',
-                  'calendar',
-                  'connect_accounts',
-                  'credits',
-                  'library',
-                  'members',
-                  'models',
-                  'posts',
-                  'provider_keys',
-                  'publishing_settings',
-                  'review_queue',
-                  'settings',
-                  'studio',
-                  'workflows',
-                ],
-                type: 'string',
+              {
+                additionalProperties: false,
+                properties: SUGGEST_NEXT_STEP_PROPERTIES,
+                required: ['prompt'],
               },
-              prompt: {
-                description:
-                  'Message to send back into this conversation when the user chooses to do it here. Omit when the step can only be completed on its page.',
-                type: 'string',
-              },
-              title: {
-                description: 'Short label for the step, e.g. "Brand setup".',
-                type: 'string',
-              },
-            },
+            ],
+            properties: SUGGEST_NEXT_STEP_PROPERTIES,
             required: ['title'],
             type: 'object',
           },

@@ -2,7 +2,7 @@ import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.mo
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { ContentOptimizationController } from '@api/services/content-optimization/content-optimization.controller';
 import { OpenAiLlmModule } from '@api/services/integrations/openai-llm/openai-llm.module';
 import { ConfigModule } from '@libs/config/config.module';
@@ -22,7 +22,7 @@ import { ContentOptimizationService } from '@server/services/content-optimizatio
     PostsCoreModule,
     OpenAiLlmModule,
     TrendsModule,
-    WorkflowsModule,
+    WorkflowsCoreModule,
   ],
   providers: [AbTestSuggestionHarnessService, ContentOptimizationService],
 })

@@ -2,7 +2,7 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { PersonasModule } from '@api/collections/personas/personas.module';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
@@ -36,7 +36,7 @@ import { StepExecutorService } from '@server/services/content-orchestration/step
     MetadataModule,
     FilesClientModule,
     SharedModule,
-    WorkflowsModule,
+    WorkflowsCoreModule,
   ],
   providers: [ContentOrchestrationService, StepExecutorService],
 })

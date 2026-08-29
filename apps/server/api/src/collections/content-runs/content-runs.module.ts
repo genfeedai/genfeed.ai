@@ -25,7 +25,7 @@ import { OrganizationSettingsModule } from '@api/collections/organization-settin
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -60,7 +60,7 @@ import { ContentRunsService } from '@server/collections/content-runs/services/co
     TrendsModule,
     VideoGenerationModule,
     VideosModule,
-    WorkflowsModule,
+    WorkflowsCoreModule,
     XAdsModule,
   ],
   providers: [

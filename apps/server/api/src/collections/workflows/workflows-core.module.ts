@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowsService } from '@server/collections/workflows/services/workflows.service';
 import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import { SYSTEM_WORKFLOW_RUNNER } from '@server/collections/workflows/workflows.tokens';
 
 /**
  * Workflow persistence plus the two leaves most non-workflow consumers need:
@@ -17,6 +18,7 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
  */
 @Module({
   exports: [
+    SYSTEM_WORKFLOW_RUNNER,
     SystemWorkflowRunnerService,
     WorkflowExecutionQueueService,
     WorkflowsService,
@@ -34,6 +36,12 @@ import { SystemWorkflowRunnerService } from '@server/collections/workflows/syste
   ],
   providers: [
     SystemWorkflowRunnerService,
+    // Consumers that only dispatch system workflows inject the token; providing
+    // it here keeps them on this one-way core instead of WorkflowsModule.
+    {
+      provide: SYSTEM_WORKFLOW_RUNNER,
+      useExisting: SystemWorkflowRunnerService,
+    },
     WorkflowExecutionQueueService,
     WorkflowsService,
   ],
