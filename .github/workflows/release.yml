@@ -3,8 +3,9 @@ run-name: Release ${{ inputs.tag }}
 
 # Canonical stable-release entry point. A maintainer chooses the version and
 # dispatches this workflow from master. The workflow pins that master SHA,
-# verifies it once, publishes community and SaaS from the same commit, and only
-# then makes the GitHub release public.
+# verifies it once — reusing the master-push Full Suite run when a green one
+# already covers that SHA — publishes community and SaaS from the same commit,
+# and only then makes the GitHub release public.
 on:
   workflow_dispatch:
     inputs:
@@ -61,6 +62,7 @@ jobs:
       recovery_suite_verified: ${{ steps.release.outputs.recovery_suite_verified }}
       release_sha: ${{ steps.release.outputs.release_sha }}
       release_tag: ${{ steps.release.outputs.release_tag }}
+      suite_verified: ${{ steps.suite.outputs.suite_verified }}
     steps:
       - name: Validate production ref
         run: |
@@ -448,9 +450,39 @@ jobs:
             echo "release_tag=${release_tag}"
           } >>"${GITHUB_OUTPUT}"
 
+      # full-suite.yml already validates every master head on push (CI heavy
+      # matrix + build-verify + E2E) — the exact suite verify-suite would run.
+      # A completed green push (or manual master) run for the release SHA is
+      # content-addressed evidence for the identical tree, so re-running it at
+      # release cut only added ~20 minutes. verify-suite runs only when no
+      # such run exists — e.g. the push run was superseded by a newer merge's
+      # cancel-in-progress before it finished, or it went red. Evidence
+      # lookup failures degrade to running the suite, never to skipping it.
+      - name: Check for existing Full Suite evidence
+        id: suite
+        if: ${{ inputs.recovery_run_id == '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_SHA: ${{ steps.source.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          run_url="$(
+            gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/full-suite.yml/runs?head_sha=${RELEASE_SHA}&status=success&per_page=100" \
+              --jq '[.workflow_runs[] | select((.event == "push" or .event == "workflow_dispatch") and .head_branch == "master" and .conclusion == "success")] | first | .html_url // empty' \
+              2>/dev/null || true
+          )"
+          if [ -n "${run_url}" ]; then
+            echo "suite_verified=true" >>"${GITHUB_OUTPUT}"
+            echo "Reusing green Full Suite evidence for ${RELEASE_SHA}: ${run_url}"
+            echo "Full Suite evidence reused for \`${RELEASE_SHA}\`: ${run_url}" >>"${GITHUB_STEP_SUMMARY}"
+          else
+            echo "suite_verified=false" >>"${GITHUB_OUTPUT}"
+            echo "No completed green Full Suite run covers ${RELEASE_SHA}; verify-suite will run."
+          fi
+
   verify-suite:
     name: Full Suite
-    if: ${{ inputs.recovery_run_id == '' }}
+    if: ${{ inputs.recovery_run_id == '' && needs.validate-release.outputs.suite_verified != 'true' }}
     needs: validate-release
     permissions:
       actions: write
@@ -473,7 +505,9 @@ jobs:
           needs.validate-release.outputs.recovery_suite_verified == 'true' &&
           needs.verify-suite.result == 'skipped') ||
         (needs.validate-release.outputs.recovery_mode != 'true' &&
-          needs.verify-suite.result == 'success')
+          (needs.verify-suite.result == 'success' ||
+            (needs.verify-suite.result == 'skipped' &&
+              needs.validate-release.outputs.suite_verified == 'true')))
       )
     permissions:
       contents: write
@@ -490,7 +524,18 @@ jobs:
 
   deploy-saas:
     name: Deploy hosted SaaS
-    if: ${{ inputs.recovery_run_id == '' && inputs.saas_lane != 'operations' }}
+    # A skipped need normally skips the dependent job, so this condition must
+    # be explicit about verify-suite: accept success, or skipped when
+    # validate-release confirmed green Full Suite evidence for the release SHA.
+    # A failed or evidence-less skipped verify-suite still blocks the deploy.
+    if: |
+      !cancelled() &&
+      inputs.recovery_run_id == '' &&
+      inputs.saas_lane != 'operations' &&
+      needs.validate-release.result == 'success' &&
+      (needs.verify-suite.result == 'success' ||
+        (needs.verify-suite.result == 'skipped' &&
+          needs.validate-release.outputs.suite_verified == 'true'))
     needs: [validate-release, verify-suite]
     permissions:
       id-token: write
@@ -508,7 +553,15 @@ jobs:
 
   deploy-saas-via-operations:
     name: Deploy hosted SaaS through private operations
-    if: ${{ inputs.recovery_run_id == '' && inputs.saas_lane == 'operations' }}
+    # Same verify-suite acceptance rule as deploy-saas above.
+    if: |
+      !cancelled() &&
+      inputs.recovery_run_id == '' &&
+      inputs.saas_lane == 'operations' &&
+      needs.validate-release.result == 'success' &&
+      (needs.verify-suite.result == 'success' ||
+        (needs.verify-suite.result == 'skipped' &&
+          needs.validate-release.outputs.suite_verified == 'true'))
     needs: [validate-release, verify-suite]
     runs-on: ubuntu-latest
     timeout-minutes: 180
