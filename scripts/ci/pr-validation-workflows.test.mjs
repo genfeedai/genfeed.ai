@@ -595,6 +595,27 @@ test('external contributor pull requests run the heavy tier maintainers skip', (
   );
 });
 
+test('spec typecheck scope escalates shared server configs before ignoring apps', () => {
+  const ci = readWorkflow('ci.yml');
+  const loop = ci
+    .slice(ci.indexOf('declare -A affected=()'))
+    .split('done <<<"${changed}"')[0];
+  const branches = [...loop.matchAll(/^ {14}(\S+)\)$/gm)].map(
+    (match) => match[1],
+  );
+
+  // `case` globs span `/`, so apps/server/tsconfig.typecheck.base.json misses
+  // apps/server/*/* and lands on whichever branch comes next. If apps/* wins
+  // that race, editing the base config every program extends scopes the ratchet
+  // to nothing.
+  assert.deepEqual(branches, [
+    'apps/server/*/*',
+    'apps/server/*',
+    'apps/*',
+    '*',
+  ]);
+});
+
 test('reusable full-suite callers preserve planner applicability at the tests gate', () => {
   const ci = readWorkflow('ci.yml');
 

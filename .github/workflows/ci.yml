@@ -382,6 +382,14 @@ jobs:
                   exit 0
                 fi
                 ;;
+              apps/server/*)
+                # Shallow files under apps/server are the shared configs every
+                # program extends (tsconfig.json, tsconfig.typecheck.base.json).
+                # `case` globs span `/`, so these fall through apps/server/*/*
+                # and would otherwise be swallowed by the apps/* branch below.
+                emit "${all_workspaces[*]}" "full: shared server config ${file}"
+                exit 0
+                ;;
               apps/*)
                 # Frontend/desktop apps never feed server spec programs.
                 ;;
