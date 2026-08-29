@@ -144,6 +144,44 @@ describe('useBrandMediaAssets', () => {
     await waitFor(() => expect(result.current.isLoadingMore).toBe(false));
   });
 
+  it('keeps loading while siblings page on after one service fails', async () => {
+    responders.images = () => Promise.reject(new Error('images down'));
+    let releaseAvatars: (items: IIngredient[]) => void = () => undefined;
+    responders.avatars = () =>
+      new Promise<IIngredient[]>((resolve) => {
+        releaseAvatars = resolve;
+      });
+
+    const { result } = renderHook(() => useBrandMediaAssets());
+
+    await waitFor(() =>
+      expect(result.current.assets.length).toBeGreaterThan(0),
+    );
+
+    // The rejection must not settle the load while avatars are still in flight.
+    expect(result.current.isLoadingMore).toBe(true);
+
+    releaseAvatars([]);
+
+    await waitFor(() => expect(result.current.isLoadingMore).toBe(false));
+    // Something did arrive, so a partial load is not an error.
+    expect(result.current.error).toBeNull();
+  });
+
+  it('surfaces the failure when every service fails', async () => {
+    const failure = () => Promise.reject(new Error('assets down'));
+    responders.images = failure;
+    responders.videos = failure;
+    responders.gifs = failure;
+    responders.avatars = failure;
+
+    const { result } = renderHook(() => useBrandMediaAssets());
+
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isLoadingMore).toBe(false);
+  });
+
   it('stops paging once the shared asset budget is spent', async () => {
     responders.images = (page) => fullPage('img', page);
 

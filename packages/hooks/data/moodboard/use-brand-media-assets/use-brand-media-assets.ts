@@ -208,7 +208,11 @@ export function useBrandMediaAssets(): UseBrandMediaAssetsResult {
           return;
         }
 
-        await Promise.all(
+        // `allSettled`, not `all`: a rejected stream would resolve the await
+        // immediately while its siblings were still paging, so the `finally`
+        // below cleared the loading flags and the canvas painted its empty
+        // state under assets that had not arrived yet.
+        const outcomes = await Promise.allSettled(
           services.map((service, index) =>
             streamPages({
               brandId,
@@ -232,6 +236,17 @@ export function useBrandMediaAssets(): UseBrandMediaAssetsResult {
             }),
           ),
         );
+
+        const failure = outcomes.find(
+          (outcome): outcome is PromiseRejectedResult =>
+            outcome.status === 'rejected',
+        );
+
+        // A partial load still shows what did arrive; the error only surfaces
+        // when nothing did.
+        if (failure && accepted === 0) {
+          throw failure.reason;
+        }
       } catch (caught) {
         if (controller.signal.aborted) {
           return;
