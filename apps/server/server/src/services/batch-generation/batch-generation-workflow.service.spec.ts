@@ -178,7 +178,7 @@ describe('BatchGenerationWorkflowService', () => {
 
   it('yields to the worker that already owns the batch instead of failing the run', async () => {
     batches.processBatch.mockRejectedValue(
-      new BatchAlreadyOwnedException('batch-1'),
+      new BatchAlreadyOwnedException('batch-1', 'PROCESSING'),
     );
 
     await expect(run(BATCH_GENERATION_ACTION_IDS.PROCESS)).resolves.toEqual({

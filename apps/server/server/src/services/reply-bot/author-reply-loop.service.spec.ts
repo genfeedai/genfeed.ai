@@ -238,7 +238,11 @@ describe('AuthorReplyLoopService', () => {
     // `sendReply` returns the workflow result verbatim, so the stub carries the
     // public `AuthorReplySendResult` contract, not the internal send state.
     systemWorkflowRunner.runWorkflow.mockResolvedValue({
-      provenance: { executionId: 'execution-1', workflowId: 'workflow-1' },
+      provenance: {
+        executionId: 'execution-1',
+        workflowId: 'workflow-1',
+        workflowLabel: 'Author Reply Loop',
+      },
       result: {
         commentId: 'c1',
         contentId: 'x-reply-1',
@@ -292,7 +296,11 @@ describe('AuthorReplyLoopService', () => {
       username: 'channel',
     });
     systemWorkflowRunner.runWorkflow.mockResolvedValue({
-      provenance: { executionId: 'execution-1', workflowId: 'workflow-1' },
+      provenance: {
+        executionId: 'execution-1',
+        workflowId: 'workflow-1',
+        workflowLabel: 'Author Reply Loop',
+      },
       result: {
         commentId: 'c1',
         contentId: 'yt-reply-1',
@@ -388,7 +396,11 @@ describe('AuthorReplyLoopService', () => {
       username: 'brandx_labs',
     });
     systemWorkflowRunner.runWorkflow.mockResolvedValue({
-      provenance: { executionId: 'execution-1', workflowId: 'workflow-1' },
+      provenance: {
+        executionId: 'execution-1',
+        workflowId: 'workflow-1',
+        workflowLabel: 'Author Reply Loop',
+      },
       result: {
         replyContentId: 'x-reply-2',
         replyContentUrl: 'https://x.com/brandx_labs/status/x-reply-2',

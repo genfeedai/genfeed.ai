@@ -22,9 +22,9 @@ The generation story in the current repo spans a small set of stable entrypoints
 - [`apps/server/server/src/services/batch-generation/batch-generation.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/server/src/services/batch-generation/batch-generation.service.ts)
   - builds batch plans
   - delegates actual generation to `ContentGeneratorService`
-- [`packages/actions/src/registry/source/index.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/actions/src/registry/source/index.ts)
+- `packages/actions/src/registry/source/index.ts`
   - defines the canonical agent-visible generation tools
-- [`packages/actions/src/registry/tool-registry.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/actions/src/registry/tool-registry.ts)
+- `packages/actions/src/registry/tool-registry.ts`
   - assigns generation tool categories and UI action cards
 - [`apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/server/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts)
   - dispatches generation tools to the internal media APIs

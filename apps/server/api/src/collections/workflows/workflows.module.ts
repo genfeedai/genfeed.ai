@@ -75,7 +75,6 @@ import { VideoQaContinuityResolverService } from '@server/collections/workflows/
 import { WorkflowArtifactLifecycleService } from '@server/collections/workflows/services/workflow-artifact-lifecycle.service';
 import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionAuthorizationService } from '@server/collections/workflows/services/workflow-execution-authorization.service';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import { WorkflowFormatConverterService } from '@server/collections/workflows/services/workflow-format-converter.service';
 import { WorkflowGenerationService } from '@server/collections/workflows/services/workflow-generation.service';
@@ -117,7 +116,8 @@ import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-q
     WORKFLOW_ENGINE_ADAPTER,
     WORKFLOW_EXECUTOR,
     SystemWorkflowCatalogService,
-    SystemWorkflowRunnerService,
+    // The runner and its queue are re-exported through WorkflowsCoreModule,
+    // which owns them; Nest rejects re-exporting another module's provider.
     WorkflowsCoreModule,
     WorkflowRunControlService,
     WorkflowSchedulerService,
@@ -126,7 +126,6 @@ import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-q
     WorkflowEngineAdapterService,
     WorkflowExecutionAuthorizationService,
     WorkflowExecutorService,
-    WorkflowExecutionQueueService,
     WorkflowArtifactLifecycleService,
     WorkflowNodeContinuationCoordinatorService,
     WorkflowNodeContinuationService,

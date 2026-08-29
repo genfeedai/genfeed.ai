@@ -3829,8 +3829,12 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('hands an async batch to the workflow queue with its live thread identity', async () => {
-    const { batchGenerationService, batchGenerationWorkflowService, brandsService, service } =
-      createService();
+    const {
+      batchGenerationService,
+      batchGenerationWorkflowService,
+      brandsService,
+      service,
+    } = createService();
 
     brandsService.findOne.mockResolvedValue({
       description: 'Brand description',

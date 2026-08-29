@@ -13,6 +13,8 @@ const mocks = vi.hoisted(() => ({
     organizationId?: string;
   } | null,
   activityRefresh: vi.fn(async () => undefined),
+  cancelExecution: vi.fn(async () => undefined),
+  executionsRefresh: vi.fn(async () => undefined),
   brandRefresh: vi.fn(async () => undefined),
   brandState: {
     brands: [
@@ -132,6 +134,22 @@ vi.mock('@hooks/data/overview/use-overview-bootstrap', () => ({
     runs: [],
     stats: null,
     timeSeriesData: [],
+  }),
+}));
+
+vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
+  useWorkflowExecutions: () => ({
+    cancelExecution: mocks.cancelExecution,
+    executions: [],
+    isLoading: false,
+    refresh: mocks.executionsRefresh,
+    stats: {
+      active: 0,
+      completed: 0,
+      failed: 0,
+      total: 0,
+      totalCredits: 0,
+    },
   }),
 }));
 
