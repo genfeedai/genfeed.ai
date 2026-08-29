@@ -34,11 +34,14 @@ export interface CreateVideoRequest {
   resolution?: string;
 }
 
-export async function createVideo(request: CreateVideoRequest): Promise<Video> {
-  const response = await post<JsonApiSingleResponse>(
-    '/videos',
-    request as unknown as Record<string, unknown>
-  );
+export async function createVideo(
+  request: CreateVideoRequest,
+  signal?: AbortSignal
+): Promise<Video> {
+  const body = request as unknown as Record<string, unknown>;
+  const response = signal
+    ? await post<JsonApiSingleResponse>('/videos', body, { signal })
+    : await post<JsonApiSingleResponse>('/videos', body);
   return flattenSingle<Video>(response);
 }
 

@@ -21,7 +21,7 @@ export class AuthError extends GenfeedError {
 
 export class NoBrandError extends GenfeedError {
   constructor() {
-    super('No brand selected', 'Run `gf brands select` to choose a brand');
+    super('No brand selected', 'Run `gf brand use` to choose a brand');
     this.name = 'NoBrandError';
   }
 }

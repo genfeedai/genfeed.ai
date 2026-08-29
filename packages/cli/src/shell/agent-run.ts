@@ -19,6 +19,44 @@ const EVENT_POLL_INTERVAL_MS = 250;
 
 type AgentRunStatus = 'completed' | 'failed' | 'timeout' | 'waiting-input';
 
+function abortable<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise;
+  signal.throwIfAborted();
+
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason ?? new Error('Operation cancelled'));
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error);
+      }
+    );
+  });
+}
+
+function readThreadEvents(
+  threadId: string,
+  afterSequence: number,
+  signal?: AbortSignal
+): Promise<AgentThreadEvent[]> {
+  return signal
+    ? getThreadEvents(threadId, afterSequence, signal)
+    : getThreadEvents(threadId, afterSequence);
+}
+
+function readThread(threadId: string, signal?: AbortSignal) {
+  return signal ? getThread(threadId, signal) : getThread(threadId);
+}
+
+function readThreadSnapshot(threadId: string, signal?: AbortSignal) {
+  return signal ? getThreadSnapshot(threadId, signal) : getThreadSnapshot(threadId);
+}
+
 export interface AgentRunStart {
   brandId?: string | null;
   contextVersion?: number;
@@ -237,7 +275,8 @@ async function collectRunResult(
   afterSequence: number,
   timeoutMs: number,
   callbacks: AgentRunCallbacks,
-  liveStream?: AgentLiveStream
+  liveStream?: AgentLiveStream,
+  signal?: AbortSignal
 ): Promise<AgentRunResult> {
   const startedAt = Date.now();
   let lastSequence = afterSequence;
@@ -247,6 +286,7 @@ async function collectRunResult(
   };
 
   while (Date.now() - startedAt < timeoutMs) {
+    signal?.throwIfAborted();
     for (const event of liveStream?.drain() ?? []) {
       handleLiveEvent(event, accumulator, callbacks);
     }
@@ -256,7 +296,7 @@ async function collectRunResult(
       // The publisher persists assistant.finalized/run.completed before it
       // emits agent:done. Read that durable tail once so the next shell turn
       // starts after this run instead of re-consuming its terminal events.
-      const terminalEvents = await getThreadEvents(run.threadId, lastSequence);
+      const terminalEvents = await readThreadEvents(run.threadId, lastSequence, signal);
       lastSequence = await consumePersistedEvents(
         terminalEvents,
         run,
@@ -267,7 +307,7 @@ async function collectRunResult(
       return buildResult(accumulator, run, lastSequence) ?? liveResult;
     }
 
-    const events = await getThreadEvents(run.threadId, lastSequence);
+    const events = await readThreadEvents(run.threadId, lastSequence, signal);
     lastSequence = await consumePersistedEvents(events, run, lastSequence, accumulator, callbacks);
 
     const persistedResult = buildResult(accumulator, run, lastSequence);
@@ -275,11 +315,10 @@ async function collectRunResult(
       return persistedResult;
     }
 
-    if (liveStream) {
-      await liveStream.waitForActivity(EVENT_POLL_INTERVAL_MS);
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, EVENT_POLL_INTERVAL_MS));
-    }
+    const activity = liveStream
+      ? liveStream.waitForActivity(EVENT_POLL_INTERVAL_MS)
+      : new Promise<void>((resolve) => setTimeout(resolve, EVENT_POLL_INTERVAL_MS));
+    await abortable(activity, signal);
   }
 
   const assistantMessage = currentAssistantMessage(accumulator);
@@ -294,30 +333,32 @@ async function collectRunResult(
 }
 
 export async function observeAgentRun(
-  startRun: () => Promise<AgentRunStart>,
+  startRun: (signal?: AbortSignal) => Promise<AgentRunStart>,
   afterSequence: number | ((run: AgentRunStart) => number),
   timeoutMs = 120_000,
-  callbacks: AgentRunCallbacks = {}
+  callbacks: AgentRunCallbacks = {},
+  signal?: AbortSignal
 ): Promise<AgentRunResult> {
   let liveStream: AgentLiveStream | undefined;
 
   try {
     try {
-      liveStream = await openAgentLiveStream();
-      await liveStream.waitUntilReady();
+      liveStream = await abortable(openAgentLiveStream(signal), signal);
+      await abortable(liveStream.waitUntilReady(), signal);
     } catch (error) {
+      if (signal?.aborted) throw error;
       callbacks.onTransportError?.(
         error instanceof Error ? error : new Error(`Live stream unavailable: ${String(error)}`)
       );
     }
 
-    const run = await startRun();
+    const run = await startRun(signal);
     const initialSequence =
       typeof afterSequence === 'function' ? afterSequence(run) : afterSequence;
     liveStream?.bind({ runId: run.runId, threadId: run.threadId });
     await callbacks.onRunStarted?.(run);
 
-    return await collectRunResult(run, initialSequence, timeoutMs, callbacks, liveStream);
+    return await collectRunResult(run, initialSequence, timeoutMs, callbacks, liveStream, signal);
   } finally {
     liveStream?.close();
   }
@@ -326,23 +367,32 @@ export async function observeAgentRun(
 export async function runAgentTurn(
   request: AgentChatRequest,
   timeoutMs = 120_000,
-  callbacks: AgentRunCallbacks = {}
+  callbacks: AgentRunCallbacks = {},
+  signal?: AbortSignal
 ): Promise<AgentRunResult> {
   const [thread, snapshot] = request.threadId
-    ? await Promise.all([getThread(request.threadId), getThreadSnapshot(request.threadId)])
+    ? await Promise.all([
+        readThread(request.threadId, signal),
+        readThreadSnapshot(request.threadId, signal),
+      ])
     : [undefined, undefined];
   const initialSequence = snapshot?.lastSequence ?? 0;
 
   return await observeAgentRun(
-    async () =>
-      await startAgentChatStream({
+    async (activeSignal) => {
+      const input = {
         ...request,
         brandId: thread?.brandId ?? null,
         expectedContextVersion: thread?.contextVersion,
-      }),
+      };
+      return activeSignal
+        ? await startAgentChatStream(input, activeSignal)
+        : await startAgentChatStream(input);
+    },
     initialSequence,
     timeoutMs,
-    callbacks
+    callbacks,
+    signal
   );
 }
 
@@ -351,9 +401,13 @@ export async function answerPendingInput(
   answer: string,
   requestId?: string,
   timeoutMs = 120_000,
-  callbacks: AgentRunCallbacks = {}
+  callbacks: AgentRunCallbacks = {},
+  signal?: AbortSignal
 ): Promise<AgentRunResult> {
-  const [thread, snapshot] = await Promise.all([getThread(threadId), getThreadSnapshot(threadId)]);
+  const [thread, snapshot] = await Promise.all([
+    readThread(threadId, signal),
+    readThreadSnapshot(threadId, signal),
+  ]);
   const pendingInputRequest =
     snapshot.pendingInputRequests.find((request) => request.requestId === requestId) ??
     snapshot.pendingInputRequests.at(-1);
@@ -363,15 +417,27 @@ export async function answerPendingInput(
   }
 
   return await observeAgentRun(
-    async () => {
-      await respondToInputRequest(threadId, pendingInputRequest.requestId, answer, {
+    async (activeSignal) => {
+      const scope = {
         brandId: thread.brandId ?? null,
         expectedContextVersion: thread.contextVersion,
-      });
+      };
+      if (activeSignal) {
+        await respondToInputRequest(
+          threadId,
+          pendingInputRequest.requestId,
+          answer,
+          scope,
+          activeSignal
+        );
+      } else {
+        await respondToInputRequest(threadId, pendingInputRequest.requestId, answer, scope);
+      }
       return { threadId };
     },
     snapshot.lastSequence ?? 0,
     timeoutMs,
-    callbacks
+    callbacks,
+    signal
   );
 }

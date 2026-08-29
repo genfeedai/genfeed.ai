@@ -5,6 +5,7 @@ import {
   diffUntranslatedStringBaseline,
   findUntranslatedStrings,
   UNTRANSLATED_STRING_FIX_HELP,
+  UNTRANSLATED_STRING_IGNORE_GLOBS,
   type UntranslatedStringBaseline,
 } from './check-untranslated-strings';
 
@@ -76,6 +77,10 @@ describe('untranslated-string fix guidance', () => {
     expect(UNTRANSLATED_STRING_FIX_HELP).toMatch(
       /namespaces ui, pages, agent, contexts/u,
     );
+  });
+
+  it('keeps standalone terminal JSX outside the Next.js catalog ratchet', () => {
+    expect(UNTRANSLATED_STRING_IGNORE_GLOBS).toContain('packages/cli/**');
   });
 });
 

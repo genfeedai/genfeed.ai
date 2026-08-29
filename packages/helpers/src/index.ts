@@ -29,4 +29,5 @@ export * from './security/sanitize-html.helper';
 export * from './serializer.helper';
 export * from './social-url.helper';
 export * from './trends/trend-digest.helper';
+export * from './trends/trend-digest-source.helper';
 export * from './video-duration.helper';

@@ -10,6 +10,15 @@
  *
  * Supported platforms: Twitter/X, Instagram, TikTok, YouTube, Reddit
  */
+
+import {
+  ReplyBotPlatform,
+  ReplyBotType,
+  SocialContentType,
+} from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable, Optional } from '@nestjs/common';
 import type { MonitoredAccountFilters } from '@server/collections/monitored-accounts/schemas/monitored-account.schema';
 import { ProcessedTweetsService } from '@server/collections/processed-tweets/services/processed-tweets.service';
 import type {
@@ -24,14 +33,6 @@ import type {
 } from '@server/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyService } from '@server/services/integrations/apify/services/apify.service';
 import { TwitterService } from '@server/services/integrations/twitter/services/twitter.service';
-import {
-  ReplyBotPlatform,
-  ReplyBotType,
-  SocialContentType,
-} from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
 
 /**
  * Unified social content data structure
@@ -741,7 +742,7 @@ export class SocialMonitorService {
         views: video.playCount,
       },
       platform: ReplyBotPlatform.TIKTOK,
-      text: video.desc || '',
+      text: video.text || '',
     }));
   }
 

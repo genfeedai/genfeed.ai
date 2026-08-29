@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common';
 import type {
   ApifyNormalizedTikTokComment,
   ApifySoundData,
@@ -9,7 +10,6 @@ import type {
   TrendOptions,
 } from '@server/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@server/services/integrations/apify/services/modules/apify-base.service';
-import { Injectable } from '@nestjs/common';
 
 /**
  * ApifyTikTokService
@@ -284,13 +284,13 @@ export class ApifyTikTokService {
         creatorHandle:
           video.authorMeta?.name || video.authorMeta?.nickname || 'unknown',
         creatorId: video.authorMeta?.id,
-        description: video.desc,
+        description: video.text,
         duration: video.videoMeta?.duration,
         engagementRate: metrics.engagementRate,
         externalId: video.id,
         hashtags:
           video.hashtags?.map((h: { name?: string }) => h.name || '') || [],
-        hook: video.desc?.substring(0, 50),
+        hook: video.text?.substring(0, 50),
         likeCount,
         platform: 'tiktok',
         publishedAt,
@@ -298,7 +298,7 @@ export class ApifyTikTokService {
         soundId: video.musicMeta?.musicId,
         soundName: video.musicMeta?.musicName,
         thumbnailUrl: undefined,
-        title: video.desc?.substring(0, 100),
+        title: video.text?.substring(0, 100),
         velocity: metrics.velocity,
         videoUrl: video.webVideoUrl,
         viewCount,

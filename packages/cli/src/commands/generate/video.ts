@@ -4,6 +4,7 @@ import { requireAuth } from '@/api/client';
 import { createVideo, getVideo, type Video } from '@/api/videos';
 import { getActiveProfile } from '@/config/store';
 import { handleError } from '@/utils/errors';
+import { parsePositiveInteger } from '@/utils/options';
 import {
   downloadGeneratedFile,
   printGeneratedResult,
@@ -16,7 +17,7 @@ export const videoCommand = new Command('video')
   .description('Generate an AI video')
   .argument('<prompt>', 'The prompt describing the video to generate')
   .option('-m, --model <model>', 'Model to use for generation')
-  .option('-d, --duration <seconds>', 'Video duration in seconds', Number.parseInt)
+  .option('-d, --duration <seconds>', 'Video duration in seconds', parsePositiveInteger)
   .option('-r, --resolution <res>', 'Video resolution (720p, 1080p, 4k)')
   .option('-b, --brand <id>', 'Brand ID (overrides active brand)')
   .option('-o, --output <path>', 'Download video to file')

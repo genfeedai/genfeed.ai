@@ -13,6 +13,10 @@ export interface ApiErrorResponse {
   statusCode: number;
 }
 
+export interface ApiRequestOptions {
+  signal?: AbortSignal;
+}
+
 async function createClient() {
   const baseURL = await getApiUrl();
   const apiKey = await getApiKey();
@@ -51,24 +55,46 @@ async function createClient() {
   });
 }
 
-export async function get<T>(path: string): Promise<T> {
+export async function get<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const client = await createClient();
-  return client<T>(path, { method: 'GET' });
+  return client<T>(path, {
+    method: 'GET',
+    ...(options.signal ? { signal: options.signal } : {}),
+  });
 }
 
-export async function post<T>(path: string, body?: Record<string, unknown>): Promise<T> {
+export async function post<T>(
+  path: string,
+  body?: Record<string, unknown>,
+  options: ApiRequestOptions = {}
+): Promise<T> {
   const client = await createClient();
-  return client<T>(path, { body, method: 'POST' });
+  return client<T>(path, {
+    body,
+    method: 'POST',
+    ...(options.signal ? { signal: options.signal } : {}),
+  });
 }
 
-export async function patch<T>(path: string, body?: Record<string, unknown>): Promise<T> {
+export async function patch<T>(
+  path: string,
+  body?: Record<string, unknown>,
+  options: ApiRequestOptions = {}
+): Promise<T> {
   const client = await createClient();
-  return client<T>(path, { body, method: 'PATCH' });
+  return client<T>(path, {
+    body,
+    method: 'PATCH',
+    ...(options.signal ? { signal: options.signal } : {}),
+  });
 }
 
-export async function del<T>(path: string): Promise<T> {
+export async function del<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const client = await createClient();
-  return client<T>(path, { method: 'DELETE' });
+  return client<T>(path, {
+    method: 'DELETE',
+    ...(options.signal ? { signal: options.signal } : {}),
+  });
 }
 
 export async function requireAuth(): Promise<string> {

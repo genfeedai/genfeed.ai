@@ -279,6 +279,6 @@ class SocketAgentLiveStream implements AgentLiveStream {
   }
 }
 
-export async function openAgentLiveStream(): Promise<AgentLiveStream> {
-  return new SocketAgentLiveStream(await createWebSocketConnection());
+export async function openAgentLiveStream(signal?: AbortSignal): Promise<AgentLiveStream> {
+  return new SocketAgentLiveStream(await createWebSocketConnection(signal));
 }

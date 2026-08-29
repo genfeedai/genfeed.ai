@@ -28,6 +28,7 @@ import {
   INTERNAL_CREDIT_COSTS,
   MAX_MARGIN_MULTIPLIER,
   PAYG_CREDIT_PACKS,
+  PAYG_CREDITS_PER_USD,
   PLAN_COPY,
   PLAN_LABELS,
   SUBSCRIPTION_PRICE_CONTRACTS,
@@ -219,6 +220,10 @@ describe('applyMargin and runtime margin multiplier', () => {
 });
 
 describe('credit packs', () => {
+  it('exports the canonical PAYG credit conversion rate', () => {
+    expect(PAYG_CREDITS_PER_USD).toBe(100);
+  });
+
   it('computes total credits including bonus', () => {
     const pack: CreditPackTier = { bonus: 200, credits: 1000, label: '$10' };
 

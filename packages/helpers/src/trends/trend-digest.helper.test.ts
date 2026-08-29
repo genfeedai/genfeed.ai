@@ -93,8 +93,34 @@ describe('buildTrendDigestHtml', () => {
     expect(html).toContain('Open Genfeed');
   });
 
-  it('omits the footer link when appUrl is empty', () => {
+  it('links each trend row to its source', () => {
     const html = buildTrendDigestHtml(sampleTrends, { minViralScore: 70 });
+    expect(html).toContain('href="https://example.com/v"');
+  });
+
+  it('drops a row link that is not a safe http(s) target', () => {
+    const html = buildTrendDigestHtml(
+      [{ ...sampleTrends[0], url: 'javascript:alert(1)' }],
+      { minViralScore: 70 },
+    );
+    expect(html).not.toContain('javascript:');
+    expect(html).toContain('Dancing cats');
+  });
+
+  it('drops a mailto row link — a trend source is a web page', () => {
+    const html = buildTrendDigestHtml(
+      [{ ...sampleTrends[0], url: 'mailto:someone@example.com' }],
+      { minViralScore: 70 },
+    );
+    expect(html).not.toContain('mailto:');
+    expect(html).toContain('Dancing cats');
+  });
+
+  it('omits the footer link when appUrl is empty', () => {
+    const html = buildTrendDigestHtml(
+      sampleTrends.map(({ url: _url, ...trend }) => trend),
+      { minViralScore: 70 },
+    );
     expect(html).not.toContain('<a href=');
   });
 

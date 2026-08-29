@@ -1,15 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
-import { PostAccountFanoutService } from '@server/collections/posts/services/post-account-fanout.service';
-import { PostsService } from '@server/collections/posts/services/posts.service';
-import { TrendsService } from '@server/collections/trends/services/trends.service';
-import { SocialAdapterFactory } from '@server/collections/workflows/services/adapters/social-adapter.factory';
-import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
-import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import type { TriggerEvent } from '@server/collections/workflows/services/workflow-executor.types';
-import { CacheService } from '@server/services/cache/cache.service';
-import { NotificationsService } from '@server/services/notifications/notifications.service';
-import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 import { TREND_DIGEST_CREDIT_COST } from '@genfeedai/constants';
 import {
   ActivitySource,
@@ -18,7 +7,13 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/enums';
-import { buildTrendDigestHtml } from '@genfeedai/helpers';
+import {
+  buildTrendDigestHtml,
+  buildTrendDigestItems,
+  type RawTrendHashtag,
+  type RawTrendSound,
+  type RawTrendVideo,
+} from '@genfeedai/helpers';
 import type {
   KeywordTriggerPlatform,
   SocialPlatform,
@@ -38,6 +33,17 @@ import {
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
+import { PostAccountFanoutService } from '@server/collections/posts/services/post-account-fanout.service';
+import { PostsService } from '@server/collections/posts/services/posts.service';
+import { TrendsService } from '@server/collections/trends/services/trends.service';
+import { SocialAdapterFactory } from '@server/collections/workflows/services/adapters/social-adapter.factory';
+import { WorkflowEngineExecutorHelperService } from '@server/collections/workflows/services/workflow-engine-executor-helper.service';
+import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
+import type { TriggerEvent } from '@server/collections/workflows/services/workflow-executor.types';
+import { CacheService } from '@server/services/cache/cache.service';
+import { NotificationsService } from '@server/services/notifications/notifications.service';
+import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 export class WorkflowTrendPublishExecutorRegistrarService {
   private readonly logContext = 'WorkflowEngineAdapterService';
@@ -589,28 +595,11 @@ export class WorkflowTrendPublishExecutorRegistrarService {
     minViralScore: number,
     platforms: string[],
   ): Promise<TrendDigestEntry[]> {
-    type RawTrend = {
-      platform?: string;
-      title?: string;
-      description?: string;
-      hashtag?: string;
-      soundName?: string;
-      url?: string;
-      playUrl?: string;
-      views?: number;
-      playCount?: number;
-      postCount?: number;
-      viewCount?: number;
-      usageCount?: number;
-      viralScore?: number;
-      viralityScore?: number;
-    };
-
-    const safeFetch = async (
+    const safeFetch = async <T>(
       fetcher: () => Promise<unknown>,
-    ): Promise<RawTrend[]> => {
+    ): Promise<T[]> => {
       try {
-        return ((await fetcher()) as RawTrend[]) ?? [];
+        return ((await fetcher()) as T[]) ?? [];
       } catch (error) {
         this.loggerService.error(
           `${this.logContext} trend digest fetch failed`,
@@ -621,50 +610,19 @@ export class WorkflowTrendPublishExecutorRegistrarService {
     };
 
     const [videos, hashtags, sounds] = await Promise.all([
-      safeFetch(() => trends.getViralVideos({ limit: 10, minViralScore })),
-      safeFetch(() => trends.getTrendingHashtags({ limit: 10 })),
-      safeFetch(() => trends.getTrendingSounds({ limit: 10 })),
+      safeFetch<RawTrendVideo>(() =>
+        trends.getViralVideos({ limit: 10, minViralScore }),
+      ),
+      safeFetch<RawTrendHashtag>(() =>
+        trends.getTrendingHashtags({ limit: 10 }),
+      ),
+      safeFetch<RawTrendSound>(() => trends.getTrendingSounds({ limit: 10 })),
     ]);
 
-    const mapped: TrendDigestEntry[] = [
-      ...videos.map((video) => ({
-        platform: video.platform || 'tiktok',
-        topic: video.title || video.description || 'Trending Video',
-        type: 'video' as const,
-        url: video.url,
-        usageCount: video.views || video.playCount,
-        viralScore: video.viralScore || 0,
-      })),
-      ...hashtags
-        .filter((hashtag) => (hashtag.viralityScore || 0) >= minViralScore)
-        .map((hashtag) => ({
-          platform: hashtag.platform || 'tiktok',
-          topic: `#${hashtag.hashtag}`,
-          type: 'hashtag' as const,
-          usageCount: hashtag.postCount || hashtag.viewCount,
-          viralScore: hashtag.viralityScore || 0,
-        })),
-      ...sounds
-        .filter((sound) => (sound.usageCount || 0) >= 10000)
-        .map((sound) => ({
-          platform: 'tiktok',
-          topic: sound.soundName || 'Trending Sound',
-          type: 'sound' as const,
-          url: sound.playUrl,
-          usageCount: sound.usageCount,
-          viralScore: sound.viralityScore || 80,
-        })),
-    ];
-
-    const allowed = new Set(
-      platforms.map((platform) => platform.toLowerCase()),
+    return buildTrendDigestItems(
+      { hashtags, sounds, videos },
+      { limit: topN, minViralScore, platforms },
     );
-    const filtered =
-      allowed.size > 0
-        ? mapped.filter((entry) => allowed.has(entry.platform.toLowerCase()))
-        : mapped;
-
-    return filtered.sort((a, b) => b.viralScore - a.viralScore).slice(0, topN);
   }
 
   private async findTrendFromSocialKeywordMatch(params: {

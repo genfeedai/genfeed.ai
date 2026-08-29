@@ -1,12 +1,12 @@
 import { IngredientStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createVideo, getVideo } from '../../src/api/videos';
+import { createVideo, getVideo } from '@/api/videos';
 
 const mockApiKey = vi.fn<[], string | undefined>();
 const mockApiUrl = vi.fn<[], string>();
 const mockFetch = vi.fn();
 
-vi.mock('../../src/config/store', () => ({
+vi.mock('@/config/store', () => ({
   getApiKey: () => mockApiKey(),
   getApiUrl: () => mockApiUrl(),
 }));
@@ -74,6 +74,26 @@ describe('api/videos', () => {
 
       expect(body).toHaveProperty('brandId', 'brand-1');
       expect(body).not.toHaveProperty('brand');
+    });
+
+    it('forwards cancellation to video generation', async () => {
+      mockFetch.mockResolvedValue({
+        data: {
+          attributes: { model: 'google-veo-3', status: IngredientStatus.PROCESSING },
+          id: 'vid-4',
+          type: 'video',
+        },
+      });
+      const controller = new AbortController();
+      const request = { brandId: 'brand-1', text: 'Ocean waves' };
+
+      await createVideo(request, controller.signal);
+
+      expect(mockFetch).toHaveBeenCalledWith('/videos', {
+        body: request,
+        method: 'POST',
+        signal: controller.signal,
+      });
     });
 
     it('passes optional duration and resolution', async () => {

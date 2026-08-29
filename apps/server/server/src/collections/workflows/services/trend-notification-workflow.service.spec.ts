@@ -1,5 +1,5 @@
-import { TrendNotificationWorkflowService } from '@server/collections/workflows/services/trend-notification-workflow.service';
 import { ParseMode } from '@genfeedai/enums';
+import { TrendNotificationWorkflowService } from '@server/collections/workflows/services/trend-notification-workflow.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('TrendNotificationWorkflowService', () => {
@@ -47,13 +47,15 @@ describe('TrendNotificationWorkflowService', () => {
       trendNotificationsTelegramChatId: 'chat-1',
       userId: 'user-1',
     });
+    // Field names mirror what the trend ingest actually stores on
+    // `trendingVideo.data` — `viewCount` / `videoUrl`, not `views` / `url`.
     trendsService.getViralVideos.mockResolvedValue([
       {
         platform: 'tiktok',
         title: 'Fast video',
-        url: 'https://example.com/video',
+        videoUrl: 'https://example.com/video',
+        viewCount: 1000000,
         viralScore: 91,
-        views: 1000000,
       },
     ]);
     trendsService.getTrendingHashtags.mockResolvedValue([
@@ -149,6 +151,40 @@ describe('TrendNotificationWorkflowService', () => {
       status: 'completed',
       trends: 3,
     });
+  });
+
+  it('renders each trend with its real title, count and link', async () => {
+    await service.runTrendSummaryNotifications('org-1', 'hourly');
+
+    const html = notificationsService.sendEmail.mock.calls[0][2] as string;
+    expect(html).toContain('Fast video');
+    expect(html).toContain('1.0M views');
+    expect(html).toContain('href="https://example.com/video"');
+    expect(html).not.toContain('Trending Video');
+  });
+
+  it('drops trends the ingest could not name rather than shipping placeholders', async () => {
+    trendsService.getViralVideos.mockResolvedValue([
+      { platform: 'tiktok', viewCount: 1000000, viralScore: 91 },
+    ]);
+
+    const result = await service.runTrendSummaryNotifications(
+      'org-1',
+      'hourly',
+    );
+
+    const html = notificationsService.sendEmail.mock.calls[0][2] as string;
+    expect(html).not.toContain('Trending Video');
+    expect(html).not.toContain('Viral Videos');
+    expect(result.trends).toBe(2);
+  });
+
+  it('renders trending sounds that clear the score threshold', async () => {
+    await service.runTrendSummaryNotifications('org-1', 'hourly');
+
+    const html = notificationsService.sendEmail.mock.calls[0][2] as string;
+    expect(html).toContain('Trending Sounds');
+    expect(html).toContain('Viral sound');
   });
 
   it('skips when the owner has no settings for the cadence', async () => {

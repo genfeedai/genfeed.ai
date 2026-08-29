@@ -1,12 +1,12 @@
 import { IngredientStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createImage, getImage } from '../../src/api/images';
+import { createImage, getImage } from '@/api/images';
 
 const mockApiKey = vi.fn<[], string | undefined>();
 const mockApiUrl = vi.fn<[], string>();
 const mockFetch = vi.fn();
 
-vi.mock('../../src/config/store', () => ({
+vi.mock('@/config/store', () => ({
   getApiKey: () => mockApiKey(),
   getApiUrl: () => mockApiUrl(),
 }));
@@ -79,6 +79,26 @@ describe('api/images', () => {
       expect(body).not.toHaveProperty('brand');
     });
 
+    it('forwards cancellation to image generation', async () => {
+      mockFetch.mockResolvedValue({
+        data: {
+          attributes: { model: 'imagen-4', status: IngredientStatus.PROCESSING },
+          id: 'img-4',
+          type: 'image',
+        },
+      });
+      const controller = new AbortController();
+      const request = { brandId: 'brand-1', text: 'A launch poster' };
+
+      await createImage(request, controller.signal);
+
+      expect(mockFetch).toHaveBeenCalledWith('/images', {
+        body: request,
+        method: 'POST',
+        signal: controller.signal,
+      });
+    });
+
     it('passes optional dimensions', async () => {
       mockFetch.mockResolvedValue({
         data: {
@@ -102,6 +122,50 @@ describe('api/images', () => {
 
       expect(result.width).toBe(1024);
       expect(result.height).toBe(768);
+    });
+
+    it('forwards the complete public image-generation controls', async () => {
+      mockFetch.mockResolvedValue({
+        data: {
+          attributes: { model: 'auto', status: IngredientStatus.PROCESSING },
+          id: 'img-advanced',
+          type: 'image',
+        },
+      });
+
+      await createImage({
+        autoSelectModel: true,
+        blacklist: ['logo'],
+        brandId: 'brand-1',
+        brandingMode: 'brand',
+        camera: 'low-angle',
+        fidelityMode: 'strict',
+        format: 'portrait',
+        lens: '85mm',
+        lighting: 'studio',
+        mood: 'confident',
+        negativePrompt: 'blur',
+        outputs: 3,
+        prioritize: 'quality',
+        references: ['reference-1'],
+        scene: 'rooftop',
+        seed: 42,
+        style: 'editorial',
+        tags: ['tag-1'],
+        text: 'A product launch',
+      });
+
+      expect(mockFetch.mock.calls[0][1].body).toMatchObject({
+        autoSelectModel: true,
+        blacklist: ['logo'],
+        brandingMode: 'brand',
+        camera: 'low-angle',
+        fidelityMode: 'strict',
+        outputs: 3,
+        references: ['reference-1'],
+        seed: 42,
+        tags: ['tag-1'],
+      });
     });
   });
 
