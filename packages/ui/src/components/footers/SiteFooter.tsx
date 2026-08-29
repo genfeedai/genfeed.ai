@@ -45,6 +45,8 @@ interface SiteFooterProps {
   brandTagline?: string;
   /** Footer background variant */
   variant?: FooterVariant;
+  /** Bottom-bar sitemap directory link label */
+  sitemapLabel?: string;
 }
 
 const DEFAULT_SOCIAL_LINKS: SocialLink[] = [
@@ -82,6 +84,7 @@ export default function SiteFooter({
   showBookCall = false,
   brandTagline = 'Genfeed drafts the posts, makes the images and video, and publishes on your schedule.',
   variant = 'default',
+  sitemapLabel = 'Sitemap',
 }: SiteFooterProps): React.ReactElement {
   return (
     <footer className={cn(VARIANT_CLASSES[variant], 'relative z-20 pt-14')}>
@@ -234,7 +237,7 @@ export default function SiteFooter({
               href="/sitemap"
               className="transition-colors hover:text-foreground"
             >
-              Sitemap
+              {sitemapLabel}
             </Link>
           </div>
         </div>
