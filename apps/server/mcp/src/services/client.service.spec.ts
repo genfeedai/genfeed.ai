@@ -843,7 +843,8 @@ describe('ClientService (MCP)', () => {
           data: {
             attributes: {
               name: 'My Workflow',
-              nodeCount: 3,
+              // The API serializes the node list; the client derives the count.
+              nodes: [{ id: 'a' }, { id: 'b' }, { id: 'c' }],
               status: 'active',
             },
             id: 'workflow-123',
