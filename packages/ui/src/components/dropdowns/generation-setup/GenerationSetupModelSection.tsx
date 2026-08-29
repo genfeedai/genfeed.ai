@@ -22,6 +22,7 @@ import {
   CommandList,
 } from '@ui/primitives/command';
 import { Check, Sparkles, Undo2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 /**
  * Model tab: an Auto card (one row per {@link AUTO_PRIORITY_OPTIONS}) plus the
@@ -41,13 +42,15 @@ export default function GenerationSetupModelSection({
   reasons,
   setup,
 }: GenerationSetupModelSectionProps) {
+  const translate = useTranslations('agent.generationSetup');
+
   if (!capabilities.hasModelSelection) {
     return null;
   }
 
   const isAutoSelected = setup.values.modelKey === '';
   const options = sortModelOptions(
-    transformModelsToOptions(models as never, favoriteModelKeys),
+    transformModelsToOptions(models, favoriteModelKeys),
   );
 
   function isCreditLocked(cost: number | undefined): boolean {
@@ -69,7 +72,7 @@ export default function GenerationSetupModelSection({
             reason={reasons.modelKey ?? reasons.prioritize}
             source={source}
           />
-          Model
+          {translate('model')}
         </span>
         <div className="flex items-center gap-2">
           {creditQuoteLabel ? (
@@ -155,7 +158,7 @@ export default function GenerationSetupModelSection({
           </CommandGroup>
 
           {options.length === 0 ? (
-            <CommandEmpty>No models found</CommandEmpty>
+            <CommandEmpty>{translate('noModels')}</CommandEmpty>
           ) : null}
         </CommandList>
       </Command>

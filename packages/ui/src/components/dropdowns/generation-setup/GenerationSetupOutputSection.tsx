@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 
 /** Output tab: aspect ratio, duration (video only), and output count. */
 export default function GenerationSetupOutputSection({
@@ -25,6 +26,8 @@ export default function GenerationSetupOutputSection({
   reasons,
   setup,
 }: GenerationSetupOutputSectionProps) {
+  const translate = useTranslations('agent.generationSetup');
+
   return (
     <div className="flex flex-col gap-3">
       {capabilities.hasAspectRatio ? (
@@ -77,7 +80,7 @@ export default function GenerationSetupOutputSection({
             <SelectContent>
               {GENERATION_SETUP_DURATION_OPTIONS_SECONDS.map((seconds) => (
                 <SelectItem key={seconds} value={String(seconds)}>
-                  {seconds}s
+                  {translate('durationSeconds', { seconds })}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -101,8 +101,12 @@ export default function GenerationSetupCustomizePanel({
         {typeOptions.length > 1 ? (
           <Select
             onValueChange={(value) => {
-              onSetField('type', value as never);
-              onTypeChange?.(value as never);
+              const option = typeOptions.find((entry) => entry.value === value);
+              if (!option) {
+                return;
+              }
+              onSetField('type', option.value);
+              onTypeChange?.(option.value);
             }}
             value={setup.values.type}
           >

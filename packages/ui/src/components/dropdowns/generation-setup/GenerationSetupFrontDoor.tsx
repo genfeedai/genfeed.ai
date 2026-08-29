@@ -6,6 +6,7 @@ import type { GenerationSetupFrontDoorProps } from '@genfeedai/props/ui/generati
 import GenerationSetupProvenanceDot from '@ui/dropdowns/generation-setup/GenerationSetupProvenanceDot';
 import { Button } from '@ui/primitives/button';
 import { ChevronRight, Search, Sparkles, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 /**
  * Layer 1 of the popover: the agent's summary of what it picked and why, the
@@ -28,6 +29,7 @@ export default function GenerationSetupFrontDoor({
   setup,
   typeOptions,
 }: GenerationSetupFrontDoorProps) {
+  const translate = useTranslations('agent.generationSetup');
   const typeLabel =
     typeOptions.find((option) => option.value === setup.values.type)?.label ??
     setup.values.type;
@@ -93,7 +95,7 @@ export default function GenerationSetupFrontDoor({
         <div className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5 font-medium text-primary text-xs">
             <Sparkles className="size-3.5 shrink-0" />
-            Agent pick
+            {translate('agentPick')}
           </span>
           <Button
             ariaLabel="Customize setup"
@@ -139,17 +141,19 @@ export default function GenerationSetupFrontDoor({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
-        <span className="gen-label-sm text-muted-foreground">Presets</span>
+        <span className="gen-label-sm text-muted-foreground">
+          {translate('presets')}
+        </span>
 
         {isPresetsLoading ? (
           <span className="px-1 py-1.5 text-muted-foreground text-xs">
-            Loading presets…
+            {translate('loadingPresets')}
           </span>
         ) : null}
 
         {!isPresetsLoading && presets.length === 0 ? (
           <span className="px-1 py-1.5 text-muted-foreground text-xs">
-            No saved presets yet.
+            {translate('noPresets')}
           </span>
         ) : null}
 

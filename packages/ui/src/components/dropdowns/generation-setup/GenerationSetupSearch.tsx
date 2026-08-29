@@ -23,6 +23,7 @@ import {
   CommandList,
 } from '@ui/primitives/command';
 import { ArrowLeft } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
 /**
@@ -39,6 +40,7 @@ export default function GenerationSetupSearch({
   setup,
   typeOptions,
 }: GenerationSetupSearchProps) {
+  const translate = useTranslations('agent.generationSetup');
   const options = useMemo<GenerationSetupSearchOption[]>(() => {
     const index: GenerationSetupSearchOption[] = [];
 
@@ -165,7 +167,7 @@ export default function GenerationSetupSearch({
   }, [options]);
 
   function handleSelect(option: GenerationSetupSearchOption): void {
-    onSetField(option.fieldKey, option.value as never);
+    onSetField(option.fieldKey, option.value);
     onBack();
   }
 
@@ -206,7 +208,7 @@ export default function GenerationSetupSearch({
                   <span className="truncate">{option.label}</span>
                   {isSelected ? (
                     <span className="text-2xs text-muted-foreground">
-                      Current
+                      {translate('current')}
                     </span>
                   ) : null}
                 </CommandItem>
@@ -215,7 +217,7 @@ export default function GenerationSetupSearch({
           </CommandGroup>
         ))}
 
-        <CommandEmpty>No matching fields</CommandEmpty>
+        <CommandEmpty>{translate('noMatchingFields')}</CommandEmpty>
       </CommandList>
     </Command>
   );

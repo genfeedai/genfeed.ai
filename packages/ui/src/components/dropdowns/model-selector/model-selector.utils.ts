@@ -159,7 +159,7 @@ function stripKnownVariantSuffixes(modelSlug: string): {
 }
 
 export function transformModelsToOptions(
-  models: IModel[],
+  models: readonly IModel[],
   favoriteModelKeys: string[],
   sourceGroupResolver?: (model: IModel) => string | undefined,
 ): ModelSelectorOption[] {

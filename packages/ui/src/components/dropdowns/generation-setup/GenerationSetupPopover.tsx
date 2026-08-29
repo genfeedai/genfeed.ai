@@ -17,6 +17,7 @@ import {
 } from '@ui/primitives/popover';
 import { TooltipProvider } from '@ui/primitives/tooltip';
 import { Pin, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { memo, useState } from 'react';
 
 type GenerationSetupView = 'customize' | 'front-door' | 'search';
@@ -54,6 +55,7 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
   setup,
   typeOptions,
 }: GenerationSetupPopoverProps) {
+  const translate = useTranslations('agent.generationSetup');
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<GenerationSetupView>('front-door');
 
@@ -110,7 +112,9 @@ const GenerationSetupPopover = memo(function GenerationSetupPopover({
                 <span className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
                   <Pin className="size-3.5 shrink-0" />
                   <span className="truncate">
-                    Pinned: {pinnedPreset?.label ?? 'Preset'}
+                    {translate('pinned', {
+                      label: pinnedPreset?.label ?? 'Preset',
+                    })}
                   </span>
                 </span>
                 <Button
