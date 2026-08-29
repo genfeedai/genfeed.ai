@@ -1,4 +1,4 @@
-import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { MastodonController } from '@api/services/integrations/mastodon/controllers/mastodon.controller';
 import { createServiceModule } from '@api/shared/service-module.factory';
@@ -7,7 +7,7 @@ import { Module } from '@nestjs/common';
 import { MastodonService } from '@server/services/integrations/mastodon/services/mastodon.service';
 
 const BaseModule = createServiceModule(MastodonService, {
-  additionalImports: [HttpModule, BrandsModule, CredentialsCoreModule],
+  additionalImports: [HttpModule, BrandsCoreModule, CredentialsCoreModule],
 });
 
 @Module({

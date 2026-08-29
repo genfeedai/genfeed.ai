@@ -304,7 +304,9 @@ describe('QueueMetricsService', () => {
       delayed: 0,
       failed: 0,
       waiting:
-        name === 'workflow-execution' || name === 'analytics-twitter' ? 101 : 0,
+        name === 'workflow-execution' || name === 'notification-delivery'
+          ? 101
+          : 0,
     }));
     mockAlertNotifier.notify.mockImplementation(async (notification) => {
       if (notification.snapshot.queueName === 'workflow-execution') {
