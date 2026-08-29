@@ -153,16 +153,16 @@ describe('PostAnalyticsProjection', () => {
             totalShares: 1,
             totalViews: 5,
           },
-          date: new Date('2026-04-01T00:00:00.000Z'),
+          date: new Date('2026-01-01T00:00:00.000Z'),
           platform: 'tiktok',
         },
       ],
-      new Date('2026-04-01T00:00:00.000Z'),
-      new Date('2026-04-08T23:59:59.999Z'),
+      new Date('2026-01-01T00:00:00.000Z'),
+      new Date('2026-01-08T23:59:59.999Z'),
       'week',
     );
 
-    expect(points.map((point) => point.date)).toEqual(['2026-14', '2026-15']);
+    expect(points.map((point) => point.date)).toEqual(['2026-01', '2026-02']);
     expect(points[0]?.tiktok).toMatchObject({ views: 5 });
     expect(points[1]?.tiktok).toEqual({
       comments: 0,
