@@ -4529,7 +4529,6 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     allFields: [
       'createdAt',
       'dashboardPreferences',
-      'defaultAgentModel',
       'generationPriority',
       'id',
       'isAdvancedMode',

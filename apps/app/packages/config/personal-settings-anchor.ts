@@ -1,6 +1,5 @@
 export const PERSONAL_SETTINGS_ANCHOR = {
   APPEARANCE: 'appearance',
-  CHAT_DEFAULTS: 'chat-defaults',
   EMAIL_NOTIFICATIONS: 'email-notifications',
   FEATURES: 'features',
   LANGUAGE: 'language',

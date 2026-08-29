@@ -11,7 +11,6 @@ export const settingAttributes = createEntityAttributes([
   'isAdvancedMode',
   'contentPreferences',
   'favoriteModelKeys',
-  'defaultAgentModel',
   'isAgentAssetsPanelOpen',
   'dashboardPreferences',
   'generationPriority',

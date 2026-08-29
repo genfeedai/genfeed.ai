@@ -1381,7 +1381,6 @@ model Setting {
   trendNotificationsMinViralScore  Int                        @default(70)
   contentPreferences               String[]                   @default([])
   favoriteModelKeys                String[]                   @default([])
-  defaultAgentModel                String                     @default("deepseek/deepseek-chat")
   isAgentAssetsPanelOpen           Boolean                    @default(false)
   generationPriority               GenerationPriority         @default(QUALITY)
   dashboardPreferences             Json                       @default("{\"scopes\":{}}")
