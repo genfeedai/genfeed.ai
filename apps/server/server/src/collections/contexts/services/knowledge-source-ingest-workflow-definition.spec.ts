@@ -32,9 +32,11 @@ describe('knowledge source workflow definitions', () => {
       (node) => node.data.config.actionId === 'workflow.for-each',
     );
     expect(fanOut?.data?.config).toMatchObject({
-      childWorkflowId: KNOWLEDGE_SOURCE_WORKFLOW_IDS.INGEST,
-      itemInputKey: 'request',
-      mode: 'scheduled',
+      parameters: {
+        childWorkflowId: KNOWLEDGE_SOURCE_WORKFLOW_IDS.INGEST,
+        itemInputKey: 'request',
+        mode: 'scheduled',
+      },
     });
   });
 });

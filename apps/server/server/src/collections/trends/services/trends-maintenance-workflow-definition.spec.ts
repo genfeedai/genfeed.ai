@@ -9,7 +9,8 @@ describe('trends maintenance workflow definitions', () => {
   it('builds refresh as action-backed steps including preview warmup', () => {
     const definition = buildTrendsRefreshWorkflowDefinition();
     const actionIds = definition.definition.nodes.flatMap((node) =>
-      node.type === 'action' && typeof node.data.config.actionId === 'string'
+      node.type === 'genfeedAction' &&
+      typeof node.data.config.actionId === 'string'
         ? [node.data.config.actionId]
         : [],
     );
@@ -37,7 +38,7 @@ describe('trends maintenance workflow definitions', () => {
     const definition = buildTrendDatasetTaskWorkflowDefinition();
     expect(definition.definition.nodes).toHaveLength(1);
     expect(definition.definition.nodes[0]).toEqual(
-      expect.objectContaining({ type: 'action' }),
+      expect.objectContaining({ type: 'genfeedAction' }),
     );
   });
 });

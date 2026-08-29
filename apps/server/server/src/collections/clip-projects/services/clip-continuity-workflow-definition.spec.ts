@@ -19,9 +19,11 @@ describe('clip continuity workflow definitions', () => {
     ]);
     expect(definition.definition.nodes[1]?.data.config).toEqual(
       expect.objectContaining({
-        childWorkflowId: 'clip.continuity.qa-one',
-        itemInputKey: 'video',
-        mode: 'await',
+        parameters: expect.objectContaining({
+          childWorkflowId: 'clip.continuity.qa-one',
+          itemInputKey: 'video',
+          mode: 'await',
+        }),
       }),
     );
   });

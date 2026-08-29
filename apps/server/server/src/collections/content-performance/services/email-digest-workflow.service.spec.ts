@@ -22,9 +22,11 @@ describe('email digest workflow definitions', () => {
       (node) => node.data.config.actionId === 'workflow.for-each',
     );
     expect(fanOut?.data?.config).toMatchObject({
-      childWorkflowId: EMAIL_DIGEST_CHILD_WORKFLOW_ID,
-      itemInputKey: 'delivery',
-      mode: 'await',
+      parameters: {
+        childWorkflowId: EMAIL_DIGEST_CHILD_WORKFLOW_ID,
+        itemInputKey: 'delivery',
+        mode: 'await',
+      },
     });
   });
 

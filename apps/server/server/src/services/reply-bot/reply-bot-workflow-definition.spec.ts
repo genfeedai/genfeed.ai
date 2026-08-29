@@ -14,13 +14,17 @@ describe('reply bot system workflow definitions', () => {
 
     expect(organization.definition.nodes[1]?.data.config).toMatchObject({
       actionId: 'workflow.for-each',
-      childWorkflowId: REPLY_BOT_WORKFLOW_IDS.BOT,
-      mode: 'await',
+      parameters: {
+        childWorkflowId: REPLY_BOT_WORKFLOW_IDS.BOT,
+        mode: 'await',
+      },
     });
     expect(bot.definition.nodes[1]?.data.config).toMatchObject({
       actionId: 'workflow.for-each',
-      childWorkflowId: REPLY_BOT_WORKFLOW_IDS.CONTENT,
-      mode: 'await',
+      parameters: {
+        childWorkflowId: REPLY_BOT_WORKFLOW_IDS.CONTENT,
+        mode: 'await',
+      },
     });
   });
 
@@ -32,9 +36,11 @@ describe('reply bot system workflow definitions', () => {
 
     expect(schedule?.data.config).toMatchObject({
       actionId: 'workflow.for-each',
-      childWorkflowId: REPLY_BOT_WORKFLOW_IDS.DM,
-      maxConcurrency: 1,
-      mode: 'scheduled',
+      parameters: {
+        childWorkflowId: REPLY_BOT_WORKFLOW_IDS.DM,
+        maxConcurrency: 1,
+        mode: 'scheduled',
+      },
     });
     expect(content.definition.edges).toContainEqual(
       expect.objectContaining({

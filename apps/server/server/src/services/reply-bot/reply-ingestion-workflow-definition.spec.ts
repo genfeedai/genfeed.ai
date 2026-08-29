@@ -11,9 +11,11 @@ describe('reply ingestion workflow definitions', () => {
 
     expect(definition.definition.nodes[1]?.data.config).toMatchObject({
       actionId: 'workflow.for-each',
-      childWorkflowId: AUTHOR_REPLY_WORKFLOW_IDS.SEND,
-      maxConcurrency: 1,
-      mode: 'await',
+      parameters: {
+        childWorkflowId: AUTHOR_REPLY_WORKFLOW_IDS.SEND,
+        maxConcurrency: 1,
+        mode: 'await',
+      },
     });
   });
 
@@ -22,8 +24,10 @@ describe('reply ingestion workflow definitions', () => {
 
     expect(definition.definition.nodes[1]?.data.config).toMatchObject({
       actionId: 'workflow.for-each',
-      childWorkflowId: REPLY_INGESTION_WORKFLOW_IDS.INBOUND,
-      mode: 'scheduled',
+      parameters: {
+        childWorkflowId: REPLY_INGESTION_WORKFLOW_IDS.INBOUND,
+        mode: 'scheduled',
+      },
     });
   });
 });

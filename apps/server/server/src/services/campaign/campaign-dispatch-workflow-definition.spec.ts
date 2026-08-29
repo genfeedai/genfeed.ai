@@ -14,13 +14,17 @@ describe('buildCampaignDispatchWorkflowDefinition', () => {
     );
     expect(definition.definition.nodes[1]?.data.config).toMatchObject({
       actionId: 'workflow.for-each',
-      childWorkflowId: CAMPAIGN_REPLY_BATCH_WORKFLOW_ID,
-      mode: 'scheduled',
+      parameters: {
+        childWorkflowId: CAMPAIGN_REPLY_BATCH_WORKFLOW_ID,
+        mode: 'scheduled',
+      },
     });
     expect(definition.definition.nodes[2]?.data.config).toMatchObject({
       actionId: 'workflow.for-each',
-      childWorkflowId: CAMPAIGN_DM_BATCH_WORKFLOW_ID,
-      mode: 'scheduled',
+      parameters: {
+        childWorkflowId: CAMPAIGN_DM_BATCH_WORKFLOW_ID,
+        mode: 'scheduled',
+      },
     });
     expect(definition.definition.nodes[3]?.data.config.actionId).toBe(
       CAMPAIGN_DISPATCH_ACTION_IDS.FINALIZE,
