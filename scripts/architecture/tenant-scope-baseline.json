@@ -233,86 +233,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "run",
-      "file": "apps/server/api/src/collections/runs/services/runs.service.ts",
-      "fingerprint": "78c6c23947bee15f87de",
-      "method": "count",
-      "model": "Run",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "run",
-      "file": "apps/server/api/src/collections/runs/services/runs.service.ts",
-      "fingerprint": "1788a678b9d8f35220d5",
-      "method": "findMany",
-      "model": "Run",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "run",
-      "file": "apps/server/api/src/collections/runs/services/runs.service.ts",
-      "fingerprint": "0828cb194633ecfed022",
-      "method": "update",
-      "model": "Run",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "run",
-      "file": "apps/server/api/src/collections/runs/services/runs.service.ts",
-      "fingerprint": "2ad6db0bdce737729330",
-      "method": "update",
-      "model": "Run",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "run",
-      "file": "apps/server/api/src/collections/runs/services/runs.service.ts",
-      "fingerprint": "98dd1af637979c862c0f",
-      "method": "update",
-      "model": "Run",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "run",
-      "file": "apps/server/api/src/collections/runs/services/runs.service.ts",
-      "fingerprint": "c15c287d4b7e79db1d2b",
-      "method": "update",
-      "model": "Run",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "run",
-      "file": "apps/server/api/src/collections/runs/services/runs.service.ts",
-      "fingerprint": "2e92b6e52ca9ca5dc972",
-      "method": "update",
-      "model": "Run",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "run",
-      "file": "apps/server/api/src/collections/runs/services/runs.service.ts",
-      "fingerprint": "302680cdebfa0dce5f48",
-      "method": "update",
-      "model": "Run",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "run",
-      "file": "apps/server/api/src/collections/runs/services/runs.service.ts",
-      "fingerprint": "c3ea789f6f40f3c909c5",
-      "method": "update",
-      "model": "Run",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "run",
-      "file": "apps/server/api/src/collections/runs/services/runs.service.ts",
-      "fingerprint": "e18b9c5f6ef906f73e04",
-      "method": "update",
-      "model": "Run",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "socialSource",
       "file": "apps/server/api/src/collections/social-sources/services/social-sources.service.ts",
       "fingerprint": "90e6910087fbbc3c5686",
@@ -533,6 +453,14 @@
       "file": "apps/server/api/src/seeds/self-hosted-seed.service.ts",
       "fingerprint": "f12d2f6717ba0eaaaa2f",
       "method": "update",
+      "model": "Member",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "member",
+      "file": "apps/server/api/src/services/lifecycle-emails/lifecycle-email.service.ts",
+      "fingerprint": "9eb58dfa6d9a22610ec8",
+      "method": "findFirst",
       "model": "Member",
       "reason": "missing-organization-id"
     },
@@ -777,14 +705,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
-      "fingerprint": "98cf02ee575d29bea3fc",
-      "method": "updateMany",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-is-deleted"
-    },
-    {
       "delegate": "brand",
       "file": "apps/server/server/src/collections/brands/services/brand-relocation.service.ts",
       "fingerprint": "260495b727ff53add1e2",
@@ -903,14 +823,6 @@
       "method": "updateMany",
       "model": "WorkflowExecution",
       "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "contentPerformance",
-      "file": "apps/server/server/src/collections/content-performance/services/analytics-sync.service.ts",
-      "fingerprint": "0f16780f76fb7bdb8262",
-      "method": "findFirst",
-      "model": "ContentPerformance",
-      "reason": "unresolved-where"
     },
     {
       "delegate": "contentPerformance",
@@ -1651,10 +1563,34 @@
     {
       "delegate": "rssFeedItem",
       "file": "apps/server/server/src/collections/rss-sources/services/rss-sources.service.ts",
+      "fingerprint": "3c976db7dd0ae7600131",
+      "method": "findFirst",
+      "model": "RssFeedItem",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "rssFeedItem",
+      "file": "apps/server/server/src/collections/rss-sources/services/rss-sources.service.ts",
       "fingerprint": "6135e8426155511500ec",
       "method": "findFirst",
       "model": "RssFeedItem",
       "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "rssFeedItem",
+      "file": "apps/server/server/src/collections/rss-sources/services/rss-sources.service.ts",
+      "fingerprint": "211d03eab1cb83092675",
+      "method": "update",
+      "model": "RssFeedItem",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "rssFeedItem",
+      "file": "apps/server/server/src/collections/rss-sources/services/rss-sources.service.ts",
+      "fingerprint": "4ff56acefd7bbe17d9c9",
+      "method": "update",
+      "model": "RssFeedItem",
+      "reason": "missing-is-deleted"
     },
     {
       "delegate": "rssFeedItem",
@@ -1667,31 +1603,7 @@
     {
       "delegate": "rssFeedItem",
       "file": "apps/server/server/src/collections/rss-sources/services/rss-sources.service.ts",
-      "fingerprint": "a5795cd3c05c2f6f0c01",
-      "method": "update",
-      "model": "RssFeedItem",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "rssFeedItem",
-      "file": "apps/server/server/src/collections/rss-sources/services/rss-sources.service.ts",
-      "fingerprint": "b2df73b4fe9ee6396ded",
-      "method": "update",
-      "model": "RssFeedItem",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "rssFeedItem",
-      "file": "apps/server/server/src/collections/rss-sources/services/rss-sources.service.ts",
-      "fingerprint": "381b194a31ab26635d5e",
-      "method": "update",
-      "model": "RssFeedItem",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "rssFeedItem",
-      "file": "apps/server/server/src/collections/rss-sources/services/rss-sources.service.ts",
-      "fingerprint": "aa62a8cc264bfca8c0a1",
+      "fingerprint": "7c3db5c0dfe11efc4603",
       "method": "update",
       "model": "RssFeedItem",
       "reason": "missing-organization-id"
@@ -1700,6 +1612,14 @@
       "delegate": "rssFeedItem",
       "file": "apps/server/server/src/collections/rss-sources/services/rss-sources.service.ts",
       "fingerprint": "bbc477097193120fe661",
+      "method": "update",
+      "model": "RssFeedItem",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "rssFeedItem",
+      "file": "apps/server/server/src/collections/rss-sources/services/rss-sources.service.ts",
+      "fingerprint": "c102fd81130e251d963d",
       "method": "update",
       "model": "RssFeedItem",
       "reason": "missing-organization-id"
@@ -1763,7 +1683,7 @@
     {
       "delegate": "socialConversation",
       "file": "apps/server/server/src/collections/social-inbox/services/social-inbox-action.service.ts",
-      "fingerprint": "6da39cb5512286337d65",
+      "fingerprint": "7e6e7757c7f131af005e",
       "method": "update",
       "model": "SocialConversation",
       "reason": "missing-is-deleted"
@@ -2009,6 +1929,22 @@
       "reason": "missing-organization-id"
     },
     {
+      "delegate": "workflowExecution",
+      "file": "apps/server/server/src/collections/workflow-executions/services/workflow-executions.service.ts",
+      "fingerprint": "30cad6b5cfc187ebbf4a",
+      "method": "upsert",
+      "model": "WorkflowExecution",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "workflowExecution",
+      "file": "apps/server/server/src/collections/workflow-executions/services/workflow-executions.service.ts",
+      "fingerprint": "e14e5d35b3e9c7fdd951",
+      "method": "upsert",
+      "model": "WorkflowExecution",
+      "reason": "missing-organization-id"
+    },
+    {
       "delegate": "agentStrategy",
       "file": "apps/server/server/src/collections/workflows/services/agent-autopilot-workflow.service.ts",
       "fingerprint": "a59a92f1a4faff39078c",
@@ -2041,155 +1977,35 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "227658956d63b3601e9e",
-      "method": "findFirst",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "2cb0da7029f89361ec32",
-      "method": "findFirst",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "62ee4f36061e19921327",
-      "method": "findFirst",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "8aa693bd892d91148fc7",
-      "method": "findFirst",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "13eac42b0de24d693f65",
-      "method": "findFirst",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "8cf017db46862a424f49",
-      "method": "findFirst",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "c79bc6305b3a8f066c34",
-      "method": "findFirst",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "e62c7dc2347e2bff3f2a",
-      "method": "findFirst",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "70ab88a605c26de5e15e",
+      "delegate": "workflowArtifact",
+      "file": "apps/server/server/src/collections/workflows/services/workflow-artifact-lifecycle.service.ts",
+      "fingerprint": "3237fef238ab03956afd",
       "method": "findMany",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "206e29b56401b77ad000",
-      "method": "update",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "6ddea13601359f76c11e",
-      "method": "update",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "af46e8f10559daf732f5",
-      "method": "update",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "c8d5a264a895c6a99c18",
-      "method": "update",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "ea47407051b3448b5517",
-      "method": "update",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "3c366602ecb2850e5ba3",
-      "method": "update",
-      "model": "BatchWorkflowJob",
+      "model": "WorkflowArtifact",
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "505b408b9fe32aac590b",
-      "method": "update",
-      "model": "BatchWorkflowJob",
+      "delegate": "workflowArtifact",
+      "file": "apps/server/server/src/collections/workflows/services/workflow-artifact-lifecycle.service.ts",
+      "fingerprint": "9b8a019583e2d2c9174a",
+      "method": "upsert",
+      "model": "WorkflowArtifact",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "workflowArtifact",
+      "file": "apps/server/server/src/collections/workflows/services/workflow-artifact-lifecycle.service.ts",
+      "fingerprint": "123fd5c99cacb55f2a46",
+      "method": "upsert",
+      "model": "WorkflowArtifact",
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "8b3ff18171af921e509b",
-      "method": "update",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "9216d6e33ef4aecd02cd",
-      "method": "update",
-      "model": "BatchWorkflowJob",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "batchWorkflowJob",
-      "file": "apps/server/server/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "d38ebf73337ea98f7f5a",
-      "method": "update",
-      "model": "BatchWorkflowJob",
+      "delegate": "workflowExecution",
+      "file": "apps/server/server/src/collections/workflows/services/workflow-artifact-lifecycle.service.ts",
+      "fingerprint": "5eceacde0d78d1e0c952",
+      "method": "findMany",
+      "model": "WorkflowExecution",
       "reason": "missing-organization-id"
     },
     {
@@ -2242,38 +2058,6 @@
     },
     {
       "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-review-gate.service.ts",
-      "fingerprint": "bece2075a67056d1d1d6",
-      "method": "update",
-      "model": "Workflow",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-review-gate.service.ts",
-      "fingerprint": "ffcffeb4648d28e50210",
-      "method": "update",
-      "model": "Workflow",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-review-gate.service.ts",
-      "fingerprint": "01192fbaa5adf695ee07",
-      "method": "update",
-      "model": "Workflow",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflow",
-      "file": "apps/server/server/src/collections/workflows/services/workflow-review-gate.service.ts",
-      "fingerprint": "376a68d82490aa6b790f",
-      "method": "update",
-      "model": "Workflow",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflow",
       "file": "apps/server/server/src/collections/workflows/services/workflow-scheduler.service.ts",
       "fingerprint": "0eabfa5981bc89185300",
       "method": "findFirst",
@@ -2283,7 +2067,7 @@
     {
       "delegate": "workflow",
       "file": "apps/server/server/src/collections/workflows/services/workflow-scheduler.service.ts",
-      "fingerprint": "114d5300c152c76496e7",
+      "fingerprint": "953ad33bc498cb2a9b30",
       "method": "findFirst",
       "model": "Workflow",
       "reason": "missing-organization-id"
@@ -2291,7 +2075,7 @@
     {
       "delegate": "workflow",
       "file": "apps/server/server/src/collections/workflows/services/workflow-scheduler.service.ts",
-      "fingerprint": "49149fcdfd2ae71a557e",
+      "fingerprint": "c8a0d0538ef9af4e5878",
       "method": "findMany",
       "model": "Workflow",
       "reason": "missing-organization-id"
@@ -2299,7 +2083,7 @@
     {
       "delegate": "workflow",
       "file": "apps/server/server/src/collections/workflows/services/workflow-scheduler.service.ts",
-      "fingerprint": "6fe9c2febc638909e30f",
+      "fingerprint": "880a12150dc963b8043c",
       "method": "update",
       "model": "Workflow",
       "reason": "missing-is-deleted"
@@ -2307,7 +2091,7 @@
     {
       "delegate": "workflow",
       "file": "apps/server/server/src/collections/workflows/services/workflow-scheduler.service.ts",
-      "fingerprint": "6b41de97519533698bd1",
+      "fingerprint": "07beeae80f669b7845ae",
       "method": "update",
       "model": "Workflow",
       "reason": "missing-organization-id"
@@ -2315,18 +2099,114 @@
     {
       "delegate": "workflow",
       "file": "apps/server/server/src/collections/workflows/services/workflow-trend-publish-executor-registrar.service.ts",
-      "fingerprint": "6cde3b5a9836282e9f1c",
+      "fingerprint": "d15a4db82d1fdfda8449",
       "method": "findFirst",
       "model": "Workflow",
       "reason": "missing-organization-id"
     },
     {
+      "delegate": "workflow",
+      "file": "apps/server/server/src/collections/workflows/services/workflows.service.ts",
+      "fingerprint": "2e82cee153a4e24f7bfc",
+      "method": "findUniqueOrThrow",
+      "model": "Workflow",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "workflow",
+      "file": "apps/server/server/src/collections/workflows/services/workflows.service.ts",
+      "fingerprint": "d177b8b8f37fd8fd217d",
+      "method": "findUniqueOrThrow",
+      "model": "Workflow",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "workflow",
+      "file": "apps/server/server/src/collections/workflows/services/workflows.service.ts",
+      "fingerprint": "1df53edeeff2426f109a",
+      "method": "updateMany",
+      "model": "Workflow",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "workflow",
+      "file": "apps/server/server/src/collections/workflows/services/workflows.service.ts",
+      "fingerprint": "358e21c730ac0db3e25e",
+      "method": "updateMany",
+      "model": "Workflow",
+      "reason": "missing-organization-id"
+    },
+    {
       "delegate": "post",
-      "file": "apps/server/server/src/collections/workflows/system-workflow-provenance.service.ts",
-      "fingerprint": "baf70c8cb86026fe7394",
+      "file": "apps/server/server/src/collections/workflows/system-workflow-runner.service.ts",
+      "fingerprint": "c106b8d4a5c53db67668",
       "method": "updateMany",
       "model": "Post",
       "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "workflow",
+      "file": "apps/server/server/src/collections/workflows/system-workflow-runner.service.ts",
+      "fingerprint": "eb3b784c13fd1889bbc2",
+      "method": "findUniqueOrThrow",
+      "model": "Workflow",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "workflow",
+      "file": "apps/server/server/src/collections/workflows/system-workflow-runner.service.ts",
+      "fingerprint": "70119af7de3d5a892ea7",
+      "method": "findUniqueOrThrow",
+      "model": "Workflow",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "workflow",
+      "file": "apps/server/server/src/collections/workflows/system-workflow-runner.service.ts",
+      "fingerprint": "7efd0a726476c4555986",
+      "method": "update",
+      "model": "Workflow",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "workflow",
+      "file": "apps/server/server/src/collections/workflows/system-workflow-runner.service.ts",
+      "fingerprint": "8fbe0f338394fe87fd32",
+      "method": "update",
+      "model": "Workflow",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "workflow",
+      "file": "apps/server/server/src/collections/workflows/system-workflow-runner.service.ts",
+      "fingerprint": "2fd43c3cd52a036fc2be",
+      "method": "updateMany",
+      "model": "Workflow",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "workflow",
+      "file": "apps/server/server/src/collections/workflows/system-workflow-runner.service.ts",
+      "fingerprint": "581a7749b237829491cb",
+      "method": "updateMany",
+      "model": "Workflow",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "workflow",
+      "file": "apps/server/server/src/collections/workflows/workflow-version-definition.ts",
+      "fingerprint": "1d8cd8da9bd905ea55e0",
+      "method": "findUniqueOrThrow",
+      "model": "Workflow",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "workflow",
+      "file": "apps/server/server/src/collections/workflows/workflow-version-definition.ts",
+      "fingerprint": "add80bb001c1411321c6",
+      "method": "findUniqueOrThrow",
+      "model": "Workflow",
+      "reason": "missing-organization-id"
     },
     {
       "delegate": "brand",
@@ -2439,14 +2319,6 @@
       "method": "findFirst",
       "model": "ThreadContextState",
       "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/server/src/services/lifecycle-emails/lifecycle-email-delivery.service.ts",
-      "fingerprint": "c77cce8d923bb70f4e3a",
-      "method": "findFirst",
-      "model": "Post",
-      "reason": "unresolved-where"
     },
     {
       "delegate": "subscription",

@@ -91,6 +91,12 @@ import { WorkflowTemplateSeederService } from '@server/collections/workflows/ser
 import { WorkflowWebhookService } from '@server/collections/workflows/services/workflow-webhook.service';
 import { YoutubeLongFormWorkflowService } from '@server/collections/workflows/services/youtube-long-form-workflow.service';
 import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import {
+  SYSTEM_WORKFLOW_CATALOG,
+  SYSTEM_WORKFLOW_RUNNER,
+  WORKFLOW_ENGINE_ADAPTER,
+  WORKFLOW_EXECUTOR,
+} from '@server/collections/workflows/workflows.tokens';
 import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-queue.service';
 
 @Module({
@@ -109,6 +115,10 @@ import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-q
   ],
   exports: [
     BatchWorkflowExecutionService,
+    SYSTEM_WORKFLOW_CATALOG,
+    SYSTEM_WORKFLOW_RUNNER,
+    WORKFLOW_ENGINE_ADAPTER,
+    WORKFLOW_EXECUTOR,
     SystemWorkflowCatalogService,
     SystemWorkflowRunnerService,
     WorkflowsCoreModule,
@@ -210,7 +220,23 @@ import { HeygenPollQueueService } from '@server/queues/heygen-poll/heygen-poll-q
     WorkflowRunControlService,
     WorkflowSchedulerService,
     SystemWorkflowCatalogService,
+    {
+      provide: SYSTEM_WORKFLOW_CATALOG,
+      useExisting: SystemWorkflowCatalogService,
+    },
     SystemWorkflowRunnerService,
+    {
+      provide: SYSTEM_WORKFLOW_RUNNER,
+      useExisting: SystemWorkflowRunnerService,
+    },
+    {
+      provide: WORKFLOW_ENGINE_ADAPTER,
+      useExisting: WorkflowEngineAdapterService,
+    },
+    {
+      provide: WORKFLOW_EXECUTOR,
+      useExisting: WorkflowExecutorService,
+    },
     SystemWorkflowDefinitionRegistrarService,
     WorkflowTemplateSeederService,
     WorkflowWebhookService,

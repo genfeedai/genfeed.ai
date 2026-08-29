@@ -19,7 +19,7 @@ import { CreateWorkflowDto } from '@server/collections/workflows/dto/create-work
 import { UpdateWorkflowDto } from '@server/collections/workflows/dto/update-workflow.dto';
 import { WorkflowEntity } from '@server/collections/workflows/entities/workflow.entity';
 import { type WorkflowDocument } from '@server/collections/workflows/schemas/workflow.schema';
-import { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
+import type { SystemWorkflowCatalogService } from '@server/collections/workflows/services/system-workflow-catalog.service';
 import {
   WorkflowExecutionQueueService,
   type WorkflowSchedulerSyncRow,
@@ -39,6 +39,7 @@ import {
   type VersionedWorkflowIdentityInput,
   WORKFLOW_DEFINITION_FIELDS,
 } from '@server/collections/workflows/workflow-version-definition';
+import { SYSTEM_WORKFLOW_CATALOG } from '@server/collections/workflows/workflows.tokens';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { HandleErrors } from '@server/helpers/decorators/error-handler.decorator';
 import { MarketplaceApiClient } from '@server/marketplace-integration/marketplace-api-client';
@@ -133,9 +134,10 @@ export class WorkflowsService extends BaseService<
     | SystemWorkflowCatalogService
     | undefined {
     try {
-      return this.moduleRef.get(SystemWorkflowCatalogService, {
-        strict: false,
-      });
+      return this.moduleRef.get<SystemWorkflowCatalogService>(
+        SYSTEM_WORKFLOW_CATALOG,
+        { strict: false },
+      );
     } catch {
       return undefined;
     }

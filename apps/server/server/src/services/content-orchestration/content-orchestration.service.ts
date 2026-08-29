@@ -6,7 +6,7 @@ import {
   PostCategory,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
@@ -15,10 +15,11 @@ import { IngredientsService } from '@server/collections/ingredients/services/ing
 import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { type PersonaDocument } from '@server/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@server/collections/personas/services/personas.service';
-import {
-  type SystemWorkflowActionRequest,
+import type {
+  SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
 } from '@server/collections/workflows/system-workflow-runner.service';
+import { SYSTEM_WORKFLOW_RUNNER } from '@server/collections/workflows/workflows.tokens';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { buildContentPipelineWorkflowDefinition } from '@server/services/content-orchestration/content-pipeline-workflow-definition';
 import type {
@@ -53,27 +54,10 @@ export class ContentOrchestrationService {
     private readonly ingredientsService: IngredientsService,
     private readonly metadataService: MetadataService,
     private readonly stepExecutorService: StepExecutorService,
+    @Inject(SYSTEM_WORKFLOW_RUNNER)
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
   ) {
     this.registerWorkflowActions();
-  }
-
-  /**
-   * Convert contentStrategy.frequency string to milliseconds.
-   */
-  static parseFrequencyToMs(frequency?: string): number {
-    switch (frequency?.toLowerCase()) {
-      case 'hourly':
-        return 3_600_000;
-      case 'twice-daily':
-        return 43_200_000;
-      case 'daily':
-        return 86_400_000;
-      case 'weekly':
-        return 604_800_000;
-      default:
-        return 86_400_000; // default daily
-    }
   }
 
   /**

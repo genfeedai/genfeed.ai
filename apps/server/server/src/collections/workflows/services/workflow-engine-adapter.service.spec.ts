@@ -167,17 +167,20 @@ describe('WorkflowEngineAdapterService', () => {
 
       const result = convertActionGraph(service, workflowDoc);
 
-      expect(result.nodes[0].config).toEqual({ model: 'flux', steps: 20 });
+      expect(result.nodes[0].config).toEqual({
+        actionId: 'imageGen',
+        parameters: { model: 'flux', steps: 20 },
+      });
     });
 
-    it('merges editor prompt fields into executable config', () => {
+    it('merges editor prompt fields into executable action parameters', () => {
       const workflowDoc = {
         id: 'wf-1',
         nodes: [
           {
             data: { label: 'Prompt', prompt: 'Write a FUD News brief' },
             id: 'PyHRz6uB',
-            type: 'prompt',
+            type: 'ai-llm',
           },
         ],
         organizationId: 'org-1',
@@ -186,9 +189,10 @@ describe('WorkflowEngineAdapterService', () => {
 
       const result = convertActionGraph(service, workflowDoc);
 
-      expect(result.nodes[0]?.type).toBe('prompt');
+      expect(result.nodes[0]?.type).toBe('genfeedAction');
       expect(result.nodes[0]?.config).toEqual({
-        prompt: 'Write a FUD News brief',
+        actionId: 'llm',
+        parameters: { prompt: 'Write a FUD News brief' },
       });
     });
 
@@ -224,12 +228,9 @@ describe('WorkflowEngineAdapterService', () => {
 
       const result = convertActionGraph(service, workflowDoc);
 
-      expect(result.nodes.map((node) => node.config.brandId)).toEqual([
-        'brand-1',
-        'brand-1',
-        'brand-1',
-        'brand-1',
-      ]);
+      expect(
+        result.nodes.map((node) => node.config.parameters.brandId),
+      ).toEqual(['brand-1', 'brand-1', 'brand-1', 'brand-1']);
     });
   });
 
@@ -247,11 +248,11 @@ describe('WorkflowEngineAdapterService', () => {
     it('should return a number', () => {
       const result = service.estimateCredits([
         {
-          config: {},
+          config: { actionId: 'imageGen', parameters: {} },
           id: 'n1',
           inputs: [],
           label: 'Test',
-          type: 'imageGen',
+          type: 'genfeedAction',
         },
       ]);
 
@@ -439,9 +440,9 @@ describe('WorkflowEngineAdapterService', () => {
         id: 'wf-prompt',
         nodes: [
           {
-            data: { label: 'Prompt', prompt: 'Write a FUD News brief' },
+            data: { label: 'Prompt', template: 'Write a FUD News brief' },
             id: 'PyHRz6uB',
-            type: 'prompt',
+            type: 'ai-prompt-constructor',
           },
         ],
         organizationId: 'org-1',
@@ -452,10 +453,9 @@ describe('WorkflowEngineAdapterService', () => {
 
       expect(result.status).toBe('completed');
       expect(result.error).toBeUndefined();
-      expect(result.nodeResults.get('PyHRz6uB')?.output).toEqual({
-        prompt: 'Write a FUD News brief',
-        text: 'Write a FUD News brief',
-      });
+      expect(result.nodeResults.get('PyHRz6uB')?.output).toBe(
+        'Write a FUD News brief',
+      );
     });
 
     it('keeps a 1-node prompt on the graph after applyRuntimeInputValues', () => {
@@ -463,9 +463,9 @@ describe('WorkflowEngineAdapterService', () => {
         id: 'wf-prompt',
         nodes: [
           {
-            data: { label: 'Prompt', prompt: 'Write a FUD News brief' },
+            data: { label: 'Prompt', template: 'Write a FUD News brief' },
             id: 'PyHRz6uB',
-            type: 'prompt',
+            type: 'ai-prompt-constructor',
           },
         ],
         organizationId: 'org-1',
@@ -480,7 +480,9 @@ describe('WorkflowEngineAdapterService', () => {
 
       expect(hydrated.nodes).toHaveLength(1);
       expect(hydrated.nodes[0]?.id).toBe('PyHRz6uB');
-      expect(hydrated.nodes[0]?.config.prompt).toBe('Write a FUD News brief');
+      expect(hydrated.nodes[0]?.config.parameters.template).toBe(
+        'Write a FUD News brief',
+      );
     });
 
     it('executes a prompt constructor from data.template', async () => {

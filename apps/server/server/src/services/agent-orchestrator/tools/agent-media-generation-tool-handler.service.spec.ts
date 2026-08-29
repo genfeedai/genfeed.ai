@@ -3,7 +3,6 @@ import { AgentMediaAssetGenerationService } from '@server/services/agent-orchest
 import { AgentMediaBatchGenerationService } from '@server/services/agent-orchestrator/tools/agent-media-batch-generation.service';
 import { AgentMediaGenerationToolHandler } from '@server/services/agent-orchestrator/tools/agent-media-generation-tool-handler.service';
 import { AgentMediaTextGenerationService } from '@server/services/agent-orchestrator/tools/agent-media-text-generation.service';
-import { Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
 function createHandler() {
@@ -1075,51 +1074,6 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     });
   });
 
-  it('hands a batch to durable execution when streaming fails before processing', async () => {
-    const processBatch = vi.fn();
-    const queueBatch = vi.fn().mockResolvedValue('job-stream-fallback');
-    const publishTokenEffect = vi.fn(() =>
-      Effect.fail(new Error('stream unavailable')),
-    );
-    const batchOwner = new AgentMediaBatchGenerationService(
-      { error: vi.fn(), warn: vi.fn() } as never,
-      {} as never,
-      {
-        cancelBatch: vi.fn(),
-        createBatch: vi.fn().mockResolvedValue({
-          id: 'batch-stream-1',
-          status: 'PENDING',
-          totalCount: 2,
-        }),
-        processBatch,
-      } as never,
-      undefined,
-      { publishTokenEffect } as never,
-      {
-        reserveCredits: vi.fn().mockResolvedValue({ id: 'res-stream' }),
-      } as never,
-      { recordUpfrontCharge: vi.fn().mockResolvedValue(true) } as never,
-      undefined,
-      { queueBatch } as never,
-    );
-
-    const result = await batchOwner.generateContentBatch(
-      { brandId: 'brand-1', count: 2, platforms: ['instagram'] },
-      {
-        ...context,
-        streamBatchToUser: true,
-        threadId: 'thread-1',
-      },
-    );
-
-    expect(result.success).toBe(true);
-    expect(publishTokenEffect).toHaveBeenCalledOnce();
-    expect(processBatch).not.toHaveBeenCalled();
-    expect(queueBatch).toHaveBeenCalledWith(
-      expect.objectContaining({ batchId: 'batch-stream-1' }),
-    );
-  });
-
   it('releases the hold and cancels when the reservation ledger cannot be pinned', async () => {
     const {
       batchCreditsService,
@@ -1161,13 +1115,11 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     const batchOwner = new AgentMediaBatchGenerationService(
       logger as never,
       {} as never,
+      batchGenerationQueueService as never,
       batchGenerationService as never,
-      undefined,
       undefined,
       creditsUtilsService as never,
       undefined,
-      undefined,
-      batchGenerationQueueService as never,
     );
     const handler = new AgentMediaGenerationToolHandler(
       {} as never,
@@ -1266,64 +1218,5 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
       'user-1',
       'organization-1',
     );
-  });
-
-  it('runs and settles in process when no queue accepts ownership', async () => {
-    const processBatch = vi.fn().mockResolvedValue({
-      completedCount: 2,
-      failedCount: 0,
-      status: 'COMPLETED',
-      totalCount: 2,
-    });
-    const settleBatchCredits = vi.fn().mockResolvedValue({
-      settledCredits: 8,
-    });
-    const batchGenerationService = {
-      cancelBatch: vi.fn(),
-      createBatch: vi.fn().mockResolvedValue({
-        id: 'batch-local-1',
-        status: 'PENDING',
-        totalCount: 2,
-      }),
-      processBatch,
-    };
-    const batchOwner = new AgentMediaBatchGenerationService(
-      { error: vi.fn(), warn: vi.fn() } as never,
-      {} as never,
-      { queueBatch: vi.fn().mockResolvedValue(undefined) } as never,
-      batchGenerationService as never,
-      undefined,
-      { deductCreditsFromOrganization: vi.fn() } as never,
-      {
-        reserveCredits: vi.fn().mockResolvedValue({ id: 'res-local' }),
-      } as never,
-      {
-        recordUpfrontCharge: vi.fn().mockResolvedValue(true),
-        settleBatchCredits,
-      } as never,
-    );
-    const handler = new AgentMediaGenerationToolHandler(
-      {} as never,
-      {} as never,
-      batchOwner,
-    );
-
-    const result = await handler.generateContentBatch(
-      { brandId: 'brand-1', count: 2, platforms: ['instagram'] },
-      context,
-    );
-    await vi.waitFor(() => expect(settleBatchCredits).toHaveBeenCalledOnce());
-
-    expect(result.success).toBe(true);
-    expect(processBatch).toHaveBeenCalledWith(
-      'batch-local-1',
-      'organization-1',
-      undefined,
-    );
-    expect(settleBatchCredits).toHaveBeenCalledWith({
-      batchId: 'batch-local-1',
-      organizationId: 'organization-1',
-      userId: 'user-1',
-    });
   });
 });

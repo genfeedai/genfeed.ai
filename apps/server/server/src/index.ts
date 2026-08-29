@@ -24,7 +24,6 @@ export {
   classifyAnalyticsCollectionError,
   delayedAnalyticsCollectionFailure,
 } from './analytics/analytics-collection-state';
-export { AnalyticsProviderCollectionService } from './analytics/services/analytics-provider-collection.service';
 export { AnalyticsSocialCollectionService } from './analytics/services/analytics-social-collection.service';
 export { AnalyticsTwitterCollectionService } from './analytics/services/analytics-twitter-collection.service';
 export { AnalyticsYouTubeCollectionService } from './analytics/services/analytics-youtube-collection.service';
@@ -104,7 +103,6 @@ export type {
 } from './collections/models/model-record.types';
 export { PostEntity } from './collections/posts/entities/post.entity';
 export type { Post, PostDocument } from './collections/posts/post.schema';
-export { SystemWorkflowRunnerService } from './collections/workflows/system-workflow-runner.service';
 export { BaseEntity } from './entities/base.entity';
 export {
   BusinessLogicException,

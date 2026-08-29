@@ -314,6 +314,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
       {
         baseInput: JSON_DOCUMENT_SCHEMA,
         childWorkflowId: NON_EMPTY_STRING_SCHEMA,
+        dto: JSON_DOCUMENT_SCHEMA,
         item: JSON_DOCUMENT_SCHEMA,
         request: JSON_DOCUMENT_SCHEMA,
       },

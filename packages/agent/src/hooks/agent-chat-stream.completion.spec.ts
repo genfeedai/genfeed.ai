@@ -1,7 +1,7 @@
 import { resolveStreamFromMessages } from '@genfeedai/agent/hooks/agent-chat-stream.completion';
 import { STREAM_COMPLETION_GRACE_PERIOD_MS } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
-import { AgentExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { Effect } from 'effect';
 import { expect, it, vi } from 'vitest';
 
@@ -10,11 +10,11 @@ it('emits a structured stream-recovery timeout after durable acknowledgement', a
   const deps = {
     apiService: {
       getMessagesEffect: vi.fn(() => Effect.succeed([])),
-      getRunEffect: vi.fn(() =>
+      getWorkflowExecutionEffect: vi.fn(() =>
         Effect.succeed({
           error: null,
-          id: 'run-1',
-          status: AgentExecutionStatus.FAILED,
+          id: 'execution-1',
+          status: WorkflowExecutionStatus.FAILED,
         }),
       ),
     },
@@ -37,7 +37,7 @@ it('emits a structured stream-recovery timeout after durable acknowledgement', a
     {
       initiatedAt: Date.now() - STREAM_COMPLETION_GRACE_PERIOD_MS,
       preAssistantIds: new Set(),
-      runId: 'run-1',
+      runId: 'execution-1',
       startedAt: new Date().toISOString(),
       threadId: 'thread-1',
     },
@@ -53,10 +53,10 @@ it('keeps reconciling a durably queued run after the stream grace period', async
   const deps = {
     apiService: {
       getMessagesEffect: vi.fn(() => Effect.succeed([])),
-      getRunEffect: vi.fn(() =>
+      getWorkflowExecutionEffect: vi.fn(() =>
         Effect.succeed({
-          id: 'run-1',
-          status: AgentExecutionStatus.PENDING,
+          id: 'execution-1',
+          status: WorkflowExecutionStatus.PENDING,
         }),
       ),
     },
@@ -79,7 +79,7 @@ it('keeps reconciling a durably queued run after the stream grace period', async
     {
       initiatedAt: Date.now() - STREAM_COMPLETION_GRACE_PERIOD_MS,
       preAssistantIds: new Set(),
-      runId: 'run-1',
+      runId: 'execution-1',
       startedAt: new Date().toISOString(),
       threadId: 'thread-1',
     },

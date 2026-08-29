@@ -1800,9 +1800,9 @@ export const GENERATION_WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
           config: {
             actionId: 'generate_content_batch',
             parameters: {
-              aspectRatio: 'tiktok_portrait',
-              model: 'gpt-image-1',
-              slideCount: 6,
+              count: 6,
+              platforms: ['tiktok'],
+              style: 'slideshow',
             },
           },
         },

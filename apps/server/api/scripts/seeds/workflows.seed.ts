@@ -20,6 +20,7 @@ import { resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { isEntityId } from '@api-types/helpers/entity-id';
+import { GENFEED_ACTION_NODE_TYPE } from '@genfeedai/actions';
 import { WorkflowTrigger } from '@genfeedai/enums';
 import { PrismaClient } from '@genfeedai/prisma';
 import {
@@ -236,14 +237,14 @@ function buildNodeLabel(contentType: DefaultRecurringContentType): string {
   }
 }
 
-function buildNodeType(contentType: DefaultRecurringContentType): string {
+function buildActionId(contentType: DefaultRecurringContentType): string {
   switch (contentType) {
     case 'post':
-      return 'ai-generate-post';
+      return 'postGen';
     case 'newsletter':
-      return 'ai-generate-newsletter';
+      return 'newsletterGen';
     default:
-      return 'ai-generate-image';
+      return 'imageGen';
   }
 }
 
@@ -406,18 +407,21 @@ async function ensureDefaultBundle(params: {
           nodes: [
             {
               data: {
-                config: buildNodeConfig({
-                  brandId: params.brand.id,
-                  brandLabel: params.brand.label,
-                  contentType,
-                  credentialId: credential?.id,
-                  timezone,
-                }),
+                config: {
+                  actionId: buildActionId(contentType),
+                  parameters: buildNodeConfig({
+                    brandId: params.brand.id,
+                    brandLabel: params.brand.label,
+                    contentType,
+                    credentialId: credential?.id,
+                    timezone,
+                  }),
+                },
                 label: buildNodeLabel(contentType),
               },
               id: `generate-${contentType}`,
               position: { x: 120, y: 120 },
-              type: buildNodeType(contentType),
+              type: GENFEED_ACTION_NODE_TYPE,
             },
           ],
         },

@@ -101,6 +101,12 @@ import { WorkflowSchedulerService } from '@server/collections/workflows/services
 import { WorkflowTemplateSeederService } from '@server/collections/workflows/services/workflow-template-seeder.service';
 import { WorkflowWebhookService } from '@server/collections/workflows/services/workflow-webhook.service';
 import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import {
+  SYSTEM_WORKFLOW_CATALOG,
+  SYSTEM_WORKFLOW_RUNNER,
+  WORKFLOW_ENGINE_ADAPTER,
+  WORKFLOW_EXECUTOR,
+} from '@server/collections/workflows/workflows.tokens';
 import { ManagedInferenceClientService } from '@server/endpoints/v1/managed-inference/managed-inference-client.service';
 import { WebhooksService } from '@server/endpoints/webhooks/webhooks.service';
 import { TransactionUtil } from '@server/helpers/utils/transaction/transaction.util';
@@ -414,10 +420,33 @@ const WORKER_DOMAIN_SERVICES = [
 ] as const;
 
 @Module({
-  exports: [...WORKER_DOMAIN_SERVICES, CacheModule],
+  exports: [
+    ...WORKER_DOMAIN_SERVICES,
+    CacheModule,
+    SYSTEM_WORKFLOW_CATALOG,
+    SYSTEM_WORKFLOW_RUNNER,
+    WORKFLOW_ENGINE_ADAPTER,
+    WORKFLOW_EXECUTOR,
+  ],
   imports: [CacheModule, ConfigModule, HttpModule, LoggerModule, PrismaModule],
   providers: [
     ...WORKER_DOMAIN_SERVICES,
+    {
+      provide: SYSTEM_WORKFLOW_CATALOG,
+      useExisting: SystemWorkflowCatalogService,
+    },
+    {
+      provide: SYSTEM_WORKFLOW_RUNNER,
+      useExisting: SystemWorkflowRunnerService,
+    },
+    {
+      provide: WORKFLOW_ENGINE_ADAPTER,
+      useExisting: WorkflowEngineAdapterService,
+    },
+    {
+      provide: WORKFLOW_EXECUTOR,
+      useExisting: WorkflowExecutorService,
+    },
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
     { provide: SERVER_TOKENS.byok, useExisting: ByokService },

@@ -10,11 +10,11 @@ import { BrandsService } from '@server/collections/brands/services/brands.servic
 import { IngredientsService } from '@server/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@server/collections/metadata/services/metadata.service';
 import { PersonasService } from '@server/collections/personas/services/personas.service';
-import {
-  type SystemWorkflowActionExecutor,
-  type SystemWorkflowGraphDefinition,
-  SystemWorkflowRunnerService,
+import type {
+  SystemWorkflowActionExecutor,
+  SystemWorkflowGraphDefinition,
 } from '@server/collections/workflows/system-workflow-runner.service';
+import { SYSTEM_WORKFLOW_RUNNER } from '@server/collections/workflows/workflows.tokens';
 import { NotFoundException } from '@server/exceptions/not-found.exception';
 import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
 import type { PipelineStep } from '@server/services/content-orchestration/pipeline.interfaces';
@@ -210,7 +210,7 @@ describe('ContentOrchestrationService', () => {
         { provide: MetadataService, useValue: mockMetadataService },
         { provide: StepExecutorService, useValue: mockStepExecutorService },
         {
-          provide: SystemWorkflowRunnerService,
+          provide: SYSTEM_WORKFLOW_RUNNER,
           useValue: mockSystemWorkflowRunner,
         },
       ],
@@ -432,44 +432,6 @@ describe('ContentOrchestrationService', () => {
 
     it('should not throw for valid steps', () => {
       expect(() => service.validateSteps(steps)).not.toThrow();
-    });
-  });
-
-  describe('parseFrequencyToMs', () => {
-    it('should parse hourly frequency', () => {
-      expect(ContentOrchestrationService.parseFrequencyToMs('hourly')).toBe(
-        3_600_000,
-      );
-    });
-
-    it('should parse twice-daily frequency', () => {
-      expect(
-        ContentOrchestrationService.parseFrequencyToMs('twice-daily'),
-      ).toBe(43_200_000);
-    });
-
-    it('should parse daily frequency', () => {
-      expect(ContentOrchestrationService.parseFrequencyToMs('daily')).toBe(
-        86_400_000,
-      );
-    });
-
-    it('should parse weekly frequency', () => {
-      expect(ContentOrchestrationService.parseFrequencyToMs('weekly')).toBe(
-        604_800_000,
-      );
-    });
-
-    it('should default to daily for unknown frequency', () => {
-      expect(ContentOrchestrationService.parseFrequencyToMs('unknown')).toBe(
-        86_400_000,
-      );
-    });
-
-    it('should default to daily when frequency is undefined', () => {
-      expect(ContentOrchestrationService.parseFrequencyToMs(undefined)).toBe(
-        86_400_000,
-      );
     });
   });
 

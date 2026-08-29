@@ -21,9 +21,9 @@ import {
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { WorkflowExecutionsService } from '@server/collections/workflow-executions/services/workflow-executions.service';
-import { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
+import type { WorkflowEngineAdapterService } from '@server/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionQueueService } from '@server/collections/workflows/services/workflow-execution-queue.service';
-import { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
+import type { WorkflowExecutorService } from '@server/collections/workflows/services/workflow-executor.service';
 import type { WorkflowExecutionResult } from '@server/collections/workflows/services/workflow-executor.types';
 import {
   buildHiddenSystemWorkflowMetadata,
@@ -42,6 +42,10 @@ import {
   buildWorkflowVersionDefinition,
   createVersionedWorkflow,
 } from '@server/collections/workflows/workflow-version-definition';
+import {
+  WORKFLOW_ENGINE_ADAPTER,
+  WORKFLOW_EXECUTOR,
+} from '@server/collections/workflows/workflows.tokens';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
 export const WORKFLOW_FOR_EACH_ACTION_ID = 'workflow.for-each';
@@ -134,8 +138,12 @@ export class SystemWorkflowRunnerService
           actionId === WORKFLOW_FOR_EACH_TENANT_ACTION_ID ||
           actionId === WORKFLOW_RUN_CHILD_ACTION_ID
         ) {
+          // Node configs nest authored values under `parameters`
+          // (`createGenfeedActionNode`). Reading the child id off the config
+          // root left this fail-closed guard permanently satisfied.
           const childWorkflowId = this.optionalString(
-            this.readRecord(node.data?.config).childWorkflowId,
+            this.readRecord(this.readRecord(node.data?.config).parameters)
+              .childWorkflowId,
           );
           if (
             childWorkflowId &&
@@ -1075,11 +1083,18 @@ export class SystemWorkflowRunnerService
   }
 
   private getEngineAdapter(): WorkflowEngineAdapterService {
-    return this.moduleRef.get(WorkflowEngineAdapterService, { strict: false });
+    return this.moduleRef.get<WorkflowEngineAdapterService>(
+      WORKFLOW_ENGINE_ADAPTER,
+      {
+        strict: false,
+      },
+    );
   }
 
   private getWorkflowExecutor(): WorkflowExecutorService {
-    return this.moduleRef.get(WorkflowExecutorService, { strict: false });
+    return this.moduleRef.get<WorkflowExecutorService>(WORKFLOW_EXECUTOR, {
+      strict: false,
+    });
   }
 
   private getWorkflowQueue(): WorkflowExecutionQueueService {

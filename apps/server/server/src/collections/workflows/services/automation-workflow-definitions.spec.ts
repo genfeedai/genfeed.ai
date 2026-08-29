@@ -74,8 +74,14 @@ describe('automation workflow definitions', () => {
   ])(
     'uses registered await-mode fan-out in %s',
     (definition, childWorkflowId) => {
+      // A parent may fan out over more than one child (agent autopilot resets
+      // credit windows before dispatching strategies), so match the fan-out by
+      // the child identity under test instead of taking the first node.
       const fanOut = definition.definition.nodes.find(
-        (node) => node.data.config.actionId === 'workflow.for-each',
+        (node) =>
+          node.data.config.actionId === 'workflow.for-each' &&
+          (node.data.config.parameters as { childWorkflowId?: string })
+            ?.childWorkflowId === childWorkflowId,
       );
       expect(fanOut?.data.config.parameters).toMatchObject({
         childWorkflowId,

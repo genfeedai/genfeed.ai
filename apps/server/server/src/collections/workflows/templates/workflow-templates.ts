@@ -458,10 +458,7 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
           config: {
             actionId: 'generate_clips',
             parameters: {
-              addTransitions: true,
-              autoDetectHighlights: true,
-              count: 5,
-              duration: 30,
+              mode: 'raw-cut',
             },
           },
         },

@@ -106,6 +106,63 @@ type InputField =
   | 'instructions'
   | 'mode'
   | 'timezone'
+  | 'acceptsStructuredPrompt'
+  | 'addWatermark'
+  | 'autoAnalyzeAfterHours'
+  | 'autoSync'
+  | 'backgroundColor'
+  | 'bitrate'
+  | 'category'
+  | 'checkFrequency'
+  | 'creditCost'
+  | 'fadeIn'
+  | 'fadeOut'
+  | 'fontColor'
+  | 'fontSize'
+  | 'fontWeight'
+  | 'fps'
+  | 'generateChapters'
+  | 'generateTranscript'
+  | 'hashtagCount'
+  | 'headers'
+  | 'hookFormula'
+  | 'includeAssetUrl'
+  | 'includeCTA'
+  | 'includeEmojis'
+  | 'includeHashtags'
+  | 'includeMetadata'
+  | 'keywords'
+  | 'languages'
+  | 'libraryCategory'
+  | 'libraryMood'
+  | 'maintainQuality'
+  | 'maxLength'
+  | 'method'
+  | 'mixMode'
+  | 'monetization'
+  | 'orientation'
+  | 'outputFormat'
+  | 'platforms'
+  | 'position'
+  | 'promptFormat'
+  | 'provider'
+  | 'resolution'
+  | 'slideIndex'
+  | 'strokeColor'
+  | 'strokeWidth'
+  | 'structuredPrompt'
+  | 'template'
+  | 'textColor'
+  | 'tone'
+  | 'toneStyle'
+  | 'topN'
+  | 'trackingEnabled'
+  | 'trendType'
+  | 'url'
+  | 'variables'
+  | 'videoVolume'
+  | 'visibility'
+  | 'worstN'
   | 'username';
 
 const MEDIA_VALUE_SCHEMA = JSON_DOCUMENT_SCHEMA;
@@ -115,10 +172,29 @@ const URL_OR_MEDIA_SCHEMA = {
 
 function inputFieldSchema(field: InputField): ActionJsonSchema {
   switch (field) {
+    case 'acceptsStructuredPrompt':
+    case 'addWatermark':
+    case 'autoSync':
+    case 'generateChapters':
+    case 'generateTranscript':
+    case 'includeAssetUrl':
+    case 'includeCTA':
+    case 'includeEmojis':
+    case 'includeHashtags':
+    case 'includeMetadata':
+    case 'maintainQuality':
+    case 'monetization':
+    case 'trackingEnabled':
     case 'auto':
     case 'useIdentityDefaults':
     case 'useLlm':
       return BOOLEAN_SCHEMA;
+    case 'autoAnalyzeAfterHours':
+    case 'hashtagCount':
+    case 'maxLength':
+    case 'slideIndex':
+    case 'topN':
+    case 'worstN':
     case 'clipCount':
     case 'maxIterations':
     case 'maxTokens':
@@ -126,6 +202,14 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
     case 'days':
     case 'limit':
       return INTEGER_SCHEMA;
+    case 'bitrate':
+    case 'creditCost':
+    case 'fadeIn':
+    case 'fadeOut':
+    case 'fontSize':
+    case 'fps':
+    case 'strokeWidth':
+    case 'videoVolume':
     case 'duration':
     case 'endTime':
     case 'height':
@@ -140,12 +224,19 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
     case 'width':
     case 'wordsPerSecond':
       return NUMBER_SCHEMA;
+    case 'keywords':
+    case 'languages':
+    case 'platforms':
+      return arraySchema(STRING_SCHEMA);
     case 'images':
     case 'references':
     case 'videoReferences':
     case 'videos':
     case 'suggestions':
       return arraySchema(URL_OR_MEDIA_SCHEMA);
+    case 'headers':
+    case 'structuredPrompt':
+    case 'variables':
     case 'audio':
     case 'brand':
     case 'data':
@@ -168,6 +259,39 @@ function inputSchema(fields: readonly InputField[]): ActionJsonSchema {
   return closedObjectSchema(
     Object.fromEntries(fields.map((field) => [field, inputFieldSchema(field)])),
   );
+}
+
+/**
+ * The prompt constructor deliberately treats any unreserved primitive config
+ * key as a template variable, so its authored surface is open by design. The
+ * contract still types every reserved key and keeps the boundary explicit —
+ * `undefined` is rejected, unlike an unconstrained `additionalProperties`.
+ */
+function promptConstructorInputSchema(): ActionJsonSchema {
+  const declared = [
+    'acceptsStructuredPrompt',
+    'brand',
+    'content',
+    'data',
+    'includeHashtags',
+    'maxLength',
+    'prompt',
+    'promptFormat',
+    'structuredPrompt',
+    'style',
+    'template',
+    'tone',
+    'topic',
+    'variables',
+  ] as const satisfies readonly InputField[];
+
+  return {
+    additionalProperties: JSON_DOCUMENT_SCHEMA,
+    properties: Object.fromEntries(
+      declared.map((field) => [field, inputFieldSchema(field)]),
+    ),
+    type: 'object',
+  };
 }
 
 function objectOutput(
@@ -235,6 +359,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'brandId',
         'clonedVoiceId',
         'photoUrl',
+        'provider',
         'script',
         'useIdentityDefaults',
       ]),
@@ -250,7 +375,15 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       }),
     },
     analyticsFeedback: {
-      inputSchema: inputSchema(['brandId', 'releaseAnalytics', 'topic']),
+      inputSchema: inputSchema([
+        'autoAnalyzeAfterHours',
+        'brandId',
+        'releaseAnalytics',
+        'topN',
+        'topic',
+        'trackingEnabled',
+        'worstN',
+      ]),
       outputSchema: objectOutput({
         avgEngagementRate: NUMBER_SCHEMA,
         bestPlatform: nullableSchema(STRING_SCHEMA),
@@ -264,7 +397,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       }),
     },
     attachPostIngredient: {
-      inputSchema: inputSchema(['post', 'media']),
+      inputSchema: inputSchema(['brandId', 'media', 'post']),
       outputSchema: objectOutput({
         ingredientId: STRING_SCHEMA,
         postId: STRING_SCHEMA,
@@ -343,7 +476,25 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       outputSchema: STRING_SCHEMA,
     },
     'effect-captions': {
-      inputSchema: inputSchema(['brandId', 'video']),
+      inputSchema: inputSchema([
+        'autoSync',
+        'backgroundColor',
+        'brandId',
+        'fontColor',
+        'fontSize',
+        'generateChapters',
+        'generateTranscript',
+        'hashtagCount',
+        'includeCTA',
+        'includeEmojis',
+        'includeHashtags',
+        'languages',
+        'platform',
+        'position',
+        'style',
+        'tone',
+        'video',
+      ]),
       outputSchema: VIDEO_ASSET_OUTPUT,
     },
     'effect-ken-burns': {
@@ -359,7 +510,18 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       outputSchema: objectOutput({ video: MEDIA_VALUE_SCHEMA }),
     },
     'effect-text-overlay': {
-      inputSchema: inputSchema(['media', 'text', 'video']),
+      inputSchema: inputSchema([
+        'fontSize',
+        'fontWeight',
+        'media',
+        'position',
+        'slideIndex',
+        'strokeColor',
+        'strokeWidth',
+        'text',
+        'textColor',
+        'video',
+      ]),
       outputSchema: objectOutput({ media: MEDIA_VALUE_SCHEMA }),
     },
     'effect-watermark': {
@@ -371,7 +533,14 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       outputSchema: STRING_SCHEMA,
     },
     hookGenerator: {
-      inputSchema: inputSchema(['brand', 'niche', 'product', 'trend']),
+      inputSchema: inputSchema([
+        'brand',
+        'hookFormula',
+        'niche',
+        'product',
+        'toneStyle',
+        'trend',
+      ]),
       outputSchema: objectOutput({
         captionHook: STRING_SCHEMA,
         hashtags: arraySchema(STRING_SCHEMA),
@@ -386,6 +555,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'model',
         'negativePrompt',
         'prompt',
+        'quality',
         'references',
         'seed',
         'strength',
@@ -430,6 +600,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'content',
         'maxTokens',
         'model',
+        'outputFormat',
         'prompt',
         'temperature',
         'text',
@@ -444,7 +615,10 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       inputSchema: inputSchema([
         'brandId',
         'generatePrompt',
+        'libraryCategory',
+        'libraryMood',
         'music',
+        'sourceType',
         'uploadUrl',
       ]),
       outputSchema: STRING_SCHEMA,
@@ -452,10 +626,12 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
     newsletterGen: {
       inputSchema: inputSchema([
         'brandId',
+        'brandLabel',
         'content',
         'instructions',
         'prompt',
         'text',
+        'timezone',
       ]),
       outputSchema: objectOutput({
         id: STRING_SCHEMA,
@@ -482,7 +658,14 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       outputSchema: ID_STATUS_OUTPUT,
     },
     'output-webhook': {
-      inputSchema: inputSchema(['data']),
+      inputSchema: inputSchema([
+        'data',
+        'headers',
+        'includeAssetUrl',
+        'includeMetadata',
+        'method',
+        'url',
+      ]),
       outputSchema: objectOutput({
         status: INTEGER_SCHEMA,
         success: BOOLEAN_SCHEMA,
@@ -556,7 +739,14 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       outputSchema: objectOutput({ video: MEDIA_VALUE_SCHEMA }),
     },
     'process-resize': {
-      inputSchema: inputSchema(['aspectRatio', 'height', 'media', 'width']),
+      inputSchema: inputSchema([
+        'aspectRatio',
+        'height',
+        'maintainQuality',
+        'media',
+        'platform',
+        'width',
+      ]),
       outputSchema: objectOutput({ media: MEDIA_VALUE_SCHEMA }),
     },
     'process-reverse': {
@@ -564,7 +754,12 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       outputSchema: objectOutput({ video: MEDIA_VALUE_SCHEMA }),
     },
     'process-transform': {
-      inputSchema: inputSchema(['aspectRatio', 'media']),
+      inputSchema: inputSchema([
+        'aspectRatio',
+        'maintainQuality',
+        'media',
+        'orientation',
+      ]),
       outputSchema: objectOutput({ media: MEDIA_VALUE_SCHEMA }),
     },
     'process-trim': {
@@ -572,14 +767,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       outputSchema: objectOutput({ video: MEDIA_VALUE_SCHEMA }),
     },
     promptConstructor: {
-      inputSchema: inputSchema([
-        'brand',
-        'content',
-        'data',
-        'prompt',
-        'style',
-        'topic',
-      ]),
+      inputSchema: promptConstructorInputSchema(),
       outputSchema: objectOutput({
         output: STRING_SCHEMA,
         prompt: STRING_SCHEMA,
@@ -588,12 +776,17 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
     },
     publish: {
       inputSchema: inputSchema([
+        'addWatermark',
         'brand',
         'caption',
+        'category',
         'credentialId',
         'media',
+        'monetization',
         'platform',
+        'platforms',
         'schedule',
+        'visibility',
       ]),
       outputSchema: objectOutput({
         platforms: arraySchema(STRING_SCHEMA),
@@ -713,8 +906,12 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       inputSchema: inputSchema([
         'audioVolume',
         'brandId',
+        'fadeIn',
+        'fadeOut',
+        'mixMode',
         'soundUrl',
         'videoUrl',
+        'videoVolume',
       ]),
       outputSchema: STRING_SCHEMA,
     },
@@ -761,7 +958,14 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       }),
     },
     trendDigest: {
-      inputSchema: inputSchema(['brandId', 'platform']),
+      inputSchema: inputSchema([
+        'brandId',
+        'creditCost',
+        'minViralScore',
+        'platform',
+        'platforms',
+        'topN',
+      ]),
       outputSchema: {
         oneOf: [
           objectOutput({
@@ -817,10 +1021,13 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
     },
     trendTrigger: {
       inputSchema: inputSchema([
+        'checkFrequency',
+        'keywords',
         'minViralScore',
         'platform',
         'topic',
         'trendId',
+        'trendType',
       ]),
       outputSchema: {
         anyOf: [
@@ -859,7 +1066,16 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
       }),
     },
     upscale: {
-      inputSchema: inputSchema(['brandId', 'media', 'model', 'scale']),
+      inputSchema: inputSchema([
+        'bitrate',
+        'brandId',
+        'fps',
+        'media',
+        'model',
+        'quality',
+        'resolution',
+        'scale',
+      ]),
       outputSchema: objectOutput({
         id: STRING_SCHEMA,
         mediaUrl: STRING_SCHEMA,
@@ -878,15 +1094,19 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
     },
     videoGen: {
       inputSchema: inputSchema([
+        'aspectRatio',
         'brandId',
         'duration',
+        'fps',
         'height',
         'lastFrame',
         'model',
         'negativePrompt',
         'prompt',
         'references',
+        'resolution',
         'seed',
+        'style',
         'videoReferences',
         'width',
       ]),

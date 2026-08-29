@@ -582,18 +582,33 @@ describe('AgentApiService', () => {
     });
   });
 
-  describe('cancelRun', () => {
-    it('patches the run with the canonical cancelled status', async () => {
-      const run = { id: 'run-1', status: 'cancelled' };
-      mockJsonApiResource(run, 'agent-run');
+  describe('workflow executions', () => {
+    it('fetches a single execution by id', async () => {
+      const execution = { id: 'execution-1', status: 'RUNNING' };
+      mockJsonApiResource(execution, 'workflow-execution');
       const service = makeService();
 
       await expect(
-        Effect.runPromise(service.cancelRunEffect('run-1')),
-      ).resolves.toEqual(run);
+        Effect.runPromise(service.getWorkflowExecutionEffect('execution-1')),
+      ).resolves.toEqual(execution);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/runs/run-1',
+        'http://api.test/workflow-executions/execution-1',
+        expect.any(Object),
+      );
+    });
+
+    it('patches the execution with the canonical cancelled status', async () => {
+      const execution = { id: 'execution-1', status: 'CANCELLED' };
+      mockJsonApiResource(execution, 'workflow-execution');
+      const service = makeService();
+
+      await expect(
+        Effect.runPromise(service.cancelWorkflowExecutionEffect('execution-1')),
+      ).resolves.toEqual(execution);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://api.test/workflow-executions/execution-1',
         expect.objectContaining({
           body: JSON.stringify({ status: 'CANCELLED' }),
           method: 'PATCH',
@@ -601,139 +616,29 @@ describe('AgentApiService', () => {
       );
     });
 
-    it('includes the selected brand scope', async () => {
-      const run = { id: 'run-1', status: 'cancelled' };
-      mockJsonApiResource(run, 'agent-run');
-      const service = makeService();
-
-      await Effect.runPromise(
-        service.cancelRunEffect('run-1', undefined, 'brand-1'),
-      );
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/runs/run-1?brand=brand-1',
-        expect.objectContaining({
-          body: JSON.stringify({ status: 'CANCELLED' }),
-          method: 'PATCH',
-        }),
-      );
-    });
-  });
-
-  describe('operator runs', () => {
-    it('returns paginated brand-scoped run history', async () => {
-      mockOk({
-        data: [
-          {
-            attributes: { label: 'Campaign run', status: 'completed' },
-            id: 'run-1',
-            type: 'agent-run',
-          },
+    it('keeps only pending and running executions as active', async () => {
+      mockJsonApiCollection(
+        [
+          { id: 'execution-1', status: 'PENDING' },
+          { id: 'execution-2', status: 'RUNNING' },
+          { id: 'execution-3', status: 'COMPLETED' },
+          { id: 'execution-4', status: 'FAILED' },
         ],
-        links: {
-          pagination: { limit: 10, page: 2, pages: 3, total: 24 },
-        },
-      });
+        'workflow-execution',
+      );
       const service = makeService();
 
-      await expect(
-        Effect.runPromise(
-          service.listRunsEffect({ brandId: 'brand-1', page: 2 }),
-        ),
-      ).resolves.toEqual({
-        pagination: { limit: 10, page: 2, pages: 3, total: 24 },
-        runs: [{ id: 'run-1', label: 'Campaign run', status: 'completed' }],
-      });
+      const active = await Effect.runPromise(
+        service.getActiveWorkflowExecutionsEffect(),
+      );
+
+      expect(active.map((execution) => execution.id)).toEqual([
+        'execution-1',
+        'execution-2',
+      ]);
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/runs?limit=10&page=2&brand=brand-1',
+        'http://api.test/workflow-executions?limit=100',
         expect.any(Object),
-      );
-    });
-
-    it('uses explicit filters and derives empty pagination when links are absent', async () => {
-      mockOk({ data: [] });
-      const service = makeService();
-
-      await expect(
-        Effect.runPromise(
-          service.listRunsEffect({ limit: 5, status: 'failed' }),
-        ),
-      ).resolves.toEqual({
-        pagination: { limit: 5, page: 1, pages: 0, total: 0 },
-        runs: [],
-      });
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/runs?limit=5&page=1&status=failed',
-        expect.any(Object),
-      );
-    });
-
-    it('preserves the requested page in fallback pagination', async () => {
-      mockOk({
-        data: [
-          {
-            attributes: { label: 'Older run', status: 'completed' },
-            id: 'run-11',
-            type: 'agent-run',
-          },
-        ],
-      });
-      const service = makeService();
-
-      await expect(
-        Effect.runPromise(service.listRunsEffect({ limit: 10, page: 2 })),
-      ).resolves.toEqual({
-        pagination: { limit: 10, page: 2, pages: 2, total: 11 },
-        runs: [{ id: 'run-11', label: 'Older run', status: 'completed' }],
-      });
-    });
-
-    it('keeps empty fallback pagination internally consistent', async () => {
-      mockOk({ data: [] });
-      const service = makeService();
-
-      await expect(
-        Effect.runPromise(service.listRunsEffect({ limit: 10, page: 2 })),
-      ).resolves.toEqual({
-        pagination: { limit: 10, page: 2, pages: 1, total: 10 },
-        runs: [],
-      });
-    });
-
-    it('omits empty optional run filters', async () => {
-      mockOk({ data: [] });
-      const service = makeService();
-
-      await Effect.runPromise(
-        service.listRunsEffect({ brandId: '', status: '' }),
-      );
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/runs?limit=10&page=1',
-        expect.any(Object),
-      );
-    });
-
-    it('fetches detail and retries within the selected brand', async () => {
-      const run = { id: 'run-1', status: 'pending' };
-      mockJsonApiResource(run, 'agent-run');
-      mockJsonApiResource(run, 'agent-run');
-      const service = makeService();
-
-      await Effect.runPromise(service.getRunEffect('run-1', 'brand-1'));
-      await Effect.runPromise(
-        service.retryRunEffect('run-1', undefined, 'brand-1'),
-      );
-
-      expect(mockFetch).toHaveBeenNthCalledWith(
-        1,
-        'http://api.test/runs/run-1?brand=brand-1',
-        expect.any(Object),
-      );
-      expect(mockFetch).toHaveBeenNthCalledWith(
-        2,
-        'http://api.test/runs/run-1/retries?brand=brand-1',
-        expect.objectContaining({ method: 'POST' }),
       );
     });
   });

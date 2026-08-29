@@ -11,10 +11,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { BrandsService } from '@server/collections/brands/services/brands.service';
 import { AUTOMATION_WORKFLOW_IDS } from '@server/collections/workflows/services/automation-workflow-definitions';
+import { parseFrequencyToMs } from '@server/helpers/utils/content-frequency/content-frequency.util';
 import { CacheService } from '@server/services/cache/cache.service';
 import { ContentExecutionService } from '@server/services/content-engine/content-execution.service';
 import { ContentPlannerService } from '@server/services/content-engine/content-planner.service';
-import { ContentOrchestrationService } from '@server/services/content-orchestration/content-orchestration.service';
 import type { PipelineStep } from '@server/services/content-orchestration/pipeline.interfaces';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
@@ -440,9 +440,7 @@ export class ContentProductionWorkflowService {
     updateLastRun = true,
   ): Promise<void> {
     const config = (persona.config ?? {}) as PersonaConfig;
-    const frequencyMs = ContentOrchestrationService.parseFrequencyToMs(
-      config.contentStrategy?.frequency,
-    );
+    const frequencyMs = parseFrequencyToMs(config.contentStrategy?.frequency);
     const nextRun = new Date(now.getTime() + frequencyMs);
 
     const updatedConfig: PersonaConfig = {

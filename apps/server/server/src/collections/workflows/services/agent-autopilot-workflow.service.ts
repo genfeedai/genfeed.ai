@@ -6,13 +6,14 @@ import {
 import { toPrismaJson } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { AgentGoalsService } from '@server/collections/agent-goals/services/agent-goals.service';
 import { AgentThreadsService } from '@server/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@server/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@server/collections/organization-settings/services/organization-settings.service';
 import { AUTOMATION_WORKFLOW_IDS } from '@server/collections/workflows/services/automation-workflow-definitions';
-import { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import type { SystemWorkflowRunnerService } from '@server/collections/workflows/system-workflow-runner.service';
+import { SYSTEM_WORKFLOW_RUNNER } from '@server/collections/workflows/workflows.tokens';
 import { CacheService } from '@server/services/cache/cache.service';
 import { PrismaService } from '@server/shared/modules/prisma/prisma.service';
 
@@ -98,6 +99,7 @@ export class AgentAutopilotWorkflowService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly agentThreadsService: AgentThreadsService,
+    @Inject(SYSTEM_WORKFLOW_RUNNER)
     private readonly workflowRunner: SystemWorkflowRunnerService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly organizationSettingsService: OrganizationSettingsService,

@@ -1,3 +1,4 @@
+import { GENFEED_ACTION_NODE_TYPE } from '@genfeedai/actions';
 import { WorkflowStatus } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -499,18 +500,21 @@ export class DefaultRecurringContentService {
         nodes: [
           {
             data: {
-              config: this.buildNodeConfig({
-                brandId,
-                brandLabel: params.brand.label,
-                contentType: params.contentType,
-                credentialId: params.credentialId ?? undefined,
-                timezone: scheduleConfig.timezone,
-              }),
+              config: {
+                actionId: this.buildActionId(params.contentType),
+                parameters: this.buildNodeConfig({
+                  brandId,
+                  brandLabel: params.brand.label,
+                  contentType: params.contentType,
+                  credentialId: params.credentialId ?? undefined,
+                  timezone: scheduleConfig.timezone,
+                }),
+              },
               label: this.buildNodeLabel(params.contentType),
             },
             id: `generate-${params.contentType}`,
             position: { x: 120, y: 120 },
-            type: this.buildNodeType(params.contentType),
+            type: GENFEED_ACTION_NODE_TYPE,
           },
         ],
       },
@@ -574,14 +578,14 @@ export class DefaultRecurringContentService {
     }
   }
 
-  private buildNodeType(contentType: DefaultRecurringContentType): string {
+  private buildActionId(contentType: DefaultRecurringContentType): string {
     switch (contentType) {
       case 'post':
-        return 'ai-generate-post';
+        return 'postGen';
       case 'newsletter':
-        return 'ai-generate-newsletter';
+        return 'newsletterGen';
       case 'image':
-        return 'ai-generate-image';
+        return 'imageGen';
     }
   }
 

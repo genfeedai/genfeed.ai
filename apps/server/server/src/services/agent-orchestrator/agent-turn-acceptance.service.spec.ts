@@ -128,7 +128,7 @@ describe('AgentTurnAcceptanceService', () => {
       expect.objectContaining({
         brandId: 'brand-1',
         content: 'Generate an image of a lighthouse',
-        id: acknowledgement.runId,
+        id: acknowledgement.executionId,
         organizationId: 'org-1',
         room: acknowledgement.threadId,
         userId: 'user-1',

@@ -7,6 +7,7 @@ import {
   SYSTEM_WORKFLOW_PRINCIPAL_ID,
 } from '@server/collections/workflows/system-workflow.contract';
 import { buildWorkflowVersionDefinition } from '@server/collections/workflows/workflow-version-definition';
+import { WORKFLOW_EXECUTOR } from '@server/collections/workflows/workflows.tokens';
 import { describe, expect, it, vi } from 'vitest';
 import {
   type SystemWorkflowGraphDefinition,
@@ -194,8 +195,8 @@ describe('SystemWorkflowRunnerService definitions', () => {
       registerExecutor: vi.fn(),
     };
     const moduleRef = {
-      get: (token: { name?: string }) =>
-        token.name === 'WorkflowExecutorService'
+      get: (token: unknown) =>
+        token === WORKFLOW_EXECUTOR
           ? { executeManualWorkflowDocument }
           : adapter,
     };
@@ -678,14 +679,15 @@ function createRunner(
     },
   };
   const moduleRef = {
-    get: (token: { name?: string }) => {
-      if (token.name === 'WorkflowExecutionQueueService') {
+    get: (token: unknown) => {
+      const name = (token as { name?: string })?.name;
+      if (name === 'WorkflowExecutionQueueService') {
         return queue;
       }
-      if (token.name === 'WorkflowExecutorService') {
+      if (token === WORKFLOW_EXECUTOR) {
         return workflowExecutor;
       }
-      if (token.name === 'WorkflowExecutionsService') {
+      if (name === 'WorkflowExecutionsService') {
         return workflowExecutions;
       }
       return adapter;

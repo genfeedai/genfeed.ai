@@ -416,8 +416,8 @@ const storeState: StoreState = {
 };
 
 const EFFECT_METHOD_MAP = {
-  cancelRun: 'cancelRunEffect',
-  getActiveRuns: 'getActiveRunsEffect',
+  cancelWorkflowExecution: 'cancelWorkflowExecutionEffect',
+  getActiveWorkflowExecutions: 'getActiveWorkflowExecutionsEffect',
   getMessagesPage: 'getMessagesPageEffect',
   respondToInputRequest: 'respondToInputRequestEffect',
   respondToUiAction: 'respondToUiActionEffect',
@@ -451,8 +451,8 @@ function withAgentApiEffects<T extends Record<string, unknown>>(
 
 function createApiService(overrides: Record<string, unknown> = {}) {
   return withAgentApiEffects({
-    cancelRun: vi.fn(),
-    getActiveRuns: vi.fn().mockResolvedValue([]),
+    cancelWorkflowExecution: vi.fn(),
+    getActiveWorkflowExecutions: vi.fn().mockResolvedValue([]),
     getMessagesPage: vi.fn(),
     respondToInputRequest: vi.fn(),
     respondToUiAction: vi.fn(),
@@ -1244,7 +1244,7 @@ describe('AgentChatContainer', () => {
 
   it('cancels the active run before sending a queued prompt now', async () => {
     const apiService = createApiService({
-      cancelRun: vi.fn().mockResolvedValue(undefined),
+      cancelWorkflowExecution: vi.fn().mockResolvedValue(undefined),
     });
     storeState.pendingInputRequest = null;
     storeState.messages = [];
@@ -1269,7 +1269,7 @@ describe('AgentChatContainer', () => {
     fireEvent.click(screen.getByLabelText('sendNow'));
 
     await waitFor(() => {
-      expect(apiService.cancelRun).toHaveBeenCalled();
+      expect(apiService.cancelWorkflowExecution).toHaveBeenCalled();
     });
     expect(sendNonStreaming).not.toHaveBeenCalled();
 
