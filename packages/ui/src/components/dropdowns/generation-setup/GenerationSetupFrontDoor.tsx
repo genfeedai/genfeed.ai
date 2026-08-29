@@ -97,7 +97,7 @@ export default function GenerationSetupFrontDoor({
           </span>
           <Button
             ariaLabel="Customize setup"
-            className="h-6 gap-1 px-1.5 text-2xs text-muted-foreground hover:text-foreground"
+            className="h-control-sm gap-1 px-1.5 text-2xs text-muted-foreground hover:text-foreground"
             icon={<ChevronRight className="size-3" />}
             isDisabled={isDisabled}
             label="Customize"

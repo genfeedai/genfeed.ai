@@ -194,6 +194,9 @@ vi.mock('@ui/primitives/tooltip', async () => {
   const React = await import('react');
 
   return {
+    SimpleTooltip: ({ children }: { children: React.ReactNode }) => (
+      <>{children}</>
+    ),
     Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
     TooltipContent: () => null,
     TooltipProvider: ({ children }: { children: React.ReactNode }) => (

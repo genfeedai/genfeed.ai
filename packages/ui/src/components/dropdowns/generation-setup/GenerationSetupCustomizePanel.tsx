@@ -127,7 +127,7 @@ export default function GenerationSetupCustomizePanel({
             <Button
               ariaLabel={`${SECTION_LABELS[section]} tab`}
               className={cn(
-                'h-7 px-2 text-2xs text-muted-foreground',
+                'h-control-sm px-2 text-2xs text-muted-foreground',
                 resolvedSection === section &&
                   'bg-background-tertiary text-foreground',
               )}
